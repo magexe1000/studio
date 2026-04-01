@@ -38,7 +38,6 @@
     "@capacitor/android": "^6.2.1",
     "@capacitor/cli": "^6.2.1",
     "@capacitor/core": "^6.2.1",
-    "@capacitor/status-bar": "^6.0.0",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",
     "material-symbols": "^0.43.0",
