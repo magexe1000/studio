@@ -117,8 +117,6 @@ export default function App() {
       style={{
         position: 'relative',
         '--panel-dur': `${durMs}ms`,
-        paddingLeft: 'env(safe-area-inset-left, 0px)',
-        paddingRight: 'env(safe-area-inset-right, 0px)',
       } as React.CSSProperties}
     >
       <div style={{ paddingTop: 'env(safe-area-inset-top)' }} className="flex-none" />

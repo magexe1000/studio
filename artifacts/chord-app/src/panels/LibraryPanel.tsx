@@ -473,8 +473,8 @@ export default function LibraryPanel() {
       )}
 
       {/* ── Fixed header ── */}
-      <header className="flex-none px-6 pt-6 pb-3 app-bg"
-        style={{ transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)' }}>
+      <header className="flex-none pt-6 pb-3 app-bg"
+        style={{ paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 24px)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 24px)', transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)' }}>
         <h1 className="text-base font-bold"
           style={{
             color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em',

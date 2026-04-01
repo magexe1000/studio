@@ -136,14 +136,14 @@ export default function SettingsPanel() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden app-bg">
-      <header className="flex-none px-6 pt-6 pb-1 app-bg">
+      <header className="flex-none pt-6 pb-1 app-bg" style={{ paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 24px)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 24px)' }}>
         <h1 style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
           <ChordexLogo />
           {t.appName}
         </h1>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar px-5" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 20px)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 20px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         {/* Page title */}
         <div className="mt-3 mb-6">

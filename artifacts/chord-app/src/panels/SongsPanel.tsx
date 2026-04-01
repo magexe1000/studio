@@ -2020,7 +2020,7 @@ export default function SongsPanel() {
     <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative' }}>
       {showForm && <PresetForm accent={accent} initial={editingFormData} onSave={handleFormSave} onCancel={() => { setShowForm(false); setEditingId(null); }} />}
 
-      <header className="flex-none px-6 pt-6 pb-1 app-bg">
+      <header className="flex-none pt-6 pb-1 app-bg" style={{ paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 24px)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 24px)' }}>
         <h1 style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '15px', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
           <ChordexLogo />
           Chordex
@@ -2028,7 +2028,7 @@ export default function SongsPanel() {
       </header>
 
       {/* Scrollable list (nav auto-hides here) */}
-      <div ref={listScrollRef} className="flex-1 overflow-y-auto no-scrollbar px-5 pb-32">
+      <div ref={listScrollRef} className="flex-1 overflow-y-auto no-scrollbar pb-32" style={{ paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 20px)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 20px)' }}>
         <div style={{ marginTop: '12px', marginBottom: '24px' }}>
           <h2 style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '2.6rem', color: 'var(--c-text-primary)', letterSpacing: '-0.04em', lineHeight: 1 }}>{t.songs.title}</h2>
           <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '13px', marginTop: '4px' }}>{t.songs.subtitle}</p>
