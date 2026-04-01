@@ -1,0 +1,105 @@
+import type { GuitarChordData } from '../data/chords';
+
+interface Props {
+  data: GuitarChordData;
+  accentFrom: string;
+}
+
+export default function ChordDiagram({ data, accentFrom }: Props) {
+  const W = 90, H = 80;
+  const padL = 13, padR = 6, padT = 18, padB = 8;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const numStrings = 6, numFrets = 4;
+  const cellW = innerW / (numStrings - 1);
+  const cellH = innerH / numFrets;
+  const r = 3.8;
+  const { frets, barres, baseFret } = data;
+  // Anchor the window at the lowest active fret so barre chords never clip
+  const activeFrets = frets.filter(f => f > 0);
+  const minActive = activeFrets.length ? Math.min(...activeFrets) : 1;
+  const minFret = baseFret > 1 ? baseFret : Math.max(1, minActive);
+  const showNut = minFret <= 1;
+
+  // String thickness (low E = thickest)
+  const stringWidths = [1.4, 1.1, 0.85, 0.7, 0.6, 0.5];
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+      {/* Fretboard warm background */}
+      <rect x={padL} y={padT} width={innerW} height={innerH} rx={2.5} fill="rgba(28,18,8,0.45)" />
+      {/* Nut */}
+      {showNut && (
+        <rect x={padL - 1} y={padT - 3.5} width={innerW + 2} height={3.5} rx={1.5} fill="#888" opacity={0.7} />
+      )}
+      {/* BaseFret number */}
+      {!showNut && (
+        <text x={padL - 3} y={padT + cellH / 2} textAnchor="end" fontSize={8} fill="#6b6b6b"
+          dominantBaseline="middle" fontFamily="Inter" fontWeight="700">{baseFret}</text>
+      )}
+      {/* Fret lines */}
+      {Array.from({ length: numFrets + 1 }).map((_, i) => (
+        <line key={i} x1={padL} y1={padT + i * cellH} x2={padL + innerW} y2={padT + i * cellH}
+          stroke="rgba(120,90,50,0.52)" strokeWidth={0.75} />
+      ))}
+      {/* String lines — thicker for wound strings */}
+      {Array.from({ length: numStrings }).map((_, i) => (
+        <line key={i} x1={padL + i * cellW} y1={padT} x2={padL + i * cellW} y2={padT + innerH}
+          stroke="rgba(200,170,90,0.42)"
+          strokeWidth={stringWidths[i]} />
+      ))}
+      {/* Barre chords */}
+      {barres.map((barre, bi) => {
+        const fp = barre.fret - minFret;
+        if (fp < 0 || fp >= numFrets) return null;
+        const x1 = padL + (barre.fromString - 1) * cellW;
+        const x2 = padL + (barre.toString - 1) * cellW;
+        const cy = padT + fp * cellH + cellH / 2;
+        return (
+          <rect key={`barre-${bi}`}
+            x={Math.min(x1, x2)}
+            y={cy - r}
+            width={Math.abs(x2 - x1)}
+            height={r * 2}
+            rx={r}
+            fill={accentFrom}
+            opacity={0.9}
+          />
+        );
+      })}
+      {/* Finger dots — skip strings covered by a barre */}
+      {frets.map((fret, si) => {
+        if (fret <= 0) return null;
+        const fp = fret - minFret;
+        if (fp < 0 || fp >= numFrets) return null;
+        const isBarre = barres.some(b =>
+          b.fret === fret &&
+          si >= b.fromString - 1 &&
+          si <= b.toString - 1
+        );
+        if (isBarre) return null;
+        const cx = padL + si * cellW;
+        const cy = padT + fp * cellH + cellH / 2;
+        return (
+          <g key={si}>
+            <circle cx={cx} cy={cy} r={r + 2.5} fill={accentFrom} opacity={0.13} />
+            <circle cx={cx} cy={cy} r={r} fill={accentFrom} />
+          </g>
+        );
+      })}
+      {/* Open / muted indicators */}
+      {frets.map((fret, si) => {
+        const cx = padL + si * cellW;
+        const cy = padT - 9;
+        if (fret === -1) return (
+          <text key={si} x={cx} y={cy + 2} fontSize={9} fill="#c55" textAnchor="middle"
+            dominantBaseline="middle" fontWeight="bold">✕</text>
+        );
+        if (fret === 0) return (
+          <circle key={si} cx={cx} cy={cy} r={3} fill="none" stroke="#888" strokeWidth={0.9} />
+        );
+        return null;
+      })}
+    </svg>
+  );
+}

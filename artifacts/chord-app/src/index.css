@@ -1,0 +1,468 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-surface: var(--app-bg);
+  --color-surface-dim: var(--app-bg);
+  --color-surface-container-lowest: var(--app-surface-lowest);
+  --color-surface-container-low: var(--app-surface-low);
+  --color-surface-container: var(--app-surface);
+  --color-surface-container-high: var(--app-surface-high);
+  --color-surface-container-highest: var(--app-surface-highest);
+  --color-surface-bright: #2c2c2c;
+  --color-surface-variant: #252626;
+  --color-on-surface: #e7e5e4;
+  --color-on-surface-variant: #acabaa;
+  --color-on-background: #e7e5e4;
+  --color-background: var(--app-bg);
+  --color-outline: #767575;
+  --color-outline-variant: #484848;
+  --color-tertiary: #679cff;
+  --color-tertiary-container: #007aff;
+  --color-on-tertiary: #001f4a;
+  --color-secondary: #9d9da6;
+  --color-secondary-container: #3a3b42;
+  --color-primary: #c6c6c7;
+  --color-primary-container: #454747;
+  --color-error: #ee7d77;
+  --color-error-dim: #bb5551;
+  --color-error-container: #7f2927;
+
+  --font-headline: "Manrope", sans-serif;
+  --font-label: "Inter", sans-serif;
+  --font-sans: "Manrope", sans-serif;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-full: 9999px;
+}
+
+/* ===== Typed CSS custom properties — enables native color animation ===== */
+@property --app-bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0e0e0e;
+}
+@property --app-surface-lowest {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #000000;
+}
+@property --app-surface-low {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #131313;
+}
+@property --app-surface {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #191a1a;
+}
+@property --app-surface-high {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #1f2020;
+}
+@property --app-surface-highest {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #252626;
+}
+
+/* ===== AMOLED-aware CSS Custom Properties ===== */
+/* Register custom properties so they can be CSS-transitioned */
+@property --c-text-primary   { syntax: '<color>'; inherits: true;  initial-value: #e7e5e4; }
+@property --c-text-secondary { syntax: '<color>'; inherits: true;  initial-value: #acabaa; }
+@property --c-text-muted     { syntax: '<color>'; inherits: true;  initial-value: #484848; }
+
+:root {
+  --app-bg: #0e0e0e;
+  --app-surface-lowest: #000000;
+  --app-surface-low: #131313;
+  --app-surface: #191a1a;
+  --app-surface-high: #1f2020;
+  --app-surface-highest: #252626;
+
+  --c-text-primary:   #e7e5e4;
+  --c-text-secondary: #acabaa;
+  --c-text-muted:     #484848;
+
+  /* Animate the variables themselves — every consumer transitions for free */
+  transition:
+    --app-bg              500ms cubic-bezier(0.4, 0, 0.2, 1),
+    --app-surface-lowest  500ms cubic-bezier(0.4, 0, 0.2, 1),
+    --app-surface-low     500ms cubic-bezier(0.4, 0, 0.2, 1),
+    --app-surface         500ms cubic-bezier(0.4, 0, 0.2, 1),
+    --app-surface-high    500ms cubic-bezier(0.4, 0, 0.2, 1),
+    --app-surface-highest 500ms cubic-bezier(0.4, 0, 0.2, 1),
+    --c-text-primary      500ms cubic-bezier(0.4, 0, 0.2, 1),
+    --c-text-secondary    500ms cubic-bezier(0.4, 0, 0.2, 1),
+    --c-text-muted        500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root.amoled {
+  --app-bg: #000000;
+  --app-surface-lowest: #000000;
+  --app-surface-low: #030303;
+  --app-surface: #080808;
+  --app-surface-high: #0d0d0d;
+  --app-surface-highest: #121212;
+}
+
+/* ===== Light Theme ===== */
+:root.light {
+  color-scheme: light;
+
+  --app-bg: #f2f1ef;
+  --app-surface-lowest: #e5e4e2;
+  --app-surface-low: #e9e8e6;
+  --app-surface: #eeedeb;
+  --app-surface-high: #f4f3f1;
+  --app-surface-highest: #faf9f7;
+
+  --c-text-primary:   #1a1a1a;
+  --c-text-secondary: #6e6d6b;
+  --c-text-muted:     #b2b1b0;
+}
+
+/* System preference: auto-apply light when OS is in light mode and user chose system */
+:root.theme-system {
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: light) {
+  :root.theme-system {
+    --app-bg: #f2f1ef;
+    --app-surface-lowest: #e5e4e2;
+    --app-surface-low: #e9e8e6;
+    --app-surface: #eeedeb;
+    --app-surface-high: #f4f3f1;
+    --app-surface-highest: #faf9f7;
+
+    --c-text-primary:   #1a1a1a;
+    --c-text-secondary: #6e6d6b;
+    --c-text-muted:     #b2b1b0;
+  }
+}
+
+/* ===== Material Symbols ===== */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Global Base ===== */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+    /* Propagate crisp text rendering to every element */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--app-bg);
+    color: #e7e5e4;
+  }
+
+  #root {
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--app-bg);
+  }
+
+  body {
+    font-family: 'Manrope', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+
+  /* All text elements: crisp, legible, no subpixel blur */
+  p, span, h1, h2, h3, h4, h5, h6, a, label, button, input, textarea, li, td, th {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* ===== Smooth Scrollbar ===== */
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(72, 72, 72, 0.15);
+    border-radius: 10px;
+  }
+
+  /* ===== Glassmorphism Nav ===== */
+  .glass-nav {
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  /* ===== Panel Transitions ===== */
+  .panel-transition {
+    transition: opacity 320ms cubic-bezier(0.4, 0, 0.2, 1),
+                transform 320ms cubic-bezier(0.4, 0, 0.2, 1);
+    /* will-change removed — permanent GPU compositing degrades subpixel text AA */
+  }
+
+  .panel-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .panel-hidden-down {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+    pointer-events: none;
+  }
+
+  /* ===== AMOLED surface classes ===== */
+  /* No explicit transition needed — the @property animation on :root handles it */
+  .app-bg           { background-color: var(--app-bg); }
+  .app-surface      { background-color: var(--app-surface); }
+  .app-surface-low  { background-color: var(--app-surface-low); }
+  .app-surface-high { background-color: var(--app-surface-high); }
+  .app-surface-lowest { background-color: var(--app-surface-lowest); }
+
+  /* ===== Butter smooth button interactions ===== */
+  .btn-smooth {
+    transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 150ms ease,
+                background-color 200ms ease,
+                box-shadow 200ms ease;
+  }
+  .btn-smooth:active {
+    transform: scale(0.93);
+  }
+
+  /* ===== Card hover ===== */
+  .card-hover {
+    transition: background-color 200ms ease,
+                transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-color 200ms ease;
+  }
+  .card-hover:active {
+    transform: scale(0.97);
+  }
+
+  /* ===== Spring scale animation ===== */
+  @keyframes spring-in {
+    0%   { transform: scale(0.92) translateY(6px); opacity: 0; }
+    60%  { transform: scale(1.02) translateY(-1px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  .spring-in {
+    animation: spring-in 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* ===== Content slide-up fade (category drill-down) ===== */
+  @keyframes content-enter {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .content-enter {
+    animation: content-enter 240ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+
+  /* ===== Slide in from right (song/preset editor) ===== */
+  @keyframes slide-from-right {
+    from { opacity: 0; transform: translateX(18px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .slide-from-right {
+    animation: slide-from-right 260ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+
+  /* ===== Range slider ===== */
+  input[type="range"] {
+    -webkit-appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    background: var(--app-surface-high);
+    height: 4px;
+    border-radius: 9999px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 18px;
+    width: 18px;
+    background: #679cff;
+    border-radius: 50%;
+    margin-top: -7px;
+    transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(1.3);
+  }
+
+  /* ===== Bottom sheet slide-up / slide-down ===== */
+  @keyframes sheet-up {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+  }
+  @keyframes sheet-down {
+    from { transform: translateY(0);   opacity: 1; }
+    to   { transform: translateY(100%); opacity: 0; }
+  }
+
+  /* ===== Panel slide transitions ===== */
+  @keyframes panel-enter-right {
+    from { transform: translateX(18px); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
+  @keyframes panel-enter-left {
+    from { transform: translateX(-18px); opacity: 0; }
+    to   { transform: translateX(0);     opacity: 1; }
+  }
+  @keyframes panel-exit-left {
+    from { transform: translateX(0);     opacity: 1; }
+    to   { transform: translateX(-18px); opacity: 0; }
+  }
+  @keyframes panel-exit-right {
+    from { transform: translateX(0);    opacity: 1; }
+    to   { transform: translateX(18px); opacity: 0; }
+  }
+  .panel-enter-right {
+    animation: panel-enter-right var(--panel-dur, 260ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    will-change: transform, opacity;
+  }
+  .panel-enter-left  {
+    animation: panel-enter-left  var(--panel-dur, 260ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    will-change: transform, opacity;
+  }
+  .panel-exit-left   {
+    animation: panel-exit-left   var(--panel-dur, 260ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    will-change: transform, opacity;
+  }
+  .panel-exit-right  {
+    animation: panel-exit-right  var(--panel-dur, 260ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    will-change: transform, opacity;
+  }
+
+  /* ===== Live Mode chord transitions ===== */
+  @keyframes live-chord-in-right {
+    from { opacity: 0; transform: translateX(18px); }
+    to   { opacity: 1; transform: translateX(0);    }
+  }
+  @keyframes live-chord-in-left {
+    from { opacity: 0; transform: translateX(-18px); }
+    to   { opacity: 1; transform: translateX(0);     }
+  }
+
+  /* ===== Live Mode chord progress countdown ===== */
+  @keyframes chord-countdown {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+  }
+  @keyframes active-dot-appear {
+    from { transform: scale(0.4) scaleX(0.3); opacity: 0; }
+    60%  { transform: scale(1.08); }
+    to   { transform: scale(1); opacity: 1; }
+  }
+
+  /* ===== Live Mode chord bloom on arrival ===== */
+  @keyframes chord-bloom {
+    0%   { opacity: 0.55; transform: scale(0.95); }
+    45%  { opacity: 1;    transform: scale(1.06); }
+    100% { opacity: 0;    transform: scale(1.35); }
+  }
+
+  /* ===== Live Mode fullscreen enter / exit ===== */
+  @keyframes live-mode-enter {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  @keyframes live-mode-exit {
+    from { transform: translateY(0);    opacity: 1; }
+    to   { transform: translateY(100%); opacity: 0; }
+  }
+
+  /* ===== Live Mode BPM progress bar ===== */
+  @keyframes live-progress {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+
+  /* ===== Reduced motion (system) ===== */
+  @media (prefers-reduced-motion: reduce) {
+    .panel-transition,
+    .btn-smooth,
+    .card-hover,
+    .spring-in {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  /* ===== Animation Speed setting ===== */
+  html[data-anim="reduced"] *,
+  html[data-anim="reduced"] *::before,
+  html[data-anim="reduced"] *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+  }
+  html[data-anim="fast"] .panel-transition,
+  html[data-anim="fast"] .btn-smooth,
+  html[data-anim="fast"] .card-hover {
+    transition-duration: 80ms !important;
+  }
+  html[data-anim="fast"] .spring-in {
+    animation-duration: 160ms !important;
+  }
+  html[data-anim="fast"] .content-enter {
+    animation-duration: 100ms !important;
+  }
+  html[data-anim="fast"] .slide-from-right {
+    animation-duration: 110ms !important;
+  }
+}
+
+/* ===== Font size CSS vars (defaults = medium) ===== */
+:root {
+  --font-base: 14px;
+  --font-sm:   12px;
+  --font-xs:   10px;
+  --font-lg:   18px;
+  --font-xl:   24px;
+  --font-hero: 2.8rem;
+
+  /* ===== Density CSS vars (defaults = comfortable) ===== */
+  --density-pad:      16px;
+  --density-row-pad:  14px 20px;
+  --density-gap:      12px;
+  --density-card-gap: 10px;
+}

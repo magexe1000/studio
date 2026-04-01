@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Chord Explorer"
+version = "1.0.0"
+id = "artifacts/chord-app"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25362
+
+[services.development]
+run = "pnpm --filter @workspace/chord-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/chord-app", "run", "build" ]
+publicDir = "artifacts/chord-app/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25362"
+BASE_PATH = "/"
