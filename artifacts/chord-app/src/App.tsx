@@ -119,7 +119,7 @@ export default function App() {
         '--panel-dur': `${durMs}ms`,
       } as React.CSSProperties}
     >
-      <div style={{ paddingTop: 'env(safe-area-inset-top)' }} className="flex-none" />
+      <div style={{ paddingTop: 'env(safe-area-inset-top)', background: 'var(--app-bg)' }} className="flex-none" />
 
       {/* Panel container */}
       <div className="flex-1 overflow-hidden relative">
