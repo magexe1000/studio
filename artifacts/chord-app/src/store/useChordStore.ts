@@ -33,6 +33,12 @@ export interface CustomChord {
   createdAt: number;
 }
 
+export interface SongSection {
+  id: string;
+  name: string;
+  chords: string[];
+}
+
 export interface SongPreset {
   id: string;
   name: string;
@@ -40,7 +46,8 @@ export interface SongPreset {
   bpm: number;
   key: string;
   notes: string;
-  chords: string[]; // chord IDs in performance order
+  chords: string[];          // flat list — used when no sections
+  sections?: SongSection[];  // optional section-based organisation
   createdAt: number;
   updatedAt: number;
 }
@@ -131,6 +138,14 @@ interface ChordStore {
   removeChordFromPreset: (presetId: string, index: number) => void;
   reorderPresetChords: (presetId: string, from: number, to: number) => void;
   duplicateChordInPreset: (presetId: string, index: number) => void;
+
+  // Section operations
+  addSection: (presetId: string, name: string) => void;
+  updateSection: (presetId: string, sectionId: string, name: string) => void;
+  deleteSection: (presetId: string, sectionId: string) => void;
+  addChordToSection: (presetId: string, sectionId: string, chordId: string) => void;
+  removeChordFromSection: (presetId: string, sectionId: string, index: number) => void;
+  convertToSections: (presetId: string) => void;
 }
 
 export const ACCENT_COLORS: Record<AccentColor, { from: string; to: string; mid: string }> = {
@@ -364,6 +379,84 @@ export const useChordStore = create<ChordStore>()(
             const chords = [...p.chords];
             chords.splice(index + 1, 0, chords[index]);
             return { ...p, chords, updatedAt: Date.now() };
+          }),
+        }));
+      },
+
+      addSection: (presetId, name) => {
+        const id = `sec-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
+        set((state) => ({
+          presets: state.presets.map(p =>
+            p.id !== presetId ? p : {
+              ...p, updatedAt: Date.now(),
+              sections: [...(p.sections ?? []), { id, name, chords: [] }],
+            }
+          ),
+        }));
+      },
+
+      updateSection: (presetId, sectionId, name) => {
+        set((state) => ({
+          presets: state.presets.map(p =>
+            p.id !== presetId ? p : {
+              ...p, updatedAt: Date.now(),
+              sections: (p.sections ?? []).map(s => s.id === sectionId ? { ...s, name } : s),
+            }
+          ),
+        }));
+      },
+
+      deleteSection: (presetId, sectionId) => {
+        set((state) => ({
+          presets: state.presets.map(p =>
+            p.id !== presetId ? p : {
+              ...p, updatedAt: Date.now(),
+              sections: (p.sections ?? []).filter(s => s.id !== sectionId),
+            }
+          ),
+        }));
+      },
+
+      addChordToSection: (presetId, sectionId, chordId) => {
+        set((state) => ({
+          presets: state.presets.map(p =>
+            p.id !== presetId ? p : {
+              ...p, updatedAt: Date.now(),
+              sections: (p.sections ?? []).map(s =>
+                s.id === sectionId ? { ...s, chords: [...s.chords, chordId] } : s
+              ),
+            }
+          ),
+        }));
+      },
+
+      removeChordFromSection: (presetId, sectionId, index) => {
+        set((state) => ({
+          presets: state.presets.map(p => {
+            if (p.id !== presetId) return p;
+            return {
+              ...p, updatedAt: Date.now(),
+              sections: (p.sections ?? []).map(s => {
+                if (s.id !== sectionId) return s;
+                const chords = [...s.chords];
+                chords.splice(index, 1);
+                return { ...s, chords };
+              }),
+            };
+          }),
+        }));
+      },
+
+      convertToSections: (presetId) => {
+        set((state) => ({
+          presets: state.presets.map(p => {
+            if (p.id !== presetId) return p;
+            const id = `sec-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
+            return {
+              ...p, updatedAt: Date.now(),
+              sections: [{ id, name: 'Verse', chords: [...p.chords] }],
+              chords: [],
+            };
           }),
         }));
       },

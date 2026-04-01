@@ -181,6 +181,16 @@ const translations = {
       songImportedDesc: (name: string) => `"${name}" has been added to your songs.`,
       importFailed: 'Import Failed',
       tryAgain: 'Try Again',
+      /* Sections */
+      addSection: 'Add Section',
+      addFirstSection: 'Organise chords by section',
+      addFirstSectionDesc: 'Create a Verse, Chorus, Bridge…',
+      convertToSections: 'Convert to Sections',
+      sectionNamePlaceholder: 'Section name…',
+      deleteSection: 'Delete section',
+      addChordToSection: 'Add chord',
+      noSectionChords: 'No chords yet.',
+      sectionOf: (n: number) => `${n} chord${n !== 1 ? 's' : ''}`,
     },
 
     /* ── Settings Panel ── */
@@ -505,6 +515,16 @@ const translations = {
       songImportedDesc: (name: string) => `"${name}" se ha añadido a tus canciones.`,
       importFailed: 'Error al importar',
       tryAgain: 'Intentar de nuevo',
+      /* Sections */
+      addSection: 'Agregar sección',
+      addFirstSection: 'Organizar acordes por sección',
+      addFirstSectionDesc: 'Crea un Verso, Coro, Puente…',
+      convertToSections: 'Convertir en secciones',
+      sectionNamePlaceholder: 'Nombre de sección…',
+      deleteSection: 'Eliminar sección',
+      addChordToSection: 'Agregar acorde',
+      noSectionChords: 'Aún no hay acordes.',
+      sectionOf: (n: number) => `${n} acorde${n !== 1 ? 's' : ''}`,
     },
 
     settings: {

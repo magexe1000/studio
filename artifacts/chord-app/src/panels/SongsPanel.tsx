@@ -210,17 +210,27 @@ function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPOR
 
   /* Build merged chord entry list */
   type ChordEntry = { isCustom: false; chord: Chord; idx: number } | { isCustom: true; customChord: CustomChord; idx: number };
-  const entries: ChordEntry[] = [];
-  preset.chords.forEach((id, idx) => {
-    if (id.startsWith('custom-')) {
-      const cc = storedCustomChords.find(c => c.id === id);
-      if (cc) entries.push({ isCustom: true, customChord: cc, idx });
-    } else {
-      const displayId = transposeOffset !== 0 ? transposeChordId(id, transposeOffset) : id;
-      const chord = getChordById(displayId) ?? getChordById(id);
-      if (chord) entries.push({ isCustom: false, chord, idx });
-    }
-  });
+
+  const buildEntries = (ids: string[]): ChordEntry[] => {
+    const out: ChordEntry[] = [];
+    ids.forEach((id, idx) => {
+      if (id.startsWith('custom-')) {
+        const cc = storedCustomChords.find(c => c.id === id);
+        if (cc) out.push({ isCustom: true, customChord: cc, idx });
+      } else {
+        const displayId = transposeOffset !== 0 ? transposeChordId(id, transposeOffset) : id;
+        const chord = getChordById(displayId) ?? getChordById(id);
+        if (chord) out.push({ isCustom: false, chord, idx });
+      }
+    });
+    return out;
+  };
+
+  const hasSections = !!(preset.sections && preset.sections.length > 0);
+  const allIds = hasSections
+    ? preset.sections!.flatMap(s => s.chords)
+    : preset.chords;
+  const entries = buildEntries(allIds);
 
   const safeName   = preset.name.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_') || 'Song';
   const safeArtist = preset.artist.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
@@ -309,10 +319,9 @@ function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPOR
     return `<div class="chord-instr" style="background:${c}1a;color:${c};border:1px solid ${c}44;">${instr.toUpperCase()}</div>`;
   };
 
-  /* ── Chord blocks ── */
-  const chordBlocks = entries.map((entry, i) => {
-    const numEl = cfg.showNumbering
-      ? `<div class="chord-num">${i + 1}</div>` : '';
+  /* ── Chord block builder ── */
+  const buildBlock = (entry: ChordEntry, i: number): string => {
+    const numEl = cfg.showNumbering ? `<div class="chord-num">${i + 1}</div>` : '';
     if (entry.isCustom) {
       const cc = entry.customChord;
       const instr = cc.instrument ?? 'guitar';
@@ -336,23 +345,33 @@ function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPOR
       return `<div class="chord-block">${numEl}${instrBadge(instr)}${nameEl}${diagEl}<div class="chord-notes">${cc.notes.slice(0, 6).join(' · ')}</div></div>`;
     }
     const chord = entry.chord;
-    const nameEl = cfg.chordDisplay !== 'diagram'
-      ? `<div class="chord-name">${chord.name}</div>` : '';
+    const nameEl = cfg.chordDisplay !== 'diagram' ? `<div class="chord-name">${chord.name}</div>` : '';
     const diagEl = cfg.chordDisplay !== 'name'
       ? `<div class="chord-diagram">${buildPrintSVG(chord.guitar, dark, accentColor, svgScale)}</div>` : '';
     return `<div class="chord-block">${numEl}${instrBadge('guitar')}${nameEl}${diagEl}<div class="chord-notes">${chord.notes.join(' · ')}</div><div class="chord-type">${chord.type.toUpperCase()}</div></div>`;
-  }).join('');
+  };
+
+  /* ── Chord content (flat grid or section groups) ── */
+  const chordContent = hasSections
+    ? preset.sections!.map(section => {
+        const secEntries = buildEntries(section.chords);
+        const blocks = secEntries.map((e, i) => buildBlock(e, i)).join('');
+        return `
+          <div class="section-group">
+            <div class="section-heading">${section.name}</div>
+            <div class="chord-grid">${blocks || '<p style="font-size:11px;color:' + muted + ';padding:8px 0;">No chords</p>'}</div>
+          </div>`;
+      }).join('')
+    : `<div class="chord-grid">${entries.map((e, i) => buildBlock(e, i)).join('')}</div>`;
 
   /* ── Full HTML ── */
   const html = `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8"><title>${docTitle}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{
-  font-family:'Manrope','Helvetica Neue',Arial,sans-serif;
+  font-family:system-ui,-apple-system,'Segoe UI','Helvetica Neue',Arial,sans-serif;
   color:${text};background:${bg};padding:${bodyPad};
   -webkit-print-color-adjust:exact;print-color-adjust:exact;
 }
@@ -412,10 +431,18 @@ body{
   display:flex;justify-content:space-between;align-items:center;
 }
 .footer-txt{font-size:9px;font-weight:600;color:${muted};letter-spacing:0.05em;}
+.section-group{margin-bottom:${compact ? '18px' : '28px'};}
+.section-heading{
+  font-size:${compact ? '8px' : '10px'};font-weight:800;letter-spacing:0.22em;
+  text-transform:uppercase;color:${accentColor};
+  border-left:3px solid ${accentColor};padding-left:8px;
+  margin-bottom:${compact ? '8px' : '12px'};
+}
 @media print{
   body{padding:${compact ? '12px 18px' : '20px 32px'};}
   @page{margin:1cm;size:A4 ${cfg.orientation};}
   .chord-block{break-inside:avoid;}
+  .section-group{break-inside:avoid-page;}
 }
 </style></head>
 <body>
@@ -428,33 +455,43 @@ body{
   <div class="header-right">${chordCount}</div>
 </div>
 <div class="section-row">
-  <div class="section-label">${pip}Chord Progression</div>
+  <div class="section-label">${pip}${hasSections ? 'Song Sections' : 'Chord Progression'}</div>
   <div class="section-label">${chordCount}</div>
 </div>
-<div class="chord-grid">${chordBlocks}</div>
+${chordContent}
 <div class="doc-footer">
   <span class="footer-txt">Chordex</span>
-  <span class="footer-txt">Page 1 of 1</span>
+  <span class="footer-txt">${new Date().getFullYear()}</span>
 </div>
 </body></html>`;
 
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-
-  const iframe = document.createElement('iframe');
-  iframe.setAttribute('title', 'pdf-print');
-  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
-  document.body.appendChild(iframe);
-
-  iframe.onload = () => {
-    try { iframe.contentWindow?.print(); } catch (_) { /* no-op */ }
+  /* ── Export: open in new window (web/PWA), fallback download (Capacitor) ── */
+  const printWin = window.open('about:blank', '_blank');
+  if (printWin) {
+    printWin.document.write(html);
+    printWin.document.close();
+    let printed = false;
+    const doPrint = () => {
+      if (printed) return;
+      printed = true;
+      printWin.focus();
+      printWin.print();
+    };
+    printWin.addEventListener('load', doPrint);
+    setTimeout(doPrint, 1200); // safety fallback if load fires late
+  } else {
+    // Capacitor / pop-up blocked: download as HTML file
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${docTitle}.html`;
+    document.body.appendChild(a);
+    a.click();
     setTimeout(() => {
-      try { document.body.removeChild(iframe); } catch (_) { /* no-op */ }
-      URL.revokeObjectURL(url);
-    }, 3000);
-  };
-
-  iframe.src = url;
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }, 1000);
+  }
 }
 
 /* ──────────────────── Chord Picker Sheet ──────────────────── */
@@ -1576,6 +1613,7 @@ export default function SongsPanel() {
     addChordToPreset, removeChordFromPreset, reorderPresetChords, duplicateChordInPreset,
     setTranspose, resetTranspose, updateSettings,
     saveCustomChord, updateCustomChord, deleteCustomChord,
+    addSection, updateSection, deleteSection, addChordToSection, removeChordFromSection, convertToSections,
   } = useChordStore();
   const accent      = ACCENT_COLORS[settings.accentColor];
   const preferFlats = settings.preferFlats ?? false;
@@ -1589,6 +1627,11 @@ export default function SongsPanel() {
   const [showDeleteId, setShowDeleteId]       = useState<string | null>(null);
   const [exportModalPreset, setExportModal]   = useState<SongPreset | null>(null);
   const [showImport, setShowImport]           = useState(false);
+
+  // Section state
+  const [pickerSectionId, setPickerSectionId]         = useState<string | null>(null);
+  const [editingSectionId, setEditingSectionId]       = useState<string | null>(null);
+  const [editingSectionName, setEditingSectionName]   = useState('');
 
   // ── Android back gesture / predictive back ──────────────────────────────
   // Keep a ref to the current "close topmost thing" logic so the popstate
@@ -1749,7 +1792,10 @@ export default function SongsPanel() {
     return (
       <div className="flex flex-col h-full overflow-hidden app-bg slide-from-right" style={{ position: 'relative' }}>
         {showLive && <LiveMode preset={activePreset} onClose={() => setShowLive(false)} transposeOffset={transposeOffset} />}
-        {showPicker && <ChordPicker accent={accent} onAdd={id => addChordToPreset(activePreset.id, id)} onClose={() => setShowPicker(false)} onCreateCustom={() => setShowCustomBuilder(true)} customChords={customChords} />}
+        {showPicker && <ChordPicker accent={accent} onAdd={id => {
+          if (pickerSectionId) addChordToSection(activePreset.id, pickerSectionId, id);
+          else addChordToPreset(activePreset.id, id);
+        }} onClose={() => { setShowPicker(false); setPickerSectionId(null); }} onCreateCustom={() => { setShowPicker(false); setPickerSectionId(null); setShowCustomBuilder(true); }} customChords={customChords} />}
         {showCustomBuilder && (
           <CustomChordBuilder
             accent={accent}
@@ -1888,7 +1934,74 @@ export default function SongsPanel() {
         </div>
 
         {/* Chord list (scrollable) */}
+        {(() => {
+          const hasSections = !!(activePreset.sections && activePreset.sections.length > 0);
+          return (
         <div ref={editorScrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ padding: '0 16px', position: 'relative' }}>
+          {hasSections ? (
+            /* ── Sections view ── */
+            <div style={{ paddingTop: '12px', paddingBottom: '16px' }}>
+              {activePreset.sections!.map(section => {
+                const isEditing = editingSectionId === section.id;
+                return (
+                  <div key={section.id} style={{ marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', padding: '0 2px' }}>
+                      {isEditing ? (
+                        <input autoFocus value={editingSectionName}
+                          onChange={e => setEditingSectionName(e.target.value)}
+                          onBlur={() => { if (editingSectionName.trim()) updateSection(activePreset.id, section.id, editingSectionName.trim()); setEditingSectionId(null); }}
+                          onKeyDown={e => { if (e.key === 'Enter') { if (editingSectionName.trim()) updateSection(activePreset.id, section.id, editingSectionName.trim()); setEditingSectionId(null); } if (e.key === 'Escape') setEditingSectionId(null); }}
+                          style={{ flex: 1, background: 'var(--app-surface)', border: `1px solid ${accent.from}44`, borderRadius: '8px', padding: '6px 10px', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px', outline: 'none' }} />
+                      ) : (
+                        <p style={{ flex: 1, color: accent.from, fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase', borderLeft: `3px solid ${accent.from}`, paddingLeft: '8px' }}>{section.name}</p>
+                      )}
+                      {!isEditing && (<>
+                        <button onClick={() => { setEditingSectionId(section.id); setEditingSectionName(section.name); }} className="btn-smooth"
+                          style={{ width: '28px', height: '28px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--app-surface-high)' }}>
+                          <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '15px' }}>edit</span>
+                        </button>
+                        <button onClick={() => { if (activePreset.sections!.length > 1 || section.chords.length === 0) deleteSection(activePreset.id, section.id); }} className="btn-smooth"
+                          style={{ width: '28px', height: '28px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(238,125,119,0.1)', opacity: activePreset.sections!.length <= 1 && section.chords.length > 0 ? 0.3 : 1 }}>
+                          <span className="material-symbols-outlined" style={{ color: '#ee7d77', fontSize: '15px' }}>delete</span>
+                        </button>
+                      </>)}
+                    </div>
+                    {section.chords.length === 0 && (
+                      <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Inter', fontSize: '12px', padding: '8px 12px' }}>{t.songs.noSectionChords}</p>
+                    )}
+                    {section.chords.map((chordId, idx) => {
+                      const isCustom = chordId.startsWith('custom-');
+                      const customChord = isCustom ? customChords.find(c => c.id === chordId) ?? null : null;
+                      const displayId = (!isCustom && transposeOffset !== 0) ? transposeChordId(chordId, transposeOffset) : chordId;
+                      const chord = isCustom ? null : (getChordById(displayId) ?? getChordById(chordId));
+                      if (!chord && !customChord) return null;
+                      return (
+                        <div key={chordId + idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', background: 'var(--app-surface)', borderRadius: '1rem', border: '1px solid rgba(72,72,72,0.06)', marginBottom: '6px' }}>
+                          <div style={{ background: 'var(--app-surface-lowest)', borderRadius: '8px', padding: '3px 3px 1px', width: '52px', flexShrink: 0 }}>
+                            {isCustom && customChord ? <CustomMiniDiagram chord={customChord} accentFrom={accent.from} /> : <ChordDiagram data={chord!.guitar} accentFrom={accent.from} />}
+                          </div>
+                          <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '16px' }}>
+                            {isCustom ? (customChord?.name || t.songs.customChord) : chord!.name.replace(/\s/g, '')}
+                          </p>
+                          <button onClick={() => removeChordFromSection(activePreset.id, section.id, idx)} className="btn-smooth"
+                            style={{ width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(238,125,119,0.1)', flexShrink: 0 }}>
+                            <span className="material-symbols-outlined" style={{ color: '#ee7d77', fontSize: '15px' }}>close</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                    <button onClick={() => { setPickerSectionId(section.id); setShowPicker(true); }} className="btn-smooth"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', background: `${accent.from}0d`, border: `1px dashed ${accent.from}44`, color: accent.from, fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '4px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>add</span>
+                      {t.songs.addChordToSection}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* ── Flat chord list ── */
+            <>
           {localChords.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', gap: '12px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--c-text-muted)' }}>queue_music</span>
@@ -2022,23 +2135,57 @@ export default function SongsPanel() {
               );
             })}
           </div>
-        </div>
-
-        {/* Bottom action strip */}
-        <div className="flex-none" style={{ padding: '8px 16px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))', display: 'flex', gap: '8px', background: 'var(--app-bg)', borderTop: '1px solid rgba(72,72,72,0.06)' }}>
-          <button onClick={() => setShowPicker(true)} data-testid="add-chord-btn" className="btn-smooth"
-            style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
-            {t.songs.addChord}
-          </button>
-          {localChords.length > 0 && (
-            <button onClick={() => setShowLive(true)} data-testid="enter-live-mode" className="btn-smooth"
-              style={{ flex: 2, padding: '10px 12px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', boxShadow: `0 4px 20px ${accent.to}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>play_circle</span>
-              {t.songs.liveMode}
-            </button>
+            </>
           )}
         </div>
+          );
+        })()}
+
+        {/* Bottom action strip */}
+        {(() => {
+          const hasSections = !!(activePreset.sections && activePreset.sections.length > 0);
+          return (
+        <div className="flex-none" style={{ padding: '8px 16px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))', display: 'flex', gap: '8px', background: 'var(--app-bg)', borderTop: '1px solid rgba(72,72,72,0.06)', flexWrap: 'wrap' }}>
+          {hasSections ? (
+            <>
+              <button onClick={() => { const names = ['Verse','Chorus','Bridge','Outro','Pre-Chorus','Intro']; addSection(activePreset.id, names[(activePreset.sections?.length ?? 0) % names.length]); }} data-testid="add-section-btn" className="btn-smooth"
+                style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', minWidth: '120px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
+                {t.songs.addSection}
+              </button>
+              {activePreset.sections!.some(s => s.chords.length > 0) && (
+                <button onClick={() => setShowLive(true)} data-testid="enter-live-mode" className="btn-smooth"
+                  style={{ flex: 2, padding: '10px 12px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', boxShadow: `0 4px 20px ${accent.to}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', minWidth: '120px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>play_circle</span>
+                  {t.songs.liveMode}
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <button onClick={() => setShowPicker(true)} data-testid="add-chord-btn" className="btn-smooth"
+                style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
+                {t.songs.addChord}
+              </button>
+              {localChords.length > 0 && (<>
+                <button onClick={() => convertToSections(activePreset.id)} className="btn-smooth"
+                  title={t.songs.convertToSections}
+                  style={{ padding: '10px 12px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>segment</span>
+                  {t.songs.addFirstSection}
+                </button>
+                <button onClick={() => setShowLive(true)} data-testid="enter-live-mode" className="btn-smooth"
+                  style={{ flex: 2, padding: '10px 12px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', boxShadow: `0 4px 20px ${accent.to}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>play_circle</span>
+                  {t.songs.liveMode}
+                </button>
+              </>)}
+            </>
+          )}
+        </div>
+          );
+        })()}
 
         {showForm && <PresetForm accent={accent} initial={editingFormData} onSave={handleFormSave} onCancel={() => { setShowForm(false); setEditingId(null); }} />}
 
