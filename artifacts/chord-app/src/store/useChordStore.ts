@@ -145,6 +145,7 @@ interface ChordStore {
   deleteSection: (presetId: string, sectionId: string) => void;
   addChordToSection: (presetId: string, sectionId: string, chordId: string) => void;
   removeChordFromSection: (presetId: string, sectionId: string, index: number) => void;
+  reorderSection: (presetId: string, fromIdx: number, toIdx: number) => void;
   convertToSections: (presetId: string) => void;
 }
 
@@ -443,6 +444,18 @@ export const useChordStore = create<ChordStore>()(
                 return { ...s, chords };
               }),
             };
+          }),
+        }));
+      },
+
+      reorderSection: (presetId, fromIdx, toIdx) => {
+        set((state) => ({
+          presets: state.presets.map(p => {
+            if (p.id !== presetId || !p.sections) return p;
+            const secs = [...p.sections];
+            const [moved] = secs.splice(fromIdx, 1);
+            secs.splice(toIdx, 0, moved);
+            return { ...p, updatedAt: Date.now(), sections: secs };
           }),
         }));
       },

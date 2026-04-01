@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { getAllChords, getChordById, type Chord, type ChordType, type GuitarChordData } from '../data/chords';
-import { useChordStore, ACCENT_COLORS, type SongPreset, type CustomChord } from '../store/useChordStore';
+import { useChordStore, ACCENT_COLORS, type SongPreset, type SongSection, type CustomChord } from '../store/useChordStore';
 import { transposeChordId, transposeKeyString, formatOffset } from '../lib/transpose';
 import { isChordOutOfKey } from '../lib/chordAssistant';
 import LiveMode from '../components/LiveMode';
@@ -1613,7 +1613,7 @@ export default function SongsPanel() {
     addChordToPreset, removeChordFromPreset, reorderPresetChords, duplicateChordInPreset,
     setTranspose, resetTranspose, updateSettings,
     saveCustomChord, updateCustomChord, deleteCustomChord,
-    addSection, updateSection, deleteSection, addChordToSection, removeChordFromSection, convertToSections,
+    addSection, updateSection, deleteSection, addChordToSection, removeChordFromSection, reorderSection, convertToSections,
   } = useChordStore();
   const accent      = ACCENT_COLORS[settings.accentColor];
   const preferFlats = settings.preferFlats ?? false;
@@ -1632,6 +1632,21 @@ export default function SongsPanel() {
   const [pickerSectionId, setPickerSectionId]         = useState<string | null>(null);
   const [editingSectionId, setEditingSectionId]       = useState<string | null>(null);
   const [editingSectionName, setEditingSectionName]   = useState('');
+
+  // Section picker sheet
+  const [showSectionPicker, setShowSectionPicker]     = useState(false);
+  const [customSectionName, setCustomSectionName]     = useState('');
+  const [customSectionMode, setCustomSectionMode]     = useState(false);
+
+  // Section drag-to-reorder
+  const [secDragIdx, setSecDragIdx]                   = useState<number | null>(null);
+  const [secDragDeltaY, setSecDragDeltaY]             = useState(0);
+  const secDragStartY = useRef(0);
+  const secDragStartIdx = useRef(0);
+  const secDragNodeRef  = useRef<HTMLElement | null>(null);
+  const secRefs         = useRef<(HTMLElement | null)[]>([]);
+  const [localSections, setLocalSections]             = useState<SongSection[]>([]);
+  const secInstanceKeys = useRef<string[]>([]);
 
   // ── Android back gesture / predictive back ──────────────────────────────
   // Keep a ref to the current "close topmost thing" logic so the popstate
@@ -1782,6 +1797,92 @@ export default function SongsPanel() {
     setEditingId(null);
   };
 
+  // Sync localSections from store when not dragging
+  useEffect(() => {
+    if (secDragIdx === null) {
+      const secs = activePreset?.sections ?? [];
+      secInstanceKeys.current = secs.map(() => Math.random().toString(36).slice(2));
+      setLocalSections([...secs]);
+    }
+  }, [activePreset?.sections, secDragIdx]);
+
+  // Snapshot of section midpoints captured at drag start (avoids repeated getBoundingClientRect)
+  const secMidpointsRef = useRef<number[]>([]);
+  const localSectionsRef = useRef<SongSection[]>([]);
+
+  const onSecDragStart = (e: React.PointerEvent, index: number) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    secDragStartY.current   = e.clientY;
+    secDragStartIdx.current = index;
+    // Snapshot midpoints
+    secMidpointsRef.current = secRefs.current.map(el => {
+      if (!el) return 0;
+      const r = el.getBoundingClientRect();
+      return r.top + r.height / 2;
+    });
+    localSectionsRef.current = [...localSections];
+    setSecDragIdx(index);
+    setSecDragDeltaY(0);
+  };
+
+  const onSecDragMove = (e: React.PointerEvent) => {
+    if (secDragNodeRef.current === null) return;
+    const slot = secDragStartIdx.current;
+    const raw = e.clientY - secDragStartY.current;
+    setSecDragDeltaY(raw);
+
+    // Find target slot by checking which section the pointer mid is closest to
+    const pointerY = e.clientY;
+    let target = slot;
+    for (let i = 0; i < secMidpointsRef.current.length; i++) {
+      if (i === slot) continue;
+      const mid = secMidpointsRef.current[i];
+      if (i < slot && pointerY < mid) { target = i; break; }
+      if (i > slot && pointerY > mid) target = i;
+    }
+    target = Math.max(0, Math.min(localSectionsRef.current.length - 1, target));
+
+    if (target !== slot) {
+      const newSecs = [...localSectionsRef.current];
+      const newKeys = [...secInstanceKeys.current];
+      const [movedSec] = newSecs.splice(slot, 1);
+      const [movedKey] = newKeys.splice(slot, 1);
+      newSecs.splice(target, 0, movedSec);
+      newKeys.splice(target, 0, movedKey);
+
+      // Re-snapshot midpoints adjusted for swap
+      const el1 = secRefs.current[slot];
+      const el2 = secRefs.current[target];
+      if (el1 && el2) {
+        const newMids = [...secMidpointsRef.current];
+        const tmp = newMids[slot];
+        newMids[slot] = newMids[target];
+        newMids[target] = tmp;
+        secMidpointsRef.current = newMids;
+      }
+
+      secDragStartIdx.current  = target;
+      secInstanceKeys.current  = newKeys;
+      localSectionsRef.current = newSecs;
+
+      const deltaShift = e.clientY - secDragStartY.current;
+      secDragStartY.current = e.clientY - deltaShift;
+      setLocalSections(newSecs);
+      setSecDragIdx(target);
+    }
+  };
+
+  const onSecDragEnd = () => {
+    if (secDragIdx !== null && activePreset) {
+      const fromIdx = (activePreset.sections ?? []).findIndex(s => s.id === localSectionsRef.current[secDragIdx!]?.id);
+      const toIdx   = secDragIdx;
+      if (fromIdx !== -1 && fromIdx !== toIdx) reorderSection(activePreset.id, fromIdx, toIdx);
+    }
+    secDragNodeRef.current = null;
+    setSecDragIdx(null);
+    setSecDragDeltaY(0);
+  };
+
   const editingPreset   = editingId ? presets.find(p => p.id === editingId) : null;
   const editingFormData = editingPreset
     ? { name: editingPreset.name, artist: editingPreset.artist, bpm: String(editingPreset.bpm), key: editingPreset.key, notes: editingPreset.notes }
@@ -1832,6 +1933,19 @@ export default function SongsPanel() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {/* Live Mode pill */}
+              {(() => {
+                const hasChords = activePreset.sections
+                  ? activePreset.sections.some(s => s.chords.length > 0)
+                  : activePreset.chords.length > 0;
+                return hasChords ? (
+                  <button onClick={() => setShowLive(true)} data-testid="enter-live-mode" className="btn-smooth"
+                    style={{ height: '36px', padding: '0 12px 0 10px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, boxShadow: `0 2px 12px ${accent.to}55`, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: '17px' }}>play_circle</span>
+                    <span style={{ color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '12px', letterSpacing: '0.02em' }}>{t.songs.liveMode}</span>
+                  </button>
+                ) : null;
+              })()}
               {/* JSON export (share) */}
               <button
                 onClick={() => exportPresetToJSON(activePreset)}
@@ -1940,18 +2054,41 @@ export default function SongsPanel() {
         <div ref={editorScrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ padding: '0 16px', position: 'relative' }}>
           {hasSections ? (
             /* ── Sections view ── */
-            <div style={{ paddingTop: '12px', paddingBottom: '16px' }}>
-              {activePreset.sections!.map(section => {
-                const isEditing = editingSectionId === section.id;
+            <div style={{ paddingTop: '12px', paddingBottom: '16px' }}
+              onPointerMove={onSecDragMove} onPointerUp={onSecDragEnd} onPointerCancel={onSecDragEnd}>
+              {localSections.map((section, secIdx) => {
+                const isEditing   = editingSectionId === section.id;
+                const isSecActive = secDragIdx === secIdx;
+                const stableKey   = secInstanceKeys.current[secIdx] ?? section.id;
                 return (
-                  <div key={section.id} style={{ marginBottom: '20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', padding: '0 2px' }}>
+                  <div key={stableKey}
+                    ref={el => { secRefs.current[secIdx] = el; if (isSecActive) secDragNodeRef.current = el; }}
+                    style={{
+                      marginBottom: '16px',
+                      borderRadius: '14px',
+                      background: isSecActive ? `${accent.to}10` : 'transparent',
+                      border: isSecActive ? `1.5px solid ${accent.to}30` : '1.5px solid transparent',
+                      transform: isSecActive ? `translateY(${secDragDeltaY}px) scale(1.01)` : 'none',
+                      boxShadow: isSecActive ? '0 12px 40px rgba(0,0,0,0.35)' : 'none',
+                      zIndex: isSecActive ? 10 : 1,
+                      position: 'relative',
+                      transition: isSecActive ? 'box-shadow 150ms ease' : 'transform 200ms cubic-bezier(0.34,1.3,0.64,1), box-shadow 200ms ease',
+                      padding: isSecActive ? '8px' : '0',
+                    }}>
+                    {/* Section header row */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', padding: '0 2px' }}>
+                      {/* Drag handle */}
+                      <div
+                        onPointerDown={e => onSecDragStart(e, secIdx)}
+                        style={{ cursor: isSecActive ? 'grabbing' : 'grab', touchAction: 'none', padding: '4px 4px', color: 'var(--c-text-muted)', userSelect: 'none', flexShrink: 0 }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>drag_indicator</span>
+                      </div>
                       {isEditing ? (
                         <input autoFocus value={editingSectionName}
                           onChange={e => setEditingSectionName(e.target.value)}
                           onBlur={() => { if (editingSectionName.trim()) updateSection(activePreset.id, section.id, editingSectionName.trim()); setEditingSectionId(null); }}
                           onKeyDown={e => { if (e.key === 'Enter') { if (editingSectionName.trim()) updateSection(activePreset.id, section.id, editingSectionName.trim()); setEditingSectionId(null); } if (e.key === 'Escape') setEditingSectionId(null); }}
-                          style={{ flex: 1, background: 'var(--app-surface)', border: `1px solid ${accent.from}44`, borderRadius: '8px', padding: '6px 10px', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px', outline: 'none' }} />
+                          style={{ flex: 1, background: 'var(--app-surface)', border: `1px solid ${accent.from}44`, borderRadius: '8px', padding: '5px 10px', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', outline: 'none' }} />
                       ) : (
                         <p style={{ flex: 1, color: accent.from, fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase', borderLeft: `3px solid ${accent.from}`, paddingLeft: '8px' }}>{section.name}</p>
                       )}
@@ -1960,14 +2097,15 @@ export default function SongsPanel() {
                           style={{ width: '28px', height: '28px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--app-surface-high)' }}>
                           <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '15px' }}>edit</span>
                         </button>
-                        <button onClick={() => { if (activePreset.sections!.length > 1 || section.chords.length === 0) deleteSection(activePreset.id, section.id); }} className="btn-smooth"
-                          style={{ width: '28px', height: '28px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(238,125,119,0.1)', opacity: activePreset.sections!.length <= 1 && section.chords.length > 0 ? 0.3 : 1 }}>
+                        <button onClick={() => { if (localSections.length > 1 || section.chords.length === 0) deleteSection(activePreset.id, section.id); }} className="btn-smooth"
+                          style={{ width: '28px', height: '28px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(238,125,119,0.1)', opacity: localSections.length <= 1 && section.chords.length > 0 ? 0.3 : 1 }}>
                           <span className="material-symbols-outlined" style={{ color: '#ee7d77', fontSize: '15px' }}>delete</span>
                         </button>
                       </>)}
                     </div>
+                    {/* Chords in section */}
                     {section.chords.length === 0 && (
-                      <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Inter', fontSize: '12px', padding: '8px 12px' }}>{t.songs.noSectionChords}</p>
+                      <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Inter', fontSize: '12px', padding: '4px 12px 8px' }}>{t.songs.noSectionChords}</p>
                     )}
                     {section.chords.map((chordId, idx) => {
                       const isCustom = chordId.startsWith('custom-');
@@ -1980,7 +2118,7 @@ export default function SongsPanel() {
                           <div style={{ background: 'var(--app-surface-lowest)', borderRadius: '8px', padding: '3px 3px 1px', width: '52px', flexShrink: 0 }}>
                             {isCustom && customChord ? <CustomMiniDiagram chord={customChord} accentFrom={accent.from} /> : <ChordDiagram data={chord!.guitar} accentFrom={accent.from} />}
                           </div>
-                          <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '16px' }}>
+                          <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px' }}>
                             {isCustom ? (customChord?.name || t.songs.customChord) : chord!.name.replace(/\s/g, '')}
                           </p>
                           <button onClick={() => removeChordFromSection(activePreset.id, section.id, idx)} className="btn-smooth"
@@ -1990,9 +2128,10 @@ export default function SongsPanel() {
                         </div>
                       );
                     })}
+                    {/* Add chord to this section */}
                     <button onClick={() => { setPickerSectionId(section.id); setShowPicker(true); }} className="btn-smooth"
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', background: `${accent.from}0d`, border: `1px dashed ${accent.from}44`, color: accent.from, fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '4px' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>add</span>
+                      style={{ width: '100%', padding: '7px 12px', borderRadius: '10px', background: `${accent.from}0d`, border: `1px dashed ${accent.from}33`, color: accent.from, fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '4px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
                       {t.songs.addChordToSection}
                     </button>
                   </div>
@@ -2141,53 +2280,83 @@ export default function SongsPanel() {
           );
         })()}
 
-        {/* Bottom action strip */}
-        {(() => {
-          const hasSections = !!(activePreset.sections && activePreset.sections.length > 0);
-          return (
-        <div className="flex-none" style={{ padding: '8px 16px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))', display: 'flex', gap: '8px', background: 'var(--app-bg)', borderTop: '1px solid rgba(72,72,72,0.06)', flexWrap: 'wrap' }}>
-          {hasSections ? (
-            <>
-              <button onClick={() => { const names = ['Verse','Chorus','Bridge','Outro','Pre-Chorus','Intro']; addSection(activePreset.id, names[(activePreset.sections?.length ?? 0) % names.length]); }} data-testid="add-section-btn" className="btn-smooth"
-                style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', minWidth: '120px' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
-                {t.songs.addSection}
-              </button>
-              {activePreset.sections!.some(s => s.chords.length > 0) && (
-                <button onClick={() => setShowLive(true)} data-testid="enter-live-mode" className="btn-smooth"
-                  style={{ flex: 2, padding: '10px 12px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', boxShadow: `0 4px 20px ${accent.to}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', minWidth: '120px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>play_circle</span>
-                  {t.songs.liveMode}
-                </button>
-              )}
-            </>
-          ) : (
-            <>
-              <button onClick={() => setShowPicker(true)} data-testid="add-chord-btn" className="btn-smooth"
-                style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
-                {t.songs.addChord}
-              </button>
-              <button
-                onClick={() => localChords.length > 0 ? convertToSections(activePreset.id) : addSection(activePreset.id, 'Verse')}
-                className="btn-smooth"
-                title={t.songs.convertToSections}
-                style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>segment</span>
-                {t.songs.addSection}
-              </button>
-              {localChords.length > 0 && (
-                <button onClick={() => setShowLive(true)} data-testid="enter-live-mode" className="btn-smooth"
-                  style={{ flex: 2, padding: '10px 12px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', boxShadow: `0 4px 20px ${accent.to}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>play_circle</span>
-                  {t.songs.liveMode}
-                </button>
-              )}
-            </>
-          )}
+        {/* Bottom action strip — always Add Section (left) + Add Chord (right) */}
+        <div className="flex-none" style={{ padding: '8px 16px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))', display: 'flex', gap: '8px', background: 'var(--app-bg)', borderTop: '1px solid rgba(72,72,72,0.06)' }}>
+          <button
+            onClick={() => { setCustomSectionName(''); setCustomSectionMode(false); setShowSectionPicker(true); }}
+            data-testid="add-section-btn" className="btn-smooth"
+            style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>segment</span>
+            {t.songs.addSection}
+          </button>
+          <button onClick={() => { setPickerSectionId(null); setShowPicker(true); }} data-testid="add-chord-btn" className="btn-smooth"
+            style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}cc, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_music</span>
+            {t.songs.addChord}
+          </button>
         </div>
-          );
-        })()}
+
+        {/* Section picker sheet */}
+        {showSectionPicker && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+            onClick={e => { if (e.target === e.currentTarget) setShowSectionPicker(false); }}>
+            <div style={{ background: 'var(--app-surface)', borderRadius: '20px 20px 0 0', padding: '20px 16px', paddingBottom: 'max(24px, env(safe-area-inset-bottom))', boxShadow: '0 -8px 40px rgba(0,0,0,0.3)' }}>
+              <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(128,128,128,0.3)', margin: '0 auto 16px' }} />
+              <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '16px', color: 'var(--c-text-primary)', marginBottom: '14px' }}>{t.songs.addSection}</p>
+              {/* Preset section names */}
+              {!customSectionMode && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
+                  {['Verse','Chorus','Bridge','Pre-Chorus','Intro','Outro','Interlude','Solo','Hook'].map(name => (
+                    <button key={name} className="btn-smooth" onClick={() => {
+                      const hasSecs = !!(activePreset.sections && activePreset.sections.length > 0);
+                      if (!hasSecs && localChords.length > 0) convertToSections(activePreset.id);
+                      else addSection(activePreset.id, name);
+                      setShowSectionPicker(false);
+                    }}
+                      style={{ padding: '10px 6px', borderRadius: '12px', background: 'var(--app-surface-high)', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', border: `1px solid rgba(72,72,72,0.08)` }}>
+                      {name}
+                    </button>
+                  ))}
+                  <button className="btn-smooth" onClick={() => setCustomSectionMode(true)}
+                    style={{ padding: '10px 6px', borderRadius: '12px', background: `${accent.from}14`, color: accent.from, fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', border: `1px dashed ${accent.from}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>edit</span>
+                    Custom
+                  </button>
+                </div>
+              )}
+              {/* Custom name input */}
+              {customSectionMode && (
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  <input autoFocus placeholder={t.songs.sectionNamePlaceholder}
+                    value={customSectionName} onChange={e => setCustomSectionName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && customSectionName.trim()) {
+                        const hasSecs = !!(activePreset.sections && activePreset.sections.length > 0);
+                        if (!hasSecs && localChords.length > 0) convertToSections(activePreset.id);
+                        else addSection(activePreset.id, customSectionName.trim());
+                        setShowSectionPicker(false);
+                      }
+                    }}
+                    style={{ flex: 1, background: 'var(--app-surface-high)', border: `1px solid ${accent.from}44`, borderRadius: '12px', padding: '12px 14px', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '14px', outline: 'none' }} />
+                  <button className="btn-smooth" onClick={() => {
+                    if (!customSectionName.trim()) return;
+                    const hasSecs = !!(activePreset.sections && activePreset.sections.length > 0);
+                    if (!hasSecs && localChords.length > 0) convertToSections(activePreset.id);
+                    else addSection(activePreset.id, customSectionName.trim());
+                    setShowSectionPicker(false);
+                  }}
+                    style={{ padding: '12px 16px', borderRadius: '12px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px' }}>
+                    Add
+                  </button>
+                </div>
+              )}
+              <button onClick={() => setShowSectionPicker(false)} className="btn-smooth"
+                style={{ width: '100%', padding: '10px', borderRadius: '12px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {showForm && <PresetForm accent={accent} initial={editingFormData} onSave={handleFormSave} onCancel={() => { setShowForm(false); setEditingId(null); }} />}
 
