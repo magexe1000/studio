@@ -5,6 +5,7 @@ import ChordPanel from './panels/ChordPanel';
 import SettingsPanel from './panels/SettingsPanel';
 import SongsPanel from './panels/SongsPanel';
 import BottomNav from './components/BottomNav';
+import { setNavHidden } from './lib/navScroll';
 
 // Ordered left-to-right (matches nav order) — used to compute slide direction
 const NAV_ORDER = ['songs', 'library', 'chord', 'settings'] as const;
@@ -29,6 +30,12 @@ export default function App() {
 
   const prevPanel = useRef(activePanel);
   const accent    = ACCENT_COLORS[settings.accentColor];
+
+  // Always show the nav when switching panels — prevents it staying hidden
+  // on a non-scrollable panel (e.g. Songs with no songs added yet)
+  useEffect(() => {
+    setNavHidden(false);
+  }, [visiblePanel]);
 
   // Apply CSS vars for accent color globally
   useEffect(() => {
