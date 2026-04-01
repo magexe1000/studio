@@ -1985,7 +1985,7 @@ export default function SongsPanel() {
             <div style={{ flex: 1 }}>
               <h2 style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 900, fontSize: '22px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{activePreset.name}</h2>
               {activePreset.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', marginTop: '2px' }}>{activePreset.artist}</p>}
-              <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '6px', marginTop: '6px', alignItems: 'center' }}>
                 {activePreset.key && (
                   <span style={{ padding: '3px 10px 3px 7px', background: `${accent.to}22`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', border: `1px solid ${accent.to}33`, display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '13px', lineHeight: 1 }}>music_note</span>
