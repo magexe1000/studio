@@ -13,9 +13,69 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" type="image/svg+xml" href="./icon-512.svg" />
     <link rel="apple-touch-icon" href="./icon-512.svg" />
+    <style>
+      #html-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #111116;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        animation: html-splash-out 440ms cubic-bezier(0.4,0,0.2,1) 1000ms forwards;
+      }
+      #html-splash-logo {
+        animation: html-logo-in 600ms cubic-bezier(0.34,1.56,0.64,1) 80ms both;
+      }
+      #html-splash-word {
+        font-family: Manrope, system-ui, sans-serif;
+        font-weight: 900;
+        font-size: 28px;
+        letter-spacing: -0.02em;
+        color: #ffffff;
+        margin: 0;
+        animation: html-word-in 500ms cubic-bezier(0.25,0.46,0.45,0.94) 260ms both;
+      }
+      @keyframes html-logo-in {
+        from { opacity: 0; transform: scale(0.5) translateY(8px); }
+        to   { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      @keyframes html-word-in {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes html-splash-out {
+        from { opacity: 1; }
+        to   { opacity: 0; }
+      }
+    </style>
   </head>
   <body>
+    <div id="html-splash">
+      <div id="html-splash-logo">
+        <svg width="64" height="84" viewBox="0 0 13 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0.5" y="0.5" width="12" height="2.5" rx="1" fill="white"/>
+          <line x1="2.5"  y1="3" x2="2.5"  y2="16.5" stroke="white" stroke-width="0.9" stroke-opacity="0.35"/>
+          <line x1="6.5"  y1="3" x2="6.5"  y2="16.5" stroke="white" stroke-width="0.9" stroke-opacity="0.35"/>
+          <line x1="10.5" y1="3" x2="10.5" y2="16.5" stroke="white" stroke-width="0.9" stroke-opacity="0.35"/>
+          <line x1="0.5"  y1="8"  x2="12.5" y2="8"  stroke="white" stroke-width="0.7" stroke-opacity="0.28"/>
+          <line x1="0.5"  y1="13" x2="12.5" y2="13" stroke="white" stroke-width="0.7" stroke-opacity="0.28"/>
+          <circle cx="2.5"  cy="5.5"  r="2.1" fill="white"/>
+          <circle cx="10.5" cy="5.5"  r="2.1" fill="white"/>
+          <circle cx="6.5"  cy="10.5" r="2.1" fill="white"/>
+        </svg>
+      </div>
+      <p id="html-splash-word">Chordex</p>
+    </div>
     <div id="root"></div>
+    <script>
+      var splash = document.getElementById('html-splash');
+      splash.addEventListener('animationend', function(e) {
+        if (e.animationName === 'html-splash-out') splash.style.display = 'none';
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
