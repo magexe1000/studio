@@ -8,6 +8,7 @@ import CustomChordBuilder, { CustomMiniDiagram } from '../components/CustomChord
 import ChordDiagram from '../components/ChordDiagram';
 import { useScrollHide, setNavHidden } from '../lib/navScroll';
 import { useT } from '../lib/useT';
+import { setBackHandler } from '../lib/backStack';
 import { ChordexLogo } from '../components/ChordexLogo';
 
 /* ──────────────────── PDF EXPORT CONFIG ──────────────────── */
@@ -1698,6 +1699,7 @@ export default function SongsPanel() {
 
   // ── Android back gesture / predictive back ──────────────────────────────
   // Returns true if it handled something, false if we're at the root (should minimize).
+  // backHandlerRef always holds the freshest state — no stale closures.
   const backHandlerRef = useRef<() => boolean>(() => false);
   useEffect(() => {
     backHandlerRef.current = () => {
@@ -1708,48 +1710,26 @@ export default function SongsPanel() {
       if (exportModalPreset) { setExportModal(null);        return true; }
       if (showImport)        { setShowImport(false);        return true; }
       if (showDeleteId)      { setShowDeleteId(null);       return true; }
-      if (activePresetId && activePanel === 'songs') { setActivePreset(null); return true; }
+      if (activePresetId)    { setActivePreset(null);       return true; }
       return false;
     };
   }, [showCustomBuilder, showPicker, showLive, showForm, exportModalPreset,
-      showImport, showDeleteId, activePresetId, activePanel, setActivePreset]);
+      showImport, showDeleteId, activePresetId, setActivePreset]);
+
+  // Register/deregister with the global back stack based on which panel is active.
+  useEffect(() => {
+    if (activePanel !== 'songs') {
+      setBackHandler(null);
+      return;
+    }
+    setBackHandler(() => backHandlerRef.current());
+    return () => setBackHandler(null);
+  }, [activePanel]);
 
   // Deduplicate all preset chords once on mount so diagrams & counts are always accurate.
   useEffect(() => {
     presets.forEach(p => deduplicatePresetChords(p.id));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    // Web fallback: seed history stack so popstate fires on back gesture.
-    window.history.replaceState({ chordex: 'root' }, '');
-    window.history.pushState({ chordex: 'app' }, '');
-
-    const handlePop = () => {
-      backHandlerRef.current();
-      window.history.pushState({ chordex: 'app' }, '');
-    };
-
-    window.addEventListener('popstate', handlePop);
-
-    // Native Android: Capacitor's backButton event is the proper interception
-    // point — popstate is not reliable when predictive back is enabled.
-    let removeCapacitorListener: (() => void) | null = null;
-    import('@capacitor/app').then(({ App: CapApp }) => {
-      CapApp.addListener('backButton', () => {
-        const handled = backHandlerRef.current();
-        if (!handled) {
-          CapApp.minimizeApp();
-        }
-      }).then((handle) => {
-        removeCapacitorListener = () => handle.remove();
-      });
-    }).catch(() => { /* running in web — popstate handles it */ });
-
-    return () => {
-      window.removeEventListener('popstate', handlePop);
-      removeCapacitorListener?.();
-    };
-  }, []); // intentionally empty — runs once on mount
 
   // Drag & drop
   const [localChords, setLocalChords] = useState<string[]>([]);

@@ -6,6 +6,7 @@ import SettingsPanel from './panels/SettingsPanel';
 import SongsPanel from './panels/SongsPanel';
 import BottomNav from './components/BottomNav';
 import { setNavHidden } from './lib/navScroll';
+import { handleGlobalBack } from './lib/backStack';
 
 // Ordered left-to-right (matches nav order) — used to compute slide direction
 const NAV_ORDER = ['songs', 'library', 'chord', 'settings'] as const;
@@ -19,6 +20,60 @@ export default function App() {
     const tab = settings.defaultTab ?? 'library';
     if (tab !== 'library') setActivePanel(tab);
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Global back navigation ───────────────────────────────────────────────
+  const [exitToast, setExitToast] = useState(false);
+  const lastBackTime = useRef(0);
+  const exitToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    // Seed two history entries so every back gesture fires popstate
+    // without immediately leaving the page.
+    window.history.replaceState({ chordex: 'root' }, '');
+    window.history.pushState({ chordex: 'app' }, '');
+
+    const onBack = () => {
+      const handled = handleGlobalBack();
+
+      if (!handled) {
+        const now = Date.now();
+        if (now - lastBackTime.current < 2000) {
+          // Second press within 2 s → exit / minimize
+          import('@capacitor/app')
+            .then(({ App: CapApp }) => CapApp.exitApp())
+            .catch(() => {});
+        } else {
+          lastBackTime.current = now;
+          setExitToast(true);
+          if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
+          exitToastTimer.current = setTimeout(() => setExitToast(false), 2000);
+        }
+      }
+
+      // Always re-push for the web popstate fallback so the stack stays alive.
+      window.history.pushState({ chordex: 'app' }, '');
+    };
+
+    // Web: popstate fires when browser / WebView pops history
+    const handlePop = () => onBack();
+    window.addEventListener('popstate', handlePop);
+
+    // Native Android: Capacitor's backButton is the authoritative event
+    let capRemove: (() => void) | null = null;
+    import('@capacitor/app')
+      .then(({ App: CapApp }) => {
+        CapApp.addListener('backButton', onBack).then((handle) => {
+          capRemove = () => handle.remove();
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener('popstate', handlePop);
+      capRemove?.();
+      if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
+    };
   }, []);
 
   // Which panel is fully visible (the "live" one)
@@ -175,6 +230,31 @@ export default function App() {
       </div>
 
       <BottomNav />
+
+      {/* Double-tap exit toast */}
+      {exitToast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 'calc(env(safe-area-inset-bottom) + 88px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(24,24,32,0.93)',
+            color: 'var(--c-text-primary)',
+            padding: '10px 22px',
+            borderRadius: '24px',
+            fontSize: '13px',
+            fontFamily: 'Inter, sans-serif',
+            zIndex: 9999,
+            pointerEvents: 'none',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Press back again to exit
+        </div>
+      )}
     </div>
   );
 }
