@@ -33,7 +33,7 @@ const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   includeKey:    true,
   includeNotes:  true,
   chordDisplay:  'both',
-  chordsPerRow:  'auto',
+  chordsPerRow:  '3',
   orientation:   'portrait',
   theme:         'light',
   showNumbering: true,
@@ -244,7 +244,7 @@ function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPOR
     : parseInt(cfg.chordsPerRow, 10);
 
   /* SVG scale */
-  const svgScale = compact ? 0.72 : 1;
+  const svgScale = compact ? 0.78 : 1.35;
 
   /* ── Palette ── */
   const bg       = dark ? '#0c0c0c'                 : (elegant ? '#f6f5f2' : '#ffffff');
@@ -261,18 +261,18 @@ function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPOR
   const numClr   = elegant ? accentColor            : (dark ? '#444' : '#c8ccda');
 
   /* ── Sizes & spacing ── */
-  const bodyPad   = compact ? '20px 28px'       : '36px 48px';
-  const titleSz   = compact ? '28px'            : '42px';
-  const artistSz  = compact ? '12px'            : '15px';
+  const bodyPad   = compact ? '20px 28px'       : '40px 52px';
+  const titleSz   = compact ? '28px'            : '46px';
+  const artistSz  = compact ? '12px'            : '16px';
   const chordNameSz = cfg.chordDisplay === 'name'
-    ? (compact ? '26px' : '34px')
-    : (compact ? '13px' : '17px');
-  const cardPad   = compact ? '12px 9px 10px'   : '20px 14px 14px';
-  const cardR     = compact ? '8px'             : '12px';
-  const hdrPb     = compact ? '14px'            : '22px';
-  const hdrMb     = compact ? '12px'            : '20px';
-  const gridGap   = compact ? '8px 6px'         : '14px 10px';
-  const diagMb    = compact ? '5px'             : '10px';
+    ? (compact ? '26px' : '38px')
+    : (compact ? '13px' : '20px');
+  const cardPad   = compact ? '12px 9px 10px'   : '22px 16px 18px';
+  const cardR     = compact ? '8px'             : '14px';
+  const hdrPb     = compact ? '14px'            : '26px';
+  const hdrMb     = compact ? '12px'            : '24px';
+  const gridGap   = compact ? '8px 6px'         : '20px 14px';
+  const diagMb    = compact ? '5px'             : '14px';
 
   /* ── Accent hex helpers ── */
   const accentA22 = accentColor + '22';
@@ -431,16 +431,16 @@ body{
   display:flex;justify-content:space-between;align-items:center;
 }
 .footer-txt{font-size:9px;font-weight:600;color:${muted};letter-spacing:0.05em;}
-.section-group{margin-bottom:${compact ? '18px' : '28px'};}
+.section-group{margin-bottom:${compact ? '18px' : '36px'};}
 .section-heading{
-  font-size:${compact ? '8px' : '10px'};font-weight:800;letter-spacing:0.22em;
+  font-size:${compact ? '8px' : '11px'};font-weight:800;letter-spacing:0.22em;
   text-transform:uppercase;color:${accentColor};
-  border-left:3px solid ${accentColor};padding-left:8px;
-  margin-bottom:${compact ? '8px' : '12px'};
+  border-left:4px solid ${accentColor};padding-left:10px;
+  margin-bottom:${compact ? '8px' : '16px'};padding-top:2px;padding-bottom:2px;
 }
 @media print{
-  body{padding:${compact ? '12px 18px' : '20px 32px'};}
-  @page{margin:1cm;size:A4 ${cfg.orientation};}
+  body{padding:${compact ? '12px 18px' : '24px 36px'};}
+  @page{margin:0.8cm;size:A4 ${cfg.orientation};}
   .chord-block{break-inside:avoid;}
   .section-group{break-inside:avoid-page;}
 }
@@ -591,11 +591,24 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
   const compact = style === 'compact';
   const elegant = style === 'elegant';
 
-  const previewIds = transposeOffset !== 0
-    ? preset.chords.slice(0, 8).map(id => transposeChordId(id, transposeOffset))
-    : preset.chords.slice(0, 8);
-  const chords = previewIds.map(id => getChordById(id)).filter(Boolean) as Chord[];
-  const cols = cfg.chordsPerRow === 'auto' ? (compact ? 3 : 2) : parseInt(cfg.chordsPerRow, 10);
+  const hasSections = !!(preset.sections && preset.sections.length > 0);
+  const cols = cfg.chordsPerRow === 'auto' ? (compact ? 3 : 3) : parseInt(cfg.chordsPerRow, 10);
+
+  /* Build per-section chord lists for preview */
+  type PreviewSection = { name: string; chords: Chord[] };
+  const previewSections: PreviewSection[] = hasSections
+    ? preset.sections!.slice(0, 3).map(sec => {
+        const ids = sec.chords.slice(0, cols * 2).map(id =>
+          transposeOffset !== 0 ? transposeChordId(id, transposeOffset) : id
+        );
+        return { name: sec.name, chords: ids.map(id => getChordById(id)).filter(Boolean) as Chord[] };
+      })
+    : (() => {
+        const ids = (transposeOffset !== 0
+          ? preset.chords.slice(0, 8).map(id => transposeChordId(id, transposeOffset))
+          : preset.chords.slice(0, 8));
+        return [{ name: 'Chord Progression', chords: ids.map(id => getChordById(id)).filter(Boolean) as Chord[] }];
+      })();
 
   const bg      = dark ? '#0e0e0e' : (elegant ? '#f5f4f1' : '#ffffff');
   const paper   = dark ? '#181818' : '#ffffff';
@@ -667,50 +680,58 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
             </div>
           </div>
           <p style={{ fontSize: '6px', fontWeight: 700, color: muted, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap', paddingTop: '2px' }}>
-            {chords.length} chords
+            {previewSections.reduce((n, s) => n + s.chords.length, 0)} chords
           </p>
         </div>
       )}
 
-      {/* Section label */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: compact ? '7px' : '10px' }}>
-        {elegant && <span style={{ display: 'inline-block', width: '4px', height: '4px', borderRadius: '50%', background: accentC, flexShrink: 0 }} />}
-        <p style={{ fontSize: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.22em', color: muted }}>
-          Chord Progression
-        </p>
-      </div>
-
-      {/* Chord grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${cols}, 1fr)`,
-        gap: compact ? '5px 4px' : '8px 6px',
-        flex: 1,
-        overflow: 'hidden',
-      }}>
-        {chords.map((chord, i) => (
-          <div key={chord.id} style={{
-            position: 'relative',
-            background: paper,
-            border: `1px solid ${cardBdr}`,
-            borderRadius: compact ? '5px' : '7px',
-            boxShadow: cardShad,
-            padding: compact ? '6px 4px 5px' : '9px 6px 7px',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-          }}>
-            {cfg.showNumbering && (
-              <span style={{ position: 'absolute', top: '4px', right: '5px', fontSize: '5px', fontWeight: 800, color: elegant ? accentC : muted, lineHeight: 1 }}>
-                {i + 1}
-              </span>
-            )}
-            {cfg.chordDisplay !== 'diagram' && (
-              <p style={{ fontSize: compact ? '7px' : '9px', fontWeight: 900, letterSpacing: '-0.01em', color: text, marginBottom: '3px', lineHeight: 1 }}>
-                {chord.name}
-              </p>
-            )}
-            {cfg.chordDisplay !== 'name' && (
-              <PreviewFretboard data={chord.guitar} dark={dark} />
-            )}
+      {/* Section(s) + chord grid */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: hasSections ? (compact ? '8px' : '12px') : 0 }}>
+        {previewSections.map((sec, sIdx) => (
+          <div key={sIdx}>
+            {/* Section heading or "Chord Progression" label */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: compact ? '5px' : '7px' }}>
+              {hasSections
+                ? <div style={{ borderLeft: `2px solid ${accentC}`, paddingLeft: '4px' }}>
+                    <p style={{ fontSize: '6px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.22em', color: accentC, lineHeight: 1 }}>{sec.name}</p>
+                  </div>
+                : <>
+                    {elegant && <span style={{ display: 'inline-block', width: '4px', height: '4px', borderRadius: '50%', background: accentC, flexShrink: 0 }} />}
+                    <p style={{ fontSize: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.22em', color: muted }}>Chord Progression</p>
+                  </>
+              }
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${cols}, 1fr)`,
+              gap: compact ? '5px 4px' : '8px 6px',
+            }}>
+              {sec.chords.map((chord, i) => (
+                <div key={chord.id} style={{
+                  position: 'relative',
+                  background: paper,
+                  border: `1px solid ${cardBdr}`,
+                  borderRadius: compact ? '5px' : '7px',
+                  boxShadow: cardShad,
+                  padding: compact ? '6px 4px 5px' : '9px 6px 7px',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                }}>
+                  {cfg.showNumbering && (
+                    <span style={{ position: 'absolute', top: '4px', right: '5px', fontSize: '5px', fontWeight: 800, color: elegant ? accentC : muted, lineHeight: 1 }}>
+                      {i + 1}
+                    </span>
+                  )}
+                  {cfg.chordDisplay !== 'diagram' && (
+                    <p style={{ fontSize: compact ? '7px' : '9px', fontWeight: 900, letterSpacing: '-0.01em', color: text, marginBottom: '3px', lineHeight: 1 }}>
+                      {chord.name}
+                    </p>
+                  )}
+                  {cfg.chordDisplay !== 'name' && (
+                    <PreviewFretboard data={chord.guitar} dark={dark} />
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>
@@ -1954,9 +1975,19 @@ export default function SongsPanel() {
             <div style={{ flex: 1 }}>
               <h2 style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 900, fontSize: '22px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{activePreset.name}</h2>
               {activePreset.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', marginTop: '2px' }}>{activePreset.artist}</p>}
-              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                {activePreset.key && <span style={{ padding: '2px 8px', background: `${accent.to}22`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', border: `1px solid ${accent.to}33` }}>{activePreset.key}</span>}
-                {activePreset.bpm > 0 && <span style={{ padding: '2px 8px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px' }}>{activePreset.bpm} BPM</span>}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                {activePreset.key && (
+                  <span style={{ padding: '3px 10px 3px 7px', background: `${accent.to}22`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', border: `1px solid ${accent.to}33`, display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '13px', lineHeight: 1 }}>music_note</span>
+                    {activePreset.key}
+                  </span>
+                )}
+                {activePreset.bpm > 0 && (
+                  <span style={{ padding: '3px 10px 3px 7px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '13px', lineHeight: 1 }}>speed</span>
+                    {activePreset.bpm} BPM
+                  </span>
+                )}
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -2488,9 +2519,19 @@ export default function SongsPanel() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '16px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preset.name}</p>
                   {preset.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', marginTop: '2px' }}>{preset.artist}</p>}
-                  <div style={{ display: 'flex', gap: '6px', marginTop: '5px' }}>
-                    {preset.key && <span style={{ fontSize: '10px', fontFamily: 'Manrope', fontWeight: 700, color: accent.from, background: `${accent.to}18`, padding: '2px 7px', borderRadius: '9999px' }}>{preset.key}</span>}
-                    {preset.bpm > 0 && <span style={{ fontSize: '10px', fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-secondary)' }}>{preset.bpm} BPM</span>}
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {preset.key && (
+                      <span style={{ fontSize: '10px', fontFamily: 'Manrope', fontWeight: 700, color: accent.from, background: `${accent.to}18`, padding: '2px 8px 2px 6px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '11px', lineHeight: 1 }}>music_note</span>
+                        {preset.key}
+                      </span>
+                    )}
+                    {preset.bpm > 0 && (
+                      <span style={{ fontSize: '10px', fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '11px', lineHeight: 1 }}>speed</span>
+                        {preset.bpm} BPM
+                      </span>
+                    )}
                     <span style={{ fontSize: '10px', fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-muted)' }}>{t.songs.chordsLabel(preset.chords.length)}</span>
                   </div>
                 </div>
