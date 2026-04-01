@@ -695,6 +695,7 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
   transposeOffset?: number;
   storedCustomChords?: CustomChord[];
 }) {
+  const t = useT();
   const [cfg, setCfg] = useState<ExportConfig>({ ...DEFAULT_EXPORT_CONFIG });
   const [exporting, setExporting] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -798,7 +799,7 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
           <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '20px' }}>arrow_back</span>
         </button>
         <div style={{ flex: 1 }}>
-          <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '18px', color: 'var(--c-text-primary)', lineHeight: 1 }}>Export Song</p>
+          <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '18px', color: 'var(--c-text-primary)', lineHeight: 1 }}>{t.songs.exportPdf}</p>
         </div>
       </div>
 
@@ -815,15 +816,15 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
           fontFamily: 'Manrope', fontWeight: 700, fontSize: '10px', letterSpacing: '0.25em',
           textTransform: 'uppercase', color: 'var(--c-text-secondary)', marginBottom: '12px',
         }}>
-          Export Settings
+          {t.songs.exportSettings}
         </p>
 
         {/* Settings rows */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
 
           <Row
-            label="Paper Size"
-            sub="Standard print dimensions"
+            label={t.songs.paperSize}
+            sub={t.songs.paperSizeDesc}
             right={
               <Segment
                 options={[{ value: 'portrait', label: 'A4' }, { value: 'landscape', label: 'Letter' }]}
@@ -834,8 +835,8 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
           />
 
           <Row
-            label="Include Diagrams"
-            sub="Visual fretboard charts"
+            label={t.songs.includeDiagrams}
+            sub={t.songs.includeDiagramsDesc}
             right={
               <Toggle
                 on={cfg.chordDisplay !== 'name'}
@@ -845,8 +846,8 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
           />
 
           <Row
-            label="Dark Theme"
-            sub="Black background PDF"
+            label={t.songs.darkTheme}
+            sub={t.songs.darkThemeDesc}
             right={
               <Toggle
                 on={cfg.theme === 'dark'}
@@ -856,8 +857,8 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
           />
 
           <Row
-            label="Chords per Row"
-            sub="Grid layout columns"
+            label={t.songs.chordsPerRow}
+            sub={t.songs.chordsPerRowDesc}
             right={
               <Segment
                 options={[{ value: 'auto', label: 'Auto' }, { value: '2', label: '2' }, { value: '3', label: '3' }]}
@@ -868,14 +869,14 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
           />
 
           <Row
-            label="Export Style"
-            sub="Visual layout of the PDF"
+            label={t.songs.exportStyleLabel}
+            sub={t.songs.exportStyleDesc}
             right={
               <Segment
                 options={[
-                  { value: 'minimal', label: 'Minimal' },
-                  { value: 'elegant', label: 'Elegant' },
-                  { value: 'compact', label: 'Compact' },
+                  { value: 'minimal', label: t.songs.styleMinimal },
+                  { value: 'elegant', label: t.songs.styleElegant },
+                  { value: 'compact', label: t.songs.styleCompact },
                 ]}
                 value={cfg.exportStyle ?? 'elegant'}
                 onChange={v => update('exportStyle', v as ExportConfig['exportStyle'])}
@@ -894,7 +895,7 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
         }}>
           <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: '18px', flexShrink: 0, marginTop: '1px' }}>info</span>
           <p style={{ fontFamily: 'Inter', fontSize: '12px', color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
-            Exports use vector SVG diagrams for maximum clarity at any print size.
+            {t.songs.pdfExportNote}
           </p>
         </div>
       </div>
@@ -923,7 +924,7 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
           <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>
             {exporting ? 'hourglass_empty' : 'download'}
           </span>
-          {exporting ? 'Generating…' : 'Download PDF'}
+          {exporting ? t.songs.generatingPdf : t.songs.downloadPdf}
         </button>
       </div>
     </div>
@@ -1011,6 +1012,7 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
   onImport: (data: Omit<SongPreset, 'id' | 'createdAt' | 'updatedAt'>, replaceId?: string) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [stage, setStage]       = useState<ImportStage>('idle');
   const [parsed, setParsed]     = useState<ParsedImport | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -1022,7 +1024,7 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
   const parseFile = useCallback((file: File) => {
     const isJson = file.name.toLowerCase().endsWith('.json') || file.type === 'application/json';
     if (!isJson) {
-      setErrorMsg('Invalid file type. Please select a .json or .chordex.json file.');
+      setErrorMsg(t.songs.supportsJson);
       setStage('error');
       return;
     }
@@ -1065,22 +1067,22 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
         );
         if (conflict) {
           setConflictId(conflict.id);
-          setRenameVal(`${result.name} (imported)`);
+          setRenameVal(`${result.name} ${t.songs.importSuffix}`);
           setStage('conflict');
         } else {
           setStage('preview');
         }
       } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : 'Could not parse the file.');
+        setErrorMsg(err instanceof Error ? err.message : t.songs.couldNotParse);
         setStage('error');
       }
     };
     reader.onerror = () => {
-      setErrorMsg('Failed to read the file.');
+      setErrorMsg(t.songs.failedToRead);
       setStage('error');
     };
     reader.readAsText(file);
-  }, [existingPresets]);
+  }, [existingPresets, t]);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1154,7 +1156,7 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
         {/* ── IDLE: file picker ── */}
         {stage === 'idle' && (
           <>
-            <ModalHeader title="Import Song" />
+            <ModalHeader title={t.songs.importSong} />
             <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Drop zone */}
               <div
@@ -1181,19 +1183,19 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '16px', color: 'var(--c-text-primary)' }}>
-                    {dragOver ? 'Drop it here' : 'Select or drop a file'}
+                    {dragOver ? t.songs.dropHere : t.songs.selectOrDrop}
                   </p>
                   <p style={{ fontFamily: 'Inter', fontSize: '12px', color: 'var(--c-text-secondary)', marginTop: '4px' }}>
-                    Supports .json and .chordex.json files
+                    {t.songs.supportsJson}
                   </p>
                 </div>
                 <div style={{ padding: '8px 20px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px' }}>
-                  Browse Files
+                  {t.songs.browseFiles}
                 </div>
               </div>
               <input ref={fileInputRef} type="file" accept=".json,.chordex.json,application/json" onChange={handleFileInput} style={{ display: 'none' }} />
               <p style={{ fontFamily: 'Inter', fontSize: '11px', color: 'var(--c-text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
-                Import a song preset shared by another Chordex user. Use the "Export JSON" button inside any song to create a shareable file.
+                {t.songs.importHint}
               </p>
             </div>
           </>
@@ -1202,7 +1204,7 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
         {/* ── PREVIEW ── */}
         {stage === 'preview' && parsed && (
           <>
-            <ModalHeader title="Preview Import" />
+            <ModalHeader title={t.songs.previewImport} />
             <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 16px' }}>
               {/* Song card */}
               <div style={{ background: 'var(--app-surface)', borderRadius: '1.25rem', padding: '20px', marginBottom: '16px' }}>
@@ -1211,9 +1213,9 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
                   {parsed.key   && <Pill label={parsed.key} color={accent.from} />}
                   {parsed.bpm > 0 && <Pill label={`${parsed.bpm} BPM`} color="var(--c-text-secondary)" />}
-                  <Pill label={`${parsed.chords.length} chord${parsed.chords.length !== 1 ? 's' : ''}`} color="#34d399" />
+                  <Pill label={t.songs.chordsLabel(parsed.chords.length)} color="#34d399" />
                   {parsed.unresolvedCount > 0 && (
-                    <Pill label={`${parsed.unresolvedCount} unrecognized`} color="#fbbf24" />
+                    <Pill label={t.songs.unrecognizedCount(parsed.unresolvedCount)} color="#fbbf24" />
                   )}
                 </div>
                 {parsed.notes && (
@@ -1224,7 +1226,7 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
                 <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: '12px', padding: '12px 14px', marginBottom: '12px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                   <span className="material-symbols-outlined" style={{ color: '#fbbf24', fontSize: '18px', flexShrink: 0, marginTop: '1px' }}>warning</span>
                   <p style={{ fontFamily: 'Inter', fontSize: '12px', color: '#fbbf24', lineHeight: 1.5 }}>
-                    {parsed.unresolvedCount} chord{parsed.unresolvedCount !== 1 ? 's were' : ' was'} not recognized and will be skipped. The rest will be imported normally.
+                    {t.songs.unrecognizedWarning(parsed.unresolvedCount)}
                   </p>
                 </div>
               )}
@@ -1232,7 +1234,7 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
                 <div style={{ background: 'rgba(238,125,119,0.08)', border: '1px solid rgba(238,125,119,0.25)', borderRadius: '12px', padding: '12px 14px', marginBottom: '12px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                   <span className="material-symbols-outlined" style={{ color: '#ee7d77', fontSize: '18px', flexShrink: 0, marginTop: '1px' }}>error</span>
                   <p style={{ fontFamily: 'Inter', fontSize: '12px', color: '#ee7d77', lineHeight: 1.5 }}>
-                    No recognizable chords were found. The song will be imported with an empty chord list.
+                    {t.songs.noRecognizedChords}
                   </p>
                 </div>
               )}
@@ -1240,12 +1242,12 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
             <div style={{ display: 'flex', gap: '10px', padding: '14px 16px 0' }}>
               <button onClick={onClose} className="btn-smooth"
                 style={{ flex: 1, padding: '14px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '14px' }}>
-                Cancel
+                {t.songs.cancel}
               </button>
               <button onClick={() => doImport()} className="btn-smooth"
                 style={{ flex: 2, padding: '14px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px', boxShadow: `0 4px 20px ${accent.to}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
-                Import Song
+                {t.songs.importAction}
               </button>
             </div>
           </>
@@ -1254,42 +1256,42 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
         {/* ── CONFLICT ── */}
         {stage === 'conflict' && parsed && (
           <>
-            <ModalHeader title="Song Already Exists" />
+            <ModalHeader title={t.songs.songAlreadyExists} />
             <div style={{ padding: '0 16px', flex: 1, overflowY: 'auto' }} className="no-scrollbar">
               <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: '12px', padding: '14px', marginBottom: '16px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                 <span className="material-symbols-outlined" style={{ color: '#fbbf24', fontSize: '20px', flexShrink: 0, marginTop: '1px' }}>info</span>
                 <p style={{ fontFamily: 'Inter', fontSize: '13px', color: 'var(--c-text-primary)', lineHeight: 1.55 }}>
-                  A song named <strong>"{parsed.name}"</strong> already exists. Choose what to do:
+                  {t.songs.songAlreadyExistsMsg(parsed.name)}
                 </p>
               </div>
               {/* Option: Rename */}
               <div style={{ background: 'var(--app-surface)', borderRadius: '1rem', padding: '16px', marginBottom: '10px' }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '14px', color: 'var(--c-text-primary)', marginBottom: '8px' }}>Import with a new name</p>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '14px', color: 'var(--c-text-primary)', marginBottom: '8px' }}>{t.songs.importWithNewName}</p>
                 <input
                   value={renameVal}
                   onChange={e => setRenameVal(e.target.value)}
                   style={{ width: '100%', background: 'var(--app-surface-high)', border: 'none', borderRadius: '0.5rem', padding: '10px 14px', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: '14px', outline: 'none' }}
                 />
-                <button onClick={() => doImport(renameVal.trim() || `${parsed.name} (imported)`)} className="btn-smooth"
+                <button onClick={() => doImport(renameVal.trim() || `${parsed.name} ${t.songs.importSuffix}`)} className="btn-smooth"
                   disabled={!renameVal.trim()}
                   style={{ marginTop: '10px', width: '100%', padding: '12px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', opacity: renameVal.trim() ? 1 : 0.4 }}>
-                  Import as "{renameVal.trim() || '…'}"
+                  {t.songs.importAs(renameVal.trim() || '…')}
                 </button>
               </div>
               {/* Option: Replace */}
               <div style={{ background: 'var(--app-surface)', borderRadius: '1rem', padding: '16px', marginBottom: '10px' }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '14px', color: 'var(--c-text-primary)', marginBottom: '4px' }}>Replace existing song</p>
-                <p style={{ fontFamily: 'Inter', fontSize: '12px', color: 'var(--c-text-secondary)', marginBottom: '10px' }}>This will overwrite your current "{parsed.name}" song. This cannot be undone.</p>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '14px', color: 'var(--c-text-primary)', marginBottom: '4px' }}>{t.songs.replaceExisting}</p>
+                <p style={{ fontFamily: 'Inter', fontSize: '12px', color: 'var(--c-text-secondary)', marginBottom: '10px' }}>{t.songs.replaceExistingWarning(parsed.name)}</p>
                 <button onClick={() => doImport(parsed.name, conflictId ?? undefined)} className="btn-smooth"
                   style={{ width: '100%', padding: '12px', borderRadius: '9999px', background: 'rgba(238,125,119,0.12)', color: '#ee7d77', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', border: '1px solid rgba(238,125,119,0.3)' }}>
-                  Replace Existing
+                  {t.songs.replaceExistingBtn}
                 </button>
               </div>
             </div>
             <div style={{ padding: '14px 16px 0' }}>
               <button onClick={onClose} className="btn-smooth"
                 style={{ width: '100%', padding: '14px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '14px' }}>
-                Cancel
+                {t.songs.cancel}
               </button>
             </div>
           </>
@@ -1302,14 +1304,14 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
               <span className="material-symbols-outlined" style={{ color: '#34d399', fontSize: '36px', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
             </div>
             <div>
-              <p style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '20px', color: 'var(--c-text-primary)', letterSpacing: '-0.02em' }}>Song Imported!</p>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '20px', color: 'var(--c-text-primary)', letterSpacing: '-0.02em' }}>{t.songs.songImportedTitle}</p>
               <p style={{ fontFamily: 'Inter', fontSize: '13px', color: 'var(--c-text-secondary)', marginTop: '6px' }}>
-                "{parsed.name}" has been added to your songs.
+                {t.songs.songImportedDesc(parsed.name)}
               </p>
             </div>
             <button onClick={onClose} className="btn-smooth"
               style={{ padding: '14px 40px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px', boxShadow: `0 4px 20px ${accent.to}44` }}>
-              Done
+              {t.songs.done}
             </button>
           </div>
         )}
@@ -1321,17 +1323,17 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
               <span className="material-symbols-outlined" style={{ color: '#ee7d77', fontSize: '36px', fontVariationSettings: "'FILL' 1" }}>error</span>
             </div>
             <div>
-              <p style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '20px', color: 'var(--c-text-primary)', letterSpacing: '-0.02em' }}>Import Failed</p>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '20px', color: 'var(--c-text-primary)', letterSpacing: '-0.02em' }}>{t.songs.importFailed}</p>
               <p style={{ fontFamily: 'Inter', fontSize: '13px', color: 'var(--c-text-secondary)', marginTop: '6px', lineHeight: 1.55 }}>{errorMsg}</p>
             </div>
             <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
               <button onClick={onClose} className="btn-smooth"
                 style={{ flex: 1, padding: '14px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '14px' }}>
-                Cancel
+                {t.songs.cancel}
               </button>
               <button onClick={reset} className="btn-smooth"
                 style={{ flex: 1, padding: '14px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px' }}>
-                Try Again
+                {t.songs.tryAgain}
               </button>
             </div>
           </div>
@@ -1352,6 +1354,11 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
   customChords: CustomChord[];
 }) {
   const t = useT();
+  const getCatLabel = (type: string) => {
+    if (type === 'all') return t.songs.allChords;
+    const cats = t.library.cats as Record<string, { label: string }>;
+    return cats[type]?.label ?? type;
+  };
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState<PickerTab>('all');
   const [selected, setSelected] = useState<string[]>([]);
@@ -1396,7 +1403,7 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
         </div>
         <div style={{ padding: '4px 16px 10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '18px', flex: 1 }}>
-            {selected.length > 0 ? `${selected.length} selected` : t.songs.addChord}
+            {selected.length > 0 ? t.songs.selectedCount(selected.length) : t.songs.addChord}
           </p>
           <button onClick={onClose} className="btn-smooth" style={{ color: 'var(--c-text-secondary)' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
@@ -1411,14 +1418,14 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
           {PICKER_CATS.map(c => (
             <button key={c.type} onClick={() => setCat(c.type)} className="btn-smooth"
               style={{ padding: '5px 12px', borderRadius: '9999px', background: cat === c.type ? `linear-gradient(135deg, ${accent.from}, ${accent.to})` : 'var(--app-surface-high)', color: cat === c.type ? '#fff' : '#acabaa', fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px', flexShrink: 0, transition: 'background 200ms ease' }}>
-              {c.label}
+              {getCatLabel(c.type)}
             </button>
           ))}
           {/* Custom tab */}
           <button onClick={() => setCat('__custom__')} className="btn-smooth"
             style={{ padding: '5px 12px', borderRadius: '9999px', background: cat === '__custom__' ? `linear-gradient(135deg, ${accent.from}, ${accent.to})` : 'var(--app-surface-high)', color: cat === '__custom__' ? '#fff' : '#acabaa', fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px', flexShrink: 0, transition: 'background 200ms ease', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>tune</span>
-            Custom{customChords.length > 0 ? ` (${customChords.length})` : ''}
+            {t.songs.custom}{customChords.length > 0 ? ` (${customChords.length})` : ''}
           </button>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px', paddingBottom: selected.length > 0 ? '96px' : '24px' }} className="no-scrollbar">
@@ -1749,7 +1756,7 @@ export default function SongsPanel() {
               <button
                 onClick={() => exportPresetToJSON(activePreset)}
                 className="btn-smooth"
-                title="Export as JSON"
+                title={t.songs.exportAsJson}
                 style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '18px' }}>data_object</span>
@@ -1758,7 +1765,7 @@ export default function SongsPanel() {
               <button
                 onClick={() => setExportModal(activePreset)}
                 className="btn-smooth"
-                title="Export to PDF"
+                title={t.songs.exportToPdf}
                 style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '18px' }}>picture_as_pdf</span>
@@ -1802,26 +1809,26 @@ export default function SongsPanel() {
                 }
               </p>
             ) : (
-              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px', color: 'var(--c-text-secondary)' }}>Transpose</p>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px', color: 'var(--c-text-secondary)' }}>{t.songs.transpose}</p>
             )}
             <p style={{ fontFamily: 'Inter', fontSize: '10px', color: transposeOffset !== 0 ? accent.from : 'var(--c-text-muted)', marginTop: '2px', transition: 'color 300ms ease' }}>
-              {transposeOffset === 0 ? 'Original key' : `${formatOffset(transposeOffset)} semitone${Math.abs(transposeOffset) !== 1 ? 's' : ''}`}
+              {transposeOffset === 0 ? t.songs.originalKey : t.songs.semitones(transposeOffset)}
             </p>
           </div>
 
           {/* Reset — only visible when transposed */}
           {transposeOffset !== 0 && (
             <button onClick={() => resetTranspose(activePreset.id)} className="btn-smooth"
-              title="Reset to original key"
+              title={t.songs.resetKey}
               style={{ padding: '5px 10px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '3px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>restart_alt</span>
-              Reset
+              {t.songs.resetKey}
             </button>
           )}
 
           {/* Sharps / Flats toggle */}
           <button onClick={() => updateSettings({ preferFlats: !preferFlats })} className="btn-smooth"
-            title={preferFlats ? 'Using flats (♭) — click for sharps (♯)' : 'Using sharps (♯) — click for flats (♭)'}
+            title={preferFlats ? t.songs.usingFlats : t.songs.usingSharps}
             style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', flexShrink: 0 }}>
             {preferFlats ? '♭' : '♯'}
           </button>
@@ -1932,7 +1939,7 @@ export default function SongsPanel() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '17px', lineHeight: 1 }}>
-                        {isCustom ? (customChord?.name || 'Custom Chord') : chord!.name.replace(/\s/g, '')}
+                        {isCustom ? (customChord?.name || t.songs.customChord) : chord!.name.replace(/\s/g, '')}
                       </p>
                       {settings.chordAssistant && settings.assistantConflictDetection && !isCustom && activePreset.key && isChordOutOfKey(chordId, activePreset.key) && (
                         <span title="Out of key" style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(251,146,60,0.15)', borderRadius: '4px', padding: '1px 4px' }}>
@@ -1964,7 +1971,7 @@ export default function SongsPanel() {
                   <span style={{ color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 900, fontSize: '12px', flexShrink: 0 }}>#{i + 1}</span>
                   {isCustom && customChord && (
                     <button onClick={() => { setEditCustomId(customChord.id); setShowCustomBuilder(true); }} className="btn-smooth"
-                      title="Edit custom chord"
+                      title={t.songs.editCustomChord}
                       style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${accent.from}18`, flexShrink: 0 }}>
                       <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: '15px' }}>edit</span>
                     </button>
