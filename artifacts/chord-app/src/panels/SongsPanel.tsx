@@ -1689,7 +1689,8 @@ export default function SongsPanel() {
   // Section drag-to-reorder
   const [secDragIdx, setSecDragIdx]                   = useState<number | null>(null);
   const [secDragDeltaY, setSecDragDeltaY]             = useState(0);
-  const secDragStartY = useRef(0);
+  const secGrabOffsetY  = useRef(0);   // pointer offset from node top — set once, never drifts
+  const secRawRef       = useRef(0);   // current applied translateY — updated every frame
   const secDragStartIdx = useRef(0);
   const secDragNodeRef  = useRef<HTMLElement | null>(null);
   const secRefs         = useRef<(HTMLElement | null)[]>([]);
@@ -1869,7 +1870,10 @@ export default function SongsPanel() {
 
   const onSecDragStart = (e: React.PointerEvent, index: number) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    secDragStartY.current    = e.clientY;
+    const nodeEl = secRefs.current[index];
+    // Store the pointer's offset from the node's top edge — never changes during the drag.
+    secGrabOffsetY.current   = nodeEl ? e.clientY - nodeEl.getBoundingClientRect().top : 0;
+    secRawRef.current        = 0;
     secDragStartIdx.current  = index;
     localSectionsRef.current = [...localSections];
     setSecDragIdx(index);
@@ -1879,47 +1883,58 @@ export default function SongsPanel() {
     const node = secDragNodeRef.current;
     if (!node) return;
 
-    const slot = secDragStartIdx.current;
-
-    // ── Hard-clamp pointer to the visible scroll container — no escape possible. ──
+    const slot          = secDragStartIdx.current;
     const containerRect = editorScrollRef.current?.getBoundingClientRect();
+
+    // Natural (untransformed) top — derived from the TRACKED raw, never from a drifting origin.
+    const nodeRect   = node.getBoundingClientRect();
+    const nodeNatTop = nodeRect.top - secRawRef.current;
+    const nodeH      = node.offsetHeight;
+
+    // Where the user wants the node top to be (unconstrained).
+    const desiredTop = e.clientY - secGrabOffsetY.current;
+
+    // Hard limits.
+    const minTop = containerRect ? containerRect.top    + 24         : -Infinity;
+    const maxTop = containerRect ? containerRect.bottom - 24 - nodeH :  Infinity;
+
+    // Rubber-band: past the limit the node follows at 15% speed → bouncy wall feel.
+    const ELASTIC = 0.15;
+    let displayTop: number;
+    const atBoundary = desiredTop < minTop || desiredTop > maxTop;
+    if (desiredTop < minTop) {
+      displayTop = minTop + (desiredTop - minTop) * ELASTIC;
+    } else if (desiredTop > maxTop) {
+      displayTop = maxTop + (desiredTop - maxTop) * ELASTIC;
+    } else {
+      displayTop = desiredTop;
+    }
+
+    const raw = displayTop - nodeNatTop;
+    secRawRef.current = raw;
+
+    // Visual: slightly larger scale + accent border when bouncing against the wall.
+    node.style.transform  = `translateY(${raw}px) scale(${atBoundary ? 1.05 : 1.02})`;
+    node.style.outline    = atBoundary ? '2px solid var(--c-accent, #679cff)' : 'none';
+    node.style.transition = 'outline 80ms ease, transform 60ms ease';
+
+    // Swap detection uses the true clamped Y (not the rubber-band-adjusted position).
     const clampedY = containerRect
       ? Math.max(containerRect.top + 24, Math.min(containerRect.bottom - 24, e.clientY))
       : e.clientY;
-
-    // raw is always computed from the clamped coordinate so the origin never drifts.
-    let raw = clampedY - secDragStartY.current;
-
-    // Secondary safety: also clamp the transform amount so the node can never
-    // visually escape the container even if secDragStartY.current is stale.
-    if (containerRect && node) {
-      const nodeRect   = node.getBoundingClientRect();
-      const nodeNatTop = nodeRect.top - raw; // natural (untransformed) top
-      const maxDown    = containerRect.bottom - 24 - nodeNatTop - node.offsetHeight;
-      const maxUp      = containerRect.top    + 24 - nodeNatTop;
-      raw = Math.max(maxUp, Math.min(maxDown, raw));
-    }
-
-    // Fast path: move active node imperatively — zero React overhead per frame.
-    node.style.transform = `translateY(${raw}px) scale(1.02)`;
 
     const total = localSectionsRef.current.length;
     let target  = slot;
 
     if (raw > 0 && slot < total - 1) {
-      // Dragging DOWN — swap as soon as clamped pointer enters the section below.
       const nextEl = secRefs.current[slot + 1];
       if (nextEl && clampedY > nextEl.getBoundingClientRect().top) target = slot + 1;
     } else if (raw < 0 && slot > 0) {
-      // Dragging UP — swap as soon as clamped pointer enters the section above.
       const prevEl = secRefs.current[slot - 1];
       if (prevEl && clampedY < prevEl.getBoundingClientRect().bottom) target = slot - 1;
     }
 
     if (target !== slot) {
-      // ── Measure BEFORE the DOM reorders to get accurate positions. ──
-      // A = dragged section (has transform applied, so rect = visual position)
-      // B = displaced section (no transform, rect = natural flow position)
       const aEl = secRefs.current[slot];
       const bEl = secRefs.current[target];
 
@@ -1931,12 +1946,11 @@ export default function SongsPanel() {
       newKeys.splice(target, 0, movedKey);
 
       if (aEl && bEl) {
-        // After the swap, A's natural DOM top will be where B's top is now.
-        // Use clampedY (not e.clientY) so the origin stays within bounds — this
-        // is the key fix that prevents drift on repeated boundary hits.
+        // Visual position is preserved: newRaw = visualTop_A - naturalTop_B.
+        // secGrabOffsetY stays unchanged — the visual top didn't move.
         const newRaw = aEl.getBoundingClientRect().top - bEl.getBoundingClientRect().top;
-        secDragStartY.current = clampedY - newRaw;
-        node.style.transform  = `translateY(${newRaw}px) scale(1.02)`;
+        secRawRef.current    = newRaw;
+        node.style.transform = `translateY(${newRaw}px) scale(1.02)`;
       }
 
       secDragStartIdx.current  = target;
@@ -1950,7 +1964,11 @@ export default function SongsPanel() {
 
   const onSecDragEnd = () => {
     const node = secDragNodeRef.current;
-    if (node) node.style.transform = '';
+    if (node) {
+      node.style.transform  = '';
+      node.style.outline    = 'none';
+      node.style.transition = '';
+    }
     const finalIdx = secDragStartIdx.current;
     if (activePreset) {
       const movedId = localSectionsRef.current[finalIdx]?.id;
