@@ -2063,7 +2063,7 @@ export default function SongsPanel() {
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               {activePreset.key && (
                 <span style={{ padding: '3px 10px 3px 8px', background: `${accent.to}18`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', border: `1px solid ${accent.to}33`, display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
-                  <span style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '12px', lineHeight: 1 }}>#</span>
+                  <span style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '12px', lineHeight: 1, color: 'var(--c-text-secondary)' }}>#</span>
                   {transposeOffset === 0 ? activePreset.key : (
                     <>
                       <span style={{ opacity: 0.4, textDecoration: 'line-through', fontSize: '10px' }}>{activePreset.key}</span>
