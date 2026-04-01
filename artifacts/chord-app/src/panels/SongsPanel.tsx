@@ -2021,9 +2021,9 @@ export default function SongsPanel() {
         </button>
 
         {/* Header */}
-        <header className="flex-none app-bg" style={{ paddingTop: '18px', paddingBottom: '10px', paddingLeft: '68px', paddingRight: '16px' }}>
+        <header className="flex-none app-bg" style={{ paddingTop: '18px', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px' }}>
           {/* ── Title row ── */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingLeft: '52px' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 900, fontSize: '22px', letterSpacing: '-0.02em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePreset.name}</h2>
               {activePreset.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePreset.artist}</p>}
@@ -2062,8 +2062,8 @@ export default function SongsPanel() {
             {/* Left: key badge + BPM badge */}
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               {activePreset.key && (
-                <span style={{ padding: '3px 10px 3px 7px', background: `${accent.to}18`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', border: `1px solid ${accent.to}33`, display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '13px', lineHeight: 1 }}>music_note</span>
+                <span style={{ padding: '3px 10px 3px 8px', background: `${accent.to}18`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', border: `1px solid ${accent.to}33`, display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '12px', lineHeight: 1 }}>#</span>
                   {transposeOffset === 0 ? activePreset.key : (
                     <>
                       <span style={{ opacity: 0.4, textDecoration: 'line-through', fontSize: '10px' }}>{activePreset.key}</span>
