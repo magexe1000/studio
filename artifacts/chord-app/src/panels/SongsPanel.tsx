@@ -1815,35 +1815,43 @@ export default function SongsPanel() {
 
   const onSecDragStart = (e: React.PointerEvent, index: number) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    secDragStartY.current   = e.clientY;
-    secDragStartIdx.current = index;
-    // Snapshot midpoints
-    secMidpointsRef.current = secRefs.current.map(el => {
-      if (!el) return 0;
-      const r = el.getBoundingClientRect();
-      return r.top + r.height / 2;
-    });
+    secDragStartY.current    = e.clientY;
+    secDragStartIdx.current  = index;
     localSectionsRef.current = [...localSections];
     setSecDragIdx(index);
-    setSecDragDeltaY(0);
   };
 
   const onSecDragMove = (e: React.PointerEvent) => {
-    if (secDragNodeRef.current === null) return;
-    const slot = secDragStartIdx.current;
-    const raw = e.clientY - secDragStartY.current;
-    setSecDragDeltaY(raw);
+    const node = secDragNodeRef.current;
+    if (!node) return;
 
-    // Find target slot by checking which section the pointer mid is closest to
-    const pointerY = e.clientY;
+    const slot  = secDragStartIdx.current;
+    const raw   = e.clientY - secDragStartY.current;
+
+    // ── Fast path: move the active node imperatively — zero React overhead ──
+    node.style.transform = `translateY(${raw}px) scale(1.02)`;
+
+    const total = localSectionsRef.current.length;
+
+    // ── Swap detection: trigger as soon as the dragged section's edge
+    //    overlaps the adjacent section — no need to reach its centre. ──
     let target = slot;
-    for (let i = 0; i < secMidpointsRef.current.length; i++) {
-      if (i === slot) continue;
-      const mid = secMidpointsRef.current[i];
-      if (i < slot && pointerY < mid) { target = i; break; }
-      if (i > slot && pointerY > mid) target = i;
+
+    if (raw > 0 && slot < total - 1) {
+      // dragging DOWN — swap when pointer enters the section below
+      const nextEl = secRefs.current[slot + 1];
+      if (nextEl) {
+        const nextRect = nextEl.getBoundingClientRect();
+        if (e.clientY > nextRect.top) target = slot + 1;
+      }
+    } else if (raw < 0 && slot > 0) {
+      // dragging UP — swap when pointer enters the section above
+      const prevEl = secRefs.current[slot - 1];
+      if (prevEl) {
+        const prevRect = prevEl.getBoundingClientRect();
+        if (e.clientY < prevRect.bottom) target = slot - 1;
+      }
     }
-    target = Math.max(0, Math.min(localSectionsRef.current.length - 1, target));
 
     if (target !== slot) {
       const newSecs = [...localSectionsRef.current];
@@ -1853,33 +1861,37 @@ export default function SongsPanel() {
       newSecs.splice(target, 0, movedSec);
       newKeys.splice(target, 0, movedKey);
 
-      // Re-snapshot midpoints adjusted for swap
-      const el1 = secRefs.current[slot];
-      const el2 = secRefs.current[target];
-      if (el1 && el2) {
-        const newMids = [...secMidpointsRef.current];
-        const tmp = newMids[slot];
-        newMids[slot] = newMids[target];
-        newMids[target] = tmp;
-        secMidpointsRef.current = newMids;
+      // Adjust origin Y by the displaced section's height so the visual
+      // position of the dragged card doesn't jump after the DOM reorders.
+      const displacedEl = secRefs.current[target];
+      if (displacedEl) {
+        const h = displacedEl.getBoundingClientRect().height + 16; // +margin
+        secDragStartY.current += target > slot ? h : -h;
       }
 
       secDragStartIdx.current  = target;
       secInstanceKeys.current  = newKeys;
       localSectionsRef.current = newSecs;
 
-      const deltaShift = e.clientY - secDragStartY.current;
-      secDragStartY.current = e.clientY - deltaShift;
       setLocalSections(newSecs);
       setSecDragIdx(target);
+
+      // Reapply transform after React re-render adjusts origin
+      const newRaw = e.clientY - secDragStartY.current;
+      node.style.transform = `translateY(${newRaw}px) scale(1.02)`;
     }
   };
 
   const onSecDragEnd = () => {
-    if (secDragIdx !== null && activePreset) {
-      const fromIdx = (activePreset.sections ?? []).findIndex(s => s.id === localSectionsRef.current[secDragIdx!]?.id);
-      const toIdx   = secDragIdx;
-      if (fromIdx !== -1 && fromIdx !== toIdx) reorderSection(activePreset.id, fromIdx, toIdx);
+    const node = secDragNodeRef.current;
+    if (node) node.style.transform = '';
+    const finalIdx = secDragStartIdx.current;
+    if (activePreset) {
+      const movedId = localSectionsRef.current[finalIdx]?.id;
+      if (movedId) {
+        const fromIdx = (activePreset.sections ?? []).findIndex(s => s.id === movedId);
+        if (fromIdx !== -1 && fromIdx !== finalIdx) reorderSection(activePreset.id, fromIdx, finalIdx);
+      }
     }
     secDragNodeRef.current = null;
     setSecDragIdx(null);
@@ -2071,11 +2083,12 @@ export default function SongsPanel() {
                       borderRadius: '14px',
                       background: isSecActive ? `${accent.to}10` : 'transparent',
                       border: isSecActive ? `1.5px solid ${accent.to}30` : '1.5px solid transparent',
-                      transform: isSecActive ? `translateY(${secDragDeltaY}px) scale(1.01)` : 'none',
+                      // transform is controlled imperatively via node.style.transform — do not set here
                       boxShadow: isSecActive ? '0 12px 40px rgba(0,0,0,0.35)' : 'none',
                       zIndex: isSecActive ? 10 : 1,
                       position: 'relative',
-                      transition: isSecActive ? 'box-shadow 150ms ease' : 'transform 200ms cubic-bezier(0.34,1.3,0.64,1), box-shadow 200ms ease',
+                      willChange: isSecActive ? 'transform' : 'auto',
+                      transition: isSecActive ? 'box-shadow 150ms ease' : 'box-shadow 200ms ease',
                       padding: isSecActive ? '8px' : '0',
                     }}>
                     {/* Section header row */}
