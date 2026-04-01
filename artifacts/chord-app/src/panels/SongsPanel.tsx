@@ -2017,7 +2017,7 @@ export default function SongsPanel() {
 
   /* ═══════ VIEW: PRESET LIST ═══════ */
   return (
-    <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative', paddingBottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 76px)' }}>
+    <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative' }}>
       {showForm && <PresetForm accent={accent} initial={editingFormData} onSave={handleFormSave} onCancel={() => { setShowForm(false); setEditingId(null); }} />}
 
       <header className="flex-none px-6 pt-6 pb-1 app-bg">
