@@ -86,7 +86,7 @@ export default function ChordPanel() {
   return (
     <div className="flex flex-col h-full overflow-hidden app-bg">
       {/* Minimal top label */}
-      <header className="flex-none pt-6 pb-1 app-bg" style={{ paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 24px)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 24px)' }}>
+      <header className="flex-none px-6 pt-6 pb-1 app-bg">
         <h1 className="text-base font-bold tracking-tighter" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
           <ChordexLogo />
           Chordex
