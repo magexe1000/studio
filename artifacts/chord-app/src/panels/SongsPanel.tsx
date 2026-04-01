@@ -2444,7 +2444,7 @@ export default function SongsPanel() {
                 ))}
               </div>
               <button onClick={() => setShowSectionSelector(false)} className="btn-smooth"
-                style={{ width: '100%', padding: '10px', borderRadius: '12px', background: 'transparent', color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 600, fontSize: '13px', marginTop: '10px' }}>
+                style={{ width: '100%', padding: '10px', borderRadius: '12px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', marginTop: '10px' }}>
                 Cancel
               </button>
             </div>
