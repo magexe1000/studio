@@ -1638,6 +1638,9 @@ export default function SongsPanel() {
   const [customSectionName, setCustomSectionName]     = useState('');
   const [customSectionMode, setCustomSectionMode]     = useState(false);
 
+  // Section selector (which section to add chord to)
+  const [showSectionSelector, setShowSectionSelector] = useState(false);
+
   // Section drag-to-reorder
   const [secDragIdx, setSecDragIdx]                   = useState<number | null>(null);
   const [secDragDeltaY, setSecDragDeltaY]             = useState(0);
@@ -2285,8 +2288,12 @@ export default function SongsPanel() {
           </button>
           <button onClick={() => {
             const secs = activePreset.sections;
-            setPickerSectionId(secs && secs.length > 0 ? secs[secs.length - 1].id : null);
-            setShowPicker(true);
+            if (secs && secs.length > 0) {
+              setShowSectionSelector(true);
+            } else {
+              setPickerSectionId(null);
+              setShowPicker(true);
+            }
           }} data-testid="add-chord-btn" className="btn-smooth"
             style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}cc, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_music</span>
@@ -2350,6 +2357,33 @@ export default function SongsPanel() {
               )}
               <button onClick={() => setShowSectionPicker(false)} className="btn-smooth"
                 style={{ width: '100%', padding: '10px', borderRadius: '12px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Section selector — pick where to add chord */}
+        {showSectionSelector && activePreset.sections && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+            onClick={e => { if (e.target === e.currentTarget) setShowSectionSelector(false); }}>
+            <div style={{ background: 'var(--app-surface)', borderRadius: '20px 20px 0 0', padding: '20px 16px', paddingBottom: 'max(24px, env(safe-area-inset-bottom))', boxShadow: '0 -8px 40px rgba(0,0,0,0.3)' }}>
+              <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(128,128,128,0.3)', margin: '0 auto 16px' }} />
+              <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px', color: 'var(--c-text-primary)', marginBottom: '12px' }}>Add chord to…</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {activePreset.sections.map(section => (
+                  <button key={section.id} className="btn-smooth" onClick={() => {
+                    setPickerSectionId(section.id);
+                    setShowSectionSelector(false);
+                    setShowPicker(true);
+                  }} style={{ width: '100%', padding: '13px 16px', borderRadius: '12px', background: 'var(--app-surface-high)', border: '1px solid rgba(72,72,72,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '14px', color: 'var(--c-text-primary)' }}>{section.name}</span>
+                    <span style={{ fontFamily: 'Inter', fontSize: '11px', color: 'var(--c-text-muted)' }}>{section.chords.length} chord{section.chords.length !== 1 ? 's' : ''}</span>
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => setShowSectionSelector(false)} className="btn-smooth"
+                style={{ width: '100%', padding: '10px', borderRadius: '12px', background: 'transparent', color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 600, fontSize: '13px', marginTop: '10px' }}>
                 Cancel
               </button>
             </div>
