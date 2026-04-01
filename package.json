@@ -17,5 +17,12 @@
     "@octokit/rest": "^22.0.1",
     "@replit/connectors-sdk": "^0.3.0",
     "adm-zip": "^0.5.16"
+  },
+  "pnpm": {
+    "overrides": {
+      "path-to-regexp@8.3.0": "8.4.0",
+      "picomatch@2.3.1": "2.3.2",
+      "picomatch@4.0.3": "4.0.4"
+    }
   }
 }
