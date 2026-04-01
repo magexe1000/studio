@@ -128,9 +128,6 @@ export default function App() {
           const isExiting  = exitingPanel === panel;
           const isEntering = isVisible && exitingPanel !== null;
 
-          // Nav clearance: keeps panel content above the floating nav bar
-          const navClearance = 'calc(max(10px, env(safe-area-inset-bottom)) + 76px)';
-
           // Determine CSS animation class
           let animClass = '';
           if (isEntering) animClass = slideDir === 'right' ? 'panel-enter-right' : 'panel-enter-left';
@@ -141,7 +138,7 @@ export default function App() {
             return (
               <div
                 key={panel}
-                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: navClearance, opacity: 0, pointerEvents: 'none' }}
+                style={{ position: 'absolute', inset: 0, opacity: 0, pointerEvents: 'none' }}
               >
                 {panel === 'library'  && <LibraryPanel />}
                 {panel === 'chord'    && <ChordPanel />}
@@ -157,7 +154,7 @@ export default function App() {
               className={animClass}
               style={{
                 position: 'absolute',
-                top: 0, left: 0, right: 0, bottom: navClearance,
+                inset: 0,
                 opacity: isExiting && !animClass ? 0 : undefined,
                 pointerEvents: isVisible && !isExiting ? 'auto' : 'none',
               }}

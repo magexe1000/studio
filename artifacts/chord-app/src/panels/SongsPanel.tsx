@@ -1706,7 +1706,7 @@ export default function SongsPanel() {
   /* ═══════ VIEW: PRESET EDITOR ═══════ */
   if (activePreset && !showForm) {
     return (
-      <div className="flex flex-col h-full overflow-hidden app-bg slide-from-right" style={{ position: 'relative' }}>
+      <div className="flex flex-col h-full overflow-hidden app-bg slide-from-right" style={{ position: 'relative', paddingBottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 76px)' }}>
         {showLive && <LiveMode preset={activePreset} onClose={() => setShowLive(false)} transposeOffset={transposeOffset} />}
         {showPicker && <ChordPicker accent={accent} onAdd={id => addChordToPreset(activePreset.id, id)} onClose={() => setShowPicker(false)} onCreateCustom={() => setShowCustomBuilder(true)} customChords={customChords} />}
         {showCustomBuilder && (
@@ -2017,7 +2017,7 @@ export default function SongsPanel() {
 
   /* ═══════ VIEW: PRESET LIST ═══════ */
   return (
-    <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative' }}>
+    <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative', paddingBottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 76px)' }}>
       {showForm && <PresetForm accent={accent} initial={editingFormData} onSave={handleFormSave} onCancel={() => { setShowForm(false); setEditingId(null); }} />}
 
       <header className="flex-none px-6 pt-6 pb-1 app-bg">
