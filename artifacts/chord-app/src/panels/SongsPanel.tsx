@@ -2073,8 +2073,7 @@ export default function SongsPanel() {
                 </span>
               )}
               {activePreset.bpm > 0 && (
-                <span style={{ padding: '3px 10px 3px 7px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '13px', lineHeight: 1 }}>speed</span>
+                <span style={{ padding: '3px 10px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', whiteSpace: 'nowrap' }}>
                   {activePreset.bpm} BPM
                 </span>
               )}
