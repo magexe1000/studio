@@ -6,8 +6,10 @@
  *      (enables the Android 13+ predictive back gesture)
  *   2. Removes :capacitor-status-bar from capacitor.settings.gradle
  *   3. Removes :capacitor-status-bar from app/capacitor.build.gradle
- *   4. Patches styles.xml so the status bar shows light (white) icons on the
- *      dark app background — fixes invisible clock/wifi/battery icons
+ *   4. Patches styles.xml so:
+ *        - Status bar is transparent (app background shows through)
+ *        - Status bar icons are white (correct for dark theme)
+ *        - windowDrawsSystemBarBackgrounds = true
  *
  * Run via:  pnpm --filter @workspace/chord-app run android:patch
  * Or as part of the full sync:  pnpm --filter @workspace/chord-app run android:sync
@@ -40,7 +42,7 @@ patchFile(
   path.join(androidDir, 'app/src/main/AndroidManifest.xml'),
   'AndroidManifest.xml  (predictive back gesture)',
   (src) => {
-    if (src.includes('enableOnBackInvokedCallback')) return src; // already there
+    if (src.includes('enableOnBackInvokedCallback')) return src;
     return src.replace(
       /(<application\b)/,
       '$1\n        android:enableOnBackInvokedCallback="true"'
@@ -62,30 +64,41 @@ patchFile(
   (src) => src.split('\n').filter(l => !l.includes(':capacitor-status-bar')).join('\n')
 );
 
-// ── 4. styles.xml — white status-bar icons on dark background ─────────────
-// The old @capacitor/status-bar plugin may leave windowLightStatusBar=true,
-// which forces dark (invisible) icons on the app's dark background.
-// We force it to false so Android shows the standard white/light icons.
-['app/src/main/res/values/styles.xml',
- 'app/src/main/res/values-night/styles.xml'].forEach((relPath) => {
-  const stylesPath = path.join(androidDir, relPath);
-  patchFile(
-    stylesPath,
-    `${relPath}  (white status-bar icons)`,
-    (src) => {
-      // If the item already exists, ensure it is false (not true)
-      if (src.includes('windowLightStatusBar')) {
-        return src.replace(
-          /<item name="android:windowLightStatusBar">.*?<\/item>/g,
-          '<item name="android:windowLightStatusBar">false</item>'
-        );
-      }
-      // Otherwise inject it before the first </style> closing tag
-      return src.replace(
+// ── 4. styles.xml — transparent status bar with white icons ───────────────
+// Makes the status bar transparent so the app background shows through it,
+// and ensures icons are white (correct for dark-background app).
+// The safe-area-inset-top spacer in App.tsx provides the correct padding.
+function patchStyles(src) {
+  const items = {
+    'android:windowLightStatusBar':          'false',
+    'android:statusBarColor':                '@android:color/transparent',
+    'android:windowDrawsSystemBarBackgrounds': 'true',
+    'android:windowTranslucentStatus':       'false',
+  };
+
+  let result = src;
+
+  for (const [name, value] of Object.entries(items)) {
+    const existing = new RegExp(`<item name="${name.replace(/:/g, ':')}">.*?<\\/item>`, 'g');
+    if (result.includes(`name="${name}"`)) {
+      result = result.replace(existing, `<item name="${name}">${value}</item>`);
+    } else {
+      result = result.replace(
         /(<\/style>)/,
-        '        <item name="android:windowLightStatusBar">false</item>\n    $1'
+        `        <item name="${name}">${value}</item>\n    $1`
       );
     }
+  }
+
+  return result;
+}
+
+['app/src/main/res/values/styles.xml',
+ 'app/src/main/res/values-night/styles.xml'].forEach((relPath) => {
+  patchFile(
+    path.join(androidDir, relPath),
+    `${relPath}  (transparent status bar + white icons)`,
+    patchStyles
   );
 });
 

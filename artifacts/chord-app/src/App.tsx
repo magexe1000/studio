@@ -106,6 +106,20 @@ export default function App() {
     settings.amoledMode ? root.classList.add('amoled') : root.classList.remove('amoled');
   }, [settings.amoledMode]);
 
+  // Sync theme-color meta tag so the PWA / browser status bar matches the app theme
+  useEffect(() => {
+    const isLight = settings.theme === 'light' ||
+      (settings.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
+    const color = settings.amoledMode ? '#000000' : (isLight ? '#f5f5f5' : '#111116');
+    let tag = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!tag) {
+      tag = document.createElement('meta');
+      tag.name = 'theme-color';
+      document.head.appendChild(tag);
+    }
+    tag.content = color;
+  }, [settings.theme, settings.amoledMode]);
+
   // Theme mode (dark / light / system)
   useEffect(() => {
     const root = document.documentElement;
