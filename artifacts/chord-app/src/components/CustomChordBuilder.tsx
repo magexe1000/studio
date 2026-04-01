@@ -8,6 +8,7 @@ import { setNavHidden } from '../lib/navScroll';
 import { useEffect } from 'react';
 import ChordDiagram from './ChordDiagram';
 import type { GuitarChordData } from '../data/chords';
+import { useT } from '../lib/useT';
 
 type Instrument = 'guitar' | 'piano' | 'bass' | 'ukulele';
 
@@ -152,6 +153,7 @@ function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresCh
   onBarresChange?: (b: BarreDef[]) => void;
   accent: { from: string; to: string };
 }) {
+  const t = useT();
   const [baseFret, setBaseFret] = useState(1);
   const [barreMode, setBarreMode] = useState(false);
   const VISIBLE = 5;
@@ -197,7 +199,7 @@ function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresCh
           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_left</span>
         </button>
         <span style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '12px', color: 'var(--c-text-secondary)', flex: 1, textAlign: 'center' }}>
-          {baseFret === 1 ? 'Open · Frets 1–5' : `Frets ${baseFret}–${baseFret + VISIBLE - 1}`}
+          {baseFret === 1 ? t.customBuilder.openFrets : t.customBuilder.fretsRange(baseFret, baseFret + VISIBLE - 1)}
         </span>
         {/* Barre toggle */}
         <button onClick={toggleBarreMode} className="btn-smooth"
@@ -212,7 +214,7 @@ function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresCh
             transition: 'all 180ms ease',
           }}>
           <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>horizontal_rule</span>
-          Barre
+          {t.customBuilder.barre}
         </button>
         <button onClick={() => setBaseFret(bf => Math.min(8, bf + 1))} disabled={baseFret >= 8}
           className="btn-smooth"
@@ -222,7 +224,7 @@ function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresCh
       </div>
       {barreMode && (
         <p style={{ fontFamily: 'Inter', fontSize: '11px', color: accent.from, marginBottom: '8px', textAlign: 'center' }}>
-          Tap 2+ positions on the same fret — they'll connect as a barre
+          {t.customBuilder.barreHint}
         </p>
       )}
 
@@ -472,11 +474,11 @@ function PianoKeyboard({ pianoKeys, onChange, accent }: {
    INSTRUMENT ICONS
    ════════════════════════════════════════════════════════════════ */
 
-const INSTRUMENTS: { id: Instrument; label: string; image: string }[] = [
-  { id: 'guitar',  label: 'Guitar',  image: '/instruments/guitar.png'  },
-  { id: 'piano',   label: 'Piano',   image: '/instruments/piano.png'   },
-  { id: 'bass',    label: 'Bass',    image: '/instruments/bass.png'    },
-  { id: 'ukulele', label: 'Ukulele', image: '/instruments/ukulele.png' },
+const INSTRUMENTS: { id: Instrument; image: string }[] = [
+  { id: 'guitar',  image: '/instruments/guitar.png'  },
+  { id: 'piano',   image: '/instruments/piano.png'   },
+  { id: 'bass',    image: '/instruments/bass.png'    },
+  { id: 'ukulele', image: '/instruments/ukulele.png' },
 ];
 
 function genId() {
@@ -496,7 +498,14 @@ interface Props {
 
 export default function CustomChordBuilder({ accent, editChord, onSave, onClose }: Props) {
   const { settings } = useChordStore();
+  const t = useT();
   const resolvedAccent = ACCENT_COLORS[settings.accentColor];
+  const instLabels: Record<Instrument, string> = {
+    guitar:  t.customBuilder.guitar,
+    piano:   t.customBuilder.piano,
+    bass:    t.customBuilder.bass,
+    ukulele: t.customBuilder.ukulele,
+  };
 
   const [instrument, setInstrument] = useState<Instrument>(editChord?.instrument ?? 'guitar');
   const [frets, setFrets] = useState<number[]>(() => {
@@ -543,7 +552,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
   };
 
   const handleSave = () => {
-    const finalName = name.trim() || suggested || 'Custom Chord';
+    const finalName = name.trim() || suggested || t.customBuilder.fallbackName;
     const chord: CustomChord = {
       id: editChord?.id ?? genId(),
       name: finalName,
@@ -610,10 +619,10 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
           </div>
           <div style={{ flex: 1 }}>
             <p style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '18px', color: 'var(--c-text-primary)', lineHeight: 1 }}>
-              {isEditing ? 'Edit Chord' : 'Custom Chord'}
+              {isEditing ? t.customBuilder.titleEdit : t.customBuilder.titleNew}
             </p>
             <p style={{ fontFamily: 'Inter', fontSize: '11px', color: 'var(--c-text-muted)', marginTop: '2px' }}>
-              {isEditing ? 'Modify your chord shape' : 'Build your own chord visually'}
+              {isEditing ? t.customBuilder.subtitleEdit : t.customBuilder.subtitleNew}
             </p>
           </div>
           <button onClick={onClose} className="btn-smooth" style={{ color: 'var(--c-text-secondary)' }}>
@@ -626,7 +635,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
 
           {/* ── Instrument selector ── */}
           <div style={{ marginBottom: '20px' }}>
-            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>Instrument</p>
+            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>{t.customBuilder.instrument}</p>
             <div style={{ display: 'flex', gap: '8px' }}>
               {INSTRUMENTS.map(inst => {
                 const active = instrument === inst.id;
@@ -690,7 +699,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
                         color: active ? '#fff' : 'var(--c-text-secondary)',
                         letterSpacing: '0.03em',
                       }}>
-                        {inst.label}
+                        {instLabels[inst.id]}
                       </span>
                     </div>
                   </button>
@@ -701,12 +710,12 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
 
           {/* ── Chord name input ── */}
           <div style={{ marginBottom: '20px' }}>
-            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Chord Name</p>
+            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>{t.customBuilder.chordName}</p>
             <div style={{ position: 'relative' }}>
               <input
                 value={name}
                 onChange={e => { setName(e.target.value); setNameTouched(true); }}
-                placeholder={suggested ? `Detected: ${suggested}` : 'e.g. Cmaj7, My Riff...'}
+                placeholder={suggested ? t.customBuilder.detected(suggested) : t.customBuilder.namePlaceholder}
                 style={{
                   width: '100%', background: 'var(--app-surface)', border: '1px solid rgba(72,72,72,0.15)', borderRadius: '12px',
                   padding: '12px 14px', color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 700,
@@ -725,7 +734,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
             {suggested && name.trim() === '' && (
               <p style={{ fontFamily: 'Inter', fontSize: '11px', color: resolvedAccent.from, marginTop: '5px' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '12px', verticalAlign: 'middle' }}>auto_fix_high</span>
-                {' '}Detected: <strong>{suggested}</strong> — will be used if left empty
+                {' '}{t.customBuilder.detectedHint(suggested)}
               </p>
             )}
           </div>
@@ -735,7 +744,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
             {/* Header row: label + live preview */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                {instrument === 'piano' ? 'Piano Keyboard' : 'Fretboard'}
+                {instrument === 'piano' ? t.customBuilder.pianoKeyboard : t.customBuilder.fretboard}
               </p>
               {/* Live diagram preview — guitar */}
               {previewData && (
@@ -780,7 +789,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
           {/* ── Notes summary ── */}
           {notes.length > 0 && (
             <div style={{ marginTop: '16px', padding: '12px 14px', background: 'var(--app-surface)', borderRadius: '12px', border: '1px solid rgba(72,72,72,0.08)' }}>
-              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '10px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Notes</p>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '10px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>{t.customBuilder.notes}</p>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {notes.map((note, i) => (
                   <span key={i} style={{ padding: '3px 10px', borderRadius: '9999px', background: `${resolvedAccent.from}18`, color: resolvedAccent.from, fontFamily: 'Manrope', fontWeight: 800, fontSize: '12px', border: `1px solid ${resolvedAccent.from}30` }}>
@@ -807,11 +816,11 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
               transition: 'all 250ms cubic-bezier(0.34, 1.56, 0.64, 1)',
               transform: hasAnyNote ? 'scale(1)' : 'scale(0.98)',
             }}>
-            {isEditing ? 'Update Chord' : 'Save Chord'}
+            {isEditing ? t.customBuilder.updateChord : t.customBuilder.saveChord}
           </button>
           {!hasAnyNote && (
             <p style={{ textAlign: 'center', fontFamily: 'Inter', fontSize: '11px', color: 'var(--c-text-muted)', marginTop: '8px' }}>
-              {instrument === 'piano' ? 'Tap at least one key to continue' : 'Place at least one finger to continue'}
+              {instrument === 'piano' ? t.customBuilder.hintPiano : t.customBuilder.hintFret}
             </p>
           )}
         </div>
