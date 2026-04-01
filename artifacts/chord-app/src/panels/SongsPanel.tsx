@@ -1858,13 +1858,24 @@ export default function SongsPanel() {
 
     const slot = secDragStartIdx.current;
 
-    // ── Clamp pointer to the visible scroll container so sections can't
-    //    be dragged off the top or bottom of the screen. ──
+    // ── Hard-clamp pointer to the visible scroll container — no escape possible. ──
     const containerRect = editorScrollRef.current?.getBoundingClientRect();
     const clampedY = containerRect
       ? Math.max(containerRect.top + 24, Math.min(containerRect.bottom - 24, e.clientY))
       : e.clientY;
-    const raw = clampedY - secDragStartY.current;
+
+    // raw is always computed from the clamped coordinate so the origin never drifts.
+    let raw = clampedY - secDragStartY.current;
+
+    // Secondary safety: also clamp the transform amount so the node can never
+    // visually escape the container even if secDragStartY.current is stale.
+    if (containerRect && node) {
+      const nodeRect   = node.getBoundingClientRect();
+      const nodeNatTop = nodeRect.top - raw; // natural (untransformed) top
+      const maxDown    = containerRect.bottom - 24 - nodeNatTop - node.offsetHeight;
+      const maxUp      = containerRect.top    + 24 - nodeNatTop;
+      raw = Math.max(maxUp, Math.min(maxDown, raw));
+    }
 
     // Fast path: move active node imperatively — zero React overhead per frame.
     node.style.transform = `translateY(${raw}px) scale(1.02)`;
@@ -1898,11 +1909,10 @@ export default function SongsPanel() {
 
       if (aEl && bEl) {
         // After the swap, A's natural DOM top will be where B's top is now.
-        // We compute newRaw so A's VISUAL position stays under the pointer.
-        //   visual_top = new_natural_top + newRaw  →  newRaw = aRect.top − bRect.top
-        // (aRect.top is already the visual/transformed top; bRect.top is flow position)
+        // Use clampedY (not e.clientY) so the origin stays within bounds — this
+        // is the key fix that prevents drift on repeated boundary hits.
         const newRaw = aEl.getBoundingClientRect().top - bEl.getBoundingClientRect().top;
-        secDragStartY.current = e.clientY - newRaw;
+        secDragStartY.current = clampedY - newRaw;
         node.style.transform  = `translateY(${newRaw}px) scale(1.02)`;
       }
 
