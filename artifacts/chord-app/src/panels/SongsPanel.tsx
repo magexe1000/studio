@@ -1697,19 +1697,19 @@ export default function SongsPanel() {
   const secInstanceKeys = useRef<string[]>([]);
 
   // ── Android back gesture / predictive back ──────────────────────────────
-  // Keep a ref to the current "close topmost thing" logic so the popstate
-  // listener never has a stale closure.
-  const backHandlerRef = useRef<() => void>(() => {});
+  // Returns true if it handled something, false if we're at the root (should minimize).
+  const backHandlerRef = useRef<() => boolean>(() => false);
   useEffect(() => {
     backHandlerRef.current = () => {
-      if (showCustomBuilder) { setShowCustomBuilder(false); return; }
-      if (showPicker)        { setShowPicker(false);        return; }
-      if (showLive)          { setShowLive(false);          return; }
-      if (showForm)          { setShowForm(false); setEditingId(null); return; }
-      if (exportModalPreset) { setExportModal(null);        return; }
-      if (showImport)        { setShowImport(false);        return; }
-      if (showDeleteId)      { setShowDeleteId(null);       return; }
-      if (activePresetId && activePanel === 'songs') { setActivePreset(null); return; }
+      if (showCustomBuilder) { setShowCustomBuilder(false); return true; }
+      if (showPicker)        { setShowPicker(false);        return true; }
+      if (showLive)          { setShowLive(false);          return true; }
+      if (showForm)          { setShowForm(false); setEditingId(null); return true; }
+      if (exportModalPreset) { setExportModal(null);        return true; }
+      if (showImport)        { setShowImport(false);        return true; }
+      if (showDeleteId)      { setShowDeleteId(null);       return true; }
+      if (activePresetId && activePanel === 'songs') { setActivePreset(null); return true; }
+      return false;
     };
   }, [showCustomBuilder, showPicker, showLive, showForm, exportModalPreset,
       showImport, showDeleteId, activePresetId, activePanel, setActivePreset]);
@@ -1720,19 +1720,35 @@ export default function SongsPanel() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Seed the history stack so Android always has a state to pop into
-    // instead of immediately exiting the app.
+    // Web fallback: seed history stack so popstate fires on back gesture.
     window.history.replaceState({ chordex: 'root' }, '');
     window.history.pushState({ chordex: 'app' }, '');
 
     const handlePop = () => {
       backHandlerRef.current();
-      // Re-push so the next back gesture is also absorbed.
       window.history.pushState({ chordex: 'app' }, '');
     };
 
     window.addEventListener('popstate', handlePop);
-    return () => window.removeEventListener('popstate', handlePop);
+
+    // Native Android: Capacitor's backButton event is the proper interception
+    // point — popstate is not reliable when predictive back is enabled.
+    let removeCapacitorListener: (() => void) | null = null;
+    import('@capacitor/app').then(({ App: CapApp }) => {
+      CapApp.addListener('backButton', () => {
+        const handled = backHandlerRef.current();
+        if (!handled) {
+          CapApp.minimizeApp();
+        }
+      }).then((handle) => {
+        removeCapacitorListener = () => handle.remove();
+      });
+    }).catch(() => { /* running in web — popstate handles it */ });
+
+    return () => {
+      window.removeEventListener('popstate', handlePop);
+      removeCapacitorListener?.();
+    };
   }, []); // intentionally empty — runs once on mount
 
   // Drag & drop
