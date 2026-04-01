@@ -48,7 +48,7 @@ function Toggle({ value, onChange, accentFrom, accentTo }: ToggleProps) {
 
 function SectionHeader({ icon, title }: { icon: string; title: string }) {
   return (
-    <div className="flex items-center justify-center gap-2 mb-3 mt-6">
+    <div className="flex items-center gap-2 mb-3 mt-6">
       <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--c-text-secondary)' }}>{icon}</span>
       <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>{title}</p>
     </div>
@@ -57,7 +57,7 @@ function SectionHeader({ icon, title }: { icon: string; title: string }) {
 
 function SettingRow({ label, desc, children, indent }: { label: string; desc?: string; children: React.ReactNode; indent?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-4" style={{ padding: 'var(--density-row-pad)', borderBottom: '1px solid rgba(72,72,72,0.07)', paddingLeft: indent ? '28px' : undefined }}>
+    <div className="flex items-center justify-between gap-4" style={{ padding: '14px 20px', paddingLeft: indent ? '28px' : '20px', borderBottom: '1px solid rgba(72,72,72,0.07)' }}>
       <div className="flex-1 min-w-0">
         <p style={{ fontSize: indent ? 'var(--font-sm)' : 'var(--font-base)', fontWeight: 600, color: indent ? 'var(--c-text-secondary)' : 'var(--c-text-primary)', fontFamily: 'Manrope' }}>{label}</p>
         {desc && <p style={{ fontSize: 'var(--font-sm)', marginTop: '2px', lineHeight: 1.3, color: 'var(--c-text-secondary)', fontFamily: 'Inter', opacity: indent ? 0.75 : 1 }}>{desc}</p>}
@@ -89,6 +89,9 @@ function SegmentedControl<T extends string>({
             fontFamily: 'Manrope',
             fontSize: 'var(--font-xs)',
             fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             background: value === opt.value ? `linear-gradient(135deg, ${accentFrom}, ${accentTo})` : 'transparent',
             color: value === opt.value ? 'white' : '#acabaa',
             transition: 'background 250ms ease, color 250ms ease',
