@@ -1,0 +1,42 @@
+The Netlify deploy errored, with the following guidance provided:
+
+- Relevant log lines
+  - [line 8](#L8) shows the parser failing while resolving netlify.toml.
+  - [line 9](#L9) reports "Failed to parse configuration" (build aborted).
+
+- Diagnosis
+  - The Netlify build failed because netlify.toml in the repo is syntactically invalid or truncated. The fragment shown in the logs ("Base di") strongly suggests there's stray or malformed text (for example a partial key like "Base dir", an unfinished line, or wrong capitalization) that makes the TOML parser error while reading netlify.toml.
+
+- Solution
+  1. Inspect and fix netlify.toml in your repo (file: netlify.toml). You can view it here:
+     https://github.com/MAGEXE1000/Chordex/blob/main/netlify.toml
+  2. Look for any stray or partial text (e.g. "Base di", incomplete key/value, or incorrect characters) and correct it to valid TOML syntax. A minimal valid Netlify config for builds looks like:
+```toml
+[build]
+  base = "."
+  publish = "dist"
+  command = "npm run build"
+```
+     - Replace values for base/publish/command with the correct paths/command for your project.
+     - Ensure keys are lowercase and that strings are quoted. Remove any accidental text, BOM, or truncated lines.
+  3. Validate the TOML:
+     - Use an online TOML validator or a local tool to ensure the file parses.
+  4. Commit and push the corrected netlify.toml to the repository, then retry the Netlify deploy.
+
+If after fixing you still see parse errors, copy the exact contents of netlify.toml here (or paste the first ~50 lines) and I’ll point out the specific syntax problem.
+
+The relevant error logs are:
+
+Line 0: build-image version: a0bc76c99cbadd99a168cf193f4d4df9fa7ee94a (noble-new-builds)
+Line 1: buildbot version: 01f5db8adecddf8de6c47ac7b24cb8bdfc2475ee
+Line 2: Fetching cached dependencies
+Line 3: Failed to fetch cache, continuing with build
+Line 4: Starting to prepare the repo for build
+Line 5: No cached dependencies found. Cloning fresh repo
+Line 6: git clone --filter=blob:none https://github.com/MAGEXE1000/Chordex
+Line 7: Preparing Git Reference refs/heads/main
+Line 8: Failed during stage 'Reading and parsing configuration files': 
+When resolving config file /opt/build/repo/netlify.toml:
+Base di
+Line 9: Failing build: Failed to parse configuration
+Line 10: Finished processing build request in 2.024s
