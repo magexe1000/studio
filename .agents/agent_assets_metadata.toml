@@ -6,3 +6,9 @@ id = "I5FP-fUgJVTPVlHcXq6Xl"
 uri = "file://artifacts/chord-app/public/icon-512.png"
 type = "image"
 title = "Chordex Icon (512×512)"
+
+[[outputs]]
+id = "yotJauD4O-IyPgRVEcKxB"
+uri = "file://chord-app-netlify.zip"
+type = "unspecified"
+title = "Chordex — Netlify Deploy Package"
