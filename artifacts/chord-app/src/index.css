@@ -344,6 +344,16 @@
     transform: scale(1.3);
   }
 
+  /* ===== Splash screen entry ===== */
+  @keyframes splash-logo-in {
+    from { transform: scale(0.72) translateY(6px); opacity: 0; }
+    to   { transform: scale(1)    translateY(0);   opacity: 1; }
+  }
+  @keyframes splash-wordmark-in {
+    from { transform: translateY(8px); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+  }
+
   /* ===== Bottom sheet slide-up / slide-down ===== */
   @keyframes sheet-up {
     from { transform: translateY(100%); opacity: 0; }

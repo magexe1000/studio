@@ -587,7 +587,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
         position: 'absolute', bottom: 0, left: 0, right: 0,
         background: 'var(--app-bg)',
         borderRadius: '1.5rem 1.5rem 0 0',
-        maxHeight: '92dvh',
+        maxHeight: '74dvh',
         display: 'flex', flexDirection: 'column',
         animation: 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
         overflow: 'hidden',

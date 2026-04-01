@@ -6,6 +6,48 @@ import SettingsPanel from './panels/SettingsPanel';
 import SongsPanel from './panels/SongsPanel';
 import BottomNav from './components/BottomNav';
 import { setNavHidden } from './lib/navScroll';
+import { ChordexLogo } from './components/ChordexLogo';
+
+function SplashScreen({ onDone }: { onDone: () => void }) {
+  const [fading, setFading] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setFading(true), 1000);
+    const t2 = setTimeout(() => onDone(), 1440);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [onDone]);
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9999,
+      background: 'var(--app-bg)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: '18px',
+      opacity: fading ? 0 : 1,
+      transition: 'opacity 440ms cubic-bezier(0.4, 0, 0.2, 1)',
+      pointerEvents: fading ? 'none' : 'auto',
+    }}>
+      {/* Logo mark */}
+      <div style={{
+        color: 'var(--c-text-primary)',
+        animation: 'splash-logo-in 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms both',
+      }}>
+        <ChordexLogo size={64} />
+      </div>
+      {/* Wordmark */}
+      <p style={{
+        fontFamily: 'Manrope',
+        fontWeight: 900,
+        fontSize: '28px',
+        letterSpacing: '-0.02em',
+        color: 'var(--c-text-primary)',
+        animation: 'splash-wordmark-in 500ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 260ms both',
+      }}>
+        Chordex
+      </p>
+    </div>
+  );
+}
 
 // Ordered left-to-right (matches nav order) — used to compute slide direction
 const NAV_ORDER = ['songs', 'library', 'chord', 'settings'] as const;
@@ -13,6 +55,7 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
   const { activePanel, settings, setActivePanel } = useChordStore();
+  const [showSplash, setShowSplash] = useState(true);
 
   // On first mount, jump to the user's preferred start tab
   useEffect(() => {
@@ -176,6 +219,8 @@ export default function App() {
       </div>
 
       <BottomNav />
+
+      {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
     </div>
   );
 }
