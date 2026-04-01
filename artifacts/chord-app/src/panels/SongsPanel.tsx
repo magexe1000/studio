@@ -1614,6 +1614,7 @@ export default function SongsPanel() {
     setTranspose, resetTranspose, updateSettings,
     saveCustomChord, updateCustomChord, deleteCustomChord,
     addSection, updateSection, deleteSection, addChordToSection, removeChordFromSection, reorderSection, convertToSections,
+    deduplicatePresetChords,
   } = useChordStore();
   const accent      = ACCENT_COLORS[settings.accentColor];
   const preferFlats = settings.preferFlats ?? false;
@@ -1668,6 +1669,11 @@ export default function SongsPanel() {
     };
   }, [showCustomBuilder, showPicker, showLive, showForm, exportModalPreset,
       showImport, showDeleteId, activePresetId, activePanel, setActivePreset]);
+
+  // Deduplicate all preset chords once on mount so diagrams & counts are always accurate.
+  useEffect(() => {
+    presets.forEach(p => deduplicatePresetChords(p.id));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Seed the history stack so Android always has a state to pop into

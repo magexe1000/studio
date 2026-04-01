@@ -147,6 +147,7 @@ interface ChordStore {
   removeChordFromSection: (presetId: string, sectionId: string, index: number) => void;
   reorderSection: (presetId: string, fromIdx: number, toIdx: number) => void;
   convertToSections: (presetId: string) => void;
+  deduplicatePresetChords: (presetId: string) => void;
 }
 
 export const ACCENT_COLORS: Record<AccentColor, { from: string; to: string; mid: string }> = {
@@ -470,6 +471,24 @@ export const useChordStore = create<ChordStore>()(
               sections: [{ id, name: 'Verse', chords: [...p.chords] }],
               chords: [],
             };
+          }),
+        }));
+      },
+
+      deduplicatePresetChords: (presetId) => {
+        set((state) => ({
+          presets: state.presets.map(p => {
+            if (p.id !== presetId) return p;
+            const uniqueFlat = [...new Set(p.chords)];
+            const uniqueSections = p.sections?.map(s => ({
+              ...s,
+              chords: [...new Set(s.chords)],
+            }));
+            const changed =
+              uniqueFlat.length !== p.chords.length ||
+              (uniqueSections ?? []).some((s, i) => s.chords.length !== (p.sections?.[i]?.chords.length ?? 0));
+            if (!changed) return p;
+            return { ...p, chords: uniqueFlat, sections: uniqueSections, updatedAt: Date.now() };
           }),
         }));
       },
