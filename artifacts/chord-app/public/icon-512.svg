@@ -1,18 +1,22 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="96" fill="#0f0f13"/>
-  <!-- Fretboard background glow -->
-  <ellipse cx="256" cy="256" rx="120" ry="120" fill="#4f88ff" fill-opacity="0.08"/>
-  <!-- Nut -->
-  <rect x="162" y="142" width="188" height="28" rx="8" fill="#4f88ff"/>
-  <!-- Strings -->
-  <line x1="194" y1="170" x2="194" y2="370" stroke="#4f88ff" stroke-width="7" stroke-opacity="0.3"/>
-  <line x1="256" y1="170" x2="256" y2="370" stroke="#4f88ff" stroke-width="7" stroke-opacity="0.3"/>
-  <line x1="318" y1="170" x2="318" y2="370" stroke="#4f88ff" stroke-width="7" stroke-opacity="0.3"/>
-  <!-- Fret lines -->
-  <line x1="162" y1="236" x2="350" y2="236" stroke="#4f88ff" stroke-width="5" stroke-opacity="0.22"/>
-  <line x1="162" y1="303" x2="350" y2="303" stroke="#4f88ff" stroke-width="5" stroke-opacity="0.22"/>
-  <!-- Chord dots -->
-  <circle cx="194" cy="203" r="22" fill="#4f88ff"/>
-  <circle cx="318" cy="203" r="22" fill="#4f88ff"/>
-  <circle cx="256" cy="269" r="22" fill="#4f88ff"/>
+  <!-- Dark background with rounded corners -->
+  <rect width="512" height="512" rx="112" fill="#111116"/>
+  <!-- The Chordex fretboard logo, scaled up and centered (original viewBox 0 0 13 17, scaled ~26x to fit 512) -->
+  <!-- Scale factor: 512/13 = ~39.4 but we want padding, so let's use 22x scale centered -->
+  <!-- Original 13x17 → scaled to 260x340, centered in 512x512: offset x=(512-260)/2=126, y=(512-340)/2=86 -->
+  <!-- Nut: rect x="0.5" y="0.5" width="12" height="2.5" rx="1" → scaled 22x: x=11+126, y=11+86, w=264, h=55, rx=22 -->
+  <rect x="137" y="97" width="264" height="55" rx="22" fill="white"/>
+  <!-- Strings: x=2.5*22+126=181, x=6.5*22+126=269, x=10.5*22+126=357, y1=3*22+86=152, y2=16.5*22+86=449 -->
+  <line x1="181" y1="152" x2="181" y2="449" stroke="white" stroke-width="10" stroke-opacity="0.35"/>
+  <line x1="269" y1="152" x2="269" y2="449" stroke="white" stroke-width="10" stroke-opacity="0.35"/>
+  <line x1="357" y1="152" x2="357" y2="449" stroke="white" stroke-width="10" stroke-opacity="0.35"/>
+  <!-- Fret lines: y=8*22+86=262, y=13*22+86=372; x1=0.5*22+126=137, x2=12.5*22+126=401 -->
+  <line x1="137" y1="262" x2="401" y2="262" stroke="white" stroke-width="8" stroke-opacity="0.28"/>
+  <line x1="137" y1="372" x2="401" y2="372" stroke="white" stroke-width="8" stroke-opacity="0.28"/>
+  <!-- Chord dots: cx=2.5*22+126=181, cy=5.5*22+86=207, r=2.1*22=46 -->
+  <circle cx="181" cy="207" r="46" fill="white"/>
+  <!-- cx=10.5*22+126=357, cy=207 -->
+  <circle cx="357" cy="207" r="46" fill="white"/>
+  <!-- cx=6.5*22+126=269, cy=10.5*22+86=317 -->
+  <circle cx="269" cy="317" r="46" fill="white"/>
 </svg>
