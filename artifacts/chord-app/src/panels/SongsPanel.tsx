@@ -1825,35 +1825,32 @@ export default function SongsPanel() {
     const node = secDragNodeRef.current;
     if (!node) return;
 
-    const slot  = secDragStartIdx.current;
-    const raw   = e.clientY - secDragStartY.current;
+    const slot = secDragStartIdx.current;
+    const raw  = e.clientY - secDragStartY.current;
 
-    // ── Fast path: move the active node imperatively — zero React overhead ──
+    // Fast path: move active node imperatively — zero React overhead per frame.
     node.style.transform = `translateY(${raw}px) scale(1.02)`;
 
     const total = localSectionsRef.current.length;
-
-    // ── Swap detection: trigger as soon as the dragged section's edge
-    //    overlaps the adjacent section — no need to reach its centre. ──
-    let target = slot;
+    let target  = slot;
 
     if (raw > 0 && slot < total - 1) {
-      // dragging DOWN — swap when pointer enters the section below
+      // Dragging DOWN — swap as soon as pointer enters the section below.
       const nextEl = secRefs.current[slot + 1];
-      if (nextEl) {
-        const nextRect = nextEl.getBoundingClientRect();
-        if (e.clientY > nextRect.top) target = slot + 1;
-      }
+      if (nextEl && e.clientY > nextEl.getBoundingClientRect().top) target = slot + 1;
     } else if (raw < 0 && slot > 0) {
-      // dragging UP — swap when pointer enters the section above
+      // Dragging UP — swap as soon as pointer enters the section above.
       const prevEl = secRefs.current[slot - 1];
-      if (prevEl) {
-        const prevRect = prevEl.getBoundingClientRect();
-        if (e.clientY < prevRect.bottom) target = slot - 1;
-      }
+      if (prevEl && e.clientY < prevEl.getBoundingClientRect().bottom) target = slot - 1;
     }
 
     if (target !== slot) {
+      // ── Measure BEFORE the DOM reorders to get accurate positions. ──
+      // A = dragged section (has transform applied, so rect = visual position)
+      // B = displaced section (no transform, rect = natural flow position)
+      const aEl = secRefs.current[slot];
+      const bEl = secRefs.current[target];
+
       const newSecs = [...localSectionsRef.current];
       const newKeys = [...secInstanceKeys.current];
       const [movedSec] = newSecs.splice(slot, 1);
@@ -1861,12 +1858,14 @@ export default function SongsPanel() {
       newSecs.splice(target, 0, movedSec);
       newKeys.splice(target, 0, movedKey);
 
-      // Adjust origin Y by the displaced section's height so the visual
-      // position of the dragged card doesn't jump after the DOM reorders.
-      const displacedEl = secRefs.current[target];
-      if (displacedEl) {
-        const h = displacedEl.getBoundingClientRect().height + 16; // +margin
-        secDragStartY.current += target > slot ? h : -h;
+      if (aEl && bEl) {
+        // After the swap, A's natural DOM top will be where B's top is now.
+        // We compute newRaw so A's VISUAL position stays under the pointer.
+        //   visual_top = new_natural_top + newRaw  →  newRaw = aRect.top − bRect.top
+        // (aRect.top is already the visual/transformed top; bRect.top is flow position)
+        const newRaw = aEl.getBoundingClientRect().top - bEl.getBoundingClientRect().top;
+        secDragStartY.current = e.clientY - newRaw;
+        node.style.transform  = `translateY(${newRaw}px) scale(1.02)`;
       }
 
       secDragStartIdx.current  = target;
@@ -1875,10 +1874,6 @@ export default function SongsPanel() {
 
       setLocalSections(newSecs);
       setSecDragIdx(target);
-
-      // Reapply transform after React re-render adjusts origin
-      const newRaw = e.clientY - secDragStartY.current;
-      node.style.transform = `translateY(${newRaw}px) scale(1.02)`;
     }
   };
 
