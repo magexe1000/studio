@@ -1688,7 +1688,6 @@ export default function SongsPanel() {
 
   // Section drag-to-reorder
   const [secDragIdx, setSecDragIdx]                   = useState<number | null>(null);
-  const [secDragDeltaY, setSecDragDeltaY]             = useState(0);
   const secGrabOffsetY  = useRef(0);   // pointer offset from node top — set once, never drifts
   const secRawRef       = useRef(0);   // current applied translateY — updated every frame
   const secDragStartIdx = useRef(0);
@@ -1864,7 +1863,6 @@ export default function SongsPanel() {
     }
   }, [activePreset?.sections, secDragIdx]);
 
-  const secMidpointsRef  = useRef<number[]>([]);
   const localSectionsRef = useRef<SongSection[]>([]);
   const lastSwapTime     = useRef<number>(0);
 
@@ -1981,7 +1979,6 @@ export default function SongsPanel() {
     }
     secDragNodeRef.current = null;
     setSecDragIdx(null);
-    setSecDragDeltaY(0);
   };
 
   const editingPreset   = editingId ? presets.find(p => p.id === editingId) : null;
