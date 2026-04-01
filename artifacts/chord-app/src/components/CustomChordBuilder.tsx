@@ -184,7 +184,7 @@ function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresCh
     setBarreMode(prev => !prev);
   };
 
-  const CELL_H   = 42;
+  const CELL_H   = 36;
   const LABEL_W  = 26;
   const HEAD_W   = 34;
   const NUT_W    = baseFret === 1 ? 3 : 0;
@@ -192,7 +192,7 @@ function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresCh
   return (
     <div style={{ userSelect: 'none', touchAction: 'none' }}>
       {/* Navigation + Barre toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0 10px', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0 6px', gap: '8px' }}>
         <button onClick={() => setBaseFret(bf => Math.max(1, bf - 1))} disabled={baseFret === 1}
           className="btn-smooth"
           style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--app-surface-high)', color: baseFret === 1 ? 'var(--c-text-muted)' : 'var(--c-text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: baseFret === 1 ? 0.35 : 1, flexShrink: 0 }}>
@@ -742,7 +742,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
           {/* ── Builder ── */}
           <div style={{ marginBottom: '4px' }}>
             {/* Header row: label + live preview */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
               <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                 {instrument === 'piano' ? t.customBuilder.pianoKeyboard : t.customBuilder.fretboard}
               </p>
