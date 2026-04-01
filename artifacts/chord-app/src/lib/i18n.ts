@@ -123,6 +123,10 @@ const translations = {
       custom: 'Custom',
       customChord: 'Custom Chord',
       editCustomChord: 'Edit custom chord',
+      createCustomChord: 'Create Custom Chord',
+      createCustomChordDesc: 'Build your own for guitar, piano, bass or ukulele',
+      noCustomChords: 'No custom chords yet',
+      noCustomChordsHint: 'Tap "Create Custom Chord" to build one',
       /* Transpose bar */
       transpose: 'Transpose',
       originalKey: 'Original key',
@@ -443,6 +447,10 @@ const translations = {
       custom: 'Personalizado',
       customChord: 'Acorde personalizado',
       editCustomChord: 'Editar acorde personalizado',
+      createCustomChord: 'Crear acorde personalizado',
+      createCustomChordDesc: 'Construye el tuyo para guitarra, piano, bajo o ukelele',
+      noCustomChords: 'Aún no tienes acordes personalizados',
+      noCustomChordsHint: 'Toca "Crear acorde personalizado" para crear uno',
       /* Transpose bar */
       transpose: 'Transportar',
       originalKey: 'Tonalidad original',

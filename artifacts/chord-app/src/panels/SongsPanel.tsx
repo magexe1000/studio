@@ -1439,8 +1439,8 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
                 <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#fff' }}>add</span>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ color: accent.from, fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px' }}>Create Custom Chord</p>
-                <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '11px', marginTop: '1px' }}>Build your own for guitar, piano, bass or ukulele</p>
+                <p style={{ color: accent.from, fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px' }}>{t.songs.createCustomChord}</p>
+                <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '11px', marginTop: '1px' }}>{t.songs.createCustomChordDesc}</p>
               </div>
               <span className="material-symbols-outlined" style={{ fontSize: '18px', color: accent.from }}>arrow_forward_ios</span>
             </button>
@@ -1498,8 +1498,8 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
             {isCustomTab && filteredCustom.length === 0 && (
               <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--c-text-muted)' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '36px', display: 'block', marginBottom: '8px', opacity: 0.4 }}>tune</span>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px' }}>No custom chords yet</p>
-                <p style={{ fontFamily: 'Inter', fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>Tap "Create Custom Chord" to build one</p>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px' }}>{t.songs.noCustomChords}</p>
+                <p style={{ fontFamily: 'Inter', fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>{t.songs.noCustomChordsHint}</p>
               </div>
             )}
             {!isCustomTab && filteredStandard.length === 0 && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', textAlign: 'center', padding: '24px' }}>{t.songs.noChords}</p>}
