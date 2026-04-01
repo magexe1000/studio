@@ -116,8 +116,9 @@ export default function App() {
       className="flex flex-col h-[100dvh] w-full overflow-hidden select-none app-bg"
       style={{
         position: 'relative',
-        // Expose panel animation duration as a CSS variable so keyframes can use it
         '--panel-dur': `${durMs}ms`,
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
       } as React.CSSProperties}
     >
       <div style={{ paddingTop: 'env(safe-area-inset-top)' }} className="flex-none" />
