@@ -6,6 +6,8 @@
  *      (enables the Android 13+ predictive back gesture)
  *   2. Removes :capacitor-status-bar from capacitor.settings.gradle
  *   3. Removes :capacitor-status-bar from app/capacitor.build.gradle
+ *   4. Patches styles.xml so the status bar shows light (white) icons on the
+ *      dark app background — fixes invisible clock/wifi/battery icons
  *
  * Run via:  pnpm --filter @workspace/chord-app run android:patch
  * Or as part of the full sync:  pnpm --filter @workspace/chord-app run android:sync
@@ -59,5 +61,32 @@ patchFile(
   'app/capacitor.build.gradle  (remove status-bar)',
   (src) => src.split('\n').filter(l => !l.includes(':capacitor-status-bar')).join('\n')
 );
+
+// ── 4. styles.xml — white status-bar icons on dark background ─────────────
+// The old @capacitor/status-bar plugin may leave windowLightStatusBar=true,
+// which forces dark (invisible) icons on the app's dark background.
+// We force it to false so Android shows the standard white/light icons.
+['app/src/main/res/values/styles.xml',
+ 'app/src/main/res/values-night/styles.xml'].forEach((relPath) => {
+  const stylesPath = path.join(androidDir, relPath);
+  patchFile(
+    stylesPath,
+    `${relPath}  (white status-bar icons)`,
+    (src) => {
+      // If the item already exists, ensure it is false (not true)
+      if (src.includes('windowLightStatusBar')) {
+        return src.replace(
+          /<item name="android:windowLightStatusBar">.*?<\/item>/g,
+          '<item name="android:windowLightStatusBar">false</item>'
+        );
+      }
+      // Otherwise inject it before the first </style> closing tag
+      return src.replace(
+        /(<\/style>)/,
+        '        <item name="android:windowLightStatusBar">false</item>\n    $1'
+      );
+    }
+  );
+});
 
 console.log('\nDone. Ready to build:\n  .\\gradlew.bat clean assembleDebug\n');

@@ -1754,9 +1754,13 @@ export default function SongsPanel() {
     if (dragNodeRef.current === null) return;
     // Always read the current slot from the ref — never from the stale closure dragIdx
     const slot = dragStartIdx.current;
-    const unclamped = e.clientY - dragStartY.current;
 
-    // ── Clamp so the active item can never leave the list bounds ──
+    // ── Clamp pointer to screen AND list bounds so items can't fly off screen ──
+    const containerRect = editorScrollRef.current?.getBoundingClientRect();
+    const screenClampedY = containerRect
+      ? Math.max(containerRect.top + 8, Math.min(containerRect.bottom - 8, e.clientY))
+      : e.clientY;
+    const unclamped = screenClampedY - dragStartY.current;
     const minDelta = -slot * ITEM_H;
     const maxDelta = (dragCountRef.current - 1 - slot) * ITEM_H;
     const raw = Math.max(minDelta, Math.min(maxDelta, unclamped));
@@ -1832,7 +1836,14 @@ export default function SongsPanel() {
     if (!node) return;
 
     const slot = secDragStartIdx.current;
-    const raw  = e.clientY - secDragStartY.current;
+
+    // ── Clamp pointer to the visible scroll container so sections can't
+    //    be dragged off the top or bottom of the screen. ──
+    const containerRect = editorScrollRef.current?.getBoundingClientRect();
+    const clampedY = containerRect
+      ? Math.max(containerRect.top + 24, Math.min(containerRect.bottom - 24, e.clientY))
+      : e.clientY;
+    const raw = clampedY - secDragStartY.current;
 
     // Fast path: move active node imperatively — zero React overhead per frame.
     node.style.transform = `translateY(${raw}px) scale(1.02)`;
@@ -1841,13 +1852,13 @@ export default function SongsPanel() {
     let target  = slot;
 
     if (raw > 0 && slot < total - 1) {
-      // Dragging DOWN — swap as soon as pointer enters the section below.
+      // Dragging DOWN — swap as soon as clamped pointer enters the section below.
       const nextEl = secRefs.current[slot + 1];
-      if (nextEl && e.clientY > nextEl.getBoundingClientRect().top) target = slot + 1;
+      if (nextEl && clampedY > nextEl.getBoundingClientRect().top) target = slot + 1;
     } else if (raw < 0 && slot > 0) {
-      // Dragging UP — swap as soon as pointer enters the section above.
+      // Dragging UP — swap as soon as clamped pointer enters the section above.
       const prevEl = secRefs.current[slot - 1];
-      if (prevEl && e.clientY < prevEl.getBoundingClientRect().bottom) target = slot - 1;
+      if (prevEl && clampedY < prevEl.getBoundingClientRect().bottom) target = slot - 1;
     }
 
     if (target !== slot) {
