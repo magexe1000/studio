@@ -144,7 +144,7 @@ export default function SettingsPanel() {
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 20px)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 20px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', overflow: 'hidden' }}>
         {/* Page title */}
         <div className="mt-3 mb-6">
           <h2 style={{ fontSize: 'var(--font-hero)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
@@ -195,7 +195,7 @@ export default function SettingsPanel() {
         <div style={{ ...cardStyle, marginBottom: '10px' }}>
           <div style={{ padding: 'var(--density-pad) var(--density-pad) 16px' }}>
             <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 'var(--density-card-gap)' }}>{t.settings.rows.theme}</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
               {([
                 { value: 'system', label: t.settings.rows.themeSystem, icon: 'brightness_auto' },
                 { value: 'light',  label: t.settings.rows.themeLight, icon: 'light_mode'      },
@@ -261,7 +261,7 @@ export default function SettingsPanel() {
         <div style={cardStyle}>
           <div style={{ padding: 'var(--density-pad) var(--density-pad) 16px' }}>
             <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 'var(--density-card-gap)' }}>{t.settings.rows.accentColor}</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--density-card-gap)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--density-card-gap)' }}>
               {COLOR_OPTIONS.map(c => {
                 const isActive = settings.accentColor === c.id;
                 return (
