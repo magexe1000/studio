@@ -472,11 +472,11 @@ function PianoKeyboard({ pianoKeys, onChange, accent }: {
    INSTRUMENT ICONS
    ════════════════════════════════════════════════════════════════ */
 
-const INSTRUMENTS: { id: Instrument; label: string; icon: string }[] = [
-  { id: 'guitar',  label: 'Guitar',  icon: 'music_note' },
-  { id: 'piano',   label: 'Piano',   icon: 'piano' },
-  { id: 'bass',    label: 'Bass',    icon: 'queue_music' },
-  { id: 'ukulele', label: 'Ukulele', icon: 'library_music' },
+const INSTRUMENTS: { id: Instrument; label: string; image: string }[] = [
+  { id: 'guitar',  label: 'Guitar',  image: '/instruments/guitar.png'  },
+  { id: 'piano',   label: 'Piano',   image: '/instruments/piano.png'   },
+  { id: 'bass',    label: 'Bass',    image: '/instruments/bass.png'    },
+  { id: 'ukulele', label: 'Ukulele', image: '/instruments/ukulele.png' },
 ];
 
 function genId() {
@@ -626,27 +626,73 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
 
           {/* ── Instrument selector ── */}
           <div style={{ marginBottom: '20px' }}>
-            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Instrument</p>
-            <div style={{ display: 'flex', gap: '6px' }}>
+            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>Instrument</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
               {INSTRUMENTS.map(inst => {
                 const active = instrument === inst.id;
+                const clipId = `img-clip-${inst.id}`;
                 return (
-                  <button key={inst.id} onClick={() => handleInstrumentChange(inst.id)} className="btn-smooth"
+                  <button
+                    key={inst.id}
+                    onClick={() => handleInstrumentChange(inst.id)}
+                    className="btn-smooth"
                     style={{
-                      flex: 1, padding: '8px 4px',
-                      borderRadius: '12px',
-                      background: active ? `linear-gradient(135deg, ${resolvedAccent.from}, ${resolvedAccent.to})` : 'var(--app-surface)',
-                      border: active ? 'none' : '1px solid rgba(72,72,72,0.12)',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-                      transition: 'background 200ms ease, transform 150ms ease',
-                      transform: active ? 'scale(1.03)' : 'scale(1)',
+                      flex: 1,
+                      padding: 0,
+                      borderRadius: '14px',
+                      background: 'var(--app-surface)',
+                      border: `2px solid ${active ? resolvedAccent.from : 'rgba(72,72,72,0.14)'}`,
+                      display: 'flex', flexDirection: 'column', alignItems: 'stretch',
+                      overflow: 'hidden',
+                      transition: 'border-color 220ms ease, transform 160ms ease, box-shadow 220ms ease',
+                      transform: active ? 'scale(1.05)' : 'scale(1)',
+                      boxShadow: active ? `0 6px 20px ${resolvedAccent.to}55` : 'none',
+                    }}
+                  >
+                    {/* SVG image with clipPath for crisp rounded display */}
+                    <svg
+                      viewBox="0 0 100 100"
+                      xmlns="http://www.w3.org/2000/svg"
+                      style={{ display: 'block', width: '100%', aspectRatio: '1' }}
+                    >
+                      <defs>
+                        <clipPath id={clipId}>
+                          <rect width="100" height="100" rx="0" ry="0" />
+                        </clipPath>
+                        <linearGradient id={`grad-${inst.id}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={resolvedAccent.from} stopOpacity={active ? 0.18 : 0.06} />
+                          <stop offset="100%" stopColor={resolvedAccent.to} stopOpacity={active ? 0.10 : 0.03} />
+                        </linearGradient>
+                      </defs>
+                      {/* Dark background */}
+                      <rect width="100" height="100" fill="rgba(20,20,24,1)" />
+                      {/* Instrument photo */}
+                      <image
+                        href={inst.image}
+                        x="8" y="6" width="84" height="84"
+                        preserveAspectRatio="xMidYMid meet"
+                        clipPath={`url(#${clipId})`}
+                      />
+                      {/* Accent tint overlay when active */}
+                      <rect width="100" height="100" fill={`url(#grad-${inst.id})`} />
+                    </svg>
+                    {/* Label strip */}
+                    <div style={{
+                      padding: '5px 4px 6px',
+                      background: active
+                        ? `linear-gradient(135deg, ${resolvedAccent.from}, ${resolvedAccent.to})`
+                        : 'var(--app-surface)',
+                      transition: 'background 220ms ease',
+                      textAlign: 'center',
                     }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: active ? '#fff' : 'var(--c-text-secondary)', fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>
-                      {inst.icon}
-                    </span>
-                    <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '10px', color: active ? '#fff' : 'var(--c-text-secondary)' }}>
-                      {inst.label}
-                    </span>
+                      <span style={{
+                        fontFamily: 'Manrope', fontWeight: 800, fontSize: '10px',
+                        color: active ? '#fff' : 'var(--c-text-secondary)',
+                        letterSpacing: '0.03em',
+                      }}>
+                        {inst.label}
+                      </span>
+                    </div>
                   </button>
                 );
               })}
