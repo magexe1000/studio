@@ -1,0 +1,6 @@
+[build]
+  command = "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/chord-app run build"
+  publish = "artifacts/chord-app/dist/public"
+
+[build.environment]
+  NODE_VERSION = "20"
