@@ -146,7 +146,7 @@ export default function SettingsPanel() {
         </h1>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar px-5" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar px-5" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }}>
         {/* Page title */}
         <div className="mt-3 mb-6">
           <h2 style={{ fontSize: 'var(--font-hero)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
