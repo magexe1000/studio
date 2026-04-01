@@ -118,10 +118,10 @@ export default function BottomNav() {
   const accent   = ACCENT_COLORS[settings.accentColor];
   const isLight  = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const amoledBg = settings.amoledMode
-    ? 'rgba(4,4,4,0.72)'
+    ? 'rgba(4,4,4,0.50)'
     : isLight
-      ? 'rgba(240,240,242,0.58)'
-      : 'rgba(26,26,30,0.55)';
+      ? 'rgba(240,240,242,0.38)'
+      : 'rgba(26,26,30,0.32)';
   const navHidden = useNavHidden();
 
   /* ── Sliding pill state ── */
