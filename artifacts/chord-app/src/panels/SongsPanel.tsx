@@ -1864,17 +1864,17 @@ export default function SongsPanel() {
     }
   }, [activePreset?.sections, secDragIdx]);
 
-  // Snapshot of section midpoints captured at drag start (avoids repeated getBoundingClientRect)
-  const secMidpointsRef = useRef<number[]>([]);
+  const secMidpointsRef  = useRef<number[]>([]);
   const localSectionsRef = useRef<SongSection[]>([]);
+  const lastSwapTime     = useRef<number>(0);
 
   const onSecDragStart = (e: React.PointerEvent, index: number) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     const nodeEl = secRefs.current[index];
-    // Store the pointer's offset from the node's top edge — never changes during the drag.
     secGrabOffsetY.current   = nodeEl ? e.clientY - nodeEl.getBoundingClientRect().top : 0;
     secRawRef.current        = 0;
     secDragStartIdx.current  = index;
+    lastSwapTime.current     = 0;
     localSectionsRef.current = [...localSections];
     setSecDragIdx(index);
   };
@@ -1934,7 +1934,9 @@ export default function SongsPanel() {
       if (prevEl && clampedY < prevEl.getBoundingClientRect().bottom) target = slot - 1;
     }
 
-    if (target !== slot) {
+    const now = performance.now();
+    if (target !== slot && now - lastSwapTime.current > 120) {
+      lastSwapTime.current = now;
       const aEl = secRefs.current[slot];
       const bEl = secRefs.current[target];
 
