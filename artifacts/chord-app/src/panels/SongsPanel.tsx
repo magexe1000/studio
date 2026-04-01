@@ -1916,7 +1916,7 @@ export default function SongsPanel() {
     // Visual: subtle lift + faint border nudge when bouncing against the wall.
     node.style.transform  = `translateY(${raw}px) scale(${atBoundary ? 1.015 : 1.0})`;
     node.style.outline    = atBoundary ? '1.5px solid rgba(103,156,255,0.35)' : 'none';
-    node.style.transition = 'outline 180ms ease, transform 140ms ease';
+    node.style.transition = 'outline 180ms ease';
 
     // Swap detection uses the true clamped Y (not the rubber-band-adjusted position).
     const clampedY = containerRect
