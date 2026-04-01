@@ -2,6 +2,9 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
+import { StatusBar } from '@capacitor/status-bar';
+StatusBar.hide().catch(() => {});
+
 createRoot(document.getElementById("root")!).render(<App />);
 
 if ('serviceWorker' in navigator) {
