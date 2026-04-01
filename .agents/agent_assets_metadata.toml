@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "I5FP-fUgJVTPVlHcXq6Xl"
+uri = "file://artifacts/chord-app/public/icon-512.png"
+type = "image"
+title = "Chordex Icon (512×512)"
