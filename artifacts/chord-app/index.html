@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
     <title>Chordex</title>
     <meta name="description" content="Chord reference and song preset tool for musicians" />
-    <meta name="theme-color" content="#0f0f13" />
+    <meta name="theme-color" content="#111116" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -14,6 +14,11 @@
     <link rel="icon" type="image/svg+xml" href="./icon-512.svg" />
     <link rel="apple-touch-icon" href="./icon-512.svg" />
     <style>
+      html, body {
+        background: #111116;
+        margin: 0;
+        padding: 0;
+      }
       #html-splash {
         position: fixed;
         inset: 0;
@@ -24,10 +29,10 @@
         align-items: center;
         justify-content: center;
         gap: 18px;
-        animation: html-splash-out 440ms cubic-bezier(0.4,0,0.2,1) 1000ms forwards;
+        animation: html-splash-out 440ms cubic-bezier(0.4,0,0.2,1) 1500ms forwards;
       }
       #html-splash-logo {
-        animation: html-logo-in 600ms cubic-bezier(0.34,1.56,0.64,1) 80ms both;
+        animation: html-logo-in 600ms cubic-bezier(0.34,1.56,0.64,1) 350ms both;
       }
       #html-splash-word {
         font-family: Manrope, system-ui, sans-serif;
@@ -36,7 +41,7 @@
         letter-spacing: -0.02em;
         color: #ffffff;
         margin: 0;
-        animation: html-word-in 500ms cubic-bezier(0.25,0.46,0.45,0.94) 260ms both;
+        animation: html-word-in 500ms cubic-bezier(0.25,0.46,0.45,0.94) 550ms both;
       }
       @keyframes html-logo-in {
         from { opacity: 0; transform: scale(0.5) translateY(8px); }
