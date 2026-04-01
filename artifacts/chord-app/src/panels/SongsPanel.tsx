@@ -2168,19 +2168,21 @@ export default function SongsPanel() {
                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
                 {t.songs.addChord}
               </button>
-              {localChords.length > 0 && (<>
-                <button onClick={() => convertToSections(activePreset.id)} className="btn-smooth"
-                  title={t.songs.convertToSections}
-                  style={{ padding: '10px 12px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>segment</span>
-                  {t.songs.addFirstSection}
-                </button>
+              <button
+                onClick={() => localChords.length > 0 ? convertToSections(activePreset.id) : addSection(activePreset.id, 'Verse')}
+                className="btn-smooth"
+                title={t.songs.convertToSections}
+                style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>segment</span>
+                {t.songs.addSection}
+              </button>
+              {localChords.length > 0 && (
                 <button onClick={() => setShowLive(true)} data-testid="enter-live-mode" className="btn-smooth"
                   style={{ flex: 2, padding: '10px 12px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', boxShadow: `0 4px 20px ${accent.to}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>play_circle</span>
                   {t.songs.liveMode}
                 </button>
-              </>)}
+              )}
             </>
           )}
         </div>
