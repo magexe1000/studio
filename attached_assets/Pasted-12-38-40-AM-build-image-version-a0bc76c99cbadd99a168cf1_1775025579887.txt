@@ -1,0 +1,94 @@
+12:38:40 AM: build-image version: a0bc76c99cbadd99a168cf193f4d4df9fa7ee94a (noble-new-builds)
+12:38:40 AM: buildbot version: 01f5db8adecddf8de6c47ac7b24cb8bdfc2475ee
+12:38:40 AM: Fetching cached dependencies
+12:38:41 AM: Failed to fetch cache, continuing with build
+12:38:41 AM: Starting to prepare the repo for build
+12:38:41 AM: No cached dependencies found. Cloning fresh repo
+12:38:41 AM: git clone --filter=blob:none https://github.com/MAGEXE1000/Chordex
+12:38:41 AM: Preparing Git Reference refs/heads/main
+12:38:42 AM: Installing dependencies
+12:38:42 AM: mise ~/.config/mise/config.toml tools: python@3.14.3
+12:38:43 AM: mise ~/.config/mise/config.toml tools: ruby@3.4.8
+12:38:43 AM: mise ~/.config/mise/config.toml tools: go@1.26.1
+12:38:43 AM: Downloading and installing node v22.22.2...
+12:38:43 AM: Downloading https://nodejs.org/dist/v22.22.2/node-v22.22.2-linux-x64.tar.xz...
+12:38:44 AM: Computing checksum with sha256sum
+12:38:44 AM: Checksums matched!
+12:38:46 AM: Now using node v22.22.2 (npm v10.9.7)
+12:38:46 AM: Enabling Node.js Corepack
+12:38:46 AM: No npm workspaces detected
+12:38:46 AM: Installing npm packages using npm version 10.9.7
+12:38:57 AM: added 135 packages in 11s
+12:38:57 AM: npm packages installed
+12:38:57 AM: Successfully installed dependencies
+12:38:58 AM: Detected 1 framework(s)
+12:38:58 AM: "vite" at version "7.3.1"
+12:38:58 AM: Starting build script
+12:38:58 AM: Section completed: initializing
+12:39:00 AM: ​
+12:39:00 AM: Netlify Build                                                 
+12:39:00 AM: ────────────────────────────────────────────────────────────────
+12:39:00 AM: ​
+12:39:00 AM: ❯ Version
+12:39:00 AM:   @netlify/build 35.11.2
+12:39:00 AM: ​
+12:39:00 AM: ❯ Flags
+12:39:00 AM:   accountId: 6828fd76ba60368ed9fcef87
+12:39:00 AM:   baseRelDir: true
+12:39:00 AM:   buildId: 69ccbd70c91f3639f55b1648
+12:39:00 AM:   deployId: 69ccbd70c91f3639f55b164a
+12:39:00 AM: ​
+12:39:00 AM: ❯ Current directory
+12:39:00 AM:   /opt/build/repo
+12:39:00 AM: ​
+12:39:00 AM: ❯ Config file
+12:39:00 AM:   No config file was defined: using default values.
+12:39:00 AM: ​
+12:39:00 AM: ❯ Context
+12:39:00 AM:   production
+12:39:00 AM: ​
+12:39:00 AM: Build command from Netlify app                                
+12:39:00 AM: ────────────────────────────────────────────────────────────────
+12:39:00 AM: ​
+12:39:00 AM: $ npm run build -- --base=/
+12:39:00 AM: > chordex@1.0.0 build
+12:39:00 AM: > vite build --base=/
+12:39:00 AM: ▲ [WARNING] Cannot find base config file "../../tsconfig.base.json" [tsconfig.json]
+12:39:00 AM:     tsconfig.json:2:13:
+12:39:00 AM:       2 │   "extends": "../../tsconfig.base.json",
+12:39:00 AM:         ╵              ~~~~~~~~~~~~~~~~~~~~~~~~~~
+12:39:01 AM: Failed during stage 'building site': Build script returned non-zero exit code: 2 (https://ntl.fyi/exit-code-2)
+12:39:01 AM: vite v7.3.1 building client environment for production...
+12:39:01 AM: ✓ 0 modules transformed.
+12:39:01 AM: ✗ Build failed in 46ms
+12:39:01 AM: error during build:
+12:39:01 AM: [vite:build-html] failed to resolve "extends":"../../tsconfig.base.json" in /opt/build/repo/tsconfig.json
+12:39:01 AM: file: /opt/build/repo/index.html
+12:39:01 AM:     at resolveExtends (file:///opt/build/repo/node_modules/vite/dist/node/chunks/config.js:5809:8)
+12:39:01 AM:     at parseExtends (file:///opt/build/repo/node_modules/vite/dist/node/chunks/config.js:5775:71)
+12:39:01 AM:     at parse$13 (file:///opt/build/repo/node_modules/vite/dist/node/chunks/config.js:5677:23)
+12:39:01 AM:     at async loadTsconfigJsonForFile (file:///opt/build/repo/node_modules/vite/dist/node/chunks/config.js:6286:37)
+12:39:01 AM:     at async transformWithEsbuild (file:///opt/build/repo/node_modules/vite/dist/node/chunks/config.js:6086:55)
+12:39:01 AM:     at async Object.transform (file:///opt/build/repo/node_modules/vite/dist/node/chunks/config.js:6172:20)
+12:39:01 AM:     at async transform (file:///opt/build/repo/node_modules/rollup/dist/es/shared/node-entry.js:21657:16)
+12:39:01 AM:     at async ModuleLoader.addModuleSource (file:///opt/build/repo/node_modules/rollup/dist/es/shared/node-entry.js:21885:36)
+12:39:01 AM: ​
+12:39:01 AM: "build.command" failed                                        
+12:39:01 AM: ────────────────────────────────────────────────────────────────
+12:39:01 AM: ​
+12:39:01 AM:   Error message
+12:39:01 AM:   Command failed with exit code 1: npm run build -- --base=/ (https://ntl.fyi/exit-code-1)
+12:39:01 AM: ​
+12:39:01 AM:   Error location
+12:39:01 AM:   In Build command from Netlify app:
+12:39:01 AM:   npm run build -- --base=/
+12:39:01 AM: ​
+12:39:01 AM:   Resolved config
+12:39:01 AM:   build:
+12:39:01 AM:     command: npm run build -- --base=/
+12:39:01 AM:     commandOrigin: ui
+12:39:01 AM:     publish: /opt/build/repo/dist
+12:39:01 AM:     publishOrigin: ui
+12:39:01 AM: Build failed due to a user error: Build script returned non-zero exit code: 2
+12:39:01 AM: Failing build: Failed to build site
+12:39:01 AM: Finished processing build request in 20.93s

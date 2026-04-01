@@ -1,0 +1,47 @@
+Relevant log lines:
+The tsconfig extend warning at line 55–58.
+The fatal error that Vite failed to resolve the extends at line 64.
+Diagnosis
+
+Error type: missing/invalid tsconfig "extends".
+Cause: root tsconfig.json contains an "extends": "../../tsconfig.base.json" reference that does not exist in the checked-out repo during the Netlify build. Vite/TypeScript tries to resolve that file and fails, causing the build to abort (line 55–58, line 64).
+Solution
+
+Verify whether tsconfig.base.json was meant to be part of this repository (or is provided by a monorepo parent):
+
+Check your repository for tsconfig.base.json and ensure it is committed to the repo. If it should be in the repo root, confirm it exists in package control (git) and is pushed.
+If tsconfig.base.json is missing, choose one of the following fixes and commit + push the change, then re-run the Netlify build:
+
+Option A — Add a minimal tsconfig.base.json to the repo root (recommended if you can supply a base config)
+
+Create a file named tsconfig.base.json in the repository root (commit it). Example minimal base config you can use/adjust:
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "lib": ["DOM", "ESNext"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "sourceMap": true
+  }
+}
+Commit and push tsconfig.base.json so the extends path "../../tsconfig.base.json" resolves (or update the extends path to point to the correct relative location if you place the file somewhere else).
+Option B — Remove or adjust the "extends" in tsconfig.json (if you don't need the parent config)
+
+Open tsconfig.json and either remove the "extends" property or change it to point to a base file that exists in the repo, for example "./tsconfig.base.json" if you add the file to the repo root.
+Example change in tsconfig.json (edit line that currently says "../../tsconfig.base.json"):
+{
+  "extends": "./tsconfig.base.json",
+  ...
+}
+Commit and push.
+After committing the fix, re-trigger the Netlify build.
+
+Notes
+
+The key point is that Netlify only checks out this repository (not a parent workspace), so relative extends that point outside the repo will fail unless you include the referenced file or change the path.
+If you intended to use a parent monorepo's tsconfig, either vendor that base file into this repo or refactor your tsconfig.json to be standalone for CI builds.
