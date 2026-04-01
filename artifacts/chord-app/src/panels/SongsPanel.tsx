@@ -1913,10 +1913,10 @@ export default function SongsPanel() {
     const raw = displayTop - nodeNatTop;
     secRawRef.current = raw;
 
-    // Visual: slightly larger scale + accent border when bouncing against the wall.
-    node.style.transform  = `translateY(${raw}px) scale(${atBoundary ? 1.05 : 1.02})`;
-    node.style.outline    = atBoundary ? '2px solid var(--c-accent, #679cff)' : 'none';
-    node.style.transition = 'outline 80ms ease, transform 60ms ease';
+    // Visual: subtle lift + faint border nudge when bouncing against the wall.
+    node.style.transform  = `translateY(${raw}px) scale(${atBoundary ? 1.015 : 1.0})`;
+    node.style.outline    = atBoundary ? '1.5px solid rgba(103,156,255,0.35)' : 'none';
+    node.style.transition = 'outline 180ms ease, transform 140ms ease';
 
     // Swap detection uses the true clamped Y (not the rubber-band-adjusted position).
     const clampedY = containerRect
@@ -1950,7 +1950,7 @@ export default function SongsPanel() {
         // secGrabOffsetY stays unchanged — the visual top didn't move.
         const newRaw = aEl.getBoundingClientRect().top - bEl.getBoundingClientRect().top;
         secRawRef.current    = newRaw;
-        node.style.transform = `translateY(${newRaw}px) scale(1.02)`;
+        node.style.transform = `translateY(${newRaw}px) scale(1.0)`;
       }
 
       secDragStartIdx.current  = target;
@@ -2132,7 +2132,7 @@ export default function SongsPanel() {
                       background: isSecActive ? `${accent.to}10` : 'transparent',
                       border: isSecActive ? `1.5px solid ${accent.to}30` : '1.5px solid transparent',
                       // transform is controlled imperatively via node.style.transform — do not set here
-                      boxShadow: isSecActive ? '0 12px 40px rgba(0,0,0,0.35)' : 'none',
+                      boxShadow: isSecActive ? '0 6px 20px rgba(0,0,0,0.18)' : 'none',
                       zIndex: isSecActive ? 10 : 1,
                       position: 'relative',
                       willChange: isSecActive ? 'transform' : 'auto',
