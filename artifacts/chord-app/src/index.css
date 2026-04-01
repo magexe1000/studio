@@ -202,16 +202,14 @@
     font-family: 'Manrope', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
     touch-action: manipulation;
     overscroll-behavior: none;
   }
 
-  /* All text elements: crisp, legible, no subpixel blur */
+  /* Keep antialiasing crisp but skip optimizeLegibility — it triggers slower text shaping on every paint */
   p, span, h1, h2, h3, h4, h5, h6, a, label, button, input, textarea, li, td, th {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
   }
 }
 
@@ -220,6 +218,11 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    /* Let the compositor handle touch scrolling without waiting for JS */
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    /* Scope layout/style calculations to this element and its subtree */
+    contain: layout style;
   }
   .no-scrollbar::-webkit-scrollbar { display: none; }
 
@@ -232,8 +235,13 @@
 
   /* ===== Glassmorphism Nav ===== */
   .glass-nav {
-    backdrop-filter: blur(60px) saturate(200%) brightness(1.05);
-    -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.05);
+    /* 20px blur is ~9x cheaper than 60px (cost scales quadratically) yet still looks liquid glass */
+    backdrop-filter: blur(20px) saturate(180%) brightness(1.04);
+    -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(1.04);
+    /* Keep the nav on its own compositor layer — it animates every scroll event */
+    will-change: transform;
+    /* Prevent the blur from leaking into parent stacking contexts */
+    isolation: isolate;
   }
 
   /* ===== Panel Transitions ===== */
