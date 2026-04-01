@@ -2017,7 +2017,7 @@ export default function SongsPanel() {
 
   /* ═══════ VIEW: PRESET LIST ═══════ */
   return (
-    <div className="flex flex-col h-full overflow-hidden app-bg">
+    <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative' }}>
       {showForm && <PresetForm accent={accent} initial={editingFormData} onSave={handleFormSave} onCancel={() => { setShowForm(false); setEditingId(null); }} />}
 
       <header className="flex-none px-6 pt-6 pb-1 app-bg">
@@ -2029,23 +2029,9 @@ export default function SongsPanel() {
 
       {/* Scrollable list (nav auto-hides here) */}
       <div ref={listScrollRef} className="flex-1 overflow-y-auto no-scrollbar px-5 pb-32">
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: '12px', marginBottom: '24px' }}>
-          <div>
-            <h2 style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '2.6rem', color: 'var(--c-text-primary)', letterSpacing: '-0.04em', lineHeight: 1 }}>{t.songs.title}</h2>
-            <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '13px', marginTop: '4px' }}>{t.songs.subtitle}</p>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end', flexShrink: 0 }}>
-            <button onClick={() => { setEditingId(null); setShowForm(true); }} data-testid="new-preset-btn" className="btn-smooth"
-              style={{ padding: '10px 18px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', boxShadow: `0 4px 20px ${accent.to}44`, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>add</span>
-              New
-            </button>
-            <button onClick={() => setShowImport(true)} data-testid="import-preset-btn" className="btn-smooth"
-              style={{ padding: '8px 14px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', border: '1px solid rgba(128,128,128,0.15)' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload_file</span>
-              Import
-            </button>
-          </div>
+        <div style={{ marginTop: '12px', marginBottom: '24px' }}>
+          <h2 style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '2.6rem', color: 'var(--c-text-primary)', letterSpacing: '-0.04em', lineHeight: 1 }}>{t.songs.title}</h2>
+          <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '13px', marginTop: '4px' }}>{t.songs.subtitle}</p>
         </div>
 
         {/* Empty state */}
@@ -2167,6 +2153,43 @@ export default function SongsPanel() {
           onClose={() => setShowImport(false)}
         />
       )}
+
+      {/* Floating action buttons above bottom nav */}
+      <div style={{ position: 'absolute', right: '20px', bottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 72px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', pointerEvents: 'none', zIndex: 50 }}>
+        {/* Import circle — top */}
+        <button
+          onClick={() => setShowImport(true)}
+          data-testid="import-preset-btn"
+          className="btn-smooth"
+          style={{
+            width: '48px', height: '48px', borderRadius: '50%',
+            background: 'var(--app-surface-high)',
+            border: '1px solid rgba(128,128,128,0.18)',
+            color: 'var(--c-text-secondary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.28)',
+            pointerEvents: 'auto',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>upload_file</span>
+        </button>
+        {/* New circle — bottom */}
+        <button
+          onClick={() => { setEditingId(null); setShowForm(true); }}
+          data-testid="new-preset-btn"
+          className="btn-smooth"
+          style={{
+            width: '54px', height: '54px', borderRadius: '50%',
+            background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+            color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: `0 4px 20px ${accent.to}66`,
+            pointerEvents: 'auto',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '26px', fontVariationSettings: "'wght' 400" }}>add</span>
+        </button>
+      </div>
     </div>
   );
 }
