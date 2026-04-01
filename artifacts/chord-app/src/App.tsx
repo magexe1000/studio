@@ -6,6 +6,7 @@ import SettingsPanel from './panels/SettingsPanel';
 import SongsPanel from './panels/SongsPanel';
 import BottomNav from './components/BottomNav';
 import { setNavHidden } from './lib/navScroll';
+
 // Ordered left-to-right (matches nav order) — used to compute slide direction
 const NAV_ORDER = ['songs', 'library', 'chord', 'settings'] as const;
 const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
@@ -140,7 +141,6 @@ export default function App() {
           else if (isExiting) animClass = slideDir === 'right' ? 'panel-exit-left' : 'panel-exit-right';
 
           if (!isVisible && !isExiting) {
-            // Fully hidden — not in the animation at all
             return (
               <div
                 key={panel}
