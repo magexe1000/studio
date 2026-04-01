@@ -1,0 +1,76 @@
+ERROR Command failed: gradlew.bat assembleRelease --stacktrace
+The message received from the daemon indicates that the daemon has disappeared.
+Build request sent: Build{id=32ba0caf-3251-45b1-ace4-ea366ce94d33, currentDir=C:\Users\maure}
+Attempting to read last messages from the daemon log...
+Daemon pid: 2252
+  log file: C:\Users\maure\.gradle\daemon\8.11.1\daemon-2252.out.log
+----- Last 20 lines from daemon log file - daemon-2252.out.log -----
+Installing Android SDK Build-Tools 35 in C:\Users\maure\.bubblewrap\android_sdk\build-tools\35.0.0
+"Install Android SDK Build-Tools 35 v.35.0.0" complete.
+"Install Android SDK Build-Tools 35 v.35.0.0" finished.
+Checking the license for package Android SDK Platform 36 in C:\Users\maure\.bubblewrap\android_sdk\licenses
+License for package Android SDK Platform 36 accepted.
+Preparing "Install Android SDK Platform 36 (revision 2)".
+"Install Android SDK Platform 36 (revision 2)" ready.
+Installing Android SDK Platform 36 in C:\Users\maure\.bubblewrap\android_sdk\platforms\android-36
+"Install Android SDK Platform 36 (revision 2)" complete.
+"Install Android SDK Platform 36 (revision 2)" finished.
+Checking the license for package Android SDK Platform-Tools in C:\Users\maure\.bubblewrap\android_sdk\licenses
+License for package Android SDK Platform-Tools accepted.
+Preparing "Install Android SDK Platform-Tools v.37.0.0".
+"Install Android SDK Platform-Tools v.37.0.0" ready.
+Installing Android SDK Platform-Tools in C:\Users\maure\.bubblewrap\android_sdk\platform-tools
+"Install Android SDK Platform-Tools v.37.0.0" complete.
+"Install Android SDK Platform-Tools v.37.0.0" finished.
+package="app.netlify.chordexx.twa" found in source AndroidManifest.xml: C:\Users\maure\app\src\main\AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="app.netlify.chordexx.twa" from the source AndroidManifest.xml: C:\Users\maure\app\src\main\AndroidManifest.xml.----- End of the daemon log -----
+
+JVM crash log found: file:///C:/Users/maure/hs_err_pid2252.log
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Gradle build daemon disappeared unexpectedly (it may have been killed or may have crashed)
+
+* Try:
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+* Exception is:
+org.gradle.launcher.daemon.client.DaemonDisappearedException: Gradle build daemon disappeared unexpectedly (it may have been killed or may have crashed)
+        at org.gradle.launcher.daemon.client.DaemonClient.handleDaemonDisappearance(DaemonClient.java:283)
+        at org.gradle.launcher.daemon.client.DaemonClient.monitorBuild(DaemonClient.java:256)
+        at org.gradle.launcher.daemon.client.DaemonClient.executeBuild(DaemonClient.java:209)
+        at org.gradle.launcher.daemon.client.DaemonClient.execute(DaemonClient.java:172)
+        at org.gradle.launcher.daemon.client.DaemonClient.execute(DaemonClient.java:97)
+        at org.gradle.launcher.cli.RunBuildAction.run(RunBuildAction.java:56)
+        at org.gradle.internal.Actions$RunnableActionAdapter.execute(Actions.java:167)
+        at org.gradle.launcher.cli.DefaultCommandLineActionFactory$ParseAndBuildAction.execute(DefaultCommandLineActionFactory.java:370)
+        at org.gradle.launcher.cli.DefaultCommandLineActionFactory$ParseAndBuildAction.execute(DefaultCommandLineActionFactory.java:334)
+        at org.gradle.launcher.cli.DebugLoggerWarningAction.execute(DebugLoggerWarningAction.java:74)
+        at org.gradle.launcher.cli.DebugLoggerWarningAction.execute(DebugLoggerWarningAction.java:30)
+        at org.gradle.launcher.cli.WelcomeMessageAction.execute(WelcomeMessageAction.java:97)
+        at org.gradle.launcher.cli.WelcomeMessageAction.execute(WelcomeMessageAction.java:40)
+        at org.gradle.launcher.cli.NativeServicesInitializingAction.execute(NativeServicesInitializingAction.java:50)
+        at org.gradle.launcher.cli.NativeServicesInitializingAction.execute(NativeServicesInitializingAction.java:27)
+        at org.gradle.launcher.cli.ExceptionReportingAction.execute(ExceptionReportingAction.java:41)
+        at org.gradle.launcher.cli.ExceptionReportingAction.execute(ExceptionReportingAction.java:26)
+        at org.gradle.launcher.cli.DefaultCommandLineActionFactory$WithLogging.execute(DefaultCommandLineActionFactory.java:482)
+        at org.gradle.launcher.Main.doAction(Main.java:35)
+        at org.gradle.launcher.bootstrap.EntryPoint.run(EntryPoint.java:52)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+        at org.gradle.launcher.bootstrap.ProcessBootstrap.runNoExit(ProcessBootstrap.java:72)
+        at org.gradle.launcher.bootstrap.ProcessBootstrap.run(ProcessBootstrap.java:39)
+        at org.gradle.launcher.GradleMain.main(GradleMain.java:31)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+        at org.gradle.wrapper.BootstrapMainStarter.start(BootstrapMainStarter.java:31)
+        at org.gradle.wrapper.WrapperExecutor.execute(WrapperExecutor.java:108)
+        at org.gradle.wrapper.GradleWrapperMain.main(GradleWrapperMain.java:63)
