@@ -591,23 +591,23 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
       {/* Backdrop */}
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }} />
 
-      {/* Sheet */}
+      {/* Sheet — fixed height so switching instruments never shifts the layout */}
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         background: 'var(--app-bg)',
         borderRadius: '1.5rem 1.5rem 0 0',
-        maxHeight: '74dvh',
+        height: '82dvh',
         display: 'flex', flexDirection: 'column',
         animation: 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
         overflow: 'hidden',
       }}>
         {/* Drag handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 2px', flexShrink: 0 }}>
           <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'rgba(72,72,72,0.3)' }} />
         </div>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 12px', flexShrink: 0, gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 10px', flexShrink: 0, gap: '10px' }}>
           <div style={{
             width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
             background: `linear-gradient(135deg, ${resolvedAccent.from}, ${resolvedAccent.to})`,
@@ -631,11 +631,11 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
         </div>
 
         {/* Scrollable content */}
-        <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 16px 16px' }}>
+        <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 16px 10px' }}>
 
           {/* ── Instrument selector ── */}
-          <div style={{ marginBottom: '20px' }}>
-            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>{t.customBuilder.instrument}</p>
+          <div style={{ marginBottom: '14px' }}>
+            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>{t.customBuilder.instrument}</p>
             <div style={{ display: 'flex', gap: '8px' }}>
               {INSTRUMENTS.map(inst => {
                 const active = instrument === inst.id;
@@ -662,7 +662,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
                     <svg
                       viewBox="0 0 100 100"
                       xmlns="http://www.w3.org/2000/svg"
-                      style={{ display: 'block', width: '100%', aspectRatio: '1' }}
+                      style={{ display: 'block', width: '100%', height: '60px' }}
                     >
                       <defs>
                         <clipPath id={clipId}>
@@ -709,7 +709,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
           </div>
 
           {/* ── Chord name input ── */}
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '14px' }}>
             <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>{t.customBuilder.chordName}</p>
             <div style={{ position: 'relative' }}>
               <input
