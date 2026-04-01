@@ -18,7 +18,6 @@ export interface ExportConfig {
   includeKey:     boolean;
   includeNotes:   boolean;
   chordDisplay:   'name' | 'diagram' | 'both';
-  chordsPerRow:   'auto' | '2' | '3';
   orientation:    'portrait' | 'landscape';
   theme:          'light' | 'dark';
   showNumbering:  boolean;
@@ -33,7 +32,6 @@ const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   includeKey:    true,
   includeNotes:  true,
   chordDisplay:  'both',
-  chordsPerRow:  '3',
   orientation:   'portrait',
   theme:         'light',
   showNumbering: true,
@@ -202,7 +200,7 @@ function buildPrintPianoSVG(keys: number[], dark = false, accentColor = '#679cff
   return s;
 }
 
-function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPORT_CONFIG, transposeOffset = 0, storedCustomChords: CustomChord[] = [], accentColor = '#679cff') {
+function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPORT_CONFIG, transposeOffset = 0, storedCustomChords: CustomChord[] = [], accentColor = '#679cff', pdfName = '') {
   const dark    = cfg.theme === 'dark';
   const style   = cfg.exportStyle ?? 'elegant';
   const compact = style === 'compact';
@@ -234,14 +232,15 @@ function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPOR
 
   const safeName   = preset.name.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_') || 'Song';
   const safeArtist = preset.artist.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
-  const docTitle   = safeArtist ? `${safeName}_${safeArtist}` : safeName;
+  const autoTitle  = safeArtist ? `${safeName}_${safeArtist}` : safeName;
+  const docTitle   = pdfName.trim()
+    ? pdfName.trim().replace(/[^a-zA-Z0-9 _-]/g, '').replace(/\s+/g, '_')
+    : autoTitle;
 
-  /* Columns */
-  const cols = cfg.chordsPerRow === 'auto'
-    ? (compact
-        ? (cfg.orientation === 'landscape' ? 5 : 4)
-        : (cfg.orientation === 'landscape' ? 4 : 3))
-    : parseInt(cfg.chordsPerRow, 10);
+  /* Columns — always 3 (4 in compact mode for landscape) */
+  const cols = compact
+    ? (cfg.orientation === 'landscape' ? 4 : 3)
+    : 3;
 
   /* SVG scale */
   const svgScale = compact ? 0.78 : 1.35;
@@ -465,32 +464,47 @@ ${chordContent}
 </div>
 </body></html>`;
 
-  /* ── Export: open in new window (web/PWA), fallback download (Capacitor) ── */
-  const printWin = window.open('about:blank', '_blank');
-  if (printWin) {
-    printWin.document.write(html);
-    printWin.document.close();
-    let printed = false;
-    const doPrint = () => {
-      if (printed) return;
-      printed = true;
-      printWin.focus();
-      printWin.print();
-    };
-    printWin.addEventListener('load', doPrint);
-    setTimeout(doPrint, 1200); // safety fallback if load fires late
+  /* ── Export via hidden iframe — works in PWA and Capacitor, never blocked ── */
+  // Inject a tiny invisible iframe, write the HTML into it, then call print.
+  // This avoids the popup-blocker that kills window.open() in most browsers.
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;opacity:0;pointer-events:none;';
+  document.body.appendChild(iframe);
+
+  const iDoc = iframe.contentDocument;
+  if (iDoc) {
+    iDoc.open();
+    iDoc.write(html);
+    iDoc.close();
+    // Give the browser a tick to parse and lay out the document before printing.
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch {
+        // If the iframe approach fails (e.g. sandboxed WebView), fall back to blob download.
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${docTitle}.html`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+      }
+      // Remove the iframe after the print dialog has opened (3 s safety margin).
+      setTimeout(() => { try { document.body.removeChild(iframe); } catch {} }, 3000);
+    }, 600);
   } else {
-    // Capacitor / pop-up blocked: download as HTML file
+    // Very old or restricted environment — direct blob download.
+    document.body.removeChild(iframe);
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `${docTitle}.html`;
     document.body.appendChild(a);
     a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(a.href);
-    }, 1000);
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
   }
 }
 
@@ -592,7 +606,7 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
   const elegant = style === 'elegant';
 
   const hasSections = !!(preset.sections && preset.sections.length > 0);
-  const cols = cfg.chordsPerRow === 'auto' ? (compact ? 3 : 3) : parseInt(cfg.chordsPerRow, 10);
+  const cols = 3;
 
   /* Build per-section chord lists for preview */
   type PreviewSection = { name: string; chords: Chord[] };
@@ -755,6 +769,7 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
 }) {
   const t = useT();
   const [cfg, setCfg] = useState<ExportConfig>({ ...DEFAULT_EXPORT_CONFIG });
+  const [pdfName, setPdfName] = useState('');
   const [exporting, setExporting] = useState(false);
   const [closing, setClosing] = useState(false);
 
@@ -769,7 +784,7 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
   const handleExport = () => {
     setExporting(true);
     setTimeout(() => {
-      exportPresetToPDF(preset, cfg, transposeOffset, storedCustomChords, accent.from);
+      exportPresetToPDF(preset, cfg, transposeOffset, storedCustomChords, accent.from, pdfName);
       setExporting(false);
       handleClose();
     }, 100);
@@ -877,6 +892,26 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
           {t.songs.exportSettings}
         </p>
 
+        {/* PDF name input */}
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ padding: '14px 16px', background: 'var(--app-surface-high)', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: '14px', color: 'var(--c-text-primary)' }}>File name</p>
+            <input
+              type="text"
+              value={pdfName}
+              onChange={e => setPdfName(e.target.value)}
+              placeholder={preset.name || 'Song'}
+              maxLength={80}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: '10px',
+                background: 'var(--app-surface)', border: '1px solid rgba(72,72,72,0.15)',
+                color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: '14px',
+                outline: 'none',
+              }}
+            />
+          </div>
+        </div>
+
         {/* Settings rows */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
 
@@ -910,18 +945,6 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
               <Toggle
                 on={cfg.theme === 'dark'}
                 onChange={() => update('theme', cfg.theme === 'dark' ? 'light' : 'dark')}
-              />
-            }
-          />
-
-          <Row
-            label={t.songs.chordsPerRow}
-            sub={t.songs.chordsPerRowDesc}
-            right={
-              <Segment
-                options={[{ value: 'auto', label: 'Auto' }, { value: '2', label: '2' }, { value: '3', label: '3' }]}
-                value={cfg.chordsPerRow}
-                onChange={v => update('chordsPerRow', v)}
               />
             }
           />
