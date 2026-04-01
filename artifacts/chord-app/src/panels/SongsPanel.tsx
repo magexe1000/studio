@@ -2528,8 +2528,8 @@ export default function SongsPanel() {
                   {preset.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', marginTop: '2px' }}>{preset.artist}</p>}
                   <div style={{ display: 'flex', gap: '6px', marginTop: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
                     {preset.key && (
-                      <span style={{ fontSize: '10px', fontFamily: 'Manrope', fontWeight: 700, color: accent.from, background: `${accent.to}18`, padding: '2px 8px 2px 6px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '11px', lineHeight: 1 }}>music_note</span>
+                      <span style={{ fontSize: '10px', fontFamily: 'Manrope', fontWeight: 700, color: accent.from, background: `${accent.to}18`, padding: '2px 8px 2px 7px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '11px', lineHeight: 1, color: 'var(--c-text-secondary)' }}>#</span>
                         {preset.key}
                       </span>
                     )}
