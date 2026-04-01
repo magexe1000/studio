@@ -118,10 +118,10 @@ export default function BottomNav() {
   const accent   = ACCENT_COLORS[settings.accentColor];
   const isLight  = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const amoledBg = settings.amoledMode
-    ? 'rgba(8,8,8,0.96)'
+    ? 'rgba(4,4,4,0.72)'
     : isLight
-      ? 'rgba(250,249,247,0.92)'
-      : 'rgba(22,22,22,0.90)';
+      ? 'rgba(240,240,242,0.58)'
+      : 'rgba(26,26,30,0.55)';
   const navHidden = useNavHidden();
 
   /* ── Sliding pill state ── */
@@ -176,11 +176,11 @@ export default function BottomNav() {
       style={{
         bottom: 'max(10px, env(safe-area-inset-bottom))',
         borderRadius: '2rem',
-        border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(72,72,72,0.15)'}`,
+        border: `1px solid ${isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.10)'}`,
         background: amoledBg,
         boxShadow: isLight
-          ? '0 12px 40px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.5) inset'
-          : '0 20px 60px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.04) inset',
+          ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
+          : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
         zIndex: 50,
         overflow: 'hidden',
         transform: navHidden ? 'translateY(calc(100% + 32px))' : 'translateY(0)',

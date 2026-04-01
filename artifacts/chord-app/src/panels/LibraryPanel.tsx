@@ -422,7 +422,7 @@ export default function LibraryPanel() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative', paddingBottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 76px)' }}>
+    <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative' }}>
 
       {/* ── Scroll-to-top button (Discover tab) — always mounted, animated via transition ── */}
       <button
