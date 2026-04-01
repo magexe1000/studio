@@ -35,6 +35,9 @@
     "vite": "catalog:"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",
     "material-symbols": "^0.43.0",
