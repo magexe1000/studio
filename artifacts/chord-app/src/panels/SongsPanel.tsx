@@ -2021,27 +2021,14 @@ export default function SongsPanel() {
         </button>
 
         {/* Header */}
-        <header className="flex-none app-bg" style={{ paddingTop: '18px', paddingBottom: '12px', paddingLeft: '68px', paddingRight: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <div style={{ flex: 1 }}>
-              <h2 style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 900, fontSize: '22px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{activePreset.name}</h2>
-              {activePreset.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', marginTop: '2px' }}>{activePreset.artist}</p>}
-              <div style={{ display: 'flex', gap: '6px', marginTop: '6px', alignItems: 'center' }}>
-                {activePreset.key && (
-                  <span style={{ padding: '3px 10px 3px 7px', background: `${accent.to}22`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', border: `1px solid ${accent.to}33`, display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '13px', lineHeight: 1 }}>music_note</span>
-                    {activePreset.key}
-                  </span>
-                )}
-                {activePreset.bpm > 0 && (
-                  <span style={{ padding: '3px 10px 3px 7px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '13px', lineHeight: 1 }}>speed</span>
-                    {activePreset.bpm} BPM
-                  </span>
-                )}
-              </div>
+        <header className="flex-none app-bg" style={{ paddingTop: '18px', paddingBottom: '10px', paddingLeft: '68px', paddingRight: '16px' }}>
+          {/* ── Title row ── */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 900, fontSize: '22px', letterSpacing: '-0.02em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePreset.name}</h2>
+              {activePreset.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePreset.artist}</p>}
             </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
               {/* Live Mode pill */}
               {(() => {
                 const hasChords = activePreset.sections
@@ -2049,112 +2036,80 @@ export default function SongsPanel() {
                   : activePreset.chords.length > 0;
                 return hasChords ? (
                   <button onClick={() => setShowLive(true)} data-testid="enter-live-mode" className="btn-smooth"
-                    style={{ height: '36px', padding: '0 12px 0 10px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, boxShadow: `0 2px 12px ${accent.to}55`, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: '17px' }}>play_circle</span>
-                    <span style={{ color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '12px', letterSpacing: '0.02em' }}>{t.songs.liveMode}</span>
+                    style={{ height: '34px', padding: '0 11px 0 9px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, boxShadow: `0 2px 12px ${accent.to}55`, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: '16px' }}>play_circle</span>
+                    <span style={{ color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '11px', letterSpacing: '0.02em' }}>{t.songs.liveMode}</span>
                   </button>
                 ) : null;
               })()}
-              {/* JSON export (share) */}
-              <button
-                onClick={() => exportPresetToJSON(activePreset)}
-                className="btn-smooth"
-                title={t.songs.exportAsJson}
-                style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '18px' }}>data_object</span>
+              <button onClick={() => exportPresetToJSON(activePreset)} className="btn-smooth" title={t.songs.exportAsJson}
+                style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '17px' }}>data_object</span>
               </button>
-              {/* PDF export button (top-right in editor) */}
-              <button
-                onClick={() => setExportModal(activePreset)}
-                className="btn-smooth"
-                title={t.songs.exportToPdf}
-                style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '18px' }}>picture_as_pdf</span>
+              <button onClick={() => setExportModal(activePreset)} className="btn-smooth" title={t.songs.exportToPdf}
+                style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '17px' }}>picture_as_pdf</span>
               </button>
               <button onClick={() => { setEditingId(activePreset.id); setShowForm(true); }} className="btn-smooth"
-                style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '18px' }}>edit</span>
+                style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '17px' }}>edit</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ── Meta + transpose row (full width) ── */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginTop: '8px' }}>
+            {/* Left: key badge + BPM badge */}
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              {activePreset.key && (
+                <span style={{ padding: '3px 10px 3px 7px', background: `${accent.to}18`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', border: `1px solid ${accent.to}33`, display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px', lineHeight: 1 }}>music_note</span>
+                  {transposeOffset === 0 ? activePreset.key : (
+                    <>
+                      <span style={{ opacity: 0.4, textDecoration: 'line-through', fontSize: '10px' }}>{activePreset.key}</span>
+                      <span style={{ marginLeft: '2px' }}>{transposeKeyString(activePreset.key, transposeOffset, preferFlats)}</span>
+                    </>
+                  )}
+                </span>
+              )}
+              {activePreset.bpm > 0 && (
+                <span style={{ padding: '3px 10px 3px 7px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px', lineHeight: 1 }}>speed</span>
+                  {activePreset.bpm} BPM
+                </span>
+              )}
+            </div>
+
+            {/* Right: transpose controls — no background box */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+              {transposeOffset !== 0 && (
+                <button onClick={() => resetTranspose(activePreset.id)} className="btn-smooth" title={t.songs.resetKey}
+                  style={{ padding: '3px 6px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', display: 'flex', alignItems: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>restart_alt</span>
+                </button>
+              )}
+              <button onClick={() => updateSettings({ preferFlats: !preferFlats })} className="btn-smooth"
+                title={preferFlats ? t.songs.usingFlats : t.songs.usingSharps}
+                style={{ width: '28px', height: '28px', borderRadius: '7px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {preferFlats ? '♭' : '♯'}
+              </button>
+              <button onClick={() => setTranspose(activePreset.id, transposeOffset - 1)} className="btn-smooth" data-testid="transpose-down"
+                disabled={transposeOffset <= -11}
+                style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--app-surface-high)', color: transposeOffset > -11 ? 'var(--c-text-primary)' : 'var(--c-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: transposeOffset <= -11 ? 0.4 : 1 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>remove</span>
+              </button>
+              <div style={{ width: '30px', textAlign: 'center', fontFamily: 'Manrope', fontWeight: 900, fontSize: '12px', color: transposeOffset !== 0 ? accent.from : 'var(--c-text-muted)', transition: 'color 250ms ease', flexShrink: 0 }}>
+                {formatOffset(transposeOffset)}
+              </div>
+              <button onClick={() => setTranspose(activePreset.id, transposeOffset + 1)} className="btn-smooth" data-testid="transpose-up"
+                disabled={transposeOffset >= 11}
+                style={{ width: '28px', height: '28px', borderRadius: '50%', background: transposeOffset < 11 ? `linear-gradient(135deg, ${accent.from}, ${accent.to})` : 'var(--app-surface-high)', color: transposeOffset < 11 ? '#fff' : 'var(--c-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: transposeOffset >= 11 ? 0.4 : 1, boxShadow: transposeOffset < 11 ? `0 2px 8px ${accent.to}55` : 'none' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>add</span>
               </button>
             </div>
           </div>
         </header>
 
-        {/* ── Transpose Control Strip ── */}
-        <div style={{
-          flexShrink: 0,
-          margin: '0 16px 6px',
-          background: transposeOffset !== 0 ? `${accent.to}12` : 'var(--app-surface)',
-          border: transposeOffset !== 0 ? `1px solid ${accent.to}33` : '1px solid rgba(72,72,72,0.08)',
-          borderRadius: '1rem',
-          padding: '10px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          transition: 'background 300ms ease, border-color 300ms ease',
-        }}>
-          {/* Label */}
-          <span className="material-symbols-outlined" style={{ color: transposeOffset !== 0 ? accent.from : 'var(--c-text-muted)', fontSize: '16px', flexShrink: 0, transition: 'color 300ms ease' }}>music_note</span>
-
-          {/* Key / offset display */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {activePreset.key ? (
-              <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', color: 'var(--c-text-primary)', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {transposeOffset === 0
-                  ? activePreset.key
-                  : (
-                    <>
-                      <span style={{ opacity: 0.5, textDecoration: 'line-through', marginRight: '4px', fontSize: '11px' }}>{activePreset.key}</span>
-                      <span style={{ color: accent.from }}>{transposeKeyString(activePreset.key, transposeOffset, preferFlats)}</span>
-                    </>
-                  )
-                }
-              </p>
-            ) : (
-              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px', color: 'var(--c-text-secondary)' }}>{t.songs.transpose}</p>
-            )}
-            <p style={{ fontFamily: 'Inter', fontSize: '10px', color: transposeOffset !== 0 ? accent.from : 'var(--c-text-muted)', marginTop: '2px', transition: 'color 300ms ease' }}>
-              {transposeOffset === 0 ? t.songs.originalKey : t.songs.semitones(transposeOffset)}
-            </p>
-          </div>
-
-          {/* Reset — only visible when transposed */}
-          {transposeOffset !== 0 && (
-            <button onClick={() => resetTranspose(activePreset.id)} className="btn-smooth"
-              title={t.songs.resetKey}
-              style={{ padding: '5px 10px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>restart_alt</span>
-              {t.songs.resetKey}
-            </button>
-          )}
-
-          {/* Sharps / Flats toggle */}
-          <button onClick={() => updateSettings({ preferFlats: !preferFlats })} className="btn-smooth"
-            title={preferFlats ? t.songs.usingFlats : t.songs.usingSharps}
-            style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', flexShrink: 0 }}>
-            {preferFlats ? '♭' : '♯'}
-          </button>
-
-          {/* Down semitone */}
-          <button onClick={() => setTranspose(activePreset.id, transposeOffset - 1)} className="btn-smooth" data-testid="transpose-down"
-            disabled={transposeOffset <= -11}
-            style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--app-surface-high)', color: transposeOffset > -11 ? 'var(--c-text-primary)' : 'var(--c-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: transposeOffset <= -11 ? 0.4 : 1 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>remove</span>
-          </button>
-
-          {/* Semitone count pill */}
-          <div style={{ width: '36px', textAlign: 'center', fontFamily: 'Manrope', fontWeight: 900, fontSize: '14px', color: transposeOffset !== 0 ? accent.from : 'var(--c-text-muted)', flexShrink: 0, transition: 'color 300ms ease' }}>
-            {formatOffset(transposeOffset)}
-          </div>
-
-          {/* Up semitone */}
-          <button onClick={() => setTranspose(activePreset.id, transposeOffset + 1)} className="btn-smooth" data-testid="transpose-up"
-            disabled={transposeOffset >= 11}
-            style={{ width: '36px', height: '36px', borderRadius: '50%', background: transposeOffset !== 11 ? `linear-gradient(135deg, ${accent.from}, ${accent.to})` : 'var(--app-surface-high)', color: transposeOffset !== 11 ? '#fff' : 'var(--c-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: transposeOffset >= 11 ? 0.4 : 1, boxShadow: transposeOffset !== 11 ? `0 2px 12px ${accent.to}55` : 'none' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
-          </button>
-        </div>
 
         {/* Chord list (scrollable) */}
         {(() => {
