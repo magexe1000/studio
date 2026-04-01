@@ -2128,12 +2128,6 @@ export default function SongsPanel() {
                         </div>
                       );
                     })}
-                    {/* Add chord to this section */}
-                    <button onClick={() => { setPickerSectionId(section.id); setShowPicker(true); }} className="btn-smooth"
-                      style={{ width: '100%', padding: '7px 12px', borderRadius: '10px', background: `${accent.from}0d`, border: `1px dashed ${accent.from}33`, color: accent.from, fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '4px' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-                      {t.songs.addChordToSection}
-                    </button>
                   </div>
                 );
               })}
@@ -2289,7 +2283,11 @@ export default function SongsPanel() {
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>segment</span>
             {t.songs.addSection}
           </button>
-          <button onClick={() => { setPickerSectionId(null); setShowPicker(true); }} data-testid="add-chord-btn" className="btn-smooth"
+          <button onClick={() => {
+            const secs = activePreset.sections;
+            setPickerSectionId(secs && secs.length > 0 ? secs[secs.length - 1].id : null);
+            setShowPicker(true);
+          }} data-testid="add-chord-btn" className="btn-smooth"
             style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}cc, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_music</span>
             {t.songs.addChord}
