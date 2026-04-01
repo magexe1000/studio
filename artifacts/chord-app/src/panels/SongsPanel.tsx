@@ -1571,7 +1571,7 @@ const ITEM_H = 76;
 export default function SongsPanel() {
   const t = useT();
   const {
-    presets, activePresetId, settings, transpositions, customChords,
+    presets, activePresetId, activePanel, settings, transpositions, customChords,
     setActivePreset, createPreset, updatePreset, deletePreset,
     addChordToPreset, removeChordFromPreset, reorderPresetChords, duplicateChordInPreset,
     setTranspose, resetTranspose, updateSettings,
@@ -1589,6 +1589,40 @@ export default function SongsPanel() {
   const [showDeleteId, setShowDeleteId]       = useState<string | null>(null);
   const [exportModalPreset, setExportModal]   = useState<SongPreset | null>(null);
   const [showImport, setShowImport]           = useState(false);
+
+  // ── Android back gesture / predictive back ──────────────────────────────
+  // Keep a ref to the current "close topmost thing" logic so the popstate
+  // listener never has a stale closure.
+  const backHandlerRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    backHandlerRef.current = () => {
+      if (showCustomBuilder) { setShowCustomBuilder(false); return; }
+      if (showPicker)        { setShowPicker(false);        return; }
+      if (showLive)          { setShowLive(false);          return; }
+      if (showForm)          { setShowForm(false); setEditingId(null); return; }
+      if (exportModalPreset) { setExportModal(null);        return; }
+      if (showImport)        { setShowImport(false);        return; }
+      if (showDeleteId)      { setShowDeleteId(null);       return; }
+      if (activePresetId && activePanel === 'songs') { setActivePreset(null); return; }
+    };
+  }, [showCustomBuilder, showPicker, showLive, showForm, exportModalPreset,
+      showImport, showDeleteId, activePresetId, activePanel, setActivePreset]);
+
+  useEffect(() => {
+    // Seed the history stack so Android always has a state to pop into
+    // instead of immediately exiting the app.
+    window.history.replaceState({ chordex: 'root' }, '');
+    window.history.pushState({ chordex: 'app' }, '');
+
+    const handlePop = () => {
+      backHandlerRef.current();
+      // Re-push so the next back gesture is also absorbed.
+      window.history.pushState({ chordex: 'app' }, '');
+    };
+
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, []); // intentionally empty — runs once on mount
 
   // Drag & drop
   const [localChords, setLocalChords] = useState<string[]>([]);

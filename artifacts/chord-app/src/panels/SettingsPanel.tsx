@@ -228,7 +228,7 @@ export default function SettingsPanel() {
                 border: settings.amoledMode ? '1px solid rgba(50,50,50,0.4)' : '1px solid transparent',
                 transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1), border-color 700ms ease, opacity 300ms ease',
                 opacity: isLightMode ? 0.38 : 1,
-                pointerEvents: isLightMode ? 'none' : 'auto',
+                pointerEvents: isLightMode ? 'none' : undefined,
               }}
             >
               <div style={{ padding: 'var(--density-row-pad)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
