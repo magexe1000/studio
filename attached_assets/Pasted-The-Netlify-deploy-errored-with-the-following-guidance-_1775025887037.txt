@@ -1,0 +1,63 @@
+The Netlify deploy errored, with the following guidance provided:
+
+Diagnosis
+- Relevant log lines show Netlify failed to parse the config file: [line 8](#L8) and [line 9](#L9).
+- The error is a malformed netlify.toml (TOML parse error). Netlify cannot parse /opt/build/repo/netlify.toml, so the build aborts. The repo file is at https://github.com/MAGEXE1000/Chordex/blob/main/netlify.toml — open that to inspect the TOML content.
+
+Cause
+- netlify.toml contains invalid TOML syntax or invalid keys for Netlify. Common causes:
+  - using incorrect keys (e.g. "Base directory" or "base directory" instead of the TOML key base under [build]),
+  - missing / malformed section headers (e.g. missing [build]),
+  - stray characters or incorrect quoting that break TOML parsing.
+
+Solution
+1. Inspect and fix netlify.toml
+   - Open https://github.com/MAGEXE1000/Chordex/blob/main/netlify.toml and look for syntax errors or non-TOML keys. Correct any human-readable labels (like "Base directory") into proper TOML keys.
+   - Ensure you use the [build] table and the correct keys. Example minimal valid file (adjust values to your project):
+```toml
+# netlify.toml
+[build]
+  base = ""            # optional: subfolder where your app lives, e.g. "frontend"
+  publish = "dist"     # folder to publish (change to your build output, e.g. "build" or "public")
+  command = "npm run build"  # your build command
+```
+   - If you need a different section (redirects, headers, functions), follow Netlify's TOML docs for correct keys and structure.
+
+2. Validate TOML before committing
+   - Use an online TOML linter/validator or a local tool (for example, use Python tomli to parse the file) to ensure it parses.
+   - Example quick local check with Python:
+```bash
+python - <<'PY'
+import tomli, sys
+with open("netlify.toml","rb") as f:
+    try:
+        tomli.load(f)
+        print("TOML OK")
+    except Exception as e:
+        print("TOML ERROR:", e)
+        sys.exit(1)
+PY
+```
+
+3. Commit and redeploy
+   - Commit the corrected netlify.toml to the repository root and push to main. Netlify will re-read the config and start the build.
+
+Notes and troubleshooting
+- If your netlify.toml is intentionally missing, remove the file or fix its contents; Netlify will then use UI settings or defaults.
+- If you still see parsing errors after fixing syntax, paste the current netlify.toml content here (or open the file link above) and I can point out the exact line/issue.
+
+The relevant error logs are:
+
+Line 0: build-image version: a0bc76c99cbadd99a168cf193f4d4df9fa7ee94a (noble-new-builds)
+Line 1: buildbot version: 01f5db8adecddf8de6c47ac7b24cb8bdfc2475ee
+Line 2: Fetching cached dependencies
+Line 3: Failed to fetch cache, continuing with build
+Line 4: Starting to prepare the repo for build
+Line 5: No cached dependencies found. Cloning fresh repo
+Line 6: git clone --filter=blob:none https://github.com/MAGEXE1000/Chordex
+Line 7: Preparing Git Reference refs/heads/main
+Line 8: Failed during stage 'Reading and parsing configuration files': 
+When resolving config file /opt/build/repo/netlify.toml:
+Base di
+Line 9: Failing build: Failed to parse configuration
+Line 10: Finished processing build request in 2.187s
