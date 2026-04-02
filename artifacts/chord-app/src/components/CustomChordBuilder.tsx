@@ -145,13 +145,14 @@ export function CustomMiniDiagram({ chord, accentFrom }: { chord: CustomChord; a
    GUITAR / BASS / UKULELE FRETBOARD
    ════════════════════════════════════════════════════════════════ */
 
-function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresChange = () => {}, accent }: {
+function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresChange = () => {}, accent, findMode = false }: {
   instrument: 'guitar' | 'bass' | 'ukulele';
   frets: number[][];
   onChange: (f: number[][]) => void;
   barres?: BarreDef[];
   onBarresChange?: (b: BarreDef[]) => void;
   accent: { from: string; to: string };
+  findMode?: boolean;
 }) {
   const t = useT();
   const [baseFret, setBaseFret] = useState(1);
@@ -170,26 +171,34 @@ function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresCh
   const handleFretClick = useCallback((sIdx: number, fret: number) => {
     const next = frets.map(arr => [...arr]);
     const current = next[sIdx];
-    if (current[0] === -1) return; // string is muted — ignore taps
-    const idx = current.indexOf(fret);
-    if (idx !== -1) {
-      // deselect — remove this fret
-      current.splice(idx, 1);
-      if (current.length === 0) current.push(0); // fall back to open if nothing left
-    } else {
-      // select — if adding a positive fret, remove the open (0) placeholder first
-      if (fret > 0) {
-        const openIdx = current.indexOf(0);
-        if (openIdx !== -1) current.splice(openIdx, 1);
-      }
+
+    if (current[0] === -1) {
+      // string was muted — tap unmutes it and places this fret directly
+      current.length = 0;
       current.push(fret);
+    } else {
+      const idx = current.indexOf(fret);
+      if (idx !== -1) {
+        // deselect — remove this fret
+        current.splice(idx, 1);
+        // fall back: in find mode go back to muted, in build mode go back to open
+        if (current.length === 0) current.push(findMode ? -1 : 0);
+      } else {
+        // select — if adding a positive fret, remove the open (0) placeholder first
+        if (fret > 0) {
+          const openIdx = current.indexOf(0);
+          if (openIdx !== -1) current.splice(openIdx, 1);
+        }
+        current.push(fret);
+      }
     }
+
     onChange(next);
     if (barreMode) {
       const primary = next.map(arr => arr[0] === -1 ? -1 : (arr.find(f => f > 0) ?? 0));
       onBarresChange(computeBarres(primary));
     }
-  }, [frets, onChange, barreMode, onBarresChange]);
+  }, [frets, onChange, barreMode, onBarresChange, findMode]);
 
   const handleHeadClick = useCallback((sIdx: number) => {
     const next = frets.map(arr => [...arr]);
@@ -530,10 +539,11 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose,
   const [instrument, setInstrument] = useState<Instrument>(editChord?.instrument ?? 'guitar');
   // Each string holds a list of active frets — allows multiple notes per string.
   // [-1] = muted, [0] = open, [n, m, ...] = multiple fret positions active.
+  const defaultFret = mode === 'find' ? -1 : 0;
   const [frets, setFrets] = useState<number[][]>(() => {
     if (editChord?.frets) return editChord.frets.map(f => [f]);
     const n = editChord?.instrument === 'bass' || editChord?.instrument === 'ukulele' ? 4 : 6;
-    return Array.from({ length: n }, () => [0]);
+    return Array.from({ length: n }, () => [defaultFret]);
   });
   const [barres, setBarres] = useState<BarreDef[]>(editChord?.barres ?? []);
   const [pianoKeys, setPianoKeys] = useState<number[]>(editChord?.pianoKeys ?? []);
@@ -583,8 +593,8 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose,
   // When instrument changes, reset fret state
   const handleInstrumentChange = (inst: Instrument) => {
     setInstrument(inst);
-    if (inst === 'guitar') setFrets(Array.from({ length: 6 }, () => [0]));
-    else if (inst === 'bass' || inst === 'ukulele') setFrets(Array.from({ length: 4 }, () => [0]));
+    if (inst === 'guitar') setFrets(Array.from({ length: 6 }, () => [defaultFret]));
+    else if (inst === 'bass' || inst === 'ukulele') setFrets(Array.from({ length: 4 }, () => [defaultFret]));
     else setFrets([]);
     setBarres([]);
     setPianoKeys([]);
@@ -890,6 +900,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose,
                 barres={barres}
                 onBarresChange={setBarres}
                 accent={resolvedAccent}
+                findMode={mode === 'find'}
               />
             )}
           </div>
@@ -916,7 +927,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose,
               <button
                 onClick={() => {
                   if (instrument === 'piano') setPianoKeys([]);
-                  else { const n = instrument === 'bass' || instrument === 'ukulele' ? 4 : 6; setFrets(Array.from({ length: n }, () => [0])); setBarres([]); }
+                  else { const n = instrument === 'bass' || instrument === 'ukulele' ? 4 : 6; setFrets(Array.from({ length: n }, () => [defaultFret])); setBarres([]); }
                 }}
                 disabled={!hasAnyNote}
                 className="btn-smooth"
