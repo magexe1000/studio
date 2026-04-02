@@ -202,10 +202,11 @@ const ALL_NAV_TABS: { id: AllTab; label: string; Icon: React.FC<{ active: boolea
   { id: 'kit',    label: 'Kit',    Icon: IconKit    },
   { id: 'mix',    label: 'Mix',    Icon: IconMix    },
 ];
-function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent }: {
+function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent, isLight, isAmoled }: {
   activeTab: DrumTab; setTab: (t: DrumTab) => void;
   drumMode: DrumMode; setDrumMode: (m: DrumMode) => void;
   accent: { from: string; to: string };
+  isLight: boolean; isAmoled: boolean;
 }) {
   const currentId: AllTab = drumMode === 'edit' ? 'editor' : activeTab;
   const navRef  = useRef<HTMLElement | null>(null);
@@ -251,10 +252,11 @@ function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent }: {
       width: '72%', maxWidth: 280,
       display: 'flex', justifyContent: 'space-around', alignItems: 'center',
       padding: '6px 8px', borderRadius: '2rem',
-      border: '1px solid rgba(255,255,255,0.09)',
-      background: 'rgba(18,18,22,0.94)',
-      boxShadow: '0 12px 48px rgba(0,0,0,0.65)',
+      border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.09)',
+      background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.94)' : 'rgba(18,18,22,0.94)'),
+      boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 12px 48px rgba(0,0,0,0.65)',
       zIndex: 50, overflow: 'hidden',
+      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
     }}>
       {pill.ready && (
         <div aria-hidden style={{
@@ -275,7 +277,7 @@ function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent }: {
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               gap: 4, padding: '8px 4px', borderRadius: '9999px', background: 'transparent', border: 'none',
-              cursor: 'pointer', color: isActive ? '#fff' : '#52525b', position: 'relative', zIndex: 1,
+              cursor: 'pointer', color: isActive ? '#fff' : (isLight ? 'rgba(0,0,0,0.4)' : '#71717a'), position: 'relative', zIndex: 1,
               transform: isPressed ? 'scale(0.91)' : 'scale(1)',
               transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34,1.56,0.64,1)',
             }}>
@@ -292,10 +294,10 @@ function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent }: {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p style={{ color: '#3f3f46', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px', padding: '0 20px' }}>{children}</p>;
+  return <p style={{ color: 'var(--c-text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px', padding: '0 20px' }}>{children}</p>;
 }
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return <div style={{ margin: '0 16px 20px', background: '#0e0e12', borderRadius: 14, border: '1px solid #1c1c22', overflow: 'hidden', ...style }}>{children}</div>;
+  return <div style={{ margin: '0 16px 20px', background: 'var(--app-bg)', borderRadius: 14, border: '1px solid rgba(128,128,128,0.1)', overflow: 'hidden', ...style }}>{children}</div>;
 }
 
 // ── DrumEditor ─────────────────────────────────────────────────────────────
@@ -324,13 +326,12 @@ export default function DrumEditor() {
   const isLight = settings.theme === 'light' ||
     (settings.theme === 'system' && typeof window !== 'undefined' &&
      window.matchMedia('(prefers-color-scheme: light)').matches);
+  const isAmoled = !isLight && (settings.amoledMode ?? false);
+  // SVG/canvas colors — CSS vars can't be used directly in SVG props
   const noteColor  = isLight ? '#111118' : '#f0f0f2';
   const staffColor = isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.18)';
   const barColor   = isLight ? 'rgba(0,0,0,0.50)' : 'rgba(255,255,255,0.45)';
   const altBg      = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)';
-  const appBg      = isLight ? '#f5f5f7' : '#09090b';
-  const borderCol  = isLight ? 'rgba(0,0,0,0.08)' : '#18181f';
-  const labelCol   = isLight ? '#71717a' : '#3f3f46';
 
   // ── State ────────────────────────────────────────────────────────────────
   const [drumMode, setDrumMode]         = useState<DrumMode>('nav');
@@ -498,19 +499,19 @@ export default function DrumEditor() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: appBg, overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
 
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
       <div style={{
         flexShrink: 0, height: 52,
         display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10,
-        borderBottom: `1px solid ${borderCol}`, background: appBg,
+        borderBottom: '1px solid rgba(128,128,128,0.1)', background: 'var(--app-bg)',
         paddingTop: 'env(safe-area-inset-top)',
       }}>
         {/* Back — only in editor */}
         {drumMode === 'edit' && (
-          <button onClick={handleBack} style={{ width: 36, height: 36, borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.06)' : '#13131a', border: `1px solid ${borderCol}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ fontSize: 18, color: isLight ? '#52525b' : '#71717a', lineHeight: 1 }}>‹</span>
+          <button onClick={handleBack} style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: 18, color: 'var(--c-text-secondary)', lineHeight: 1 }}>‹</span>
           </button>
         )}
 
@@ -525,14 +526,14 @@ export default function DrumEditor() {
 
         {/* Clear — only in editor */}
         {drumMode === 'edit' && (
-          <button onClick={handleClear} style={{ height: 28, padding: '0 12px', borderRadius: 7, background: 'transparent', border: `1px solid ${borderCol}`, cursor: 'pointer', color: labelCol, fontSize: 11, fontWeight: 600 }}>
+          <button onClick={handleClear} style={{ height: 28, padding: '0 12px', borderRadius: 7, background: 'transparent', border: '1px solid rgba(128,128,128,0.18)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 600 }}>
             Clear
           </button>
         )}
 
         {/* Loop — only in kit/mix nav */}
         {drumMode === 'nav' && (
-          <button onClick={() => setLooping(l => !l)} style={{ width: 32, height: 32, borderRadius: 9, background: looping ? `${accent.from}1e` : (isLight ? 'rgba(0,0,0,0.05)' : '#13131a'), border: `1px solid ${looping ? accent.from + '44' : borderCol}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: looping ? accent.from : labelCol, transition: 'all 150ms' }}>
+          <button onClick={() => setLooping(l => !l)} style={{ width: 32, height: 32, borderRadius: 9, background: looping ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${looping ? accent.from + '44' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: looping ? accent.from : 'var(--c-text-secondary)', transition: 'all 150ms' }}>
             ⟳
           </button>
         )}
@@ -566,13 +567,13 @@ export default function DrumEditor() {
                         const canDelete = globalM > 0;
                         return (
                           <div key={mi} style={{ width: MEASURE_W, flexShrink: 0, display: 'flex', alignItems: 'center', paddingLeft: 6, paddingRight: 4, borderLeft: mi > 0 ? `1px solid ${barColor}` : 'none', gap: 4 }}>
-                            <span style={{ color: noteColor, fontSize: 10, fontWeight: 700, fontFamily: 'Manrope, sans-serif', opacity: 0.65 }}>
+                            <span style={{ color: 'var(--c-text-primary)', fontSize: 10, fontWeight: 700, fontFamily: 'Manrope, sans-serif', opacity: 0.65 }}>
                               {globalM + 1}
                             </span>
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
                               {Array.from({ length: pattern.timeSignature[0] }, (_, bi) => (
                                 <div key={bi} style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                                  <div style={{ width: 1, height: bi === 0 ? 8 : 5, background: noteColor, opacity: bi === 0 ? 0.45 : 0.20 }} />
+                                  <div style={{ width: 1, height: bi === 0 ? 8 : 5, background: 'var(--c-text-primary)', opacity: bi === 0 ? 0.45 : 0.20 }} />
                                 </div>
                               ))}
                             </div>
@@ -606,7 +607,7 @@ export default function DrumEditor() {
                           background: isFoc ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)') : 'transparent',
                         }}>
                           <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', alignItems: 'center', paddingLeft: 12, paddingRight: 6, borderRight: `1px solid ${barColor}` }}>
-                            <span style={{ fontSize: 9.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: isFoc ? noteColor : labelCol, letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>
+                            <span style={{ fontSize: 9.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: isFoc ? 'var(--c-text-primary)' : 'var(--c-text-muted)', letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>
                               {SHORT_LABEL[inst]}
                             </span>
                           </div>
@@ -629,12 +630,12 @@ export default function DrumEditor() {
                   onClick={() => addMeasure(pattern.id)}
                   style={{
                     height: 36, padding: '0 24px', borderRadius: 999, background: 'transparent',
-                    border: `1px dashed ${isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.14)'}`,
-                    cursor: 'pointer', color: labelCol, fontSize: 12, fontWeight: 600,
+                    border: 'var(--add-bar-border)',
+                    cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600,
                     display: 'flex', alignItems: 'center', gap: 8, transition: 'all 160ms',
                   }}
                   onPointerEnter={e => { e.currentTarget.style.borderColor = accent.from + '70'; e.currentTarget.style.color = accent.from; }}
-                  onPointerLeave={e => { e.currentTarget.style.borderColor = isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.14)'; e.currentTarget.style.color = labelCol; }}
+                  onPointerLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}
                 >
                   <span style={{ fontSize: 16 }}>+</span>
                   <span>Add Bar</span>
@@ -649,18 +650,19 @@ export default function DrumEditor() {
               {showBpmPanel && (
                 <div style={{
                   position: 'absolute', right: '100%', bottom: 0, marginRight: 10,
-                  background: 'rgba(18,18,22,0.96)', border: '1px solid rgba(255,255,255,0.10)',
+                  background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.96)' : 'rgba(18,18,22,0.96)'),
+                  border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)',
                   borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6,
                   backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.50)',
+                  boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.50)',
                   whiteSpace: 'nowrap',
                 }}>
                   {([-10, -1, +1, +10] as const).map(d => (
-                    <button key={d} onClick={() => adjustBpm(d)} style={{ width: 34, height: 34, borderRadius: 9, background: '#141420', border: '1px solid #1e1e28', cursor: 'pointer', color: '#a1a1aa', fontSize: 11, fontWeight: 700 }}>
+                    <button key={d} onClick={() => adjustBpm(d)} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700 }}>
                       {d > 0 ? `+${d}` : d}
                     </button>
                   ))}
-                  <div style={{ width: 1, height: 24, background: '#27272a', margin: '0 2px' }} />
+                  <div style={{ width: 1, height: 24, background: 'rgba(128,128,128,0.2)', margin: '0 2px' }} />
                   <span style={{ color: accent.from, fontSize: 16, fontWeight: 800, minWidth: 36, textAlign: 'center' }}>{pattern.bpm}</span>
                 </div>
               )}
@@ -668,16 +670,16 @@ export default function DrumEditor() {
                 onClick={() => setShowBpmPanel(s => !s)}
                 style={{
                   height: 36, padding: '0 13px', borderRadius: 999,
-                  background: showBpmPanel ? `${accent.from}22` : 'rgba(18,18,22,0.92)',
-                  border: `1.5px solid ${showBpmPanel ? accent.from + '55' : 'rgba(255,255,255,0.10)'}`,
+                  background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(0,0,0,0.92)' : (isLight ? 'rgba(255,255,255,0.92)' : 'rgba(18,18,22,0.92)')),
+                  border: `1.5px solid ${showBpmPanel ? accent.from + '55' : (isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)')}`,
                   backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
                   cursor: 'pointer', transition: 'all 160ms',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.45)',
+                  boxShadow: isLight ? '0 4px 20px rgba(0,0,0,0.12)' : '0 4px 20px rgba(0,0,0,0.45)',
                   display: 'flex', alignItems: 'center', gap: 5,
                 }}
               >
-                <span style={{ fontSize: 11, color: '#71717a' }}>♩</span>
-                <span style={{ color: showBpmPanel ? accent.from : '#d4d4d8', fontSize: 14, fontWeight: 800 }}>
+                <span style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>♩</span>
+                <span style={{ color: showBpmPanel ? accent.from : 'var(--c-text-primary)', fontSize: 14, fontWeight: 800 }}>
                   {pattern.bpm}
                 </span>
               </button>
@@ -690,7 +692,7 @@ export default function DrumEditor() {
                 position: 'fixed', right: 14, bottom: 36, zIndex: 60,
                 width: 44, height: 44, borderRadius: '50%', border: 'none',
                 background: playing
-                  ? 'rgba(18,18,22,0.92)'
+                  ? (isAmoled ? 'rgba(0,0,0,0.92)' : (isLight ? 'rgba(255,255,255,0.92)' : 'rgba(18,18,22,0.92)'))
                   : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: playing ? 13 : 14, color: '#fff',
@@ -714,11 +716,11 @@ export default function DrumEditor() {
               {KITS.map((k, i) => {
                 const sel = k === kit;
                 return (
-                  <button key={k} onClick={() => handleKitSelect(k)} style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', background: sel ? `${accent.from}12` : 'transparent', border: 'none', borderTop: i > 0 ? `1px solid ${borderCol}` : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 140ms' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: sel ? `linear-gradient(135deg,${accent.from},${accent.to})` : '#141420', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{KIT_ICONS[k]}</div>
+                  <button key={k} onClick={() => handleKitSelect(k)} style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', background: sel ? `${accent.from}12` : 'transparent', border: 'none', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.08)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 140ms' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: sel ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{KIT_ICONS[k]}</div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ color: sel ? '#fff' : '#d4d4d8', fontSize: 14, fontWeight: 600 }}>{KIT_LABEL[k]}</div>
-                      <div style={{ color: '#3f3f46', fontSize: 12, marginTop: 2 }}>{KIT_DESC[k]}</div>
+                      <div style={{ color: sel ? 'var(--c-text-primary)' : 'var(--c-text-primary)', fontSize: 14, fontWeight: 600 }}>{KIT_LABEL[k]}</div>
+                      <div style={{ color: 'var(--c-text-muted)', fontSize: 12, marginTop: 2 }}>{KIT_DESC[k]}</div>
                     </div>
                     {sel && <div style={{ width: 20, height: 20, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#fff' }}>✓</div>}
                   </button>
@@ -738,9 +740,9 @@ export default function DrumEditor() {
               {ALL_INSTS.map((inst, i) => {
                 const enabled = activeInstruments.includes(inst);
                 return (
-                  <button key={inst} onClick={() => toggleInstrument(inst)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '11px 16px', background: 'transparent', border: 'none', borderTop: i > 0 ? `1px solid ${borderCol}` : 'none', cursor: 'pointer', textAlign: 'left', opacity: enabled ? 1 : 0.4, transition: 'opacity 150ms' }}>
-                    <span style={{ color: '#c4c4c8', fontSize: 13, fontWeight: 500, flex: 1 }}>{INST_LABEL[inst]}</span>
-                    <div style={{ width: 36, height: 20, borderRadius: 10, flexShrink: 0, background: enabled ? `linear-gradient(135deg,${accent.from},${accent.to})` : '#1e1e28', position: 'relative', transition: 'background 200ms' }}>
+                  <button key={inst} onClick={() => toggleInstrument(inst)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '11px 16px', background: 'transparent', border: 'none', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.08)' : 'none', cursor: 'pointer', textAlign: 'left', opacity: enabled ? 1 : 0.4, transition: 'opacity 150ms' }}>
+                    <span style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500, flex: 1 }}>{INST_LABEL[inst]}</span>
+                    <div style={{ width: 36, height: 20, borderRadius: 10, flexShrink: 0, background: enabled ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.18)', position: 'relative', transition: 'background 200ms' }}>
                       <div style={{ position: 'absolute', top: 2, left: enabled ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)' }} />
                     </div>
                   </button>
@@ -755,14 +757,14 @@ export default function DrumEditor() {
           <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20, paddingBottom: 100 }} className="no-scrollbar">
             <SectionLabel>Tempo</SectionLabel>
             <Card>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '16px 18px', gap: 10, borderBottom: `1px solid ${borderCol}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', padding: '16px 18px', gap: 10, borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ color: '#71717a', fontSize: 11, fontWeight: 600, marginBottom: 2 }}>BPM</div>
-                  <div style={{ color: '#e4e4e7', fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{pattern.bpm}</div>
+                  <div style={{ color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 600, marginBottom: 2 }}>BPM</div>
+                  <div style={{ color: 'var(--c-text-primary)', fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{pattern.bpm}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {[-10, -1, +1, +10].map(d => (
-                    <button key={d} onClick={() => adjustBpm(d)} style={{ width: d === -10 || d === 10 ? 40 : 36, height: 36, borderRadius: 9, background: '#141420', border: `1px solid ${borderCol}`, cursor: 'pointer', color: '#a1a1aa', fontSize: 12, fontWeight: 700 }}>
+                    <button key={d} onClick={() => adjustBpm(d)} style={{ width: d === -10 || d === 10 ? 40 : 36, height: 36, borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 700 }}>
                       {d > 0 ? `+${d}` : d}
                     </button>
                   ))}
@@ -770,27 +772,27 @@ export default function DrumEditor() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', padding: '12px 18px', gap: 10 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ color: '#c4c4c8', fontSize: 13, fontWeight: 500 }}>Step Resolution</div>
-                  <div style={{ color: '#3f3f46', fontSize: 11, marginTop: 2 }}>{pattern.subdivision === 16 ? '16th notes' : '8th notes'}</div>
+                  <div style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Step Resolution</div>
+                  <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2 }}>{pattern.subdivision === 16 ? '16th notes' : '8th notes'}</div>
                 </div>
-                <button onClick={toggleSub} style={{ height: 32, padding: '0 14px', borderRadius: 9, background: '#141420', border: `1px solid ${accent.from}44`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 700 }}>1/{pattern.subdivision}</button>
+                <button onClick={toggleSub} style={{ height: 32, padding: '0 14px', borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: `1px solid ${accent.from}44`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 700 }}>1/{pattern.subdivision}</button>
               </div>
             </Card>
             <SectionLabel>Playback</SectionLabel>
             <Card>
-              <button onClick={() => setLooping(l => !l)} style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '13px 18px', gap: 12, background: 'transparent', border: 'none', borderBottom: `1px solid ${borderCol}`, cursor: 'pointer', textAlign: 'left' }}>
+              <button onClick={() => setLooping(l => !l)} style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '13px 18px', gap: 12, background: 'transparent', border: 'none', borderBottom: '1px solid rgba(128,128,128,0.08)', cursor: 'pointer', textAlign: 'left' }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ color: '#c4c4c8', fontSize: 13, fontWeight: 500 }}>Loop</div>
-                  <div style={{ color: '#3f3f46', fontSize: 11, marginTop: 2 }}>Repeat pattern continuously</div>
+                  <div style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Loop</div>
+                  <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2 }}>Repeat pattern continuously</div>
                 </div>
-                <div style={{ width: 42, height: 24, borderRadius: 12, flexShrink: 0, background: looping ? `linear-gradient(135deg,${accent.from},${accent.to})` : '#1e1e28', position: 'relative', transition: 'background 200ms' }}>
+                <div style={{ width: 42, height: 24, borderRadius: 12, flexShrink: 0, background: looping ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.18)', position: 'relative', transition: 'background 200ms' }}>
                   <div style={{ position: 'absolute', top: 3, left: looping ? 20 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)' }} />
                 </div>
               </button>
               <div style={{ padding: '13px 18px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <div style={{ color: '#c4c4c8', fontSize: 13, fontWeight: 500 }}>Master Volume</div>
-                  <span style={{ color: '#52525b', fontSize: 12, fontWeight: 600 }}>{Math.round(masterVolume * 100)}%</span>
+                  <div style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Master Volume</div>
+                  <span style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600 }}>{Math.round(masterVolume * 100)}%</span>
                 </div>
                 <input type="range" min={0} max={1} step={0.01} value={masterVolume}
                   onChange={e => setMasterVolume(parseFloat(e.target.value))}
@@ -801,8 +803,8 @@ export default function DrumEditor() {
             <Card>
               <div style={{ display: 'flex', alignItems: 'center', padding: '13px 18px', gap: 12 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ color: '#c4c4c8', fontSize: 13, fontWeight: 500 }}>Bars</div>
-                  <div style={{ color: '#3f3f46', fontSize: 11, marginTop: 2 }}>{pattern.measures.length} {pattern.measures.length === 1 ? 'bar' : 'bars'}</div>
+                  <div style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Bars</div>
+                  <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2 }}>{pattern.measures.length} {pattern.measures.length === 1 ? 'bar' : 'bars'}</div>
                 </div>
                 <button onClick={() => addMeasure(pattern.id)} style={{ height: 32, padding: '0 16px', borderRadius: 9, background: `${accent.from}18`, border: `1px solid ${accent.from}33`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 700 }}>
                   + Add Bar
@@ -817,7 +819,7 @@ export default function DrumEditor() {
       <SettingsNav
         activeTab={activeTab} setTab={setActiveTab}
         drumMode={drumMode} setDrumMode={setDrumMode}
-        accent={accent}
+        accent={accent} isLight={isLight} isAmoled={isAmoled}
       />
     </div>
   );
