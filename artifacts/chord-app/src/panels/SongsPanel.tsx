@@ -939,26 +939,31 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
   const elegant = style === 'elegant';
 
   const hasSections = !!(preset.sections && preset.sections.length > 0);
-  const cols = 3;
+  const isLand  = cfg.orientation === 'landscape';
+  const paper   = cfg.paperSize ?? 'a4';
 
-  /* Build per-section chord lists for preview */
+  /* Build ALL chord entries – no slicing, matches PDF export exactly */
   type PreviewSection = { name: string; chords: Chord[] };
   const previewSections: PreviewSection[] = hasSections
-    ? preset.sections!.slice(0, 3).map(sec => {
-        const ids = sec.chords.slice(0, cols * 2).map(id =>
+    ? preset.sections!.map(sec => {
+        const ids = sec.chords.map(id =>
           transposeOffset !== 0 ? transposeChordId(id, transposeOffset) : id
         );
         return { name: sec.name, chords: ids.map(id => getChordById(id)).filter(Boolean) as Chord[] };
       })
     : (() => {
-        const ids = (transposeOffset !== 0
-          ? preset.chords.slice(0, 8).map(id => transposeChordId(id, transposeOffset))
-          : preset.chords.slice(0, 8));
+        const ids = transposeOffset !== 0
+          ? preset.chords.map(id => transposeChordId(id, transposeOffset))
+          : preset.chords;
         return [{ name: 'Chord Progression', chords: ids.map(id => getChordById(id)).filter(Boolean) as Chord[] }];
       })();
 
-  const bg      = dark ? '#0e0e0e' : (elegant ? '#f5f4f1' : '#ffffff');
-  const paper   = dark ? '#181818' : '#ffffff';
+  /* Auto-fit columns based on total chord count – same thresholds as jsPDF engine */
+  const totalChords = previewSections.reduce((n, s) => n + s.chords.length, 0);
+  const cols = totalChords <= 6 ? 3 : totalChords <= 12 ? 4 : totalChords <= 18 ? 5 : 6;
+
+  const bg        = dark ? '#0e0e0e' : (elegant ? '#f5f4f1' : '#ffffff');
+  const paperColor = dark ? '#181818' : '#ffffff';
   const text    = dark ? '#edeae4' : '#0d0d0d';
   const sub     = dark ? '#888'    : '#5a5f6e';
   const muted   = dark ? '#484848' : '#a0a6b2';
@@ -980,7 +985,9 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
       display: 'flex',
       flexDirection: 'column',
       width: '100%',
-      aspectRatio: '1 / 1.414',
+      aspectRatio: isLand
+        ? (paper === 'letter' ? '1.294 / 1' : '1.414 / 1')
+        : (paper === 'letter' ? '1 / 1.294' : '1 / 1.414'),
       overflow: 'hidden',
       transition: 'background 300ms ease, box-shadow 300ms ease',
     }}>
@@ -1056,7 +1063,7 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
               {sec.chords.map((chord, i) => (
                 <div key={chord.id} style={{
                   position: 'relative',
-                  background: paper,
+                  background: paperColor,
                   border: `1px solid ${cardBdr}`,
                   borderRadius: compact ? '5px' : '7px',
                   boxShadow: cardShad,
