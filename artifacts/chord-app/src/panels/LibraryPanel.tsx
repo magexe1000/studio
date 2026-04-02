@@ -6,6 +6,7 @@ import { useScrollHide } from '../lib/navScroll';
 import ChordDiagram from '../components/ChordDiagram';
 import { useT } from '../lib/useT';
 import { ChordexLogo } from '../components/ChordexLogo';
+import { setBackHandler } from '../lib/backStack';
 
 // ── Category definitions ──────────────────────────────────────
 const CATEGORIES: {
@@ -341,7 +342,7 @@ function ChordCard({
 
 // ── Main panel ────────────────────────────────────────────────
 export default function LibraryPanel() {
-  const { selectedChordId, recentChords, favorites, selectChord, settings } = useChordStore();
+  const { selectedChordId, recentChords, favorites, selectChord, settings, activePanel } = useChordStore();
   const accent = ACCENT_COLORS[settings.accentColor];
   const t = useT();
 
@@ -356,6 +357,26 @@ export default function LibraryPanel() {
   // Discover state
   const [activeGenre, setActiveGenre]   = useState<Genre | null>(null);
   const [discoverQuery, setDiscoverQuery] = useState('');
+
+  // ── Back navigation ──────────────────────────────────────────────────────
+  const backHandlerRef = useRef<() => boolean>(() => false);
+  useEffect(() => {
+    backHandlerRef.current = () => {
+      if (query)       { setQuery('');        return true; }
+      if (activeType)  { setActiveType(null); return true; }
+      if (activeGenre) { setActiveGenre(null); return true; }
+      return false;
+    };
+  }, [query, activeType, activeGenre]);
+
+  useEffect(() => {
+    if (activePanel !== 'library') {
+      setBackHandler(null);
+      return;
+    }
+    setBackHandler(() => backHandlerRef.current());
+    return () => setBackHandler(null);
+  }, [activePanel]);
 
   const allChords = getAllChords();
 

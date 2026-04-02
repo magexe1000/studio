@@ -1,0 +1,148 @@
+Fix the inconsistent back navigation behavior across the entire app and implement a reliable, predictable navigation stack system.
+
+IMPORTANT:
+- Do NOT break existing UI or features
+- Must work correctly in ALL sections
+- Must eliminate incorrect exits and wrong back behavior
+- Navigation must feel native and consistent
+
+----------------------------------
+1. ROOT PROBLEM (CRITICAL)
+----------------------------------
+
+Currently:
+- Back sometimes exits instead of navigating back
+- Some sections do not register navigation history
+- Back logic is inconsistent across sections
+
+FIX:
+- Implement a centralized navigation stack system
+
+----------------------------------
+2. GLOBAL NAVIGATION STACK
+----------------------------------
+
+Create a single global navigation stack:
+
+- Every time user enters a new view:
+  → PUSH current view to stack
+
+- On back action:
+  → POP from stack and navigate to previous view
+
+----------------------------------
+3. TRACK ALL NAVIGATION EVENTS
+----------------------------------
+
+Ensure ALL transitions are tracked:
+
+- Entering:
+  - Library
+  - Chord categories (Major, 7th, etc.)
+  - Song details
+  - Chord builder
+  - Settings sub-pages
+
+NO EXCEPTIONS:
+- Every navigation must register in the stack
+
+----------------------------------
+4. FIX SPECIFIC BUG (CRITICAL)
+----------------------------------
+
+Case:
+Library → Major chords → Back
+
+CURRENT (WRONG):
+→ triggers exit logic
+
+EXPECTED (CORRECT):
+→ go back to Library
+
+----------------------------------
+5. EXIT LOGIC FIX
+----------------------------------
+
+ONLY trigger "Press back again to exit" when:
+
+- Navigation stack is EMPTY
+- User is at ROOT level ONLY
+
+If user is inside ANY section:
+→ NEVER trigger exit
+
+----------------------------------
+6. DOUBLE BACK EXIT SYSTEM
+----------------------------------
+
+At root only:
+
+- First back:
+  → show "Press back again to exit"
+
+- Second back (within 2 seconds):
+  → exit app
+
+----------------------------------
+7. MODALS & PANELS PRIORITY
+----------------------------------
+
+Back order:
+
+1. Close modal/panel
+2. Go back in navigation stack
+3. Exit (only if stack empty)
+
+----------------------------------
+8. PREVENT HARD EXITS
+----------------------------------
+
+Fix issue where:
+
+- Back instantly exits app without warning
+
+Ensure:
+- Exit always requires double back at root
+
+----------------------------------
+9. PREDICTIVE BACK ALIGNMENT
+----------------------------------
+
+Ensure Android gesture back:
+
+- Matches navigation stack
+- Does NOT trigger exit incorrectly
+- Reflects real previous screen
+
+----------------------------------
+10. DEBUG SAFETY
+----------------------------------
+
+Add temporary logging:
+
+- Log navigation stack changes
+- Log back actions
+
+----------------------------------
+11. PERFORMANCE
+----------------------------------
+
+- Navigation must be instant
+- No lag
+- No re-render issues
+
+----------------------------------
+12. UX CONSISTENCY
+----------------------------------
+
+User expectation:
+
+- Back ALWAYS returns to previous screen
+- NEVER skips levels
+- NEVER exits unexpectedly
+
+----------------------------------
+GOAL
+----------------------------------
+
+Create a fully consistent and reliable back navigation system where every screen transition is tracked and the back action always returns the user to the correct previous state, with proper exit handling only at the root level.
