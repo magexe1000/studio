@@ -449,6 +449,16 @@ html, body { background: var(--app-bg); }
     to   { width: 100%; }
   }
 
+  @keyframes menu-pop {
+    from { opacity: 0; transform: scale(0.88) translateY(-8px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+  }
+
+  @keyframes mode-enter {
+    from { opacity: 0; transform: scale(0.96) translateY(12px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+  }
+
   /* ===== Reduced motion (system) ===== */
   @media (prefers-reduced-motion: reduce) {
     .panel-transition,

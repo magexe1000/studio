@@ -196,7 +196,11 @@ export default function App() {
 
   // ── Drums mode: completely separate environment ──────────────────────────
   if (settings.appMode === 'drums') {
-    return <DrumEditor />;
+    return (
+      <div style={{ animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both', height: '100dvh', overflow: 'hidden' }}>
+        <DrumEditor />
+      </div>
+    );
   }
 
   return (
@@ -205,6 +209,7 @@ export default function App() {
       style={{
         position: 'relative',
         '--panel-dur': `${durMs}ms`,
+        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
       } as React.CSSProperties}
     >
       <div style={{ paddingTop: 'env(safe-area-inset-top)', background: 'var(--app-bg)' }} className="flex-none" />

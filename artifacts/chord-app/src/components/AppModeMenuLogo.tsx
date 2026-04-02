@@ -42,7 +42,12 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
         <span style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color }}>
           Chordex
         </span>
-        <span style={{ fontSize: 9, opacity: 0.45, marginLeft: -2, color }}>▾</span>
+        <span style={{
+          fontSize: 9, opacity: 0.45, marginLeft: -2, color,
+          display: 'inline-block',
+          transform: open ? 'rotate(-180deg)' : 'rotate(0deg)',
+          transition: 'transform 220ms cubic-bezier(0.34,1.56,0.64,1)',
+        }}>▾</span>
       </button>
 
       {open && (
@@ -52,6 +57,8 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
           border: '1px solid rgba(128,128,128,0.18)',
           borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
           zIndex: 9999, minWidth: 196, overflow: 'hidden',
+          transformOrigin: 'top left',
+          animation: 'menu-pop 200ms cubic-bezier(0.34,1.56,0.64,1) both',
         }}>
           {OPTIONS.map((opt, i) => {
             const isActive = currentMode === opt.value;
