@@ -183,21 +183,37 @@ function IconMix({ active }: { active: boolean }) {
   );
 }
 
-// ── Settings bottom nav (kit/mix only) ────────────────────────────────────
-const NAV_TABS: { tab: DrumTab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
-  { tab: 'kit', label: 'Kit', Icon: IconKit },
-  { tab: 'mix', label: 'Mix', Icon: IconMix },
+function IconEditor({ active }: { active: boolean }) {
+  const sw = active ? 2 : 1.6;
+  return (
+    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" style={{ display: 'block' }}>
+      <line x1="3" y1="5"  x2="21" y2="5"  stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="3" y1="9"  x2="15" y2="9"  stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="3" y1="13" x2="21" y2="13" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="3" y1="17" x2="15" y2="17" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// ── Settings bottom nav (editor / kit / mix) ──────────────────────────────
+type AllTab = 'editor' | 'kit' | 'mix';
+const ALL_NAV_TABS: { id: AllTab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
+  { id: 'editor', label: 'Editor', Icon: IconEditor },
+  { id: 'kit',    label: 'Kit',    Icon: IconKit    },
+  { id: 'mix',    label: 'Mix',    Icon: IconMix    },
 ];
-function SettingsNav({ activeTab, setTab, accent }: {
+function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent }: {
   activeTab: DrumTab; setTab: (t: DrumTab) => void;
+  drumMode: DrumMode; setDrumMode: (m: DrumMode) => void;
   accent: { from: string; to: string };
 }) {
+  const currentId: AllTab = drumMode === 'edit' ? 'editor' : activeTab;
   const navRef  = useRef<HTMLElement | null>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [pill, setPill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
-  const prevIdx = useRef(NAV_TABS.findIndex(x => x.tab === activeTab));
+  const prevIdx = useRef(ALL_NAV_TABS.findIndex(x => x.id === currentId));
   const strT    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [pressed, setPressed] = useState<DrumTab | null>(null);
+  const [pressed, setPressed] = useState<AllTab | null>(null);
 
   const measure = (idx: number) => {
     const btn = btnRefs.current[idx]; const nav = navRef.current;
@@ -206,12 +222,12 @@ function SettingsNav({ activeTab, setTab, accent }: {
     return { left: br.left - nr.left, right: br.right - nr.left };
   };
   useEffect(() => {
-    const m = measure(NAV_TABS.findIndex(x => x.tab === activeTab));
+    const m = measure(ALL_NAV_TABS.findIndex(x => x.id === currentId));
     if (m) setPill({ ...m, ready: true });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
-    const ni = NAV_TABS.findIndex(x => x.tab === activeTab);
+    const ni = ALL_NAV_TABS.findIndex(x => x.id === currentId);
     const oi = prevIdx.current;
     if (ni === oi) return;
     prevIdx.current = ni;
@@ -221,13 +237,18 @@ function SettingsNav({ activeTab, setTab, accent }: {
     if (ni > oi) { setPill(p => ({ ...p, right: nm.right })); strT.current = setTimeout(() => setPill(p => ({ ...p, left: nm.left })), 70); }
     else { setPill(p => ({ ...p, left: nm.left })); strT.current = setTimeout(() => setPill(p => ({ ...p, right: nm.right })), 70); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [currentId]);
+
+  const handlePress = (id: AllTab) => {
+    if (id === 'editor') { setDrumMode('edit'); }
+    else { setDrumMode('nav'); setTab(id as DrumTab); }
+  };
 
   return (
     <nav ref={navRef} style={{
       position: 'fixed', left: '50%', transform: 'translateX(-50%)',
       bottom: 'max(10px, env(safe-area-inset-bottom))',
-      width: '60%', maxWidth: 240,
+      width: '72%', maxWidth: 280,
       display: 'flex', justifyContent: 'space-around', alignItems: 'center',
       padding: '6px 8px', borderRadius: '2rem',
       border: '1px solid rgba(255,255,255,0.09)',
@@ -244,12 +265,12 @@ function SettingsNav({ activeTab, setTab, accent }: {
           transition: 'left 150ms cubic-bezier(0.34,1.56,0.64,1), width 150ms cubic-bezier(0.34,1.56,0.64,1)',
         }} />
       )}
-      {NAV_TABS.map(({ tab, label, Icon }, i) => {
-        const isActive = activeTab === tab; const isPressed = pressed === tab;
+      {ALL_NAV_TABS.map(({ id, label, Icon }, i) => {
+        const isActive = currentId === id; const isPressed = pressed === id;
         return (
-          <button key={tab} ref={el => { btnRefs.current[i] = el; }}
-            onPointerDown={() => setPressed(tab)}
-            onPointerUp={() => { setPressed(null); setTab(tab); }}
+          <button key={id} ref={el => { btnRefs.current[i] = el; }}
+            onPointerDown={() => setPressed(id)}
+            onPointerUp={() => { setPressed(null); handlePress(id); }}
             onPointerLeave={() => setPressed(null)} onPointerCancel={() => setPressed(null)}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -486,36 +507,30 @@ export default function DrumEditor() {
         borderBottom: `1px solid ${borderCol}`, background: appBg,
         paddingTop: 'env(safe-area-inset-top)',
       }}>
-        <button onClick={handleBack} style={{ width: 36, height: 36, borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.06)' : '#13131a', border: `1px solid ${borderCol}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <span style={{ fontSize: 18, color: isLight ? '#52525b' : '#71717a', lineHeight: 1 }}>‹</span>
-        </button>
+        {/* Back — only in editor */}
+        {drumMode === 'edit' && (
+          <button onClick={handleBack} style={{ width: 36, height: 36, borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.06)' : '#13131a', border: `1px solid ${borderCol}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: 18, color: isLight ? '#52525b' : '#71717a', lineHeight: 1 }}>‹</span>
+          </button>
+        )}
 
-        <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
+        {/* Logo — only in kit/mix nav */}
+        {drumMode === 'nav' && (
+          <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
+        )}
 
         <div style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, background: sampleStatus === 'loading' ? '#f59e0b' : sampleStatus === 'ready' ? '#4ade80' : 'transparent' }} />
 
         <div style={{ flex: 1 }} />
 
-        {/* In edit mode: show clear + settings access */}
+        {/* Clear — only in editor */}
         {drumMode === 'edit' && (
-          <>
-            <button onClick={handleClear} style={{ height: 28, padding: '0 12px', borderRadius: 7, background: 'transparent', border: `1px solid ${borderCol}`, cursor: 'pointer', color: labelCol, fontSize: 11, fontWeight: 600 }}>
-              Clear
-            </button>
-            <button onClick={() => setDrumMode('nav')} title="Kit & Mix settings" style={{ width: 32, height: 32, borderRadius: 9, background: isLight ? 'rgba(0,0,0,0.06)' : '#13131a', border: `1px solid ${borderCol}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: labelCol, fontSize: 15 }}>
-              ⚙
-            </button>
-          </>
-        )}
-
-        {/* In nav mode: Editor button to return */}
-        {drumMode === 'nav' && (
-          <button onClick={() => setDrumMode('edit')} style={{ height: 28, padding: '0 12px', borderRadius: 7, background: `${accent.from}18`, border: `1px solid ${accent.from}44`, cursor: 'pointer', color: accent.from, fontSize: 11, fontWeight: 700 }}>
-            ← Editor
+          <button onClick={handleClear} style={{ height: 28, padding: '0 12px', borderRadius: 7, background: 'transparent', border: `1px solid ${borderCol}`, cursor: 'pointer', color: labelCol, fontSize: 11, fontWeight: 600 }}>
+            Clear
           </button>
         )}
 
-        {/* Loop (in nav mode only) */}
+        {/* Loop — only in kit/mix nav */}
         {drumMode === 'nav' && (
           <button onClick={() => setLooping(l => !l)} style={{ width: 32, height: 32, borderRadius: 9, background: looping ? `${accent.from}1e` : (isLight ? 'rgba(0,0,0,0.05)' : '#13131a'), border: `1px solid ${looping ? accent.from + '44' : borderCol}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: looping ? accent.from : labelCol, transition: 'all 150ms' }}>
             ⟳
@@ -798,10 +813,12 @@ export default function DrumEditor() {
         )}
       </div>
 
-      {/* ── Settings nav (kit/mix only, shown in nav mode) ─────────────── */}
-      {drumMode === 'nav' && (
-        <SettingsNav activeTab={activeTab} setTab={setActiveTab} accent={accent} />
-      )}
+      {/* ── Bottom nav (always visible) ─────────────────────────────────── */}
+      <SettingsNav
+        activeTab={activeTab} setTab={setActiveTab}
+        drumMode={drumMode} setDrumMode={setDrumMode}
+        accent={accent}
+      />
     </div>
   );
 }
