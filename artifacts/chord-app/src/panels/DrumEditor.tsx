@@ -523,19 +523,8 @@ export default function DrumEditor() {
         borderBottom: '1px solid rgba(128,128,128,0.1)', background: 'var(--app-bg)',
         paddingTop: 'env(safe-area-inset-top)',
       }}>
-        {/* Back — only in editor */}
-        {drumMode === 'edit' && (
-          <button onClick={handleBack} style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ fontSize: 18, color: 'var(--c-text-secondary)', lineHeight: 1 }}>‹</span>
-          </button>
-        )}
-
-        {/* Logo — only in kit/mix nav */}
-        {drumMode === 'nav' && (
-          <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
-        )}
-
-        <div style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, background: sampleStatus === 'loading' ? '#f59e0b' : sampleStatus === 'ready' ? '#4ade80' : 'transparent' }} />
+        {/* Logo — always visible */}
+        <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
 
         <div style={{ flex: 1 }} />
 
