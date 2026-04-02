@@ -42,11 +42,11 @@
     "@capacitor/cli": "^6.2.1",
     "@capacitor/core": "^6.2.1",
     "@capacitor/filesystem": "^6.0.1",
-    "jspdf": "^4.2.1",
     "@capacitor/share": "^6.0.1",
     "@capacitor/status-bar": "^6.0.1",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",
+    "jspdf": "^4.2.1",
     "material-symbols": "^0.43.0",
     "zustand": "^5.0.12"
   }
