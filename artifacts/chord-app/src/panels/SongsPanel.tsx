@@ -2467,7 +2467,7 @@ export default function SongsPanel() {
         {(() => {
           const hasSections = !!(activePreset.sections && activePreset.sections.length > 0);
           return (
-        <div ref={editorScrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ padding: '0 16px', position: 'relative' }}>
+        <div ref={editorScrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ padding: '0 16px 90px', position: 'relative' }}>
           {hasSections ? (
             /* ── Sections view ── */
             <div style={{ paddingTop: '12px', paddingBottom: '16px' }}
@@ -2627,10 +2627,10 @@ export default function SongsPanel() {
                     <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>drag_indicator</span>
                   </div>
 
-                  <div style={{ background: 'var(--app-surface-lowest)', borderRadius: '10px', padding: '4px 4px 2px', width: '58px', flexShrink: 0 }}>
+                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '4px 4px 2px', width: '58px', flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}>
                     {isCustom && customChord
                       ? <CustomMiniDiagram chord={customChord} accentFrom={accent.from} />
-                      : <ChordDiagram data={chord!.guitar} accentFrom={accent.from} />
+                      : <PreviewFretboard data={chord!.guitar} dark={false} />
                     }
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -2691,8 +2691,8 @@ export default function SongsPanel() {
           );
         })()}
 
-        {/* Bottom action strip — always Add Section (left) + Add Chord (right) */}
-        <div className="flex-none" style={{ padding: '8px 16px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))', display: 'flex', gap: '8px', background: 'var(--app-bg)', borderTop: '1px solid rgba(72,72,72,0.06)' }}>
+        {/* Bottom action strip — floating, always Add Section (left) + Add Chord (right) */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30, padding: '10px 16px', paddingBottom: 'max(18px, env(safe-area-inset-bottom))', display: 'flex', gap: '8px', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', background: 'linear-gradient(to top, var(--app-bg) 60%, transparent)' }}>
           <button
             onClick={() => { setCustomSectionName(''); setCustomSectionMode(false); setShowSectionPicker(true); }}
             data-testid="add-section-btn" className="btn-smooth"
