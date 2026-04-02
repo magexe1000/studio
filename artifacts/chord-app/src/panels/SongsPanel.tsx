@@ -1871,7 +1871,7 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t.songs.searchChords}
             style={{ width: '100%', background: 'var(--app-surface-high)', border: 'none', borderRadius: '0.5rem', padding: '9px 14px 9px 36px', color: 'var(--c-text-primary)', fontFamily: 'Inter', fontSize: '14px', outline: 'none' }} />
         </div>
-        <div style={{ display: 'flex', gap: '6px', padding: '4px 16px 10px', overflowX: 'auto', overflowY: 'hidden', flexShrink: 0 }} className="no-scrollbar">
+        <div style={{ display: 'flex', gap: '6px', padding: '4px 16px 10px', overflowX: 'auto', overflowY: 'hidden', flexShrink: 0, touchAction: 'pan-x' }} className="no-scrollbar">
           {PICKER_CATS.map(c => (
             <button key={c.type} onClick={() => setCat(c.type)} className="btn-smooth"
               style={{ padding: '5px 12px', borderRadius: '9999px', background: cat === c.type ? `linear-gradient(135deg, ${accent.from}, ${accent.to})` : 'var(--app-surface-high)', color: cat === c.type ? '#fff' : '#acabaa', fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px', flexShrink: 0, transition: 'background 200ms ease' }}>
