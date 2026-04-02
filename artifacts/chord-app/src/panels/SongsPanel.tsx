@@ -505,12 +505,10 @@ ${chordContent}
   /* ── Export ─────────────────────────────────────────────────────────── */
   const { Capacitor } = await import('@capacitor/core');
 
-  if (Capacitor.isNativePlatform()) {
-    // Native Android/iOS: draw PDF directly with jsPDF primitives (no html2canvas).
-    try {
-      const { jsPDF }    = await import('jspdf');
-      const { Filesystem, Directory } = await import('@capacitor/filesystem');
-      const { Share }    = await import('@capacitor/share');
+  // Draw PDF with jsPDF on both native and web — only the save step differs.
+  const isNative = Capacitor.isNativePlatform();
+  try {
+    const { jsPDF } = await import('jspdf');
 
       /* ── Page geometry ─────────────────────────────────────── */
       const paper   = cfg.paperSize ?? 'a4';
@@ -803,34 +801,30 @@ ${chordContent}
       drawFooter(currentPage, totalPages);
 
       /* ── Save & share ──────────────────────────────────────── */
-      try {
-        const pdfBase64 = doc.output('datauristring').split(',')[1];
-        const writeResult = await Filesystem.writeFile({
-          path: `${docTitle}.pdf`,
-          data: pdfBase64,
-          directory: Directory.Cache,
-        });
-        await Share.share({
-          title: docTitle,
-          url: writeResult.uri,
-          dialogTitle: 'Save your chord sheet PDF',
-        });
-      } catch {
-        // User cancelled — do nothing.
+      if (isNative) {
+        try {
+          const { Filesystem, Directory } = await import('@capacitor/filesystem');
+          const { Share } = await import('@capacitor/share');
+          const pdfBase64 = doc.output('datauristring').split(',')[1];
+          const writeResult = await Filesystem.writeFile({
+            path: `${docTitle}.pdf`,
+            data: pdfBase64,
+            directory: Directory.Cache,
+          });
+          await Share.share({
+            title: docTitle,
+            url: writeResult.uri,
+            dialogTitle: 'Save your chord sheet PDF',
+          });
+        } catch {
+          // User cancelled — do nothing.
+        }
+      } else {
+        // Web browser: download as PDF
+        doc.save(`${docTitle}.pdf`);
       }
-    } catch {
-      // User cancelled — do nothing.
-    }
-  } else {
-    // Web / PWA: trigger a blob download of the styled HTML file.
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `${docTitle}.html`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  } catch {
+    // PDF generation failed — do nothing.
   }
 }
 
