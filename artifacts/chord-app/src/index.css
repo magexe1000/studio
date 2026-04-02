@@ -140,6 +140,9 @@
   --c-text-muted:     #b2b1b0;
 }
 
+/* Body background always tracks the active theme so the status bar area blends in */
+html, body { background: var(--app-bg); }
+
 /* System preference: auto-apply light when OS is in light mode and user chose system */
 :root.theme-system {
   color-scheme: light dark;
