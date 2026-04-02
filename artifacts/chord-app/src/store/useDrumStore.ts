@@ -101,6 +101,13 @@ export function measureHasHits(m: DrumMeasure): boolean {
 interface DrumStore {
   patterns: DrumPattern[];
   activePatternId: string | null;
+  soundMap: Partial<Record<DrumInstrument, string>>;
+  volumeMap: Partial<Record<DrumInstrument, number>>;
+  masterVolume: number;
+
+  setSoundForInstrument: (inst: DrumInstrument, soundId: string) => void;
+  setVolumeForInstrument: (inst: DrumInstrument, vol: number) => void;
+  setMasterVolume: (vol: number) => void;
 
   createPattern: () => string;
   duplicatePattern: (id: string) => string;
@@ -124,6 +131,16 @@ export const useDrumStore = create<DrumStore>()(
     (set, get) => ({
       patterns: [initial],
       activePatternId: initial.id,
+      soundMap: {},
+      volumeMap: {},
+      masterVolume: 0.8,
+
+      setSoundForInstrument: (inst, soundId) =>
+        set(s => ({ soundMap: { ...s.soundMap, [inst]: soundId } })),
+      setVolumeForInstrument: (inst, vol) =>
+        set(s => ({ volumeMap: { ...s.volumeMap, [inst]: Math.max(0, Math.min(1, vol)) } })),
+      setMasterVolume: (vol) =>
+        set({ masterVolume: Math.max(0, Math.min(1, vol)) }),
 
       createPattern: () => {
         const p = defaultPattern();
