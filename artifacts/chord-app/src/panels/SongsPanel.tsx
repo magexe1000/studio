@@ -55,13 +55,13 @@ function buildPrintSVG(data: GuitarChordData, dark = false, accentColor = '#679c
   const minF    = baseFret > 1 ? baseFret : 1;
   const showNut = baseFret === 1;
 
-  const dotFill    = accentColor;
+  const dotFill    = dark ? '#e0e0e0' : '#191a1a';
   const fretStroke = dark ? '#3a3a3a' : '#e0e0e0';
   const fret0Stroke= dark ? '#555'    : '#c0c0c0';
   const strStroke  = dark ? '#444'    : '#d0d0d0';
   const textColor  = dark ? '#777'    : '#999';
   const muteColor  = dark ? '#555'    : '#bbb';
-  const openStroke = dark ? '#555'    : accentColor + '88';
+  const openStroke = dark ? '#555'    : '#aaaaaa';
 
   let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
 
@@ -124,13 +124,13 @@ function buildPrintFretboardSVG(
   const r  = Math.max(4, Math.round(9 * scale));
   const minF    = baseFret > 1 ? baseFret : 1;
   const showNut = baseFret === 1;
-  const dotFill    = accentColor;
+  const dotFill    = dark ? '#e0e0e0' : '#191a1a';
   const fretStroke = dark ? '#3a3a3a' : '#e0e0e0';
   const fret0Stroke= dark ? '#555'    : '#c0c0c0';
   const strStroke  = dark ? '#444'    : '#d0d0d0';
   const textColor  = dark ? '#777'    : '#999';
   const muteColor  = dark ? '#555'    : '#bbb';
-  const openStroke = dark ? '#555'    : accentColor + '88';
+  const openStroke = dark ? '#555'    : '#aaaaaa';
   let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
   if (showNut) {
     s += `<rect x="${pL - 1}" y="${pT - Math.round(5 * scale)}" width="${(numStrings - 1) * strSpacing + 2}" height="${Math.round(5 * scale)}" rx="2" fill="${dotFill}"/>`;
