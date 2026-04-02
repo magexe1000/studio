@@ -101,25 +101,31 @@ function applyItems(src, items) {
   return result;
 }
 
+// Transparent status bar — app background shows through it seamlessly.
+// windowDrawsSystemBarBackgrounds=true: app owns what's behind the bar.
+// windowTranslucentStatus=false:        we use explicit transparent colour, not a grey overlay.
+// windowFullscreen=false:               bar is NEVER hidden.
+// windowLayoutInDisplayCutoutMode=default: safe notch handling.
 const COMMON = {
   'android:windowFullscreen':                'false',
   'android:windowTranslucentStatus':         'false',
   'android:windowDrawsSystemBarBackgrounds': 'true',
   'android:windowLayoutInDisplayCutoutMode': 'default',
+  'android:statusBarColor':                  '@android:color/transparent',
 };
 
-// Light theme
+// Light theme — dark (black) icons so they're readable on a light bg
 patchFile(
   path.join(androidDir, 'app/src/main/res/values/styles.xml'),
-  'values/styles.xml  (light bar #F2F1EF, dark icons)',
+  'values/styles.xml  (transparent bar, dark icons for light mode)',
   (src) => applyItems(src, {
     ...COMMON,
-    'android:statusBarColor':       '#FFF2F1EF',
     'android:windowLightStatusBar': 'true',
   })
 );
 
-// Dark / AMOLED theme — create the file if Capacitor didn't generate it
+// Dark / AMOLED theme — white icons on dark bg.
+// Create values-night/styles.xml if Capacitor didn't generate it.
 const nightDir  = path.join(androidDir, 'app/src/main/res/values-night');
 const nightFile = path.join(nightDir, 'styles.xml');
 if (!fs.existsSync(nightDir))  fs.mkdirSync(nightDir, { recursive: true });
@@ -135,10 +141,9 @@ if (!fs.existsSync(nightFile)) {
 }
 patchFile(
   nightFile,
-  'values-night/styles.xml  (dark bar #0E0E0E, white icons)',
+  'values-night/styles.xml  (transparent bar, white icons for dark mode)',
   (src) => applyItems(src, {
     ...COMMON,
-    'android:statusBarColor':       '#FF0E0E0E',
     'android:windowLightStatusBar': 'false',
   })
 );
@@ -167,8 +172,9 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         // Status bar must always be visible — never allow fullscreen mode.
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        // Content sits below the status bar; it does not draw behind it.
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
+        // Edge-to-edge: WebView draws behind the transparent status bar.
+        // The app uses env(safe-area-inset-top) in CSS to pad content correctly.
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     }
 
     @Override
