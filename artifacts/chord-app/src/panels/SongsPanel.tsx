@@ -218,10 +218,12 @@ async function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT
       if (id.startsWith('custom-')) {
         const cc = storedCustomChords.find(c => c.id === id);
         if (cc) out.push({ isCustom: true, customChord: cc, idx });
+        else console.warn('[PDF] custom chord not found:', id);
       } else {
         const displayId = transposeOffset !== 0 ? transposeChordId(id, transposeOffset) : id;
         const chord = getChordById(displayId) ?? getChordById(id);
         if (chord) out.push({ isCustom: false, chord, idx });
+        else console.warn('[PDF] chord ID not found in DB:', id, '(transposed:', displayId, ')');
       }
     });
     return out;
@@ -773,6 +775,15 @@ ${chordContent}
         const overflow = totalRows - rowsPerPage1;
         totalPages += Math.ceil(overflow / rowsPerPageN);
       }
+
+      // DEBUG: print key layout values as tiny text at the very top of the page
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5);
+      doc.setTextColor(180, 180, 180);
+      doc.text(
+        `[DBG] chords=${preset.chords.length} allIds=${allIds.length} entries=${entries.length} cards=${cards.length} COLS=${COLS} H=${CARD_H.toFixed(1)} rpp=${rowsPerPage1} rows=${totalRows} pages=${totalPages}`,
+        ML, 5
+      );
 
       let currentPage  = 1;
       let rowOnPage    = 0;
