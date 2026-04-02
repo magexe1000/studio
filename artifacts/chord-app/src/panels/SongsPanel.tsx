@@ -2692,7 +2692,7 @@ export default function SongsPanel() {
         })()}
 
         {/* Bottom action strip — floating, always Add Section (left) + Add Chord (right) */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30, padding: '10px 16px', paddingBottom: 'max(18px, env(safe-area-inset-bottom))', display: 'flex', gap: '8px', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', background: 'linear-gradient(to top, var(--app-bg) 60%, transparent)' }}>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30, padding: '10px 16px', paddingBottom: 'max(18px, env(safe-area-inset-bottom))', display: 'flex', gap: '8px' }}>
           <button
             onClick={() => { setCustomSectionName(''); setCustomSectionMode(false); setShowSectionPicker(true); }}
             data-testid="add-section-btn" className="btn-smooth"
