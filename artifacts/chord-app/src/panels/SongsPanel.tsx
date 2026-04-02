@@ -1401,20 +1401,28 @@ async function exportPresetToJSON(preset: SongPreset) {
   const content = JSON.stringify(file, null, 2);
   const fileName = `${preset.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.chordex.json`;
 
-  // Try Web Share API (works on Android and modern browsers)
-  if (typeof navigator !== 'undefined' && navigator.canShare) {
+  const { Capacitor } = await import('@capacitor/core');
+  if (Capacitor.isNativePlatform()) {
     try {
-      const shareFile = new File([content], fileName, { type: 'application/json' });
-      if (navigator.canShare({ files: [shareFile] })) {
-        await navigator.share({ files: [shareFile], title: preset.name });
-        return;
-      }
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const { Share } = await import('@capacitor/share');
+      const writeResult = await Filesystem.writeFile({
+        path: fileName,
+        data: btoa(unescape(encodeURIComponent(content))),
+        directory: Directory.Cache,
+      });
+      await Share.share({
+        title: preset.name,
+        url: writeResult.uri,
+        dialogTitle: 'Save your Chordex song',
+      });
     } catch {
-      // fall through to download
+      // User cancelled — do nothing.
     }
+    return;
   }
 
-  // Fallback: browser anchor download
+  // Web browser fallback: anchor download
   const blob = new Blob([content], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
