@@ -49,6 +49,19 @@ patchFile(
   }
 );
 
+// ── 1b. AndroidManifest.xml — legacy external storage (Android 10) ──────────
+patchFile(
+  path.join(androidDir, 'app/src/main/AndroidManifest.xml'),
+  'AndroidManifest.xml  (legacy external storage for Android 10)',
+  (src) => {
+    if (src.includes('requestLegacyExternalStorage')) return src;
+    return src.replace(
+      /(<application\b)/,
+      '$1\n        android:requestLegacyExternalStorage="true"'
+    );
+  }
+);
+
 // ── 2. AndroidManifest.xml — strip any fullscreen theme ──────────────────
 patchFile(
   path.join(androidDir, 'app/src/main/AndroidManifest.xml'),
