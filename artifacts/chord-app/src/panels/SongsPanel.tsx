@@ -2627,10 +2627,10 @@ export default function SongsPanel() {
                     <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>drag_indicator</span>
                   </div>
 
-                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '4px 4px 2px', width: '58px', flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}>
+                  <div style={{ background: 'var(--app-surface-lowest)', borderRadius: '8px', padding: '3px 3px 1px', width: '52px', flexShrink: 0 }}>
                     {isCustom && customChord
                       ? <CustomMiniDiagram chord={customChord} accentFrom={accent.from} />
-                      : <PreviewFretboard data={chord!.guitar} dark={false} />
+                      : <ChordDiagram data={chord!.guitar} accentFrom={accent.from} />
                     }
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
