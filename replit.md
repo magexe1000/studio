@@ -50,6 +50,17 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ## Packages
 
+### `artifacts/chord-app` (`@workspace/chord-app`)
+
+Chordex — React/Vite PWA + Capacitor Android app for chord reference, song/progression building, and drum tab editing.
+
+- **State**: `src/store/useChordStore.ts` (Zustand + persist) — chord/song/settings; `src/store/useDrumStore.ts` — fully isolated drum patterns
+- **App Mode**: `settings.appMode: 'chords' | 'drums'` in AppSettings; switching replaces the entire UI instantly with no reload
+- **Panels** (Chordex mode): `LibraryPanel`, `ChordPanel`, `SongsPanel`, `SettingsPanel` + `BottomNav`
+- **DrumEditor** (`src/panels/DrumEditor.tsx`): vertical drum tab editor — measures stack top→bottom; 10 instruments (kick, snare, hi-hats, toms, crash, ride); click to toggle hits, drag to extend; auto-adds new empty measure when last measure gets its first hit; pattern tabs, BPM, time signature, subdivision (8th/16th) controls; completely isolated from chord data
+- **Capacitor**: Android build via `npx cap sync android` then `node patch-android.cjs`; ExternalStorage permissions for file export to public Downloads folder
+- **i18n**: `src/lib/i18n.ts` with `en` and `es` support
+
 ### `artifacts/api-server` (`@workspace/api-server`)
 
 Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.

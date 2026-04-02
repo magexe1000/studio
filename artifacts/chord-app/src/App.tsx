@@ -4,6 +4,7 @@ import LibraryPanel from './panels/LibraryPanel';
 import ChordPanel from './panels/ChordPanel';
 import SettingsPanel from './panels/SettingsPanel';
 import SongsPanel from './panels/SongsPanel';
+import DrumEditor from './panels/DrumEditor';
 import BottomNav from './components/BottomNav';
 import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
@@ -192,6 +193,11 @@ export default function App() {
     const t = setTimeout(() => setExitingPanel(null), durMs + 20);
     return () => clearTimeout(t);
   }, [activePanel, durMs]);
+
+  // ── Drums mode: completely separate environment ──────────────────────────
+  if (settings.appMode === 'drums') {
+    return <DrumEditor />;
+  }
 
   return (
     <div
