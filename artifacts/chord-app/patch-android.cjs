@@ -140,39 +140,8 @@ function patchStyles(src) {
   );
 });
 
-// ── 6. MainActivity — remove immersive / fullscreen UI flags ──────────────
-// Capacitor WebView can call setSystemUiVisibility with FULLSCREEN / IMMERSIVE
-// flags. Comment out those lines so the status bar is always visible.
-function patchMainActivity(src) {
-  // Work line-by-line so we comment out the whole statement, not just a token.
-  const BAD_PATTERNS = [
-    /FLAG_FULLSCREEN/,
-    /SYSTEM_UI_FLAG_FULLSCREEN/,
-    /SYSTEM_UI_FLAG_IMMERSIVE/,
-    /SYSTEM_UI_FLAG_IMMERSIVE_STICKY/,
-    /\.hide\(WindowInsets\.Type\.statusBars/,
-    /\.setSystemBarsBehavior\(/,
-    /setSystemUiVisibility\(/,
-  ];
-
-  return src
-    .split('\n')
-    .map(line => {
-      const shouldComment = BAD_PATTERNS.some(p => p.test(line));
-      if (shouldComment && !line.trim().startsWith('//')) {
-        return line.replace(/^(\s*)/, '$1// [chordex-patch] ');
-      }
-      return line;
-    })
-    .join('\n');
-}
-
-['app/src/main/java/com/chordex/app/MainActivity.java',
- 'app/src/main/java/com/chordex/app/MainActivity.kt'].forEach((relPath) => {
-  const fullPath = path.join(androidDir, relPath);
-  if (fs.existsSync(fullPath)) {
-    patchFile(fullPath, `${relPath}  (remove fullscreen/immersive flags)`, patchMainActivity);
-  }
-});
+// NOTE: MainActivity is intentionally NOT patched.
+// Status bar behaviour is fully controlled via styles.xml above.
+// Patching MainActivity caused Java compilation errors in earlier versions.
 
 console.log('\nDone. Ready to build:\n  .\\gradlew.bat clean assembleDebug\n');
