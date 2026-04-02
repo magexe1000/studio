@@ -535,43 +535,38 @@ export default function DrumEditor() {
           </button>
         )}
 
-        {/* Quick-status pills + hamburger — nav mode only */}
-        {drumMode === 'nav' && (
-          <>
-            {/* Loop pill */}
-            <button
-              onClick={() => setLooping(l => !l)}
-              style={{ height: 26, padding: '0 9px', borderRadius: 999, background: looping ? `${accent.from}22` : 'rgba(128,128,128,0.08)', border: `1px solid ${looping ? accent.from + '44' : 'rgba(128,128,128,0.14)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, color: looping ? accent.from : 'var(--c-text-muted)', fontSize: 11, fontWeight: 700, transition: 'all 180ms', flexShrink: 0 }}
-              aria-label="Toggle loop"
-            >
-              <span style={{ fontSize: 13, lineHeight: 1 }}>⟳</span>
-            </button>
+        {/* Loop pill */}
+        <button
+          onClick={() => setLooping(l => !l)}
+          style={{ height: 26, padding: '0 9px', borderRadius: 999, background: looping ? `${accent.from}22` : 'rgba(128,128,128,0.08)', border: `1px solid ${looping ? accent.from + '44' : 'rgba(128,128,128,0.14)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, color: looping ? accent.from : 'var(--c-text-muted)', fontSize: 11, fontWeight: 700, transition: 'all 180ms', flexShrink: 0 }}
+          aria-label="Toggle loop"
+        >
+          <span style={{ fontSize: 13, lineHeight: 1 }}>⟳</span>
+        </button>
 
-            {/* Step resolution pill */}
-            <button
-              onClick={toggleSub}
-              style={{ height: 26, padding: '0 9px', borderRadius: 999, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 10, fontWeight: 800, transition: 'all 180ms', flexShrink: 0 }}
-              aria-label="Step resolution"
-            >
-              1/{pattern.subdivision}
-            </button>
+        {/* Step resolution pill */}
+        <button
+          onClick={toggleSub}
+          style={{ height: 26, padding: '0 9px', borderRadius: 999, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 10, fontWeight: 800, transition: 'all 180ms', flexShrink: 0 }}
+          aria-label="Step resolution"
+        >
+          1/{pattern.subdivision}
+        </button>
 
-            {/* Hamburger ≡ */}
-            <button
-              onClick={() => setShowHamburger(h => !h)}
-              style={{ width: 32, height: 32, borderRadius: 9, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}
-              aria-label="Options"
-            >
-              {[0, 1, 2].map(i => (
-                <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />
-              ))}
-            </button>
-          </>
-        )}
+        {/* Hamburger ≡ */}
+        <button
+          onClick={() => setShowHamburger(h => !h)}
+          style={{ width: 32, height: 32, borderRadius: 9, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}
+          aria-label="Options"
+        >
+          {[0, 1, 2].map(i => (
+            <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />
+          ))}
+        </button>
       </div>
 
       {/* ── Hamburger panel ────────────────────────────────────────────────── */}
-      {drumMode === 'nav' && showHamburger && (
+      {showHamburger && (
         <div style={{
           flexShrink: 0, overflow: 'hidden',
           background: isAmoled ? '#000' : (isLight ? 'rgba(250,249,247,0.98)' : 'rgba(14,14,17,0.98)'),
@@ -719,9 +714,9 @@ export default function DrumEditor() {
               </div>
             </div>
 
-            {/* ── 2 floating buttons on the right ── */}
-            {/* BPM / metronome button — circle aligned above play */}
-            <div style={{ position: 'fixed', right: 14, bottom: 88, zIndex: 60, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            {/* ── 2 floating buttons — side by side at bottom bar level ── */}
+            {/* BPM / metronome button */}
+            <div style={{ position: 'fixed', right: 68, bottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 4px)', zIndex: 60, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
               {/* BPM adjuster panel — pops up to the left */}
               {showBpmPanel && (
                 <div style={{
@@ -770,7 +765,7 @@ export default function DrumEditor() {
             <button
               onClick={handlePlay}
               style={{
-                position: 'fixed', right: 14, bottom: 36, zIndex: 60,
+                position: 'fixed', right: 14, bottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 4px)', zIndex: 60,
                 width: 44, height: 44, borderRadius: '50%', border: 'none',
                 background: playing
                   ? (isAmoled ? 'rgba(0,0,0,0.92)' : (isLight ? 'rgba(255,255,255,0.92)' : 'rgba(18,18,22,0.92)'))
