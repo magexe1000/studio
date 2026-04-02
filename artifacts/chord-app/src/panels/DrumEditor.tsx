@@ -264,11 +264,14 @@ function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent, isLight
       width: '72%', maxWidth: 280,
       display: 'flex', justifyContent: 'space-around', alignItems: 'center',
       padding: '6px 8px', borderRadius: '2rem',
-      border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.09)',
-      background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.94)' : 'rgba(18,18,22,0.94)'),
-      boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 12px 48px rgba(0,0,0,0.65)',
+      border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
+      background: isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)'),
+      boxShadow: isLight
+        ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
+        : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
       zIndex: 50, overflow: 'hidden',
       backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+      transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
     }}>
       {pill.ready && (
         <div aria-hidden style={{
@@ -714,73 +717,77 @@ export default function DrumEditor() {
               </div>
             </div>
 
-            {/* ── 2 floating buttons — side by side at bottom bar level ── */}
-            {/* BPM / metronome button */}
-            <div style={{ position: 'fixed', right: 68, bottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 4px)', zIndex: 60, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              {/* BPM adjuster panel — pops up to the left */}
-              {showBpmPanel && (
-                <div style={{
-                  position: 'absolute', right: '100%', bottom: 0, marginRight: 10,
-                  background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.96)' : 'rgba(18,18,22,0.96)'),
-                  border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)',
-                  borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6,
-                  backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                  boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.50)',
-                  whiteSpace: 'nowrap',
-                  animation: 'drumHamburgerIn 160ms cubic-bezier(0.22,1,0.36,1)',
-                }}>
-                  {([-10, -1, +1, +10] as const).map(d => (
-                    <button key={d} onClick={() => adjustBpm(d)} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700 }}>
-                      {d > 0 ? `+${d}` : d}
-                    </button>
-                  ))}
-                  <div style={{ width: 1, height: 24, background: 'rgba(128,128,128,0.2)', margin: '0 2px' }} />
-                  <span style={{ color: accent.from, fontSize: 16, fontWeight: 800, minWidth: 36, textAlign: 'center' }}>{pattern.bpm}</span>
-                </div>
-              )}
-              {/* Metronome icon circle */}
+            {/* ── BPM + Play stacked vertically at bottom-right ── */}
+            <div style={{
+              position: 'fixed', right: 14,
+              bottom: 'max(10px, env(safe-area-inset-bottom))',
+              zIndex: 60,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+            }}>
+              {/* BPM / metronome button (top) */}
+              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {/* BPM adjuster panel — pops up above the button */}
+                {showBpmPanel && (
+                  <div style={{
+                    position: 'absolute', bottom: 'calc(100% + 10px)', right: 0,
+                    background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.96)' : 'rgba(18,18,22,0.96)'),
+                    border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)',
+                    borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6,
+                    backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+                    boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.50)',
+                    whiteSpace: 'nowrap',
+                    animation: 'drumHamburgerIn 160ms cubic-bezier(0.22,1,0.36,1)',
+                  }}>
+                    {([-10, -1, +1, +10] as const).map(d => (
+                      <button key={d} onClick={() => adjustBpm(d)} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700 }}>
+                        {d > 0 ? `+${d}` : d}
+                      </button>
+                    ))}
+                    <div style={{ width: 1, height: 24, background: 'rgba(128,128,128,0.2)', margin: '0 2px' }} />
+                    <span style={{ color: accent.from, fontSize: 16, fontWeight: 800, minWidth: 36, textAlign: 'center' }}>{pattern.bpm}</span>
+                  </div>
+                )}
+                <button
+                  onClick={() => setShowBpmPanel(s => !s)}
+                  style={{
+                    width: 44, height: 44, borderRadius: '50%', border: 'none',
+                    background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')),
+                    boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.10)' : '0 2px 12px rgba(0,0,0,0.50)',
+                    backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+                    cursor: 'pointer', transition: 'all 160ms',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    outline: showBpmPanel ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.10)',
+                  }}
+                  aria-label={`BPM: ${pattern.bpm}`}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 4h6l1.5 12H7.5L9 4Z" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinejoin="round" />
+                    <line x1="12" y1="4" x2="17" y2="13" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinecap="round" />
+                    <rect x="10" y="2" width="4" height="2.5" rx="1" fill={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Play button (bottom — aligned with nav bar) */}
               <button
-                onClick={() => setShowBpmPanel(s => !s)}
+                onClick={handlePlay}
                 style={{
                   width: 44, height: 44, borderRadius: '50%', border: 'none',
-                  background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(0,0,0,0.88)' : (isLight ? 'rgba(245,244,242,0.92)' : 'rgba(18,18,22,0.88)')),
-                  boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.10)' : '0 2px 12px rgba(0,0,0,0.50)',
-                  backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-                  cursor: 'pointer', transition: 'all 160ms',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  outline: showBpmPanel ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(128,128,128,0.12)',
+                  background: playing
+                    ? (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)'))
+                    : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: playing ? 13 : 14, color: playing ? 'var(--c-text-secondary)' : '#fff',
+                  boxShadow: playing
+                    ? '0 4px 20px rgba(0,0,0,0.40), 0 0 0 1.5px rgba(255,255,255,0.08)'
+                    : `0 4px 20px ${accent.from}55, 0 0 0 1.5px rgba(255,255,255,0.12)`,
+                  backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+                  transition: 'all 170ms',
                 }}
-                aria-label={`BPM: ${pattern.bpm}`}
               >
-                {/* Metronome SVG */}
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 4h6l1.5 12H7.5L9 4Z" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinejoin="round" />
-                  <line x1="12" y1="4" x2="17" y2="13" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinecap="round" />
-                  <rect x="10" y="2" width="4" height="2.5" rx="1" fill={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} />
-                </svg>
+                {playing ? '⏹' : '▶'}
               </button>
             </div>
-
-            {/* Play button */}
-            <button
-              onClick={handlePlay}
-              style={{
-                position: 'fixed', right: 14, bottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 4px)', zIndex: 60,
-                width: 44, height: 44, borderRadius: '50%', border: 'none',
-                background: playing
-                  ? (isAmoled ? 'rgba(0,0,0,0.92)' : (isLight ? 'rgba(255,255,255,0.92)' : 'rgba(18,18,22,0.92)'))
-                  : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: playing ? 13 : 14, color: '#fff',
-                boxShadow: playing
-                  ? '0 4px 20px rgba(0,0,0,0.40), 0 0 0 1.5px rgba(255,255,255,0.08)'
-                  : `0 4px 20px ${accent.from}55, 0 0 0 1.5px rgba(255,255,255,0.12)`,
-                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-                transition: 'all 170ms',
-              }}
-            >
-              {playing ? '⏹' : '▶'}
-            </button>
           </div>
         )}
 
