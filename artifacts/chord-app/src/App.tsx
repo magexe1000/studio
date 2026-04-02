@@ -5,7 +5,7 @@ import ChordPanel from './panels/ChordPanel';
 import SettingsPanel from './panels/SettingsPanel';
 import SongsPanel from './panels/SongsPanel';
 import BottomNav from './components/BottomNav';
-import { setNavHidden } from './lib/navScroll';
+import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 
@@ -14,7 +14,7 @@ const NAV_ORDER = ['songs', 'library', 'chord', 'settings'] as const;
 const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
-  const { activePanel, settings, setActivePanel } = useChordStore();
+  const { activePanel, settings, setActivePanel, activePresetId } = useChordStore();
 
   // On first mount, jump to the user's preferred start tab
   useEffect(() => {
@@ -87,11 +87,13 @@ export default function App() {
   const prevPanel = useRef(activePanel);
   const accent    = ACCENT_COLORS[settings.accentColor];
 
-  // Always show the nav when switching panels — prevents it staying hidden
-  // on a non-scrollable panel (e.g. Songs with no songs added yet)
+  // Show/hide the nav based on panel and preset state.
+  // Hidden (and locked so scroll can't override) only when inside the preset editor.
   useEffect(() => {
-    setNavHidden(false);
-  }, [visiblePanel]);
+    const inPreset = !!(activePresetId && visiblePanel === 'songs');
+    setNavLocked(inPreset);
+    setNavHidden(inPreset);
+  }, [activePresetId, visiblePanel]);
 
   // Apply CSS vars for accent color globally
   useEffect(() => {
