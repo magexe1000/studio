@@ -469,29 +469,167 @@ ${chordContent}
   const { Capacitor } = await import('@capacitor/core');
 
   if (Capacitor.isNativePlatform()) {
-    // Native Android/iOS: save to cache dir then open the system share sheet.
-    // The user can pick Print → Save as PDF, Google Drive, email, etc.
+    // Native Android/iOS: generate a real PDF with jsPDF, save to cache, share.
     try {
-      const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
-      const { Share } = await import('@capacitor/share');
+      const { jsPDF }    = await import('jspdf');
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const { Share }    = await import('@capacitor/share');
 
+      // ── Helper: chord name from ID ──────────────────────────────────────
+      const getChordName = (id: string): string => {
+        if (id.startsWith('custom-')) {
+          return storedCustomChords.find(c => c.id === id)?.name ?? id;
+        }
+        const displayId = transposeOffset !== 0 ? transposeChordId(id, transposeOffset) : id;
+        return (getChordById(displayId) ?? getChordById(id))?.name ?? id;
+      };
+
+      // ── Accent RGB ──────────────────────────────────────────────────────
+      const hex = accentColor.replace('#', '');
+      const ar  = parseInt(hex.slice(0, 2), 16);
+      const ag  = parseInt(hex.slice(2, 4), 16);
+      const ab  = parseInt(hex.slice(4, 6), 16);
+
+      // ── Document setup ──────────────────────────────────────────────────
+      const orientation = cfg.orientation === 'landscape' ? 'l' : 'p';
+      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation });
+      const PW  = orientation === 'l' ? 297 : 210;
+      const PH  = orientation === 'l' ? 210 : 297;
+      const M   = 18;  // margin
+      const CW  = PW - 2 * M;
+      let   y   = M + 6;
+
+      // ── Title ────────────────────────────────────────────────────────────
+      if (cfg.includeTitle) {
+        doc.setFontSize(26);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(ar, ag, ab);
+        doc.text(preset.name || 'Untitled', M, y);
+        y += 9;
+      }
+
+      if (cfg.includeArtist && preset.artist) {
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(80, 80, 80);
+        doc.text(preset.artist, M, y);
+        y += 6;
+      }
+
+      // ── Meta badges ─────────────────────────────────────────────────────
+      const meta: string[] = [];
+      if (cfg.includeKey  && preset.key) meta.push(`Key: ${preset.key}`);
+      if (cfg.includeBPM  && preset.bpm) meta.push(`BPM: ${preset.bpm}`);
+      if (meta.length) {
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text(meta.join('   ·   '), M, y);
+        y += 5;
+      }
+
+      // ── Divider ──────────────────────────────────────────────────────────
+      y += 3;
+      doc.setDrawColor(ar, ag, ab);
+      doc.setLineWidth(0.6);
+      doc.line(M, y, M + CW, y);
+      y += 7;
+
+      // ── Sections / chords ────────────────────────────────────────────────
+      const COLS    = cfg.orientation === 'landscape' ? 5 : 4;
+      const COL_W   = CW / COLS;
+      const ROW_H   = 9;
+      const SEC_GAP = 6;
+
+      const sections = hasSections
+        ? preset.sections!
+        : [{ id: 'main', name: '', chords: preset.chords }];
+
+      for (const section of sections) {
+        // Section label
+        if (section.name) {
+          if (y > PH - 30) { doc.addPage(); y = M + 6; }
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(ar, ag, ab);
+          doc.text(section.name.toUpperCase(), M, y);
+          y += 6;
+        }
+
+        const names = section.chords.map(getChordName);
+
+        // Chord grid — COLS per row, bar lines between
+        for (let i = 0; i < names.length; i += COLS) {
+          if (y > PH - 20) { doc.addPage(); y = M + 6; }
+
+          const row = names.slice(i, i + COLS);
+
+          // Opening bar line
+          doc.setDrawColor(160, 160, 160);
+          doc.setLineWidth(0.35);
+          doc.line(M, y - ROW_H * 0.65, M, y + ROW_H * 0.35);
+
+          row.forEach((name, j) => {
+            const x = M + j * COL_W;
+
+            // Chord name
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(20, 20, 20);
+            doc.text(name, x + 3, y);
+
+            // Closing bar line for each chord slot
+            const bx = x + COL_W;
+            doc.setDrawColor(160, 160, 160);
+            doc.setLineWidth(0.35);
+            doc.line(bx, y - ROW_H * 0.65, bx, y + ROW_H * 0.35);
+          });
+
+          y += ROW_H;
+        }
+
+        y += SEC_GAP;
+      }
+
+      // ── Notes ────────────────────────────────────────────────────────────
+      if (cfg.includeNotes && preset.notes) {
+        if (y > PH - 30) { doc.addPage(); y = M + 6; }
+        y += 2;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(100, 100, 100);
+        const lines = doc.splitTextToSize(preset.notes, CW);
+        doc.text(lines, M, y);
+      }
+
+      // ── Footer ───────────────────────────────────────────────────────────
+      const totalPages = doc.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(180, 180, 180);
+        doc.text('Created with Chordex', M, PH - 8);
+        doc.text(`${p} / ${totalPages}`, PW - M, PH - 8, { align: 'right' });
+      }
+
+      // ── Save & share ─────────────────────────────────────────────────────
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
       const writeResult = await Filesystem.writeFile({
-        path: `${docTitle}.html`,
-        data: html,
+        path: `${docTitle}.pdf`,
+        data: pdfBase64,
         directory: Directory.Cache,
-        encoding: Encoding.UTF8,
       });
 
       await Share.share({
         title: docTitle,
         url: writeResult.uri,
-        dialogTitle: 'Save or print your chord sheet',
+        dialogTitle: 'Save your chord sheet PDF',
       });
     } catch {
-      // User cancelled the share sheet — do nothing.
+      // User cancelled — do nothing.
     }
   } else {
-    // Web / PWA: trigger a blob download of the HTML file.
+    // Web / PWA: trigger a blob download of the styled HTML file.
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
