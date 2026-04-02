@@ -165,25 +165,6 @@ export default function ChordPanel() {
             {renderDiagram('lg')}
           </div>
 
-          {/* Find Chord — inline, just below the diagram */}
-          <button
-            onClick={() => setShowFinder(true)}
-            className="btn-smooth flex items-center justify-center gap-2 font-bold mt-4"
-            style={{
-              width: '100%',
-              background: 'var(--app-surface-high)',
-              color: 'var(--c-text-secondary)',
-              borderRadius: '9999px',
-              fontFamily: 'Manrope',
-              fontSize: '13px',
-              padding: '10px 0',
-              border: '1px solid rgba(128,128,128,0.12)',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>search</span>
-            {t.chordFinder.openFinder}
-          </button>
-
           {/* Action Buttons */}
           <div className="flex gap-3 mt-6">
             <button
@@ -223,6 +204,28 @@ export default function ChordPanel() {
               </span>
             </button>
           </div>
+        </div>
+
+        {/* Find Chord section */}
+        <div className="mx-4 mt-4 rounded-3xl p-5 app-surface">
+          <button
+            onClick={() => setShowFinder(true)}
+            className="btn-smooth flex items-center gap-3 w-full"
+            style={{ textAlign: 'left' }}
+          >
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
+              background: `${accent.from}18`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '20px', color: accent.from }}>search</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '14px', color: 'var(--c-text-primary)' }}>{t.chordFinder.openFinder}</p>
+              <p style={{ fontFamily: 'Inter', fontSize: '12px', color: 'var(--c-text-secondary)', marginTop: '2px' }}>{t.chordFinder.subtitle}</p>
+            </div>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--c-text-muted)' }}>chevron_right</span>
+          </button>
         </div>
 
         {/* Voicings & Variations — gated on Smart Suggestions */}
