@@ -2455,7 +2455,7 @@ export default function SongsPanel() {
               </div>
               <button onClick={() => setTranspose(activePreset.id, transposeOffset + 1)} className="btn-smooth" data-testid="transpose-up"
                 disabled={transposeOffset >= 11}
-                style={{ width: '28px', height: '28px', borderRadius: '50%', background: transposeOffset < 11 ? `linear-gradient(135deg, ${accent.from}, ${accent.to})` : 'var(--app-surface-high)', color: transposeOffset < 11 ? '#fff' : 'var(--c-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: transposeOffset >= 11 ? 0.4 : 1, boxShadow: transposeOffset < 11 ? `0 2px 8px ${accent.to}55` : 'none' }}>
+                style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--app-surface-high)', color: transposeOffset < 11 ? 'var(--c-text-primary)' : 'var(--c-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: transposeOffset >= 11 ? 0.4 : 1 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>add</span>
               </button>
             </div>
@@ -2696,7 +2696,7 @@ export default function SongsPanel() {
           <button
             onClick={() => { setCustomSectionName(''); setCustomSectionMode(false); setShowSectionPicker(true); }}
             data-testid="add-section-btn" className="btn-smooth"
-            style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+            style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: 'rgba(72,72,72,0.35)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>segment</span>
             {t.songs.addSection}
           </button>
@@ -2709,7 +2709,7 @@ export default function SongsPanel() {
               setShowPicker(true);
             }
           }} data-testid="add-chord-btn" className="btn-smooth"
-            style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}cc, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+            style={{ flex: 1, padding: '10px 12px', borderRadius: '9999px', background: 'rgba(72,72,72,0.35)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_music</span>
             {t.songs.addChord}
           </button>
