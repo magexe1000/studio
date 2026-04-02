@@ -2609,7 +2609,7 @@ export default function SongsPanel() {
       )}
 
       {/* Floating action buttons above bottom nav */}
-      <div style={{ position: 'absolute', right: '20px', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', pointerEvents: 'none', zIndex: 50 }}>
+      <div style={{ position: 'absolute', right: '20px', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', pointerEvents: 'none', zIndex: 50 }}>
         {/* Import circle — top */}
         <button
           onClick={() => setShowImport(true)}
