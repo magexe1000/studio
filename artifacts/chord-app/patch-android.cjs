@@ -82,40 +82,32 @@ patchFile(
   (src) => src.split('\n').filter(l => !l.includes(':capacitor-status-bar')).join('\n')
 );
 
-// ── 5. styles.xml — proper transparent status bar ────────────────────────
+// ── 5. styles.xml — solid status bar that is always visible ──────────────
 //
-// Root cause of "gray bar without icons":
-//   windowTranslucentStatus=false + statusBarColor=transparent
-//   causes Android to show a gray letterbox behind the status bar with no icons.
+// The transparent/translucent approach caused a grey bar with no icons because
+// the WebView content blended with the dark app background making icons invisible,
+// then Android showed a grey letterbox when focus changed.
 //
-// Fix: use windowTranslucentStatus=true — the OS renders a natural translucent
-// overlay; the WebView content draws behind it; env(safe-area-inset-top) gives
-// the correct padding value so the app content is never obscured.
+// Fix: solid dark status bar (#0E0E0E matches the app background).
+//   - Status bar is always rendered with a solid background → icons always visible
+//   - windowDrawsSystemBarBackgrounds=true → app owns the bar color
+//   - windowTranslucentStatus=false → no edge-to-edge confusion
+//   - windowLightStatusBar=false → white icons (correct for dark background)
+//   - windowLayoutInDisplayCutoutMode=default → safe notch handling
 //
-// windowLayoutInDisplayCutoutMode=default: notch area shows the status bar
-// normally; content never intrudes into the cutout.
+// The safe-area-inset-top spacer in App.tsx becomes 0px (WebView is below the
+// bar, not behind it) which is correct — no overlap, no grey bar.
 function patchStyles(src) {
   const items = {
-    'android:windowLightStatusBar':            'false',           // white icons on dark bg
-    'android:statusBarColor':                  '@android:color/transparent',
-    'android:windowTranslucentStatus':         'true',            // FIX: was false → gray bar
-    'android:windowLayoutInDisplayCutoutMode': 'default',         // FIX: safe notch handling
+    'android:windowLightStatusBar':            'false',     // white icons on dark bg
+    'android:statusBarColor':                  '#FF0E0E0E', // solid dark — matches app bg
+    'android:windowTranslucentStatus':         'false',     // not translucent
+    'android:windowDrawsSystemBarBackgrounds': 'true',      // app owns bar colour
+    'android:windowLayoutInDisplayCutoutMode': 'default',   // safe notch handling
   };
-
-  // Keys that conflict with the correct approach — remove them if present.
-  const remove = ['android:windowDrawsSystemBarBackgrounds'];
 
   let result = src;
 
-  // Remove conflicting items.
-  for (const name of remove) {
-    result = result.replace(
-      new RegExp(`\\s*<item name="${name.replace(/:/g, ':')}">[^<]*<\\/item>`, 'g'),
-      ''
-    );
-  }
-
-  // Set / update desired items.
   for (const [name, value] of Object.entries(items)) {
     const pattern = new RegExp(`<item name="${name.replace(/:/g, ':')}">.*?<\\/item>`, 'g');
     if (result.includes(`name="${name}"`)) {
