@@ -493,8 +493,9 @@ export default function LibraryPanel() {
       {/* ── Fixed header ── */}
       <header className="flex-none px-6 pt-6 pb-3 app-bg"
         style={{ transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)' }}>
-        <h1 className="text-base font-bold"
+        <h1
           style={{
+            fontSize: '14px', fontWeight: 700,
             color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em',
             paddingLeft: (mainTab === 'explore' && showType) ? '52px' : '0',
             transition: 'padding-left 280ms cubic-bezier(0.4, 0, 0.2, 1)',

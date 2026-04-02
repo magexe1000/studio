@@ -1383,7 +1383,7 @@ export interface ChordexJsonFile {
   chords: { name: string; position: number }[];
 }
 
-function exportPresetToJSON(preset: SongPreset) {
+async function exportPresetToJSON(preset: SongPreset) {
   const idToName = new Map(getAllChords().map(c => [c.id, c.name]));
   const file: ChordexJsonFile = {
     _app: 'Chordex',
@@ -1398,11 +1398,28 @@ function exportPresetToJSON(preset: SongPreset) {
       position: i + 1,
     })),
   };
-  const blob = new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' });
+  const content = JSON.stringify(file, null, 2);
+  const fileName = `${preset.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.chordex.json`;
+
+  // Try Web Share API (works on Android and modern browsers)
+  if (typeof navigator !== 'undefined' && navigator.canShare) {
+    try {
+      const shareFile = new File([content], fileName, { type: 'application/json' });
+      if (navigator.canShare({ files: [shareFile] })) {
+        await navigator.share({ files: [shareFile], title: preset.name });
+        return;
+      }
+    } catch {
+      // fall through to download
+    }
+  }
+
+  // Fallback: browser anchor download
+  const blob = new Blob([content], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${preset.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.chordex.json`;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1837,7 +1854,7 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 150 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', maxHeight: '80dvh', display: 'flex', flexDirection: 'column', animation: 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', maxHeight: '80dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
           <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'rgba(72,72,72,0.3)' }} />
         </div>

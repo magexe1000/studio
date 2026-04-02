@@ -69,7 +69,7 @@ export default function ChordPanel() {
     return (
       <div className="flex flex-col h-full app-bg">
         <header className="flex-none px-6 pt-6 pb-1 app-bg flex items-center justify-between">
-          <h1 className="text-base font-bold tracking-tighter" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
+          <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
             <ChordexLogo />
             Chordex
           </h1>
@@ -134,7 +134,7 @@ export default function ChordPanel() {
     <div className="flex flex-col h-full overflow-hidden app-bg">
       {/* Minimal top label */}
       <header className="flex-none px-6 pt-6 pb-1 app-bg flex items-center justify-between">
-        <h1 className="text-base font-bold tracking-tighter" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
+        <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
           <ChordexLogo />
           Chordex
         </h1>

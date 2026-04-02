@@ -140,7 +140,7 @@ export default function SettingsPanel() {
   return (
     <div className="flex flex-col h-full overflow-hidden app-bg">
       <header className="flex-none px-6 pt-6 pb-1 app-bg">
-        <h1 style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
+        <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
           <ChordexLogo />
           {t.appName}
         </h1>
