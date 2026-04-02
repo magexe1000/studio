@@ -1,5 +1,22 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "kcVZlNGuuTVDYsaf2A_uK"
+uri = "file://artifacts/chord-app/public/kit-acoustic.png"
+type = "image"
+title = "acoustic kit icon"
+
+[[generated]]
+id = "f31cZYXQ6Cqs3u55mUk3J"
+uri = "file://artifacts/chord-app/public/kit-advanced.png"
+type = "image"
+title = "advanced drum machine icon"
+
+[[generated]]
+id = "AG55Bug3WN39EmkZG6RIh"
+uri = "file://artifacts/chord-app/public/kit-electronic.png"
+type = "image"
+title = "electronic kit icon"
 
 [[outputs]]
 id = "I5FP-fUgJVTPVlHcXq6Xl"

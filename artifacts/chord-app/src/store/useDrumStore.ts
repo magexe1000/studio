@@ -48,6 +48,35 @@ export const KIT_INSTRUMENTS: Record<KitType, DrumInstrument[]> = {
   electronic: ['kick', 'snare', 'hihat-closed', 'hihat-open', 'crash', 'tom-high'],
 };
 
+export interface KitPreset {
+  id: string;
+  name: string;
+  desc: string;
+  bpm: number;
+  instruments: DrumInstrument[];
+}
+
+export const KIT_PRESETS: Record<KitType, KitPreset[]> = {
+  acoustic: [
+    { id: 'standard', name: 'Standard',  desc: 'Classic rock & pop',    bpm: 120, instruments: ['kick', 'snare', 'hihat-closed', 'hihat-open', 'crash', 'tom-high'] },
+    { id: 'jazz',     name: 'Jazz',      desc: 'Brushed jazz kit',       bpm: 90,  instruments: ['kick', 'snare', 'hihat-closed', 'hihat-open', 'ride', 'tom-high', 'tom-mid'] },
+    { id: 'studio',   name: 'Studio',    desc: 'Full recorded setup',    bpm: 110, instruments: ['kick', 'snare', 'hihat-closed', 'hihat-open', 'crash', 'ride', 'tom-high', 'tom-mid', 'tom-floor'] },
+    { id: 'minimal',  name: 'Minimal',   desc: 'Stripped-back feel',     bpm: 100, instruments: ['kick', 'snare', 'hihat-closed'] },
+  ],
+  advanced: [
+    { id: 'r8',   name: 'Roland R8',  desc: 'Classic drum machine',    bpm: 120, instruments: ['kick', 'snare', 'hihat-closed', 'hihat-open', 'crash', 'ride', 'tom-high', 'tom-mid', 'tom-floor'] },
+    { id: '808',  name: 'TR-808',     desc: 'Hip-hop & trap staple',   bpm: 95,  instruments: ['kick', 'snare', 'hihat-closed', 'hihat-open', 'crash', 'tom-high', 'tom-mid'] },
+    { id: '909',  name: 'TR-909',     desc: 'House & techno legend',   bpm: 128, instruments: ['kick', 'snare', 'hihat-closed', 'hihat-foot', 'crash', 'ride', 'tom-high', 'tom-mid', 'tom-floor'] },
+    { id: 'linn', name: 'LinnDrum',   desc: '80s pop machine',         bpm: 115, instruments: ['kick', 'snare', 'hihat-closed', 'crash', 'tom-high'] },
+  ],
+  electronic: [
+    { id: 'techno',     name: 'Techno',   desc: 'Hard industrial kicks',  bpm: 138, instruments: ['kick', 'snare', 'hihat-closed', 'hihat-foot', 'crash', 'tom-high', 'tom-mid'] },
+    { id: 'house',      name: 'House',    desc: 'Deep groove machine',    bpm: 124, instruments: ['kick', 'snare', 'hihat-closed', 'hihat-open', 'ride', 'crash'] },
+    { id: 'trap',       name: 'Trap',     desc: 'Crisp hi-hat patterns',  bpm: 140, instruments: ['kick', 'snare', 'hihat-closed', 'hihat-open', 'crash'] },
+    { id: 'dnb',        name: 'D&B',      desc: 'Breakbeat & bass',       bpm: 174, instruments: ['kick', 'snare', 'hihat-closed', 'hihat-open', 'crash', 'ride'] },
+  ],
+};
+
 export interface DrumHit { step: number; length: number; }
 export interface DrumMeasure { id: string; hits: Partial<Record<DrumInstrument, DrumHit[]>>; }
 export interface DrumPattern {
@@ -78,13 +107,15 @@ interface DrumStore {
   soundMap:          Partial<Record<DrumInstrument, string>>;
   volumeMap:         Partial<Record<DrumInstrument, number>>;
   masterVolume:      number;
-  kitType:           KitType | null;   // null = kit not yet chosen (show picker on first open)
+  kitType:           KitType | null;
+  kitPresetId:       string | null;
   activeInstruments: DrumInstrument[];
 
   setSoundForInstrument:   (inst: DrumInstrument, soundId: string) => void;
   setVolumeForInstrument:  (inst: DrumInstrument, vol: number)     => void;
   setMasterVolume:         (vol: number) => void;
   setKitType:              (kit: KitType, soundMap: Partial<Record<DrumInstrument, string>>) => void;
+  setKitPreset:            (kit: KitType, preset: KitPreset, updateBpm: (bpm: number) => void) => void;
   toggleInstrument:        (inst: DrumInstrument) => void;
   setActiveInstruments:    (insts: DrumInstrument[]) => void;
 
@@ -113,6 +144,7 @@ export const useDrumStore = create<DrumStore>()(
       volumeMap:         {},
       masterVolume:      0.82,
       kitType:           null,
+      kitPresetId:       null,
       activeInstruments: KIT_INSTRUMENTS.acoustic,
 
       setSoundForInstrument: (inst, soundId) =>
@@ -122,7 +154,12 @@ export const useDrumStore = create<DrumStore>()(
       setMasterVolume: vol => set({ masterVolume: Math.max(0, Math.min(1, vol)) }),
 
       setKitType: (kit, soundMap) =>
-        set({ kitType: kit, soundMap, activeInstruments: KIT_INSTRUMENTS[kit] }),
+        set({ kitType: kit, soundMap, activeInstruments: KIT_INSTRUMENTS[kit], kitPresetId: null }),
+
+      setKitPreset: (kit, preset, updateBpm) => {
+        updateBpm(preset.bpm);
+        set({ kitType: kit, kitPresetId: preset.id, activeInstruments: preset.instruments });
+      },
 
       toggleInstrument: inst =>
         set(s => ({
