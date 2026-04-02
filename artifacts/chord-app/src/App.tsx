@@ -7,6 +7,7 @@ import SongsPanel from './panels/SongsPanel';
 import BottomNav from './components/BottomNav';
 import { setNavHidden } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
+import { useStatusBar } from './lib/useStatusBar';
 
 // Ordered left-to-right (matches nav order) — used to compute slide direction
 const NAV_ORDER = ['songs', 'library', 'chord', 'settings'] as const;
@@ -131,6 +132,9 @@ export default function App() {
     }
     // 'dark' is the default — no class needed
   }, [settings.theme]);
+
+  // Keep the native Android status bar in sync with the active theme
+  useStatusBar(settings.theme, settings.amoledMode);
 
   // Animation speed → root data-attribute
   useEffect(() => {
