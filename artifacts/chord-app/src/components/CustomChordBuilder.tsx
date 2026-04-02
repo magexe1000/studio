@@ -172,24 +172,36 @@ function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresCh
     const next = frets.map(arr => [...arr]);
     const current = next[sIdx];
 
-    if (current[0] === -1) {
-      // string was muted — tap unmutes it and places this fret directly
-      current.length = 0;
-      current.push(fret);
-    } else {
-      const idx = current.indexOf(fret);
-      if (idx !== -1) {
-        // deselect — remove this fret
-        current.splice(idx, 1);
-        // fall back: in find mode go back to muted, in build mode go back to open
-        if (current.length === 0) current.push(findMode ? -1 : 0);
+    if (findMode) {
+      // ── Find mode: single-fret per string (like a real guitar) ──
+      // Tapping the same fret again → mute the string (toggle off).
+      // Tapping a different fret → move the dot there.
+      // Tapping on a muted string → unmute and place the fret.
+      if (current[0] === fret) {
+        next[sIdx] = [-1]; // toggle off → muted
       } else {
-        // select — if adding a positive fret, remove the open (0) placeholder first
-        if (fret > 0) {
-          const openIdx = current.indexOf(0);
-          if (openIdx !== -1) current.splice(openIdx, 1);
-        }
+        next[sIdx] = [fret]; // move dot (or unmute) to this fret
+      }
+    } else {
+      // ── Build mode: multi-fret additive behavior ──
+      if (current[0] === -1) {
+        // string was muted — tap unmutes it and places this fret directly
+        current.length = 0;
         current.push(fret);
+      } else {
+        const idx = current.indexOf(fret);
+        if (idx !== -1) {
+          // deselect — remove this fret, fall back to open if nothing left
+          current.splice(idx, 1);
+          if (current.length === 0) current.push(0);
+        } else {
+          // select — remove open placeholder first when adding a positive fret
+          if (fret > 0) {
+            const openIdx = current.indexOf(0);
+            if (openIdx !== -1) current.splice(openIdx, 1);
+          }
+          current.push(fret);
+        }
       }
     }
 
