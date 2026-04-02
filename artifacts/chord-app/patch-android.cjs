@@ -3,19 +3,14 @@
  *
  * Applies all post-cap-sync fixes automatically:
  *   1. Adds android:enableOnBackInvokedCallback="true" to AndroidManifest.xml
- *      (enables the Android 13+ predictive back gesture)
- *   2. Removes fullscreen / immersive-mode theme from AndroidManifest.xml
- *      (prevents the status bar from being hidden)
+ *   2. Removes fullscreen theme references from AndroidManifest.xml
  *   3. Removes :capacitor-status-bar from capacitor.settings.gradle
  *   4. Removes :capacitor-status-bar from app/capacitor.build.gradle
- *   5. Patches styles.xml so:
- *        - Status bar uses windowTranslucentStatus=true  (proper edge-to-edge)
- *        - Status bar icons are white (correct for dark theme)
- *        - Camera cutout (notch) stays in DEFAULT mode — no gray bar
- *   6. Patches MainActivity to remove any immersive/fullscreen UI flags
+ *   5. Patches values/styles.xml  (light theme  → beige bar, dark icons)
+ *   6. Creates + patches values-night/styles.xml (dark theme → dark bar, white icons)
+ *   7. Writes a clean MainActivity.java that permanently prevents fullscreen mode
  *
- * Run via:  pnpm --filter @workspace/chord-app run android:patch
- * Or as part of the full sync:  pnpm --filter @workspace/chord-app run android:sync
+ * Run via:  node patch-android.cjs
  */
 
 const fs   = require('fs');
@@ -25,7 +20,7 @@ const androidDir = path.join(__dirname, 'android');
 
 function patchFile(filePath, label, patchFn) {
   if (!fs.existsSync(filePath)) {
-    console.warn(`  SKIP  ${label} — file not found (run cap sync first)`);
+    console.warn(`  SKIP  ${label} — file not found`);
     return;
   }
   const before = fs.readFileSync(filePath, 'utf8');
@@ -53,54 +48,50 @@ patchFile(
   }
 );
 
-// ── 2. AndroidManifest.xml — remove fullscreen/immersive theme ────────────
-// Capacitor sometimes references Theme.AppCompat.NoActionBar.Fullscreen
-// or similar. Replace with the standard NoActionBar theme.
+// ── 2. AndroidManifest.xml — strip any fullscreen theme ──────────────────
 patchFile(
   path.join(androidDir, 'app/src/main/AndroidManifest.xml'),
   'AndroidManifest.xml  (no fullscreen theme)',
-  (src) => {
-    // Replace any fullscreen theme variant that hides the status bar.
-    return src
-      .replace(/Theme\.AppCompat\.Light\.NoActionBar\.Fullscreen/g, 'Theme.AppCompat.Light.NoActionBar')
-      .replace(/Theme\.AppCompat\.NoActionBar\.Fullscreen/g,        'Theme.AppCompat.Light.NoActionBar')
-      .replace(/AppTheme\.Fullscreen/g,                              'AppTheme');
-  }
+  (src) => src
+    .replace(/Theme\.AppCompat\.Light\.NoActionBar\.Fullscreen/g, 'Theme.AppCompat.Light.NoActionBar')
+    .replace(/Theme\.AppCompat\.NoActionBar\.Fullscreen/g,        'Theme.AppCompat.Light.NoActionBar')
+    .replace(/AppTheme\.Fullscreen/g,                              'AppTheme')
 );
 
 // ── 3. capacitor.settings.gradle ─────────────────────────────────────────
 patchFile(
   path.join(androidDir, 'capacitor.settings.gradle'),
-  'capacitor.settings.gradle  (remove status-bar)',
+  'capacitor.settings.gradle  (remove status-bar plugin)',
   (src) => src.split('\n').filter(l => !l.includes(':capacitor-status-bar')).join('\n')
 );
 
 // ── 4. app/capacitor.build.gradle ────────────────────────────────────────
 patchFile(
   path.join(androidDir, 'app/capacitor.build.gradle'),
-  'app/capacitor.build.gradle  (remove status-bar)',
+  'app/capacitor.build.gradle  (remove status-bar plugin)',
   (src) => src.split('\n').filter(l => !l.includes(':capacitor-status-bar')).join('\n')
 );
 
-// ── 5. styles.xml — solid status bar, always visible, correct icon colour ─
+// ── 5 & 6. styles.xml — solid status bar, correct icon colour ─────────────
 //
-// windowFullscreen=false is the critical flag that stops Android from ever
-// auto-hiding the status bar in this app's WebView.
+// windowFullscreen=false  → status bar NEVER auto-hides
+// windowDrawsSystemBarBackgrounds=true  → app owns the bar colour
+// windowTranslucentStatus=false  → solid bar, not a grey translucent overlay
+// windowLayoutInDisplayCutoutMode=default  → safe notch handling
 //
-// Light theme (values/styles.xml):
-//   statusBarColor = #F2F1EF  (app light background)
-//   windowLightStatusBar = true  → dark icons (time/battery/signal are black)
+// Light  (values/styles.xml):       bar=#F2F1EF, dark icons (black clock/battery)
+// Dark   (values-night/styles.xml): bar=#0E0E0E, white icons
 //
-// Dark / AMOLED theme (values-night/styles.xml):
-//   statusBarColor = #0E0E0E  (app dark background; pure black for AMOLED)
-//   windowLightStatusBar = false → white icons
-function applyStatusBarItems(src, items) {
+// values-night is created from scratch if Capacitor didn't generate it.
+
+function applyItems(src, items) {
   let result = src;
   for (const [name, value] of Object.entries(items)) {
-    const pattern = new RegExp(`<item name="${name.replace(/:/g, ':')}">.*?<\\/item>`, 'g');
+    const pat = new RegExp(`<item name="${name}">.*?<\\/item>`, 'g');
     if (result.includes(`name="${name}"`)) {
-      result = result.replace(pattern, `<item name="${name}">${value}</item>`);
+      result = result.replace(pat, `<item name="${name}">${value}</item>`);
     } else {
+      // Insert before the first </style> closing tag
       result = result.replace(
         /(<\/style>)/,
         `        <item name="${name}">${value}</item>\n    $1`
@@ -111,34 +102,91 @@ function applyStatusBarItems(src, items) {
 }
 
 const COMMON = {
-  'android:windowFullscreen':                'false',     // NEVER auto-hide status bar
-  'android:windowTranslucentStatus':         'false',     // solid bar, not translucent
-  'android:windowDrawsSystemBarBackgrounds': 'true',      // app owns bar colour
-  'android:windowLayoutInDisplayCutoutMode': 'default',   // safe notch handling
+  'android:windowFullscreen':                'false',
+  'android:windowTranslucentStatus':         'false',
+  'android:windowDrawsSystemBarBackgrounds': 'true',
+  'android:windowLayoutInDisplayCutoutMode': 'default',
 };
 
+// Light theme
 patchFile(
   path.join(androidDir, 'app/src/main/res/values/styles.xml'),
-  'values/styles.xml  (light: #F2F1EF bar, dark icons)',
-  (src) => applyStatusBarItems(src, {
+  'values/styles.xml  (light bar #F2F1EF, dark icons)',
+  (src) => applyItems(src, {
     ...COMMON,
-    'android:statusBarColor':     '#FFF2F1EF', // matches app light bg
-    'android:windowLightStatusBar': 'true',    // dark (black) icons
+    'android:statusBarColor':       '#FFF2F1EF',
+    'android:windowLightStatusBar': 'true',
   })
 );
 
+// Dark / AMOLED theme — create the file if Capacitor didn't generate it
+const nightDir  = path.join(androidDir, 'app/src/main/res/values-night');
+const nightFile = path.join(nightDir, 'styles.xml');
+if (!fs.existsSync(nightDir))  fs.mkdirSync(nightDir, { recursive: true });
+if (!fs.existsSync(nightFile)) {
+  fs.writeFileSync(nightFile,
+`<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+    </style>
+</resources>
+`, 'utf8');
+  console.log('  CREATED values-night/styles.xml');
+}
 patchFile(
-  path.join(androidDir, 'app/src/main/res/values-night/styles.xml'),
-  'values-night/styles.xml  (dark: #0E0E0E bar, white icons)',
-  (src) => applyStatusBarItems(src, {
+  nightFile,
+  'values-night/styles.xml  (dark bar #0E0E0E, white icons)',
+  (src) => applyItems(src, {
     ...COMMON,
-    'android:statusBarColor':     '#FF0E0E0E', // matches app dark/AMOLED bg
-    'android:windowLightStatusBar': 'false',   // white icons
+    'android:statusBarColor':       '#FF0E0E0E',
+    'android:windowLightStatusBar': 'false',
   })
 );
 
-// NOTE: MainActivity is intentionally NOT patched.
-// Status bar behaviour is fully controlled via styles.xml above.
-// Patching MainActivity caused Java compilation errors in earlier versions.
+// ── 7. Write a clean MainActivity.java ───────────────────────────────────
+// Written fresh every time (not patched) so there is zero risk of broken syntax.
+// clearFlags(FLAG_FULLSCREEN) + onWindowFocusChanged ensures the status bar
+// can never be hidden, even if the WebView tries to request fullscreen.
+const mainActivityPath = path.join(
+  androidDir,
+  'app/src/main/java/com/chordex/app/MainActivity.java'
+);
 
-console.log('\nDone. Ready to build:\n  .\\gradlew.bat clean assembleDebug\n');
+const mainActivityContent =
+`package com.chordex.app;
+
+import android.os.Bundle;
+import android.view.WindowManager;
+import androidx.core.view.WindowCompat;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Status bar must always be visible — never allow fullscreen mode.
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        // Content sits below the status bar; it does not draw behind it.
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            // Re-assert non-fullscreen if anything tried to change it.
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        }
+    }
+}
+`;
+
+if (fs.existsSync(mainActivityPath)) {
+  fs.writeFileSync(mainActivityPath, mainActivityContent, 'utf8');
+  console.log('  FIXED MainActivity.java  (status bar always visible)');
+} else {
+  console.warn('  SKIP  MainActivity.java  — file not found (run cap sync first)');
+}
+
+console.log('\nDone. Ready to build:\n  .\\gradlew.bat assembleDebug\n');
