@@ -20,6 +20,7 @@ export interface ExportConfig {
   includeNotes:   boolean;
   chordDisplay:   'name' | 'diagram' | 'both';
   orientation:    'portrait' | 'landscape';
+  paperSize:      'a4' | 'letter';
   theme:          'light' | 'dark';
   showNumbering:  boolean;
   compactLayout:  boolean;
@@ -34,6 +35,7 @@ const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   includeNotes:  true,
   chordDisplay:  'both',
   orientation:   'portrait',
+  paperSize:     'a4',
   theme:         'light',
   showNumbering: true,
   compactLayout: false,
@@ -238,13 +240,48 @@ async function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT
     ? pdfName.trim().replace(/[^a-zA-Z0-9 _-]/g, '').replace(/\s+/g, '_')
     : autoTitle;
 
-  /* Columns — always 3 (4 in compact mode for landscape) */
-  const cols = compact
-    ? (cfg.orientation === 'landscape' ? 4 : 3)
-    : 3;
+  /* Columns and SVG scale — auto-fit if not compact */
+  const totalChords = entries.length;
+  const isLandscape = cfg.orientation === 'landscape';
 
-  /* SVG scale */
-  const svgScale = compact ? 0.78 : 1.35;
+  let cols: number;
+  let svgScale: number;
+
+  if (compact) {
+    cols     = isLandscape ? 4 : 3;
+    svgScale = 0.78;
+  } else {
+    // Page dimensions in px (at 96 dpi, letter = 816×1056, a4 = 794×1122)
+    const paper    = cfg.paperSize ?? 'a4';
+    const PW_PX    = isLandscape ? (paper === 'letter' ? 1056 : 1122) : (paper === 'letter' ? 816 : 794);
+    const PH_PX    = isLandscape ? (paper === 'letter' ? 816  : 794 ) : (paper === 'letter' ? 1056 : 1122);
+    const BODY_PAD = isLandscape ? 60 : 80;   // top+bottom body padding px
+    const HEADER_H = isLandscape ? 160 : 200; // approx header height px
+    const AVAIL_H  = PH_PX - BODY_PAD - HEADER_H;
+    const AVAIL_W  = PW_PX - (isLandscape ? 80 : 104);
+    const GAP      = 20; // elegant gridGap px
+
+    let chosenCols  = 3;
+    let chosenScale = 1.35;
+
+    for (let c = 3; c <= 6; c++) {
+      const cardW = (AVAIL_W - (c - 1) * GAP) / c;
+      const scale = Math.min(1.35, (cardW - 32) / 160);
+      const svgH  = 180 * scale;
+      // Card height: card vertical padding (40) + instr badge (20) + name (24) + diagMb (14) + notes (14) + type (12) + SVG
+      const cardH = 40 + 20 + 24 + 14 + 14 + 12 + svgH;
+      const rows  = Math.ceil(totalChords / c);
+      const total = rows * cardH + (rows - 1) * GAP;
+      if (total <= AVAIL_H || c === 6) {
+        chosenCols  = c;
+        chosenScale = Math.max(0.45, scale);
+        break;
+      }
+    }
+
+    cols     = chosenCols;
+    svgScale = chosenScale;
+  }
 
   /* ── Palette ── */
   const bg       = dark ? '#0c0c0c'                 : (elegant ? '#f6f5f2' : '#ffffff');
@@ -440,7 +477,7 @@ body{
 }
 @media print{
   body{padding:${compact ? '12px 18px' : '24px 36px'};}
-  @page{margin:0.8cm;size:A4 ${cfg.orientation};}
+  @page{margin:0.8cm;size:${cfg.paperSize === 'letter' ? 'Letter' : 'A4'} ${cfg.orientation};}
   .chord-block{break-inside:avoid;}
   .section-group{break-inside:avoid-page;}
 }
@@ -476,21 +513,33 @@ ${chordContent}
       const { Share }    = await import('@capacitor/share');
 
       const orientation = cfg.orientation === 'landscape' ? 'l' : 'p';
-      const pageW = orientation === 'l' ? 297 : 210; // mm
-      const winW  = orientation === 'l' ? 1122 : 794; // px (~3.7795 px/mm)
+      const paper       = cfg.paperSize ?? 'a4';
 
-      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation });
+      // Page dimensions: A4 = 210×297 mm, Letter = 215.9×279.4 mm
+      const pageW_mm = orientation === 'l'
+        ? (paper === 'letter' ? 279.4 : 297)
+        : (paper === 'letter' ? 215.9 : 210);
+      // Pixel width used for rendering HTML (~3.7795 px/mm)
+      const winW = Math.round(pageW_mm * 3.7795);
+
+      const doc = new jsPDF({ unit: 'mm', format: paper, orientation });
 
       // Extract the <style> and <body> content from the pre-built HTML so
       // html2canvas renders it exactly as the web preview does.
+      // Use a unique scoped ID so that the injected CSS doesn't conflict with
+      // the app's own stylesheets (class name collision prevention).
+      const scopeId    = `cxpdf${Date.now()}`;
       const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-      const styleTag   = styleMatch ? `<style>${styleMatch[1]}</style>` : '';
+      const rawCss     = styleMatch ? styleMatch[1] : '';
+      // Scope every CSS class selector under the unique container ID
+      const scopedCss  = rawCss.replace(/\.([\w-]+)/g, `#${scopeId} .$1`);
       const bodyMatch  = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
       const bodyHtml   = bodyMatch ? bodyMatch[1] : html;
 
       const container = document.createElement('div');
-      container.style.cssText = `position:fixed;left:-9999px;top:0;width:${winW}px;background:#ffffff;`;
-      container.innerHTML = styleTag + bodyHtml;
+      container.id    = scopeId;
+      container.style.cssText = `position:fixed;left:-9999px;top:0;width:${winW}px;`;
+      container.innerHTML = `<style>${scopedCss}</style>${bodyHtml}`;
       document.body.appendChild(container);
 
       await new Promise<void>((resolve) => {
@@ -516,9 +565,9 @@ ${chordContent}
           },
           x: 0,
           y: 0,
-          width: pageW,
+          width: pageW_mm,
           windowWidth: winW,
-          autoPaging: 'text',
+          autoPaging: 'slice',
           margin: 0,
         });
       });
@@ -948,11 +997,23 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
 
           <Row
-            label={t.songs.paperSize}
-            sub={t.songs.paperSizeDesc}
+            label="Paper Size"
+            sub="A4 or US Letter"
             right={
               <Segment
-                options={[{ value: 'portrait', label: 'A4' }, { value: 'landscape', label: 'Letter' }]}
+                options={[{ value: 'a4', label: 'A4' }, { value: 'letter', label: 'Letter' }]}
+                value={cfg.paperSize ?? 'a4'}
+                onChange={v => update('paperSize', v as ExportConfig['paperSize'])}
+              />
+            }
+          />
+
+          <Row
+            label="Orientation"
+            sub="Portrait or landscape"
+            right={
+              <Segment
+                options={[{ value: 'portrait', label: 'Portrait' }, { value: 'landscape', label: 'Landscape' }]}
                 value={cfg.orientation}
                 onChange={v => update('orientation', v)}
               />
