@@ -890,7 +890,7 @@ function PreviewFretboard({ data, dark }: { data: GuitarChordData; dark: boolean
   const nutFill   = dark ? '#ddd' : '#191a1a';
 
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
       {showNut && (
         <rect x={pL} y={pT - 5} width={(numS - 1) * cW} height={4} rx={1.5} fill={nutFill} />
       )}
@@ -961,6 +961,11 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
   /* Auto-fit columns based on total chord count – same thresholds as jsPDF engine */
   const totalChords = previewSections.reduce((n, s) => n + s.chords.length, 0);
   const cols = totalChords <= 6 ? 3 : totalChords <= 12 ? 4 : totalChords <= 18 ? 5 : 6;
+
+  /* Scale card visuals down as column count increases */
+  const cardPad  = cols <= 3 ? '8px 5px 7px' : cols === 4 ? '5px 4px 5px' : cols === 5 ? '4px 3px 4px' : '3px 2px 3px';
+  const cardFont = cols <= 3 ? '9px'  : cols === 4 ? '7px'  : cols === 5 ? '6px' : '5px';
+  const gridGap  = cols <= 3 ? '7px 5px' : cols === 4 ? '5px 4px' : cols === 5 ? '4px 3px' : '3px 2px';
 
   const bg        = dark ? '#0e0e0e' : (elegant ? '#f5f4f1' : '#ffffff');
   const paperColor = dark ? '#181818' : '#ffffff';
@@ -1058,25 +1063,25 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
             <div style={{
               display: 'grid',
               gridTemplateColumns: `repeat(${cols}, 1fr)`,
-              gap: compact ? '5px 4px' : '8px 6px',
+              gap: gridGap,
             }}>
               {sec.chords.map((chord, i) => (
                 <div key={chord.id} style={{
                   position: 'relative',
                   background: paperColor,
                   border: `1px solid ${cardBdr}`,
-                  borderRadius: compact ? '5px' : '7px',
+                  borderRadius: cols >= 5 ? '4px' : compact ? '5px' : '7px',
                   boxShadow: cardShad,
-                  padding: compact ? '6px 4px 5px' : '9px 6px 7px',
+                  padding: cardPad,
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
                 }}>
                   {cfg.showNumbering && (
-                    <span style={{ position: 'absolute', top: '4px', right: '5px', fontSize: '5px', fontWeight: 800, color: elegant ? accentC : muted, lineHeight: 1 }}>
+                    <span style={{ position: 'absolute', top: '3px', right: '4px', fontSize: '5px', fontWeight: 800, color: elegant ? accentC : muted, lineHeight: 1 }}>
                       {i + 1}
                     </span>
                   )}
                   {cfg.chordDisplay !== 'diagram' && (
-                    <p style={{ fontSize: compact ? '7px' : '9px', fontWeight: 900, letterSpacing: '-0.01em', color: text, marginBottom: '3px', lineHeight: 1 }}>
+                    <p style={{ fontSize: cardFont, fontWeight: 900, letterSpacing: '-0.01em', color: text, marginBottom: '2px', lineHeight: 1 }}>
                       {chord.name}
                     </p>
                   )}
