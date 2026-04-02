@@ -61,8 +61,8 @@ const KIT_DESC:  Record<KitType, string> = {
 };
 
 // ── Tabs / Mode ────────────────────────────────────────────────────────────
-type DrumTab  = 'kit' | 'mix';
-type DrumMode = 'edit' | 'nav'; // edit = full-screen sheet; nav = kit/mix settings
+type DrumTab  = 'kit';
+type DrumMode = 'edit' | 'nav'; // edit = full-screen sheet; nav = kit settings
 
 // ── SVG note heads ─────────────────────────────────────────────────────────
 function CircleHead({ r, color }: { r: number; color: string }) {
@@ -195,12 +195,11 @@ function IconEditor({ active }: { active: boolean }) {
   );
 }
 
-// ── Settings bottom nav (editor / kit / mix) ──────────────────────────────
-type AllTab = 'editor' | 'kit' | 'mix';
+// ── Settings bottom nav (editor / kit) ────────────────────────────────────
+type AllTab = 'editor' | 'kit';
 const ALL_NAV_TABS: { id: AllTab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
   { id: 'editor', label: 'Editor', Icon: IconEditor },
   { id: 'kit',    label: 'Kit',    Icon: IconKit    },
-  { id: 'mix',    label: 'Mix',    Icon: IconMix    },
 ];
 function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent, isLight, isAmoled }: {
   activeTab: DrumTab; setTab: (t: DrumTab) => void;
@@ -339,8 +338,9 @@ export default function DrumEditor() {
   const [playing, setPlaying]           = useState(false);
   const [looping, setLooping]           = useState(true);
   const [sampleStatus, setSampleStatus] = useState<SampleStatus>('idle');
-  const [showBpmPanel, setShowBpmPanel] = useState(false);
-  const [focusedInst, setFocusedInst]   = useState<DrumInstrument | null>(null);
+  const [showBpmPanel,   setShowBpmPanel]   = useState(false);
+  const [showHamburger,  setShowHamburger]  = useState(false);
+  const [focusedInst,    setFocusedInst]    = useState<DrumInstrument | null>(null);
 
   // ── Container width ──────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
@@ -531,13 +531,85 @@ export default function DrumEditor() {
           </button>
         )}
 
-        {/* Loop — only in kit/mix nav */}
+        {/* Quick-status pills + hamburger — nav mode only */}
         {drumMode === 'nav' && (
-          <button onClick={() => setLooping(l => !l)} style={{ width: 32, height: 32, borderRadius: 9, background: looping ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${looping ? accent.from + '44' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: looping ? accent.from : 'var(--c-text-secondary)', transition: 'all 150ms' }}>
-            ⟳
-          </button>
+          <>
+            {/* Loop pill */}
+            <button
+              onClick={() => setLooping(l => !l)}
+              style={{ height: 26, padding: '0 9px', borderRadius: 999, background: looping ? `${accent.from}22` : 'rgba(128,128,128,0.08)', border: `1px solid ${looping ? accent.from + '44' : 'rgba(128,128,128,0.14)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, color: looping ? accent.from : 'var(--c-text-muted)', fontSize: 11, fontWeight: 700, transition: 'all 180ms', flexShrink: 0 }}
+              aria-label="Toggle loop"
+            >
+              <span style={{ fontSize: 13, lineHeight: 1 }}>⟳</span>
+            </button>
+
+            {/* Step resolution pill */}
+            <button
+              onClick={toggleSub}
+              style={{ height: 26, padding: '0 9px', borderRadius: 999, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 10, fontWeight: 800, transition: 'all 180ms', flexShrink: 0 }}
+              aria-label="Step resolution"
+            >
+              1/{pattern.subdivision}
+            </button>
+
+            {/* Hamburger ≡ */}
+            <button
+              onClick={() => setShowHamburger(h => !h)}
+              style={{ width: 32, height: 32, borderRadius: 9, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}
+              aria-label="Options"
+            >
+              {[0, 1, 2].map(i => (
+                <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />
+              ))}
+            </button>
+          </>
         )}
       </div>
+
+      {/* ── Hamburger panel ────────────────────────────────────────────────── */}
+      {drumMode === 'nav' && showHamburger && (
+        <div style={{
+          flexShrink: 0, overflow: 'hidden',
+          background: isAmoled ? '#000' : (isLight ? 'rgba(250,249,247,0.98)' : 'rgba(14,14,17,0.98)'),
+          borderBottom: '1px solid rgba(128,128,128,0.10)',
+          backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+          animation: 'drumHamburgerIn 200ms cubic-bezier(0.22,1,0.36,1)',
+        }}>
+          <div style={{ padding: '10px 16px 14px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+            {/* Row: Loop */}
+            <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 12 }}>
+              <span style={{ flex: 1, color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Loop</span>
+              <button onClick={() => setLooping(l => !l)} style={{ width: 40, height: 22, borderRadius: 11, background: looping ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.18)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 220ms', flexShrink: 0 }}>
+                <span style={{ position: 'absolute', top: 3, left: looping ? 20 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)', display: 'block' }} />
+              </button>
+            </div>
+
+            <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
+
+            {/* Row: Step resolution */}
+            <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <span style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Step Resolution</span>
+                <span style={{ display: 'block', color: 'var(--c-text-muted)', fontSize: 11, marginTop: 1 }}>{pattern.subdivision === 16 ? '16th notes' : '8th notes'}</span>
+              </div>
+              <button onClick={toggleSub} style={{ height: 28, padding: '0 14px', borderRadius: 8, background: `${accent.from}18`, border: `1px solid ${accent.from}33`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>1/{pattern.subdivision}</button>
+            </div>
+
+            <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
+
+            {/* Row: Master Volume */}
+            <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 12 }}>
+              <span style={{ flex: 1, color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Volume</span>
+              <span style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 700, minWidth: 32, textAlign: 'right' }}>{Math.round(masterVolume * 100)}%</span>
+              <input type="range" min={0} max={1} step={0.01} value={masterVolume}
+                onChange={e => setMasterVolume(parseFloat(e.target.value))}
+                style={{ width: 100, accentColor: accent.from, flexShrink: 0 }} />
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -644,8 +716,8 @@ export default function DrumEditor() {
             </div>
 
             {/* ── 2 floating buttons on the right ── */}
-            {/* BPM button */}
-            <div style={{ position: 'fixed', right: 14, bottom: 88, zIndex: 60 }}>
+            {/* BPM / metronome button — circle aligned above play */}
+            <div style={{ position: 'fixed', right: 14, bottom: 88, zIndex: 60, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
               {/* BPM adjuster panel — pops up to the left */}
               {showBpmPanel && (
                 <div style={{
@@ -656,6 +728,7 @@ export default function DrumEditor() {
                   backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
                   boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.50)',
                   whiteSpace: 'nowrap',
+                  animation: 'drumHamburgerIn 160ms cubic-bezier(0.22,1,0.36,1)',
                 }}>
                   {([-10, -1, +1, +10] as const).map(d => (
                     <button key={d} onClick={() => adjustBpm(d)} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700 }}>
@@ -666,22 +739,26 @@ export default function DrumEditor() {
                   <span style={{ color: accent.from, fontSize: 16, fontWeight: 800, minWidth: 36, textAlign: 'center' }}>{pattern.bpm}</span>
                 </div>
               )}
+              {/* Metronome icon circle */}
               <button
                 onClick={() => setShowBpmPanel(s => !s)}
                 style={{
-                  height: 36, padding: '0 13px', borderRadius: 999,
-                  background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(0,0,0,0.92)' : (isLight ? 'rgba(255,255,255,0.92)' : 'rgba(18,18,22,0.92)')),
-                  border: `1.5px solid ${showBpmPanel ? accent.from + '55' : (isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)')}`,
+                  width: 44, height: 44, borderRadius: '50%', border: 'none',
+                  background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(0,0,0,0.88)' : (isLight ? 'rgba(245,244,242,0.92)' : 'rgba(18,18,22,0.88)')),
+                  boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.10)' : '0 2px 12px rgba(0,0,0,0.50)',
                   backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
                   cursor: 'pointer', transition: 'all 160ms',
-                  boxShadow: isLight ? '0 4px 20px rgba(0,0,0,0.12)' : '0 4px 20px rgba(0,0,0,0.45)',
-                  display: 'flex', alignItems: 'center', gap: 5,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  outline: showBpmPanel ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(128,128,128,0.12)',
                 }}
+                aria-label={`BPM: ${pattern.bpm}`}
               >
-                <span style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>♩</span>
-                <span style={{ color: showBpmPanel ? accent.from : 'var(--c-text-primary)', fontSize: 14, fontWeight: 800 }}>
-                  {pattern.bpm}
-                </span>
+                {/* Metronome SVG */}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 4h6l1.5 12H7.5L9 4Z" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinejoin="round" />
+                  <line x1="12" y1="4" x2="17" y2="13" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinecap="round" />
+                  <rect x="10" y="2" width="4" height="2.5" rx="1" fill={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} />
+                </svg>
               </button>
             </div>
 
@@ -752,67 +829,6 @@ export default function DrumEditor() {
           </div>
         )}
 
-        {/* ═══ MIX ══════════════════════════════════════════════════════════ */}
-        {drumMode === 'nav' && activeTab === 'mix' && (
-          <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20, paddingBottom: 100 }} className="no-scrollbar">
-            <SectionLabel>Tempo</SectionLabel>
-            <Card>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '16px 18px', gap: 10, borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 600, marginBottom: 2 }}>BPM</div>
-                  <div style={{ color: 'var(--c-text-primary)', fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{pattern.bpm}</div>
-                </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {[-10, -1, +1, +10].map(d => (
-                    <button key={d} onClick={() => adjustBpm(d)} style={{ width: d === -10 || d === 10 ? 40 : 36, height: 36, borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 700 }}>
-                      {d > 0 ? `+${d}` : d}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '12px 18px', gap: 10 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Step Resolution</div>
-                  <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2 }}>{pattern.subdivision === 16 ? '16th notes' : '8th notes'}</div>
-                </div>
-                <button onClick={toggleSub} style={{ height: 32, padding: '0 14px', borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: `1px solid ${accent.from}44`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 700 }}>1/{pattern.subdivision}</button>
-              </div>
-            </Card>
-            <SectionLabel>Playback</SectionLabel>
-            <Card>
-              <button onClick={() => setLooping(l => !l)} style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '13px 18px', gap: 12, background: 'transparent', border: 'none', borderBottom: '1px solid rgba(128,128,128,0.08)', cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Loop</div>
-                  <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2 }}>Repeat pattern continuously</div>
-                </div>
-                <div style={{ width: 42, height: 24, borderRadius: 12, flexShrink: 0, background: looping ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.18)', position: 'relative', transition: 'background 200ms' }}>
-                  <div style={{ position: 'absolute', top: 3, left: looping ? 20 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)' }} />
-                </div>
-              </button>
-              <div style={{ padding: '13px 18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <div style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Master Volume</div>
-                  <span style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600 }}>{Math.round(masterVolume * 100)}%</span>
-                </div>
-                <input type="range" min={0} max={1} step={0.01} value={masterVolume}
-                  onChange={e => setMasterVolume(parseFloat(e.target.value))}
-                  style={{ width: '100%', accentColor: accent.from }} />
-              </div>
-            </Card>
-            <SectionLabel>Pattern</SectionLabel>
-            <Card>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '13px 18px', gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Bars</div>
-                  <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2 }}>{pattern.measures.length} {pattern.measures.length === 1 ? 'bar' : 'bars'}</div>
-                </div>
-                <button onClick={() => addMeasure(pattern.id)} style={{ height: 32, padding: '0 16px', borderRadius: 9, background: `${accent.from}18`, border: `1px solid ${accent.from}33`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 700 }}>
-                  + Add Bar
-                </button>
-              </div>
-            </Card>
-          </div>
-        )}
       </div>
 
       {/* ── Bottom nav (always visible) ─────────────────────────────────── */}

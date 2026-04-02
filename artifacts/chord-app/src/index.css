@@ -465,6 +465,11 @@ html, body { background: var(--app-bg); }
     to   { opacity: 1; transform: scale(1)    translateY(0);    }
   }
 
+  @keyframes drumHamburgerIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+
   /* ===== Reduced motion (system) ===== */
   @media (prefers-reduced-motion: reduce) {
     .panel-transition,
