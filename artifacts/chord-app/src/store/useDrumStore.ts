@@ -8,34 +8,23 @@ export type DrumInstrument =
   | 'tom-high' | 'tom-mid' | 'tom-floor'
   | 'kick';
 
+export type KitType = 'acoustic' | 'advanced' | 'electronic';
+
 export const DRUM_INSTRUMENTS: DrumInstrument[] = [
   'crash', 'ride', 'hihat-open', 'hihat-closed', 'hihat-foot',
   'snare', 'tom-high', 'tom-mid', 'tom-floor', 'kick',
 ];
 
-export const INSTRUMENT_ABBR: Record<DrumInstrument, string> = {
-  crash:          'CR',
-  ride:           'RD',
-  'hihat-open':   'HO',
-  'hihat-closed': 'HC',
-  'hihat-foot':   'HF',
-  snare:          'SN',
-  'tom-high':     'T1',
-  'tom-mid':      'T2',
-  'tom-floor':    'FT',
-  kick:           'BD',
-};
-
 export const INSTRUMENT_NAME: Record<DrumInstrument, string> = {
   crash:          'Crash',
   ride:           'Ride',
-  'hihat-open':   'Hi-Hat Open',
-  'hihat-closed': 'Hi-Hat Closed',
-  'hihat-foot':   'Hi-Hat Foot',
+  'hihat-open':   'Open HH',
+  'hihat-closed': 'Hi-Hat',
+  'hihat-foot':   'HH Foot',
   snare:          'Snare',
-  'tom-high':     'Tom High',
+  'tom-high':     'Tom Hi',
   'tom-mid':      'Tom Mid',
-  'tom-floor':    'Floor Tom',
+  'tom-floor':    'Floor',
   kick:           'Kick',
 };
 
@@ -52,16 +41,15 @@ export const INSTRUMENT_COLOR: Record<DrumInstrument, string> = {
   kick:           '#679cff',
 };
 
-export interface DrumHit {
-  step: number;
-  length: number;
-}
+// Default active instrument list per kit type
+export const KIT_INSTRUMENTS: Record<KitType, DrumInstrument[]> = {
+  acoustic:   ['kick', 'snare', 'hihat-closed', 'hihat-open', 'crash', 'tom-high'],
+  advanced:   ['crash', 'ride', 'hihat-open', 'hihat-closed', 'hihat-foot', 'snare', 'tom-high', 'tom-mid', 'tom-floor', 'kick'],
+  electronic: ['kick', 'snare', 'hihat-closed', 'hihat-open', 'crash', 'tom-high'],
+};
 
-export interface DrumMeasure {
-  id: string;
-  hits: Partial<Record<DrumInstrument, DrumHit[]>>;
-}
-
+export interface DrumHit { step: number; length: number; }
+export interface DrumMeasure { id: string; hits: Partial<Record<DrumInstrument, DrumHit[]>>; }
 export interface DrumPattern {
   id: string;
   name: string;
@@ -71,57 +59,47 @@ export interface DrumPattern {
   measures: DrumMeasure[];
 }
 
-function uid(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function emptyMeasure(): DrumMeasure {
-  return { id: `m-${uid()}`, hits: {} };
-}
-
+function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
+function emptyMeasure(): DrumMeasure { return { id: `m-${uid()}`, hits: {} }; }
 function defaultPattern(): DrumPattern {
-  return {
-    id: `p-${uid()}`,
-    name: 'Pattern 1',
-    bpm: 120,
-    timeSignature: [4, 4],
-    subdivision: 16,
-    measures: [emptyMeasure()],
-  };
+  return { id: `p-${uid()}`, name: 'Pattern 1', bpm: 120, timeSignature: [4, 4], subdivision: 16, measures: [emptyMeasure()] };
 }
 
 export function stepsPerMeasure(p: DrumPattern): number {
   return p.timeSignature[0] * (p.subdivision / p.timeSignature[1]);
 }
-
 export function measureHasHits(m: DrumMeasure): boolean {
   return Object.values(m.hits).some(arr => arr && arr.length > 0);
 }
 
 interface DrumStore {
-  patterns: DrumPattern[];
-  activePatternId: string | null;
-  soundMap: Partial<Record<DrumInstrument, string>>;
-  volumeMap: Partial<Record<DrumInstrument, number>>;
-  masterVolume: number;
+  patterns:          DrumPattern[];
+  activePatternId:   string | null;
+  soundMap:          Partial<Record<DrumInstrument, string>>;
+  volumeMap:         Partial<Record<DrumInstrument, number>>;
+  masterVolume:      number;
+  kitType:           KitType | null;   // null = kit not yet chosen (show picker on first open)
+  activeInstruments: DrumInstrument[];
 
-  setSoundForInstrument: (inst: DrumInstrument, soundId: string) => void;
-  setVolumeForInstrument: (inst: DrumInstrument, vol: number) => void;
-  setMasterVolume: (vol: number) => void;
+  setSoundForInstrument:   (inst: DrumInstrument, soundId: string) => void;
+  setVolumeForInstrument:  (inst: DrumInstrument, vol: number)     => void;
+  setMasterVolume:         (vol: number) => void;
+  setKitType:              (kit: KitType, soundMap: Partial<Record<DrumInstrument, string>>) => void;
+  toggleInstrument:        (inst: DrumInstrument) => void;
+  setActiveInstruments:    (insts: DrumInstrument[]) => void;
 
-  createPattern: () => string;
+  createPattern:    () => string;
   duplicatePattern: (id: string) => string;
-  deletePattern: (id: string) => void;
-  renamePattern: (id: string, name: string) => void;
-  updatePattern: (id: string, patch: Partial<Pick<DrumPattern, 'bpm' | 'timeSignature' | 'subdivision'>>) => void;
+  deletePattern:    (id: string) => void;
+  renamePattern:    (id: string, name: string) => void;
+  updatePattern:    (id: string, patch: Partial<Pick<DrumPattern, 'bpm' | 'timeSignature' | 'subdivision'>>) => void;
   setActivePattern: (id: string) => void;
 
-  toggleHit: (patternId: string, measureId: string, instrument: DrumInstrument, step: number) => void;
-  setHitLength: (patternId: string, measureId: string, instrument: DrumInstrument, step: number, length: number) => void;
-  addMeasure: (patternId: string) => string;
-  deleteMeasure: (patternId: string, measureId: string) => void;
-  clearMeasure: (patternId: string, measureId: string) => void;
-  duplicateMeasure: (patternId: string, measureId: string) => void;
+  toggleHit:       (patternId: string, measureId: string, instrument: DrumInstrument, step: number) => void;
+  addMeasure:      (patternId: string) => string;
+  deleteMeasure:   (patternId: string, measureId: string) => void;
+  clearMeasure:    (patternId: string, measureId: string) => void;
+  duplicateMeasure:(patternId: string, measureId: string) => void;
 }
 
 const initial = defaultPattern();
@@ -129,18 +107,31 @@ const initial = defaultPattern();
 export const useDrumStore = create<DrumStore>()(
   persist(
     (set, get) => ({
-      patterns: [initial],
-      activePatternId: initial.id,
-      soundMap: {},
-      volumeMap: {},
-      masterVolume: 0.8,
+      patterns:          [initial],
+      activePatternId:   initial.id,
+      soundMap:          {},
+      volumeMap:         {},
+      masterVolume:      0.82,
+      kitType:           null,
+      activeInstruments: KIT_INSTRUMENTS.acoustic,
 
       setSoundForInstrument: (inst, soundId) =>
         set(s => ({ soundMap: { ...s.soundMap, [inst]: soundId } })),
       setVolumeForInstrument: (inst, vol) =>
         set(s => ({ volumeMap: { ...s.volumeMap, [inst]: Math.max(0, Math.min(1, vol)) } })),
-      setMasterVolume: (vol) =>
-        set({ masterVolume: Math.max(0, Math.min(1, vol)) }),
+      setMasterVolume: vol => set({ masterVolume: Math.max(0, Math.min(1, vol)) }),
+
+      setKitType: (kit, soundMap) =>
+        set({ kitType: kit, soundMap, activeInstruments: KIT_INSTRUMENTS[kit] }),
+
+      toggleInstrument: inst =>
+        set(s => ({
+          activeInstruments: s.activeInstruments.includes(inst)
+            ? s.activeInstruments.length > 1 ? s.activeInstruments.filter(i => i !== inst) : s.activeInstruments
+            : [...s.activeInstruments, inst],
+        })),
+
+      setActiveInstruments: insts => set({ activeInstruments: insts }),
 
       createPattern: () => {
         const p = defaultPattern();
@@ -149,7 +140,7 @@ export const useDrumStore = create<DrumStore>()(
         return p.id;
       },
 
-      duplicatePattern: (id) => {
+      duplicatePattern: id => {
         const src = get().patterns.find(p => p.id === id);
         if (!src) return id;
         const dup: DrumPattern = {
@@ -162,29 +153,20 @@ export const useDrumStore = create<DrumStore>()(
         return dup.id;
       },
 
-      deletePattern: (id) => {
+      deletePattern: id => {
         set(s => {
           const patterns = s.patterns.filter(p => p.id !== id);
           if (patterns.length === 0) {
             const p = defaultPattern();
             return { patterns: [p], activePatternId: p.id };
           }
-          return {
-            patterns,
-            activePatternId: s.activePatternId === id ? patterns[0].id : s.activePatternId,
-          };
+          return { patterns, activePatternId: s.activePatternId === id ? patterns[0].id : s.activePatternId };
         });
       },
 
-      renamePattern: (id, name) => set(s => ({
-        patterns: s.patterns.map(p => p.id === id ? { ...p, name } : p),
-      })),
-
-      updatePattern: (id, patch) => set(s => ({
-        patterns: s.patterns.map(p => p.id === id ? { ...p, ...patch } : p),
-      })),
-
-      setActivePattern: (id) => set({ activePatternId: id }),
+      renamePattern:  (id, name) => set(s => ({ patterns: s.patterns.map(p => p.id === id ? { ...p, name } : p) })),
+      updatePattern:  (id, patch) => set(s => ({ patterns: s.patterns.map(p => p.id === id ? { ...p, ...patch } : p) })),
+      setActivePattern: id => set({ activePatternId: id }),
 
       toggleHit: (patternId, measureId, instrument, step) => {
         set(s => ({
@@ -196,51 +178,17 @@ export const useDrumStore = create<DrumStore>()(
                 if (m.id !== measureId) return m;
                 const hits = m.hits[instrument] ?? [];
                 const existing = hits.find(h => step >= h.step && step < h.step + h.length);
-                if (existing) {
-                  return { ...m, hits: { ...m.hits, [instrument]: hits.filter(h => h !== existing) } };
-                }
-                return {
-                  ...m,
-                  hits: {
-                    ...m.hits,
-                    [instrument]: [...hits, { step, length: 1 }].sort((a, b) => a.step - b.step),
-                  },
-                };
+                if (existing) return { ...m, hits: { ...m.hits, [instrument]: hits.filter(h => h !== existing) } };
+                return { ...m, hits: { ...m.hits, [instrument]: [...hits, { step, length: 1 }].sort((a, b) => a.step - b.step) } };
               }),
             };
           }),
         }));
       },
 
-      setHitLength: (patternId, measureId, instrument, step, length) => {
-        set(s => ({
-          patterns: s.patterns.map(p => {
-            if (p.id !== patternId) return p;
-            return {
-              ...p,
-              measures: p.measures.map(m => {
-                if (m.id !== measureId) return m;
-                const hits = m.hits[instrument] ?? [];
-                return {
-                  ...m,
-                  hits: {
-                    ...m.hits,
-                    [instrument]: hits.map(h => h.step === step ? { ...h, length: Math.max(1, length) } : h),
-                  },
-                };
-              }),
-            };
-          }),
-        }));
-      },
-
-      addMeasure: (patternId) => {
+      addMeasure: patternId => {
         const m = emptyMeasure();
-        set(s => ({
-          patterns: s.patterns.map(p =>
-            p.id === patternId ? { ...p, measures: [...p.measures, m] } : p
-          ),
-        }));
+        set(s => ({ patterns: s.patterns.map(p => p.id === patternId ? { ...p, measures: [...p.measures, m] } : p) }));
         return m.id;
       },
 
@@ -257,10 +205,7 @@ export const useDrumStore = create<DrumStore>()(
       clearMeasure: (patternId, measureId) => {
         set(s => ({
           patterns: s.patterns.map(p =>
-            p.id !== patternId ? p : {
-              ...p,
-              measures: p.measures.map(m => m.id === measureId ? { ...m, hits: {} } : m),
-            }
+            p.id !== patternId ? p : { ...p, measures: p.measures.map(m => m.id === measureId ? { ...m, hits: {} } : m) }
           ),
         }));
       },
@@ -271,10 +216,7 @@ export const useDrumStore = create<DrumStore>()(
             if (p.id !== patternId) return p;
             const idx = p.measures.findIndex(m => m.id === measureId);
             if (idx < 0) return p;
-            const dup: DrumMeasure = {
-              id: `m-${uid()}`,
-              hits: JSON.parse(JSON.stringify(p.measures[idx].hits)),
-            };
+            const dup: DrumMeasure = { id: `m-${uid()}`, hits: JSON.parse(JSON.stringify(p.measures[idx].hits)) };
             const measures = [...p.measures];
             measures.splice(idx + 1, 0, dup);
             return { ...p, measures };
@@ -282,6 +224,6 @@ export const useDrumStore = create<DrumStore>()(
         }));
       },
     }),
-    { name: 'chordex-drums', version: 1 }
+    { name: 'chordex-drums', version: 2 }
   )
 );

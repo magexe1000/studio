@@ -1,5 +1,61 @@
-import type { DrumInstrument, DrumPattern } from '../store/useDrumStore';
+import type { DrumInstrument, DrumPattern, KitType } from '../store/useDrumStore';
 import { DRUM_INSTRUMENTS, stepsPerMeasure } from '../store/useDrumStore';
+
+// ── Kit presets ──────────────────────────────────────────────────────────────
+export const KIT_DEFAULTS: Record<KitType, {
+  label:       string;
+  description: string;
+  soundMap:    Partial<Record<DrumInstrument, string>>;
+}> = {
+  acoustic: {
+    label:       'Acoustic Drums',
+    description: 'Natural, warm acoustic drum kit — real samples',
+    soundMap: {
+      kick:           'kick-acoustic',
+      snare:          'snare-fat',
+      'hihat-closed': 'hh-c-crisp',
+      'hihat-open':   'hh-o-long',
+      'hihat-foot':   'hh-f-std',
+      'tom-high':     'tom-hi-std',
+      'tom-mid':      'tom-m-warm',
+      'tom-floor':    'tom-f-std',
+      crash:          'crash-std',
+      ride:           'ride-std',
+    },
+  },
+  advanced: {
+    label:       'Advanced Drums',
+    description: 'Full acoustic kit — extended range, all 10 drums',
+    soundMap: {
+      kick:           'kick-acoustic',
+      snare:          'snare-rimshot',
+      'hihat-closed': 'hh-c-loose',
+      'hihat-open':   'hh-o-wash',
+      'hihat-foot':   'hh-f-splash',
+      'tom-high':     'tom-hi-std',
+      'tom-mid':      'tom-m-warm',
+      'tom-floor':    'tom-f-deep',
+      crash:          'crash-bright',
+      ride:           'ride-std',
+    },
+  },
+  electronic: {
+    label:       'Electronic Drums',
+    description: '808 / 909 electronic sound design',
+    soundMap: {
+      kick:           'kick-808',
+      snare:          'snare-crack',
+      'hihat-closed': 'hh-c-tight',
+      'hihat-open':   'hh-o-short',
+      'hihat-foot':   'hh-f-std',
+      'tom-high':     'tom-hi-tight',
+      'tom-mid':      'tom-m-std',
+      'tom-floor':    'tom-f-std',
+      crash:          'crash-china',
+      ride:           'ride-bell',
+    },
+  },
+};
 
 // ── Sound variant catalogue ─────────────────────────────────────────────────
 export interface SoundVariant { id: string; label: string; }
