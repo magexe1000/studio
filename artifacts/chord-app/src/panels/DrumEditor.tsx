@@ -529,40 +529,40 @@ export default function DrumEditor() {
         <div style={{ flex: 1 }} />
 
         {/* Clear — only in editor */}
-        {drumMode === 'edit' && (
-          <button onClick={handleClear} style={{ height: 28, padding: '0 12px', borderRadius: 7, background: 'transparent', border: '1px solid rgba(128,128,128,0.18)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 600 }}>
+        {drumMode === 'edit' && (<>
+          <button onClick={handleClear} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(128,128,128,0.18)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
             Clear
           </button>
-        )}
 
-        {/* Loop pill */}
-        <button
-          onClick={() => setLooping(l => !l)}
-          style={{ height: 26, padding: '0 9px', borderRadius: 999, background: looping ? `${accent.from}22` : 'rgba(128,128,128,0.08)', border: `1px solid ${looping ? accent.from + '44' : 'rgba(128,128,128,0.14)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, color: looping ? accent.from : 'var(--c-text-muted)', fontSize: 11, fontWeight: 700, transition: 'all 180ms', flexShrink: 0 }}
-          aria-label="Toggle loop"
-        >
-          <span style={{ fontSize: 13, lineHeight: 1 }}>⟳</span>
-        </button>
+          {/* Loop */}
+          <button
+            onClick={() => setLooping(l => !l)}
+            style={{ height: 30, width: 38, borderRadius: 8, background: looping ? `${accent.from}22` : 'rgba(128,128,128,0.08)', border: `1px solid ${looping ? accent.from + '44' : 'rgba(128,128,128,0.14)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: looping ? accent.from : 'var(--c-text-muted)', transition: 'all 180ms', flexShrink: 0 }}
+            aria-label="Toggle loop"
+          >
+            <span style={{ fontSize: 14, lineHeight: 1 }}>⟳</span>
+          </button>
 
-        {/* Step resolution pill */}
-        <button
-          onClick={toggleSub}
-          style={{ height: 26, padding: '0 9px', borderRadius: 999, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 10, fontWeight: 800, transition: 'all 180ms', flexShrink: 0 }}
-          aria-label="Step resolution"
-        >
-          1/{pattern.subdivision}
-        </button>
+          {/* Step resolution */}
+          <button
+            onClick={toggleSub}
+            style={{ height: 30, padding: '0 10px', borderRadius: 8, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 10, fontWeight: 800, transition: 'all 180ms', flexShrink: 0 }}
+            aria-label="Step resolution"
+          >
+            1/{pattern.subdivision}
+          </button>
 
-        {/* Hamburger ≡ */}
-        <button
-          onClick={() => setShowHamburger(h => !h)}
-          style={{ width: 32, height: 32, borderRadius: 9, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}
-          aria-label="Options"
-        >
-          {[0, 1, 2].map(i => (
-            <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />
-          ))}
-        </button>
+          {/* Hamburger ≡ */}
+          <button
+            onClick={() => setShowHamburger(h => !h)}
+            style={{ height: 30, width: 38, borderRadius: 8, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}
+            aria-label="Options"
+          >
+            {[0, 1, 2].map(i => (
+              <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />
+            ))}
+          </button>
+        </>)}
       </div>
 
       {/* ── Hamburger panel ────────────────────────────────────────────────── */}
