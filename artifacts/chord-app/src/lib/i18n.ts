@@ -330,6 +330,16 @@ const translations = {
       fallbackName: 'Custom Chord',
     },
 
+    /* ── Chord Finder ── */
+    chordFinder: {
+      title: 'Chord Finder',
+      subtitle: 'Build the shape to identify the chord',
+      waiting: 'Place fingers to detect a chord',
+      noMatch: 'No match — try a different shape',
+      notes: 'Notes detected',
+      openFinder: 'Find a Chord',
+    },
+
     /* ── Live Mode ── */
     liveMode: {
       title: 'Live Mode',
@@ -661,6 +671,16 @@ const translations = {
       barre: 'Cejilla',
       barreHint: 'Toca 2+ posiciones en el mismo traste — se conectarán como cejilla',
       fallbackName: 'Acorde personalizado',
+    },
+
+    /* ── Chord Finder ── */
+    chordFinder: {
+      title: 'Identificador de acordes',
+      subtitle: 'Construye la forma para identificar el acorde',
+      waiting: 'Coloca los dedos para detectar un acorde',
+      noMatch: 'Sin coincidencia — prueba otra forma',
+      notes: 'Notas detectadas',
+      openFinder: 'Encontrar un acorde',
     },
 
     liveMode: {

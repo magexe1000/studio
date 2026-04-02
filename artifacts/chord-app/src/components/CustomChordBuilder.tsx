@@ -492,11 +492,12 @@ function genId() {
 interface Props {
   accent: { from: string; to: string; mid: string };
   editChord?: CustomChord | null;
-  onSave: (chord: CustomChord) => void;
+  onSave?: (chord: CustomChord) => void;
   onClose: () => void;
+  mode?: 'build' | 'find';
 }
 
-export default function CustomChordBuilder({ accent, editChord, onSave, onClose }: Props) {
+export default function CustomChordBuilder({ accent, editChord, onSave, onClose, mode = 'build' }: Props) {
   const { settings } = useChordStore();
   const t = useT();
   const resolvedAccent = ACCENT_COLORS[settings.accentColor];
@@ -563,7 +564,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
       notes,
       createdAt: editChord?.createdAt ?? Date.now(),
     };
-    onSave(chord);
+    onSave?.(chord);
   };
 
   // Build live preview data for guitar
@@ -614,15 +615,15 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#fff' }}>
-              {isEditing ? 'edit' : 'add_circle'}
+              {mode === 'find' ? 'search' : isEditing ? 'edit' : 'add_circle'}
             </span>
           </div>
           <div style={{ flex: 1 }}>
             <p style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '18px', color: 'var(--c-text-primary)', lineHeight: 1 }}>
-              {isEditing ? t.customBuilder.titleEdit : t.customBuilder.titleNew}
+              {mode === 'find' ? t.chordFinder.title : isEditing ? t.customBuilder.titleEdit : t.customBuilder.titleNew}
             </p>
             <p style={{ fontFamily: 'Inter', fontSize: '11px', color: 'var(--c-text-muted)', marginTop: '2px' }}>
-              {isEditing ? t.customBuilder.subtitleEdit : t.customBuilder.subtitleNew}
+              {mode === 'find' ? t.chordFinder.subtitle : isEditing ? t.customBuilder.subtitleEdit : t.customBuilder.subtitleNew}
             </p>
           </div>
           <button onClick={onClose} className="btn-smooth" style={{ color: 'var(--c-text-secondary)' }}>
@@ -708,8 +709,86 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
             </div>
           </div>
 
-          {/* ── Chord name input ── */}
+          {/* ── Chord Finder result display (find mode) ── */}
+          {mode === 'find' && (
+            <div style={{
+              marginBottom: '14px',
+              padding: '16px',
+              borderRadius: '16px',
+              background: suggested
+                ? `linear-gradient(135deg, ${resolvedAccent.from}18, ${resolvedAccent.to}0a)`
+                : 'var(--app-surface)',
+              border: `1.5px solid ${suggested ? resolvedAccent.from + '44' : 'rgba(72,72,72,0.12)'}`,
+              transition: 'all 220ms ease',
+              display: 'flex', alignItems: 'center', gap: '12px', minHeight: '72px',
+            }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
+                background: suggested ? `linear-gradient(135deg, ${resolvedAccent.from}, ${resolvedAccent.to})` : 'var(--app-surface-high)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 220ms ease',
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: suggested ? '#fff' : 'var(--c-text-muted)' }}>
+                  {suggested ? 'music_note' : 'piano'}
+                </span>
+              </div>
+              <div style={{ flex: 1 }}>
+                {suggested ? (
+                  <>
+                    <p style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '22px', color: 'var(--c-text-primary)', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                      {suggested}
+                    </p>
+                    {notes.length > 0 && (
+                      <p style={{ fontFamily: 'Inter', fontSize: '11px', color: 'var(--c-text-secondary)', marginTop: '3px' }}>
+                        {notes.join(' · ')}
+                      </p>
+                    )}
+                  </>
+                ) : notes.length > 0 ? (
+                  <>
+                    <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', color: 'var(--c-text-secondary)' }}>
+                      {t.chordFinder.noMatch}
+                    </p>
+                    <p style={{ fontFamily: 'Inter', fontSize: '11px', color: 'var(--c-text-muted)', marginTop: '2px' }}>
+                      {notes.join(' · ')}
+                    </p>
+                  </>
+                ) : (
+                  <p style={{ fontFamily: 'Inter', fontSize: '13px', color: 'var(--c-text-muted)' }}>
+                    {t.chordFinder.waiting}
+                  </p>
+                )}
+              </div>
+              {suggested && (
+                <div style={{ flexShrink: 0, background: `${resolvedAccent.from}20`, border: `1px solid ${resolvedAccent.from}44`, borderRadius: '9999px', padding: '3px 10px' }}>
+                  <span style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '10px', color: resolvedAccent.from, textTransform: 'uppercase', letterSpacing: '0.08em' }}>detected</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Chord name input (build mode) ── */}
+          {mode === 'build' && (
           <div style={{ marginBottom: '14px' }}>
+            {/* Detected name banner — prominent, shown above input */}
+            {suggested && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '8px 12px', borderRadius: '10px', marginBottom: '8px',
+                background: `linear-gradient(135deg, ${resolvedAccent.from}16, ${resolvedAccent.to}08)`,
+                border: `1px solid ${resolvedAccent.from}33`,
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: resolvedAccent.from, flexShrink: 0 }}>auto_fix_high</span>
+                <span style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px', color: resolvedAccent.from, flex: 1 }}>
+                  {suggested}
+                </span>
+                {name.trim() === '' && (
+                  <span style={{ fontFamily: 'Inter', fontSize: '10px', color: resolvedAccent.from + 'bb' }}>
+                    auto-filled
+                  </span>
+                )}
+              </div>
+            )}
             <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '11px', color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>{t.customBuilder.chordName}</p>
             <div style={{ position: 'relative' }}>
               <input
@@ -725,19 +804,9 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
                 onFocus={e => { e.target.style.borderColor = resolvedAccent.from; }}
                 onBlur={e => { e.target.style.borderColor = 'rgba(72,72,72,0.15)'; }}
               />
-              {suggested && !nameTouched && (
-                <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: `${resolvedAccent.from}18`, border: `1px solid ${resolvedAccent.from}33`, borderRadius: '9999px', padding: '2px 8px' }}>
-                  <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '10px', color: resolvedAccent.from }}>auto</span>
-                </div>
-              )}
             </div>
-            {suggested && name.trim() === '' && (
-              <p style={{ fontFamily: 'Inter', fontSize: '11px', color: resolvedAccent.from, marginTop: '5px' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '12px', verticalAlign: 'middle' }}>auto_fix_high</span>
-                {' '}{t.customBuilder.detectedHint(suggested)}
-              </p>
-            )}
           </div>
+          )}
 
           {/* ── Builder ── */}
           <div style={{ marginBottom: '4px' }}>
@@ -801,27 +870,62 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose 
           )}
         </div>
 
-        {/* ── Save button ── */}
+        {/* ── Action footer ── */}
         <div style={{ padding: '12px 16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', borderTop: '1px solid rgba(72,72,72,0.08)', flexShrink: 0, background: 'var(--app-bg)' }}>
-          <button onClick={handleSave} disabled={!hasAnyNote} className="btn-smooth" data-testid="custom-chord-save-btn"
-            style={{
-              width: '100%', padding: '16px',
-              borderRadius: '9999px',
-              background: hasAnyNote
-                ? `linear-gradient(135deg, ${resolvedAccent.from}, ${resolvedAccent.to})`
-                : 'var(--app-surface)',
-              color: hasAnyNote ? '#fff' : 'var(--c-text-muted)',
-              fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px',
-              boxShadow: hasAnyNote ? `0 4px 24px ${resolvedAccent.to}50` : 'none',
-              transition: 'all 250ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-              transform: hasAnyNote ? 'scale(1)' : 'scale(0.98)',
-            }}>
-            {isEditing ? t.customBuilder.updateChord : t.customBuilder.saveChord}
-          </button>
-          {!hasAnyNote && (
-            <p style={{ textAlign: 'center', fontFamily: 'Inter', fontSize: '11px', color: 'var(--c-text-muted)', marginTop: '8px' }}>
-              {instrument === 'piano' ? t.customBuilder.hintPiano : t.customBuilder.hintFret}
-            </p>
+          {mode === 'find' ? (
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => {
+                  if (instrument === 'piano') setPianoKeys([]);
+                  else { setFrets(new Array(instrument === 'bass' || instrument === 'ukulele' ? 4 : 6).fill(0)); setBarres([]); }
+                }}
+                disabled={!hasAnyNote}
+                className="btn-smooth"
+                style={{
+                  flex: 1, padding: '16px', borderRadius: '9999px',
+                  background: hasAnyNote ? 'var(--app-surface-high)' : 'var(--app-surface)',
+                  color: hasAnyNote ? 'var(--c-text-primary)' : 'var(--c-text-muted)',
+                  fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px',
+                  opacity: hasAnyNote ? 1 : 0.4,
+                  transition: 'all 200ms ease',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>restart_alt</span>
+                Clear
+              </button>
+              <button onClick={onClose} className="btn-smooth"
+                style={{
+                  flex: 1, padding: '16px', borderRadius: '9999px',
+                  background: `linear-gradient(135deg, ${resolvedAccent.from}, ${resolvedAccent.to})`,
+                  color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px',
+                  boxShadow: `0 4px 24px ${resolvedAccent.to}50`,
+                }}>
+                Done
+              </button>
+            </div>
+          ) : (
+            <>
+              <button onClick={handleSave} disabled={!hasAnyNote} className="btn-smooth" data-testid="custom-chord-save-btn"
+                style={{
+                  width: '100%', padding: '16px',
+                  borderRadius: '9999px',
+                  background: hasAnyNote
+                    ? `linear-gradient(135deg, ${resolvedAccent.from}, ${resolvedAccent.to})`
+                    : 'var(--app-surface)',
+                  color: hasAnyNote ? '#fff' : 'var(--c-text-muted)',
+                  fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px',
+                  boxShadow: hasAnyNote ? `0 4px 24px ${resolvedAccent.to}50` : 'none',
+                  transition: 'all 250ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  transform: hasAnyNote ? 'scale(1)' : 'scale(0.98)',
+                }}>
+                {isEditing ? t.customBuilder.updateChord : t.customBuilder.saveChord}
+              </button>
+              {!hasAnyNote && (
+                <p style={{ textAlign: 'center', fontFamily: 'Inter', fontSize: '11px', color: 'var(--c-text-muted)', marginTop: '8px' }}>
+                  {instrument === 'piano' ? t.customBuilder.hintPiano : t.customBuilder.hintFret}
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>

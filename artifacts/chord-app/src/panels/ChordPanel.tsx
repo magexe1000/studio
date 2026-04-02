@@ -8,6 +8,7 @@ import PianoDiagram from '../components/PianoDiagram';
 import FourStringDiagram from '../components/FourStringDiagram';
 import ChordDiagram from '../components/ChordDiagram';
 import { ChordexLogo } from '../components/ChordexLogo';
+import CustomChordBuilder from '../components/CustomChordBuilder';
 
 export default function ChordPanel() {
   const {
@@ -27,6 +28,7 @@ export default function ChordPanel() {
 
   const [saving, setSaving] = useState(false);
   const [progName, setProgName] = useState('');
+  const [showFinder, setShowFinder] = useState(false);
 
   const chord = selectedChordId ? getChordById(selectedChordId) : null;
   const favorite = chord ? isFavorite(chord.id) : false;
@@ -55,9 +57,44 @@ export default function ChordPanel() {
 
   if (!chord) {
     return (
-      <div className="flex flex-col items-center justify-center h-full app-bg">
-        <span className="material-symbols-outlined mb-4" style={{ fontSize: '52px', color: 'var(--c-text-muted)' }}>music_note</span>
-        <p style={{ color: 'var(--c-text-secondary)', fontSize: '14px', fontFamily: 'Inter' }}>{t.chord.emptyState}</p>
+      <div className="flex flex-col h-full app-bg">
+        <header className="flex-none px-6 pt-6 pb-1 app-bg flex items-center justify-between">
+          <h1 className="text-base font-bold tracking-tighter" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <ChordexLogo />
+            Chordex
+          </h1>
+          <button
+            onClick={() => setShowFinder(true)}
+            className="btn-smooth flex items-center gap-1.5 px-4 py-2 font-bold"
+            style={{ background: `${accent.from}18`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontSize: '12px', border: `1px solid ${accent.from}33` }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
+            {t.chordFinder.openFinder}
+          </button>
+        </header>
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <span className="material-symbols-outlined mb-4" style={{ fontSize: '52px', color: 'var(--c-text-muted)' }}>music_note</span>
+          <p style={{ color: 'var(--c-text-secondary)', fontSize: '14px', fontFamily: 'Inter', marginBottom: '20px' }}>{t.chord.emptyState}</p>
+          <button
+            onClick={() => setShowFinder(true)}
+            className="btn-smooth flex items-center gap-2 px-5 py-3 font-bold"
+            style={{
+              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+              color: 'white', borderRadius: '9999px', fontFamily: 'Manrope', fontSize: '14px',
+              boxShadow: `0 4px 20px ${accent.to}40`,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>search</span>
+            {t.chordFinder.openFinder}
+          </button>
+        </div>
+        {showFinder && (
+          <CustomChordBuilder
+            accent={accent}
+            mode="find"
+            onClose={() => setShowFinder(false)}
+          />
+        )}
       </div>
     );
   }
@@ -86,11 +123,19 @@ export default function ChordPanel() {
   return (
     <div className="flex flex-col h-full overflow-hidden app-bg">
       {/* Minimal top label */}
-      <header className="flex-none px-6 pt-6 pb-1 app-bg">
+      <header className="flex-none px-6 pt-6 pb-1 app-bg flex items-center justify-between">
         <h1 className="text-base font-bold tracking-tighter" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
           <ChordexLogo />
           Chordex
         </h1>
+        <button
+          onClick={() => setShowFinder(true)}
+          className="btn-smooth flex items-center gap-1.5 px-4 py-2 font-bold"
+          style={{ background: `${accent.from}18`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontSize: '12px', border: `1px solid ${accent.from}33` }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
+          {t.chordFinder.openFinder}
+        </button>
       </header>
 
       {/* Scrollable content */}
@@ -329,6 +374,15 @@ export default function ChordPanel() {
         {/* Saved Progressions */}
         <SavedProgressions accent={accent} />
       </div>
+
+      {/* Chord Finder modal */}
+      {showFinder && (
+        <CustomChordBuilder
+          accent={accent}
+          mode="find"
+          onClose={() => setShowFinder(false)}
+        />
+      )}
     </div>
   );
 }
