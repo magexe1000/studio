@@ -760,9 +760,12 @@ ${chordContent}
       fillPage();
       let gridY = drawHeader();
 
-      // Calculate how many rows fit per page
-      const rowsPerPage1 = Math.floor((PH - MT - MB - HDR_H - 8) / (CARD_H + CARD_GAP));
-      const rowsPerPageN = Math.floor((PH - MT - MB - 8) / (CARD_H + CARD_GAP));
+      // Calculate how many rows fit per page.
+      // Correct formula: N rows need N*H + (N-1)*G  =>  N = floor((AVAIL + G) / (H + G))
+      const AVAIL_H_P1 = PH - MT - MB - HDR_H - 8;
+      const AVAIL_H_PN = PH - MT - MB - 8;
+      const rowsPerPage1 = Math.max(1, Math.floor((AVAIL_H_P1 + CARD_GAP) / (CARD_H + CARD_GAP)));
+      const rowsPerPageN = Math.max(1, Math.floor((AVAIL_H_PN + CARD_GAP) / (CARD_H + CARD_GAP)));
 
       const totalRows  = Math.ceil(cards.length / COLS);
       let totalPages   = 1;
@@ -779,8 +782,9 @@ ${chordContent}
         const globalRow = Math.floor(i / COLS);
         const col       = i % COLS;
 
-        // When we start a new row, check if we need a new page
+        // At the start of each new row, increment first then check if a new page is needed.
         if (col === 0 && globalRow > 0) {
+          rowOnPage++;
           if (rowOnPage >= maxRowOnPage) {
             drawFooter(currentPage, totalPages);
             doc.addPage();
@@ -789,8 +793,6 @@ ${chordContent}
             rowOnPage    = 0;
             maxRowOnPage = rowsPerPageN;
             gridY        = MT;
-          } else {
-            rowOnPage++;
           }
         }
 
