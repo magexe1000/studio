@@ -3,9 +3,13 @@ import type { GuitarChordData } from '../data/chords';
 interface Props {
   data: GuitarChordData;
   accentFrom: string;
+  /** Optional: multi-fret data (number[][]) that overrides data.frets for rendering.
+   *  Each entry is an array of active fret positions on that string.
+   *  [-1] = muted, [0] = open, [n, m, …] = multiple dots. */
+  fretsMulti?: number[][];
 }
 
-export default function ChordDiagram({ data, accentFrom }: Props) {
+export default function ChordDiagram({ data, accentFrom, fretsMulti }: Props) {
   const W = 90, H = 80;
   const padL = 13, padR = 6, padT = 18, padB = 8;
   const innerW = W - padL - padR;
@@ -14,10 +18,16 @@ export default function ChordDiagram({ data, accentFrom }: Props) {
   const cellW = innerW / (numStrings - 1);
   const cellH = innerH / numFrets;
   const r = 3.8;
-  const { frets, barres, baseFret } = data;
-  // Anchor the window at the lowest active fret so barre chords never clip
-  const activeFrets = frets.filter(f => f > 0);
-  const minActive = activeFrets.length ? Math.min(...activeFrets) : 1;
+  const { barres, baseFret } = data;
+
+  // Resolve per-string fret arrays — support both legacy (number[]) and multi-fret (number[][])
+  const perString: number[][] = fretsMulti
+    ? fretsMulti
+    : data.frets.map(f => [f]);
+
+  // Anchor the window at the lowest positive fret across all strings
+  const allPositive = perString.flatMap(arr => arr.filter(f => f > 0));
+  const minActive = allPositive.length ? Math.min(...allPositive) : 1;
   const minFret = baseFret > 1 ? baseFret : Math.max(1, minActive);
   const showNut = minFret <= 1;
 
@@ -67,35 +77,39 @@ export default function ChordDiagram({ data, accentFrom }: Props) {
           />
         );
       })}
-      {/* Finger dots — skip strings covered by a barre */}
-      {frets.map((fret, si) => {
-        if (fret <= 0) return null;
-        const fp = fret - minFret;
-        if (fp < 0 || fp >= numFrets) return null;
-        const isBarre = barres.some(b =>
-          b.fret === fret &&
-          si >= b.fromString - 1 &&
-          si <= b.toString - 1
-        );
-        if (isBarre) return null;
-        const cx = padL + si * cellW;
-        const cy = padT + fp * cellH + cellH / 2;
-        return (
-          <g key={si}>
-            <circle cx={cx} cy={cy} r={r + 2.5} fill={accentFrom} opacity={0.13} />
-            <circle cx={cx} cy={cy} r={r} fill={accentFrom} />
-          </g>
-        );
-      })}
-      {/* Open / muted indicators */}
-      {frets.map((fret, si) => {
+      {/* Finger dots — one per (string, fret) pair, skip barre-covered positions */}
+      {perString.map((arr, si) =>
+        arr.map((fret, dotIdx) => {
+          if (fret <= 0) return null;
+          const fp = fret - minFret;
+          if (fp < 0 || fp >= numFrets) return null;
+          const isBarre = barres.some(b =>
+            b.fret === fret &&
+            si >= b.fromString - 1 &&
+            si <= b.toString - 1
+          );
+          if (isBarre) return null;
+          const cx = padL + si * cellW;
+          const cy = padT + fp * cellH + cellH / 2;
+          return (
+            <g key={`${si}-${dotIdx}`}>
+              <circle cx={cx} cy={cy} r={r + 2.5} fill={accentFrom} opacity={0.13} />
+              <circle cx={cx} cy={cy} r={r} fill={accentFrom} />
+            </g>
+          );
+        })
+      )}
+      {/* Open / muted indicators — based on the first entry of each string's array */}
+      {perString.map((arr, si) => {
         const cx = padL + si * cellW;
         const cy = padT - 9;
-        if (fret === -1) return (
+        const isMuted = arr[0] === -1;
+        const isOpen = !isMuted && arr.includes(0) && !arr.some(f => f > 0);
+        if (isMuted) return (
           <text key={si} x={cx} y={cy + 2} fontSize={9} fill="#c55" textAnchor="middle"
             dominantBaseline="middle" fontWeight="bold">✕</text>
         );
-        if (fret === 0) return (
+        if (isOpen) return (
           <circle key={si} cx={cx} cy={cy} r={3} fill="none" stroke="#888" strokeWidth={0.9} />
         );
         return null;

@@ -867,7 +867,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose,
               {/* Live diagram preview — guitar */}
               {previewData && (
                 <div style={{ background: 'var(--app-surface-lowest)', borderRadius: '10px', padding: '4px 4px 2px', width: '68px', flexShrink: 0 }}>
-                  <ChordDiagram data={previewData} accentFrom={resolvedAccent.from} />
+                  <ChordDiagram data={previewData} accentFrom={resolvedAccent.from} fretsMulti={frets} />
                 </div>
               )}
               {/* Live diagram preview — bass / ukulele */}
