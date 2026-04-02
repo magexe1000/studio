@@ -2357,7 +2357,7 @@ export default function SongsPanel() {
 
         {/* Floating back */}
         <button onClick={() => setActivePreset(null)} data-testid="preset-back" className="btn-smooth"
-          style={{ position: 'absolute', top: '18px', left: '16px', zIndex: 40, width: '40px', height: '40px', borderRadius: '50%', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', background: 'rgba(31,32,32,0.75)', border: '1px solid rgba(72,72,72,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.30)', animation: 'spring-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
+          style={{ position: 'absolute', top: '15px', left: '16px', zIndex: 40, width: '40px', height: '40px', borderRadius: '50%', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', background: 'rgba(31,32,32,0.75)', border: '1px solid rgba(72,72,72,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.30)', animation: 'spring-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
           <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '20px' }}>arrow_back</span>
         </button>
 
