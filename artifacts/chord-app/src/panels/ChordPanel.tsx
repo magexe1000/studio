@@ -123,7 +123,7 @@ export default function ChordPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative' }}>
+    <div className="flex flex-col h-full overflow-hidden app-bg">
       {/* Minimal top label */}
       <header className="flex-none px-6 pt-6 pb-1 app-bg">
         <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
@@ -164,6 +164,25 @@ export default function ChordPanel() {
           >
             {renderDiagram('lg')}
           </div>
+
+          {/* Find Chord — inline, just below the diagram */}
+          <button
+            onClick={() => setShowFinder(true)}
+            className="btn-smooth flex items-center justify-center gap-2 font-bold mt-4"
+            style={{
+              width: '100%',
+              background: 'var(--app-surface-high)',
+              color: 'var(--c-text-secondary)',
+              borderRadius: '9999px',
+              fontFamily: 'Manrope',
+              fontSize: '13px',
+              padding: '10px 0',
+              border: '1px solid rgba(128,128,128,0.12)',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>search</span>
+            {t.chordFinder.openFinder}
+          </button>
 
           {/* Action Buttons */}
           <div className="flex gap-3 mt-6">
@@ -368,29 +387,6 @@ export default function ChordPanel() {
         {/* Saved Progressions */}
         <SavedProgressions accent={accent} />
       </div>
-
-      {/* Floating Find Chord button — sits above the bottom nav bar */}
-      {!showFinder && (
-        <div style={{ position: 'absolute', bottom: '80px', left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 5 }}>
-          <button
-            onClick={() => setShowFinder(true)}
-            className="btn-smooth flex items-center gap-2 font-bold"
-            style={{
-              pointerEvents: 'all',
-              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-              color: 'white',
-              borderRadius: '9999px',
-              fontFamily: 'Manrope',
-              fontSize: '13px',
-              padding: '10px 22px',
-              boxShadow: `0 4px 24px ${accent.to}55`,
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>search</span>
-            {t.chordFinder.openFinder}
-          </button>
-        </div>
-      )}
 
       {/* Chord Finder modal */}
       {showFinder && (
