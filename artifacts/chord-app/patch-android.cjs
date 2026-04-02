@@ -91,6 +91,7 @@ const COMMON = {
   'android:windowDrawsSystemBarBackgrounds': 'true',
   'android:windowLayoutInDisplayCutoutMode': 'default',
   'android:windowSplashScreenAnimationDuration': '0',
+  'android:windowSplashScreenBackground':    '#111116',
 };
 
 patchFile(

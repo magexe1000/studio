@@ -203,7 +203,7 @@ function buildPrintPianoSVG(keys: number[], dark = false, accentColor = '#679cff
   return s;
 }
 
-async function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPORT_CONFIG, transposeOffset = 0, storedCustomChords: CustomChord[] = [], accentColor = '#679cff', pdfName = '') {
+async function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPORT_CONFIG, transposeOffset = 0, storedCustomChords: CustomChord[] = [], accentColor = '#679cff', pdfName = '', mode: 'save' | 'share' = 'share') {
   const dark    = cfg.theme === 'dark';
   const style   = cfg.exportStyle ?? 'elegant';
   const compact = style === 'compact';
@@ -815,22 +815,34 @@ ${chordContent}
 
       /* ── Save & share ──────────────────────────────────────── */
       if (isNative) {
-        try {
-          const { Filesystem, Directory } = await import('@capacitor/filesystem');
-          const { Share } = await import('@capacitor/share');
-          const pdfBase64 = doc.output('datauristring').split(',')[1];
-          const writeResult = await Filesystem.writeFile({
-            path: `${docTitle}.pdf`,
-            data: pdfBase64,
-            directory: Directory.Cache,
-          });
-          await Share.share({
-            title: docTitle,
-            url: writeResult.uri,
-            dialogTitle: 'Save your chord sheet PDF',
-          });
-        } catch {
-          // User cancelled — do nothing.
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const pdfBase64 = doc.output('datauristring').split(',')[1];
+        if (mode === 'save') {
+          try {
+            await Filesystem.writeFile({
+              path: `${docTitle}.pdf`,
+              data: pdfBase64,
+              directory: Directory.External,
+            });
+          } catch {
+            // Save failed silently.
+          }
+        } else {
+          try {
+            const { Share } = await import('@capacitor/share');
+            const writeResult = await Filesystem.writeFile({
+              path: `${docTitle}.pdf`,
+              data: pdfBase64,
+              directory: Directory.Cache,
+            });
+            await Share.share({
+              title: docTitle,
+              url: writeResult.uri,
+              dialogTitle: 'Share your chord sheet PDF',
+            });
+          } catch {
+            // User cancelled — do nothing.
+          }
         }
       } else {
         // Web browser: download as PDF
@@ -1117,6 +1129,8 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
   const [pdfName, setPdfName] = useState('');
   const [exporting, setExporting] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [savedMsg, setSavedMsg] = useState(false);
+  const isNative = typeof window !== 'undefined' && !!(window as any).Capacitor?.isNativePlatform?.();
 
   const update = <K extends keyof ExportConfig>(key: K, val: ExportConfig[K]) =>
     setCfg(prev => ({ ...prev, [key]: val }));
@@ -1126,14 +1140,19 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
     setTimeout(onClose, 320);
   };
 
-  const handleExport = async () => {
+  const handleExport = async (mode: 'save' | 'share' = 'share') => {
     setExporting(true);
     await new Promise(r => setTimeout(r, 100));
     try {
-      await exportPresetToPDF(preset, cfg, transposeOffset, storedCustomChords, accent.from, pdfName);
+      await exportPresetToPDF(preset, cfg, transposeOffset, storedCustomChords, accent.from, pdfName, mode);
+      if (mode === 'save') {
+        setSavedMsg(true);
+        setTimeout(() => setSavedMsg(false), 2500);
+      } else {
+        handleClose();
+      }
     } finally {
       setExporting(false);
-      handleClose();
     }
   };
 
@@ -1348,24 +1367,67 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
         borderTop: '1px solid rgba(72,72,72,0.08)',
         background: 'var(--app-bg)',
       }}>
-        <button
-          onClick={handleExport}
-          disabled={exporting}
-          className="btn-smooth"
-          style={{
-            width: '100%', padding: '16px', borderRadius: '9999px',
-            fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px',
-            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-            background: exporting ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-            boxShadow: exporting ? 'none' : `0 6px 24px ${accent.to}50`,
-            transition: 'all 200ms ease',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>
-            {exporting ? 'hourglass_empty' : 'download'}
-          </span>
-          {exporting ? t.songs.generatingPdf : t.songs.downloadPdf}
-        </button>
+        {savedMsg && (
+          <div style={{ textAlign: 'center', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', color: '#34d399', padding: '4px 0' }}>
+            Saved to device!
+          </div>
+        )}
+        {isNative ? (
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={() => handleExport('save')}
+              disabled={exporting}
+              className="btn-smooth"
+              style={{
+                flex: 1, padding: '16px', borderRadius: '9999px',
+                fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px',
+                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                background: exporting ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                boxShadow: exporting ? 'none' : `0 6px 24px ${accent.to}50`,
+                transition: 'all 200ms ease',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
+                {exporting ? 'hourglass_empty' : 'save'}
+              </span>
+              {exporting ? t.songs.generatingPdf : 'Save to Device'}
+            </button>
+            <button
+              onClick={() => handleExport('share')}
+              disabled={exporting}
+              className="btn-smooth"
+              style={{
+                flex: 1, padding: '16px', borderRadius: '9999px',
+                fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px',
+                color: accent.from, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                background: 'var(--app-surface-high)',
+                transition: 'all 200ms ease',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>share</span>
+              Share
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => handleExport('share')}
+            disabled={exporting}
+            className="btn-smooth"
+            style={{
+              width: '100%', padding: '16px', borderRadius: '9999px',
+              fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+              background: exporting ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+              boxShadow: exporting ? 'none' : `0 6px 24px ${accent.to}50`,
+              transition: 'all 200ms ease',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>
+              {exporting ? 'hourglass_empty' : 'download'}
+            </span>
+            {exporting ? t.songs.generatingPdf : t.songs.downloadPdf}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1399,25 +1461,36 @@ async function exportPresetToJSON(preset: SongPreset) {
     })),
   };
   const content = JSON.stringify(file, null, 2);
-  const fileName = `${preset.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.chordex.json`;
+  const fileName = `${preset.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
 
   const { Capacitor } = await import('@capacitor/core');
   if (Capacitor.isNativePlatform()) {
     try {
       const { Filesystem, Directory } = await import('@capacitor/filesystem');
       const { Share } = await import('@capacitor/share');
-      const writeResult = await Filesystem.writeFile({
+      // Reliable UTF-8 → base64 encoding
+      const bytes = new TextEncoder().encode(content);
+      const binary = Array.from(bytes, b => String.fromCharCode(b)).join('');
+      const base64 = btoa(binary);
+      // Save to device (External = accessible via Files app)
+      await Filesystem.writeFile({
         path: fileName,
-        data: btoa(unescape(encodeURIComponent(content))),
+        data: base64,
+        directory: Directory.External,
+      });
+      // Also open share sheet so user can send it anywhere
+      const cacheResult = await Filesystem.writeFile({
+        path: fileName,
+        data: base64,
         directory: Directory.Cache,
       });
       await Share.share({
         title: preset.name,
-        url: writeResult.uri,
-        dialogTitle: 'Save your Chordex song',
+        url: cacheResult.uri,
+        dialogTitle: 'Share or save your Chordex song',
       });
     } catch {
-      // User cancelled — do nothing.
+      // User cancelled or save failed — do nothing.
     }
     return;
   }
@@ -1658,7 +1731,7 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
                   {t.songs.browseFiles}
                 </div>
               </div>
-              <input ref={fileInputRef} type="file" accept=".json,.chordex.json,application/json" onChange={handleFileInput} style={{ display: 'none' }} />
+              <input ref={fileInputRef} type="file" accept=".json,application/json" onChange={handleFileInput} style={{ display: 'none' }} />
               <p style={{ fontFamily: 'Inter', fontSize: '11px', color: 'var(--c-text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
                 {t.songs.importHint}
               </p>
