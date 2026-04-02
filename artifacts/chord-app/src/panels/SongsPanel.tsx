@@ -465,47 +465,24 @@ ${chordContent}
 </div>
 </body></html>`;
 
-  /* ── Export via hidden iframe — works in PWA and Capacitor, never blocked ── */
-  // Inject a tiny invisible iframe, write the HTML into it, then call print.
-  // This avoids the popup-blocker that kills window.open() in most browsers.
-  const iframe = document.createElement('iframe');
-  iframe.setAttribute('aria-hidden', 'true');
-  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;opacity:0;pointer-events:none;';
-  document.body.appendChild(iframe);
+  /* ── Export: Web Share API → blob download fallback ─────────────────── */
+  // Capacitor WebView blocks iframe.print() — use Web Share if available.
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const file = new File([blob], `${docTitle}.html`, { type: 'text/html' });
 
-  const iDoc = iframe.contentDocument;
-  if (iDoc) {
-    iDoc.open();
-    iDoc.write(html);
-    iDoc.close();
-    // Give the browser a tick to parse and lay out the document before printing.
-    setTimeout(() => {
-      try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-      } catch {
-        // If the iframe approach fails (e.g. sandboxed WebView), fall back to blob download.
-        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${docTitle}.html`;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
-      }
-      // Remove the iframe after the print dialog has opened (3 s safety margin).
-      setTimeout(() => { try { document.body.removeChild(iframe); } catch {} }, 3000);
-    }, 600);
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ title: docTitle, files: [file] }).catch(() => {
+      // User cancelled or share failed — silent.
+    });
   } else {
-    // Very old or restricted environment — direct blob download.
-    document.body.removeChild(iframe);
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    // Desktop / non-share environment: trigger a blob download.
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = `${docTitle}.html`;
     document.body.appendChild(a);
     a.click();
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
   }
 }
 
@@ -1703,18 +1680,21 @@ export default function SongsPanel() {
   const backHandlerRef = useRef<() => boolean>(() => false);
   useEffect(() => {
     backHandlerRef.current = () => {
-      if (showCustomBuilder) { setShowCustomBuilder(false); return true; }
-      if (showPicker)        { setShowPicker(false);        return true; }
-      if (showLive)          { setShowLive(false);          return true; }
-      if (showForm)          { setShowForm(false); setEditingId(null); return true; }
-      if (exportModalPreset) { setExportModal(null);        return true; }
-      if (showImport)        { setShowImport(false);        return true; }
-      if (showDeleteId)      { setShowDeleteId(null);       return true; }
-      if (activePresetId)    { setActivePreset(null);       return true; }
+      if (showSectionPicker)   { setShowSectionPicker(false);   return true; }
+      if (showSectionSelector) { setShowSectionSelector(false); return true; }
+      if (showCustomBuilder)   { setShowCustomBuilder(false);   return true; }
+      if (showPicker)          { setShowPicker(false);          return true; }
+      if (showLive)            { setShowLive(false);            return true; }
+      if (showForm)            { setShowForm(false); setEditingId(null); return true; }
+      if (exportModalPreset)   { setExportModal(null);          return true; }
+      if (showImport)          { setShowImport(false);          return true; }
+      if (showDeleteId)        { setShowDeleteId(null);         return true; }
+      if (activePresetId)      { setActivePreset(null);         return true; }
       return false;
     };
-  }, [showCustomBuilder, showPicker, showLive, showForm, exportModalPreset,
-      showImport, showDeleteId, activePresetId, setActivePreset]);
+  }, [showSectionPicker, showSectionSelector, showCustomBuilder, showPicker,
+      showLive, showForm, exportModalPreset, showImport, showDeleteId,
+      activePresetId, setActivePreset]);
 
   // Register/deregister with the global back stack based on which panel is active.
   useEffect(() => {

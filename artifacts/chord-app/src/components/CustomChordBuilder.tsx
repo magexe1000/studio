@@ -525,7 +525,7 @@ interface Props {
   mode?: 'build' | 'find';
 }
 
-export default function CustomChordBuilder({ accent, editChord, onSave, onClose, mode = 'build' }: Props) {
+export default function CustomChordBuilder({ accent, editChord, onSave, onClose: onCloseProp, mode = 'build' }: Props) {
   const { settings } = useChordStore();
   const t = useT();
   const resolvedAccent = ACCENT_COLORS[settings.accentColor];
@@ -539,6 +539,13 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose,
   const [instrument, setInstrument] = useState<Instrument>(editChord?.instrument ?? 'guitar');
   // Each string holds a list of active frets — allows multiple notes per string.
   // [-1] = muted, [0] = open, [n, m, ...] = multiple fret positions active.
+  // ── Closing animation ──────────────────────────────────────────────────
+  const [closing, setClosing] = useState(false);
+  const handleClose = useCallback(() => {
+    setClosing(true);
+    setTimeout(() => { setClosing(false); onCloseProp(); }, 300);
+  }, [onCloseProp]);
+
   const defaultFret = mode === 'find' ? -1 : 0;
   const [frets, setFrets] = useState<number[][]>(() => {
     if (editChord?.frets) return editChord.frets.map(f => [f]);
@@ -639,7 +646,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose,
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
       {/* Backdrop */}
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }} />
+      <div onClick={handleClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', animation: closing ? 'fade-out 300ms ease both' : undefined }} />
 
       {/* Sheet — fixed height so switching instruments never shifts the layout */}
       <div style={{
@@ -648,7 +655,9 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose,
         borderRadius: '1.5rem 1.5rem 0 0',
         height: '82dvh',
         display: 'flex', flexDirection: 'column',
-        animation: 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        animation: closing
+          ? 'sheet-down 300ms cubic-bezier(0.4, 0, 1, 1) both'
+          : 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
         overflow: 'hidden',
       }}>
         {/* Drag handle */}
@@ -675,7 +684,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose,
               {mode === 'find' ? t.chordFinder.subtitle : isEditing ? t.customBuilder.subtitleEdit : t.customBuilder.subtitleNew}
             </p>
           </div>
-          <button onClick={onClose} className="btn-smooth" style={{ color: 'var(--c-text-secondary)' }}>
+          <button onClick={handleClose} className="btn-smooth" style={{ color: 'var(--c-text-secondary)' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>close</span>
           </button>
         </div>
@@ -943,7 +952,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose,
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>restart_alt</span>
                 Clear
               </button>
-              <button onClick={onClose} className="btn-smooth"
+              <button onClick={handleClose} className="btn-smooth"
                 style={{
                   flex: 1, padding: '16px', borderRadius: '9999px',
                   background: `linear-gradient(135deg, ${resolvedAccent.from}, ${resolvedAccent.to})`,

@@ -363,6 +363,10 @@
     from { transform: translateY(0);   opacity: 1; }
     to   { transform: translateY(100%); opacity: 0; }
   }
+  @keyframes fade-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
 
   /* ===== Panel slide transitions ===== */
   @keyframes panel-enter-right {

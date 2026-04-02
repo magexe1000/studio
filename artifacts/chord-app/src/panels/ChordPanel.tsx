@@ -9,10 +9,12 @@ import FourStringDiagram from '../components/FourStringDiagram';
 import ChordDiagram from '../components/ChordDiagram';
 import { ChordexLogo } from '../components/ChordexLogo';
 import CustomChordBuilder from '../components/CustomChordBuilder';
+import { setBackHandler } from '../lib/backStack';
 
 export default function ChordPanel() {
   const {
     selectedChordId,
+    activePanel,
     settings,
     toggleFavorite,
     isFavorite,
@@ -29,6 +31,14 @@ export default function ChordPanel() {
   const [saving, setSaving] = useState(false);
   const [progName, setProgName] = useState('');
   const [showFinder, setShowFinder] = useState(false);
+
+  // Register back handler when Chord panel is active and the finder is open
+  useEffect(() => {
+    if (activePanel !== 'chord') return;
+    if (!showFinder) { setBackHandler(null); return; }
+    setBackHandler(() => { setShowFinder(false); return true; });
+    return () => setBackHandler(null);
+  }, [activePanel, showFinder]);
 
   const chord = selectedChordId ? getChordById(selectedChordId) : null;
   const favorite = chord ? isFavorite(chord.id) : false;
