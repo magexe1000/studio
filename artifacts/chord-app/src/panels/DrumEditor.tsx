@@ -470,8 +470,8 @@ export default function DrumEditor() {
 
   // ── Back ─────────────────────────────────────────────────────────────────
   const handleBack = () => {
-    if (drumMode === 'nav') { drumScheduler.stop(); updateSettings({ appMode: 'chords' }); }
-    else { setDrumMode('nav'); }
+    if (drumMode === 'nav') { setDrumMode('edit'); }
+    else { drumScheduler.stop(); updateSettings({ appMode: 'chords' }); }
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
