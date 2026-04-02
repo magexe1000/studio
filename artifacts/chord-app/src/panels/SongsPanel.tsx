@@ -1718,10 +1718,7 @@ export default function SongsPanel() {
 
   // Register/deregister with the global back stack based on which panel is active.
   useEffect(() => {
-    if (activePanel !== 'songs') {
-      setBackHandler(null);
-      return;
-    }
+    if (activePanel !== 'songs') return;
     setBackHandler(() => backHandlerRef.current());
     return () => setBackHandler(null);
   }, [activePanel]);

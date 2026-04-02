@@ -370,10 +370,7 @@ export default function LibraryPanel() {
   }, [query, activeType, activeGenre]);
 
   useEffect(() => {
-    if (activePanel !== 'library') {
-      setBackHandler(null);
-      return;
-    }
+    if (activePanel !== 'library') return;
     setBackHandler(() => backHandlerRef.current());
     return () => setBackHandler(null);
   }, [activePanel]);
