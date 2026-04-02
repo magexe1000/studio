@@ -142,24 +142,29 @@ function patchStyles(src) {
 
 // ── 6. MainActivity — remove immersive / fullscreen UI flags ──────────────
 // Capacitor WebView can call setSystemUiVisibility with FULLSCREEN / IMMERSIVE
-// flags. Strip those out so the status bar is always visible.
+// flags. Comment out those lines so the status bar is always visible.
 function patchMainActivity(src) {
-  // Remove any SystemUiVisibility call that hides status bar.
-  let result = src
-    // FLAG_FULLSCREEN constant
-    .replace(/WindowManager\.LayoutParams\.FLAG_FULLSCREEN/g, '0 /* FLAG_FULLSCREEN removed */')
-    // SYSTEM_UI_FLAG_FULLSCREEN
-    .replace(/View\.SYSTEM_UI_FLAG_FULLSCREEN\s*\|?\s*/g, '')
-    .replace(/\|\s*View\.SYSTEM_UI_FLAG_FULLSCREEN/g, '')
-    // SYSTEM_UI_FLAG_IMMERSIVE / IMMERSIVE_STICKY
-    .replace(/View\.SYSTEM_UI_FLAG_IMMERSIVE_STICKY\s*\|?\s*/g, '')
-    .replace(/\|\s*View\.SYSTEM_UI_FLAG_IMMERSIVE_STICKY/g, '')
-    .replace(/View\.SYSTEM_UI_FLAG_IMMERSIVE\s*\|?\s*/g, '')
-    .replace(/\|\s*View\.SYSTEM_UI_FLAG_IMMERSIVE/g, '')
-    // WindowInsetsController immersive calls
-    .replace(/\.hide\(WindowInsets\.Type\.statusBars\(\)\)/g, '/* status bar show always */')
-    .replace(/\.setSystemBarsBehavior\([^)]+\)/g, '/* systemBarsBehavior removed */');
-  return result;
+  // Work line-by-line so we comment out the whole statement, not just a token.
+  const BAD_PATTERNS = [
+    /FLAG_FULLSCREEN/,
+    /SYSTEM_UI_FLAG_FULLSCREEN/,
+    /SYSTEM_UI_FLAG_IMMERSIVE/,
+    /SYSTEM_UI_FLAG_IMMERSIVE_STICKY/,
+    /\.hide\(WindowInsets\.Type\.statusBars/,
+    /\.setSystemBarsBehavior\(/,
+    /setSystemUiVisibility\(/,
+  ];
+
+  return src
+    .split('\n')
+    .map(line => {
+      const shouldComment = BAD_PATTERNS.some(p => p.test(line));
+      if (shouldComment && !line.trim().startsWith('//')) {
+        return line.replace(/^(\s*)/, '$1// [chordex-patch] ');
+      }
+      return line;
+    })
+    .join('\n');
 }
 
 ['app/src/main/java/com/chordex/app/MainActivity.java',
