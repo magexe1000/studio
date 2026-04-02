@@ -141,30 +141,61 @@ function makeNoise(ctx: AudioContext, dur: number): AudioBuffer {
   return buf;
 }
 
-// ── Real-sample pool ────────────────────────────────────────────────────────
-const SAMPLE_BASE = 'https://tonejs.github.io/audio/drum-samples/';
+// ── Kit-specific sample URLs ──────────────────────────────────────────────────
+// All URLs served with Access-Control-Allow-Origin: * via raw.githubusercontent.com
+const MIDI = 'https://raw.githubusercontent.com/cwilso/MIDIDrums/master/sounds/drum-samples/';
+const TONEJS = 'https://tonejs.github.io/audio/drum-samples/';
 
-// Multiple URL candidates per instrument (tried in order)
-const SAMPLE_URLS: Partial<Record<DrumInstrument, string[]>> = {
-  kick:           [`${SAMPLE_BASE}CR78/kick.mp3`,    `${SAMPLE_BASE}Roland/kick.mp3`],
-  snare:          [`${SAMPLE_BASE}CR78/snare.mp3`,   `${SAMPLE_BASE}Roland/snare.mp3`],
-  'hihat-closed': [`${SAMPLE_BASE}CR78/hihat.mp3`,   `${SAMPLE_BASE}Roland/hihat.mp3`],
-  'hihat-open':   [`${SAMPLE_BASE}CR78/hihat.mp3`],
-  'hihat-foot':   [`${SAMPLE_BASE}CR78/hihat.mp3`],
-  'tom-high':     [`${SAMPLE_BASE}CR78/highTom.mp3`, `${SAMPLE_BASE}Roland/highTom.mp3`],
-  'tom-mid':      [`${SAMPLE_BASE}CR78/lowTom.mp3`,  `${SAMPLE_BASE}Roland/lowTom.mp3`],
-  'tom-floor':    [`${SAMPLE_BASE}CR78/lowTom.mp3`],
-  crash:          [`${SAMPLE_BASE}CR78/crash.mp3`,   `${SAMPLE_BASE}Roland/crash.mp3`],
-  ride:           [`${SAMPLE_BASE}CR78/ride.mp3`],
+const KIT_SAMPLE_URLS: Record<KitType, Partial<Record<DrumInstrument, string[]>>> = {
+  acoustic: {
+    kick:           [`${MIDI}acoustic-kit/kick.wav`,   `${TONEJS}CR78/kick.mp3`],
+    snare:          [`${MIDI}acoustic-kit/snare.wav`,  `${TONEJS}CR78/snare.mp3`],
+    'hihat-closed': [`${MIDI}acoustic-kit/hihat.wav`,  `${TONEJS}CR78/hihat.mp3`],
+    'hihat-open':   [`${MIDI}acoustic-kit/hihat.wav`,  `${TONEJS}CR78/hihat.mp3`],
+    'hihat-foot':   [`${MIDI}acoustic-kit/hihat.wav`],
+    'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`,   `${TONEJS}CR78/highTom.mp3`],
+    'tom-mid':      [`${MIDI}acoustic-kit/tom2.wav`,   `${TONEJS}CR78/lowTom.mp3`],
+    'tom-floor':    [`${MIDI}acoustic-kit/tom3.wav`],
+    crash:          [`${MIDI}acoustic-kit/hihat.wav`,  `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${MIDI}acoustic-kit/hihat.wav`,  `${TONEJS}CR78/ride.mp3`],
+  },
+  advanced: {
+    kick:           [`${MIDI}R8/kick.wav`],
+    snare:          [`${MIDI}R8/snare.wav`],
+    'hihat-closed': [`${MIDI}R8/hihat.wav`],
+    'hihat-open':   [`${MIDI}LINN/hihat.wav`],
+    'hihat-foot':   [`${MIDI}R8/hihat.wav`],
+    'tom-high':     [`${MIDI}R8/tom1.wav`],
+    'tom-mid':      [`${MIDI}R8/tom2.wav`],
+    'tom-floor':    [`${MIDI}R8/tom3.wav`],
+    crash:          [`${MIDI}LINN/hihat.wav`,          `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${MIDI}LINN/hihat.wav`,          `${TONEJS}CR78/ride.mp3`],
+  },
+  // Electronic kit: ONLY uses Techno / 4OP-FM electronic samples (not acoustic)
+  electronic: {
+    kick:           [`${MIDI}Techno/kick.wav`,         `${MIDI}4OP-FM/kick.wav`],
+    snare:          [`${MIDI}Techno/snare.wav`,        `${MIDI}4OP-FM/snare.wav`],
+    'hihat-closed': [`${MIDI}Techno/hihat.wav`,        `${MIDI}4OP-FM/hihat.wav`],
+    'hihat-open':   [`${MIDI}4OP-FM/hihat.wav`,        `${MIDI}Stark/hihat.wav`],
+    'hihat-foot':   [`${MIDI}Techno/hihat.wav`],
+    'tom-high':     [`${MIDI}Techno/tom1.wav`,         `${MIDI}4OP-FM/tom1.wav`],
+    'tom-mid':      [`${MIDI}Techno/tom2.wav`,         `${MIDI}4OP-FM/tom2.wav`],
+    'tom-floor':    [`${MIDI}Techno/tom3.wav`,         `${MIDI}4OP-FM/tom3.wav`],
+    crash:          [`${MIDI}4OP-FM/tom3.wav`,         `${MIDI}Stark/tom3.wav`],
+    ride:           [`${MIDI}LINN/hihat.wav`,          `${MIDI}Stark/hihat.wav`],
+  },
 };
 
 export type SampleStatus = 'idle' | 'loading' | 'partial' | 'ready' | 'failed';
 
+// Kit-aware sample pool — buffers stored as `${kit}:${inst}`
 class SamplePool {
-  private _buffers: Partial<Record<DrumInstrument, AudioBuffer>> = {};
+  private _buffers: Partial<Record<string, AudioBuffer>> = {};
+  private _kitLoaded:  Partial<Record<string, boolean>> = {};
+  private _kitLoading: Partial<Record<string, boolean>> = {};
   private _status: SampleStatus = 'idle';
-  private _loaded  = 0;
-  private _total   = 0;
+  private _loaded = 0;
+  private _total  = 0;
 
   onStatusChange: ((s: SampleStatus, loaded: number, total: number) => void) | null = null;
 
@@ -173,21 +204,24 @@ class SamplePool {
     this.onStatusChange?.(s, this._loaded, this._total);
   }
 
-  async loadAll(ctx: AudioContext) {
-    if (this._status === 'loading' || this._status === 'ready') return;
-    const entries = Object.entries(SAMPLE_URLS) as [DrumInstrument, string[]][];
+  async loadForKit(kit: KitType, ctx: AudioContext) {
+    if (this._kitLoaded[kit] || this._kitLoading[kit]) return;
+    this._kitLoading[kit] = true;
+
+    const urls = KIT_SAMPLE_URLS[kit];
+    const entries = Object.entries(urls) as [DrumInstrument, string[]][];
     this._total  = entries.length;
     this._loaded = 0;
     this._setStatus('loading');
 
-    await Promise.all(entries.map(async ([inst, urls]) => {
-      for (const url of urls) {
+    await Promise.all(entries.map(async ([inst, urlList]) => {
+      for (const url of urlList) {
         try {
           const resp = await fetch(url, { mode: 'cors', cache: 'force-cache' });
           if (!resp.ok) continue;
           const ab  = await resp.arrayBuffer();
           const buf = await ctx.decodeAudioData(ab);
-          this._buffers[inst] = buf;
+          this._buffers[`${kit}:${inst}`] = buf;
           break;
         } catch { continue; }
       }
@@ -195,13 +229,21 @@ class SamplePool {
       this._setStatus(this._loaded === this._total ? 'ready' : 'partial');
     }));
 
+    this._kitLoaded[kit]  = true;
+    this._kitLoading[kit] = false;
     if (this._loaded === 0) this._setStatus('failed');
   }
 
-  get(inst: DrumInstrument): AudioBuffer | undefined {
-    return this._buffers[inst];
+  getForKit(kit: KitType, inst: DrumInstrument): AudioBuffer | undefined {
+    return this._buffers[`${kit}:${inst}`];
   }
-  has(inst: DrumInstrument): boolean { return !!this._buffers[inst]; }
+  hasForKit(kit: KitType, inst: DrumInstrument): boolean {
+    return !!this._buffers[`${kit}:${inst}`];
+  }
+
+  // Backward-compat shims (no-kit path, used by synthesis fallback only)
+  get(inst: DrumInstrument): AudioBuffer | undefined { return undefined; }
+  has(inst: DrumInstrument): boolean { return false; }
   get status(): SampleStatus { return this._status; }
   get loadedCount(): number   { return this._loaded; }
   get totalCount():  number   { return this._total;  }
@@ -209,10 +251,10 @@ class SamplePool {
 
 export const samplePool = new SamplePool();
 
-/** Call once after first user interaction to start loading real samples */
-export function loadDrumSamples() {
+/** Load samples for the chosen kit on first play */
+export function loadDrumSamples(kit: KitType) {
   const { ctx } = getCtx();
-  samplePool.loadAll(ctx);
+  samplePool.loadForKit(kit, ctx);
 }
 
 // ── Synthesis: Kick ─────────────────────────────────────────────────────────
@@ -474,15 +516,20 @@ function playBuffer(
 }
 
 // ── Main sound dispatcher ────────────────────────────────────────────────────
-export function playSoundAt(soundId: string, time: number, vol: number, dest: AudioNode) {
+export function playSoundAt(
+  soundId: string,
+  time:    number,
+  vol:     number,
+  dest:    AudioNode,
+  kit:     KitType | null = null,
+) {
   const { ctx } = getCtx();
-  const t = Math.max(time, ctx.currentTime + 0.003);
+  const t    = Math.max(time, ctx.currentTime + 0.003);
   const inst = soundIdToInst(soundId);
 
-  // Try real sample first
-  if (inst && samplePool.has(inst)) {
-    const buf = samplePool.get(inst)!;
-    // Closed/foot hi-hat: truncate to short duration
+  // Try kit-specific real sample first
+  if (kit && inst && samplePool.hasForKit(kit, inst)) {
+    const buf = samplePool.getForKit(kit, inst)!;
     if (inst === 'hihat-closed' || inst === 'hihat-foot') {
       const dur = inst === 'hihat-foot' ? 0.08 : (soundId === 'hh-c-tight' ? 0.032 : soundId === 'hh-c-crisp' ? 0.052 : 0.075);
       playBuffer(ctx, buf, t, vol, dest, dur);
@@ -517,6 +564,7 @@ class DrumScheduler {
   private _soundMap: Partial<Record<DrumInstrument, string>> = {};
   private _volMap:   Partial<Record<DrumInstrument, number>> = {};
   private _masterVol = 0.85;
+  private _kitType:  KitType | null = null;
 
   private _nextStepTime = 0;
   private _currentStep  = 0;
@@ -547,7 +595,7 @@ class DrumScheduler {
       if (!hit) continue;
       const soundId = this._soundMap[inst] ?? defaultSoundId(inst);
       const vol     = Math.min((this._volMap[inst] ?? 1) * this._masterVol, 1.5);
-      playSoundAt(soundId, time, vol, _masterGain!);
+      playSoundAt(soundId, time, vol, _masterGain!, this._kitType);
     }
     this._scheduled.push({ step, time });
   }
@@ -583,6 +631,7 @@ class DrumScheduler {
     volMap:    Partial<Record<DrumInstrument, number>>,
     masterVol: number,
     loop:      boolean,
+    kitType?:  KitType | null,
   ) {
     this.stop();
     getCtx();
@@ -591,6 +640,7 @@ class DrumScheduler {
     this._volMap     = volMap;
     this._masterVol  = masterVol;
     this._looping    = loop;
+    this._kitType    = kitType ?? null;
     this._totalSteps = stepsPerMeasure(pattern) * pattern.measures.length;
     this._currentStep   = 0;
     this._nextStepTime  = _ctx!.currentTime + 0.06;
@@ -616,12 +666,14 @@ class DrumScheduler {
     volMap:    Partial<Record<DrumInstrument, number>>,
     masterVol: number,
     loop:      boolean,
+    kitType?:  KitType | null,
   ) {
     this._pattern   = pattern;
     this._soundMap  = soundMap;
     this._volMap    = volMap;
     this._masterVol = masterVol;
     this._looping   = loop;
+    this._kitType   = kitType ?? this._kitType;
     if (!this._totalSteps && pattern)
       this._totalSteps = stepsPerMeasure(pattern) * pattern.measures.length;
     this._nextStepTime = _ctx ? _ctx.currentTime + 0.05 : 0.05;
@@ -641,9 +693,9 @@ class DrumScheduler {
       _masterGain.gain.linearRampToValueAtTime(vol, _ctx.currentTime + 0.05);
   }
 
-  previewSound(soundId: string, vol = 0.75) {
+  previewSound(soundId: string, vol = 0.75, kit: KitType | null = null) {
     const { ctx, dest } = getCtx();
-    playSoundAt(soundId, ctx.currentTime + 0.01, vol, dest);
+    playSoundAt(soundId, ctx.currentTime + 0.01, vol, dest, kit);
   }
 
   get isPlaying() { return this._playing; }

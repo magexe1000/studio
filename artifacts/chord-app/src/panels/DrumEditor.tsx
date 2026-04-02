@@ -4,27 +4,42 @@ import {
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
   useDrumStore, DRUM_INSTRUMENTS, INSTRUMENT_NAME, INSTRUMENT_COLOR,
-  stepsPerMeasure,
-  type DrumInstrument, type DrumPattern, type KitType,
+  KIT_INSTRUMENTS, stepsPerMeasure,
+  type DrumInstrument, type KitType,
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, KIT_DEFAULTS,
   type SampleStatus,
 } from '../lib/drumAudio';
 
-// ── Layout constants ─────────────────────────────────────────────────────────
-const ROW_H   = 40;   // px per instrument row
-const LABEL_W = 68;   // px for fixed instrument-name column
-const HDR_H   = 24;   // px for measure/beat header
-const BAR_H   = 50;   // px for top header bar
-const BTM_H   = 52;   // px for bottom bar
-
-const cellW = (sub: 8 | 16) => (sub === 16 ? 20 : 28);
+// ── Constants ─────────────────────────────────────────────────────────────────
+const TOP_H   = 50;   // top header bar
+const INST_H  = 52;   // instrument column header
+const BOT_H   = 54;   // bottom action bar
+const ROW_H_16 = 28;  // row height for 16th note steps
+const ROW_H_8  = 38;  // row height for 8th note steps
 
 const KIT_ICONS: Record<KitType, string> = {
   acoustic:   '🥁',
   advanced:   '🎶',
   electronic: '⚡',
+};
+const KIT_LABEL: Record<KitType, string> = {
+  acoustic:   'Acoustic',
+  advanced:   'Advanced',
+  electronic: 'Electronic',
+};
+const INST_SHORT: Record<DrumInstrument, string> = {
+  kick:           'KICK',
+  snare:          'SNARE',
+  'hihat-closed': 'HH',
+  'hihat-open':   'OPEN',
+  'hihat-foot':   'HH-F',
+  'tom-high':     'TOM H',
+  'tom-mid':      'TOM M',
+  'tom-floor':    'FLOOR',
+  crash:          'CRASH',
+  ride:           'RIDE',
 };
 
 // ── KitSelectorSheet ─────────────────────────────────────────────────────────
@@ -37,156 +52,135 @@ function KitSelectorSheet({
 }) {
   const [vis, setVis] = useState(false);
   useEffect(() => { const id = setTimeout(() => setVis(true), 10); return () => clearTimeout(id); }, []);
-
   const KITS: KitType[] = ['acoustic', 'advanced', 'electronic'];
 
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, zIndex: 100,
-        background: vis ? 'rgba(0,0,0,0.60)' : 'rgba(0,0,0,0)',
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: vis ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
         transition: 'background 280ms',
         display: 'flex', alignItems: 'flex-end',
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose?.(); }}
     >
       <div style={{
-        width: '100%',
-        background: '#18181b',
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        padding: '10px 0 32px',
+        width: '100%', background: '#18181b',
+        borderTopLeftRadius: 22, borderTopRightRadius: 22,
+        padding: '10px 0 36px',
         transform: vis ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 330ms cubic-bezier(0.32,0.72,0,1)',
         boxShadow: '0 -10px 48px rgba(0,0,0,0.7)',
       }}>
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: '#3f3f46', margin: '0 auto 16px' }} />
-
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: '#3f3f46', margin: '0 auto 18px' }} />
         <p style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: '0 0 4px 22px' }}>
-          Please select your instrument
+          Choose your kit
         </p>
         <p style={{ color: '#71717a', fontSize: 13, margin: '0 0 18px 22px' }}>
-          Each kit has a distinct sound character
+          Each kit loads real sampled drum sounds
         </p>
 
-        {KITS.map(kit => (
-          <button
-            key={kit}
-            onClick={() => onSelect(kit)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 18,
-              width: '100%', padding: '17px 22px',
-              background: 'none', border: 'none', cursor: 'pointer',
-              textAlign: 'left', transition: 'background 120ms',
-            }}
-          >
-            <span style={{ fontSize: 38, lineHeight: 1 }}>{KIT_ICONS[kit]}</span>
-            <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, color: '#fff', fontSize: 17, fontWeight: 600 }}>
-                {KIT_DEFAULTS[kit].label}
-              </p>
-              <p style={{ margin: '3px 0 0', color: '#71717a', fontSize: 13 }}>
-                {KIT_DEFAULTS[kit].description}
-              </p>
-            </div>
-            {kit === 'electronic' && (
-              <span style={{
-                background: accent.from, color: '#000',
-                fontSize: 10, fontWeight: 800, padding: '2px 7px',
-                borderRadius: 4, letterSpacing: 1, flexShrink: 0,
-              }}>PRO</span>
-            )}
-          </button>
-        ))}
+        {KITS.map(kit => {
+          const info = KIT_DEFAULTS[kit];
+          return (
+            <button
+              key={kit}
+              onClick={() => onSelect(kit)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 18,
+                width: '100%', padding: '17px 22px',
+                background: 'none', border: 'none', cursor: 'pointer',
+                textAlign: 'left', transition: 'background 120ms',
+              }}
+              onPointerEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+              onPointerLeave={e => (e.currentTarget.style.background = 'none')}
+            >
+              <div style={{
+                width: 50, height: 50, borderRadius: 14,
+                background: `linear-gradient(135deg,${accent.from},${accent.to})`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 24, flexShrink: 0,
+              }}>
+                {KIT_ICONS[kit]}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>
+                  {KIT_ICONS[kit]} {info.label}
+                </div>
+                <div style={{ color: '#71717a', fontSize: 12, marginTop: 2 }}>
+                  {info.description}
+                </div>
+              </div>
+              <div style={{
+                width: 26, height: 26, borderRadius: '50%',
+                border: `2px solid ${accent.from}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span style={{ color: accent.from, fontSize: 14 }}>›</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-// ── InstrumentPaletteSheet ───────────────────────────────────────────────────
-function InstrumentPaletteSheet({
-  activeInstruments, kitType, accent,
-  onToggle, onKitChange, onClose,
+// ── InstrumentSheet (toggle active instruments) ───────────────────────────────
+function InstrumentSheet({
+  activeInstruments, accent, onToggle, onClose,
 }: {
   activeInstruments: DrumInstrument[];
-  kitType: KitType | null;
   accent: { from: string; to: string };
-  onToggle: (i: DrumInstrument) => void;
-  onKitChange: () => void;
+  onToggle: (inst: DrumInstrument) => void;
   onClose: () => void;
 }) {
   const [vis, setVis] = useState(false);
   useEffect(() => { const id = setTimeout(() => setVis(true), 10); return () => clearTimeout(id); }, []);
+  const activeSet = useMemo(() => new Set(activeInstruments), [activeInstruments]);
 
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, zIndex: 90,
-        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-        pointerEvents: 'none',
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: vis ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0)',
+        transition: 'background 250ms',
+        display: 'flex', alignItems: 'flex-end',
       }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div
-        style={{ position: 'absolute', inset: 0, pointerEvents: 'auto' }}
-        onClick={onClose}
-      />
       <div style={{
-        position: 'relative', zIndex: 1, pointerEvents: 'auto',
-        background: '#18181b',
-        borderTopLeftRadius: 20, borderTopRightRadius: 20,
-        padding: '10px 16px 28px',
-        boxShadow: '0 -6px 36px rgba(0,0,0,0.55)',
+        width: '100%', background: '#18181b',
+        borderTopLeftRadius: 22, borderTopRightRadius: 22,
+        padding: '10px 0 40px',
         transform: vis ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 300ms cubic-bezier(0.32,0.72,0,1)',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.6)',
       }}>
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: '#3f3f46', margin: '2px auto 14px' }} />
-
-        {/* Title row */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-          <span style={{ color: '#fff', fontSize: 15, fontWeight: 700, flex: 1 }}>Instruments</span>
-          {kitType && (
-            <button
-              onClick={onKitChange}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: '#27272a', border: `1px solid ${accent.from}55`,
-                borderRadius: 20, padding: '5px 13px',
-                color: accent.from, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              }}
-            >
-              <span style={{ fontSize: 15 }}>{KIT_ICONS[kitType]}</span>
-              {KIT_DEFAULTS[kitType].label}
-            </button>
-          )}
-        </div>
-
-        {/* 5-column instrument grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: '#3f3f46', margin: '0 auto 14px' }} />
+        <p style={{ color: '#fff', fontSize: 17, fontWeight: 700, margin: '0 0 14px 20px' }}>
+          Active Instruments
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '0 18px' }}>
           {DRUM_INSTRUMENTS.map(inst => {
-            const on    = activeInstruments.includes(inst);
-            const color = INSTRUMENT_COLOR[inst];
+            const on = activeSet.has(inst);
             return (
               <button
                 key={inst}
                 onClick={() => onToggle(inst)}
                 style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  padding: '11px 4px 9px', borderRadius: 12,
-                  border: on ? `2px solid ${color}` : '2px solid #3f3f46',
-                  background: on ? `${color}1a` : '#27272a',
-                  cursor: 'pointer', transition: 'all 140ms',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '9px 16px', borderRadius: 50,
+                  border: `2px solid ${on ? INSTRUMENT_COLOR[inst] : '#3f3f46'}`,
+                  background: on ? `${INSTRUMENT_COLOR[inst]}22` : 'transparent',
+                  cursor: 'pointer', transition: 'all 150ms',
                 }}
               >
                 <div style={{
-                  width: 9, height: 9, borderRadius: '50%',
-                  background: on ? color : '#52525b', marginBottom: 7,
-                  boxShadow: on ? `0 0 8px ${color}99` : 'none',
-                  transition: 'all 140ms',
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: on ? INSTRUMENT_COLOR[inst] : '#52525b',
                 }} />
-                <span style={{
-                  fontSize: 10, fontWeight: 600, textAlign: 'center', lineHeight: 1.2,
-                  color: on ? color : '#71717a',
-                }}>
+                <span style={{ color: on ? '#fff' : '#71717a', fontSize: 13, fontWeight: 600 }}>
                   {INSTRUMENT_NAME[inst]}
                 </span>
               </button>
@@ -198,499 +192,521 @@ function InstrumentPaletteSheet({
   );
 }
 
-// ── PianoRollGrid ────────────────────────────────────────────────────────────
-function PianoRollGrid({
-  pattern, activeInstruments, activeGlobalStep, onToggleHit, accent,
-}: {
-  pattern: DrumPattern;
-  activeInstruments: DrumInstrument[];
-  activeGlobalStep: number;
-  onToggleHit: (inst: DrumInstrument, mIdx: number, step: number) => void;
-  accent: { from: string; to: string };
-}) {
-  const scrollRef   = useRef<HTMLDivElement>(null);
-  const dragging    = useRef(false);
-  const lastKey     = useRef('');
-  const cw          = cellW(pattern.subdivision);
-  const spm         = stepsPerMeasure(pattern);
-  const totalSteps  = spm * pattern.measures.length;
-  const gridW       = totalSteps * cw;
-  const stepsPerBeat = pattern.subdivision / pattern.timeSignature[1];
-
-  // Keep playhead in view
-  useEffect(() => {
-    if (activeGlobalStep < 0) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    const px = activeGlobalStep * cw;
-    if (px < el.scrollLeft + 20 || px > el.scrollLeft + el.clientWidth - 50) {
-      el.scrollLeft = Math.max(0, px - el.clientWidth * 0.28);
-    }
-  }, [activeGlobalStep, cw]);
-
-  // Build hit lookup set
-  const hitSet = useMemo(() => {
-    const s = new Set<string>();
-    pattern.measures.forEach((m, mIdx) => {
-      DRUM_INSTRUMENTS.forEach(inst => {
-        (m.hits[inst] ?? []).forEach(h => s.add(`${mIdx}:${inst}:${h.step}`));
-      });
-    });
-    return s;
-  }, [pattern]);
-
-  const cellFromPointer = useCallback((e: React.PointerEvent) => {
-    const el = scrollRef.current;
-    if (!el) return null;
-    const rect   = el.getBoundingClientRect();
-    const cx     = e.clientX - rect.left + el.scrollLeft;
-    const cy     = e.clientY - rect.top - HDR_H;
-    const gs     = Math.max(0, Math.min(totalSteps - 1, Math.floor(cx / cw)));
-    const row    = Math.max(0, Math.min(activeInstruments.length - 1, Math.floor(cy / ROW_H)));
-    const mIdx   = Math.floor(gs / spm);
-    const step   = gs % spm;
-    return { inst: activeInstruments[row], mIdx, step, key: `${row}:${gs}` };
-  }, [totalSteps, cw, spm, activeInstruments]);
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragging.current = true;
-    lastKey.current  = '';
-    const c = cellFromPointer(e);
-    if (!c) return;
-    lastKey.current = c.key;
-    onToggleHit(c.inst, c.mIdx, c.step);
-  };
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!dragging.current) return;
-    const c = cellFromPointer(e);
-    if (!c || c.key === lastKey.current) return;
-    lastKey.current = c.key;
-    onToggleHit(c.inst, c.mIdx, c.step);
-  };
-  const onPointerUp = () => { dragging.current = false; };
-
-  return (
-    <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-
-      {/* Fixed left column */}
-      <div style={{
-        width: LABEL_W, flexShrink: 0,
-        background: '#0e0e10', borderRight: '1px solid #27272a', zIndex: 2,
-      }}>
-        {/* Corner spacer */}
-        <div style={{ height: HDR_H, borderBottom: '1px solid #27272a' }} />
-        {activeInstruments.map(inst => (
-          <div key={inst} style={{
-            height: ROW_H, display: 'flex', alignItems: 'center',
-            paddingLeft: 10, paddingRight: 6,
-            borderBottom: '1px solid #1e1e21',
-          }}>
-            <div style={{
-              width: 7, height: 7, borderRadius: '50%',
-              background: INSTRUMENT_COLOR[inst], flexShrink: 0, marginRight: 7,
-            }} />
-            <span style={{
-              fontSize: 11, color: '#a1a1aa', fontWeight: 600,
-              overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-            }}>
-              {INSTRUMENT_NAME[inst]}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Scrollable grid */}
-      <div
-        ref={scrollRef}
-        className="no-scrollbar"
-        style={{
-          flex: 1, overflowX: 'auto', overflowY: 'hidden',
-          position: 'relative', touchAction: 'pan-y',
-          cursor: 'crosshair', userSelect: 'none',
-        }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
-        <div style={{ width: gridW, position: 'relative', minHeight: '100%' }}>
-
-          {/* Header row */}
-          <div style={{
-            height: HDR_H, display: 'flex',
-            background: '#0c0c0e', borderBottom: '1px solid #27272a',
-            position: 'sticky', top: 0, zIndex: 5,
-          }}>
-            {pattern.measures.map((_, mIdx) => (
-              <div key={mIdx} style={{
-                width: spm * cw, flexShrink: 0, position: 'relative',
-                borderLeft: mIdx > 0 ? '2px solid #2a2a2d' : 'none',
-              }}>
-                <span style={{
-                  position: 'absolute', left: 5, top: 5,
-                  fontSize: 10, fontWeight: 700, color: '#52525b', letterSpacing: 0.4,
-                }}>{mIdx + 1}</span>
-                {/* Beat ticks */}
-                {Array.from({ length: pattern.timeSignature[0] }, (_, b) => b > 0 && (
-                  <div key={b} style={{
-                    position: 'absolute',
-                    left: b * stepsPerBeat * cw,
-                    top: 0, bottom: 0, width: 1,
-                    background: '#25252a',
-                  }}>
-                    <span style={{
-                      position: 'absolute', left: 3, top: 6,
-                      fontSize: 9, color: '#3a3a40', fontWeight: 600,
-                    }}>{b + 1}</span>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          {/* Instrument rows */}
-          {activeInstruments.map((inst, ri) => {
-            const color = INSTRUMENT_COLOR[inst];
-            return (
-              <div key={inst} style={{
-                display: 'flex', height: ROW_H,
-                background: ri % 2 === 0 ? '#111113' : '#0d0d0f',
-                borderBottom: '1px solid #1a1a1d',
-              }}>
-                {pattern.measures.map((m, mIdx) => (
-                  <div key={m.id} style={{
-                    display: 'flex', width: spm * cw, flexShrink: 0,
-                    borderLeft: mIdx > 0 ? '2px solid #252528' : 'none',
-                  }}>
-                    {Array.from({ length: spm }, (_, s) => {
-                      const gs      = mIdx * spm + s;
-                      const isHit   = hitSet.has(`${mIdx}:${inst}:${s}`);
-                      const isHead  = gs === activeGlobalStep;
-                      const isBeat  = s > 0 && s % stepsPerBeat === 0;
-                      return (
-                        <div key={s} style={{
-                          width: cw, height: '100%', flexShrink: 0,
-                          borderLeft: s > 0 ? `1px solid ${isBeat ? '#222225' : '#171719'}` : 'none',
-                          background: isHead ? `${accent.from}1e` : 'transparent',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          {isHit ? (
-                            <div style={{
-                              width: Math.max(8, cw - 5), height: ROW_H - 14,
-                              borderRadius: 3, background: color,
-                              boxShadow: isHead
-                                ? `0 0 12px ${color}dd, 0 0 4px ${color}`
-                                : `0 1px 4px ${color}55`,
-                            }} />
-                          ) : isHead ? (
-                            <div style={{ width: 1, height: '55%', background: `${accent.from}55` }} />
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-
-          {/* Playhead line */}
-          {activeGlobalStep >= 0 && (
-            <div style={{
-              position: 'absolute',
-              left: activeGlobalStep * cw + Math.floor(cw / 2) - 1,
-              top: 0, bottom: 0, width: 2,
-              background: accent.from,
-              boxShadow: `0 0 14px ${accent.from}cc, 0 0 4px ${accent.from}`,
-              pointerEvents: 'none', zIndex: 4,
-            }} />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── SampleBadge ──────────────────────────────────────────────────────────────
-function SampleBadge({ status, loaded, total }: { status: SampleStatus; loaded: number; total: number }) {
-  if (status === 'idle' || status === 'ready') return null;
-  const text  = status === 'loading' ? `Loading ${loaded}/${total}…`
-    : status === 'partial' ? `Samples ${loaded}/${total}`
-    : 'Synth only';
-  const color = status === 'failed' ? '#ef4444' : '#facc15';
-  return (
-    <span style={{
-      fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
-      background: `${color}22`, color, letterSpacing: 0.3, flexShrink: 0,
-    }}>{text}</span>
-  );
-}
-
-// ── DrumEditor (main) ────────────────────────────────────────────────────────
+// ── Main DrumEditor ───────────────────────────────────────────────────────────
 export default function DrumEditor() {
-  const accentKey       = useChordStore(s => s.settings.accentColor);
-  const updateSettings  = useChordStore(s => s.updateSettings);
-  const accent    = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
-
+  const { settings, updateSettings } = useChordStore();
   const {
     patterns, activePatternId,
     soundMap, volumeMap, masterVolume,
     kitType, activeInstruments,
     setKitType, toggleInstrument,
-    updatePattern, addMeasure, toggleHit,
+    toggleHit, addMeasure, updatePattern,
   } = useDrumStore();
 
-  const pattern = patterns.find(p => p.id === activePatternId) ?? patterns[0];
+  const pattern = useMemo(
+    () => patterns.find(p => p.id === activePatternId) ?? patterns[0],
+    [patterns, activePatternId],
+  );
 
-  // Playback
-  const [isPlaying,    setIsPlaying]    = useState(false);
-  const [activeGStep,  setActiveGStep]  = useState(-1);
-  const [isLooping,    setIsLooping]    = useState(true);
+  const accent  = ACCENT_COLORS[settings.accentColor] ?? ACCENT_COLORS.blue;
+  const spm     = stepsPerMeasure(pattern);
+  const totalSteps = spm * pattern.measures.length;
+  const rowH    = pattern.subdivision === 8 ? ROW_H_8 : ROW_H_16;
 
-  // Sample loading feedback
-  const [sStatus, setSStatus] = useState<SampleStatus>('idle');
-  const [sLoaded, setSLoaded] = useState(0);
-  const [sTotal,  setSTotal]  = useState(0);
+  // Local state
+  const [playing, setPlaying]         = useState(false);
+  const [looping, setLooping]         = useState(true);
+  const [sampleStatus, setSampleStatus] = useState<SampleStatus>('idle');
+  const [showKitSheet, setShowKitSheet]   = useState(!kitType);
+  const [showInstrSheet, setShowInstrSheet] = useState(false);
 
-  // UI sheets
-  const [showKitPicker, setShowKitPicker] = useState(kitType === null);
-  const [showInstSheet, setShowInstSheet] = useState(false);
+  // Refs for zero-lag playhead (no React re-render on step)
+  const gridScrollRef  = useRef<HTMLDivElement>(null);
+  const playheadRef    = useRef<HTMLDivElement>(null);
+  const rowHLRef       = useRef<HTMLDivElement>(null);
+  const pointerStart   = useRef<{ x: number; y: number } | null>(null);
+  const rowHRef        = useRef(rowH);
+  rowHRef.current = rowH;
 
+  // hitSet for O(1) cell lookup — only recomputes when pattern changes
+  const hitSet = useMemo(() => {
+    const s = new Set<string>();
+    pattern.measures.forEach((m, mIdx) => {
+      DRUM_INSTRUMENTS.forEach(inst => {
+        m.hits[inst]?.forEach(h => s.add(`${mIdx}:${inst}:${h.step}`));
+      });
+    });
+    return s;
+  }, [pattern]);
+
+  // Subscribe to sample pool status
   useEffect(() => {
-    samplePool.onStatusChange = (s, l, t) => {
-      setSStatus(s); setSLoaded(l); setSTotal(t);
-    };
+    samplePool.onStatusChange = (s) => setSampleStatus(s);
+    setSampleStatus(samplePool.status);
     return () => { samplePool.onStatusChange = null; };
   }, []);
 
+  // Load samples whenever the kit changes
   useEffect(() => {
-    drumScheduler.onStep = (gs) => setActiveGStep(gs);
+    if (kitType) loadDrumSamples(kitType);
+  }, [kitType]);
+
+  // Keep scheduler in sync when pattern changes while playing
+  useEffect(() => {
+    if (playing) drumScheduler.updatePattern(pattern);
+  }, [pattern, playing]);
+
+  // Zero-lag onStep — direct DOM mutation, no React state
+  useEffect(() => {
+    drumScheduler.onStep = (gs, _mIdx, _sInM) => {
+      if (gs < 0) {
+        if (playheadRef.current) playheadRef.current.style.display = 'none';
+        if (rowHLRef.current)    rowHLRef.current.style.display    = 'none';
+        return;
+      }
+      const rh = rowHRef.current;
+      const y  = gs * rh;
+      if (playheadRef.current) {
+        playheadRef.current.style.transform = `translateY(${y}px)`;
+        playheadRef.current.style.display   = 'block';
+      }
+      if (rowHLRef.current) {
+        rowHLRef.current.style.transform = `translateY(${y}px)`;
+        rowHLRef.current.style.display   = 'block';
+      }
+      // Auto-scroll
+      const el = gridScrollRef.current;
+      if (el) {
+        if (y < el.scrollTop - 10 || y > el.scrollTop + el.clientHeight - rh * 4) {
+          el.scrollTop = Math.max(0, y - el.clientHeight * 0.30);
+        }
+      }
+    };
     return () => { drumScheduler.onStep = null; };
   }, []);
 
-  useEffect(() => {
-    if (isPlaying) {
-      drumScheduler.updatePattern(pattern);
-    }
-  }, [pattern, soundMap, volumeMap, masterVolume, isPlaying, isLooping]);
+  // Stop on unmount
+  useEffect(() => () => { drumScheduler.stop(); }, []);
 
+  // ── Play / Stop ─────────────────────────────────────────────────────────────
   const handlePlay = useCallback(() => {
-    if (isPlaying) {
+    const kit    = kitType ?? 'acoustic';
+    const sm     = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
+    const volMap: Partial<Record<DrumInstrument, number>> = {};
+    activeInstruments.forEach(i => { volMap[i] = volumeMap[i] ?? 1.0; });
+
+    if (drumScheduler.isPlaying) {
       drumScheduler.stop();
-      setIsPlaying(false);
-      setActiveGStep(-1);
+      setPlaying(false);
     } else {
-      loadDrumSamples();
-      drumScheduler.start(pattern, soundMap, volumeMap, masterVolume, isLooping);
-      setIsPlaying(true);
+      loadDrumSamples(kit);
+      drumScheduler.start(pattern, sm, volMap, masterVolume, looping, kit);
+      setPlaying(true);
     }
-  }, [isPlaying, pattern, soundMap, volumeMap, masterVolume, isLooping]);
+  }, [pattern, kitType, soundMap, volumeMap, activeInstruments, masterVolume, looping]);
 
-  const handleToggleHit = useCallback((inst: DrumInstrument, mIdx: number, step: number) => {
-    const m = pattern.measures[mIdx];
-    if (!m) return;
-    toggleHit(pattern.id, m.id, inst, step);
-  }, [pattern, toggleHit]);
-
+  // ── Kit selection ───────────────────────────────────────────────────────────
   const handleKitSelect = useCallback((kit: KitType) => {
-    setKitType(kit, KIT_DEFAULTS[kit].soundMap);
-    setShowKitPicker(false);
+    const sm = KIT_DEFAULTS[kit].soundMap;
+    setKitType(kit, sm);
+    loadDrumSamples(kit);
+    setShowKitSheet(false);
+    if (drumScheduler.isPlaying) {
+      drumScheduler.stop();
+      setPlaying(false);
+    }
   }, [setKitType]);
+
+  // ── BPM ─────────────────────────────────────────────────────────────────────
+  const adjustBpm = useCallback((delta: number) => {
+    const newBpm = Math.max(40, Math.min(280, pattern.bpm + delta));
+    updatePattern(pattern.id, { bpm: newBpm });
+    if (drumScheduler.isPlaying) {
+      const kit = kitType ?? 'acoustic';
+      const sm  = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
+      const volMap: Partial<Record<DrumInstrument, number>> = {};
+      activeInstruments.forEach(i => { volMap[i] = volumeMap[i] ?? 1.0; });
+      const updated = useDrumStore.getState().patterns.find(p => p.id === pattern.id)!;
+      drumScheduler.start(updated, sm, volMap, masterVolume, looping, kit);
+    }
+  }, [pattern, kitType, soundMap, volumeMap, activeInstruments, masterVolume, looping, updatePattern]);
+
+  // ── Subdivision toggle ──────────────────────────────────────────────────────
+  const toggleSubdivision = useCallback(() => {
+    const next: 8 | 16 = pattern.subdivision === 16 ? 8 : 16;
+    updatePattern(pattern.id, { subdivision: next });
+    if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
+  }, [pattern, updatePattern]);
+
+  // ── Hit tap interaction ─────────────────────────────────────────────────────
+  const cellFromPointer = (e: React.PointerEvent): {
+    mIdx: number; inst: DrumInstrument; step: number;
+  } | null => {
+    const el = gridScrollRef.current;
+    if (!el) return null;
+    const rect   = el.getBoundingClientRect();
+    const cy     = e.clientY - rect.top + el.scrollTop;
+    const cx     = e.clientX - rect.left;
+    const numCols = activeInstruments.length;
+    if (numCols === 0) return null;
+    const colW = rect.width / numCols;
+    const gs   = Math.max(0, Math.min(totalSteps - 1, Math.floor(cy / rowH)));
+    const col  = Math.max(0, Math.min(numCols - 1, Math.floor(cx / colW)));
+    const mIdx = Math.floor(gs / spm);
+    const step = gs % spm;
+    if (mIdx >= pattern.measures.length) return null;
+    return { mIdx, inst: activeInstruments[col], step };
+  };
+
+  const handleGridPointerDown = (e: React.PointerEvent) => {
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleGridPointerUp = (e: React.PointerEvent) => {
+    const s = pointerStart.current;
+    if (!s) return;
+    pointerStart.current = null;
+    if (Math.abs(e.clientX - s.x) < 12 && Math.abs(e.clientY - s.y) < 12) {
+      const cell = cellFromPointer(e);
+      if (cell) {
+        const { mIdx, inst, step } = cell;
+        const m = pattern.measures[mIdx];
+        if (m) {
+          toggleHit(pattern.id, m.id, inst, step);
+          if (drumScheduler.isPlaying)
+            drumScheduler.updatePattern(useDrumStore.getState().patterns.find(p => p.id === pattern.id)!);
+          // Haptic preview on tap
+          drumScheduler.previewSound(
+            KIT_DEFAULTS[kitType ?? 'acoustic'].soundMap[inst] ?? inst,
+            0.5, kitType,
+          );
+        }
+      }
+    }
+  };
+
+  // ── Instrument header tap = preview sound ───────────────────────────────────
+  const handleInstHeaderTap = useCallback((inst: DrumInstrument) => {
+    const kit = kitType ?? 'acoustic';
+    const sid = KIT_DEFAULTS[kit].soundMap[inst] ?? inst;
+    drumScheduler.previewSound(sid, 0.65, kit);
+  }, [kitType]);
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+  const stepsPerBeat = pattern.subdivision / pattern.timeSignature[1];
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: '#0a0a0c',
       display: 'flex', flexDirection: 'column',
-      fontFamily: "'Inter', system-ui, sans-serif",
+      height: '100%', background: '#09090b', overflow: 'hidden',
+      userSelect: 'none', WebkitUserSelect: 'none',
     }}>
 
-      {/* ── Top header ── */}
+      {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div style={{
-        height: BAR_H, background: '#111113',
-        borderBottom: '1px solid #27272a',
-        display: 'flex', alignItems: 'center',
-        padding: '0 10px', gap: 8, flexShrink: 0, zIndex: 10,
+        height: TOP_H, flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '0 12px',
+        background: '#09090b',
+        borderBottom: '1px solid #1c1c1f',
       }}>
         {/* Back */}
         <button
           onClick={() => { drumScheduler.stop(); updateSettings({ appMode: 'chords' }); }}
           style={{
-            width: 36, height: 36, borderRadius: 8,
-            background: 'none', border: '1px solid #3f3f46',
-            color: '#a1a1aa', cursor: 'pointer', fontSize: 20,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            width: 36, height: 36, borderRadius: 10,
+            background: '#18181b', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#a1a1aa', fontSize: 18,
           }}
         >‹</button>
 
+        <span style={{ color: '#71717a', fontSize: 12, fontWeight: 600, letterSpacing: 1 }}>
+          DRUMS
+        </span>
+
         {/* Kit badge */}
-        {kitType && (
-          <button
-            onClick={() => setShowKitPicker(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              background: '#1c1c1e', border: `1px solid ${accent.from}55`,
-              borderRadius: 20, padding: '4px 11px',
-              color: accent.from, fontSize: 12, fontWeight: 700,
-              cursor: 'pointer', flexShrink: 0,
-            }}
-          >
-            <span style={{ fontSize: 13 }}>{KIT_ICONS[kitType]}</span>
-            {KIT_DEFAULTS[kitType].label}
-          </button>
-        )}
+        <button
+          onClick={() => setShowKitSheet(true)}
+          style={{
+            height: 30, padding: '0 12px', borderRadius: 20,
+            background: `${accent.from}22`,
+            border: `1.5px solid ${accent.from}55`,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+          }}
+        >
+          <span style={{ fontSize: 14 }}>{KIT_ICONS[kitType ?? 'acoustic']}</span>
+          <span style={{ color: accent.from, fontSize: 12, fontWeight: 700 }}>
+            {KIT_LABEL[kitType ?? 'acoustic']}
+          </span>
+        </button>
 
-        {/* Pattern name */}
-        <span style={{
-          flex: 1, fontSize: 14, fontWeight: 600, color: '#e4e4e7',
-          overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-        }}>{pattern.name}</span>
-
-        <SampleBadge status={sStatus} loaded={sLoaded} total={sTotal} />
+        <div style={{ flex: 1 }} />
 
         {/* BPM */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <button
-            onClick={() => updatePattern(pattern.id, { bpm: Math.max(40, pattern.bpm - 1) })}
-            style={{ width: 26, height: 26, borderRadius: 6, background: '#27272a', border: '1px solid #3f3f46', color: '#e4e4e7', fontSize: 13, cursor: 'pointer' }}
+            onClick={() => adjustBpm(-5)}
+            style={{ width: 28, height: 28, borderRadius: 8, background: '#18181b', border: 'none', cursor: 'pointer', color: '#a1a1aa', fontSize: 16 }}
           >−</button>
-          <span style={{ fontSize: 13, fontWeight: 700, color: accent.from, minWidth: 40, textAlign: 'center' }}>
-            {pattern.bpm}
-          </span>
+          <div style={{ minWidth: 44, textAlign: 'center' }}>
+            <div style={{ color: '#fff', fontSize: 16, fontWeight: 700, lineHeight: 1 }}>{pattern.bpm}</div>
+            <div style={{ color: '#52525b', fontSize: 9, letterSpacing: 0.5 }}>BPM</div>
+          </div>
           <button
-            onClick={() => updatePattern(pattern.id, { bpm: Math.min(300, pattern.bpm + 1) })}
-            style={{ width: 26, height: 26, borderRadius: 6, background: '#27272a', border: '1px solid #3f3f46', color: '#e4e4e7', fontSize: 13, cursor: 'pointer' }}
+            onClick={() => adjustBpm(5)}
+            style={{ width: 28, height: 28, borderRadius: 8, background: '#18181b', border: 'none', cursor: 'pointer', color: '#a1a1aa', fontSize: 16 }}
           >+</button>
         </div>
 
         {/* Subdivision */}
         <button
-          onClick={() => updatePattern(pattern.id, { subdivision: pattern.subdivision === 16 ? 8 : 16 })}
+          onClick={toggleSubdivision}
           style={{
-            padding: '4px 9px', borderRadius: 6,
-            background: '#27272a', border: '1px solid #3f3f46',
-            color: '#a1a1aa', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
-          }}
-        >1/{pattern.subdivision}</button>
-      </div>
-
-      {/* ── Piano roll (fills all remaining space) ── */}
-      <PianoRollGrid
-        pattern={pattern}
-        activeInstruments={activeInstruments}
-        activeGlobalStep={activeGStep}
-        onToggleHit={handleToggleHit}
-        accent={accent}
-      />
-
-      {/* ── Bottom bar ── */}
-      <div style={{
-        height: BTM_H, background: '#111113',
-        borderTop: '1px solid #27272a',
-        display: 'flex', alignItems: 'center',
-        padding: '0 10px', gap: 8, flexShrink: 0, zIndex: 10,
-      }}>
-        {/* Instruments toggle */}
-        <button
-          onClick={() => setShowInstSheet(v => !v)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: showInstSheet ? `${accent.from}22` : '#1c1c1e',
-            border: `1px solid ${showInstSheet ? accent.from : '#3f3f46'}`,
-            borderRadius: 20, padding: '7px 13px',
-            color: showInstSheet ? accent.from : '#a1a1aa',
-            fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+            height: 30, padding: '0 12px', borderRadius: 20,
+            background: '#18181b', border: '1.5px solid #3f3f46',
+            cursor: 'pointer', color: '#a1a1aa', fontSize: 12, fontWeight: 700,
           }}
         >
-          <span style={{ fontSize: 14 }}>🥁</span>
-          Drums
-          <span style={{ fontSize: 10, opacity: 0.6 }}>{showInstSheet ? '▼' : '▲'}</span>
+          1/{pattern.subdivision}
         </button>
 
-        {/* Active instrument chips */}
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', gap: 5,
-          overflowX: 'auto', padding: '2px 0',
-        }} className="no-scrollbar">
-          {activeInstruments.map(inst => (
-            <span key={inst} style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              background: '#1c1c1e', borderRadius: 12, padding: '3px 9px',
-              fontSize: 10, fontWeight: 600,
-              color: INSTRUMENT_COLOR[inst], whiteSpace: 'nowrap', flexShrink: 0,
+        {/* Sample status */}
+        {sampleStatus === 'loading' && (
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+        )}
+        {sampleStatus === 'ready' && (
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
+        )}
+      </div>
+
+      {/* ── Instrument column headers (fixed, above grid) ────────────────────── */}
+      <div style={{
+        height: INST_H, flexShrink: 0,
+        display: 'flex', background: '#0d0d0f',
+        borderBottom: '2px solid #27272a',
+        overflowX: 'hidden',
+      }}>
+        {activeInstruments.map(inst => (
+          <button
+            key={inst}
+            onClick={() => handleInstHeaderTap(inst)}
+            style={{
+              flex: 1, minWidth: 0,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              gap: 4, border: 'none', cursor: 'pointer',
+              background: 'transparent',
+              borderRight: '1px solid #18181b',
+              padding: '6px 2px',
+            }}
+          >
+            <div style={{
+              width: 10, height: 10, borderRadius: '50%',
+              background: INSTRUMENT_COLOR[inst],
+              boxShadow: `0 0 6px ${INSTRUMENT_COLOR[inst]}99`,
+            }} />
+            <span style={{
+              color: '#a1a1aa', fontSize: 9, fontWeight: 700,
+              letterSpacing: 0.3, textAlign: 'center', lineHeight: 1.1,
             }}>
-              <span style={{
-                width: 6, height: 6, borderRadius: '50%',
-                background: INSTRUMENT_COLOR[inst], display: 'inline-block',
-              }} />
-              {INSTRUMENT_NAME[inst]}
+              {INST_SHORT[inst]}
             </span>
-          ))}
-        </div>
+          </button>
+        ))}
+      </div>
+
+      {/* ── Scrollable grid ──────────────────────────────────────────────────── */}
+      <div
+        ref={gridScrollRef}
+        onPointerDown={handleGridPointerDown}
+        onPointerUp={handleGridPointerUp}
+        style={{
+          flex: 1, overflowY: 'auto', overflowX: 'hidden',
+          position: 'relative',
+          touchAction: 'pan-y',
+          WebkitOverflowScrolling: 'touch',
+        }}
+        className="no-scrollbar"
+      >
+        {/* Row highlight — updated via ref, zero React re-render */}
+        <div
+          ref={rowHLRef}
+          style={{
+            position: 'absolute', left: 0, right: 0,
+            height: rowH, top: 0,
+            background: `${accent.from}18`,
+            pointerEvents: 'none', zIndex: 1,
+            display: 'none',
+          }}
+        />
+
+        {/* Playhead line — updated via ref */}
+        <div
+          ref={playheadRef}
+          style={{
+            position: 'absolute', left: 0, right: 0,
+            height: 2, top: 0,
+            background: accent.from,
+            boxShadow: `0 0 8px ${accent.from}`,
+            pointerEvents: 'none', zIndex: 3,
+            display: 'none',
+          }}
+        />
+
+        {/* Step rows */}
+        {Array.from({ length: totalSteps }, (_, gs) => {
+          const mIdx      = Math.floor(gs / spm);
+          const stepInM   = gs % spm;
+          const isMeasureStart = stepInM === 0 && gs > 0;
+          const isBeat    = stepInM % stepsPerBeat === 0;
+          const bgColor   = isBeat ? '#111315' : '#0d0d0f';
+
+          return (
+            <div
+              key={gs}
+              style={{
+                display: 'flex',
+                height: rowH,
+                background: bgColor,
+                borderTop: isMeasureStart
+                  ? '2px solid #3f3f46'
+                  : isBeat
+                    ? '1px solid #1f1f23'
+                    : '1px solid #131316',
+                position: 'relative', zIndex: 2,
+              }}
+            >
+              {activeInstruments.map(inst => {
+                const hasHit = hitSet.has(`${mIdx}:${inst}:${stepInM}`);
+                return (
+                  <div
+                    key={inst}
+                    style={{
+                      flex: 1, minWidth: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      borderRight: '1px solid #18181b',
+                    }}
+                  >
+                    {hasHit && (
+                      <div style={{
+                        width: '82%', height: rowH - 7,
+                        borderRadius: 4,
+                        background: INSTRUMENT_COLOR[inst],
+                        boxShadow: `0 1px 6px ${INSTRUMENT_COLOR[inst]}55`,
+                        flexShrink: 0,
+                      }} />
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Measure label at start of each measure */}
+              {stepInM === 0 && (
+                <div style={{
+                  position: 'absolute', left: 4, top: 2,
+                  fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+                  color: '#3f3f46', pointerEvents: 'none', zIndex: 4,
+                }}>
+                  M{mIdx + 1}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Spacer so last rows aren't hidden under bottom bar */}
+        <div style={{ height: 16 }} />
+      </div>
+
+      {/* ── Bottom action bar ─────────────────────────────────────────────────── */}
+      <div style={{
+        height: BOT_H, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 12px', gap: 8,
+        background: '#09090b',
+        borderTop: '1px solid #1c1c1f',
+      }}>
+
+        {/* Instruments toggle */}
+        <button
+          onClick={() => setShowInstrSheet(true)}
+          style={{
+            height: 36, padding: '0 14px', borderRadius: 20,
+            background: '#18181b', border: '1.5px solid #3f3f46',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+            color: '#a1a1aa', fontSize: 12, fontWeight: 600,
+          }}
+        >
+          <span style={{ fontSize: 14 }}>🎼</span>
+          <span>{activeInstruments.length} inst</span>
+        </button>
 
         {/* Add measure */}
         <button
           onClick={() => addMeasure(pattern.id)}
           style={{
-            width: 34, height: 34, borderRadius: 8,
-            background: '#1c1c1e', border: '1px solid #3f3f46',
-            color: '#a1a1aa', fontSize: 18, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            height: 36, padding: '0 14px', borderRadius: 20,
+            background: '#18181b', border: '1.5px solid #3f3f46',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+            color: '#a1a1aa', fontSize: 12, fontWeight: 600,
           }}
-        >+</button>
+        >
+          <span>+ Bar</span>
+        </button>
+
+        <div style={{ flex: 1 }} />
 
         {/* Loop */}
         <button
-          onClick={() => setIsLooping(v => !v)}
+          onClick={() => setLooping(l => !l)}
           style={{
-            width: 34, height: 34, borderRadius: 8,
-            background: isLooping ? `${accent.from}22` : '#1c1c1e',
-            border: `1px solid ${isLooping ? accent.from : '#3f3f46'}`,
-            color: isLooping ? accent.from : '#52525b',
-            fontSize: 14, cursor: 'pointer', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 36, height: 36, borderRadius: 10,
+            background: looping ? `${accent.from}33` : '#18181b',
+            border: `1.5px solid ${looping ? accent.from : '#3f3f46'}`,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16, color: looping ? accent.from : '#52525b',
           }}
-        >⟳</button>
+          title="Loop"
+        >
+          ⟳
+        </button>
 
         {/* Play / Stop */}
         <button
           onClick={handlePlay}
           style={{
-            width: 46, height: 46, borderRadius: '50%',
-            background: isPlaying
-              ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-              : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-            border: 'none', cursor: 'pointer', flexShrink: 0,
+            width: 52, height: 52, borderRadius: '50%',
+            background: playing
+              ? '#3f3f46'
+              : `linear-gradient(135deg,${accent.from},${accent.to})`,
+            border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 4px 22px ${isPlaying ? '#ef444466' : accent.from + '66'}`,
-            transition: 'background 200ms, box-shadow 200ms',
+            fontSize: 22, color: '#fff',
+            boxShadow: playing ? 'none' : `0 4px 18px ${accent.from}66`,
+            transition: 'all 180ms',
           }}
         >
-          {isPlaying
-            ? <span style={{ fontSize: 15, color: '#fff' }}>■</span>
-            : <span style={{ fontSize: 18, color: '#fff', marginLeft: 3 }}>▶</span>}
+          {playing ? '⏹' : '▶'}
         </button>
       </div>
 
-      {/* ── Instrument palette sheet ── */}
-      {showInstSheet && (
-        <InstrumentPaletteSheet
-          activeInstruments={activeInstruments}
-          kitType={kitType}
-          accent={accent}
-          onToggle={toggleInstrument}
-          onKitChange={() => { setShowInstSheet(false); setShowKitPicker(true); }}
-          onClose={() => setShowInstSheet(false)}
-        />
-      )}
-
-      {/* ── Kit selector sheet ── */}
-      {showKitPicker && (
+      {/* ── Kit selector sheet ─────────────────────────────────────────────────── */}
+      {showKitSheet && (
         <KitSelectorSheet
           accent={accent}
           onSelect={handleKitSelect}
-          onClose={kitType ? () => setShowKitPicker(false) : undefined}
+          onClose={() => kitType && setShowKitSheet(false)}
+        />
+      )}
+
+      {/* ── Instrument toggle sheet ───────────────────────────────────────────── */}
+      {showInstrSheet && (
+        <InstrumentSheet
+          activeInstruments={activeInstruments}
+          accent={accent}
+          onToggle={toggleInstrument}
+          onClose={() => setShowInstrSheet(false)}
         />
       )}
     </div>
