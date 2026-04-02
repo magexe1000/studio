@@ -201,7 +201,7 @@ function buildPrintPianoSVG(keys: number[], dark = false, accentColor = '#679cff
   return s;
 }
 
-function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPORT_CONFIG, transposeOffset = 0, storedCustomChords: CustomChord[] = [], accentColor = '#679cff', pdfName = '') {
+async function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPORT_CONFIG, transposeOffset = 0, storedCustomChords: CustomChord[] = [], accentColor = '#679cff', pdfName = '') {
   const dark    = cfg.theme === 'dark';
   const style   = cfg.exportStyle ?? 'elegant';
   const compact = style === 'compact';
@@ -465,20 +465,37 @@ ${chordContent}
 </div>
 </body></html>`;
 
-  /* ── Export: Web Share API → blob download fallback ─────────────────── */
-  // Capacitor WebView blocks iframe.print() — use Web Share if available.
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const file = new File([blob], `${docTitle}.html`, { type: 'text/html' });
+  /* ── Export ─────────────────────────────────────────────────────────── */
+  const { Capacitor } = await import('@capacitor/core');
 
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    navigator.share({ title: docTitle, files: [file] }).catch(() => {
-      // User cancelled or share failed — silent.
-    });
+  if (Capacitor.isNativePlatform()) {
+    // Native Android/iOS: save to cache dir then open the system share sheet.
+    // The user can pick Print → Save as PDF, Google Drive, email, etc.
+    try {
+      const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
+      const { Share } = await import('@capacitor/share');
+
+      const writeResult = await Filesystem.writeFile({
+        path: `${docTitle}.html`,
+        data: html,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+      });
+
+      await Share.share({
+        title: docTitle,
+        url: writeResult.uri,
+        dialogTitle: 'Save or print your chord sheet',
+      });
+    } catch {
+      // User cancelled the share sheet — do nothing.
+    }
   } else {
-    // Desktop / non-share environment: trigger a blob download.
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
+    // Web / PWA: trigger a blob download of the HTML file.
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
     a.download = `${docTitle}.html`;
     document.body.appendChild(a);
     a.click();
@@ -759,13 +776,15 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
     setTimeout(onClose, 320);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     setExporting(true);
-    setTimeout(() => {
-      exportPresetToPDF(preset, cfg, transposeOffset, storedCustomChords, accent.from, pdfName);
+    await new Promise(r => setTimeout(r, 100));
+    try {
+      await exportPresetToPDF(preset, cfg, transposeOffset, storedCustomChords, accent.from, pdfName);
+    } finally {
       setExporting(false);
       handleClose();
-    }, 100);
+    }
   };
 
   /* iOS-style toggle */
