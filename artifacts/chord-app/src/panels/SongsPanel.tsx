@@ -506,71 +506,318 @@ ${chordContent}
   const { Capacitor } = await import('@capacitor/core');
 
   if (Capacitor.isNativePlatform()) {
-    // Native Android/iOS: generate a real PDF with jsPDF, save to cache, share.
+    // Native Android/iOS: draw PDF directly with jsPDF primitives (no html2canvas).
     try {
       const { jsPDF }    = await import('jspdf');
       const { Filesystem, Directory } = await import('@capacitor/filesystem');
       const { Share }    = await import('@capacitor/share');
 
-      const orientation = cfg.orientation === 'landscape' ? 'l' : 'p';
-      const paper       = cfg.paperSize ?? 'a4';
+      /* ── Page geometry ─────────────────────────────────────── */
+      const paper   = cfg.paperSize ?? 'a4';
+      const orientJ = cfg.orientation === 'landscape' ? 'l' : 'p';
+      const isLand  = orientJ === 'l';
+      // Physical page dimensions in mm
+      const PW = isLand ? (paper === 'letter' ? 279.4 : 297) : (paper === 'letter' ? 215.9 : 210);
+      const PH = isLand ? (paper === 'letter' ? 215.9 : 210) : (paper === 'letter' ? 279.4 : 297);
 
-      // Page dimensions: A4 = 210×297 mm, Letter = 215.9×279.4 mm
-      const pageW_mm = orientation === 'l'
-        ? (paper === 'letter' ? 279.4 : 297)
-        : (paper === 'letter' ? 215.9 : 210);
-      // Pixel width used for rendering HTML (~3.7795 px/mm)
-      const winW = Math.round(pageW_mm * 3.7795);
+      const doc = new jsPDF({ unit: 'mm', format: paper, orientation: orientJ });
 
-      const doc = new jsPDF({ unit: 'mm', format: paper, orientation });
+      /* ── Style theme ───────────────────────────────────────── */
+      const dark    = cfg.theme === 'dark';
+      const sty     = cfg.exportStyle ?? 'elegant';
+      const compact = sty === 'compact';
+      const elegant = sty === 'elegant';
 
-      // Extract the <style> and <body> content from the pre-built HTML so
-      // html2canvas renders it exactly as the web preview does.
-      // Use a unique scoped ID so that the injected CSS doesn't conflict with
-      // the app's own stylesheets (class name collision prevention).
-      const scopeId    = `cxpdf${Date.now()}`;
-      const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-      const rawCss     = styleMatch ? styleMatch[1] : '';
-      // Scope every CSS class selector under the unique container ID
-      const scopedCss  = rawCss.replace(/\.([\w-]+)/g, `#${scopeId} .$1`);
-      const bodyMatch  = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-      const bodyHtml   = bodyMatch ? bodyMatch[1] : html;
+      const hexRgb = (h: string): [number,number,number] => {
+        const n = parseInt(h.replace('#',''), 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      };
 
-      const container = document.createElement('div');
-      container.id    = scopeId;
-      container.style.cssText = `position:fixed;left:-9999px;top:0;width:${winW}px;`;
-      container.innerHTML = `<style>${scopedCss}</style>${bodyHtml}`;
-      document.body.appendChild(container);
+      const C_BG      = dark ? '#0c0c0c' : (elegant ? '#f6f5f2' : '#ffffff');
+      const C_CARD    = dark ? '#1c1c1c' : '#ffffff';
+      const C_TEXT    = dark ? '#edeae4' : '#0d0d0d';
+      const C_SUB     = dark ? '#8a8a8a' : '#5a5f6e';
+      const C_MUTED   = dark ? '#555555' : '#a0a6b2';
+      const C_BORDER  = dark ? '#2e2e2e' : (elegant ? '#e0ddd7' : '#e0e0e0');
+      const C_DIVIDER = dark ? '#2a2a2a' : (elegant ? '#d8d5cf' : '#e0e0e0');
+      const C_ACCENT  = accentColor;
+      const C_BADGE_BG = dark ? '#1e1e1e' : (elegant ? '#eceae5' : '#f0f0f0');
 
-      await new Promise<void>((resolve) => {
-        doc.html(container, {
-          callback: async (renderedDoc) => {
-            document.body.removeChild(container);
-            try {
-              const pdfBase64 = renderedDoc.output('datauristring').split(',')[1];
-              const writeResult = await Filesystem.writeFile({
-                path: `${docTitle}.pdf`,
-                data: pdfBase64,
-                directory: Directory.Cache,
-              });
-              await Share.share({
-                title: docTitle,
-                url: writeResult.uri,
-                dialogTitle: 'Save your chord sheet PDF',
-              });
-            } catch {
-              // User cancelled — do nothing.
-            }
-            resolve();
-          },
-          x: 0,
-          y: 0,
-          width: pageW_mm,
-          windowWidth: winW,
-          autoPaging: 'slice',
-          margin: 0,
+      /* ── Margins ───────────────────────────────────────────── */
+      const ML  = compact ? 10 : 14;
+      const MR  = compact ? 10 : 14;
+      const MT  = compact ? 10 : 13;
+      const MB  = 10;
+      const CW  = PW - ML - MR;
+
+      /* ── Card layout — auto-fit all chords ─────────────────── */
+      const CARD_GAP   = compact ? 3.5 : 5;
+      const CARD_PAD_X = compact ? 2   : 3;
+      const CARD_PAD_Y = compact ? 2.5 : 3.5;
+
+      // Estimate header height in mm
+      const hasTitle  = cfg.includeTitle && !!preset.name;
+      const hasArtist = cfg.includeArtist && !!preset.artist;
+      const hasBadges = (cfg.includeKey && !!preset.key) || (cfg.includeBPM && preset.bpm > 0);
+      const HDR_H = (hasTitle ? (compact ? 7 : 9) : 0)
+                  + (hasArtist ? (compact ? 5 : 6.5) : 0)
+                  + (hasBadges ? (compact ? 6 : 7) : 0)
+                  + (hasTitle || hasArtist ? (compact ? 3 : 5) : 0); // divider gap
+
+      const hasName = cfg.chordDisplay !== 'diagram';
+      const hasDiag = cfg.chordDisplay !== 'name';
+      const NAME_H  = hasName ? (compact ? 4.5 : 5.5) : 0;
+
+      const AVAIL_H = PH - MT - MB - HDR_H - 8; // 8mm footer
+
+      // Find minimum cols that fits all chords on one page
+      let bestCols = 3;
+      for (let c = 3; c <= 6; c++) {
+        const cardW = (CW - (c - 1) * CARD_GAP) / c;
+        const diagW = cardW - 2 * CARD_PAD_X;
+        const diagH = hasDiag ? diagW * (180 / 160) : 0;
+        const cardH = 2 * CARD_PAD_Y + NAME_H + diagH + (compact ? 1.5 : 2);
+        const rows  = Math.ceil(entries.length / c);
+        const total = rows * cardH + (rows - 1) * CARD_GAP;
+        bestCols = c;
+        if (total <= AVAIL_H || c === 6) break;
+      }
+
+      const COLS   = bestCols;
+      const CARD_W = (CW - (COLS - 1) * CARD_GAP) / COLS;
+      const DIAG_W = CARD_W - 2 * CARD_PAD_X;
+      const DIAG_H = hasDiag ? DIAG_W * (180 / 160) : 0;
+      const CARD_H = 2 * CARD_PAD_Y + NAME_H + DIAG_H + (compact ? 1.5 : 2);
+
+      /* ── Pre-render SVG diagrams → PNG data URLs ───────────── */
+      // Convert mm size to pixels for the SVG builder (96 dpi)
+      const PX_PER_MM = 96 / 25.4;
+      const diagWpx   = Math.round(DIAG_W * PX_PER_MM);
+      const diagHpx   = Math.round(DIAG_H * PX_PER_MM);
+      const svgSc     = diagWpx / 160;
+
+      const svgToPng = (svgStr: string): Promise<string> =>
+        new Promise(resolve => {
+          if (!svgStr) { resolve(''); return; }
+          const RES = 2; // render at 2× for quality
+          const cv  = document.createElement('canvas');
+          cv.width  = diagWpx * RES;
+          cv.height = diagHpx * RES;
+          const ctx = cv.getContext('2d');
+          if (!ctx) { resolve(''); return; }
+          const img = new Image();
+          img.onload  = () => {
+            ctx.scale(RES, RES);
+            ctx.drawImage(img, 0, 0, diagWpx, diagHpx);
+            resolve(cv.toDataURL('image/png'));
+          };
+          img.onerror = () => resolve('');
+          // base64-encode the SVG to avoid blob-URL issues in Android WebView
+          img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgStr)))}`;
         });
+
+      type CardData = { name: string; png: string; notes: string; type: string };
+
+      const cards: CardData[] = await Promise.all(entries.map(async entry => {
+        let name = '', svgStr = '', notes = '', type = '';
+        if (entry.isCustom) {
+          const cc = entry.customChord;
+          name = cc.name;
+          if (cc.instrument === 'piano') {
+            svgStr = buildPrintPianoSVG(cc.pianoKeys ?? [], dark, C_ACCENT, svgSc);
+          } else {
+            const baseFret = cc.frets.some(f => f > 4)
+              ? Math.max(1, Math.min(...cc.frets.filter(f => f > 0))) : 1;
+            const strings = (cc.instrument === 'bass') ? 4 : 4;
+            svgStr = cc.instrument === 'guitar'
+              ? buildPrintSVG({ frets: cc.frets, fingers: [], barres: cc.barres ?? [], baseFret }, dark, C_ACCENT, svgSc)
+              : buildPrintFretboardSVG(cc.frets, baseFret, cc.barres ?? [], strings, dark, C_ACCENT, svgSc);
+          }
+        } else {
+          const ch = entry.chord;
+          name  = ch.name;
+          notes = (ch.notes ?? []).join(' ');
+          type  = ch.type ?? '';
+          svgStr = buildPrintSVG(ch.guitar, dark, C_ACCENT, svgSc);
+        }
+        const png = hasDiag ? await svgToPng(svgStr) : '';
+        return { name, png, notes, type };
+      }));
+
+      /* ── Draw helpers ──────────────────────────────────────── */
+      const fillPage = () => {
+        doc.setFillColor(...hexRgb(C_BG));
+        doc.rect(0, 0, PW, PH, 'F');
+      };
+
+      const drawHeader = (): number => {
+        let y = MT;
+        if (hasTitle) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(compact ? 17 : 22);
+          doc.setTextColor(...hexRgb(C_TEXT));
+          doc.text(preset.name, ML, y + (compact ? 5 : 6.5));
+          y += compact ? 7 : 9;
+        }
+        if (hasArtist) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(compact ? 9 : 11);
+          doc.setTextColor(...hexRgb(C_SUB));
+          doc.text(preset.artist, ML, y + 3.5);
+          y += compact ? 5 : 6.5;
+        }
+        if (hasBadges) {
+          const badges: string[] = [];
+          if (cfg.includeKey && preset.key)    badges.push(`Key: ${preset.key}`);
+          if (cfg.includeBPM && preset.bpm > 0) badges.push(`${preset.bpm} BPM`);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7);
+          doc.setTextColor(...hexRgb(C_ACCENT));
+          let bx = ML;
+          badges.forEach(b => {
+            const bw = doc.getTextWidth(b) + 5;
+            const bh = 4.5;
+            doc.setFillColor(...hexRgb(C_BADGE_BG));
+            doc.setDrawColor(...hexRgb(C_ACCENT));
+            doc.setLineWidth(0.25);
+            doc.roundedRect(bx, y, bw, bh, 1.5, 1.5, 'FD');
+            doc.text(b, bx + 2.5, y + 3.1);
+            bx += bw + 2;
+          });
+          y += compact ? 6 : 7;
+        }
+        // Divider
+        if (hasTitle || hasArtist) {
+          doc.setDrawColor(...hexRgb(C_DIVIDER));
+          doc.setLineWidth(0.3);
+          doc.line(ML, y + 1, PW - MR, y + 1);
+          y += compact ? 3 : 5;
+        }
+        return y;
+      };
+
+      const drawCard = (card: CardData, col: number, rowStartY: number, num: number) => {
+        const cx = ML + col * (CARD_W + CARD_GAP);
+        const cy = rowStartY;
+
+        // Card background
+        doc.setFillColor(...hexRgb(C_CARD));
+        if (elegant) {
+          doc.setDrawColor(...hexRgb(C_BORDER));
+          doc.setLineWidth(0.25);
+          doc.roundedRect(cx, cy, CARD_W, CARD_H, 2, 2, 'FD');
+        } else if (compact) {
+          doc.roundedRect(cx, cy, CARD_W, CARD_H, 1.5, 1.5, 'F');
+        }
+        // minimal: no card background — just content on page bg
+
+        let iy = cy + CARD_PAD_Y;
+
+        // Chord number
+        if (cfg.showNumbering) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(5);
+          doc.setTextColor(...hexRgb(C_MUTED));
+          doc.text(String(num), cx + CARD_PAD_X, iy + 2.5);
+        }
+
+        // Chord name
+        if (hasName) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(compact ? 9 : 11);
+          doc.setTextColor(...hexRgb(C_TEXT));
+          doc.text(card.name, cx + CARD_W / 2, iy + (compact ? 3 : 3.8), { align: 'center', maxWidth: CARD_W - 2 });
+          iy += NAME_H;
+        }
+
+        // Diagram
+        if (hasDiag && card.png) {
+          const imgX = cx + CARD_PAD_X;
+          const imgY = iy;
+          doc.addImage(card.png, 'PNG', imgX, imgY, DIAG_W, DIAG_H);
+          iy += DIAG_H + 1;
+        }
+
+        // Notes (chord tones)
+        if (card.notes) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(5.5);
+          doc.setTextColor(...hexRgb(C_MUTED));
+          doc.text(card.notes, cx + CARD_W / 2, iy + 1.8, { align: 'center', maxWidth: CARD_W - 1 });
+        }
+      };
+
+      const drawFooter = (pageNum: number, totalPages: number) => {
+        const fy = PH - MB + 3;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.setTextColor(...hexRgb(C_MUTED));
+        doc.text('CHORDEX', ML, fy);
+        if (totalPages > 1) {
+          doc.text(`${pageNum} / ${totalPages}`, PW - MR, fy, { align: 'right' });
+        }
+      };
+
+      /* ── Paginate & draw ───────────────────────────────────── */
+      fillPage();
+      let gridY = drawHeader();
+
+      // Calculate how many rows fit per page
+      const rowsPerPage1 = Math.floor((PH - MT - MB - HDR_H - 8) / (CARD_H + CARD_GAP));
+      const rowsPerPageN = Math.floor((PH - MT - MB - 8) / (CARD_H + CARD_GAP));
+
+      const totalRows  = Math.ceil(cards.length / COLS);
+      let totalPages   = 1;
+      if (totalRows > rowsPerPage1) {
+        const overflow = totalRows - rowsPerPage1;
+        totalPages += Math.ceil(overflow / rowsPerPageN);
+      }
+
+      let currentPage  = 1;
+      let rowOnPage    = 0;
+      let maxRowOnPage = rowsPerPage1;
+
+      cards.forEach((card, i) => {
+        const globalRow = Math.floor(i / COLS);
+        const col       = i % COLS;
+
+        // When we start a new row, check if we need a new page
+        if (col === 0 && globalRow > 0) {
+          if (rowOnPage >= maxRowOnPage) {
+            drawFooter(currentPage, totalPages);
+            doc.addPage();
+            fillPage();
+            currentPage++;
+            rowOnPage    = 0;
+            maxRowOnPage = rowsPerPageN;
+            gridY        = MT;
+          } else {
+            rowOnPage++;
+          }
+        }
+
+        const cardY = gridY + rowOnPage * (CARD_H + CARD_GAP);
+        drawCard(card, col, cardY, i + 1);
       });
+
+      drawFooter(currentPage, totalPages);
+
+      /* ── Save & share ──────────────────────────────────────── */
+      try {
+        const pdfBase64 = doc.output('datauristring').split(',')[1];
+        const writeResult = await Filesystem.writeFile({
+          path: `${docTitle}.pdf`,
+          data: pdfBase64,
+          directory: Directory.Cache,
+        });
+        await Share.share({
+          title: docTitle,
+          url: writeResult.uri,
+          dialogTitle: 'Save your chord sheet PDF',
+        });
+      } catch {
+        // User cancelled — do nothing.
+      }
     } catch {
       // User cancelled — do nothing.
     }
