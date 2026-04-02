@@ -484,6 +484,118 @@ ${chordContent}
         return (getChordById(displayId) ?? getChordById(id))?.name ?? id;
       };
 
+      // ── Helper: draw a mini guitar chord diagram ─────────────────────────
+      const drawChordDiagram = (
+        frets: number[],
+        barres: { fret: number; fromString: number; toString: number }[],
+        baseFret: number,
+        chordName: string,
+        cellX: number,
+        cellY: number,
+        cellW: number,
+      ): number => {
+        const NUM_STRINGS = 6;
+        const NUM_FRETS   = 5;
+        const SS    = 3.5;  // string spacing (mm)
+        const FS    = 5.0;  // fret spacing (mm)
+        const DOT_R = 1.5;
+        const boardW = SS * (NUM_STRINGS - 1);
+        const boardH = FS * NUM_FRETS;
+        const midX   = cellX + cellW / 2;
+        const diagX  = midX - boardW / 2;
+        let yCur = cellY;
+
+        // Chord name
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(20, 20, 20);
+        doc.text(chordName, midX, yCur, { align: 'center' });
+        yCur += 4.5;
+
+        // Open / muted string indicators
+        const minFret = baseFret > 1 ? baseFret : 1;
+        for (let si = 0; si < NUM_STRINGS; si++) {
+          const sx   = diagX + si * SS;
+          const fret = frets[si];
+          if (fret === 0) {
+            doc.setDrawColor(100, 100, 100);
+            doc.setLineWidth(0.35);
+            doc.circle(sx, yCur + 1, 1.1, 'S');
+          } else if (fret === -1) {
+            doc.setDrawColor(180, 60, 60);
+            doc.setLineWidth(0.45);
+            const d = 0.9;
+            doc.line(sx - d, yCur, sx + d, yCur + 2);
+            doc.line(sx + d, yCur, sx - d, yCur + 2);
+          }
+        }
+        yCur += 4;
+        const nutY = yCur;
+
+        // Base fret label
+        if (baseFret > 1) {
+          doc.setFontSize(5.5);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(100, 100, 100);
+          doc.text(`${baseFret}fr`, diagX - 1, nutY + FS * 0.5, { align: 'right' });
+        }
+
+        // Fretboard background
+        doc.setFillColor(28, 18, 8);
+        doc.rect(diagX, nutY, boardW, boardH, 'F');
+
+        // Nut
+        if (baseFret === 1) {
+          doc.setFillColor(140, 130, 110);
+          doc.rect(diagX, nutY - 1.5, boardW, 1.5, 'F');
+        }
+
+        // Fret lines
+        for (let f = 0; f <= NUM_FRETS; f++) {
+          doc.setDrawColor(120, 90, 50);
+          doc.setLineWidth(0.25);
+          doc.line(diagX, nutY + f * FS, diagX + boardW, nutY + f * FS);
+        }
+
+        // String lines
+        for (let s = 0; s < NUM_STRINGS; s++) {
+          const sx = diagX + s * SS;
+          doc.setDrawColor(200, 170, 90);
+          doc.setLineWidth(0.2);
+          doc.line(sx, nutY, sx, nutY + boardH);
+        }
+
+        // Barre
+        barres.forEach(barre => {
+          const fp = barre.fret - minFret;
+          if (fp < 0 || fp >= NUM_FRETS) return;
+          const bx1 = diagX + (barre.fromString - 1) * SS;
+          const bx2 = diagX + (barre.toString  - 1) * SS;
+          const by  = nutY + fp * FS + FS / 2;
+          doc.setFillColor(ar, ag, ab);
+          doc.roundedRect(Math.min(bx1, bx2), by - DOT_R, Math.abs(bx2 - bx1), DOT_R * 2, DOT_R, DOT_R, 'F');
+        });
+
+        // Finger dots
+        for (let si = 0; si < NUM_STRINGS; si++) {
+          const fret = frets[si];
+          if (fret <= 0) continue;
+          const fp = fret - minFret;
+          if (fp < 0 || fp >= NUM_FRETS) continue;
+          const sx = diagX + si * SS;
+          const sy = nutY + fp * FS + FS / 2;
+          const isBarre = barres.some(
+            b => b.fret === fret && si >= b.fromString - 1 && si <= b.toString - 1,
+          );
+          if (!isBarre) {
+            doc.setFillColor(ar, ag, ab);
+            doc.circle(sx, sy, DOT_R, 'F');
+          }
+        }
+
+        return nutY + boardH + 3;
+      };
+
       // ── Accent RGB ──────────────────────────────────────────────────────
       const hex = accentColor.replace('#', '');
       const ar  = parseInt(hex.slice(0, 2), 16);
@@ -537,8 +649,8 @@ ${chordContent}
       // ── Sections / chords ────────────────────────────────────────────────
       const COLS    = cfg.orientation === 'landscape' ? 5 : 4;
       const COL_W   = CW / COLS;
-      const ROW_H   = 9;
-      const SEC_GAP = 6;
+      const DIAG_H  = 42; // reserved height per chord diagram row
+      const SEC_GAP = 8;
 
       const sections = hasSections
         ? preset.sections!
@@ -547,7 +659,7 @@ ${chordContent}
       for (const section of sections) {
         // Section label
         if (section.name) {
-          if (y > PH - 30) { doc.addPage(); y = M + 6; }
+          if (y > PH - 60) { doc.addPage(); y = M + 6; }
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(ar, ag, ab);
@@ -555,36 +667,55 @@ ${chordContent}
           y += 6;
         }
 
-        const names = section.chords.map(getChordName);
+        // Chord diagram grid
+        for (let i = 0; i < section.chords.length; i += COLS) {
+          if (y + DIAG_H > PH - 20) { doc.addPage(); y = M + 6; }
 
-        // Chord grid — COLS per row, bar lines between
-        for (let i = 0; i < names.length; i += COLS) {
-          if (y > PH - 20) { doc.addPage(); y = M + 6; }
+          const rowIds = section.chords.slice(i, i + COLS);
+          let maxBottom = y;
 
-          const row = names.slice(i, i + COLS);
+          rowIds.forEach((id, j) => {
+            const cellX     = M + j * COL_W;
+            const chordName = getChordName(id);
 
-          // Opening bar line
-          doc.setDrawColor(160, 160, 160);
-          doc.setLineWidth(0.35);
-          doc.line(M, y - ROW_H * 0.65, M, y + ROW_H * 0.35);
+            let frets: number[]    = [];
+            let barres: { fret: number; fromString: number; toString: number }[] = [];
+            let baseFret           = 1;
+            let hasDiagram         = false;
 
-          row.forEach((name, j) => {
-            const x = M + j * COL_W;
+            if (id.startsWith('custom-')) {
+              const cc = storedCustomChords.find(c => c.id === id);
+              if (cc?.frets && cc.frets.length > 0) {
+                frets      = cc.frets;
+                barres     = cc.barres ?? [];
+                baseFret   = 1;
+                hasDiagram = true;
+              }
+            } else {
+              const displayId = transposeOffset !== 0 ? transposeChordId(id, transposeOffset) : id;
+              const chord     = getChordById(displayId) ?? getChordById(id);
+              if (chord) {
+                frets      = chord.guitar.frets;
+                barres     = chord.guitar.barres;
+                baseFret   = chord.guitar.baseFret;
+                hasDiagram = true;
+              }
+            }
 
-            // Chord name
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(20, 20, 20);
-            doc.text(name, x + 3, y);
-
-            // Closing bar line for each chord slot
-            const bx = x + COL_W;
-            doc.setDrawColor(160, 160, 160);
-            doc.setLineWidth(0.35);
-            doc.line(bx, y - ROW_H * 0.65, bx, y + ROW_H * 0.35);
+            if (hasDiagram) {
+              const bottom = drawChordDiagram(frets, barres, baseFret, chordName, cellX, y, COL_W);
+              maxBottom = Math.max(maxBottom, bottom);
+            } else {
+              // Fallback: just show name for chords without fret data
+              doc.setFontSize(10);
+              doc.setFont('helvetica', 'bold');
+              doc.setTextColor(20, 20, 20);
+              doc.text(chordName, cellX + COL_W / 2, y + 10, { align: 'center' });
+              maxBottom = Math.max(maxBottom, y + 20);
+            }
           });
 
-          y += ROW_H;
+          y = maxBottom;
         }
 
         y += SEC_GAP;
