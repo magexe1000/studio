@@ -11,6 +11,7 @@ import {
   drumScheduler, samplePool, loadDrumSamples, KIT_DEFAULTS,
   type SampleStatus,
 } from '../lib/drumAudio';
+import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
 const LABEL_W  = 58;
@@ -311,7 +312,7 @@ export default function DrumEditor() {
   const labelCol   = isLight ? '#71717a' : '#3f3f46';
 
   // ── State ────────────────────────────────────────────────────────────────
-  const [drumMode, setDrumMode]         = useState<DrumMode>('edit');
+  const [drumMode, setDrumMode]         = useState<DrumMode>('nav');
   const [activeTab, setActiveTab]       = useState<DrumTab>('kit');
   const [playing, setPlaying]           = useState(false);
   const [looping, setLooping]           = useState(true);
@@ -470,7 +471,7 @@ export default function DrumEditor() {
 
   // ── Back ─────────────────────────────────────────────────────────────────
   const handleBack = () => {
-    if (drumMode === 'nav') { setDrumMode('edit'); }
+    if (drumMode === 'edit') { setDrumMode('nav'); }
     else { drumScheduler.stop(); updateSettings({ appMode: 'chords' }); }
   };
 
@@ -489,9 +490,7 @@ export default function DrumEditor() {
           <span style={{ fontSize: 18, color: isLight ? '#52525b' : '#71717a', lineHeight: 1 }}>‹</span>
         </button>
 
-        <span style={{ color: isLight ? '#18181b' : '#d4d4d8', fontSize: 13, fontWeight: 700, fontFamily: 'Manrope, sans-serif', letterSpacing: '0.10em', textTransform: 'uppercase' }}>
-          {drumMode === 'edit' ? 'DRUMS' : activeTab === 'kit' ? 'KIT' : 'MIX'}
-        </span>
+        <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
 
         <div style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, background: sampleStatus === 'loading' ? '#f59e0b' : sampleStatus === 'ready' ? '#4ade80' : 'transparent' }} />
 

@@ -3,7 +3,7 @@ import { useChordStore, ACCENT_COLORS, type AccentColor, type AnimationSpeed, ty
 import { useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { IconSongs, IconLibrary, IconChords, IconSettings } from '../components/BottomNav';
-import { ChordexLogo } from '../components/ChordexLogo';
+import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 
 interface ToggleProps {
   value: boolean;
@@ -141,8 +141,7 @@ export default function SettingsPanel() {
     <div className="flex flex-col h-full overflow-hidden app-bg">
       <header className="flex-none px-6 pt-6 pb-1 app-bg">
         <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
-          <ChordexLogo />
-          {t.appName}
+          <AppModeMenuLogo />
         </h1>
       </header>
 
@@ -155,42 +154,6 @@ export default function SettingsPanel() {
           <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)', marginTop: '4px' }}>
             {t.settings.subtitle}
           </p>
-        </div>
-
-        {/* ── APP MODE ── */}
-        <SectionHeader icon="apps" title="App Mode" />
-        <div style={cardStyle}>
-          {([
-            { value: 'chords', icon: 'library_music', label: 'Chordex', desc: 'Chord reference & song builder' },
-            { value: 'drums',  icon: 'album',         label: 'Drums',   desc: 'Vertical drum tab editor' },
-          ] as const).map(opt => {
-            const isActive = (settings.appMode ?? 'chords') === opt.value;
-            return (
-              <button
-                key={opt.value}
-                className="card-hover"
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  width: '100%', padding: 'var(--density-row-pad)',
-                  background: isActive ? `${accent.to}15` : 'transparent',
-                  borderBottom: '1px solid rgba(72,72,72,0.07)',
-                  transition: 'background-color 200ms ease',
-                }}
-                onClick={() => updateSettings({ appMode: opt.value })}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px', color: isActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease' }}>{opt.icon}</span>
-                  <div>
-                    <p style={{ color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-base)', transition: 'color 200ms ease' }}>{opt.label}</p>
-                    <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)', marginTop: '1px' }}>{opt.desc}</p>
-                  </div>
-                </div>
-                {isActive && (
-                  <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: '18px' }}>check</span>
-                )}
-              </button>
-            );
-          })}
         </div>
 
         {/* ── TUNING ── */}

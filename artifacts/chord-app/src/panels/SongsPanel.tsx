@@ -9,7 +9,7 @@ import ChordDiagram from '../components/ChordDiagram';
 import { useScrollHide, setNavHidden } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { setBackHandler } from '../lib/backStack';
-import { ChordexLogo } from '../components/ChordexLogo';
+import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 
 /* ──────────────────── PDF EXPORT CONFIG ──────────────────── */
 export interface ExportConfig {
@@ -3101,8 +3101,7 @@ export default function SongsPanel() {
 
       <header className="flex-none px-6 pt-6 pb-1 app-bg">
         <h1 style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '15px', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
-          <ChordexLogo />
-          Chordex
+          <AppModeMenuLogo />
         </h1>
       </header>
 

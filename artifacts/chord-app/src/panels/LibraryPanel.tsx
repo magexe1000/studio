@@ -5,7 +5,7 @@ import { SONGS, GENRE_META, type Genre } from '../data/progressions';
 import { useScrollHide } from '../lib/navScroll';
 import ChordDiagram from '../components/ChordDiagram';
 import { useT } from '../lib/useT';
-import { ChordexLogo } from '../components/ChordexLogo';
+import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { setBackHandler } from '../lib/backStack';
 
 // ── Category definitions ──────────────────────────────────────
@@ -501,8 +501,7 @@ export default function LibraryPanel() {
             transition: 'padding-left 280ms cubic-bezier(0.4, 0, 0.2, 1)',
             display: 'flex', alignItems: 'center', gap: '7px',
           }}>
-          <ChordexLogo />
-          {t.appName}
+          <AppModeMenuLogo />
         </h1>
       </header>
 

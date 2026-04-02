@@ -7,7 +7,7 @@ import GuitarDiagram from '../components/GuitarDiagram';
 import PianoDiagram from '../components/PianoDiagram';
 import FourStringDiagram from '../components/FourStringDiagram';
 import ChordDiagram from '../components/ChordDiagram';
-import { ChordexLogo } from '../components/ChordexLogo';
+import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import CustomChordBuilder from '../components/CustomChordBuilder';
 import { setBackHandler } from '../lib/backStack';
 
@@ -70,8 +70,7 @@ export default function ChordPanel() {
       <div className="flex flex-col h-full app-bg" style={{ position: 'relative' }}>
         <header className="flex-none px-6 pt-6 pb-1 app-bg">
           <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
-            <ChordexLogo />
-            Chordex
+            <AppModeMenuLogo />
           </h1>
         </header>
         <div className="flex-1 flex flex-col items-center justify-center">
@@ -127,8 +126,7 @@ export default function ChordPanel() {
       {/* Minimal top label */}
       <header className="flex-none px-6 pt-6 pb-1 app-bg">
         <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
-          <ChordexLogo />
-          Chordex
+          <AppModeMenuLogo />
         </h1>
       </header>
 
