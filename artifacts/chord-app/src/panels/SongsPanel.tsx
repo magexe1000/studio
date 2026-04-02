@@ -2155,26 +2155,21 @@ export default function SongsPanel() {
     }
   }, [activePreset?.chords, dragIdx]);
 
-  const onDragStart = (e: React.PointerEvent, index: number) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragStartY.current   = e.clientY;
-    dragStartIdx.current = index;
-    dragDeltaRef.current = 0;
-    dragCountRef.current = localChords.length;
-    setDragIdx(index);
-    setDragDeltaY(0);
-  };
+  // Track the active pointer id so window listeners only react to the right finger
+  const dragPointerIdRef   = useRef<number | null>(null);
+  // Stable ref to active preset id — avoids stale closure in the window end handler
+  const activePresetIdRef  = useRef<string | null>(null);
 
-  const onDragMove = (e: React.PointerEvent) => {
+  // Core move logic — reads only from refs so it's safe to call from a window listener
+  const executeDragMove = (clientY: number) => {
     if (dragNodeRef.current === null) return;
-    // Always read the current slot from the ref — never from the stale closure dragIdx
     const slot = dragStartIdx.current;
 
     // ── Clamp pointer to screen AND list bounds so items can't fly off screen ──
     const containerRect = editorScrollRef.current?.getBoundingClientRect();
     const screenClampedY = containerRect
-      ? Math.max(containerRect.top + 8, Math.min(containerRect.bottom - 8, e.clientY))
-      : e.clientY;
+      ? Math.max(containerRect.top + 8, Math.min(containerRect.bottom - 8, clientY))
+      : clientY;
     const unclamped = screenClampedY - dragStartY.current;
     const minDelta = -slot * ITEM_H;
     const maxDelta = (dragCountRef.current - 1 - slot) * ITEM_H;
@@ -2197,7 +2192,7 @@ export default function SongsPanel() {
       newKeys.splice(target, 0, movedKey);
 
       dragStartY.current   += (target - slot) * ITEM_H;
-      dragDeltaRef.current  = e.clientY - dragStartY.current;
+      dragDeltaRef.current  = clientY - dragStartY.current;
       dragStartIdx.current  = target;
       instanceKeys.current  = newKeys;
       localChordsRef.current = newChords;                    // keep ref in sync before React re-renders
@@ -2209,12 +2204,43 @@ export default function SongsPanel() {
     }
   };
 
-  const onDragEnd = () => {
-    if (dragIdx !== null && activePreset) updatePreset(activePreset.id, { chords: localChords });
-    dragNodeRef.current = null;
-    dragDeltaRef.current = 0;
+  // Core end logic — uses refs so it's safe to call from a window listener
+  const executeDragEnd = () => {
+    const presetId = activePresetIdRef.current;
+    if (presetId !== null) updatePreset(presetId, { chords: localChordsRef.current });
+    dragNodeRef.current    = null;
+    dragDeltaRef.current   = 0;
+    dragPointerIdRef.current = null;
     setDragIdx(null);
     setDragDeltaY(0);
+  };
+
+  const onDragStart = (e: React.PointerEvent, index: number) => {
+    e.preventDefault();
+    activePresetIdRef.current = activePreset?.id ?? null;
+    dragPointerIdRef.current  = e.pointerId;
+    dragStartY.current        = e.clientY;
+    dragStartIdx.current      = index;
+    dragDeltaRef.current      = 0;
+    dragCountRef.current      = localChords.length;
+    setDragIdx(index);
+    setDragDeltaY(0);
+
+    // ── Bind to window so React re-renders can't lose the pointer stream ──
+    const handleMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== dragPointerIdRef.current) return;
+      executeDragMove(ev.clientY);
+    };
+    const handleEnd = (ev: PointerEvent) => {
+      if (ev.pointerId !== dragPointerIdRef.current) return;
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup',   handleEnd);
+      window.removeEventListener('pointercancel', handleEnd);
+      executeDragEnd();
+    };
+    window.addEventListener('pointermove',  handleMove,  { passive: true });
+    window.addEventListener('pointerup',    handleEnd);
+    window.addEventListener('pointercancel', handleEnd);
   };
 
   const handleFormSave = (data: FormData) => {
@@ -2636,9 +2662,6 @@ export default function SongsPanel() {
                   {/* Drag handle */}
                   <div
                     onPointerDown={e => onDragStart(e, i)}
-                    onPointerMove={onDragMove}
-                    onPointerUp={onDragEnd}
-                    onPointerCancel={onDragEnd}
                     style={{ cursor: isActive ? 'grabbing' : 'grab', touchAction: 'none', padding: '4px 6px', color: 'var(--c-text-muted)', userSelect: 'none', flexShrink: 0 }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>drag_indicator</span>
