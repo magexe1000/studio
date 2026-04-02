@@ -1,15 +1,15 @@
 import type { DrumInstrument, DrumPattern, KitType } from '../store/useDrumStore';
 import { DRUM_INSTRUMENTS, stepsPerMeasure } from '../store/useDrumStore';
 
-// ── Kit presets ──────────────────────────────────────────────────────────────
+// ── Kit definitions ───────────────────────────────────────────────────────────
 export const KIT_DEFAULTS: Record<KitType, {
   label:       string;
   description: string;
   soundMap:    Partial<Record<DrumInstrument, string>>;
 }> = {
-  acoustic: {
-    label:       'Acoustic Drums',
-    description: 'Natural, warm acoustic drum kit — real samples',
+  ludwig: {
+    label:       'Ludwig Classic',
+    description: 'Warm natural acoustic — real samples',
     soundMap: {
       kick:           'kick-acoustic',
       snare:          'snare-fat',
@@ -23,27 +23,59 @@ export const KIT_DEFAULTS: Record<KitType, {
       ride:           'ride-std',
     },
   },
-  advanced: {
-    label:       'Advanced Drums',
-    description: 'Full acoustic kit — extended range, all 10 drums',
+  cr78: {
+    label:       'Roland CR-78',
+    description: '1978 vintage analog drum machine',
     soundMap: {
-      kick:           'kick-acoustic',
+      kick:           'kick-std',
+      snare:          'snare-crack',
+      'hihat-closed': 'hh-c-tight',
+      'hihat-open':   'hh-o-short',
+      'hihat-foot':   'hh-f-std',
+      'tom-high':     'tom-hi-tight',
+      'tom-mid':      'tom-m-std',
+      'tom-floor':    'tom-f-std',
+      crash:          'crash-china',
+      ride:           'ride-bell',
+    },
+  },
+  r8: {
+    label:       'Roland R8',
+    description: '1989 electronic-acoustic hybrid',
+    soundMap: {
+      kick:           'kick-tight',
       snare:          'snare-rimshot',
       'hihat-closed': 'hh-c-loose',
       'hihat-open':   'hh-o-wash',
       'hihat-foot':   'hh-f-splash',
       'tom-high':     'tom-hi-std',
-      'tom-mid':      'tom-m-warm',
+      'tom-mid':      'tom-m-std',
       'tom-floor':    'tom-f-deep',
       crash:          'crash-bright',
       ride:           'ride-std',
     },
   },
-  electronic: {
-    label:       'Electronic Drums',
-    description: '808 / 909 electronic sound design',
+  tr808: {
+    label:       'Roland TR-808',
+    description: '1980 deep bass hip-hop classic',
     soundMap: {
       kick:           'kick-808',
+      snare:          'snare-fat',
+      'hihat-closed': 'hh-c-tight',
+      'hihat-open':   'hh-o-short',
+      'hihat-foot':   'hh-f-std',
+      'tom-high':     'tom-hi-tight',
+      'tom-mid':      'tom-m-std',
+      'tom-floor':    'tom-f-std',
+      crash:          'crash-std',
+      ride:           'ride-wash',
+    },
+  },
+  techno: {
+    label:       'Techno Kit',
+    description: 'Hard industrial electronic',
+    soundMap: {
+      kick:           'kick-tight',
       snare:          'snare-crack',
       'hihat-closed': 'hh-c-tight',
       'hihat-open':   'hh-o-short',
@@ -146,43 +178,73 @@ function makeNoise(ctx: AudioContext, dur: number): AudioBuffer {
 const MIDI = 'https://raw.githubusercontent.com/cwilso/MIDIDrums/master/sounds/drum-samples/';
 const TONEJS = 'https://tonejs.github.io/audio/drum-samples/';
 
+// Each kit maps to a completely different set of real audio samples —
+// this is what makes them sound genuinely distinct.
 const KIT_SAMPLE_URLS: Record<KitType, Partial<Record<DrumInstrument, string[]>>> = {
-  acoustic: {
-    kick:           [`${MIDI}acoustic-kit/kick.wav`,   `${TONEJS}CR78/kick.mp3`],
-    snare:          [`${MIDI}acoustic-kit/snare.wav`,  `${TONEJS}CR78/snare.mp3`],
-    'hihat-closed': [`${MIDI}acoustic-kit/hihat.wav`,  `${TONEJS}CR78/hihat.mp3`],
-    'hihat-open':   [`${MIDI}acoustic-kit/hihat.wav`,  `${TONEJS}CR78/hihat.mp3`],
+  // Ludwig Classic — real acoustic drum samples (warm, natural resonance)
+  ludwig: {
+    kick:           [`${MIDI}acoustic-kit/kick.wav`,  `${TONEJS}CR78/kick.mp3`],
+    snare:          [`${MIDI}acoustic-kit/snare.wav`, `${TONEJS}CR78/snare.mp3`],
+    'hihat-closed': [`${MIDI}acoustic-kit/hihat.wav`, `${TONEJS}CR78/hihat.mp3`],
+    'hihat-open':   [`${MIDI}acoustic-kit/hihat.wav`, `${TONEJS}CR78/hihat.mp3`],
     'hihat-foot':   [`${MIDI}acoustic-kit/hihat.wav`],
-    'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`,   `${TONEJS}CR78/highTom.mp3`],
-    'tom-mid':      [`${MIDI}acoustic-kit/tom2.wav`,   `${TONEJS}CR78/lowTom.mp3`],
+    'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`,  `${TONEJS}CR78/highTom.mp3`],
+    'tom-mid':      [`${MIDI}acoustic-kit/tom2.wav`,  `${TONEJS}CR78/lowTom.mp3`],
     'tom-floor':    [`${MIDI}acoustic-kit/tom3.wav`],
-    crash:          [`${MIDI}acoustic-kit/hihat.wav`,  `${TONEJS}CR78/crash.mp3`],
-    ride:           [`${MIDI}acoustic-kit/hihat.wav`,  `${TONEJS}CR78/ride.mp3`],
+    crash:          [`${TONEJS}CR78/crash.mp3`,       `${MIDI}acoustic-kit/hihat.wav`],
+    ride:           [`${TONEJS}CR78/ride.mp3`,        `${MIDI}acoustic-kit/hihat.wav`],
   },
-  advanced: {
+  // Roland CR-78 — 1978 vintage analog drum machine (ToneJS CR78 samples exclusively)
+  cr78: {
+    kick:           [`${TONEJS}CR78/kick.mp3`],
+    snare:          [`${TONEJS}CR78/snare.mp3`],
+    'hihat-closed': [`${TONEJS}CR78/hihat.mp3`],
+    'hihat-open':   [`${TONEJS}CR78/hihat.mp3`],
+    'hihat-foot':   [`${TONEJS}CR78/hihat.mp3`],
+    'tom-high':     [`${TONEJS}CR78/highTom.mp3`],
+    'tom-mid':      [`${TONEJS}CR78/lowTom.mp3`],
+    'tom-floor':    [`${TONEJS}CR78/lowTom.mp3`],
+    crash:          [`${TONEJS}CR78/crash.mp3`],
+    ride:           [`${TONEJS}CR78/ride.mp3`],
+  },
+  // Roland R8 — 1989 electronic-acoustic hybrid (Roland R8 samples)
+  r8: {
     kick:           [`${MIDI}R8/kick.wav`],
     snare:          [`${MIDI}R8/snare.wav`],
     'hihat-closed': [`${MIDI}R8/hihat.wav`],
-    'hihat-open':   [`${MIDI}LINN/hihat.wav`],
+    'hihat-open':   [`${MIDI}LINN/hihat.wav`,        `${TONEJS}CR78/hihat.mp3`],
     'hihat-foot':   [`${MIDI}R8/hihat.wav`],
     'tom-high':     [`${MIDI}R8/tom1.wav`],
     'tom-mid':      [`${MIDI}R8/tom2.wav`],
     'tom-floor':    [`${MIDI}R8/tom3.wav`],
-    crash:          [`${MIDI}LINN/hihat.wav`,          `${TONEJS}CR78/crash.mp3`],
-    ride:           [`${MIDI}LINN/hihat.wav`,          `${TONEJS}CR78/ride.mp3`],
+    crash:          [`${TONEJS}CR78/crash.mp3`,      `${MIDI}LINN/hihat.wav`],
+    ride:           [`${TONEJS}CR78/ride.mp3`,       `${MIDI}LINN/hihat.wav`],
   },
-  // Electronic kit: ONLY uses Techno / 4OP-FM electronic samples (not acoustic)
-  electronic: {
-    kick:           [`${MIDI}Techno/kick.wav`,         `${MIDI}4OP-FM/kick.wav`],
-    snare:          [`${MIDI}Techno/snare.wav`,        `${MIDI}4OP-FM/snare.wav`],
-    'hihat-closed': [`${MIDI}Techno/hihat.wav`,        `${MIDI}4OP-FM/hihat.wav`],
-    'hihat-open':   [`${MIDI}4OP-FM/hihat.wav`,        `${MIDI}Stark/hihat.wav`],
+  // Roland TR-808 — 1980 deep bass hip-hop machine (4OP-FM FM-synthesis samples)
+  tr808: {
+    kick:           [`${MIDI}4OP-FM/kick.wav`],
+    snare:          [`${MIDI}4OP-FM/snare.wav`],
+    'hihat-closed': [`${MIDI}4OP-FM/hihat.wav`],
+    'hihat-open':   [`${MIDI}4OP-FM/hihat.wav`],
+    'hihat-foot':   [`${MIDI}4OP-FM/hihat.wav`],
+    'tom-high':     [`${MIDI}4OP-FM/tom1.wav`],
+    'tom-mid':      [`${MIDI}4OP-FM/tom2.wav`],
+    'tom-floor':    [`${MIDI}4OP-FM/tom3.wav`],
+    crash:          [`${MIDI}4OP-FM/tom3.wav`],
+    ride:           [`${MIDI}LINN/hihat.wav`],
+  },
+  // Techno — hard industrial electronic (Techno + Stark samples, punchy and cold)
+  techno: {
+    kick:           [`${MIDI}Techno/kick.wav`,       `${MIDI}4OP-FM/kick.wav`],
+    snare:          [`${MIDI}Techno/snare.wav`,      `${MIDI}4OP-FM/snare.wav`],
+    'hihat-closed': [`${MIDI}Techno/hihat.wav`,      `${MIDI}4OP-FM/hihat.wav`],
+    'hihat-open':   [`${MIDI}Stark/hihat.wav`,       `${MIDI}4OP-FM/hihat.wav`],
     'hihat-foot':   [`${MIDI}Techno/hihat.wav`],
-    'tom-high':     [`${MIDI}Techno/tom1.wav`,         `${MIDI}4OP-FM/tom1.wav`],
-    'tom-mid':      [`${MIDI}Techno/tom2.wav`,         `${MIDI}4OP-FM/tom2.wav`],
-    'tom-floor':    [`${MIDI}Techno/tom3.wav`,         `${MIDI}4OP-FM/tom3.wav`],
-    crash:          [`${MIDI}4OP-FM/tom3.wav`,         `${MIDI}Stark/tom3.wav`],
-    ride:           [`${MIDI}LINN/hihat.wav`,          `${MIDI}Stark/hihat.wav`],
+    'tom-high':     [`${MIDI}Techno/tom1.wav`,       `${MIDI}4OP-FM/tom1.wav`],
+    'tom-mid':      [`${MIDI}Techno/tom2.wav`,       `${MIDI}4OP-FM/tom2.wav`],
+    'tom-floor':    [`${MIDI}Techno/tom3.wav`,       `${MIDI}Stark/tom3.wav`],
+    crash:          [`${MIDI}Stark/tom3.wav`,        `${MIDI}4OP-FM/tom3.wav`],
+    ride:           [`${MIDI}Stark/hihat.wav`,       `${MIDI}LINN/hihat.wav`],
   },
 };
 

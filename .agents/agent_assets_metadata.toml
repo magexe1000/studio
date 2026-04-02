@@ -18,6 +18,18 @@ uri = "file://artifacts/chord-app/public/kit-electronic.png"
 type = "image"
 title = "electronic kit icon"
 
+[[generated]]
+id = "4JDvCBCI4YPx_PG-rdBbo"
+uri = "file://artifacts/chord-app/public/kit-cr78.png"
+type = "image"
+title = "Roland CR-78 drum machine"
+
+[[generated]]
+id = "523et3zv3gJ81alH5_e_d"
+uri = "file://artifacts/chord-app/public/kit-tr808.png"
+type = "image"
+title = "Roland TR-808 drum machine"
+
 [[outputs]]
 id = "I5FP-fUgJVTPVlHcXq6Xl"
 uri = "file://artifacts/chord-app/public/icon-512.png"

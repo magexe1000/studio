@@ -3,9 +3,9 @@ import {
 } from 'react';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
-  useDrumStore, KIT_INSTRUMENTS, KIT_PRESETS,
+  useDrumStore, KIT_INSTRUMENTS,
   stepsPerMeasure,
-  type DrumInstrument, type KitType, type KitPreset,
+  type DrumInstrument, type KitType,
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, KIT_DEFAULTS,
@@ -54,15 +54,23 @@ const INST_LABEL: Record<DrumInstrument, string> = {
   'hihat-foot': 'HH Foot', 'tom-high': 'Tom Hi', 'tom-mid': 'Tom Mid',
   'tom-floor': 'Floor Tom', crash: 'Crash', ride: 'Ride',
 };
-const KIT_LABEL: Record<KitType, string> = { acoustic: 'Acoustic', advanced: 'Advanced', electronic: 'Electronic' };
-const KIT_DESC:  Record<KitType, string> = {
-  acoustic: 'Real acoustic drum samples', advanced: 'Roland R8 drum machine', electronic: 'Techno & FM synthesized',
+const KIT_LABEL: Record<KitType, string> = {
+  ludwig: 'Ludwig Classic', cr78: 'Roland CR-78', r8: 'Roland R8', tr808: 'TR-808', techno: 'Techno Kit',
+};
+const KIT_DESC: Record<KitType, string> = {
+  ludwig: 'Warm natural acoustic · full kit',
+  cr78:   'Vintage 1978 analog drum machine',
+  r8:     '1989 electronic-acoustic hybrid',
+  tr808:  'Deep bass hip-hop classic · 1980',
+  techno: 'Hard industrial electronic',
 };
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 const KIT_IMAGE: Record<KitType, string> = {
-  acoustic:   `${BASE}/kit-acoustic.png`,
-  advanced:   `${BASE}/kit-advanced.png`,
-  electronic: `${BASE}/kit-electronic.png`,
+  ludwig: `${BASE}/kit-acoustic.png`,
+  cr78:   `${BASE}/kit-cr78.png`,
+  r8:     `${BASE}/kit-advanced.png`,
+  tr808:  `${BASE}/kit-tr808.png`,
+  techno: `${BASE}/kit-electronic.png`,
 };
 
 // ── Tabs / Mode ────────────────────────────────────────────────────────────
@@ -310,8 +318,8 @@ export default function DrumEditor() {
   const {
     patterns, activePatternId,
     soundMap, volumeMap, masterVolume,
-    kitType, kitPresetId, activeInstruments,
-    setKitType, setKitPreset, toggleInstrument, setMasterVolume,
+    kitType, activeInstruments,
+    setKitType, toggleInstrument, setMasterVolume,
     toggleHit, addMeasure, deleteMeasure, updatePattern,
   } = useDrumStore();
 
@@ -322,9 +330,9 @@ export default function DrumEditor() {
   const accent = ACCENT_COLORS[settings.accentColor] ?? ACCENT_COLORS.blue;
   const spm    = stepsPerMeasure(pattern);
   const stepsPerBeat = pattern.subdivision / pattern.timeSignature[1];
-  const kit    = kitType ?? 'acoustic';
-  const ALL_INSTS = KIT_INSTRUMENTS[kit] ?? KIT_INSTRUMENTS.acoustic;
-  const KITS: KitType[] = ['acoustic', 'advanced', 'electronic'];
+  const kit    = kitType ?? 'ludwig';
+  const ALL_INSTS = KIT_INSTRUMENTS[kit] ?? KIT_INSTRUMENTS.ludwig;
+  const KITS: KitType[] = ['ludwig', 'cr78', 'r8', 'tr808', 'techno'];
 
   // ── Theme ───────────────────────────────────────────────────────────────
   const isLight = settings.theme === 'light' ||
@@ -345,7 +353,6 @@ export default function DrumEditor() {
   const [sampleStatus, setSampleStatus] = useState<SampleStatus>('idle');
   const [showBpmPanel,   setShowBpmPanel]   = useState(false);
   const [showHamburger,  setShowHamburger]  = useState(false);
-  const [expandedKit,    setExpandedKit]    = useState<KitType | null>(null);
   const [focusedInst,    setFocusedInst]    = useState<DrumInstrument | null>(null);
 
   // ── Container width ──────────────────────────────────────────────────────
@@ -437,18 +444,11 @@ export default function DrumEditor() {
 
   // ── Kit ──────────────────────────────────────────────────────────────────
   const handleKitSelect = useCallback((k: KitType) => {
-    if (kitType !== k) {
-      setKitType(k, KIT_DEFAULTS[k].soundMap); loadDrumSamples(k);
-      if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
-    }
-    setExpandedKit(prev => prev === k ? null : k);
-  }, [setKitType, kitType]);
-
-  const handlePresetSelect = useCallback((k: KitType, preset: KitPreset) => {
-    if (kitType !== k) { setKitType(k, KIT_DEFAULTS[k].soundMap); loadDrumSamples(k); }
-    setKitPreset(k, preset, (bpm) => updatePattern(pattern.id, { bpm }));
+    if (kitType === k) return;
+    setKitType(k, KIT_DEFAULTS[k].soundMap);
+    loadDrumSamples(k);
     if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
-  }, [kitType, setKitType, setKitPreset, updatePattern, pattern.id]);
+  }, [setKitType, kitType]);
 
   // ── BPM ──────────────────────────────────────────────────────────────────
   const adjustBpm = useCallback((d: number) => {
@@ -788,59 +788,29 @@ export default function DrumEditor() {
         {drumMode === 'nav' && activeTab === 'kit' && (
           <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20, paddingBottom: 100 }} className="no-scrollbar">
             <SectionLabel>Drum Kit</SectionLabel>
-            <Card style={{ overflow: 'visible' }}>
+            <Card>
               {KITS.map((k, i) => {
                 const sel = k === kit;
-                const expanded = expandedKit === k;
-                const presets = KIT_PRESETS[k];
                 return (
-                  <div key={k}>
-                    {/* Kit row */}
-                    <button
-                      onClick={() => handleKitSelect(k)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '12px 16px', background: sel ? `${accent.from}10` : 'transparent', border: 'none', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 150ms' }}
-                    >
-                      {/* Kit image */}
-                      <div style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, overflow: 'hidden', border: sel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.12)', position: 'relative' }}>
-                        <img src={KIT_IMAGE[k]} alt={KIT_LABEL[k]} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                        {sel && (
-                          <div style={{ position: 'absolute', inset: 0, background: `${accent.from}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{ width: 18, height: 18, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff', fontWeight: 700 }}>✓</div>
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: 'var(--c-text-primary)', fontSize: 14, fontWeight: 600 }}>{KIT_LABEL[k]}</div>
-                        <div style={{ color: 'var(--c-text-muted)', fontSize: 11.5, marginTop: 1 }}>
-                          {sel && kitPresetId ? (presets.find(p => p.id === kitPresetId)?.name ?? KIT_DESC[k]) : KIT_DESC[k]}
+                  <button
+                    key={k}
+                    onClick={() => handleKitSelect(k)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '12px 16px', background: sel ? `${accent.from}10` : 'transparent', border: 'none', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 150ms' }}
+                  >
+                    <div style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, overflow: 'hidden', border: sel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.12)', position: 'relative' }}>
+                      <img src={KIT_IMAGE[k]} alt={KIT_LABEL[k]} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      {sel && (
+                        <div style={{ position: 'absolute', inset: 0, background: `${accent.from}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ width: 18, height: 18, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff', fontWeight: 700 }}>✓</div>
                         </div>
-                      </div>
-                      {/* Chevron */}
-                      <span style={{ fontSize: 14, color: 'var(--c-text-muted)', transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 200ms cubic-bezier(0.34,1.56,0.64,1)', flexShrink: 0 }}>⌄</span>
-                    </button>
-
-                    {/* Sub-preset panel */}
-                    {expanded && (
-                      <div style={{ borderTop: '1px solid rgba(128,128,128,0.07)', background: 'rgba(128,128,128,0.04)', animation: 'drumHamburgerIn 180ms cubic-bezier(0.22,1,0.36,1)' }}>
-                        {presets.map((preset, pi) => {
-                          const pSel = sel && kitPresetId === preset.id;
-                          return (
-                            <button
-                              key={preset.id}
-                              onClick={() => handlePresetSelect(k, preset)}
-                              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px 10px 24px', background: pSel ? `${accent.from}14` : 'transparent', border: 'none', borderTop: pi > 0 ? '1px solid rgba(128,128,128,0.06)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 130ms' }}
-                            >
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <span style={{ color: pSel ? accent.from : 'var(--c-text-primary)', fontSize: 13, fontWeight: pSel ? 700 : 500 }}>{preset.name}</span>
-                                <span style={{ display: 'block', color: 'var(--c-text-muted)', fontSize: 11, marginTop: 1 }}>{preset.desc} · {preset.bpm} BPM</span>
-                              </div>
-                              {pSel && <div style={{ width: 7, height: 7, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: 'var(--c-text-primary)', fontSize: 14, fontWeight: 600 }}>{KIT_LABEL[k]}</div>
+                      <div style={{ color: 'var(--c-text-muted)', fontSize: 11.5, marginTop: 2 }}>{KIT_DESC[k]}</div>
+                    </div>
+                    {sel && <div style={{ width: 7, height: 7, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
+                  </button>
                 );
               })}
             </Card>
@@ -852,20 +822,6 @@ export default function DrumEditor() {
                 </div>
               </div>
             )}
-            <SectionLabel>Instruments</SectionLabel>
-            <Card>
-              {ALL_INSTS.map((inst, i) => {
-                const enabled = activeInstruments.includes(inst);
-                return (
-                  <button key={inst} onClick={() => toggleInstrument(inst)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '11px 16px', background: 'transparent', border: 'none', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.08)' : 'none', cursor: 'pointer', textAlign: 'left', opacity: enabled ? 1 : 0.4, transition: 'opacity 150ms' }}>
-                    <span style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500, flex: 1 }}>{INST_LABEL[inst]}</span>
-                    <div style={{ width: 36, height: 20, borderRadius: 10, flexShrink: 0, background: enabled ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.18)', position: 'relative', transition: 'background 200ms' }}>
-                      <div style={{ position: 'absolute', top: 2, left: enabled ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)' }} />
-                    </div>
-                  </button>
-                );
-              })}
-            </Card>
           </div>
         )}
 
