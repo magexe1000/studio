@@ -82,32 +82,20 @@ patchFile(
   (src) => src.split('\n').filter(l => !l.includes(':capacitor-status-bar')).join('\n')
 );
 
-// ── 5. styles.xml — solid status bar that is always visible ──────────────
+// ── 5. styles.xml — solid status bar, always visible, correct icon colour ─
 //
-// The transparent/translucent approach caused a grey bar with no icons because
-// the WebView content blended with the dark app background making icons invisible,
-// then Android showed a grey letterbox when focus changed.
+// windowFullscreen=false is the critical flag that stops Android from ever
+// auto-hiding the status bar in this app's WebView.
 //
-// Fix: solid dark status bar (#0E0E0E matches the app background).
-//   - Status bar is always rendered with a solid background → icons always visible
-//   - windowDrawsSystemBarBackgrounds=true → app owns the bar color
-//   - windowTranslucentStatus=false → no edge-to-edge confusion
-//   - windowLightStatusBar=false → white icons (correct for dark background)
-//   - windowLayoutInDisplayCutoutMode=default → safe notch handling
+// Light theme (values/styles.xml):
+//   statusBarColor = #F2F1EF  (app light background)
+//   windowLightStatusBar = true  → dark icons (time/battery/signal are black)
 //
-// The safe-area-inset-top spacer in App.tsx becomes 0px (WebView is below the
-// bar, not behind it) which is correct — no overlap, no grey bar.
-function patchStyles(src) {
-  const items = {
-    'android:windowLightStatusBar':            'false',     // white icons on dark bg
-    'android:statusBarColor':                  '#FF0E0E0E', // solid dark — matches app bg
-    'android:windowTranslucentStatus':         'false',     // not translucent
-    'android:windowDrawsSystemBarBackgrounds': 'true',      // app owns bar colour
-    'android:windowLayoutInDisplayCutoutMode': 'default',   // safe notch handling
-  };
-
+// Dark / AMOLED theme (values-night/styles.xml):
+//   statusBarColor = #0E0E0E  (app dark background; pure black for AMOLED)
+//   windowLightStatusBar = false → white icons
+function applyStatusBarItems(src, items) {
   let result = src;
-
   for (const [name, value] of Object.entries(items)) {
     const pattern = new RegExp(`<item name="${name.replace(/:/g, ':')}">.*?<\\/item>`, 'g');
     if (result.includes(`name="${name}"`)) {
@@ -119,18 +107,35 @@ function patchStyles(src) {
       );
     }
   }
-
   return result;
 }
 
-['app/src/main/res/values/styles.xml',
- 'app/src/main/res/values-night/styles.xml'].forEach((relPath) => {
-  patchFile(
-    path.join(androidDir, relPath),
-    `${relPath}  (translucent status bar + white icons + default cutout)`,
-    patchStyles
-  );
-});
+const COMMON = {
+  'android:windowFullscreen':                'false',     // NEVER auto-hide status bar
+  'android:windowTranslucentStatus':         'false',     // solid bar, not translucent
+  'android:windowDrawsSystemBarBackgrounds': 'true',      // app owns bar colour
+  'android:windowLayoutInDisplayCutoutMode': 'default',   // safe notch handling
+};
+
+patchFile(
+  path.join(androidDir, 'app/src/main/res/values/styles.xml'),
+  'values/styles.xml  (light: #F2F1EF bar, dark icons)',
+  (src) => applyStatusBarItems(src, {
+    ...COMMON,
+    'android:statusBarColor':     '#FFF2F1EF', // matches app light bg
+    'android:windowLightStatusBar': 'true',    // dark (black) icons
+  })
+);
+
+patchFile(
+  path.join(androidDir, 'app/src/main/res/values-night/styles.xml'),
+  'values-night/styles.xml  (dark: #0E0E0E bar, white icons)',
+  (src) => applyStatusBarItems(src, {
+    ...COMMON,
+    'android:statusBarColor':     '#FF0E0E0E', // matches app dark/AMOLED bg
+    'android:windowLightStatusBar': 'false',   // white icons
+  })
+);
 
 // NOTE: MainActivity is intentionally NOT patched.
 // Status bar behaviour is fully controlled via styles.xml above.
