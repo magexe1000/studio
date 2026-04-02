@@ -67,20 +67,12 @@ export default function ChordPanel() {
 
   if (!chord) {
     return (
-      <div className="flex flex-col h-full app-bg">
-        <header className="flex-none px-6 pt-6 pb-1 app-bg flex items-center justify-between">
+      <div className="flex flex-col h-full app-bg" style={{ position: 'relative' }}>
+        <header className="flex-none px-6 pt-6 pb-1 app-bg">
           <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
             <ChordexLogo />
             Chordex
           </h1>
-          <button
-            onClick={() => setShowFinder(true)}
-            className="btn-smooth flex items-center gap-1.5 px-4 py-2 font-bold"
-            style={{ background: `${accent.from}18`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontSize: '12px', border: `1px solid ${accent.from}33` }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
-            {t.chordFinder.openFinder}
-          </button>
         </header>
         <div className="flex-1 flex flex-col items-center justify-center">
           <span className="material-symbols-outlined mb-4" style={{ fontSize: '52px', color: 'var(--c-text-muted)' }}>music_note</span>
@@ -131,21 +123,13 @@ export default function ChordPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden app-bg">
+    <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative' }}>
       {/* Minimal top label */}
-      <header className="flex-none px-6 pt-6 pb-1 app-bg flex items-center justify-between">
+      <header className="flex-none px-6 pt-6 pb-1 app-bg">
         <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
           <ChordexLogo />
           Chordex
         </h1>
-        <button
-          onClick={() => setShowFinder(true)}
-          className="btn-smooth flex items-center gap-1.5 px-4 py-2 font-bold"
-          style={{ background: `${accent.from}18`, color: accent.from, borderRadius: '9999px', fontFamily: 'Manrope', fontSize: '12px', border: `1px solid ${accent.from}33` }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
-          {t.chordFinder.openFinder}
-        </button>
       </header>
 
       {/* Scrollable content */}
@@ -384,6 +368,29 @@ export default function ChordPanel() {
         {/* Saved Progressions */}
         <SavedProgressions accent={accent} />
       </div>
+
+      {/* Floating Find Chord button — sits above the bottom nav bar */}
+      {!showFinder && (
+        <div style={{ position: 'absolute', bottom: '80px', left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 5 }}>
+          <button
+            onClick={() => setShowFinder(true)}
+            className="btn-smooth flex items-center gap-2 font-bold"
+            style={{
+              pointerEvents: 'all',
+              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+              color: 'white',
+              borderRadius: '9999px',
+              fontFamily: 'Manrope',
+              fontSize: '13px',
+              padding: '10px 22px',
+              boxShadow: `0 4px 24px ${accent.to}55`,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>search</span>
+            {t.chordFinder.openFinder}
+          </button>
+        </div>
+      )}
 
       {/* Chord Finder modal */}
       {showFinder && (
