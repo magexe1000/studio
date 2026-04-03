@@ -1755,7 +1755,7 @@ export default function DrumEditor() {
               </div>
             </div>
             {/* BPM + Play */}
-            <div style={{ position: 'fixed', right: 14, bottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div style={{ position: 'fixed', right: 14, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)', zIndex: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               {/* Clear button — black bg, red trash icon */}
               <button onClick={handleClear} title="Clear pattern" className="btn-smooth"
                 style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: isAmoled ? 'rgba(4,4,4,0.92)' : 'rgba(14,14,16,0.88)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 12px rgba(0,0,0,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: '1.5px solid rgba(255,255,255,0.08)' }}>
