@@ -626,12 +626,13 @@ ${chordContent}
           if (cc.instrument === 'piano') {
             svgStr = buildPrintPianoSVG(cc.pianoKeys ?? [], dark, C_ACCENT, svgSc);
           } else {
-            const baseFret = cc.frets.some(f => f > 4)
-              ? Math.max(1, Math.min(...cc.frets.filter(f => f > 0))) : 1;
+            const frets = cc.frets ?? [];
+            const baseFret = frets.some(f => f > 4)
+              ? Math.max(1, Math.min(...frets.filter(f => f > 0))) : 1;
             const strings = (cc.instrument === 'bass') ? 4 : 4;
             svgStr = cc.instrument === 'guitar'
-              ? buildPrintSVG({ frets: cc.frets, fingers: [], barres: cc.barres ?? [], baseFret }, dark, C_ACCENT, svgSc)
-              : buildPrintFretboardSVG(cc.frets, baseFret, cc.barres ?? [], strings, dark, C_ACCENT, svgSc);
+              ? buildPrintSVG({ frets, fingers: [], barres: cc.barres ?? [], baseFret }, dark, C_ACCENT, svgSc)
+              : buildPrintFretboardSVG(frets, baseFret, cc.barres ?? [], strings, dark, C_ACCENT, svgSc);
           }
         } else {
           const ch = entry.chord;
@@ -1058,7 +1059,7 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0, storedCustomCh
   type PreviewSection = { name: string; entries: PreviewEntry[] };
 
   const buildPreviewEntries = (ids: string[]): PreviewEntry[] => {
-    return ids.flatMap(id => {
+    return ids.flatMap((id): PreviewEntry[] => {
       if (id.startsWith('custom-')) {
         const cc = storedCustomChords.find(c => c.id === id);
         return cc ? [{ kind: 'custom' as const, cc }] : [];

@@ -1,0 +1,38 @@
+PS C:\Users\maure\chordex-app> pnpm build
+
+> workspace@0.0.0 build C:\Users\maure\chordex-app
+> pnpm run typecheck && pnpm -r --if-present run build
+
+
+> workspace@0.0.0 typecheck C:\Users\maure\chordex-app
+> pnpm run typecheck:libs && pnpm -r --filter "./artifacts/**" --filter "./scripts" --if-present run typecheck
+
+
+> workspace@0.0.0 typecheck:libs C:\Users\maure\chordex-app
+> tsc --build
+
+Scope: 4 of 9 workspace projects
+artifacts/chord-app typecheck$ tsc -p tsconfig.json --noEmit
+│ src/panels/SongsPanel.tsx(629,30): error TS18048: 'cc.frets' is possibly 'undefined'.
+│ src/panels/SongsPanel.tsx(630,41): error TS18048: 'cc.frets' is possibly 'undefined'.
+│ src/panels/SongsPanel.tsx(633,33): error TS2322: Type 'number[] | undefined' is not assignable to type 'number[]'.
+│   Type 'undefined' is not assignable to type 'number[]'.
+│ src/panels/SongsPanel.tsx(634,40): error TS2345: Argument of type 'number[] | undefined' is not assignable to param…
+│   Type 'undefined' is not assignable to type 'number[]'.
+│ src/panels/SongsPanel.tsx(1061,24): error TS2345: Argument of type '(this: undefined, id: string) => { kind: "custo…
+│   Type '{ kind: "custom"; cc: CustomChord; }[] | { kind: "standard"; chord: Chord; }[]' is not assignable to type '…
+│     Type '{ kind: "standard"; chord: Chord; }[]' is not assignable to type '{ kind: "custom"; cc: CustomChord; } | …
+│       Type '{ kind: "standard"; chord: Chord; }[]' is not assignable to type 'readonly { kind: "custom"; cc: Custom…
+│         Property 'cc' is missing in type '{ kind: "standard"; chord: Chord; }' but required in type '{ kind: "custo…
+└─ Failed in 6.3s at C:\Users\maure\chordex-app\artifacts\chord-app
+artifacts/api-server typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 1.6s
+artifacts/mockup-sandbox typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 5.6s
+scripts typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 1.1s
+C:\Users\maure\chordex-app\artifacts\chord-app:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/chord-app@0.0.0 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 2
+ ELIFECYCLE  Command failed with exit code 2.
+ ELIFECYCLE  Command failed with exit code 2.
