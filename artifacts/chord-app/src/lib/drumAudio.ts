@@ -812,60 +812,125 @@ export function setInstFXMap(map: Partial<Record<DrumInstrument, InstFX>>) {
 }
 
 /**
- * Synthetic room impulse response.
+ * Freeverb impulse response generator.
  *
- * Algorithm: Moorer/Schroeder-style model
- *  1. Pre-delay  (12 ms)
- *  2. Early reflections at musicologically derived offsets with alternating L/R polarity
- *  3. Diffuse tail: exponentially decaying noise with a 1-pole HF-damping filter
- *     (simulates air absorption — highs die faster than lows, just like a real room)
+ * Source algorithm: "Freeverb" by Jezar at Dreampoint — public domain.
+ * Reference: https://github.com/sinshu/freeverb (C++ original)
  *
- * This replaces the old plain-white-noise IR which had no early reflections and
- * poor spectral balance, causing a washed-out, metallic reverb character.
+ * Architecture (faithful JS port of the original C++):
+ *   • 8 parallel Schroeder feedback comb filters with LPF damping in the loop
+ *     (the LPF in the feedback path is what gives Freeverb its characteristic
+ *     high-frequency rolloff over time — highs decay faster than lows)
+ *   • 4 series Schroeder all-pass filters for diffusion / de-correlation
+ *   • Stereo: right channel uses all delay sizes offset by +`STEREO_SPREAD`
+ *     samples, giving true stereo decorrelation without extra processing
+ *
+ * Implementation approach: run the algorithm sample-by-sample in JS to generate
+ * a 2.2-second impulse response buffer, then load it into a ConvolverNode.
+ * This lets the browser use its native FFT-based convolution engine for
+ * real-time playback — much more efficient than running Freeverb per-sample
+ * in a worklet at runtime.
+ *
+ * Parameters (fixed for drum room character):
+ *   roomSize = 0.75  →  feedback = roomSize × 0.28 + 0.7 = 0.91
+ *   damping  = 0.32  →  damp1    = damping  × 0.4       = 0.128
  */
 let _irBuffer: AudioBuffer | null = null;
 function getIR(ctx: AudioContext): AudioBuffer {
   if (_irBuffer && _irBuffer.sampleRate === ctx.sampleRate) return _irBuffer;
 
-  const sr       = ctx.sampleRate;
-  const tailLen  = Math.floor(sr * 1.8);       // 1.8 s total
-  const predelay = Math.floor(sr * 0.012);      // 12 ms pre-delay
+  const sr = ctx.sampleRate;
 
-  // Early reflection pattern: [offset ms, relative gain]
-  // Derived from Moorer (1979) early-reflection model for a medium room
-  const erefs: [number, number][] = [
-    [0,   1.00], [7,   0.67], [13,  0.52], [21,  0.41],
-    [31,  0.33], [43,  0.26], [57,  0.21], [73,  0.17],
-    [91,  0.13], [113, 0.10], [139, 0.08], [173, 0.06],
-  ];
+  // ── Freeverb constants (Jezar at Dreampoint, public domain) ────────────────
+  const FIXED_GAIN    = 0.015;
+  const STEREO_SPREAD = 23;
+  const ROOM_SIZE     = 0.75;   // 0–1: room size (0.7–0.9 for realistic rooms)
+  const DAMPING       = 0.32;   // 0–1: HF damping in comb feedback path
 
-  // HF damping: models air absorption (higher coeff = more HF rolloff)
-  const hfDamp  = 0.52;
-  // RT60 decay time for the diffuse tail
-  const decayT  = 1.1;
-  const decayK  = Math.exp(-6.9078 / (decayT * sr));  // per-sample multiplier
+  // Delay line lengths at 44100 Hz (Jezar's original tuning)
+  const COMB_TUNING = [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617] as const;
+  const AP_TUNING   = [556,  441,  341,  225]                           as const;
 
-  const buf = ctx.createBuffer(2, tailLen, sr);
+  // Scale delay lengths to actual sample rate
+  const scaleFactor = sr / 44100;
+  const combLen = COMB_TUNING.map(n => Math.round(n * scaleFactor));
+  const apLen   = AP_TUNING.map(n  => Math.round(n * scaleFactor));
 
-  for (let ch = 0; ch < 2; ch++) {
-    const data = buf.getChannelData(ch);
+  // Derived parameters
+  const feedback = ROOM_SIZE * 0.28 + 0.70;  // 0.70–0.98
+  const damp1    = DAMPING   * 0.40;          // LPF coefficient (in feedback path)
+  const damp2    = 1 - damp1;                 // complementary coefficient
 
-    // 1. Diffuse tail with HF damping
-    let lpState = 0;
-    for (let i = predelay; i < tailLen; i++) {
-      const noise = Math.random() * 2 - 1;
-      lpState = lpState * hfDamp + noise * (1 - hfDamp);    // 1-pole LP (HF damp)
-      data[i]  = lpState * Math.pow(decayK, i - predelay);  // exponential decay
-    }
+  // ── Filter state ────────────────────────────────────────────────────────────
+  type CombState = { buf: Float32Array; idx: number; lpStore: number };
+  type APState   = { buf: Float32Array; idx: number };
 
-    // 2. Early reflections — alternate polarity on R channel for stereo width
-    erefs.forEach(([ms, gain], idx) => {
-      const s  = predelay + Math.floor((ms / 1000) * sr);
-      const sg = (ch === 1 && idx % 2 === 1) ? -gain * 0.88 : gain;
-      if (s < tailLen) data[s] += sg;
-    });
+  const mkComb = (n: number): CombState => ({ buf: new Float32Array(n), idx: 0, lpStore: 0 });
+  const mkAP   = (n: number): APState   => ({ buf: new Float32Array(n), idx: 0 });
+
+  // L channel uses standard lengths; R adds STEREO_SPREAD for decorrelation
+  const combsL = combLen.map(n => mkComb(n));
+  const combsR = combLen.map(n => mkComb(n + STEREO_SPREAD));
+  const apsL   = apLen.map(n   => mkAP(n));
+  const apsR   = apLen.map(n   => mkAP(n + STEREO_SPREAD));
+
+  // ── Process one sample through a Schroeder comb filter ─────────────────────
+  // Transfer function: H(z) = z^{-N} / (1 - g·(1 - d)·z^{-1} - g·d·z^{-N})
+  // The LPF in the loop (lpStore) is the key to Freeverb's warm decay character.
+  const processComb = (c: CombState, inp: number): number => {
+    const out = c.buf[c.idx];
+    c.lpStore  = out * damp2 + c.lpStore * damp1;   // 1-pole LP in feedback
+    c.buf[c.idx] = inp + c.lpStore * feedback;
+    c.idx = (c.idx + 1) % c.buf.length;
+    return out;
+  };
+
+  // ── Process one sample through a Schroeder all-pass filter ─────────────────
+  // Transfer function: H(z) = (-g + z^{-N}) / (1 - g·z^{-N}), g = 0.5
+  // All-pass filters don't change frequency content but scatter energy in time,
+  // adding diffusion and preventing flutter echoes.
+  const processAP = (ap: APState, inp: number): number => {
+    const bufOut = ap.buf[ap.idx];
+    const out    = -inp + bufOut;
+    ap.buf[ap.idx] = inp + bufOut * 0.5;  // g = 0.5 (Jezar's fixed value)
+    ap.idx = (ap.idx + 1) % ap.buf.length;
+    return out;
+  };
+
+  // ── Generate the impulse response ─────────────────────────────────────────
+  const irLen = Math.floor(sr * 2.2);
+  const dataL = new Float32Array(irLen);
+  const dataR = new Float32Array(irLen);
+
+  // Pre-delay of 14 ms (gives sense of room distance before reverb bloom)
+  const predelayLen = Math.floor(sr * 0.014);
+
+  for (let n = 0; n < irLen; n++) {
+    // Single impulse at n=predelay (with Freeverb's fixed input gain scaling)
+    const input = (n === predelayLen) ? FIXED_GAIN : 0;
+
+    // 8 comb filters run in parallel, outputs are summed
+    let outL = 0, outR = 0;
+    for (const c of combsL) outL += processComb(c, input);
+    for (const c of combsR) outR += processComb(c, input);
+
+    // 4 all-pass filters run in series for diffusion
+    for (const ap of apsL) outL = processAP(ap, outL);
+    for (const ap of apsR) outR = processAP(ap, outR);
+
+    dataL[n] = outL;
+    dataR[n] = outR;
   }
 
+  // Normalise peak to –6 dBFS so the convolver doesn't clip
+  let peak = 0;
+  for (let i = 0; i < irLen; i++) peak = Math.max(peak, Math.abs(dataL[i]), Math.abs(dataR[i]));
+  const norm = peak > 0 ? 0.5 / peak : 1;
+  for (let i = 0; i < irLen; i++) { dataL[i] *= norm; dataR[i] *= norm; }
+
+  const buf = ctx.createBuffer(2, irLen, sr);
+  buf.copyToChannel(dataL, 0);
+  buf.copyToChannel(dataR, 1);
   _irBuffer = buf;
   return buf;
 }
@@ -897,30 +962,42 @@ function buildFXChain(ctx: AudioContext, dest: AudioNode, fx: InstFX): AudioNode
   const hi = ctx.createBiquadFilter();
   hi.type = 'highshelf'; hi.frequency.value = 10000; hi.gain.value = fx.eqHigh;
 
-  // ── Saturation waveshaper (tanh soft clipper) ──────────────────────────────
-  // Algorithm: normalized tanh — the standard "tape saturation" model.
-  //   curve[i] = tanh(x * drive) / tanh(drive)
-  // At low drive the transfer function is nearly linear; at high drive it
-  // progressively clips peaks while keeping the body of the waveform intact —
-  // exactly how tape oxide saturation sounds. The denominator normalises gain
-  // so output level stays the same regardless of drive setting.
+  // ── Saturation waveshaper — asymmetric tanh (tape oxide emulation) ─────────
+  //
+  // Algorithm: asymmetric normalized tanh.
+  // Real magnetic tape saturates asymmetrically — the positive and negative
+  // half-cycles clip at slightly different amounts, introducing even-order
+  // harmonics (2nd, 4th…) that give tape its characteristic "warmth".
+  // A symmetric clipper (like pure tanh or the old algebraic clipper) only
+  // produces odd-order harmonics, which sound harsher.
+  //
+  // Implementation: drive the positive half at 1.15× and the negative half
+  // at 0.85× of the base drive. Each half is normalised independently so
+  // the overall gain stays the same but the wave shape becomes asymmetric.
+  // This is the same technique used in many open-source tape emulation plugins
+  // (e.g., the Airwindows "Tape" series and the Ardour tape saturation code).
   const saturate = fx.saturate ?? 0;
   let satOutput: AudioNode = hi;
   if (saturate > 0.01) {
-    const ws  = ctx.createWaveShaper();
-    const drv = 1 + saturate * 9;          // drive 1 → 10
-    const n   = 512;
+    const ws   = ctx.createWaveShaper();
+    const drv  = 1 + saturate * 9;                  // base drive: 1 → 10
+    const drvP = drv * 1.15;                         // positive half (slightly more driven)
+    const drvN = drv * 0.85;                         // negative half (slightly less driven)
+    const normP = Math.tanh(drvP);                   // per-half normalisation
+    const normN = Math.tanh(drvN);
+    const n    = 512;
     const curve = new Float32Array(n);
-    const norm = Math.tanh(drv);           // normalisation factor
     for (let i = 0; i < n; i++) {
-      const x   = (i * 2) / (n - 1) - 1;
-      curve[i]  = Math.tanh(x * drv) / norm;
+      const x  = (i * 2) / (n - 1) - 1;             // −1 … +1
+      curve[i] = x >= 0
+        ? Math.tanh(x * drvP) / normP               // positive half
+        : Math.tanh(x * drvN) / normN;              // negative half (asymmetric!)
     }
     ws.curve      = curve;
     ws.oversample = '4x';
-    // Slight gain-compensation (tanh clips peaks → slightly lower RMS)
+    // RMS compensation — asymmetric clipping reduces average level slightly
     const satComp = ctx.createGain();
-    satComp.gain.value = 1 / Math.sqrt(1 + saturate * 0.4);
+    satComp.gain.value = 1 / Math.sqrt(1 + saturate * 0.35);
     hi.connect(ws); ws.connect(satComp);
     satOutput = satComp;
   }
