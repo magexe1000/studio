@@ -758,60 +758,106 @@ ${chordContent}
         }
       };
 
-      /* ── Paginate & draw ───────────────────────────────────── */
-      fillPage();
-      let gridY = drawHeader();
+      /* ── Section heading helper ────────────────────────────── */
+      const SECT_H = compact ? 6 : 8; // mm: heading + gap below
 
-      // Calculate how many rows fit per page.
-      // Correct formula: N rows need N*H + (N-1)*G  =>  N = floor((AVAIL + G) / (H + G))
-      const AVAIL_H_P1 = PH - MT - MB - HDR_H - 8;
-      const AVAIL_H_PN = PH - MT - MB - 8;
-      const rowsPerPage1 = Math.max(1, Math.floor((AVAIL_H_P1 + CARD_GAP) / (CARD_H + CARD_GAP)));
-      const rowsPerPageN = Math.max(1, Math.floor((AVAIL_H_PN + CARD_GAP) / (CARD_H + CARD_GAP)));
+      const drawSectionHeading = (name: string, y: number) => {
+        doc.setFillColor(...hexRgb(C_ACCENT));
+        doc.rect(ML, y + 0.5, 0.8, compact ? 3 : 4, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(compact ? 6 : 7.5);
+        doc.setTextColor(...hexRgb(C_ACCENT));
+        doc.text(name.toUpperCase(), ML + 3, y + (compact ? 3 : 3.8));
+      };
 
-      const totalRows  = Math.ceil(cards.length / COLS);
-      let totalPages   = 1;
-      if (totalRows > rowsPerPage1) {
-        const overflow = totalRows - rowsPerPage1;
-        totalPages += Math.ceil(overflow / rowsPerPageN);
+      /* ── Build flat draw-item list ──────────────────────────── */
+      type DrawItem =
+        | { type: 'section-header'; name: string }
+        | { type: 'card'; data: CardData; num: number };
+
+      const drawItems: DrawItem[] = [];
+
+      if (hasSections) {
+        let cardIdx = 0;
+        preset.sections!.forEach(sec => {
+          const secLen = buildEntries(sec.chords).length;
+          drawItems.push({ type: 'section-header', name: sec.name });
+          for (let i = 0; i < secLen; i++) {
+            if (cardIdx < cards.length) {
+              drawItems.push({ type: 'card', data: cards[cardIdx], num: i + 1 });
+              cardIdx++;
+            }
+          }
+        });
+      } else {
+        cards.forEach((card, i) => drawItems.push({ type: 'card', data: card, num: i + 1 }));
       }
 
-      // DEBUG: print key layout values as tiny text at the very top of the page
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(5);
-      doc.setTextColor(180, 180, 180);
-      doc.text(
-        `[DBG] chords=${preset.chords.length} allIds=${allIds.length} entries=${entries.length} cards=${cards.length} COLS=${COLS} H=${CARD_H.toFixed(1)} rpp=${rowsPerPage1} rows=${totalRows} pages=${totalPages}`,
-        ML, 5
-      );
+      /* ── Simulate layout to count total pages ───────────────── */
+      const AVAIL_BOTTOM = PH - MB - 8;
+      const headerStartY = MT + HDR_H; // same Y that drawHeader() returns, without drawing
+      const simTotalPages = (() => {
+        let page = 1;
+        let cy = headerStartY;
+        let col = 0;
 
-      let currentPage  = 1;
-      let rowOnPage    = 0;
-      let maxRowOnPage = rowsPerPage1;
+        const simBreak = (neededH: number) => {
+          if (cy + neededH > AVAIL_BOTTOM) {
+            if (col > 0) { cy += CARD_H + CARD_GAP; col = 0; }
+            if (cy + neededH > AVAIL_BOTTOM) { page++; cy = MT; }
+          }
+        };
 
-      cards.forEach((card, i) => {
-        const globalRow = Math.floor(i / COLS);
-        const col       = i % COLS;
-
-        // At the start of each new row, increment first then check if a new page is needed.
-        if (col === 0 && globalRow > 0) {
-          rowOnPage++;
-          if (rowOnPage >= maxRowOnPage) {
-            drawFooter(currentPage, totalPages);
-            doc.addPage();
-            fillPage();
-            currentPage++;
-            rowOnPage    = 0;
-            maxRowOnPage = rowsPerPageN;
-            gridY        = MT;
+        for (const item of drawItems) {
+          if (item.type === 'section-header') {
+            if (col > 0) { cy += CARD_H + CARD_GAP; col = 0; }
+            simBreak(SECT_H + CARD_H);
+            cy += SECT_H;
+          } else {
+            if (col === 0) simBreak(CARD_H);
+            col++;
+            if (col >= COLS) { col = 0; cy += CARD_H + CARD_GAP; }
           }
         }
+        return page;
+      })();
 
-        const cardY = gridY + rowOnPage * (CARD_H + CARD_GAP);
-        drawCard(card, col, cardY, i + 1);
-      });
+      /* ── Paginate & draw (Y-cursor) ─────────────────────────── */
+      fillPage();
+      let cy       = drawHeader();
+      let colIdx   = 0;
+      let curPage  = 1;
 
-      drawFooter(currentPage, totalPages);
+      const pageBreakIfNeeded = (neededH: number) => {
+        if (cy + neededH > AVAIL_BOTTOM) {
+          if (colIdx > 0) { cy += CARD_H + CARD_GAP; colIdx = 0; }
+          if (cy + neededH > AVAIL_BOTTOM) {
+            drawFooter(curPage, simTotalPages);
+            doc.addPage();
+            fillPage();
+            curPage++;
+            cy = MT;
+          }
+        }
+      };
+
+      for (const item of drawItems) {
+        if (item.type === 'section-header') {
+          // Flush current partial row
+          if (colIdx > 0) { cy += CARD_H + CARD_GAP; colIdx = 0; }
+          // Ensure space for heading + at least one card row
+          pageBreakIfNeeded(SECT_H + CARD_H);
+          drawSectionHeading(item.name, cy);
+          cy += SECT_H;
+        } else {
+          if (colIdx === 0) pageBreakIfNeeded(CARD_H);
+          drawCard(item.data, colIdx, cy, item.num);
+          colIdx++;
+          if (colIdx >= COLS) { colIdx = 0; cy += CARD_H + CARD_GAP; }
+        }
+      }
+
+      drawFooter(curPage, simTotalPages);
 
       /* ── Save & share ──────────────────────────────────────── */
       if (isNative) {
