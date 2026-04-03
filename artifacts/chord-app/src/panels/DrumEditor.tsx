@@ -5,7 +5,7 @@ import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR,
   stepsPerMeasure, INST_VARIATIONS,
-  type DrumInstrument, type KitType, type DrumSong, type NoteVariation,
+  type DrumInstrument, type KitType, type DrumSong, type DrumMeasure, type NoteVariation,
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, KIT_DEFAULTS,
@@ -21,8 +21,9 @@ const RULER_H  = 20;
 const SYS_SEP  = 10;
 const MIN_STEP = 16;
 
-// Core instruments always visible; extras are collapsible
-const CORE_INSTS: DrumInstrument[] = ['crash', 'hihat-closed', 'snare', 'kick'];
+// Core instruments always visible; extras are collapsible.
+// Order mirrors KIT_INSTRUMENTS display order: high → low pitch.
+const CORE_INSTS: DrumInstrument[] = ['hihat-closed', 'snare', 'kick', 'crash'];
 
 // Staff lines within each row (fraction of ROW_H)
 const STAFF_YF = [0.29, 0.52, 0.75] as const;
@@ -448,10 +449,10 @@ export default function DrumEditor() {
     soundMap, volumeMap, masterVolume,
     kitType, activeInstruments,
     setKitType, toggleInstrument, setMasterVolume, setVolumeForInstrument,
-    toggleHit, addMeasure, deleteMeasure, updatePattern,
+    toggleHit, addMeasure, deleteMeasure, clearMeasure, duplicateMeasure, updatePattern,
     duplicatePattern, deletePattern, renamePattern, setActivePattern,
     drumSongs, saveDrumSong, createBlankDrumSong, loadDrumSong, deleteDrumSong, updateDrumSong,
-    restorePatterns,
+    restorePatterns, insertMeasureAfter,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -512,6 +513,11 @@ export default function DrumEditor() {
   const undoStack = useRef<HistoryEntry[]>([]);
   const redoStack = useRef<HistoryEntry[]>([]);
   const [historyCount, setHistoryCount] = useState(0);
+
+  // ── Bar copy/paste clipboard ──────────────────────────────────────────────
+  const [copiedMeasure, setCopiedMeasure] = useState<DrumMeasure | null>(null);
+  const [openBarMenu,   setOpenBarMenu]   = useState<string | null>(null); // measureId
+  const [flashBarId,    setFlashBarId]    = useState<string | null>(null); // brief highlight on paste
 
   // ── Container width ──────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
@@ -689,7 +695,10 @@ export default function DrumEditor() {
   }, [pattern, updatePattern, pushUndo]);
 
   // ── Cell tap ─────────────────────────────────────────────────────────────
-  const handlePointerDown = (e: React.PointerEvent) => { pointerStart.current = { x: e.clientX, y: e.clientY }; };
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (openBarMenu) setOpenBarMenu(null);
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+  };
   const handlePointerUp   = (e: React.PointerEvent) => {
     const s = pointerStart.current; if (!s) return; pointerStart.current = null;
     if (Math.abs(e.clientX - s.x) > 12 || Math.abs(e.clientY - s.y) > 12) return;
@@ -811,6 +820,7 @@ export default function DrumEditor() {
   // ── Render ────────────────────────────────────────────────────────────────
   const inputSt: React.CSSProperties = { width: '100%', background: 'var(--app-surface-high)', border: '1px solid rgba(72,72,72,0.12)', borderRadius: '0.625rem', padding: '11px 14px', color: 'var(--c-text-primary)', fontFamily: 'Inter', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
   const labelSt: React.CSSProperties = { color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: 6 };
+  const menuItemSt: React.CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12.5, fontFamily: 'Manrope', fontWeight: 600, textAlign: 'left', transition: 'background 120ms' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
@@ -1008,10 +1018,12 @@ export default function DrumEditor() {
                     <div style={{ display: 'flex', height: RULER_H, marginLeft: LABEL_W, borderBottom: `1px solid ${barColor}` }}>
                       {rowMeasures.map((m, mi) => {
                         const globalM   = mStartIdx + mi;
-                        const canDelete = globalM > 0;
+                        const canDelete = pattern.measures.length > 1;
+                        const menuOpen  = openBarMenu === m.id;
+                        const isFlash   = flashBarId  === m.id;
                         return (
-                          <div key={mi} style={{ width: MEASURE_W, flexShrink: 0, display: 'flex', alignItems: 'center', paddingLeft: 6, paddingRight: 4, borderLeft: mi > 0 ? `1px solid ${barColor}` : 'none', gap: 4 }}>
-                            <span style={{ color: 'var(--c-text-primary)', fontSize: 10, fontWeight: 700, fontFamily: 'Manrope, sans-serif', opacity: 0.65 }}>{globalM + 1}</span>
+                          <div key={mi} style={{ width: MEASURE_W, flexShrink: 0, display: 'flex', alignItems: 'center', paddingLeft: 6, paddingRight: 2, borderLeft: mi > 0 ? `1px solid ${barColor}` : 'none', gap: 4, position: 'relative', background: isFlash ? `${accent.from}22` : 'transparent', transition: 'background 400ms' }}>
+                            <span style={{ color: 'var(--c-text-primary)', fontSize: 10, fontWeight: 700, fontFamily: 'Manrope, sans-serif', opacity: 0.65, flexShrink: 0 }}>{globalM + 1}</span>
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
                               {Array.from({ length: pattern.timeSignature[0] }, (_, bi) => (
                                 <div key={bi} style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
@@ -1019,12 +1031,47 @@ export default function DrumEditor() {
                                 </div>
                               ))}
                             </div>
-                            {canDelete && (
-                              <button
-                                onPointerDown={e => e.stopPropagation()}
-                                onPointerUp={e => { e.stopPropagation(); pushUndo(); if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); } deleteMeasure(pattern.id, m.id); }}
-                                style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.30)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#f87171', lineHeight: 1, padding: 0 }}
-                              >✕</button>
+                            {/* ··· menu button */}
+                            <button
+                              onPointerDown={e => e.stopPropagation()}
+                              onPointerUp={e => { e.stopPropagation(); setOpenBarMenu(menuOpen ? null : m.id); }}
+                              style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, background: menuOpen ? `${accent.from}22` : 'transparent', border: `1px solid ${menuOpen ? accent.from + '44' : 'rgba(128,128,128,0.22)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: menuOpen ? accent.from : 'var(--c-text-muted)', fontSize: 8, letterSpacing: '0.05em', fontWeight: 900, lineHeight: 1, padding: 0, transition: 'all 140ms' }}
+                            >···</button>
+                            {/* Dropdown menu */}
+                            {menuOpen && (
+                              <div onPointerDown={e => e.stopPropagation()}
+                                style={{ position: 'absolute', top: RULER_H + 2, left: 0, zIndex: 92, background: isAmoled ? 'rgba(4,4,4,0.98)' : (isLight ? 'rgba(255,255,255,0.98)' : 'rgba(18,18,22,0.98)'), border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)', borderRadius: 10, boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.14)' : '0 8px 32px rgba(0,0,0,0.55)', padding: '4px 0', minWidth: 148, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', animation: 'drumHamburgerIn 150ms cubic-bezier(0.22,1,0.36,1)' }}>
+                                <button onPointerUp={e => { e.stopPropagation(); setCopiedMeasure(JSON.parse(JSON.stringify(m))); setOpenBarMenu(null); }} style={menuItemSt}>
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                  Copy bar
+                                </button>
+                                <button onPointerUp={e => { e.stopPropagation(); pushUndo(); duplicateMeasure(pattern.id, m.id); setOpenBarMenu(null); }} style={menuItemSt}>
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="13" height="13" rx="2"/><path d="M9 17v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2"/></svg>
+                                  Duplicate
+                                </button>
+                                {copiedMeasure && (
+                                  <button onPointerUp={e => {
+                                    e.stopPropagation();
+                                    pushUndo();
+                                    const newId = insertMeasureAfter(pattern.id, m.id, copiedMeasure.hits);
+                                    setOpenBarMenu(null);
+                                    setFlashBarId(newId);
+                                    setTimeout(() => setFlashBarId(null), 700);
+                                  }} style={{ ...menuItemSt, color: accent.from }}>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+                                    Paste after
+                                  </button>
+                                )}
+                                {canDelete && (
+                                  <>
+                                    <div style={{ height: 1, background: 'rgba(128,128,128,0.10)', margin: '4px 0' }} />
+                                    <button onPointerUp={e => { e.stopPropagation(); pushUndo(); if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); } deleteMeasure(pattern.id, m.id); setOpenBarMenu(null); }} style={{ ...menuItemSt, color: '#f87171' }}>
+                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                      Delete bar
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             )}
                           </div>
                         );

@@ -63,20 +63,21 @@ export const INSTRUMENT_COLOR: Record<DrumInstrument, string> = {
   kick:           '#679cff',
 };
 
+// Display order: high pitch → low pitch (hi-hat top, kick bottom)
 // hihat-open and hihat-foot are now handled as variations of hihat-closed
 export const KIT_INSTRUMENTS: Record<KitType, DrumInstrument[]> = {
-  ludwig:  ['kick','snare','hihat-closed','crash','ride','tom-high','tom-mid','tom-floor'],
-  jazz:    ['kick','snare','hihat-closed','crash','ride','tom-high','tom-mid'],
-  rock:    ['kick','snare','hihat-closed','crash','ride','tom-high','tom-mid','tom-floor'],
-  vintage: ['kick','snare','hihat-closed','crash','tom-high','tom-mid','tom-floor'],
-  studio:  ['kick','snare','hihat-closed','crash','ride','tom-high','tom-mid','tom-floor'],
-  r8:      ['kick','snare','hihat-closed','crash','ride','tom-high','tom-mid','tom-floor'],
-  linn:    ['kick','snare','hihat-closed','crash','ride','tom-high'],
-  funk:    ['kick','snare','hihat-closed','crash','ride','tom-high'],
-  cr78:    ['kick','snare','hihat-closed','crash','tom-high'],
-  tr808:   ['kick','snare','hihat-closed','crash','tom-high'],
-  techno:  ['kick','snare','hihat-closed','crash','tom-high'],
-  stark:   ['kick','snare','hihat-closed','crash'],
+  ludwig:  ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
+  jazz:    ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid'],
+  rock:    ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
+  vintage: ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
+  studio:  ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
+  r8:      ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
+  linn:    ['hihat-closed','snare','kick','crash','ride','tom-high'],
+  funk:    ['hihat-closed','snare','kick','crash','ride','tom-high'],
+  cr78:    ['hihat-closed','snare','kick','crash','tom-high'],
+  tr808:   ['hihat-closed','snare','kick','crash','tom-high'],
+  techno:  ['hihat-closed','snare','kick','crash','tom-high'],
+  stark:   ['hihat-closed','snare','kick','crash'],
 };
 
 export interface DrumHit { step: number; length: number; variation?: NoteVariation; }
@@ -163,8 +164,9 @@ interface DrumStore {
   toggleHit:       (patternId: string, measureId: string, instrument: DrumInstrument, step: number) => void;
   addMeasure:      (patternId: string) => string;
   deleteMeasure:   (patternId: string, measureId: string) => void;
-  clearMeasure:    (patternId: string, measureId: string) => void;
-  duplicateMeasure:(patternId: string, measureId: string) => void;
+  clearMeasure:       (patternId: string, measureId: string) => void;
+  duplicateMeasure:   (patternId: string, measureId: string) => void;
+  insertMeasureAfter: (patternId: string, afterMeasureId: string, hitsTemplate: DrumMeasure['hits']) => string;
 
   drumSongs:           DrumSong[];
   saveDrumSong:        (name: string, artist: string, notes: string) => string;
@@ -308,6 +310,21 @@ export const useDrumStore = create<DrumStore>()(
             return { ...p, measures };
           }),
         }));
+      },
+
+      insertMeasureAfter: (patternId, afterMeasureId, hitsTemplate) => {
+        const newM: DrumMeasure = { id: `m-${uid()}`, hits: JSON.parse(JSON.stringify(hitsTemplate)) };
+        set(s => ({
+          patterns: s.patterns.map(p => {
+            if (p.id !== patternId) return p;
+            const idx = p.measures.findIndex(m => m.id === afterMeasureId);
+            if (idx < 0) return p;
+            const measures = [...p.measures];
+            measures.splice(idx + 1, 0, newM);
+            return { ...p, measures };
+          }),
+        }));
+        return newM.id;
       },
 
       saveDrumSong: (name, artist, notes) => {
