@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
+import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
 import { ChordexLogo, DrumexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked } from './lib/navScroll';
@@ -138,7 +139,16 @@ export default function App() {
   const [slideDir, setSlideDir] = useState<'right' | 'left'>('right');
 
   const prevPanel  = useRef(activePanel);
-  const accent     = ACCENT_COLORS[settings.accentColor];
+
+  // Derive per-app visual settings, with a safe fallback for old persisted data
+  const appKey   = (settings.appMode ?? 'hub') as AppKey;
+  const perAppRaw = settings.perApp;
+  const activeVis = perAppRaw?.[appKey] ?? {
+    theme:       settings.theme       ?? 'dark',
+    accentColor: settings.accentColor ?? 'blue',
+    amoledMode:  settings.amoledMode  ?? false,
+  };
+  const accent = ACCENT_COLORS[activeVis.accentColor];
 
   // Show/hide the nav based on panel and preset state.
   // Hidden (and locked so scroll can't override) only when inside the preset editor.
@@ -148,25 +158,25 @@ export default function App() {
     setNavHidden(inPreset);
   }, [activePresetId, visiblePanel]);
 
-  // Apply CSS vars for accent color globally
+  // Apply CSS vars for accent color (re-runs when appMode or per-app accent changes)
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty('--accent-from', accent.from);
     root.style.setProperty('--accent-to',   accent.to);
     root.style.setProperty('--accent-mid',  accent.mid);
-  }, [settings.accentColor]);
+  }, [accent.from, accent.to, accent.mid]);
 
   // AMOLED mode
   useEffect(() => {
     const root = document.documentElement;
-    settings.amoledMode ? root.classList.add('amoled') : root.classList.remove('amoled');
-  }, [settings.amoledMode]);
+    activeVis.amoledMode ? root.classList.add('amoled') : root.classList.remove('amoled');
+  }, [activeVis.amoledMode]);
 
   // Sync theme-color meta tag so the PWA / browser status bar matches the app theme
   useEffect(() => {
-    const isLight = settings.theme === 'light' ||
-      (settings.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
-    const color = settings.amoledMode ? '#000000' : (isLight ? '#f5f5f5' : '#111116');
+    const isLight = activeVis.theme === 'light' ||
+      (activeVis.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
+    const color = activeVis.amoledMode ? '#000000' : (isLight ? '#f5f5f5' : '#111116');
     let tag = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     if (!tag) {
       tag = document.createElement('meta');
@@ -174,22 +184,22 @@ export default function App() {
       document.head.appendChild(tag);
     }
     tag.content = color;
-  }, [settings.theme, settings.amoledMode]);
+  }, [activeVis.theme, activeVis.amoledMode]);
 
   // Theme mode (dark / light / system)
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove('light', 'theme-system');
-    if (settings.theme === 'light') {
+    if (activeVis.theme === 'light') {
       root.classList.add('light');
-    } else if (settings.theme === 'system') {
+    } else if (activeVis.theme === 'system') {
       root.classList.add('theme-system');
     }
     // 'dark' is the default — no class needed
-  }, [settings.theme]);
+  }, [activeVis.theme]);
 
   // Keep the native Android status bar in sync with the active theme
-  useStatusBar(settings.theme, settings.amoledMode);
+  useStatusBar(activeVis.theme, activeVis.amoledMode);
 
   // Animation speed → root data-attribute
   useEffect(() => {

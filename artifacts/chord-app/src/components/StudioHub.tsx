@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity } from '../store/useChordStore';
+import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo } from './ChordexLogo';
 import { useNavHidden, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
+import ApplyToSheet from './ApplyToSheet';
 
 type HubTab = 'home' | 'settings';
 type TargetApp = 'chords' | 'drums';
@@ -101,7 +102,8 @@ function getGreetingPair(name?: string, idx?: number): GreetingPair {
 
 export default function StudioHub() {
   const { settings, updateSettings } = useChordStore();
-  const accent = ACCENT_COLORS[settings.accentColor];
+  const hubAccentKey = settings.perApp?.hub?.accentColor ?? settings.accentColor;
+  const accent = ACCENT_COLORS[hubAccentKey];
 
   const [tab, setTab]     = useState<HubTab>('home');
   const [zooming, setZooming] = useState(false);
@@ -275,9 +277,30 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 function HubSettings({ accent }: { accent: { from: string; to: string; mid: string } }) {
-  const { settings, updateSettings } = useChordStore();
+  const { settings, updateSettings, updatePerApp } = useChordStore();
   const t = useT();
   const [name, setName] = useState(settings.hubUserName ?? '');
+
+  // Per-app appearance — read hub's current visuals
+  const hubVis: PerAppVisuals = settings.perApp?.hub ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
+
+  // Pending change for the ApplyToSheet
+  const [pending, setPending] = useState<Partial<PerAppVisuals> | null>(null);
+  const [showSheet, setShowSheet] = useState(false);
+
+  function requestChange(patch: Partial<PerAppVisuals>) {
+    setPending(patch);
+    setShowSheet(true);
+  }
+  function handleApply(apps: AppKey[]) {
+    if (pending) updatePerApp(apps, pending);
+    setPending(null);
+    setShowSheet(false);
+  }
+  function handleClose() {
+    setPending(null);
+    setShowSheet(false);
+  }
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--app-surface)',
@@ -360,16 +383,15 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
 
         {/* Theme */}
         <div style={{ padding: 'var(--density-pad) var(--density-pad) 16px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-          <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 'var(--density-card-gap)' }}>{t.settings.rows.theme}</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
             {([
               { value: 'system', label: t.settings.rows.themeSystem, icon: 'brightness_auto' },
               { value: 'light',  label: t.settings.rows.themeLight,  icon: 'light_mode'      },
               { value: 'dark',   label: t.settings.rows.themeDark,   icon: 'dark_mode'       },
             ] as { value: Theme; label: string; icon: string }[]).map(opt => {
-              const isActive = settings.theme === opt.value;
+              const isActive = hubVis.theme === opt.value;
               return (
-                <button key={opt.value} onClick={() => updateSettings({ theme: opt.value })} className="btn-smooth"
+                <button key={opt.value} onClick={() => requestChange({ theme: opt.value })} className="btn-smooth"
                   style={{ padding: '12px 6px', borderRadius: '12px', background: isActive ? `${accent.from}22` : 'var(--app-surface-high)', border: `1.5px solid ${isActive ? accent.from + '66' : 'transparent'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', transition: 'background 200ms ease, border-color 200ms ease' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '22px', color: isActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease' }}>{opt.icon}</span>
                   <p style={{ color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease' }}>{opt.label}</p>
@@ -381,13 +403,13 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
 
         {/* AMOLED */}
         {(() => {
-          const isLightMode = settings.theme === 'light';
+          const isLightMode = hubVis.theme === 'light';
           return (
             <div style={{
               padding: 'var(--density-row-pad)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px',
               borderBottom: '1px solid rgba(128,128,128,0.08)',
-              background: settings.amoledMode ? 'rgba(0,0,0,0.35)' : 'transparent',
+              background: hubVis.amoledMode ? 'rgba(0,0,0,0.35)' : 'transparent',
               opacity: isLightMode ? 0.38 : 1,
               pointerEvents: isLightMode ? 'none' : undefined,
               transition: 'background 400ms ease, opacity 300ms ease',
@@ -396,32 +418,31 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
                 <div style={{
                   width: '40px', height: '40px', borderRadius: '12px',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: settings.amoledMode ? '#030303' : 'var(--app-surface-high)',
-                  border: settings.amoledMode ? '1px solid #2a2a2a' : 'none',
+                  background: hubVis.amoledMode ? '#030303' : 'var(--app-surface-high)',
+                  border: hubVis.amoledMode ? '1px solid #2a2a2a' : 'none',
                   transition: 'background-color 300ms ease',
                 }}>
-                  <span className="material-symbols-outlined" style={{ color: settings.amoledMode ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontSize: '20px' }}>dark_mode</span>
+                  <span className="material-symbols-outlined" style={{ color: hubVis.amoledMode ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontSize: '20px' }}>dark_mode</span>
                 </div>
                 <div>
                   <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-base)' }}>{t.settings.rows.amoledMode}</p>
                   <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)', marginTop: '2px' }}>{t.settings.rows.amoledModeDesc}</p>
                 </div>
               </div>
-              <Toggle value={settings.amoledMode} onChange={v => updateSettings({ amoledMode: v })} accentFrom={accent.from} accentTo={accent.to} />
+              <Toggle value={hubVis.amoledMode} onChange={v => requestChange({ amoledMode: v })} accentFrom={accent.from} accentTo={accent.to} />
             </div>
           );
         })()}
 
         {/* Accent Color */}
         <div style={{ padding: 'var(--density-pad) var(--density-pad) 16px' }}>
-          <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 'var(--density-card-gap)' }}>{t.settings.rows.accentColor}</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--density-card-gap)' }}>
             {COLOR_OPTIONS.map(c => {
-              const isActive = settings.accentColor === c.id;
+              const isActive = hubVis.accentColor === c.id;
               return (
                 <button
                   key={c.id}
-                  onClick={() => updateSettings({ accentColor: c.id })}
+                  onClick={() => requestChange({ accentColor: c.id as PerAppVisuals['accentColor'] })}
                   className="btn-smooth"
                   style={{
                     display: 'flex', alignItems: 'center', gap: '8px',
@@ -447,6 +468,8 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
         </div>
 
       </div>
+
+      <ApplyToSheet show={showSheet} onApply={handleApply} onClose={handleClose} />
 
       {/* ── ANIMATIONS ── */}
       <SectionHeader icon="animation" title={t.settings.sections.animations} />
@@ -593,8 +616,9 @@ function HubNav({ tab, setTab, accent }: {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
-  const bg = settings.amoledMode ? 'rgba(4,4,4,0.88)' : isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)';
+  const hubVis2 = settings.perApp?.hub ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
+  const isLight = hubVis2.theme === 'light' || (hubVis2.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+  const bg = hubVis2.amoledMode ? 'rgba(4,4,4,0.88)' : isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)';
 
   return (
     <nav

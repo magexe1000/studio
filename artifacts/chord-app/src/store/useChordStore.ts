@@ -5,6 +5,13 @@ import type { Chord, Instrument } from '../data/chords';
 export type Theme = 'dark' | 'light' | 'system';
 export type ActivePanel = 'library' | 'chord' | 'settings' | 'songs';
 export type AccentColor = 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'teal';
+export type AppKey = 'hub' | 'chords' | 'drums';
+
+export interface PerAppVisuals {
+  theme: Theme;
+  accentColor: AccentColor;
+  amoledMode: boolean;
+}
 export type Language = 'en' | 'es';
 export type AnimationSpeed = 'normal' | 'fast' | 'reduced';
 export type DisplayDensity = 'compact' | 'comfortable' | 'spacious';
@@ -86,6 +93,7 @@ export interface AppSettings {
   assistantProgressionTips: boolean;
   assistantConflictDetection: boolean;
   assistantLearning: boolean;
+  perApp: Record<AppKey, PerAppVisuals>;
 }
 
 interface ChordStore {
@@ -110,6 +118,7 @@ interface ChordStore {
   toggleFavorite: (chordId: string) => void;
   isFavorite: (chordId: string) => boolean;
   updateSettings: (settings: Partial<AppSettings>) => void;
+  updatePerApp: (apps: AppKey[], patch: Partial<PerAppVisuals>) => void;
 
   addToProgression: (chordId: string) => void;
   removeFromProgression: (index: number) => void;
@@ -201,6 +210,11 @@ export const useChordStore = create<ChordStore>()(
         assistantProgressionTips: true,
         assistantConflictDetection: true,
         assistantLearning: true,
+        perApp: {
+          hub:    { theme: 'dark', accentColor: 'blue', amoledMode: false },
+          chords: { theme: 'dark', accentColor: 'blue', amoledMode: false },
+          drums:  { theme: 'dark', accentColor: 'blue', amoledMode: false },
+        },
       },
       favorites: [],
       recentChords: ['C-major'],
@@ -244,6 +258,16 @@ export const useChordStore = create<ChordStore>()(
 
       updateSettings: (newSettings) => {
         set((state) => ({ settings: { ...state.settings, ...newSettings } }));
+      },
+
+      updatePerApp: (apps, patch) => {
+        set((state) => {
+          const perApp = { ...state.settings.perApp };
+          apps.forEach(app => {
+            perApp[app] = { ...perApp[app], ...patch };
+          });
+          return { settings: { ...state.settings, perApp } };
+        });
       },
 
       addToProgression: (chordId) => {
@@ -501,16 +525,28 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
-      version: 1,
+      version: 2,
       migrate: (stored: unknown, fromVersion: number) => {
         const s = stored as Record<string, unknown>;
         if (fromVersion < 1) {
-          // First migration: show the hub to all existing users
           if (s.settings && typeof s.settings === 'object') {
             const settings = s.settings as Record<string, unknown>;
             settings.startupApp  = 'hub';
             settings.appMode     = 'hub';
             settings.hubUserName = settings.hubUserName ?? '';
+          }
+        }
+        if (fromVersion < 2) {
+          if (s.settings && typeof s.settings === 'object') {
+            const settings = s.settings as Record<string, unknown>;
+            const theme      = (settings.theme       as Theme)       ?? 'dark';
+            const accentColor = (settings.accentColor as AccentColor) ?? 'blue';
+            const amoledMode  = (settings.amoledMode  as boolean)     ?? false;
+            settings.perApp = {
+              hub:    { theme, accentColor, amoledMode },
+              chords: { theme, accentColor, amoledMode },
+              drums:  { theme, accentColor, amoledMode },
+            };
           }
         }
         return s;
