@@ -22,7 +22,7 @@ export const KIT_DEFAULTS: Record<KitType, {
   },
   vintage: {
     label: "Vintage '60s", description: 'Woodsy warm tones, open resonance',
-    soundMap: { kick:'kick-std', snare:'snare-crack', 'hihat-closed':'hh-c-crisp', 'hihat-open':'hh-o-long', crash:'crash-bright', 'tom-high':'tom-hi-std', 'tom-mid':'tom-m-warm', 'tom-floor':'tom-f-std' },
+    soundMap: { kick:'kick-std', snare:'snare-fat', 'hihat-closed':'hh-c-crisp', 'hihat-open':'hh-o-long', crash:'crash-bright', 'tom-high':'tom-hi-std', 'tom-mid':'tom-m-warm', 'tom-floor':'tom-f-std' },
   },
   // ── Studio ────────────────────────────────────────────────────────────────
   studio: {
@@ -82,6 +82,45 @@ export function defaultSoundId(inst: DrumInstrument): string {
 export function soundVariantLabel(inst: DrumInstrument, id: string): string {
   return SOUND_VARIANTS[inst].find(v => v.id === id)?.label ?? id;
 }
+
+// ── Per-kit acoustic character config ────────────────────────────────────────
+// rate: playback speed (pitch).  >1 = higher/brighter, <1 = lower/darker.
+// gain: volume multiplier applied on top of master vol.
+// roomMs: early-reflection delay in ms (0 = dry).  Used for jazz & vintage.
+interface KitInstCfg { rate: number; gain: number; roomMs?: number }
+const KIT_ACOUSTIC_CFG: Partial<Record<KitType, Partial<Record<DrumInstrument, KitInstCfg>>>> = {
+  // Jazz — intimate small-room kit: soft, slightly lower-pitched, natural room bounce
+  jazz: {
+    kick:           { rate: 0.87, gain: 0.78, roomMs: 16 },
+    snare:          { rate: 0.82, gain: 0.68, roomMs: 12 },
+    'hihat-closed': { rate: 0.88, gain: 0.55, roomMs: 0  },
+    'hihat-open':   { rate: 0.88, gain: 0.60, roomMs: 0  },
+    'hihat-foot':   { rate: 0.88, gain: 0.50, roomMs: 0  },
+    'tom-high':     { rate: 0.89, gain: 0.78, roomMs: 14 },
+    'tom-mid':      { rate: 0.88, gain: 0.78, roomMs: 14 },
+  },
+  // Rock — punchy, cracking attack: pitched up, extra gain, dry
+  rock: {
+    kick:           { rate: 1.10, gain: 1.22 },
+    snare:          { rate: 1.16, gain: 1.28 },
+    'hihat-closed': { rate: 1.02, gain: 1.05 },
+    'hihat-open':   { rate: 1.00, gain: 1.00 },
+    'hihat-foot':   { rate: 1.02, gain: 1.02 },
+    'tom-high':     { rate: 1.14, gain: 1.15 },
+    'tom-mid':      { rate: 1.08, gain: 1.12 },
+    'tom-floor':    { rate: 1.03, gain: 1.10 },
+  },
+  // Vintage '60s — boomy, open, warm: pitched well down, early room reflections
+  vintage: {
+    kick:           { rate: 0.76, gain: 0.90, roomMs: 22 },
+    snare:          { rate: 0.78, gain: 0.82, roomMs: 18 },
+    'hihat-closed': { rate: 0.84, gain: 0.72, roomMs: 0  },
+    'hihat-open':   { rate: 0.84, gain: 0.78, roomMs: 0  },
+    'tom-high':     { rate: 0.83, gain: 0.88, roomMs: 18 },
+    'tom-mid':      { rate: 0.82, gain: 0.88, roomMs: 18 },
+    'tom-floor':    { rate: 0.81, gain: 0.88, roomMs: 18 },
+  },
+};
 
 // ── Map soundId → instrument ────────────────────────────────────────────────
 function soundIdToInst(id: string): DrumInstrument | null {
@@ -165,23 +204,24 @@ const KIT_SAMPLE_URLS: Record<KitType, Partial<Record<DrumInstrument, string[]>>
     crash:          [`${TONEJS}CR78/crash.mp3`],
     ride:           [`${TONEJS}CR78/ride.mp3`],
   },
-  // Jazz Kit — CR78 cymbals over acoustic toms (dry, intimate)
+  // Jazz Kit — all acoustic; softer pitch tuning for small intimate jazz kit feel
   jazz: {
     kick:           [`${MIDI}acoustic-kit/kick.wav`],
     snare:          [`${MIDI}acoustic-kit/snare.wav`],
-    'hihat-closed': [`${TONEJS}CR78/hihat.mp3`],
-    'hihat-open':   [`${TONEJS}CR78/hihat.mp3`],
+    'hihat-closed': [`${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-open':   [`${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-foot':   [`${MIDI}acoustic-kit/hihat.wav`],
     crash:          [`${TONEJS}CR78/crash.mp3`],
     ride:           [`${TONEJS}CR78/ride.mp3`],
     'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`],
     'tom-mid':      [`${MIDI}acoustic-kit/tom2.wav`],
   },
-  // Rock Kit — R8 kick+snare punch over acoustic toms
+  // Rock Kit — pure acoustic samples, pitch-shifted up for punch and crack
   rock: {
-    kick:           [`${MIDI}R8/kick.wav`,            `${MIDI}acoustic-kit/kick.wav`],
-    snare:          [`${MIDI}R8/snare.wav`,           `${MIDI}acoustic-kit/snare.wav`],
+    kick:           [`${MIDI}acoustic-kit/kick.wav`],
+    snare:          [`${MIDI}acoustic-kit/snare.wav`],
     'hihat-closed': [`${MIDI}acoustic-kit/hihat.wav`],
-    'hihat-open':   [`${MIDI}LINN/hihat.wav`,         `${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-open':   [`${MIDI}acoustic-kit/hihat.wav`],
     'hihat-foot':   [`${MIDI}acoustic-kit/hihat.wav`],
     'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`],
     'tom-mid':      [`${MIDI}acoustic-kit/tom2.wav`],
@@ -189,15 +229,15 @@ const KIT_SAMPLE_URLS: Record<KitType, Partial<Record<DrumInstrument, string[]>>
     crash:          [`${TONEJS}CR78/crash.mp3`],
     ride:           [`${TONEJS}CR78/ride.mp3`],
   },
-  // Vintage '60s — CR78 analog over acoustic toms (warm, open)
+  // Vintage '60s — pure acoustic samples, pitched down for boomy warm open character
   vintage: {
-    kick:           [`${TONEJS}CR78/kick.mp3`,        `${MIDI}acoustic-kit/kick.wav`],
-    snare:          [`${TONEJS}CR78/snare.mp3`,       `${MIDI}acoustic-kit/snare.wav`],
+    kick:           [`${MIDI}acoustic-kit/kick.wav`],
+    snare:          [`${MIDI}acoustic-kit/snare.wav`],
     'hihat-closed': [`${MIDI}acoustic-kit/hihat.wav`],
     'hihat-open':   [`${MIDI}acoustic-kit/hihat.wav`],
     crash:          [`${TONEJS}CR78/crash.mp3`],
-    'tom-high':     [`${TONEJS}CR78/highTom.mp3`,     `${MIDI}acoustic-kit/tom1.wav`],
-    'tom-mid':      [`${TONEJS}CR78/lowTom.mp3`,      `${MIDI}acoustic-kit/tom2.wav`],
+    'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`],
+    'tom-mid':      [`${MIDI}acoustic-kit/tom2.wav`],
     'tom-floor':    [`${MIDI}acoustic-kit/tom3.wav`],
   },
   // ── Studio ──────────────────────────────────────────────────────────────────
@@ -612,6 +652,35 @@ function playBuffer(
   if (maxDur) src.stop(t + maxDur + 0.02);
 }
 
+// ── Play buffer with early reflection (natural room ambience) ────────────────
+// Adds a single early bounce at `reflectionMs` ms with ~−14 dB to simulate a
+// small/medium recording room without a heavy convolution reverb.
+function playBufferRoomy(
+  ctx: AudioContext,
+  buf: AudioBuffer,
+  t: number,
+  vol: number,
+  dest: AudioNode,
+  rate: number,
+  reflectionMs: number,
+  maxDur?: number,
+) {
+  // Direct signal
+  playBuffer(ctx, buf, t, vol, dest, maxDur, rate);
+
+  // Early reflection — lower pitch offset simulates room scatter
+  const refDelay = reflectionMs / 1000;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = rate * 0.995; // tiny detune on reflection
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol * 0.20, t + refDelay);
+  g.gain.exponentialRampToValueAtTime(0.001, t + refDelay + (maxDur ?? 0.55));
+  src.connect(g); g.connect(dest);
+  src.start(t + refDelay);
+  src.stop(t + refDelay + (maxDur ?? 0.6) + 0.02);
+}
+
 // ── Main sound dispatcher ────────────────────────────────────────────────────
 export function playSoundAt(
   soundId: string,
@@ -627,17 +696,27 @@ export function playSoundAt(
   // Try kit-specific real sample first
   if (kit && inst && samplePool.hasForKit(kit, inst)) {
     const buf = samplePool.getForKit(kit, inst)!;
+
+    // Base playback rates per instrument (pitch-shifted so all toms sound distinct)
+    const BASE_RATE: Partial<Record<DrumInstrument, number>> = {
+      'tom-high': 1.35, 'tom-mid': 1.00, 'tom-floor': 0.80,
+    };
+    const cfg        = kit ? KIT_ACOUSTIC_CFG[kit]?.[inst] : undefined;
+    const baseRate   = BASE_RATE[inst] ?? 1.0;
+    const kitRate    = cfg?.rate  ?? 1.0;
+    const kitGain    = cfg?.gain  ?? 1.0;
+    const roomMs     = cfg?.roomMs ?? 0;
+    const rate       = baseRate * kitRate;
+    const adjVol     = Math.min(vol * kitGain, 1.6);
+
     if (inst === 'hihat-closed' || inst === 'hihat-foot') {
+      // Short gate on closed/foot hihats; no room effect (too washy)
       const dur = inst === 'hihat-foot' ? 0.08 : (soundId === 'hh-c-tight' ? 0.032 : soundId === 'hh-c-crisp' ? 0.052 : 0.075);
-      playBuffer(ctx, buf, t, vol, dest, dur);
-    } else if (inst === 'tom-high') {
-      playBuffer(ctx, buf, t, vol, dest, undefined, 1.35);
-    } else if (inst === 'tom-mid') {
-      playBuffer(ctx, buf, t, vol, dest, undefined, 1.0);
-    } else if (inst === 'tom-floor') {
-      playBuffer(ctx, buf, t, vol, dest, undefined, 0.80);
+      playBuffer(ctx, buf, t, adjVol, dest, dur, rate);
+    } else if (roomMs > 0) {
+      playBufferRoomy(ctx, buf, t, adjVol, dest, rate, roomMs);
     } else {
-      playBuffer(ctx, buf, t, vol, dest);
+      playBuffer(ctx, buf, t, adjVol, dest, undefined, rate);
     }
     return;
   }
