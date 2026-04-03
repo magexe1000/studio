@@ -114,7 +114,7 @@ export default function ChordPanel() {
     };
     if (settings.instrument === 'guitar') {
       return <GuitarDiagram chordData={chord.guitar} {...props} leftHanded={settings.leftHanded} />;
-    } else if (settings.instrument === 'bass' || settings.instrument === 'ukulele') {
+    } else if (settings.instrument === 'bass') {
       return <FourStringDiagram chordData={chord.guitar} {...props} instrument={settings.instrument} fiveString={settings.bassFiveString} />;
     } else {
       return <PianoDiagram chordData={chord.piano} {...props} />;

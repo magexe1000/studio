@@ -109,7 +109,7 @@ function buildPrintSVG(data: GuitarChordData, dark = false, accentColor = '#679c
   return s;
 }
 
-/** Generalized fretboard SVG for any string count (bass=4, ukulele=4, guitar=6) */
+/** Generalized fretboard SVG for any string count (bass=4, guitar=6) */
 function buildPrintFretboardSVG(
   frets: number[], baseFret: number,
   barres: { fret: number; fromString: number; toString: number }[],
@@ -352,7 +352,6 @@ async function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT
     guitar:  accentColor,
     bass:    '#fb923c',
     piano:   '#c084fc',
-    ukulele: '#4ade80',
   };
   const instrBadge = (instr: string) => {
     const c = INSTR_COLORS[instr] ?? accentColor;
@@ -3061,7 +3060,7 @@ export default function SongsPanel() {
                     {/* Instrument badge (custom) / chord type (standard) */}
                     {isCustom ? (() => {
                       const instr = customChord?.instrument ?? 'guitar';
-                      const c = { guitar: accent.from, bass: '#fb923c', piano: '#c084fc', ukulele: '#4ade80' }[instr] ?? accent.from;
+                      const c = { guitar: accent.from, bass: '#fb923c', piano: '#c084fc' }[instr] ?? accent.from;
                       return (
                         <span style={{
                           display: 'inline-block', marginTop: '4px',

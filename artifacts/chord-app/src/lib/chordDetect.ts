@@ -61,16 +61,14 @@ export function chromaticToName(idx: number): string {
 }
 
 /** Open string chromatic indices (low → high string order) */
-export const OPEN_NOTES: Record<'guitar' | 'bass' | 'ukulele', number[]> = {
+export const OPEN_NOTES: Record<'guitar' | 'bass', number[]> = {
   guitar:  [4, 9, 2, 7, 11, 4], // E A D G B e
   bass:    [4, 9, 2, 7],         // E A D G
-  ukulele: [7, 0, 4, 9],         // G C E A
 };
 
-export const STRING_LABELS: Record<'guitar' | 'bass' | 'ukulele', string[]> = {
+export const STRING_LABELS: Record<'guitar' | 'bass', string[]> = {
   guitar:  ['E', 'A', 'D', 'G', 'B', 'e'],
   bass:    ['E', 'A', 'D', 'G'],
-  ukulele: ['G', 'C', 'E', 'A'],
 };
 
 /** Compute played note names from fret positions */

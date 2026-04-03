@@ -9,13 +9,12 @@ interface FourStringDiagramProps {
   notes?: string[];
   intervals?: string[];
   size?: 'sm' | 'md' | 'lg';
-  instrument?: 'bass' | 'ukulele';
+  instrument?: 'bass';
   fiveString?: boolean;
 }
 
 const TUNINGS = {
   bass: ['E', 'A', 'D', 'G'],
-  ukulele: ['G', 'C', 'E', 'A'],
 };
 
 const FourStringDiagram = memo(function FourStringDiagram({

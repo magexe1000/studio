@@ -76,25 +76,25 @@ title = "Stark industrial drum machine"
 id = "15nVi7IPqs1EzHEH2aHlS"
 uri = "file://artifacts/chord-app/public/kit-warm.png"
 type = "image"
-title = "warm maple drum kit"
+title = "warm maple drum kit transparent"
 
 [[generated]]
 id = "G-JZ-32pc2vMIKlSTl4Ch"
 uri = "file://artifacts/chord-app/public/kit-punchy.png"
 type = "image"
-title = "punchy dark drum kit"
+title = "punchy dark drum kit transparent"
 
 [[generated]]
 id = "2awQidWysSCOXomKhplEI"
 uri = "file://artifacts/chord-app/public/kit-bright.png"
 type = "image"
-title = "bright chrome drum kit"
+title = "bright chrome drum kit transparent"
 
 [[generated]]
 id = "rnYhFwYYj4Wpa-qH82s6l"
 uri = "file://artifacts/chord-app/public/kit-soft.png"
 type = "image"
-title = "soft jazz drum kit"
+title = "soft jazz drum kit transparent"
 
 [[outputs]]
 id = "I5FP-fUgJVTPVlHcXq6Xl"

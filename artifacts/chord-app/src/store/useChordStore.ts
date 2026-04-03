@@ -25,8 +25,8 @@ export interface BarreDef {
 export interface CustomChord {
   id: string;             // "custom-{timestamp}-{random}"
   name: string;           // user-defined name
-  instrument: 'guitar' | 'piano' | 'bass' | 'ukulele';
-  frets?: number[];       // per string: -1=muted, 0=open, n=fret (guitar/bass/ukulele)
+  instrument: 'guitar' | 'piano' | 'bass';
+  frets?: number[];       // per string: -1=muted, 0=open, n=fret (guitar/bass)
   barres?: BarreDef[];    // barre chord definitions
   pianoKeys?: number[];   // chromatic indices 0–11 (piano)
   notes: string[];        // computed note names (display)

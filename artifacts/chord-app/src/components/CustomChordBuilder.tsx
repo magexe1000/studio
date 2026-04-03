@@ -10,7 +10,7 @@ import ChordDiagram from './ChordDiagram';
 import type { GuitarChordData } from '../data/chords';
 import { useT } from '../lib/useT';
 
-type Instrument = 'guitar' | 'piano' | 'bass' | 'ukulele';
+type Instrument = 'guitar' | 'piano' | 'bass';
 
 /* ════════════════════════════════════════════════════════════════
    MINI DIAGRAM COMPONENTS (used in the chord list)
@@ -135,18 +135,18 @@ export function CustomMiniDiagram({ chord, accentFrom }: { chord: CustomChord; a
     return <ChordDiagram data={data} accentFrom={accentFrom} />;
   }
   const frets = chord.frets ?? [];
-  const numStrings = STRING_LABELS[chord.instrument as 'bass' | 'ukulele']?.length ?? 4;
+  const numStrings = STRING_LABELS[chord.instrument as 'bass']?.length ?? 4;
   const activeFrets = frets.filter(f => f > 0);
   const baseFret = activeFrets.length > 0 ? Math.min(...activeFrets) : 1;
   return <MiniDotN frets={frets} baseFret={baseFret} accentFrom={accentFrom} numStrings={numStrings} barres={chord.barres ?? []} />;
 }
 
 /* ════════════════════════════════════════════════════════════════
-   GUITAR / BASS / UKULELE FRETBOARD
+   GUITAR / BASS FRETBOARD
    ════════════════════════════════════════════════════════════════ */
 
 function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresChange = () => {}, accent, findMode = false }: {
-  instrument: 'guitar' | 'bass' | 'ukulele';
+  instrument: 'guitar' | 'bass';
   frets: number[][];
   onChange: (f: number[][]) => void;
   barres?: BarreDef[];
@@ -506,7 +506,6 @@ const INSTRUMENTS: { id: Instrument; image: string }[] = [
   { id: 'guitar',  image: '/instruments/guitar.png'  },
   { id: 'piano',   image: '/instruments/piano.png'   },
   { id: 'bass',    image: '/instruments/bass.png'    },
-  { id: 'ukulele', image: '/instruments/ukulele.png' },
 ];
 
 function genId() {
@@ -533,7 +532,6 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose:
     guitar:  t.customBuilder.guitar,
     piano:   t.customBuilder.piano,
     bass:    t.customBuilder.bass,
-    ukulele: t.customBuilder.ukulele,
   };
 
   const [instrument, setInstrument] = useState<Instrument>(editChord?.instrument ?? 'guitar');
@@ -549,7 +547,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose:
   const defaultFret = mode === 'find' ? -1 : 0;
   const [frets, setFrets] = useState<number[][]>(() => {
     if (editChord?.frets) return editChord.frets.map(f => [f]);
-    const n = editChord?.instrument === 'bass' || editChord?.instrument === 'ukulele' ? 4 : 6;
+    const n = editChord?.instrument === 'bass' ? 4 : 6;
     return Array.from({ length: n }, () => [defaultFret]);
   });
   const [barres, setBarres] = useState<BarreDef[]>(editChord?.barres ?? []);
@@ -601,7 +599,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose:
   const handleInstrumentChange = (inst: Instrument) => {
     setInstrument(inst);
     if (inst === 'guitar') setFrets(Array.from({ length: 6 }, () => [defaultFret]));
-    else if (inst === 'bass' || inst === 'ukulele') setFrets(Array.from({ length: 4 }, () => [defaultFret]));
+    else if (inst === 'bass') setFrets(Array.from({ length: 4 }, () => [defaultFret]));
     else setFrets([]);
     setBarres([]);
     setPianoKeys([]);
@@ -630,8 +628,8 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose:
     return { frets: flatFrets, fingers: [], barres, baseFret };
   })() : null;
 
-  // Build live preview data for bass/ukulele
-  const fretboardPreview = (instrument === 'bass' || instrument === 'ukulele') ? (() => {
+  // Build live preview data for bass
+  const fretboardPreview = (instrument === 'bass') ? (() => {
     const activeFrets = flatFrets.filter(f => f > 0);
     const baseFret = activeFrets.length > 0 ? Math.min(...activeFrets) : 1;
     return { frets: flatFrets, baseFret };
@@ -879,7 +877,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose:
                   <ChordDiagram data={previewData} accentFrom={resolvedAccent.from} fretsMulti={frets} />
                 </div>
               )}
-              {/* Live diagram preview — bass / ukulele */}
+              {/* Live diagram preview — bass */}
               {fretboardPreview && (
                 <div style={{ background: 'var(--app-surface-lowest)', borderRadius: '10px', padding: '6px 7px 4px', flexShrink: 0 }}>
                   <MiniDotN
@@ -936,7 +934,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose:
               <button
                 onClick={() => {
                   if (instrument === 'piano') setPianoKeys([]);
-                  else { const n = instrument === 'bass' || instrument === 'ukulele' ? 4 : 6; setFrets(Array.from({ length: n }, () => [defaultFret])); setBarres([]); }
+                  else { const n = instrument === 'bass' ? 4 : 6; setFrets(Array.from({ length: n }, () => [defaultFret])); setBarres([]); }
                 }}
                 disabled={!hasAnyNote}
                 className="btn-smooth"

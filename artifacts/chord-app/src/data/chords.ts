@@ -1,6 +1,6 @@
 export type ChordType = 'major' | 'minor' | '7th' | 'maj7' | 'min7' | 'sus2' | 'sus4' | 'dim' | 'aug' | '9th' | 'add9' | '11th' | '13th' | 'min9' | 'maj9' | '6th' | 'min6' | 'dom9' | 'halfdim' | 'dim7' | 'min11' | 'maj6' | '7sus4' | '7sus2' | 'power' | 'minmaj7' | 'aug7' | '7b9' | '7s9' | '69' | '9sus4';
 
-export type Instrument = 'guitar' | 'piano' | 'bass' | 'ukulele';
+export type Instrument = 'guitar' | 'piano' | 'bass';
 
 export interface GuitarFret {
   string: number; // 1 = high E, 6 = low E

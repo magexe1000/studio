@@ -182,7 +182,7 @@ function BigInstrumentDecor({ instrument, accentFrom }: { instrument: string; ac
     );
   }
 
-  // ukulele
+  // fallback
   return (
     <div style={{ ...wrap, transform: 'rotate(-18deg)' }}>
       <svg viewBox="0 0 36 62" width="88" height="152" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -83,7 +83,6 @@ const translations = {
         guitar: 'Guitar',
         piano: 'Piano',
         bass: 'Bass',
-        ukulele: 'Ukulele',
       },
     },
 
@@ -124,7 +123,7 @@ const translations = {
       customChord: 'Custom Chord',
       editCustomChord: 'Edit custom chord',
       createCustomChord: 'Create Custom Chord',
-      createCustomChordDesc: 'Build your own for guitar, piano, bass or ukulele',
+      createCustomChordDesc: 'Build your own for guitar, piano or bass',
       noCustomChords: 'No custom chords yet',
       noCustomChordsHint: 'Tap "Create Custom Chord" to build one',
       /* Transpose bar */
@@ -274,7 +273,6 @@ const translations = {
         guitar:  { label: 'Guitar',  desc: '6 strings · EADGBE' },
         piano:   { label: 'Piano',   desc: 'Keyboard layout'    },
         bass:    { label: 'Bass',    desc: '4/5 strings · EADG' },
-        ukulele: { label: 'Ukulele', desc: '4 strings · GCEA'   },
       },
       tunings: {
         standard: 'Standard',
@@ -293,7 +291,7 @@ const translations = {
         instruments: 'Instruments',
         storage: 'Storage',
         storageValue: 'Offline-first, local persist',
-        instrumentsValue: 'Guitar · Piano · Bass · Ukulele',
+        instrumentsValue: 'Guitar · Piano · Bass',
         chordLibraryValue: '200+ Chords',
         footer: 'By Mag, With Love.',
       },
@@ -315,7 +313,6 @@ const translations = {
       guitar: 'Guitar',
       piano: 'Piano',
       bass: 'Bass',
-      ukulele: 'Ukulele',
       chordName: 'Chord Name',
       namePlaceholder: 'e.g. Cmaj7, My Riff...',
       detected: (name: string) => `Detected: ${name}`,
@@ -432,7 +429,6 @@ const translations = {
         guitar: 'Guitarra',
         piano: 'Piano',
         bass: 'Bajo',
-        ukulele: 'Ukulele',
       },
     },
 
@@ -621,7 +617,6 @@ const translations = {
         guitar:  { label: 'Guitarra', desc: '6 cuerdas · EADGBE' },
         piano:   { label: 'Piano',    desc: 'Teclado'             },
         bass:    { label: 'Bajo',     desc: '4/5 cuerdas · EADG' },
-        ukulele: { label: 'Ukulele',  desc: '4 cuerdas · GCEA'   },
       },
       tunings: {
         standard: 'Estándar',
@@ -662,7 +657,6 @@ const translations = {
       guitar: 'Guitarra',
       piano: 'Piano',
       bass: 'Bajo',
-      ukulele: 'Ukelele',
       chordName: 'Nombre del acorde',
       namePlaceholder: 'ej. Cmaj7, Mi riff...',
       detected: (name: string) => `Detectado: ${name}`,
