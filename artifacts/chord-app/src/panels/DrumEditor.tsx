@@ -1589,8 +1589,8 @@ export default function DrumEditor() {
               </button>
               {/* Per-instrument FX button */}
               <button onClick={() => setShowFXSheet(s => !s)} title="Instrument FX"
-                style={{ height: 30, width: 30, borderRadius: 8, background: showFXSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showFXSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showFXSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+                style={{ height: 30, width: 36, borderRadius: 8, background: showFXSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showFXSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showFXSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, fontFamily: 'Manrope,sans-serif', letterSpacing: '0.04em' }}>FX</span>
               </button>
               <button onClick={() => setShowHamburger(h => !h)} style={{ height: 30, width: 38, borderRadius: 8, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}>
                 {[0, 1, 2].map(i => <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />)}
@@ -2265,7 +2265,7 @@ export default function DrumEditor() {
                   const hasFX = instFX[inst] && Object.values(instFX[inst]!).some(v => v !== 0);
                   return (
                     <button key={inst} onClick={() => setFxInst(inst)} style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, fontFamily: 'Manrope', cursor: 'pointer', background: isAct ? `${c}22` : 'var(--app-surface-high)', border: isAct ? `1.5px solid ${c}55` : '1.5px solid transparent', color: isAct ? c : 'var(--c-text-secondary)', position: 'relative', transition: 'all 130ms' }}>
-                      {inst.replace(/-/g, ' ')}
+                      {inst.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase())}
                       {hasFX && <span style={{ position: 'absolute', top: 3, right: 3, width: 5, height: 5, borderRadius: '50%', background: c, display: 'block' }} />}
                     </button>
                   );
@@ -2363,8 +2363,10 @@ export default function DrumEditor() {
                             setCreateFamily(fam.id);
                             setCreateVariant(fam.variations[0].kit);
                           }}
-                          style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 14px', borderRadius: 14, cursor: 'pointer', background: isActive ? `linear-gradient(135deg,${accent.from}22,${accent.to}12)` : 'var(--app-surface-high)', border: isActive ? `1.5px solid ${accent.from}55` : '1.5px solid transparent', transition: 'all 160ms' }}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isActive ? accent.from : 'var(--c-text-muted)'} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
+                          style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 14, cursor: 'pointer', background: isActive ? `linear-gradient(135deg,${accent.from}22,${accent.to}12)` : 'var(--app-surface-high)', border: isActive ? `1.5px solid ${accent.from}55` : '1.5px solid transparent', transition: 'all 160ms' }}>
+                          <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', background: 'rgba(0,0,0,0.3)', flexShrink: 0 }}>
+                            <img src={KIT_IMAGE[fam.variations[0].kit]} alt={fam.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
                           <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'Manrope,sans-serif', color: isActive ? accent.from : 'var(--c-text-secondary)', whiteSpace: 'nowrap' }}>{fam.label}</span>
                         </button>
                       );
@@ -2378,28 +2380,26 @@ export default function DrumEditor() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
                     {activeFamilyEntry.variations.map(v => {
                       const isSel = createVariant === v.kit;
+                      const kitImg = KIT_IMAGE[v.kit];
                       return (
                         <button key={v.kit} className="btn-smooth"
                           onClick={() => {
                             setCreateVariant(v.kit);
                             loadDrumSamples(v.kit);
-                            const sm = KIT_DEFAULTS[v.kit].soundMap;
-                            const kickId = sm.kick ?? 'kick-std';
-                            const hhId   = sm['hihat-closed'] ?? 'hh-c-tight';
-                            drumScheduler.previewSound(kickId, 0.82, v.kit);
-                            setTimeout(() => drumScheduler.previewSound(hhId, 0.6, v.kit), 95);
                           }}
                           style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, cursor: 'pointer', background: isSel ? `linear-gradient(135deg,${accent.from}18,${accent.to}10)` : 'var(--app-bg)', border: isSel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.12)', transition: 'all 150ms' }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isSel ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: 18, color: isSel ? '#fff' : 'var(--c-text-muted)' }}>
-                              {isSel ? 'check_circle' : 'radio_button_unchecked'}
-                            </span>
+                          <div style={{ width: 52, height: 52, borderRadius: 10, flexShrink: 0, overflow: 'hidden', background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: isSel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.08)', transition: 'all 150ms' }}>
+                            {kitImg ? (
+                              <img src={kitImg} alt={v.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <span className="material-symbols-outlined" style={{ fontSize: 22, color: 'var(--c-text-muted)' }}>music_note</span>
+                            )}
                           </div>
                           <div style={{ flex: 1, textAlign: 'left' }}>
                             <div style={{ fontSize: 13.5, fontWeight: 700, color: isSel ? accent.from : 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', transition: 'color 150ms' }}>{v.label}</div>
                             <div style={{ fontSize: 11, color: 'var(--c-text-muted)', marginTop: 1 }}>{v.desc}</div>
                           </div>
-                          <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-muted)', flexShrink: 0 }}>volume_up</span>
+                          {isSel && <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, flexShrink: 0 }}>check_circle</span>}
                         </button>
                       );
                     })}
