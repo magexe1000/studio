@@ -3,7 +3,7 @@ import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
-import { Toggle, SectionHeader, SettingRow, SegmentedControl } from '../components/SettingControls';
+import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
 
 export default function SettingsPanel() {
   const { settings, updateSettings } = useChordStore();
@@ -129,58 +129,6 @@ export default function SettingsPanel() {
           )}
         </div>
 
-        {/* ── FEEDBACK ── */}
-        <SectionHeader icon="vibration" title={t.settings.sections.feedback} />
-        <div style={cardStyle}>
-          <SettingRow label={t.settings.rows.haptic} desc={t.settings.rows.hapticDesc}>
-            <Toggle value={settings.hapticFeedback} onChange={v => updateSettings({ hapticFeedback: v })} accentFrom={acc.from} accentTo={acc.to} />
-          </SettingRow>
-        </div>
-
-        {/* ── LANGUAGE ── */}
-        <SectionHeader icon="language" title={t.settings.sections.language} />
-        <div style={cardStyle}>
-          <SettingRow label={t.settings.language.label} desc={t.settings.language.desc}>
-            <SegmentedControl<'en' | 'es'>
-              value={settings.language}
-              options={[
-                { value: 'en', label: t.settings.language.en },
-                { value: 'es', label: t.settings.language.es },
-              ]}
-              onChange={v => updateSettings({ language: v })}
-              accentFrom={acc.from}
-              accentTo={acc.to}
-            />
-          </SettingRow>
-        </div>
-
-        {/* Spacer */}
-        <div style={{ flex: 1, minHeight: '32px' }} />
-
-        {/* ── ABOUT ── */}
-        <SectionHeader icon="info" title={t.settings.sections.about} />
-        <div style={cardStyle}>
-          <div style={{ padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {[
-              { label: t.settings.about.version,       value: '1.5.0' },
-              { label: t.settings.about.designSystem,  value: 'Chordex' },
-              { label: t.settings.about.chordLibrary,  value: t.settings.about.chordLibraryValue },
-              { label: t.settings.about.storage,       value: t.settings.about.storageValue },
-            ].map(({ label, value }) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{label}</span>
-                <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ padding: '28px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '32px', height: '2px', borderRadius: '9999px', background: `linear-gradient(90deg, ${acc.from}, ${acc.to})`, marginBottom: '4px' }} />
-          <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>
-            {t.settings.about.footer}
-          </p>
-        </div>
       </div>
     </div>
   );
