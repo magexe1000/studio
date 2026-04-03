@@ -84,6 +84,42 @@ export interface DrumHit { step: number; length: number; variation?: NoteVariati
 export interface DrumMeasure { id: string; hits: Partial<Record<DrumInstrument, DrumHit[]>>; }
 
 export const GROOVE_TAGS = ['Rock', 'Trap', 'Jazz', 'Funk', 'Fill', 'Intro', 'Outro', 'Loop', 'Latin'] as const;
+
+// ── Kit Family: two-level kit browser used in Create Song modal ───────────────
+export interface KitVariation { kit: KitType; label: string; desc: string; }
+export interface KitFamilyEntry { id: string; label: string; emoji: string; variations: KitVariation[]; }
+export const KIT_FAMILY: KitFamilyEntry[] = [
+  { id: 'acoustic', label: 'Acoustic', emoji: '🥁', variations: [
+    { kit: 'ludwig',  label: 'Clean',   desc: 'Warm, natural full-kit sound'       },
+    { kit: 'studio',  label: 'Room',    desc: 'Close-mic studio recording'         },
+    { kit: 'vintage', label: 'Vintage', desc: "Open '60s resonance"               },
+    { kit: 'rock',    label: 'Punchy',  desc: 'Big attack, tight sustain'          },
+  ]},
+  { id: 'rock', label: 'Rock', emoji: '🎸', variations: [
+    { kit: 'rock',    label: 'Standard',   desc: 'Cracking snare, punchy kick'    },
+    { kit: 'ludwig',  label: 'Classic',    desc: 'Warm vintage rock tones'        },
+    { kit: 'funk',    label: 'Funk',       desc: 'Tight snappy groove kit'        },
+    { kit: 'stark',   label: 'Industrial', desc: 'Cold metallic machine sounds'   },
+  ]},
+  { id: 'jazz', label: 'Jazz', emoji: '🎷', variations: [
+    { kit: 'jazz',    label: 'Standard', desc: 'Tight brushes, dry cymbals'       },
+    { kit: 'vintage', label: 'Vintage',  desc: 'Woodsy warm open resonance'       },
+    { kit: 'cr78',    label: 'CR-78',    desc: '1978 vintage analog machine'      },
+    { kit: 'linn',    label: 'LinnDrum', desc: '1982 sample-based machine'        },
+  ]},
+  { id: 'electronic', label: 'Electronic', emoji: '🎛️', variations: [
+    { kit: 'tr808',   label: '808',     desc: 'Deep bass hip-hop classic'         },
+    { kit: 'techno',  label: 'Techno',  desc: 'Hard punching industrial rave'     },
+    { kit: 'r8',      label: 'Lo-fi',   desc: 'Warm electronic-acoustic hybrid'   },
+    { kit: 'linn',    label: 'Digital', desc: 'Crisp LinnDrum sample machine'     },
+  ]},
+  { id: 'studio', label: 'Studio', emoji: '🎚️', variations: [
+    { kit: 'studio',  label: 'Balanced', desc: 'Clean compressed studio kit'      },
+    { kit: 'r8',      label: 'Tight',    desc: 'Punchy 1989 hybrid'              },
+    { kit: 'ludwig',  label: 'Wide',     desc: 'Warm, wide natural staging'       },
+    { kit: 'funk',    label: 'Warm',     desc: 'Snappy groove machine'            },
+  ]},
+];
 export type GrooveTag = typeof GROOVE_TAGS[number] | '';
 
 export interface GrooveEntry {
@@ -186,7 +222,7 @@ interface DrumStore {
 
   drumSongs:           DrumSong[];
   saveDrumSong:        (name: string, artist: string, notes: string) => string;
-  createBlankDrumSong: (name: string, artist: string, bpm: number, notes: string) => string;
+  createBlankDrumSong: (name: string, artist: string, bpm: number, notes: string, kitType?: KitType) => string;
   loadDrumSong:        (id: string) => void;
   deleteDrumSong:      (id: string) => void;
   updateDrumSong:      (id: string, patch: Partial<Pick<DrumSong, 'name' | 'artist' | 'notes' | 'patterns' | 'activePatternId' | 'kitType'>>) => void;
@@ -383,7 +419,7 @@ export const useDrumStore = create<DrumStore>()(
         return song.id;
       },
 
-      createBlankDrumSong: (name, artist, bpm, notes) => {
+      createBlankDrumSong: (name, artist, bpm, notes, kitType) => {
         const p = defaultPattern();
         p.bpm = Math.max(40, Math.min(280, bpm));
         const song: DrumSong = {
@@ -393,7 +429,7 @@ export const useDrumStore = create<DrumStore>()(
           notes: notes.trim(),
           patterns: [p],
           activePatternId: p.id,
-          kitType: get().kitType,
+          kitType: kitType ?? get().kitType,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };

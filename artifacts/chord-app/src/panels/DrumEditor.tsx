@@ -3,7 +3,7 @@ import {
 } from 'react';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
-  useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR,
+  useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, KIT_FAMILY,
   stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS,
   type DrumInstrument, type KitType, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag,
@@ -1135,6 +1135,8 @@ export default function DrumEditor() {
   const [createArtist,   setCreateArtist]   = useState('');
   const [createBpm,      setCreateBpm]      = useState('120');
   const [createNotes,    setCreateNotes]    = useState('');
+  const [createFamily,   setCreateFamily]   = useState<string>('acoustic');
+  const [createVariant,  setCreateVariant]  = useState<KitType>('ludwig');
   const [showSaveForm,     setShowSaveForm]     = useState(false);
   const [saveName,         setSaveName]         = useState('');
   const [saveArtist,       setSaveArtist]       = useState('');
@@ -1455,14 +1457,17 @@ export default function DrumEditor() {
   const handleCreateBeat = useCallback(() => {
     if (!createName.trim()) return;
     const bpm = Math.max(40, Math.min(280, parseInt(createBpm, 10) || 120));
-    const id = createBlankDrumSong(createName, createArtist, bpm, createNotes);
+    const id = createBlankDrumSong(createName, createArtist, bpm, createNotes, createVariant);
     loadDrumSong(id);
+    setKitType(createVariant, KIT_DEFAULTS[createVariant].soundMap);
+    loadDrumSamples(createVariant);
     setActiveDrumSongId(id);
     setInEditor(true);
     setActiveTab('songs');
     setShowCreateForm(false);
     setCreateName(''); setCreateArtist(''); setCreateBpm('120'); setCreateNotes('');
-  }, [createName, createArtist, createBpm, createNotes, createBlankDrumSong, loadDrumSong]);
+    setCreateFamily('acoustic'); setCreateVariant('ludwig');
+  }, [createName, createArtist, createBpm, createNotes, createVariant, createBlankDrumSong, loadDrumSong, setKitType]);
 
   // ── Songs ─────────────────────────────────────────────────────────────────
   const handleOpenSaveForm = useCallback(() => {
@@ -1499,10 +1504,14 @@ export default function DrumEditor() {
   const handleLoadSong = useCallback((song: DrumSong) => {
     if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
     loadDrumSong(song.id);
+    if (song.kitType) {
+      setKitType(song.kitType, KIT_DEFAULTS[song.kitType].soundMap);
+      loadDrumSamples(song.kitType);
+    }
     setActiveDrumSongId(song.id);
     setInEditor(true);
     setActiveTab('songs');
-  }, [loadDrumSong]);
+  }, [loadDrumSong, setKitType]);
 
   const handleStartEdit = useCallback((song: DrumSong) => {
     setEditingSong(song);
@@ -2222,45 +2231,111 @@ export default function DrumEditor() {
       )}
 
       {/* ── Create Beat modal ────────────────────────────────────────────── */}
-      {showCreateForm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
-          <div onClick={() => setShowCreateForm(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
-              <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
-            </div>
-            <div style={{ padding: '4px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 20, margin: 0 }}>New Beat</p>
-              <div><label style={labelSt}>Beat Title</label><input value={createName} onChange={e => setCreateName(e.target.value)} autoFocus placeholder="e.g. Funky Groove" style={inputSt} onKeyDown={e => { if (e.key === 'Enter' && createName.trim()) handleCreateBeat(); }} /></div>
-              <div><label style={labelSt}>Artist</label><input value={createArtist} onChange={e => setCreateArtist(e.target.value)} placeholder="e.g. The Beatmakers" style={inputSt} /></div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={labelSt}>BPM</label>
-                  <input type="number" min={40} max={280} value={createBpm} onChange={e => setCreateBpm(e.target.value)} style={inputSt} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: 42 }}>
-                    {([80, 100, 120, 140] as const).map(b => (
-                      <button key={b} onClick={() => setCreateBpm(String(b))} className="btn-smooth"
-                        style={{ flex: 1, height: 34, borderRadius: 8, background: createBpm === String(b) ? `${accent.from}22` : 'var(--app-surface-high)', border: `1px solid ${createBpm === String(b) ? accent.from + '44' : 'rgba(72,72,72,0.12)'}`, cursor: 'pointer', color: createBpm === String(b) ? accent.from : 'var(--c-text-muted)', fontSize: 10, fontWeight: 700 }}>
-                        {b}
-                      </button>
-                    ))}
+      {showCreateForm && (() => {
+        const activeFamilyEntry = KIT_FAMILY.find(f => f.id === createFamily) ?? KIT_FAMILY[0];
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+            <div onClick={() => setShowCreateForm(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both', maxHeight: '92vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
+              </div>
+              <div style={{ padding: '4px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 20, margin: 0 }}>New Beat</p>
+
+                {/* ── Beat info ── */}
+                <div><label style={labelSt}>Beat Title</label><input value={createName} onChange={e => setCreateName(e.target.value)} autoFocus placeholder="e.g. Funky Groove" style={inputSt} onKeyDown={e => { if (e.key === 'Enter' && createName.trim()) handleCreateBeat(); }} /></div>
+                <div><label style={labelSt}>Artist</label><input value={createArtist} onChange={e => setCreateArtist(e.target.value)} placeholder="e.g. The Beatmakers" style={inputSt} /></div>
+
+                {/* ── BPM ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={labelSt}>BPM</label>
+                    <input type="number" min={40} max={280} value={createBpm} onChange={e => setCreateBpm(e.target.value)} style={inputSt} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: 42 }}>
+                      {([80, 100, 120, 140] as const).map(b => (
+                        <button key={b} onClick={() => setCreateBpm(String(b))} className="btn-smooth"
+                          style={{ flex: 1, height: 34, borderRadius: 8, background: createBpm === String(b) ? `${accent.from}22` : 'var(--app-surface-high)', border: `1px solid ${createBpm === String(b) ? accent.from + '44' : 'rgba(72,72,72,0.12)'}`, cursor: 'pointer', color: createBpm === String(b) ? accent.from : 'var(--c-text-muted)', fontSize: 10, fontWeight: 700 }}>
+                          {b}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div><label style={labelSt}>Notes</label><textarea value={createNotes} onChange={e => setCreateNotes(e.target.value)} rows={2} placeholder="Optional notes…" style={{ ...inputSt, resize: 'none', lineHeight: 1.5 } as React.CSSProperties} /></div>
-              <div style={{ display: 'flex', gap: 10, paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-                <button onClick={() => setShowCreateForm(false)} className="btn-smooth" style={{ flex: 1, padding: 14, borderRadius: 9999, background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, border: 'none', cursor: 'pointer' }}>Cancel</button>
-                <button onClick={handleCreateBeat} className="btn-smooth"
-                  style={{ flex: 2, padding: 14, borderRadius: 9999, background: createName.trim() ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(72,72,72,0.2)', color: createName.trim() ? '#fff' : '#acabaa', fontFamily: 'Manrope', fontWeight: 800, border: 'none', cursor: createName.trim() ? 'pointer' : 'default', boxShadow: createName.trim() ? `0 4px 20px ${accent.to}40` : 'none', transition: 'all 200ms' }}>
-                  Create Beat
-                </button>
+
+                {/* ── Drum Kit ── */}
+                <div>
+                  <label style={labelSt}>Drum Kit</label>
+                  <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 8 }}>
+                    {KIT_FAMILY.map(fam => {
+                      const isActive = fam.id === createFamily;
+                      return (
+                        <button key={fam.id} className="btn-smooth"
+                          onClick={() => {
+                            setCreateFamily(fam.id);
+                            setCreateVariant(fam.variations[0].kit);
+                          }}
+                          style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 14px', borderRadius: 14, cursor: 'pointer', background: isActive ? `linear-gradient(135deg,${accent.from}22,${accent.to}12)` : 'var(--app-surface-high)', border: isActive ? `1.5px solid ${accent.from}55` : '1.5px solid transparent', transition: 'all 160ms' }}>
+                          <span style={{ fontSize: 22 }}>{fam.emoji}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'Manrope,sans-serif', color: isActive ? accent.from : 'var(--c-text-secondary)', whiteSpace: 'nowrap' }}>{fam.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ── Variation chips ── */}
+                <div>
+                  <label style={labelSt}>Sound</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                    {activeFamilyEntry.variations.map(v => {
+                      const isSel = createVariant === v.kit;
+                      return (
+                        <button key={v.kit} className="btn-smooth"
+                          onClick={() => {
+                            setCreateVariant(v.kit);
+                            loadDrumSamples(v.kit);
+                            const sm = KIT_DEFAULTS[v.kit].soundMap;
+                            const kickId = sm.kick ?? 'kick-std';
+                            const hhId   = sm['hihat-closed'] ?? 'hh-c-tight';
+                            drumScheduler.previewSound(kickId, 0.82, v.kit);
+                            setTimeout(() => drumScheduler.previewSound(hhId, 0.6, v.kit), 95);
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, cursor: 'pointer', background: isSel ? `linear-gradient(135deg,${accent.from}18,${accent.to}10)` : 'var(--app-bg)', border: isSel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.12)', transition: 'all 150ms' }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isSel ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 150ms' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 18, color: isSel ? '#fff' : 'var(--c-text-muted)' }}>
+                              {isSel ? 'check_circle' : 'radio_button_unchecked'}
+                            </span>
+                          </div>
+                          <div style={{ flex: 1, textAlign: 'left' }}>
+                            <div style={{ fontSize: 13.5, fontWeight: 700, color: isSel ? accent.from : 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', transition: 'color 150ms' }}>{v.label}</div>
+                            <div style={{ fontSize: 11, color: 'var(--c-text-muted)', marginTop: 1 }}>{v.desc}</div>
+                          </div>
+                          <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-muted)', flexShrink: 0 }}>volume_up</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ── Notes (collapsed by default feel) ── */}
+                <div><label style={labelSt}>Notes</label><textarea value={createNotes} onChange={e => setCreateNotes(e.target.value)} rows={2} placeholder="Optional notes…" style={{ ...inputSt, resize: 'none', lineHeight: 1.5 } as React.CSSProperties} /></div>
+
+                {/* ── Actions ── */}
+                <div style={{ display: 'flex', gap: 10, paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
+                  <button onClick={() => setShowCreateForm(false)} className="btn-smooth" style={{ flex: 1, padding: 14, borderRadius: 9999, background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, border: 'none', cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleCreateBeat} className="btn-smooth"
+                    style={{ flex: 2, padding: 14, borderRadius: 9999, background: createName.trim() ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(72,72,72,0.2)', color: createName.trim() ? '#fff' : '#acabaa', fontFamily: 'Manrope', fontWeight: 800, border: 'none', cursor: createName.trim() ? 'pointer' : 'default', boxShadow: createName.trim() ? `0 4px 20px ${accent.to}40` : 'none', transition: 'all 200ms' }}>
+                    Create Beat
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );
