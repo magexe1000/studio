@@ -114,36 +114,42 @@ export function soundVariantLabel(inst: DrumInstrument, id: string): string {
 // roomMs: early-reflection delay in ms (0 = dry).  Used for jazz & vintage.
 interface KitInstCfg { rate: number; gain: number; roomMs?: number }
 const KIT_ACOUSTIC_CFG: Partial<Record<KitType, Partial<Record<DrumInstrument, KitInstCfg>>>> = {
-  // Jazz — intimate small-room kit: soft, slightly lower-pitched, natural room bounce
-  jazz: {
-    kick:           { rate: 0.87, gain: 0.78, roomMs: 16 },
-    snare:          { rate: 0.82, gain: 0.68, roomMs: 12 },
-    'hihat-closed': { rate: 0.88, gain: 0.55, roomMs: 0  },
-    'hihat-open':   { rate: 0.88, gain: 0.60, roomMs: 0  },
-    'hihat-foot':   { rate: 0.88, gain: 0.50, roomMs: 0  },
-    'tom-high':     { rate: 0.89, gain: 0.78, roomMs: 14 },
-    'tom-mid':      { rate: 0.88, gain: 0.78, roomMs: 14 },
+  // Ludwig Classic — natural/warm. Toms are distinct Pearl recordings; counteract BASE_RATE
+  // to play each at its native pitch (BASE_RATE: tom-high×1.35, tom-floor×0.80).
+  ludwig: {
+    'tom-high':     { rate: 0.74, gain: 1.00 },   // 1.35 × 0.74 ≈ 1.00 — native pitch
+    'tom-floor':    { rate: 1.25, gain: 1.00 },   // 0.80 × 1.25 = 1.00 — native pitch
   },
-  // Rock — punchy, cracking attack: pitched up, extra gain, dry
+  // Jazz — intimate small-room: slightly lower body, soft room bloom on toms/snare
+  jazz: {
+    kick:           { rate: 0.87, gain: 0.80, roomMs: 18 },
+    snare:          { rate: 0.90, gain: 0.70, roomMs: 14 },
+    'hihat-closed': { rate: 0.96, gain: 0.56 },
+    'hihat-open':   { rate: 0.96, gain: 0.60 },
+    'hihat-foot':   { rate: 0.96, gain: 0.50 },
+    'tom-high':     { rate: 0.63, gain: 0.80, roomMs: 16 }, // 1.35×0.63≈0.85 — low jazz tom
+    'tom-mid':      { rate: 0.90, gain: 0.80, roomMs: 14 },
+  },
+  // Rock — punchy, cracking attack; toms at native-pitch (Pearl already tuned distinctly)
   rock: {
-    kick:           { rate: 1.10, gain: 1.22 },
-    snare:          { rate: 1.16, gain: 1.28 },
-    'hihat-closed': { rate: 1.02, gain: 1.05 },
+    kick:           { rate: 1.06, gain: 1.22 },
+    snare:          { rate: 1.08, gain: 1.25 },
+    'hihat-closed': { rate: 1.02, gain: 1.04 },
     'hihat-open':   { rate: 1.00, gain: 1.00 },
     'hihat-foot':   { rate: 1.02, gain: 1.02 },
-    'tom-high':     { rate: 1.14, gain: 1.15 },
-    'tom-mid':      { rate: 1.08, gain: 1.12 },
-    'tom-floor':    { rate: 1.03, gain: 1.10 },
+    'tom-high':     { rate: 0.74, gain: 1.12 },   // 1.35×0.74≈1.00 — native, extra punch
+    'tom-mid':      { rate: 1.05, gain: 1.10 },
+    'tom-floor':    { rate: 1.19, gain: 1.12 },   // 0.80×1.19≈0.95 — deep floor tom
   },
-  // Vintage '60s — boomy, open, warm: pitched well down, early room reflections
+  // Vintage '60s — boomy/warm; all toms lowered & given generous early room decay
   vintage: {
-    kick:           { rate: 0.76, gain: 0.90, roomMs: 22 },
-    snare:          { rate: 0.78, gain: 0.82, roomMs: 18 },
-    'hihat-closed': { rate: 0.84, gain: 0.72, roomMs: 0  },
-    'hihat-open':   { rate: 0.84, gain: 0.78, roomMs: 0  },
-    'tom-high':     { rate: 0.83, gain: 0.88, roomMs: 18 },
-    'tom-mid':      { rate: 0.82, gain: 0.88, roomMs: 18 },
-    'tom-floor':    { rate: 0.81, gain: 0.88, roomMs: 18 },
+    kick:           { rate: 0.76, gain: 0.90, roomMs: 24 },
+    snare:          { rate: 0.80, gain: 0.84, roomMs: 20 },
+    'hihat-closed': { rate: 0.90, gain: 0.72 },
+    'hihat-open':   { rate: 0.90, gain: 0.78 },
+    'tom-high':     { rate: 0.59, gain: 0.90, roomMs: 20 }, // 1.35×0.59≈0.80 — warm
+    'tom-mid':      { rate: 0.84, gain: 0.90, roomMs: 20 },
+    'tom-floor':    { rate: 1.06, gain: 0.90, roomMs: 20 }, // 0.80×1.06≈0.85 — deep boom
   },
 };
 
@@ -209,142 +215,158 @@ function makeNoise(ctx: AudioContext, dur: number): AudioBuffer {
 }
 
 // ── Kit-specific sample URLs ──────────────────────────────────────────────────
-// All URLs served with Access-Control-Allow-Origin: * via raw.githubusercontent.com
-const MIDI = 'https://raw.githubusercontent.com/cwilso/MIDIDrums/master/sounds/drum-samples/';
+// Primary: oramics.github.io/sampled — GitHub Pages, CORS *, professionally recorded
+// Fallback: cwilso MIDIDrums + Tone.js CDN
+const PEARL  = 'https://oramics.github.io/sampled/DRUMS/pearl-master-studio/samples/'; // CC-BY-3.0
+const LM2    = 'https://oramics.github.io/sampled/DM/LM-2/samples/';                   // Public Domain
+const CR78O  = 'https://oramics.github.io/sampled/DM/CR-78/samples/';                  // Public Domain
+const TR505  = 'https://oramics.github.io/sampled/DM/TR-505/samples/';                 // Public Domain
+const TR909  = 'https://oramics.github.io/sampled/DM/TR-909/Detroit/samples/';         // free
+const MIDI   = 'https://raw.githubusercontent.com/cwilso/MIDIDrums/master/sounds/drum-samples/';
 const TONEJS = 'https://tonejs.github.io/audio/drum-samples/';
 
-// Each kit maps to completely different real audio samples for distinct character.
+// Each kit maps to real recorded samples; first URL is primary, rest are fallbacks.
 const KIT_SAMPLE_URLS: Record<KitType, Partial<Record<DrumInstrument, string[]>>> = {
-  // ── Acoustic ────────────────────────────────────────────────────────────────
-  // Ludwig Classic — warm full acoustic-kit
+  // ── Acoustic — Pearl Master Studio (CC-BY-3.0, real Pearl drums recorded in studio) ──
+  // Ludwig Classic — warm, natural full kit
   ludwig: {
-    kick:           [`${MIDI}acoustic-kit/kick.wav`],
-    snare:          [`${MIDI}acoustic-kit/snare.wav`],
-    'hihat-closed': [`${MIDI}acoustic-kit/hihat.wav`],
-    'hihat-open':   [`${MIDI}acoustic-kit/hihat.wav`],
-    'hihat-foot':   [`${MIDI}acoustic-kit/hihat.wav`],
-    'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`],
-    'tom-mid':      [`${MIDI}acoustic-kit/tom2.wav`],
-    'tom-floor':    [`${MIDI}acoustic-kit/tom3.wav`],
-    crash:          [`${TONEJS}CR78/crash.mp3`],
-    ride:           [`${TONEJS}CR78/ride.mp3`],
+    kick:           [`${PEARL}kick-01.wav`,            `${MIDI}acoustic-kit/kick.wav`],
+    snare:          [`${PEARL}snare-01.wav`,           `${MIDI}acoustic-kit/snare.wav`],
+    'hihat-closed': [`${PEARL}hihat-closed.wav`,       `${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-open':   [`${PEARL}hihat-open.wav`,         `${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-foot':   [`${PEARL}hihat-closed.wav`,       `${MIDI}acoustic-kit/hihat.wav`],
+    'tom-high':     [`${PEARL}tom-01.wav`,             `${MIDI}acoustic-kit/tom1.wav`],
+    'tom-mid':      [`${PEARL}tom-02.wav`,             `${MIDI}acoustic-kit/tom2.wav`],
+    'tom-floor':    [`${PEARL}tom-03.wav`,             `${MIDI}acoustic-kit/tom3.wav`],
+    crash:          [`${PEARL}crash-01.wav`,           `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${PEARL}ride-01.wav`,            `${TONEJS}CR78/ride.mp3`],
   },
-  // Jazz Kit — all acoustic; softer pitch tuning for small intimate jazz kit feel
+  // Jazz Kit — same Pearl kit, softer snare variation + ride cymbal 2
   jazz: {
-    kick:           [`${MIDI}acoustic-kit/kick.wav`],
-    snare:          [`${MIDI}acoustic-kit/snare.wav`],
-    'hihat-closed': [`${MIDI}acoustic-kit/hihat.wav`],
-    'hihat-open':   [`${MIDI}acoustic-kit/hihat.wav`],
-    'hihat-foot':   [`${MIDI}acoustic-kit/hihat.wav`],
-    crash:          [`${TONEJS}CR78/crash.mp3`],
-    ride:           [`${TONEJS}CR78/ride.mp3`],
-    'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`],
-    'tom-mid':      [`${MIDI}acoustic-kit/tom2.wav`],
+    kick:           [`${PEARL}kick-01.wav`,            `${MIDI}acoustic-kit/kick.wav`],
+    snare:          [`${PEARL}snare-02.wav`,           `${MIDI}acoustic-kit/snare.wav`],
+    'hihat-closed': [`${PEARL}hihat-closed.wav`,       `${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-open':   [`${PEARL}hihat-open.wav`,         `${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-foot':   [`${PEARL}hihat-closed.wav`,       `${MIDI}acoustic-kit/hihat.wav`],
+    'tom-high':     [`${PEARL}tom-01.wav`,             `${MIDI}acoustic-kit/tom1.wav`],
+    'tom-mid':      [`${PEARL}tom-02.wav`,             `${MIDI}acoustic-kit/tom2.wav`],
+    crash:          [`${PEARL}crash-02.wav`,           `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${PEARL}ride-02.wav`,            `${TONEJS}CR78/ride.mp3`],
   },
-  // Rock Kit — pure acoustic samples, pitch-shifted up for punch and crack
+  // Rock Kit — Pearl kit, cracking snare variation, both crash cymbals
   rock: {
-    kick:           [`${MIDI}acoustic-kit/kick.wav`],
-    snare:          [`${MIDI}acoustic-kit/snare.wav`],
-    'hihat-closed': [`${MIDI}acoustic-kit/hihat.wav`],
-    'hihat-open':   [`${MIDI}acoustic-kit/hihat.wav`],
-    'hihat-foot':   [`${MIDI}acoustic-kit/hihat.wav`],
-    'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`],
-    'tom-mid':      [`${MIDI}acoustic-kit/tom2.wav`],
-    'tom-floor':    [`${MIDI}acoustic-kit/tom3.wav`],
-    crash:          [`${TONEJS}CR78/crash.mp3`],
-    ride:           [`${TONEJS}CR78/ride.mp3`],
+    kick:           [`${PEARL}kick-01.wav`,            `${MIDI}acoustic-kit/kick.wav`],
+    snare:          [`${PEARL}snare-01.wav`,           `${MIDI}acoustic-kit/snare.wav`],
+    'hihat-closed': [`${PEARL}hihat-closed.wav`,       `${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-open':   [`${PEARL}hihat-open.wav`,         `${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-foot':   [`${PEARL}hihat-closed.wav`,       `${MIDI}acoustic-kit/hihat.wav`],
+    'tom-high':     [`${PEARL}tom-01.wav`,             `${MIDI}acoustic-kit/tom1.wav`],
+    'tom-mid':      [`${PEARL}tom-02.wav`,             `${MIDI}acoustic-kit/tom2.wav`],
+    'tom-floor':    [`${PEARL}tom-03.wav`,             `${MIDI}acoustic-kit/tom3.wav`],
+    crash:          [`${PEARL}crash-01.wav`,           `${PEARL}crash-02.wav`,        `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${PEARL}ride-01.wav`,            `${TONEJS}CR78/ride.mp3`],
   },
-  // Vintage '60s — pure acoustic samples, pitched down for boomy warm open character
+  // Vintage '60s — Pearl kit, third snare variation (more open/roomy), pitched down in DSP
   vintage: {
-    kick:           [`${MIDI}acoustic-kit/kick.wav`],
-    snare:          [`${MIDI}acoustic-kit/snare.wav`],
-    'hihat-closed': [`${MIDI}acoustic-kit/hihat.wav`],
-    'hihat-open':   [`${MIDI}acoustic-kit/hihat.wav`],
-    crash:          [`${TONEJS}CR78/crash.mp3`],
-    'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`],
-    'tom-mid':      [`${MIDI}acoustic-kit/tom2.wav`],
-    'tom-floor':    [`${MIDI}acoustic-kit/tom3.wav`],
+    kick:           [`${PEARL}kick-01.wav`,            `${MIDI}acoustic-kit/kick.wav`],
+    snare:          [`${PEARL}snare-03.wav`,           `${MIDI}acoustic-kit/snare.wav`],
+    'hihat-closed': [`${PEARL}hihat-closed.wav`,       `${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-open':   [`${PEARL}hihat-open.wav`,         `${MIDI}acoustic-kit/hihat.wav`],
+    'tom-high':     [`${PEARL}tom-01.wav`,             `${MIDI}acoustic-kit/tom1.wav`],
+    'tom-mid':      [`${PEARL}tom-02.wav`,             `${MIDI}acoustic-kit/tom2.wav`],
+    'tom-floor':    [`${PEARL}tom-03.wav`,             `${MIDI}acoustic-kit/tom3.wav`],
+    crash:          [`${PEARL}crash-02.wav`,           `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${PEARL}ride-02.wav`,            `${TONEJS}CR78/ride.mp3`],
   },
-  // ── Studio ──────────────────────────────────────────────────────────────────
-  // Studio A — LINN hihat + R8 drums (clean processed)
+  // ── Studio ─────────────────────────────────────────────────────────────────
+  // Studio A — LM-2 (LinnDrum), the iconic studio machine of the 80s
   studio: {
-    kick:           [`${MIDI}R8/kick.wav`],
-    snare:          [`${MIDI}R8/snare.wav`],
-    'hihat-closed': [`${MIDI}LINN/hihat.wav`],
-    'hihat-open':   [`${MIDI}LINN/hihat.wav`],
-    crash:          [`${TONEJS}CR78/crash.mp3`],
-    ride:           [`${TONEJS}CR78/ride.mp3`],
-    'tom-high':     [`${MIDI}R8/tom1.wav`],
-    'tom-mid':      [`${MIDI}R8/tom2.wav`],
-    'tom-floor':    [`${MIDI}R8/tom3.wav`],
+    kick:           [`${LM2}kick.wav`,                 `${MIDI}R8/kick.wav`],
+    snare:          [`${LM2}snare-h.wav`,              `${MIDI}R8/snare.wav`],
+    'hihat-closed': [`${LM2}hihat-closed.wav`,         `${MIDI}LINN/hihat.wav`],
+    'hihat-open':   [`${LM2}hihat-open.wav`,           `${MIDI}LINN/hihat.wav`],
+    crash:          [`${LM2}crash.wav`,                `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${LM2}ride.wav`,                 `${TONEJS}CR78/ride.mp3`],
+    'tom-high':     [`${LM2}conga-h.wav`,              `${MIDI}R8/tom1.wav`],
+    'tom-mid':      [`${LM2}conga-m.wav`,              `${MIDI}R8/tom2.wav`],
+    'tom-floor':    [`${LM2}conga-l.wav`,              `${MIDI}R8/tom3.wav`],
   },
-  // Roland R8 — exclusively R8 samples
+  // Roland R8 — TR-505 (clean digital hits, same late-80s Roland era as R8)
   r8: {
-    kick:           [`${MIDI}R8/kick.wav`],
-    snare:          [`${MIDI}R8/snare.wav`],
-    'hihat-closed': [`${MIDI}R8/hihat.wav`],
-    'hihat-open':   [`${MIDI}LINN/hihat.wav`],
-    crash:          [`${TONEJS}CR78/crash.mp3`],
-    ride:           [`${TONEJS}CR78/ride.mp3`],
-    'tom-high':     [`${MIDI}R8/tom1.wav`],
-    'tom-mid':      [`${MIDI}R8/tom2.wav`],
-    'tom-floor':    [`${MIDI}R8/tom3.wav`],
+    kick:           [`${TR505}tr505-kick.wav`,         `${MIDI}R8/kick.wav`],
+    snare:          [`${TR505}tr505-snare.wav`,        `${MIDI}R8/snare.wav`],
+    'hihat-closed': [`${TR505}tr505-hihat-closed.wav`, `${MIDI}R8/hihat.wav`],
+    'hihat-open':   [`${TR505}tr505-hihat-open.wav`,   `${MIDI}LINN/hihat.wav`],
+    crash:          [`${TR505}tr505-crash.wav`,        `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${TR505}tr505-ride.wav`,         `${TONEJS}CR78/ride.mp3`],
+    'tom-high':     [`${TR505}tr505-tom-h.wav`,        `${MIDI}R8/tom1.wav`],
+    'tom-mid':      [`${TR505}tr505-tom-m.wav`,        `${MIDI}R8/tom2.wav`],
+    'tom-floor':    [`${TR505}tr505-tom-l.wav`,        `${MIDI}R8/tom3.wav`],
   },
-  // LinnDrum — acoustic-kit drums + LINN hihat (1982 sample machine feel)
+  // LinnDrum — authentic LM-2 (Public Domain, original 1982 hardware samples)
   linn: {
-    kick:           [`${MIDI}acoustic-kit/kick.wav`],
-    snare:          [`${MIDI}acoustic-kit/snare.wav`],
-    'hihat-closed': [`${MIDI}LINN/hihat.wav`],
-    'hihat-open':   [`${MIDI}LINN/hihat.wav`],
-    crash:          [`${TONEJS}CR78/crash.mp3`],
-    ride:           [`${TONEJS}CR78/ride.mp3`],
-    'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`],
+    kick:           [`${LM2}kick.wav`,                 `${LM2}kick-alt.wav`,          `${MIDI}acoustic-kit/kick.wav`],
+    snare:          [`${LM2}snare-h.wav`,              `${MIDI}acoustic-kit/snare.wav`],
+    'hihat-closed': [`${LM2}hihat-closed-short.wav`,   `${MIDI}LINN/hihat.wav`],
+    'hihat-open':   [`${LM2}hihat-open.wav`,           `${MIDI}LINN/hihat.wav`],
+    crash:          [`${LM2}crash.wav`,                `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${LM2}ride.wav`,                 `${TONEJS}CR78/ride.mp3`],
+    'tom-high':     [`${LM2}conga-hh.wav`,             `${MIDI}acoustic-kit/tom1.wav`],
   },
-  // Funk Kit — Techno kick + R8 snare + LINN hihats (tight, snappy)
+  // Funk Kit — LM-2 (the LinnDrum defined 80s funk; Prince, Michael Jackson, etc.)
   funk: {
-    kick:           [`${MIDI}Techno/kick.wav`,        `${MIDI}R8/kick.wav`],
-    snare:          [`${MIDI}R8/snare.wav`,           `${MIDI}acoustic-kit/snare.wav`],
-    'hihat-closed': [`${MIDI}LINN/hihat.wav`],
-    'hihat-open':   [`${MIDI}LINN/hihat.wav`],
-    'hihat-foot':   [`${MIDI}LINN/hihat.wav`],
-    crash:          [`${TONEJS}CR78/crash.mp3`],
-    ride:           [`${TONEJS}CR78/ride.mp3`],
-    'tom-high':     [`${MIDI}R8/tom1.wav`],
+    kick:           [`${LM2}kick.wav`,                 `${LM2}kick-alt.wav`,          `${MIDI}Techno/kick.wav`],
+    snare:          [`${LM2}snare-m.wav`,              `${LM2}snare-h.wav`,           `${MIDI}R8/snare.wav`],
+    'hihat-closed': [`${LM2}hihat-closed-short.wav`,   `${MIDI}LINN/hihat.wav`],
+    'hihat-open':   [`${LM2}hihat-open.wav`,           `${MIDI}LINN/hihat.wav`],
+    'hihat-foot':   [`${LM2}hihat-closed.wav`,         `${MIDI}LINN/hihat.wav`],
+    crash:          [`${LM2}crash.wav`,                `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${LM2}ride.wav`,                 `${TONEJS}CR78/ride.mp3`],
+    'tom-high':     [`${LM2}conga-h.wav`,              `${MIDI}R8/tom1.wav`],
   },
-  // ── Electric ────────────────────────────────────────────────────────────────
-  // Roland CR-78 — 1978 ToneJS CR78 samples exclusively
+  // ── Electric ───────────────────────────────────────────────────────────────
+  // Roland CR-78 — oramics authentic samples (Public Domain, 1978 analog rhythm machine)
   cr78: {
-    kick:           [`${TONEJS}CR78/kick.mp3`],
-    snare:          [`${TONEJS}CR78/snare.mp3`],
-    'hihat-closed': [`${TONEJS}CR78/hihat.mp3`],
-    crash:          [`${TONEJS}CR78/crash.mp3`],
-    'tom-high':     [`${TONEJS}CR78/highTom.mp3`],
+    kick:           [`${CR78O}kick.wav`,               `${TONEJS}CR78/kick.mp3`],
+    snare:          [`${CR78O}snare.wav`,              `${TONEJS}CR78/snare.mp3`],
+    'hihat-closed': [`${CR78O}hihat.wav`,              `${TONEJS}CR78/hihat.mp3`],
+    'hihat-open':   [`${CR78O}hihat-accent.wav`,       `${TONEJS}CR78/hihat.mp3`],
+    crash:          [`${CR78O}cymbal.wav`,             `${TONEJS}CR78/crash.mp3`],
+    'tom-high':     [`${CR78O}bongo-h.wav`,            `${TONEJS}CR78/highTom.mp3`],
+    'tom-mid':      [`${CR78O}bongo-l.wav`,            `${TONEJS}CR78/highTom.mp3`],
   },
-  // Roland TR-808 — 4OP-FM synthesis samples exclusively
+  // Roland TR-808 — authentic 4OP-FM samples (unique sub-bass boom, can't substitute)
   tr808: {
     kick:           [`${MIDI}4OP-FM/kick.wav`],
     snare:          [`${MIDI}4OP-FM/snare.wav`],
-    'hihat-closed': [`${MIDI}4OP-FM/hihat.wav`],
-    'hihat-open':   [`${MIDI}4OP-FM/hihat.wav`],
-    crash:          [`${MIDI}4OP-FM/tom3.wav`],
+    'hihat-closed': [`${TR505}tr505-hihat-closed.wav`, `${MIDI}4OP-FM/hihat.wav`],
+    'hihat-open':   [`${TR505}tr505-hihat-open.wav`,   `${MIDI}4OP-FM/hihat.wav`],
+    crash:          [`${TR505}tr505-crash.wav`,        `${MIDI}4OP-FM/tom3.wav`],
     'tom-high':     [`${MIDI}4OP-FM/tom1.wav`],
   },
-  // Techno — Techno samples + Stark hihat
+  // Techno — TR-505 (Public Domain Roland 505, the workhorse of 90s techno/house)
   techno: {
-    kick:           [`${MIDI}Techno/kick.wav`],
-    snare:          [`${MIDI}Techno/snare.wav`],
-    'hihat-closed': [`${MIDI}Techno/hihat.wav`],
-    'hihat-foot':   [`${MIDI}Stark/hihat.wav`],
-    crash:          [`${MIDI}Stark/tom3.wav`],
-    'tom-high':     [`${MIDI}Techno/tom1.wav`],
+    kick:           [`${TR505}tr505-kick.wav`,         `${MIDI}Techno/kick.wav`],
+    snare:          [`${TR505}tr505-snare.wav`,        `${MIDI}Techno/snare.wav`],
+    'hihat-closed': [`${TR505}tr505-hihat-closed.wav`, `${MIDI}Techno/hihat.wav`],
+    'hihat-open':   [`${TR505}tr505-hihat-open.wav`,   `${MIDI}Stark/hihat.wav`],
+    'hihat-foot':   [`${TR505}tr505-hihat-closed.wav`, `${MIDI}Stark/hihat.wav`],
+    crash:          [`${TR505}tr505-crash.wav`,        `${MIDI}Stark/tom3.wav`],
+    ride:           [`${TR505}tr505-ride.wav`,         `${TONEJS}CR78/ride.mp3`],
+    'tom-high':     [`${TR505}tr505-tom-h.wav`,        `${MIDI}Techno/tom1.wav`],
+    'tom-mid':      [`${TR505}tr505-tom-m.wav`],
+    'tom-floor':    [`${TR505}tr505-tom-l.wav`],
   },
-  // Stark Industrial — Stark + 4OP-FM (cold, metallic)
+  // Stark Industrial — TR-909 Detroit + cwilso Stark (warm recorded 909 with metallic edge)
   stark: {
-    kick:           [`${MIDI}4OP-FM/kick.wav`,        `${MIDI}Stark/tom3.wav`],
-    snare:          [`${MIDI}Techno/snare.wav`,       `${MIDI}4OP-FM/snare.wav`],
-    'hihat-closed': [`${MIDI}Stark/hihat.wav`],
-    'hihat-open':   [`${MIDI}Stark/hihat.wav`],
-    crash:          [`${MIDI}Stark/tom3.wav`,         `${MIDI}4OP-FM/tom3.wav`],
+    kick:           [`${TR909}kick.wav`,               `${MIDI}4OP-FM/kick.wav`,      `${MIDI}Stark/tom3.wav`],
+    snare:          [`${TR909}snare.wav`,              `${MIDI}Techno/snare.wav`,     `${MIDI}4OP-FM/snare.wav`],
+    'hihat-closed': [`${TR909}hihat-closed.wav`,       `${MIDI}Stark/hihat.wav`],
+    'hihat-open':   [`${TR909}hihat-open-1.wav`,       `${MIDI}Stark/hihat.wav`],
+    crash:          [`${TR909}cymbal.wav`,             `${MIDI}Stark/tom3.wav`,       `${MIDI}4OP-FM/tom3.wav`],
+    ride:           [`${TR909}ride.wav`,               `${TONEJS}CR78/ride.mp3`],
+    'tom-high':     [`${TR909}tom-h.wav`,              `${MIDI}4OP-FM/tom1.wav`],
+    'tom-floor':    [`${TR909}tom-l.wav`,              `${MIDI}4OP-FM/tom3.wav`],
   },
 };
 
