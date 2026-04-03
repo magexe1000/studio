@@ -78,10 +78,10 @@ const KIT_DESC: Record<KitType, string> = {
 };
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 const KIT_IMAGE: Record<KitType, string> = {
-  ludwig: `${BASE}/kit-ludwig.svg`,
-  jazz:   `${BASE}/kit-jazz-kit.svg`,
-  rmm:    `${BASE}/kit-rmm.svg`,
-  chrome: `${BASE}/kit-chrome.svg`,
+  ludwig: `${BASE}/kit-warm.png`,
+  jazz:   `${BASE}/kit-soft.png`,
+  rmm:    `${BASE}/kit-punchy.png`,
+  chrome: `${BASE}/kit-bright.png`,
   rock:   `${BASE}/kit-rock.webp`,
   vintage:`${BASE}/kit-vintage.webp`,
   studio: `${BASE}/kit-studio.webp`,
@@ -1690,8 +1690,12 @@ export default function DrumEditor() {
                       ) : (
                         <div>
                           <button onClick={() => handleLoadSong(song)} style={{ width: '100%', textAlign: 'left', padding: '16px', display: 'flex', alignItems: 'center', gap: 14, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                            <div style={{ width: 48, height: 48, borderRadius: 12, background: `${accent.to}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accent.from} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
+                            <div style={{ width: 52, height: 52, borderRadius: 12, background: 'rgba(0,0,0,0.35)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${accent.from}22` }}>
+                              {song.kitType && KIT_IMAGE[song.kitType] ? (
+                                <img src={KIT_IMAGE[song.kitType]} alt={kitLabel} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accent.from} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
+                              )}
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>{song.name}</p>
