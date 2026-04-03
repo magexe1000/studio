@@ -2620,7 +2620,7 @@ export default function SongsPanel() {
         {showPicker && <ChordPicker accent={accent} onAdd={id => {
           if (pickerSectionId) addChordToSection(activePreset.id, pickerSectionId, id);
           else addChordToPreset(activePreset.id, id);
-        }} onClose={() => { setShowPicker(false); setPickerSectionId(null); }} onCreateCustom={() => { setShowPicker(false); setPickerSectionId(null); setShowCustomBuilder(true); }} customChords={customChords} />}
+        }} onClose={() => { setShowPicker(false); setPickerSectionId(null); }} onCreateCustom={() => { setShowPicker(false); setShowCustomBuilder(true); }} customChords={customChords} />}
         {showCustomBuilder && (
           <CustomChordBuilder
             accent={accent}
@@ -2630,12 +2630,17 @@ export default function SongsPanel() {
                 updateCustomChord(chord.id, chord);
               } else {
                 saveCustomChord(chord);
-                addChordToPreset(activePreset.id, chord.id);
+                if (pickerSectionId) {
+                  addChordToSection(activePreset.id, pickerSectionId, chord.id);
+                } else {
+                  addChordToPreset(activePreset.id, chord.id);
+                }
               }
               setShowCustomBuilder(false);
               setEditCustomId(null);
+              setPickerSectionId(null);
             }}
-            onClose={() => { setShowCustomBuilder(false); setEditCustomId(null); }}
+            onClose={() => { setShowCustomBuilder(false); setEditCustomId(null); setPickerSectionId(null); }}
           />
         )}
 
