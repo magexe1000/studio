@@ -955,6 +955,87 @@ function PreviewFretboard({ data, dark }: { data: GuitarChordData; dark: boolean
   );
 }
 
+/* ──────────────────── Print-neutral custom chord diagram ──────────────────── */
+function PreviewCustomDiagram({ chord, dark }: { chord: CustomChord; dark: boolean }) {
+  const dotFill  = dark ? '#e8e8e8' : '#191a1a';
+  const lineFill = dark ? 'rgba(200,200,200,0.18)' : 'rgba(25,26,26,0.15)';
+  const nutFill  = dark ? '#ddd' : '#191a1a';
+
+  if (chord.instrument === 'piano') {
+    const keys = chord.pianoKeys ?? [];
+    const W = 76, H = 44;
+    const WHITE         = [0, 2, 4, 5, 7, 9, 11];
+    const BLACK_CHROMAS = [1, 3, 6, 8, 10];
+    const BLACK_POS     = [0.55, 1.55, 3.55, 4.55, 5.55];
+    const wkW = W / 7, wkH = H;
+    const bkW = wkW * 0.6, bkH = wkH * 0.58;
+    return (
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+        {WHITE.map((chroma, i) => (
+          <rect key={i} x={i * wkW + 0.5} y={0.5} width={wkW - 1} height={wkH - 1}
+            rx={1.5}
+            fill={keys.includes(chroma) ? dotFill : (dark ? '#333' : '#f8f8f8')}
+            stroke={dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.18)'} strokeWidth={0.5} />
+        ))}
+        {BLACK_POS.map((pos, i) => (
+          <rect key={i} x={pos * wkW - bkW / 2} y={0.5} width={bkW} height={bkH}
+            rx={1}
+            fill={keys.includes(BLACK_CHROMAS[i]) ? dotFill : (dark ? '#888' : '#1a1a1a')} />
+        ))}
+      </svg>
+    );
+  }
+
+  const numS   = chord.instrument === 'guitar' ? 6 : 4;
+  const frets  = chord.frets ?? Array(numS).fill(0);
+  const active = frets.filter(f => f > 0);
+  const baseFret = active.length > 0 ? Math.min(...active) : 1;
+
+  const W = 76, H = 84, numF = 4;
+  const pL = 8, pT = 14, pR = 8;
+  const cW = (W - pL - pR) / (numS - 1);
+  const cH = (H - pT - 10) / numF;
+  const r = 4.5;
+  const minF    = baseFret > 1 ? baseFret : 1;
+  const showNut = baseFret === 1;
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+      {showNut && (
+        <rect x={pL} y={pT - 5} width={(numS - 1) * cW} height={4} rx={1.5} fill={nutFill} />
+      )}
+      {!showNut && (
+        <text x={pL - 4} y={pT + cH * 0.6} fontFamily="Arial" fontSize={8}
+          fill={dark ? '#888' : '#999'} textAnchor="end" dominantBaseline="middle">
+          {baseFret}fr
+        </text>
+      )}
+      {Array.from({ length: numF + 1 }).map((_, i) => (
+        <line key={i} x1={pL} y1={pT + i * cH} x2={pL + (numS - 1) * cW} y2={pT + i * cH}
+          stroke={lineFill} strokeWidth={i === 0 && !showNut ? 1.5 : 1} />
+      ))}
+      {Array.from({ length: numS }).map((_, i) => (
+        <line key={i} x1={pL + i * cW} y1={pT} x2={pL + i * cW} y2={pT + numF * cH}
+          stroke={lineFill} strokeWidth={1} />
+      ))}
+      {frets.map((f, si) => {
+        if (f === -1) return (
+          <text key={si} x={pL + si * cW} y={pT - 9} fontFamily="Arial" fontSize={10}
+            fill={dark ? '#555' : '#ccc'} textAnchor="middle" dominantBaseline="middle" fontWeight="bold">×</text>
+        );
+        if (f === 0) return (
+          <circle key={si} cx={pL + si * cW} cy={pT - 9} r={3.5}
+            fill="none" stroke={dark ? '#555' : '#bbb'} strokeWidth={1.2} />
+        );
+        const fp = f - minF;
+        if (fp < 0 || fp >= numF) return null;
+        const cx = pL + si * cW, cy = pT + fp * cH + cH / 2;
+        return <circle key={si} cx={cx} cy={cy} r={r} fill={dotFill} />;
+      })}
+    </svg>
+  );
+}
+
 /* ──────────────────── Paper Document Preview ──────────────────── */
 function PaperPreview({ preset, cfg, accent, transposeOffset = 0, storedCustomChords = [] }: {
   preset: SongPreset;
@@ -1126,7 +1207,7 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0, storedCustomCh
                       <PreviewFretboard data={entry.chord.guitar} dark={dark} />
                     )}
                     {cfg.chordDisplay !== 'name' && entry.kind === 'custom' && (
-                      <CustomMiniDiagram chord={entry.cc} accentFrom={accentC} />
+                      <PreviewCustomDiagram chord={entry.cc} dark={dark} />
                     )}
                   </div>
                 );
