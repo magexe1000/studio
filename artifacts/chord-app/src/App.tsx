@@ -26,27 +26,11 @@ export default function App() {
     if (startApp === 'drums') {
       prevAppMode.current = 'drums';
       updateSettings({ appMode: 'drums' });
-      // Studio splash shows first; fire Drumex splash after Studio starts fading
-      const tSub = setTimeout(() => {
-        setDrumSplash('in');
-        const t1 = setTimeout(() => setDrumSplash('out'),    750);
-        const t2 = setTimeout(() => setDrumSplash('hidden'), 1100);
-        splashTimers.current.push(t1, t2);
-      }, 900);
-      splashTimers.current = [tSub];
     } else {
       prevAppMode.current = 'chords';
       updateSettings({ appMode: 'chords' });
       const tab = settings.defaultTab ?? 'library';
       if (tab !== 'library') setActivePanel(tab);
-      // Studio splash shows first; fire Chordex splash after Studio starts fading
-      const tSub = setTimeout(() => {
-        setChordexSplash('in');
-        const t1 = setTimeout(() => setChordexSplash('out'),    750);
-        const t2 = setTimeout(() => setChordexSplash('hidden'), 1100);
-        splashTimers.current.push(t1, t2);
-      }, 900);
-      splashTimers.current = [tSub];
     }
     startupHandled.current = true;
   // eslint-disable-next-line react-hooks/exhaustive-deps
