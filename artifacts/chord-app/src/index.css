@@ -474,7 +474,7 @@ html, body { background: var(--app-bg); }
   }
 
   @keyframes hub-return-enter {
-    from { opacity: 0; transform: scale(0.93); }
+    from { opacity: 0; transform: scale(1.10); }
     to   { opacity: 1; transform: scale(1);    }
   }
 

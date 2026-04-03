@@ -249,7 +249,7 @@ export default function App() {
   // ── Hub mode: show the Studio Hub ────────────────────────────────────────
   if (settings.appMode === 'hub') {
     return (
-      <div style={{ animation: 'hub-return-enter 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+      <div style={{ animation: 'hub-return-enter 380ms cubic-bezier(0.0, 0.0, 0.2, 1) both' }}>
         <StudioHub />
       </div>
     );
