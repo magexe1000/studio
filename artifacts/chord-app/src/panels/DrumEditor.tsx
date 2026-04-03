@@ -146,7 +146,7 @@ const KIT_IMAGE: Record<KitType, string> = {
   tr808:  `${BASE}/kit-tr808.webp`,
   techno: `${BASE}/kit-electronic.webp`,
   stark:  `${BASE}/kit-stark.webp`,
-  house:  `${BASE}/kit-warm.png`,
+  house:  `${BASE}/kit-house.png`,
 };
 const KIT_CATEGORIES: { id: string; label: string; kits: KitType[] }[] = [
   { id: 'acoustic', label: 'Acoustic Drums', kits: ['ludwig', 'jazz', 'rmm', 'chrome'] },
@@ -1199,7 +1199,7 @@ export default function DrumEditor() {
   const [showHamburger,     setShowHamburger]     = useState(false);
   const [hamburgerClosing,  setHamburgerClosing]  = useState(false);
   const [showSoundCharacter, setShowSoundCharacter] = useState(false);
-  const [expandedCats,   setExpandedCats]   = useState<Set<string>>(() => new Set(['acoustic']));
+  const [expandedCats,   setExpandedCats]   = useState<Set<string>>(() => new Set(['ultrahd']));
   const [focusedInst,    setFocusedInst]    = useState<DrumInstrument | null>(null);
   // Songs panel state
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -1207,8 +1207,8 @@ export default function DrumEditor() {
   const [createArtist,   setCreateArtist]   = useState('');
   const [createBpm,      setCreateBpm]      = useState('120');
   const [createNotes,    setCreateNotes]    = useState('');
-  const [createFamily,   setCreateFamily]   = useState<string>('acoustic');
-  const [createVariant,  setCreateVariant]  = useState<KitType>('ludwig');
+  const [createFamily,   setCreateFamily]   = useState<string>('ultrahd');
+  const [createVariant,  setCreateVariant]  = useState<KitType>('house');
   const [showSaveForm,     setShowSaveForm]     = useState(false);
   const [saveName,         setSaveName]         = useState('');
   const [saveArtist,       setSaveArtist]       = useState('');
