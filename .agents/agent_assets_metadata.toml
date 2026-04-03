@@ -102,6 +102,12 @@ uri = "file://artifacts/chord-app/public/kit-house.png"
 type = "image"
 title = "generated_image"
 
+[[generated]]
+id = "I0fy0F1sBm9yARgl98dCH"
+uri = "file://artifacts/chord-app/public/kit-house-raw.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "I5FP-fUgJVTPVlHcXq6Xl"
 uri = "file://artifacts/chord-app/public/icon-512.png"
