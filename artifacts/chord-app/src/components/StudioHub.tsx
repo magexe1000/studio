@@ -276,6 +276,30 @@ function AppRow({
 }
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
+function GlobalHint() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 5,
+      margin: '6px 4px 0',
+    }}>
+      <span className="material-symbols-outlined" style={{
+        fontSize: 13, color: 'var(--c-text-secondary)',
+        fontVariationSettings: "'FILL' 1",
+        flexShrink: 0,
+      }}>public</span>
+      <p style={{
+        margin: 0,
+        fontSize: 11, fontWeight: 600,
+        color: 'var(--c-text-secondary)',
+        fontFamily: 'Inter',
+        letterSpacing: '0.01em',
+      }}>
+        Applies to all apps
+      </p>
+    </div>
+  );
+}
+
 function HubSettings({ accent }: { accent: { from: string; to: string; mid: string } }) {
   const { settings, updateSettings, updatePerApp } = useChordStore();
   const t = useT();
@@ -484,6 +508,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
           />
         </SettingRow>
       </div>
+      <GlobalHint />
 
       {/* ── DISPLAY ── */}
       <SectionHeader icon="dashboard" title={t.settings.sections.display} />
@@ -507,6 +532,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
           />
         </SettingRow>
       </div>
+      <GlobalHint />
 
       {/* ── FEEDBACK ── */}
       <SectionHeader icon="vibration" title={t.settings.sections.feedback} />
