@@ -925,6 +925,134 @@ function DrumExportModal({ patterns, song, accent, onClose }: {
   );
 }
 
+// ── DrumImportModal ─────────────────────────────────────────────────────────
+function DrumImportModal({ accent, onImport, onClose }: {
+  accent: { from: string; to: string };
+  onImport: (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string) => void;
+  onClose: () => void;
+}) {
+  type Stage = 'idle' | 'preview' | 'error';
+  const [stage, setStage]     = useState<Stage>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const [preview, setPreview]   = useState<{ name: string; artist: string; notes: string; patterns: DrumPattern[]; activePatternId: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const parseFile = (file: File) => {
+    if (!file.name.toLowerCase().endsWith('.json') && file.type !== 'application/json') {
+      setErrorMsg('Please select a Drumex .json file.'); setStage('error'); return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const raw = JSON.parse(ev.target?.result as string);
+        if (!raw || typeof raw !== 'object' || raw._app !== 'Drumex')
+          throw new Error('Not a valid Drumex JSON file.');
+        if (!Array.isArray(raw.patterns) || raw.patterns.length === 0)
+          throw new Error('No patterns found in file.');
+        const reconstructed: DrumPattern[] = (raw.patterns as any[]).map((p: any) => ({
+          id: `p-import-${Math.random().toString(36).slice(2)}`,
+          name: p.name ?? 'Pattern',
+          bpm: Math.max(40, Math.min(280, Number(p.bpm) || 120)),
+          subdivision: Number(p.subdivision) || 16,
+          timeSignature: [4, 4] as [number, number],
+          mutedInstruments: Array.isArray(p.mutedInstruments) ? p.mutedInstruments : [],
+          measures: Array.isArray(p.measures)
+            ? (p.measures as any[]).map((m: any) => ({ id: `m-import-${Math.random().toString(36).slice(2)}`, hits: m.hits ?? {} }))
+            : [],
+        }));
+        const songName   = (raw.song?.name   ?? '').trim() || 'Imported Beat';
+        const artist     = (raw.song?.artist ?? '').trim();
+        const notes      = (raw.song?.notes  ?? '').trim();
+        setPreview({ name: songName, artist, notes, patterns: reconstructed, activePatternId: reconstructed[0].id });
+        setStage('preview');
+      } catch (err) {
+        setErrorMsg(err instanceof Error ? err.message : 'Could not parse file.'); setStage('error');
+      }
+    };
+    reader.onerror = () => { setErrorMsg('Failed to read file.'); setStage('error'); };
+    reader.readAsText(file);
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (file) parseFile(file); e.target.value = '';
+  };
+
+  const totalBars = preview ? preview.patterns.reduce((n, p) => n + p.measures.length, 0) : 0;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.25)' }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '4px 20px 16px', flexShrink: 0 }}>
+          <span style={{ flex: 1, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif' }}>Import Beat</span>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)' }}>
+          {stage === 'idle' && (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) parseFile(f); }}
+              style={{ border: `2px dashed ${dragOver ? accent.from : 'rgba(128,128,128,0.25)'}`, borderRadius: 16, padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, cursor: 'pointer', background: dragOver ? `${accent.from}08` : 'transparent', transition: 'all 200ms' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 40, color: accent.from }}>upload_file</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)' }}>Tap to select a Drumex JSON file</span>
+              <span style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>or drag & drop here</span>
+            </div>
+          )}
+
+          {stage === 'error' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.20)', borderRadius: 12, padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span className="material-symbols-outlined" style={{ color: '#f87171', fontSize: 20, flexShrink: 0, marginTop: 1 }}>error</span>
+                <span style={{ fontSize: 13, color: '#f87171', lineHeight: 1.5 }}>{errorMsg}</span>
+              </div>
+              <button onClick={() => { setStage('idle'); setErrorMsg(''); }} className="btn-smooth"
+                style={{ padding: '12px', borderRadius: 12, background: 'var(--app-surface-high)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 600 }}>
+                Try another file
+              </button>
+            </div>
+          )}
+
+          {stage === 'preview' && preview && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ background: 'var(--app-surface-high)', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{preview.name}</span>
+                </div>
+                {preview.artist && <span style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>{preview.artist}</span>}
+                <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, background: `${accent.from}18`, color: accent.from, borderRadius: 6, padding: '3px 8px' }}>{preview.patterns.length} pattern{preview.patterns.length !== 1 ? 's' : ''}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(128,128,128,0.10)', color: 'var(--c-text-secondary)', borderRadius: 6, padding: '3px 8px' }}>{totalBars} bar{totalBars !== 1 ? 's' : ''}</span>
+                </div>
+              </div>
+              {preview.patterns.map(p => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--app-surface-high)', borderRadius: 10 }}>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--c-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                  <span style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>{p.bpm} BPM · {p.measures.length} bar{p.measures.length !== 1 ? 's' : ''}</span>
+                </div>
+              ))}
+              <button onClick={() => { onImport(preview.name, preview.artist, preview.notes, preview.patterns, preview.activePatternId); onClose(); }}
+                className="btn-smooth"
+                style={{ padding: '15px', borderRadius: 9999, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', color: '#fff', fontSize: 15, fontWeight: 800, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: `0 6px 24px ${accent.to}50` }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add_circle</span>
+                Import to Library
+              </button>
+            </div>
+          )}
+        </div>
+
+        <input ref={fileInputRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={handleFileInput} />
+      </div>
+    </div>
+  );
+}
+
 // ── DrumEditor ─────────────────────────────────────────────────────────────
 export default function DrumEditor() {
   const { settings, updateSettings } = useChordStore();
@@ -936,7 +1064,7 @@ export default function DrumEditor() {
     toggleHit, addMeasure, deleteMeasure, clearMeasure, duplicateMeasure, updatePattern,
     duplicatePattern, deletePattern, renamePattern, setActivePattern,
     drumSongs, saveDrumSong, createBlankDrumSong, loadDrumSong, deleteDrumSong, updateDrumSong,
-    restorePatterns, insertMeasureAfter, togglePatternMute,
+    restorePatterns, insertMeasureAfter, togglePatternMute, importDrumSong,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -1003,9 +1131,10 @@ export default function DrumEditor() {
   const [openBarMenu,   setOpenBarMenu]   = useState<string | null>(null); // measureId
   const [flashBarId,    setFlashBarId]    = useState<string | null>(null); // brief highlight on paste
 
-  // ── Quick mixer sheet + export modal ─────────────────────────────────────
+  // ── Quick mixer sheet + export modal + import modal ──────────────────────
   const [showMixerSheet,  setShowMixerSheet]  = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showImportDrum,  setShowImportDrum]  = useState(false);
 
   // ── Container width ──────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1399,12 +1528,6 @@ export default function DrumEditor() {
                 style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--app-surface-high)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 17 }}>picture_as_pdf</span>
               </button>
-              {/* Clear button */}
-              <button onClick={() => { handleClear(); setShowHamburger(false); }}
-                title="Clear pattern" className="btn-smooth"
-                style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-              </button>
             </div>
           </div>
         </div>
@@ -1623,6 +1746,11 @@ export default function DrumEditor() {
             </div>
             {/* BPM + Play */}
             <div style={{ position: 'fixed', right: 14, bottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+              {/* Clear button — black bg, red trash icon */}
+              <button onClick={handleClear} title="Clear pattern" className="btn-smooth"
+                style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: isAmoled ? 'rgba(4,4,4,0.92)' : 'rgba(14,14,16,0.88)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 12px rgba(0,0,0,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: '1.5px solid rgba(255,255,255,0.08)' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              </button>
               <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 {showBpmPanel && (
                   <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', right: 0, background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.96)' : 'rgba(18,18,22,0.96)'), border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)', borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.50)', whiteSpace: 'nowrap', animation: 'drumHamburgerIn 160ms cubic-bezier(0.22,1,0.36,1)' }}>
@@ -1780,14 +1908,25 @@ export default function DrumEditor() {
       {/* ── Bottom nav ───────────────────────────────────────────────────── */}
       <DrumNav activeTab={activeTab} setTab={setActiveTab} accent={accent} isLight={isLight} isAmoled={isAmoled} />
 
-      {/* ── Floating + button (songs list only) ─────────────────────────── */}
+      {/* ── Floating buttons (songs list only): import above + add ──────── */}
       {!inEditor && activeTab === 'songs' && (
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="btn-smooth"
-          style={{ position: 'fixed', right: 20, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', width: 54, height: 54, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 20px ${accent.to}66`, zIndex: 50 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 26, fontVariationSettings: "'wght' 400" }}>add</span>
-        </button>
+        <div style={{ position: 'fixed', right: 20, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, pointerEvents: 'none', zIndex: 50 }}>
+          {/* Import JSON button */}
+          <button
+            onClick={() => setShowImportDrum(true)}
+            className="btn-smooth"
+            title="Import Drumex JSON"
+            style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--app-surface-high)', border: '1px solid rgba(128,128,128,0.18)', color: 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.28)', pointerEvents: 'auto', cursor: 'pointer' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>upload_file</span>
+          </button>
+          {/* New beat button */}
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="btn-smooth"
+            style={{ width: 54, height: 54, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 20px ${accent.to}66`, pointerEvents: 'auto' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 26, fontVariationSettings: "'wght' 400" }}>add</span>
+          </button>
+        </div>
       )}
 
       {/* ── Quick Mixer sheet (EQ button in editor toolbar) ──────────────── */}
@@ -1837,6 +1976,18 @@ export default function DrumEditor() {
           song={activeSong}
           accent={accent}
           onClose={() => setShowExportModal(false)}
+        />
+      )}
+
+      {/* ── Import modal ─────────────────────────────────────────────────── */}
+      {showImportDrum && (
+        <DrumImportModal
+          accent={accent}
+          onImport={(name, artist, notes, pats, activeId) => {
+            importDrumSong(name, artist, notes, pats, activeId);
+            setShowImportDrum(false);
+          }}
+          onClose={() => setShowImportDrum(false)}
         />
       )}
 

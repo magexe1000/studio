@@ -177,7 +177,8 @@ interface DrumStore {
   deleteDrumSong:      (id: string) => void;
   updateDrumSong:      (id: string, patch: Partial<Pick<DrumSong, 'name' | 'artist' | 'notes' | 'patterns' | 'activePatternId' | 'kitType'>>) => void;
 
-  restorePatterns: (patterns: DrumPattern[], activePatternId: string | null) => void;
+  restorePatterns:  (patterns: DrumPattern[], activePatternId: string | null) => void;
+  importDrumSong:   (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string) => string;
 }
 
 const initial = defaultPattern();
@@ -399,6 +400,22 @@ export const useDrumStore = create<DrumStore>()(
         })),
 
       restorePatterns: (pts, actId) => set({ patterns: pts, activePatternId: actId }),
+
+      importDrumSong: (name, artist, notes, patterns, activePatternId) => {
+        const song: DrumSong = {
+          id: `ds-${uid()}`,
+          name: name.trim() || 'Imported Beat',
+          artist: artist.trim(),
+          notes: notes.trim(),
+          patterns: JSON.parse(JSON.stringify(patterns)),
+          activePatternId,
+          kitType: get().kitType,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        set(st => ({ drumSongs: [song, ...st.drumSongs] }));
+        return song.id;
+      },
     }),
     {
       name: 'chordex-drums',
