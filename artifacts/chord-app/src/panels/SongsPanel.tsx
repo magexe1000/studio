@@ -956,11 +956,12 @@ function PreviewFretboard({ data, dark }: { data: GuitarChordData; dark: boolean
 }
 
 /* ──────────────────── Paper Document Preview ──────────────────── */
-function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
+function PaperPreview({ preset, cfg, accent, transposeOffset = 0, storedCustomChords = [] }: {
   preset: SongPreset;
   cfg: ExportConfig;
   accent: { from: string; to: string };
   transposeOffset?: number;
+  storedCustomChords?: CustomChord[];
 }) {
   const dark    = cfg.theme === 'dark';
   const style   = cfg.exportStyle ?? 'elegant';
@@ -971,24 +972,28 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
   const isLand  = cfg.orientation === 'landscape';
   const paper   = cfg.paperSize ?? 'a4';
 
-  /* Build ALL chord entries – no slicing, matches PDF export exactly */
-  type PreviewSection = { name: string; chords: Chord[] };
+  /* Build ALL chord entries – handles both standard and custom chords */
+  type PreviewEntry = { kind: 'standard'; chord: Chord } | { kind: 'custom'; cc: CustomChord };
+  type PreviewSection = { name: string; entries: PreviewEntry[] };
+
+  const buildPreviewEntries = (ids: string[]): PreviewEntry[] => {
+    return ids.flatMap(id => {
+      if (id.startsWith('custom-')) {
+        const cc = storedCustomChords.find(c => c.id === id);
+        return cc ? [{ kind: 'custom' as const, cc }] : [];
+      }
+      const displayId = transposeOffset !== 0 ? transposeChordId(id, transposeOffset) : id;
+      const chord = getChordById(displayId) ?? getChordById(id);
+      return chord ? [{ kind: 'standard' as const, chord }] : [];
+    });
+  };
+
   const previewSections: PreviewSection[] = hasSections
-    ? preset.sections!.map(sec => {
-        const ids = sec.chords.map(id =>
-          transposeOffset !== 0 ? transposeChordId(id, transposeOffset) : id
-        );
-        return { name: sec.name, chords: ids.map(id => getChordById(id)).filter(Boolean) as Chord[] };
-      })
-    : (() => {
-        const ids = transposeOffset !== 0
-          ? preset.chords.map(id => transposeChordId(id, transposeOffset))
-          : preset.chords;
-        return [{ name: 'Chord Progression', chords: ids.map(id => getChordById(id)).filter(Boolean) as Chord[] }];
-      })();
+    ? preset.sections!.map(sec => ({ name: sec.name, entries: buildPreviewEntries(sec.chords) }))
+    : [{ name: 'Chord Progression', entries: buildPreviewEntries(preset.chords) }];
 
   /* Auto-fit columns based on total chord count – same thresholds as jsPDF engine */
-  const totalChords = previewSections.reduce((n, s) => n + s.chords.length, 0);
+  const totalChords = previewSections.reduce((n, s) => n + s.entries.length, 0);
   const cols = totalChords <= 6 ? 3 : totalChords <= 12 ? 4 : totalChords <= 18 ? 5 : 6;
 
   /* Scale card visuals down as column count increases */
@@ -1068,7 +1073,7 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
             </div>
           </div>
           <p style={{ fontSize: '6px', fontWeight: 700, color: muted, letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap', paddingTop: '2px' }}>
-            {previewSections.reduce((n, s) => n + s.chords.length, 0)} chords
+            {previewSections.reduce((n, s) => n + s.entries.length, 0)} chords
           </p>
         </div>
       )}
@@ -1094,31 +1099,38 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0 }: {
               gridTemplateColumns: `repeat(${cols}, 1fr)`,
               gap: gridGap,
             }}>
-              {sec.chords.map((chord, i) => (
-                <div key={chord.id} style={{
-                  position: 'relative',
-                  background: paperColor,
-                  border: `1px solid ${cardBdr}`,
-                  borderRadius: cols >= 5 ? '4px' : compact ? '5px' : '7px',
-                  boxShadow: cardShad,
-                  padding: cardPad,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                }}>
-                  {cfg.showNumbering && (
-                    <span style={{ position: 'absolute', top: '3px', right: '4px', fontSize: '5px', fontWeight: 800, color: elegant ? accentC : muted, lineHeight: 1 }}>
-                      {i + 1}
-                    </span>
-                  )}
-                  {cfg.chordDisplay !== 'diagram' && (
-                    <p style={{ fontSize: cardFont, fontWeight: 900, letterSpacing: '-0.01em', color: text, marginBottom: '2px', lineHeight: 1 }}>
-                      {chord.name}
-                    </p>
-                  )}
-                  {cfg.chordDisplay !== 'name' && (
-                    <PreviewFretboard data={chord.guitar} dark={dark} />
-                  )}
-                </div>
-              ))}
+              {sec.entries.map((entry, i) => {
+                const entryKey = entry.kind === 'standard' ? entry.chord.id : entry.cc.id;
+                const entryName = entry.kind === 'standard' ? entry.chord.name : (entry.cc.name || 'Custom');
+                return (
+                  <div key={entryKey} style={{
+                    position: 'relative',
+                    background: paperColor,
+                    border: `1px solid ${cardBdr}`,
+                    borderRadius: cols >= 5 ? '4px' : compact ? '5px' : '7px',
+                    boxShadow: cardShad,
+                    padding: cardPad,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  }}>
+                    {cfg.showNumbering && (
+                      <span style={{ position: 'absolute', top: '3px', right: '4px', fontSize: '5px', fontWeight: 800, color: elegant ? accentC : muted, lineHeight: 1 }}>
+                        {i + 1}
+                      </span>
+                    )}
+                    {cfg.chordDisplay !== 'diagram' && (
+                      <p style={{ fontSize: cardFont, fontWeight: 900, letterSpacing: '-0.01em', color: text, marginBottom: '2px', lineHeight: 1 }}>
+                        {entryName}
+                      </p>
+                    )}
+                    {cfg.chordDisplay !== 'name' && entry.kind === 'standard' && (
+                      <PreviewFretboard data={entry.chord.guitar} dark={dark} />
+                    )}
+                    {cfg.chordDisplay !== 'name' && entry.kind === 'custom' && (
+                      <CustomMiniDiagram chord={entry.cc} accentFrom={accentC} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -1267,7 +1279,7 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
 
         {/* Paper preview */}
         <div style={{ marginBottom: '28px' }}>
-          <PaperPreview preset={preset} cfg={cfg} accent={accent} transposeOffset={transposeOffset} />
+          <PaperPreview preset={preset} cfg={cfg} accent={accent} transposeOffset={transposeOffset} storedCustomChords={storedCustomChords} />
         </div>
 
         {/* EXPORT SETTINGS label */}
@@ -2115,7 +2127,7 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
             {/* Create custom chord button */}
-            <button onClick={() => { onClose(); onCreateCustom(); }} className="btn-smooth"
+            <button onClick={() => onCreateCustom()} className="btn-smooth"
               data-testid="create-custom-chord-btn"
               style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', background: `linear-gradient(135deg, ${accent.from}10, ${accent.to}10)`, borderRadius: '0.875rem', border: `1px dashed ${accent.from}55`, textAlign: 'left', transition: 'background 180ms ease' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
