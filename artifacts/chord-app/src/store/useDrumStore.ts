@@ -132,7 +132,7 @@ interface DrumStore {
   saveDrumSong:   (name: string, artist: string, notes: string) => string;
   loadDrumSong:   (id: string) => void;
   deleteDrumSong: (id: string) => void;
-  updateDrumSong: (id: string, patch: Partial<Pick<DrumSong, 'name' | 'artist' | 'notes'>>) => void;
+  updateDrumSong: (id: string, patch: Partial<Pick<DrumSong, 'name' | 'artist' | 'notes' | 'patterns' | 'activePatternId' | 'kitType'>>) => void;
 }
 
 const initial = defaultPattern();

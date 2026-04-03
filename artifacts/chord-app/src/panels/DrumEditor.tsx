@@ -399,14 +399,15 @@ export default function DrumEditor() {
   const [expandedCats,   setExpandedCats]   = useState<Set<string>>(() => new Set(['acoustic']));
   const [focusedInst,    setFocusedInst]    = useState<DrumInstrument | null>(null);
   // Songs panel state
-  const [showSaveForm,   setShowSaveForm]   = useState(false);
-  const [saveName,       setSaveName]       = useState('');
-  const [saveArtist,     setSaveArtist]     = useState('');
-  const [saveNotes,      setSaveNotes]      = useState('');
-  const [deletingId,     setDeletingId]     = useState<string | null>(null);
-  const [editingSong,    setEditingSong]    = useState<DrumSong | null>(null);
-  const [editingName,    setEditingName]    = useState('');
-  const [editingArtist,  setEditingArtist]  = useState('');
+  const [showSaveForm,     setShowSaveForm]     = useState(false);
+  const [saveName,         setSaveName]         = useState('');
+  const [saveArtist,       setSaveArtist]       = useState('');
+  const [saveNotes,        setSaveNotes]        = useState('');
+  const [deletingId,       setDeletingId]       = useState<string | null>(null);
+  const [editingSong,      setEditingSong]      = useState<DrumSong | null>(null);
+  const [editingName,      setEditingName]      = useState('');
+  const [editingArtist,    setEditingArtist]    = useState('');
+  const [activeDrumSongId, setActiveDrumSongId] = useState<string | null>(null);
 
   // ── Container width ──────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
@@ -566,16 +567,41 @@ export default function DrumEditor() {
   };
 
   // ── Songs ─────────────────────────────────────────────────────────────────
-  const handleSaveSong = useCallback(() => {
+  const handleOpenSaveForm = useCallback(() => {
+    if (activeDrumSongId) {
+      const song = drumSongs.find(s => s.id === activeDrumSongId);
+      if (song) { setSaveName(song.name); setSaveArtist(song.artist); setSaveNotes(song.notes ?? ''); }
+    } else {
+      setSaveName(''); setSaveArtist(''); setSaveNotes('');
+    }
+    setShowSaveForm(true);
+  }, [activeDrumSongId, drumSongs]);
+
+  const handleSaveAsNew = useCallback(() => {
     if (!saveName.trim()) return;
     saveDrumSong(saveName, saveArtist, saveNotes);
     setSaveName(''); setSaveArtist(''); setSaveNotes('');
     setShowSaveForm(false);
+    setActiveDrumSongId(null);
   }, [saveName, saveArtist, saveNotes, saveDrumSong]);
+
+  const handleUpdateSong = useCallback(() => {
+    if (!saveName.trim() || !activeDrumSongId) return;
+    updateDrumSong(activeDrumSongId, {
+      name: saveName.trim(),
+      artist: saveArtist.trim(),
+      notes: saveNotes.trim(),
+      patterns: JSON.parse(JSON.stringify(patterns)),
+      activePatternId: activePatternId ?? patterns[0]?.id ?? '',
+      kitType: kitType,
+    });
+    setShowSaveForm(false);
+  }, [saveName, saveArtist, saveNotes, activeDrumSongId, updateDrumSong, patterns, activePatternId, kitType]);
 
   const handleLoadSong = useCallback((song: DrumSong) => {
     if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
     loadDrumSong(song.id);
+    setActiveDrumSongId(song.id);
     setDrumMode('edit');
   }, [loadDrumSong]);
 
@@ -607,10 +633,22 @@ export default function DrumEditor() {
 
         <div style={{ flex: 1 }} />
 
-        {/* Clear — only in editor */}
+        {/* Clear + Save — only in editor */}
         {drumMode === 'edit' && (<>
           <button onClick={handleClear} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(128,128,128,0.18)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
             Clear
+          </button>
+
+          {/* Save */}
+          <button
+            onClick={handleOpenSaveForm}
+            style={{ height: 30, padding: '0 12px', borderRadius: 8, background: activeDrumSongId ? `linear-gradient(135deg,${accent.from}22,${accent.to}18)` : 'rgba(128,128,128,0.08)', border: `1px solid ${activeDrumSongId ? accent.from + '44' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: activeDrumSongId ? accent.from : 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}
+            aria-label="Save beat"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Save
           </button>
 
           {/* Loop */}
@@ -871,28 +909,12 @@ export default function DrumEditor() {
         {drumMode === 'nav' && activeTab === 'songs' && (
           <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }} className="no-scrollbar">
 
-            {/* Save current beat button */}
-            <div style={{ padding: '20px 16px 8px' }}>
-              <button
-                onClick={() => { setSaveName(''); setSaveArtist(''); setSaveNotes(''); setShowSaveForm(true); }}
-                style={{
-                  width: '100%', padding: '13px 18px', borderRadius: 14,
-                  background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                  border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: `0 4px 18px ${accent.from}44`,
-                }}
-              >
-                <span style={{ color: '#fff', fontSize: 18, lineHeight: 1 }}>＋</span>
-                <span style={{ color: '#fff', fontSize: 14, fontWeight: 700, fontFamily: 'Manrope, sans-serif' }}>Save Current Beat</span>
-              </button>
-            </div>
-
             {/* Songs list */}
             {drumSongs.length === 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '72px 24px 48px', gap: 12 }}>
                 <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--app-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🥁</div>
                 <p style={{ color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 600, margin: 0, textAlign: 'center' }}>No saved beats yet</p>
-                <p style={{ color: 'var(--c-text-muted)', fontSize: 12, margin: 0, textAlign: 'center', lineHeight: 1.5 }}>Tap "Save Current Beat" to store your drum patterns here — they stay separate from Chordex songs.</p>
+                <p style={{ color: 'var(--c-text-muted)', fontSize: 12, margin: 0, textAlign: 'center', lineHeight: 1.5 }}>Go to the Editor, build your beat, then tap <strong>Save</strong> in the top bar to store it here.</p>
               </div>
             ) : (
               <div style={{ padding: '8px 16px 0' }}>
@@ -902,13 +924,14 @@ export default function DrumEditor() {
                 {drumSongs.map(song => {
                   const isDeleting = deletingId === song.id;
                   const isEditing  = editingSong?.id === song.id;
+                  const isActive   = activeDrumSongId === song.id;
                   const kitLabel   = song.kitType ? KIT_LABEL[song.kitType] : 'No kit';
                   const pCount     = song.patterns.length;
                   const ts         = new Date(song.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
                   return (
                     <div key={song.id} style={{
-                      background: 'var(--app-surface)', borderRadius: 14,
-                      border: '1px solid rgba(128,128,128,0.07)', marginBottom: 10, overflow: 'hidden',
+                      background: isActive ? `linear-gradient(135deg,${accent.from}0e,${accent.to}08)` : 'var(--app-surface)', borderRadius: 14,
+                      border: isActive ? `1.5px solid ${accent.from}33` : '1px solid rgba(128,128,128,0.07)', marginBottom: 10, overflow: 'hidden',
                     }}>
                       {isEditing ? (
                         /* ── Edit name / artist inline ── */
@@ -1069,7 +1092,15 @@ export default function DrumEditor() {
             {/* Handle bar */}
             <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(128,128,128,0.3)', margin: '0 auto 18px' }} />
 
-            <p style={{ color: 'var(--c-text-primary)', fontSize: 17, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 16px' }}>Save Beat</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <p style={{ color: 'var(--c-text-primary)', fontSize: 17, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: 0 }}>
+                {activeDrumSongId ? 'Edit Beat' : 'Save Beat'}
+              </p>
+              {/* BPM badge */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, background: `${accent.from}18`, border: `1px solid ${accent.from}28` }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: accent.from, fontFamily: 'Manrope, sans-serif' }}>{pattern.bpm} BPM</span>
+              </div>
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <input
@@ -1077,7 +1108,7 @@ export default function DrumEditor() {
                 autoFocus
                 placeholder="Beat name (required)"
                 style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${saveName.trim() ? accent.from + '66' : 'rgba(128,128,128,0.18)'}`, background: 'var(--app-bg)', color: 'var(--c-text-primary)', fontSize: 14, fontWeight: 700, fontFamily: 'Manrope, sans-serif', outline: 'none', boxSizing: 'border-box', transition: 'border-color 180ms' }}
-                onKeyDown={e => { if (e.key === 'Enter') handleSaveSong(); }}
+                onKeyDown={e => { if (e.key === 'Enter' && saveName.trim()) { activeDrumSongId ? handleUpdateSong() : handleSaveAsNew(); } }}
               />
               <input
                 value={saveArtist} onChange={e => setSaveArtist(e.target.value)}
@@ -1092,21 +1123,50 @@ export default function DrumEditor() {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-              <button
-                onClick={() => setShowSaveForm(false)}
-                style={{ flex: 1, padding: '12px 0', borderRadius: 10, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveSong}
-                disabled={!saveName.trim()}
-                style={{ flex: 2, padding: '12px 0', borderRadius: 10, background: saveName.trim() ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.15)', border: 'none', cursor: saveName.trim() ? 'pointer' : 'default', color: saveName.trim() ? '#fff' : 'var(--c-text-muted)', fontSize: 14, fontWeight: 700, fontFamily: 'Manrope, sans-serif', transition: 'all 200ms', boxShadow: saveName.trim() ? `0 4px 14px ${accent.from}44` : 'none' }}
-              >
-                Save Beat
-              </button>
-            </div>
+            {activeDrumSongId ? (
+              /* ── Editing an existing beat: Update + Save as New ── */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+                <button
+                  onClick={handleUpdateSong}
+                  disabled={!saveName.trim()}
+                  style={{ width: '100%', padding: '12px 0', borderRadius: 10, background: saveName.trim() ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.15)', border: 'none', cursor: saveName.trim() ? 'pointer' : 'default', color: saveName.trim() ? '#fff' : 'var(--c-text-muted)', fontSize: 14, fontWeight: 700, fontFamily: 'Manrope, sans-serif', transition: 'all 200ms', boxShadow: saveName.trim() ? `0 4px 14px ${accent.from}44` : 'none' }}
+                >
+                  Update Beat
+                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={handleSaveAsNew}
+                    disabled={!saveName.trim()}
+                    style={{ flex: 1, padding: '11px 0', borderRadius: 10, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.16)', cursor: saveName.trim() ? 'pointer' : 'default', color: saveName.trim() ? 'var(--c-text-primary)' : 'var(--c-text-muted)', fontSize: 13, fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}
+                  >
+                    Save as New
+                  </button>
+                  <button
+                    onClick={() => setShowSaveForm(false)}
+                    style={{ flex: 1, padding: '11px 0', borderRadius: 10, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 13, fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* ── New beat: Save + Cancel ── */
+              <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                <button
+                  onClick={() => setShowSaveForm(false)}
+                  style={{ flex: 1, padding: '12px 0', borderRadius: 10, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveAsNew}
+                  disabled={!saveName.trim()}
+                  style={{ flex: 2, padding: '12px 0', borderRadius: 10, background: saveName.trim() ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.15)', border: 'none', cursor: saveName.trim() ? 'pointer' : 'default', color: saveName.trim() ? '#fff' : 'var(--c-text-muted)', fontSize: 14, fontWeight: 700, fontFamily: 'Manrope, sans-serif', transition: 'all 200ms', boxShadow: saveName.trim() ? `0 4px 14px ${accent.from}44` : 'none' }}
+                >
+                  Save Beat
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
