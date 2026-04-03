@@ -14,7 +14,7 @@ import {
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
-const LABEL_W  = 58;
+const LABEL_W  = 72;
 const ROW_H    = 52;
 const RULER_H  = 26;
 const SYS_SEP  = 20;
@@ -55,23 +55,44 @@ const INST_LABEL: Record<DrumInstrument, string> = {
   'tom-floor': 'Floor Tom', crash: 'Crash', ride: 'Ride',
 };
 const KIT_LABEL: Record<KitType, string> = {
-  ludwig: 'Ludwig Classic', cr78: 'Roland CR-78', r8: 'Roland R8', tr808: 'TR-808', techno: 'Techno Kit',
+  ludwig: 'Ludwig Classic', jazz: 'Jazz Kit',     rock: 'Rock Kit',   vintage: "Vintage '60s",
+  studio: 'Studio A',       r8:   'Roland R8',    linn: 'LinnDrum',   funk: 'Funk Kit',
+  cr78:   'Roland CR-78',   tr808:'Roland TR-808', techno:'Techno Kit', stark:'Stark Industrial',
 };
 const KIT_DESC: Record<KitType, string> = {
   ludwig: 'Warm natural acoustic · full kit',
-  cr78:   'Vintage 1978 analog drum machine',
+  jazz:   'Tight brushes · dry cymbals · small kit',
+  rock:   'Big punchy kick · fat cracking snare',
+  vintage:'Woodsy warm tones · open resonance',
+  studio: 'Clean compressed bright studio kit',
   r8:     '1989 electronic-acoustic hybrid',
+  linn:   '1982 sample-based drum machine',
+  funk:   'Tight snappy groove machine',
+  cr78:   'Vintage 1978 analog drum machine',
   tr808:  'Deep bass hip-hop classic · 1980',
-  techno: 'Hard industrial electronic',
+  techno: 'Hard punching industrial rave',
+  stark:  'Cold metallic machine sounds',
 };
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 const KIT_IMAGE: Record<KitType, string> = {
   ludwig: `${BASE}/kit-acoustic.png`,
-  cr78:   `${BASE}/kit-cr78.png`,
+  jazz:   `${BASE}/kit-jazz.png`,
+  rock:   `${BASE}/kit-rock.png`,
+  vintage:`${BASE}/kit-vintage.png`,
+  studio: `${BASE}/kit-studio.png`,
   r8:     `${BASE}/kit-advanced.png`,
+  linn:   `${BASE}/kit-linn.png`,
+  funk:   `${BASE}/kit-funk.png`,
+  cr78:   `${BASE}/kit-cr78.png`,
   tr808:  `${BASE}/kit-tr808.png`,
   techno: `${BASE}/kit-electronic.png`,
+  stark:  `${BASE}/kit-stark.png`,
 };
+const KIT_CATEGORIES: { id: string; label: string; kits: KitType[] }[] = [
+  { id: 'acoustic', label: 'Acoustic Drums', kits: ['ludwig', 'jazz', 'rock', 'vintage'] },
+  { id: 'studio',   label: 'Studio Drums',   kits: ['studio', 'r8', 'linn', 'funk'] },
+  { id: 'electric', label: 'Electric Drums', kits: ['cr78', 'tr808', 'techno', 'stark'] },
+];
 
 // ── Tabs / Mode ────────────────────────────────────────────────────────────
 type DrumTab  = 'kit';
@@ -335,7 +356,6 @@ export default function DrumEditor() {
   const stepsPerBeat = pattern.subdivision / pattern.timeSignature[1];
   const kit    = kitType ?? 'ludwig';
   const ALL_INSTS = KIT_INSTRUMENTS[kit] ?? KIT_INSTRUMENTS.ludwig;
-  const KITS: KitType[] = ['ludwig', 'cr78', 'r8', 'tr808', 'techno'];
 
   // ── Theme ───────────────────────────────────────────────────────────────
   const isLight = settings.theme === 'light' ||
@@ -356,6 +376,7 @@ export default function DrumEditor() {
   const [sampleStatus, setSampleStatus] = useState<SampleStatus>('idle');
   const [showBpmPanel,   setShowBpmPanel]   = useState(false);
   const [showHamburger,  setShowHamburger]  = useState(false);
+  const [expandedCats,   setExpandedCats]   = useState<Set<string>>(() => new Set(['acoustic']));
   const [focusedInst,    setFocusedInst]    = useState<DrumInstrument | null>(null);
 
   // ── Container width ──────────────────────────────────────────────────────
@@ -681,8 +702,8 @@ export default function DrumEditor() {
                           background: isFoc ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)') : 'transparent',
                         }}>
                           <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', alignItems: 'center', paddingLeft: 12, paddingRight: 6, borderRight: `1px solid ${barColor}` }}>
-                            <span style={{ fontSize: 9.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: isFoc ? 'var(--c-text-primary)' : 'var(--c-text-muted)', letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>
-                              {SHORT_LABEL[inst]}
+                            <span style={{ fontSize: 8, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: isFoc ? 'var(--c-text-primary)' : 'var(--c-text-muted)', letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>
+                              {INST_LABEL[inst]}
                             </span>
                           </div>
                           <InstrumentRow
@@ -794,33 +815,58 @@ export default function DrumEditor() {
         {/* ═══ KIT ══════════════════════════════════════════════════════════ */}
         {drumMode === 'nav' && activeTab === 'kit' && (
           <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20, paddingBottom: 100 }} className="no-scrollbar">
-            <SectionLabel>Drum Kit</SectionLabel>
-            <Card>
-              {KITS.map((k, i) => {
-                const sel = k === kit;
-                return (
+            {KIT_CATEGORIES.map(cat => {
+              const open = expandedCats.has(cat.id);
+              const hasSelected = cat.kits.includes(kit);
+              return (
+                <div key={cat.id} style={{ marginBottom: 12 }}>
+                  {/* Category header */}
                   <button
-                    key={k}
-                    onClick={() => handleKitSelect(k)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '12px 16px', background: sel ? `${accent.from}10` : 'transparent', border: 'none', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 150ms' }}
+                    onClick={() => setExpandedCats(prev => {
+                      const next = new Set(prev);
+                      next.has(cat.id) ? next.delete(cat.id) : next.add(cat.id);
+                      return next;
+                    })}
+                    style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '0 16px 8px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 8 }}
                   >
-                    <div style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, overflow: 'hidden', border: sel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.12)', position: 'relative' }}>
-                      <img src={KIT_IMAGE[k]} alt={KIT_LABEL[k]} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      {sel && (
-                        <div style={{ position: 'absolute', inset: 0, background: `${accent.from}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <div style={{ width: 18, height: 18, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff', fontWeight: 700 }}>✓</div>
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ color: 'var(--c-text-primary)', fontSize: 14, fontWeight: 600 }}>{KIT_LABEL[k]}</div>
-                      <div style={{ color: 'var(--c-text-muted)', fontSize: 11.5, marginTop: 2 }}>{KIT_DESC[k]}</div>
-                    </div>
-                    {sel && <div style={{ width: 7, height: 7, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
+                    <span style={{ fontSize: 11, fontWeight: 800, fontFamily: 'Manrope, sans-serif', letterSpacing: '0.07em', textTransform: 'uppercase', color: hasSelected ? accent.from : 'var(--c-text-secondary)', flex: 1 }}>
+                      {cat.label}
+                    </span>
+                    {hasSelected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
+                    <span style={{ fontSize: 12, color: 'var(--c-text-muted)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 200ms cubic-bezier(0.34,1.56,0.64,1)', flexShrink: 0, lineHeight: 1 }}>⌄</span>
                   </button>
-                );
-              })}
-            </Card>
+                  {/* Kits inside category */}
+                  {open && (
+                    <Card style={{ animation: 'drumHamburgerIn 180ms cubic-bezier(0.22,1,0.36,1)' }}>
+                      {cat.kits.map((k, i) => {
+                        const sel = k === kit;
+                        return (
+                          <button
+                            key={k}
+                            onClick={() => handleKitSelect(k)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 14px', background: sel ? `${accent.from}10` : 'transparent', border: 'none', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 150ms' }}
+                          >
+                            <div style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0, overflow: 'hidden', border: sel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.12)', position: 'relative' }}>
+                              <img src={KIT_IMAGE[k]} alt={KIT_LABEL[k]} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                              {sel && (
+                                <div style={{ position: 'absolute', inset: 0, background: `${accent.from}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700 }}>✓</div>
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ color: 'var(--c-text-primary)', fontSize: 13.5, fontWeight: 600 }}>{KIT_LABEL[k]}</div>
+                              <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{KIT_DESC[k]}</div>
+                            </div>
+                            {sel && <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
+                          </button>
+                        );
+                      })}
+                    </Card>
+                  )}
+                </div>
+              );
+            })}
             {sampleStatus !== 'idle' && (
               <div style={{ padding: '0 16px', marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, background: sampleStatus === 'loading' ? 'rgba(245,158,11,0.08)' : 'rgba(74,222,128,0.06)', border: `1px solid ${sampleStatus === 'loading' ? '#f59e0b20' : '#4ade8020'}` }}>

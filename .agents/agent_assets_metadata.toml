@@ -30,6 +30,48 @@ uri = "file://artifacts/chord-app/public/kit-tr808.png"
 type = "image"
 title = "Roland TR-808 drum machine"
 
+[[generated]]
+id = "6XEpnDyPLeQyNrZVYQSq5"
+uri = "file://artifacts/chord-app/public/kit-jazz.png"
+type = "image"
+title = "Jazz drum kit"
+
+[[generated]]
+id = "fnT5_-i8jZY22KDGa_ALm"
+uri = "file://artifacts/chord-app/public/kit-rock.png"
+type = "image"
+title = "Rock drum kit"
+
+[[generated]]
+id = "dJooGvaCGzNJ0RoEOcUsY"
+uri = "file://artifacts/chord-app/public/kit-vintage.png"
+type = "image"
+title = "Vintage 1960s drum kit"
+
+[[generated]]
+id = "_jpeBLyZ87crCkYklL0np"
+uri = "file://artifacts/chord-app/public/kit-studio.png"
+type = "image"
+title = "Studio drum kit"
+
+[[generated]]
+id = "3pi3LQrKV-y_d3Z-YSLzS"
+uri = "file://artifacts/chord-app/public/kit-linn.png"
+type = "image"
+title = "LinnDrum machine"
+
+[[generated]]
+id = "m53uWEaBlEIDG7t7tWgww"
+uri = "file://artifacts/chord-app/public/kit-funk.png"
+type = "image"
+title = "Funk drum kit"
+
+[[generated]]
+id = "G3ZPcU98dULo05B8T9bQG"
+uri = "file://artifacts/chord-app/public/kit-stark.png"
+type = "image"
+title = "Stark industrial drum machine"
+
 [[outputs]]
 id = "I5FP-fUgJVTPVlHcXq6Xl"
 uri = "file://artifacts/chord-app/public/icon-512.png"

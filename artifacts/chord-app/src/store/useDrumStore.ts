@@ -8,7 +8,10 @@ export type DrumInstrument =
   | 'tom-high' | 'tom-mid' | 'tom-floor'
   | 'kick';
 
-export type KitType = 'ludwig' | 'cr78' | 'r8' | 'tr808' | 'techno';
+export type KitType =
+  | 'ludwig' | 'jazz' | 'rock' | 'vintage'
+  | 'studio' | 'r8'   | 'linn' | 'funk'
+  | 'cr78'   | 'tr808'| 'techno'| 'stark';
 
 export const DRUM_INSTRUMENTS: DrumInstrument[] = [
   'crash', 'ride', 'hihat-open', 'hihat-closed', 'hihat-foot',
@@ -43,11 +46,21 @@ export const INSTRUMENT_COLOR: Record<DrumInstrument, string> = {
 
 // Default active instrument list per kit
 export const KIT_INSTRUMENTS: Record<KitType, DrumInstrument[]> = {
-  ludwig:   ['kick', 'snare', 'hihat-closed', 'hihat-open', 'hihat-foot', 'crash', 'ride', 'tom-high', 'tom-mid', 'tom-floor'],
-  cr78:     ['kick', 'snare', 'hihat-closed', 'crash', 'tom-high'],
-  r8:       ['kick', 'snare', 'hihat-closed', 'hihat-open', 'crash', 'ride', 'tom-high', 'tom-mid', 'tom-floor'],
-  tr808:    ['kick', 'snare', 'hihat-closed', 'hihat-open', 'crash', 'tom-high'],
-  techno:   ['kick', 'snare', 'hihat-closed', 'hihat-foot', 'crash', 'tom-high'],
+  // ── Acoustic ──
+  ludwig:  ['kick','snare','hihat-closed','hihat-open','hihat-foot','crash','ride','tom-high','tom-mid','tom-floor'],
+  jazz:    ['kick','snare','hihat-closed','hihat-open','crash','ride','tom-high','tom-mid'],
+  rock:    ['kick','snare','hihat-closed','hihat-open','hihat-foot','crash','ride','tom-high','tom-mid','tom-floor'],
+  vintage: ['kick','snare','hihat-closed','hihat-open','crash','tom-high','tom-mid','tom-floor'],
+  // ── Studio ──
+  studio:  ['kick','snare','hihat-closed','hihat-open','crash','ride','tom-high','tom-mid','tom-floor'],
+  r8:      ['kick','snare','hihat-closed','hihat-open','crash','ride','tom-high','tom-mid','tom-floor'],
+  linn:    ['kick','snare','hihat-closed','hihat-open','crash','ride','tom-high'],
+  funk:    ['kick','snare','hihat-closed','hihat-open','hihat-foot','crash','ride','tom-high'],
+  // ── Electric ──
+  cr78:    ['kick','snare','hihat-closed','crash','tom-high'],
+  tr808:   ['kick','snare','hihat-closed','hihat-open','crash','tom-high'],
+  techno:  ['kick','snare','hihat-closed','hihat-foot','crash','tom-high'],
+  stark:   ['kick','snare','hihat-closed','hihat-open','crash'],
 };
 
 export interface DrumHit { step: number; length: number; }
@@ -226,6 +239,6 @@ export const useDrumStore = create<DrumStore>()(
         }));
       },
     }),
-    { name: 'chordex-drums', version: 3 }
+    { name: 'chordex-drums', version: 4 }
   )
 );
