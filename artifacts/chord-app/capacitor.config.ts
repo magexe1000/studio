@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.chordex.app',
-  appName: 'Chordex',
+  appName: 'Studio',
   webDir: 'dist/public',
   android: {
     buildOptions: {
