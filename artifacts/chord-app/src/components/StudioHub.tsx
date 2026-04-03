@@ -15,33 +15,89 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: 'system', label: 'Auto' },
 ];
 
-// ── Greeting helper ────────────────────────────────────────────────────────────
-function getGreeting(name?: string): string {
+// ── Session index — stable within one app open, advances each fresh launch ─────
+const _SESSION_KEY = 'sx_session';
+const _INDEX_KEY   = 'sx_idx';
+
+function getSessionIndex(): number {
+  const stored = sessionStorage.getItem(_SESSION_KEY);
+  if (stored !== null) return parseInt(stored, 10);
+  const prev = parseInt(localStorage.getItem(_INDEX_KEY) ?? '-1', 10);
+  const next = prev + 1;
+  localStorage.setItem(_INDEX_KEY, String(next));
+  sessionStorage.setItem(_SESSION_KEY, String(next));
+  return next;
+}
+
+// ── Greeting pairs — greeting + subtitle are always shown together ─────────────
+interface GreetingPair { greeting: string; subtitle: string }
+
+const _NAMED_PAIRS: Array<(n: string, t: string) => GreetingPair> = [
+  (n, t) => ({ greeting: `Good ${t}, ${n}.`,              subtitle: 'What are we picking today?'         }),
+  (n)    => ({ greeting: `Welcome back, ${n}.`,           subtitle: 'Ready to lay something down?'       }),
+  (n)    => ({ greeting: `Good to see you, ${n}.`,        subtitle: "What's on the setlist today?"       }),
+  (n)    => ({ greeting: `Ready to create, ${n}.`,        subtitle: 'New progressions await.'            }),
+  (n)    => ({ greeting: `The studio is yours, ${n}.`,    subtitle: 'Choose your weapon.'                }),
+  (n)    => ({ greeting: `Back at it, ${n}.`,             subtitle: 'Consistency builds masters.'        }),
+  (n)    => ({ greeting: `Let's make something, ${n}.`,   subtitle: 'Every great song starts here.'      }),
+  (n)    => ({ greeting: `Fresh session, ${n}.`,          subtitle: 'Where will today take you?'         }),
+  (n)    => ({ greeting: `In the zone, ${n}.`,            subtitle: 'Time to make something great.'      }),
+  (n, t) => ({ greeting: `Good ${t}, ${n}.`,              subtitle: 'Your next idea is waiting.'         }),
+  (n)    => ({ greeting: `Ready to groove, ${n}.`,        subtitle: 'The rhythm is already in you.'      }),
+  (n)    => ({ greeting: `Something's brewing, ${n}.`,    subtitle: 'Follow the sound.'                  }),
+  (n)    => ({ greeting: `Let's create, ${n}.`,           subtitle: 'This session is yours.'             }),
+  (n)    => ({ greeting: `Make it count, ${n}.`,          subtitle: 'Lay it down.'                       }),
+  (n)    => ({ greeting: `Here we go, ${n}.`,             subtitle: 'Your next track starts now.'        }),
+  (n)    => ({ greeting: `Pick up where you left off, ${n}.`, subtitle: 'The studio remembers.'         }),
+  (n)    => ({ greeting: `What's the plan, ${n}.`,        subtitle: 'The studio is listening.'           }),
+  (n)    => ({ greeting: `Time to play, ${n}.`,           subtitle: 'Ready when you are.'                }),
+  (n)    => ({ greeting: `Feel the rhythm, ${n}.`,        subtitle: 'Let it flow.'                       }),
+  (n)    => ({ greeting: `Let's lay it down, ${n}.`,      subtitle: 'Give it everything.'                }),
+  (n)    => ({ greeting: `Hey ${n}.`,                     subtitle: 'Something great is one tap away.'   }),
+  (n, t) => ({ greeting: `Good ${t}, ${n}.`,              subtitle: 'Capture it before it\'s gone.'      }),
+];
+
+const _ANON_PAIRS: GreetingPair[] = [
+  { greeting: 'Good morning.',                 subtitle: 'What are we picking today?'          },
+  { greeting: 'Welcome back.',                 subtitle: 'Ready to lay something down?'        },
+  { greeting: 'The studio is open.',           subtitle: 'Choose your weapon.'                 },
+  { greeting: 'Ready to create.',              subtitle: 'New progressions await.'             },
+  { greeting: 'Good to have you here.',        subtitle: 'Let the music lead.'                 },
+  { greeting: "Let's make music.",             subtitle: 'One chord at a time.'                },
+  { greeting: 'Fresh session.',                subtitle: 'Where will today take you?'          },
+  { greeting: 'Ready to groove.',              subtitle: 'The rhythm is already in you.'       },
+  { greeting: 'In the zone.',                  subtitle: 'Time to make something great.'       },
+  { greeting: 'Pick up where you left off.',   subtitle: 'Your next idea is waiting.'          },
+  { greeting: 'The keys are waiting.',         subtitle: 'Give them something to play.'        },
+  { greeting: "Something's in the air.",       subtitle: "Capture it before it's gone."        },
+  { greeting: "Let's create.",                 subtitle: 'Every great song starts here.'       },
+  { greeting: 'Make it count.',                subtitle: 'This session is yours.'              },
+  { greeting: 'Here we go.',                   subtitle: 'Lay it down.'                        },
+  { greeting: 'Good to see you.',              subtitle: "What's on the setlist today?"        },
+  { greeting: "What's the plan?",              subtitle: 'The studio is listening.'            },
+  { greeting: 'Back at it.',                   subtitle: 'Consistency builds masters.'         },
+  { greeting: 'Time to play.',                 subtitle: 'Ready when you are.'                 },
+  { greeting: 'Feel the rhythm.',              subtitle: 'Let it flow.'                        },
+  { greeting: "Something's brewing.",          subtitle: 'Follow the sound.'                   },
+  { greeting: "Let's lay it down.",            subtitle: 'Your next track starts now.'         },
+];
+
+function getGreetingPair(name?: string, idx?: number): GreetingPair {
   const h = new Date().getHours();
   const timeWord = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
-
-  // Rotate through a small pool keyed to the current day so it changes daily
-  const day = Math.floor(Date.now() / 86_400_000);
+  const i = idx ?? 0;
 
   if (name?.trim()) {
-    const n = name.trim();
-    const pool = [
-      `Good ${timeWord}, ${n}.`,
-      `Welcome back, ${n}.`,
-      `Ready to create, ${n}.`,
-      `Good to see you, ${n}.`,
-    ];
-    return pool[day % pool.length];
+    const fn = _NAMED_PAIRS[i % _NAMED_PAIRS.length];
+    return fn(name.trim(), timeWord);
   }
 
-  const pool = [
-    `Good ${timeWord}.`,
-    'Welcome back.',
-    'Ready to create.',
-    'Let\'s make music.',
-    'Good to have you here.',
-  ];
-  return pool[day % pool.length];
+  const pair = _ANON_PAIRS[i % _ANON_PAIRS.length];
+  // Replace generic "Good morning" with time-aware version
+  return {
+    ...pair,
+    greeting: pair.greeting === 'Good morning.' ? `Good ${timeWord}.` : pair.greeting,
+  };
 }
 
 export default function StudioHub() {
@@ -60,7 +116,8 @@ export default function StudioHub() {
     }, 380);
   };
 
-  const greeting = getGreeting(settings.hubUserName);
+  const sessionIdx = getSessionIndex();
+  const { greeting, subtitle } = getGreetingPair(settings.hubUserName, sessionIdx);
 
   return (
     <div style={{
@@ -120,7 +177,7 @@ export default function StudioHub() {
                   {greeting}
                 </p>
                 <p style={{ fontSize: 14, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>
-                  What are we picking today?
+                  {subtitle}
                 </p>
               </div>
 
