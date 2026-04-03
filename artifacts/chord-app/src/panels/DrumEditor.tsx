@@ -1530,6 +1530,9 @@ export default function DrumEditor() {
   }, []);
   useEffect(() => () => { drumScheduler.stop(); }, []);
 
+  // ── Master volume → audio engine ─────────────────────────────────────────
+  useEffect(() => { drumScheduler.setMasterVolume(masterVolume); }, [masterVolume]);
+
   // ── Row visibility persistence ────────────────────────────────────────────
   useEffect(() => {
     try {
@@ -2582,10 +2585,10 @@ export default function DrumEditor() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px 10px', borderBottom: '1px solid rgba(128,128,128,0.12)', marginBottom: 2 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', flex: 1 }}>Master</span>
-                <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 700, minWidth: 30, textAlign: 'right' }}>{Math.round(masterVolume * 100)}%</span>
-                <input type="range" min={0} max={1} step={0.01} value={masterVolume}
+                <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 700, minWidth: 36, textAlign: 'right' }}>{(masterVolume * 100).toFixed(1)}%</span>
+                <input type="range" min={0} max={1} step={0.005} value={masterVolume}
                   onChange={e => setMasterVolume(parseFloat(e.target.value))}
-                  style={{ width: 90, accentColor: accent.from, flexShrink: 0 }} />
+                  style={{ width: 110, accentColor: accent.from, flexShrink: 0 }} />
                 <div style={{ width: 32, flexShrink: 0 }} />
               </div>
               {ALL_INSTS.map((inst, i) => {
