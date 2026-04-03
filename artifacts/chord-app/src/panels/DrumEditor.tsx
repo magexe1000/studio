@@ -4,11 +4,12 @@ import {
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
   useDrumStore, KIT_INSTRUMENTS,
-  stepsPerMeasure,
-  type DrumInstrument, type KitType, type DrumSong,
+  stepsPerMeasure, INST_VARIATIONS,
+  type DrumInstrument, type KitType, type DrumSong, type NoteVariation,
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, KIT_DEFAULTS,
+  getSoundForVariation,
   type SampleStatus,
 } from '../lib/drumAudio';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
@@ -37,12 +38,6 @@ const NOTE_YF: Record<DrumInstrument, number> = {
   'hihat-foot':   0.88,
 };
 
-type HeadShape = 'circle' | 'x' | 'open';
-const NOTE_HEAD: Record<DrumInstrument, HeadShape> = {
-  crash: 'x', 'hihat-closed': 'x', 'hihat-open': 'open', ride: 'x',
-  'tom-high': 'circle', snare: 'circle', 'tom-mid': 'circle',
-  'tom-floor': 'circle', kick: 'circle', 'hihat-foot': 'x',
-};
 
 const SHORT_LABEL: Record<DrumInstrument, string> = {
   kick: 'Kick', snare: 'Snare', 'hihat-closed': 'HH', 'hihat-open': 'O.HH',
@@ -102,9 +97,6 @@ type DrumMode = 'edit' | 'nav'; // edit = full-screen sheet; nav = kit/songs set
 function CircleHead({ r, color }: { r: number; color: string }) {
   return <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} />;
 }
-function OpenHead({ r, color }: { r: number; color: string }) {
-  return <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill="none" stroke={color} strokeWidth={1.4} />;
-}
 function XHead({ r, color }: { r: number; color: string }) {
   const d = r * 0.85;
   return (
@@ -114,17 +106,111 @@ function XHead({ r, color }: { r: number; color: string }) {
     </>
   );
 }
+// Ghost: small faded circle
+function GhostHead({ r, color }: { r: number; color: string }) {
+  return <ellipse cx={0} cy={0} rx={r * 0.62} ry={r * 0.62 * 0.82} fill={color} opacity={0.40} />;
+}
+// Rimshot: open ellipse with X inside
+function RimshotHead({ r, color }: { r: number; color: string }) {
+  const d = r * 0.60;
+  return (
+    <>
+      <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill="none" stroke={color} strokeWidth={1.3} />
+      <line x1={-d} y1={-d} x2={d} y2={d} stroke={color} strokeWidth={1.2} strokeLinecap="round" />
+      <line x1={d}  y1={-d} x2={-d} y2={d} stroke={color} strokeWidth={1.2} strokeLinecap="round" />
+    </>
+  );
+}
+// Flam: small grace note above-left + main filled circle
+function FlamHead({ r, color }: { r: number; color: string }) {
+  const gr = r * 0.50;
+  return (
+    <>
+      <ellipse cx={-r * 1.05} cy={-r * 0.95} rx={gr} ry={gr * 0.82} fill={color} opacity={0.72} />
+      <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} />
+    </>
+  );
+}
+// Accent: caret above + solid circle
+function AccentHead({ r, color }: { r: number; color: string }) {
+  const oy = r * 2.1;
+  return (
+    <>
+      <polyline
+        points={`${-r * 0.58},${-oy} 0,${-oy - r * 0.72} ${r * 0.58},${-oy}`}
+        fill="none" stroke={color} strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"
+      />
+      <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} />
+    </>
+  );
+}
+// Open HH: circle with X inside (standard open-hihat notation)
+function OpenHHHead({ r, color }: { r: number; color: string }) {
+  const d = r * 0.62;
+  return (
+    <>
+      <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill="none" stroke={color} strokeWidth={1.4} />
+      <line x1={-d} y1={-d} x2={d} y2={d} stroke={color} strokeWidth={1.3} strokeLinecap="round" />
+      <line x1={d}  y1={-d} x2={-d} y2={d} stroke={color} strokeWidth={1.3} strokeLinecap="round" />
+    </>
+  );
+}
+// Bell (ride): filled diamond
+function BellHead({ r, color }: { r: number; color: string }) {
+  const rx = r * 0.82; const ry = r * 0.95;
+  return <polygon points={`0,${-ry} ${rx},0 0,${ry} ${-rx},0`} fill={color} />;
+}
+// Choke (crash): circle around X
+function ChokeHead({ r, color }: { r: number; color: string }) {
+  const d = r * 0.62;
+  return (
+    <>
+      <ellipse cx={0} cy={0} rx={r * 1.08} ry={r * 0.92} fill="none" stroke={color} strokeWidth={1.2} />
+      <line x1={-d} y1={-d} x2={d} y2={d} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      <line x1={d}  y1={-d} x2={-d} y2={d} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+    </>
+  );
+}
+
+// Render the right head for a given instrument + variation
+function NoteHead({ inst, variation, r, color }: {
+  inst: DrumInstrument; variation: NoteVariation; r: number; color: string;
+}) {
+  // HH-family and cymbals that default to X
+  if (inst === 'hihat-closed') {
+    if (variation === 'open')  return <OpenHHHead r={r} color={color} />;
+    if (variation === 'pedal') return <XHead      r={r} color={color} />;
+    return <XHead r={r} color={color} />;
+  }
+  if (inst === 'crash') {
+    if (variation === 'choke') return <ChokeHead r={r} color={color} />;
+    return <XHead r={r} color={color} />;
+  }
+  if (inst === 'ride') {
+    if (variation === 'bell') return <BellHead r={r} color={color} />;
+    return <XHead r={r} color={color} />;
+  }
+  // Circle-family instruments
+  if (inst === 'snare') {
+    if (variation === 'ghost')   return <GhostHead   r={r} color={color} />;
+    if (variation === 'rimshot') return <RimshotHead r={r} color={color} />;
+    if (variation === 'flam')    return <FlamHead    r={r} color={color} />;
+    return <CircleHead r={r} color={color} />;
+  }
+  if (variation === 'accent') return <AccentHead r={r} color={color} />;
+  return <CircleHead r={r} color={color} />;
+}
 
 // ── Instrument row SVG ─────────────────────────────────────────────────────
 interface RowProps {
   inst: DrumInstrument;
   mStartIdx: number;
-  rowMeasures: { id: string; hits: Partial<Record<DrumInstrument, { step: number; length: number }[]>> }[];
+  rowMeasures: { id: string; hits: Partial<Record<DrumInstrument, { step: number; length: number; variation?: NoteVariation }[]>> }[];
   spm: number;
   stepsPerBeat: number;
   STEP_W: number;
   MEASURE_W: number;
-  hitSet: Set<number>;
+  hitMap: Map<number, NoteVariation>;
   noteColor: string;
   staffColor: string;
   barColor: string;
@@ -132,12 +218,11 @@ interface RowProps {
 }
 const InstrumentRow = ({
   inst, mStartIdx, rowMeasures, spm, stepsPerBeat, STEP_W, MEASURE_W,
-  hitSet, noteColor, staffColor, barColor, altBg,
+  hitMap, noteColor, staffColor, barColor, altBg,
 }: RowProps) => {
-  const totalW = rowMeasures.length * MEASURE_W;
-  const noteY  = NOTE_YF[inst] * ROW_H;
-  const head   = NOTE_HEAD[inst];
-  const NOTE_R = 4.5;
+  const totalW     = rowMeasures.length * MEASURE_W;
+  const defaultNoteY = NOTE_YF[inst] * ROW_H;
+  const NOTE_R     = 4.5;
 
   return (
     <svg width={totalW} height={ROW_H} viewBox={`0 0 ${totalW} ${ROW_H}`} style={{ display: 'block', overflow: 'visible', flexShrink: 0 }}>
@@ -169,20 +254,38 @@ const InstrumentRow = ({
       {rowMeasures.map((_, mi) =>
         Array.from({ length: spm }, (__, s) => {
           const globalStep = (mStartIdx + mi) * spm + s;
-          if (!hitSet.has(globalStep)) return null;
-          const cx = (mi * spm + s) * STEP_W + STEP_W / 2;
-          const cy = noteY;
+          if (!hitMap.has(globalStep)) return null;
+          const variation = hitMap.get(globalStep) ?? 'normal';
+
+          // Pedal variation of HH sits at the bottom of the row (foot position)
+          const noteY = (inst === 'hihat-closed' && variation === 'pedal')
+            ? ROW_H * 0.86
+            : defaultNoteY;
+
+          const cx     = (mi * spm + s) * STEP_W + STEP_W / 2;
+          const cy     = noteY;
           const stemUp = cy > ROW_H * 0.5;
-          const stemY1 = stemUp ? cy - NOTE_R * 0.9 : cy + NOTE_R * 0.9;
-          const stemY2 = stemUp ? cy - NOTE_R * 3.5 : cy + NOTE_R * 3.5;
+          const stemY1 = stemUp ? cy - NOTE_R * 0.9  : cy + NOTE_R * 0.9;
+          const stemY2 = stemUp ? cy - NOTE_R * 3.5  : cy + NOTE_R * 3.5;
+
+          // Ghost notes: draw a faint parenthesis pair instead of stem
+          const isGhost = variation === 'ghost';
+
           return (
             <g key={`${mi}-${s}`} transform={`translate(${cx}, ${cy})`}>
-              <line x1={stemUp ? NOTE_R * 0.75 : -NOTE_R * 0.75} y1={stemY1 - cy}
-                x2={stemUp ? NOTE_R * 0.75 : -NOTE_R * 0.75} y2={stemY2 - cy}
-                stroke={noteColor} strokeWidth={1.2} strokeLinecap="round" />
-              {head === 'circle' && <CircleHead r={NOTE_R} color={noteColor} />}
-              {head === 'open'   && <OpenHead   r={NOTE_R} color={noteColor} />}
-              {head === 'x'      && <XHead      r={NOTE_R} color={noteColor} />}
+              {isGhost ? (
+                <>
+                  <text x={-NOTE_R * 1.9} y={NOTE_R * 0.38} fontSize={NOTE_R * 1.7} fill={noteColor} opacity={0.38} fontFamily="serif" dominantBaseline="middle">(</text>
+                  <text x={NOTE_R * 0.95}  y={NOTE_R * 0.38} fontSize={NOTE_R * 1.7} fill={noteColor} opacity={0.38} fontFamily="serif" dominantBaseline="middle">)</text>
+                </>
+              ) : (
+                <line
+                  x1={stemUp ? NOTE_R * 0.75 : -NOTE_R * 0.75} y1={stemY1 - cy}
+                  x2={stemUp ? NOTE_R * 0.75 : -NOTE_R * 0.75} y2={stemY2 - cy}
+                  stroke={noteColor} strokeWidth={1.2} strokeLinecap="round"
+                />
+              )}
+              <NoteHead inst={inst} variation={variation} r={NOTE_R} color={noteColor} />
             </g>
           );
         })
@@ -445,15 +548,15 @@ export default function DrumEditor() {
     return rows;
   }, [pattern.measures, measuresPerRow]);
 
-  // ── Hit sets ─────────────────────────────────────────────────────────────
-  const allHitSets = useMemo(() => {
-    const map = new Map<DrumInstrument, Set<number>>();
+  // ── Hit maps (step → variation) ──────────────────────────────────────────
+  const allHitMaps = useMemo(() => {
+    const map = new Map<DrumInstrument, Map<number, NoteVariation>>();
     ALL_INSTS.forEach(inst => {
-      const s = new Set<number>();
+      const m2 = new Map<number, NoteVariation>();
       pattern.measures.forEach((m, mIdx) => {
-        m.hits[inst]?.forEach(h => s.add(mIdx * spm + h.step));
+        m.hits[inst]?.forEach(h => m2.set(mIdx * spm + h.step, h.variation ?? 'normal'));
       });
-      map.set(inst, s);
+      map.set(inst, m2);
     });
     return map;
   }, [pattern, spm, ALL_INSTS]);
@@ -555,8 +658,16 @@ export default function DrumEditor() {
     const m    = pattern.measures[mIdx];
     if (!m) return;
     toggleHit(pattern.id, m.id, inst, stepInM);
+    // Read new state to determine the current variation for correct preview sound
+    const newPat     = useDrumStore.getState().patterns.find(p => p.id === pattern.id);
+    const newMeasure = newPat?.measures.find(ms => ms.id === m.id);
+    const newHit     = newMeasure?.hits[inst]?.find(h => h.step === stepInM);
+    const variation  = newHit?.variation ?? 'normal';
+    const kitDefs    = KIT_DEFAULTS[kit].soundMap;
+    const previewId  = getSoundForVariation(inst, variation, soundMap, kitDefs);
+    const previewVol = variation === 'ghost' ? 0.25 : 0.55;
     if (drumScheduler.isPlaying) drumScheduler.updatePattern(useDrumStore.getState().patterns.find(p => p.id === pattern.id)!);
-    drumScheduler.previewSound(KIT_DEFAULTS[kit].soundMap[inst] ?? inst, 0.55, kit);
+    drumScheduler.previewSound(previewId, previewVol, kit);
     setFocusedInst(inst);
   };
 
@@ -788,23 +899,30 @@ export default function DrumEditor() {
 
                     {/* Instrument staves */}
                     {ALL_INSTS.map((inst, instIdx) => {
-                      const hitSet = allHitSets.get(inst) ?? new Set<number>();
+                      const hitMap = allHitMaps.get(inst) ?? new Map<number, NoteVariation>();
                       const isFoc  = focusedInst === inst;
+                      // Build a short sub-label showing available variations
+                      const varList = INST_VARIATIONS[inst];
                       return (
                         <div key={inst} style={{
                           display: 'flex', height: ROW_H,
                           borderBottom: instIdx < ALL_INSTS.length - 1 ? `1px solid ${staffColor}` : `1.5px solid ${barColor}`,
                           background: isFoc ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)') : 'transparent',
                         }}>
-                          <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', alignItems: 'center', paddingLeft: 12, paddingRight: 6, borderRight: `1px solid ${barColor}` }}>
+                          <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 12, paddingRight: 6, borderRight: `1px solid ${barColor}` }}>
                             <span style={{ fontSize: 8, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: isFoc ? 'var(--c-text-primary)' : 'var(--c-text-muted)', letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>
                               {INST_LABEL[inst]}
                             </span>
+                            {varList && varList.length > 1 && (
+                              <span style={{ fontSize: 6.5, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-muted)', opacity: 0.55, letterSpacing: '0.02em', whiteSpace: 'nowrap', marginTop: 1 }}>
+                                {varList.join(' · ')}
+                              </span>
+                            )}
                           </div>
                           <InstrumentRow
                             inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures}
                             spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W}
-                            hitSet={hitSet} noteColor={noteColor} staffColor={staffColor}
+                            hitMap={hitMap} noteColor={noteColor} staffColor={staffColor}
                             barColor={barColor} altBg={altBg}
                           />
                         </div>

@@ -1,5 +1,30 @@
-import type { DrumInstrument, DrumPattern, KitType } from '../store/useDrumStore';
+import type { DrumInstrument, DrumPattern, KitType, NoteVariation } from '../store/useDrumStore';
 import { DRUM_INSTRUMENTS, stepsPerMeasure } from '../store/useDrumStore';
+
+// ── Variation → sound/volume helpers ─────────────────────────────────────────
+
+/** Resolve the correct soundId for a hit given its variation. */
+export function getSoundForVariation(
+  inst:        DrumInstrument,
+  variation:   NoteVariation,
+  soundMap:    Partial<Record<DrumInstrument, string>>,
+  kitDefaults: Partial<Record<DrumInstrument, string>>,
+): string {
+  if (inst === 'hihat-closed') {
+    if (variation === 'open')  return soundMap['hihat-open']  ?? kitDefaults['hihat-open']  ?? 'hh-o-short';
+    if (variation === 'pedal') return soundMap['hihat-foot']  ?? kitDefaults['hihat-foot']  ?? 'hh-f-std';
+  }
+  if (inst === 'snare'  && variation === 'rimshot') return 'snare-rimshot';
+  if (inst === 'ride'   && variation === 'bell')    return 'ride-bell';
+  return soundMap[inst] ?? kitDefaults[inst] ?? defaultSoundId(inst);
+}
+
+/** Volume multiplier for a variation (applied on top of per-instrument vol). */
+export function getVolMultForVariation(variation: NoteVariation): number {
+  if (variation === 'ghost')  return 0.28;
+  if (variation === 'accent') return 1.32;
+  return 1.0;
+}
 
 // ── Kit definitions ───────────────────────────────────────────────────────────
 export const KIT_DEFAULTS: Record<KitType, {
@@ -763,14 +788,27 @@ class DrumScheduler {
     const sInM = step % spm;
     if (mIdx >= this._pattern.measures.length) return;
 
-    const measure = this._pattern.measures[mIdx];
+    const measure  = this._pattern.measures[mIdx];
+    const kitDefs  = this._kitType ? (KIT_DEFAULTS[this._kitType]?.soundMap ?? {}) : {};
+
     for (const inst of DRUM_INSTRUMENTS) {
       const hits = measure.hits[inst];
       if (!hits?.length) continue;
       const hit = hits.find(h => h.step === sInM);
       if (!hit) continue;
-      const soundId = this._soundMap[inst] ?? defaultSoundId(inst);
-      const vol     = Math.min((this._volMap[inst] ?? 1) * this._masterVol, 1.5);
+
+      const variation = hit.variation ?? 'normal';
+      const soundId   = getSoundForVariation(inst, variation, this._soundMap, kitDefs);
+      const volMult   = getVolMultForVariation(variation);
+      const baseVol   = (this._volMap[inst] ?? 1) * this._masterVol;
+      const vol       = Math.min(baseVol * volMult, 1.5);
+
+      // Flam: play a soft grace note ~20 ms before the main hit
+      if (variation === 'flam') {
+        const graceT = Math.max(time - 0.020, (_ctx?.currentTime ?? 0) + 0.002);
+        playSoundAt(soundId, graceT, vol * 0.42, _masterGain!, this._kitType);
+      }
+
       playSoundAt(soundId, time, vol, _masterGain!, this._kitType);
     }
     this._scheduled.push({ step, time });

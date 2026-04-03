@@ -8,6 +8,11 @@ export type DrumInstrument =
   | 'tom-high' | 'tom-mid' | 'tom-floor'
   | 'kick';
 
+export type NoteVariation =
+  | 'normal' | 'ghost' | 'rimshot' | 'flam'
+  | 'open' | 'pedal'
+  | 'accent' | 'bell' | 'choke';
+
 export type KitType =
   | 'ludwig' | 'jazz' | 'rock' | 'vintage'
   | 'studio' | 'r8'   | 'linn' | 'funk'
@@ -17,6 +22,20 @@ export const DRUM_INSTRUMENTS: DrumInstrument[] = [
   'crash', 'ride', 'hihat-open', 'hihat-closed', 'hihat-foot',
   'snare', 'tom-high', 'tom-mid', 'tom-floor', 'kick',
 ];
+
+// Cycling sequences per instrument.
+// First tap → 'normal', each subsequent tap advances,
+// tap past the last variation → removes the note.
+export const INST_VARIATIONS: Partial<Record<DrumInstrument, NoteVariation[]>> = {
+  snare:          ['normal', 'rimshot', 'flam', 'ghost'],
+  'hihat-closed': ['normal', 'open', 'pedal'],
+  kick:           ['normal', 'accent'],
+  'tom-high':     ['normal', 'accent'],
+  'tom-mid':      ['normal', 'accent'],
+  'tom-floor':    ['normal', 'accent'],
+  crash:          ['normal', 'choke'],
+  ride:           ['normal', 'bell'],
+};
 
 export const INSTRUMENT_NAME: Record<DrumInstrument, string> = {
   crash:          'Crash',
@@ -44,26 +63,23 @@ export const INSTRUMENT_COLOR: Record<DrumInstrument, string> = {
   kick:           '#679cff',
 };
 
-// Default active instrument list per kit
+// hihat-open and hihat-foot are now handled as variations of hihat-closed
 export const KIT_INSTRUMENTS: Record<KitType, DrumInstrument[]> = {
-  // ── Acoustic ──
-  ludwig:  ['kick','snare','hihat-closed','hihat-open','hihat-foot','crash','ride','tom-high','tom-mid','tom-floor'],
-  jazz:    ['kick','snare','hihat-closed','hihat-open','crash','ride','tom-high','tom-mid'],
-  rock:    ['kick','snare','hihat-closed','hihat-open','hihat-foot','crash','ride','tom-high','tom-mid','tom-floor'],
-  vintage: ['kick','snare','hihat-closed','hihat-open','crash','tom-high','tom-mid','tom-floor'],
-  // ── Studio ──
-  studio:  ['kick','snare','hihat-closed','hihat-open','crash','ride','tom-high','tom-mid','tom-floor'],
-  r8:      ['kick','snare','hihat-closed','hihat-open','crash','ride','tom-high','tom-mid','tom-floor'],
-  linn:    ['kick','snare','hihat-closed','hihat-open','crash','ride','tom-high'],
-  funk:    ['kick','snare','hihat-closed','hihat-open','hihat-foot','crash','ride','tom-high'],
-  // ── Electric ──
+  ludwig:  ['kick','snare','hihat-closed','crash','ride','tom-high','tom-mid','tom-floor'],
+  jazz:    ['kick','snare','hihat-closed','crash','ride','tom-high','tom-mid'],
+  rock:    ['kick','snare','hihat-closed','crash','ride','tom-high','tom-mid','tom-floor'],
+  vintage: ['kick','snare','hihat-closed','crash','tom-high','tom-mid','tom-floor'],
+  studio:  ['kick','snare','hihat-closed','crash','ride','tom-high','tom-mid','tom-floor'],
+  r8:      ['kick','snare','hihat-closed','crash','ride','tom-high','tom-mid','tom-floor'],
+  linn:    ['kick','snare','hihat-closed','crash','ride','tom-high'],
+  funk:    ['kick','snare','hihat-closed','crash','ride','tom-high'],
   cr78:    ['kick','snare','hihat-closed','crash','tom-high'],
-  tr808:   ['kick','snare','hihat-closed','hihat-open','crash','tom-high'],
-  techno:  ['kick','snare','hihat-closed','hihat-foot','crash','tom-high'],
-  stark:   ['kick','snare','hihat-closed','hihat-open','crash'],
+  tr808:   ['kick','snare','hihat-closed','crash','tom-high'],
+  techno:  ['kick','snare','hihat-closed','crash','tom-high'],
+  stark:   ['kick','snare','hihat-closed','crash'],
 };
 
-export interface DrumHit { step: number; length: number; }
+export interface DrumHit { step: number; length: number; variation?: NoteVariation; }
 export interface DrumMeasure { id: string; hits: Partial<Record<DrumInstrument, DrumHit[]>>; }
 export interface DrumPattern {
   id: string;
@@ -99,6 +115,28 @@ export function measureHasHits(m: DrumMeasure): boolean {
   return Object.values(m.hits).some(arr => arr && arr.length > 0);
 }
 
+// Migrate a set of patterns: fold hihat-open/hihat-foot hits into hihat-closed with variations
+function migratePatterns(patterns: DrumPattern[]): DrumPattern[] {
+  return patterns.map(p => ({
+    ...p,
+    measures: p.measures.map(m => {
+      const existing: DrumHit[] = [...(m.hits['hihat-closed'] ?? [])];
+      (m.hits['hihat-open'] ?? []).forEach(h => {
+        if (!existing.some(c => c.step === h.step))
+          existing.push({ ...h, variation: 'open' as NoteVariation });
+      });
+      (m.hits['hihat-foot'] ?? []).forEach(h => {
+        if (!existing.some(c => c.step === h.step))
+          existing.push({ ...h, variation: 'pedal' as NoteVariation });
+      });
+      existing.sort((a, b) => a.step - b.step);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { 'hihat-open': _o, 'hihat-foot': _f, ...rest } = m.hits as Partial<Record<string, DrumHit[]>>;
+      return { ...m, hits: { ...rest, 'hihat-closed': existing } as Partial<Record<DrumInstrument, DrumHit[]>> };
+    }),
+  }));
+}
+
 interface DrumStore {
   patterns:          DrumPattern[];
   activePatternId:   string | null;
@@ -119,7 +157,7 @@ interface DrumStore {
   duplicatePattern: (id: string) => string;
   deletePattern:    (id: string) => void;
   renamePattern:    (id: string, name: string) => void;
-  updatePattern:    (id: string, patch: Partial<Pick<DrumPattern, 'bpm' | 'timeSignature' | 'subdivision'>>) => void;
+  updatePattern:    (id: string, patch: Partial<Pick<DrumPattern, 'bpm' | 'timeSignature' | 'subdivision' | 'measures'>>) => void;
   setActivePattern: (id: string) => void;
 
   toggleHit:       (patternId: string, measureId: string, instrument: DrumInstrument, step: number) => void;
@@ -210,10 +248,21 @@ export const useDrumStore = create<DrumStore>()(
               ...p,
               measures: p.measures.map(m => {
                 if (m.id !== measureId) return m;
-                const hits = m.hits[instrument] ?? [];
-                const existing = hits.find(h => step >= h.step && step < h.step + h.length);
-                if (existing) return { ...m, hits: { ...m.hits, [instrument]: hits.filter(h => h !== existing) } };
-                return { ...m, hits: { ...m.hits, [instrument]: [...hits, { step, length: 1 }].sort((a, b) => a.step - b.step) } };
+                const hits     = m.hits[instrument] ?? [];
+                const existing = hits.find(h => h.step === step);
+                const varList  = INST_VARIATIONS[instrument] ?? ['normal'];
+                if (!existing) {
+                  const newHit: DrumHit = { step, length: 1, variation: 'normal' };
+                  return { ...m, hits: { ...m.hits, [instrument]: [...hits, newHit].sort((a, b) => a.step - b.step) } };
+                }
+                const curVar  = existing.variation ?? 'normal';
+                const curIdx  = varList.indexOf(curVar);
+                const nextIdx = curIdx < 0 ? varList.length : curIdx + 1;
+                if (nextIdx >= varList.length) {
+                  return { ...m, hits: { ...m.hits, [instrument]: hits.filter(h => h !== existing) } };
+                }
+                const updated: DrumHit = { ...existing, variation: varList[nextIdx] };
+                return { ...m, hits: { ...m.hits, [instrument]: hits.map(h => h === existing ? updated : h) } };
               }),
             };
           }),
@@ -297,11 +346,31 @@ export const useDrumStore = create<DrumStore>()(
     }),
     {
       name: 'chordex-drums',
-      version: 5,
-      migrate: (state: unknown, _version: number) => ({
-        ...(state as object),
-        drumSongs: (state as { drumSongs?: DrumSong[] }).drumSongs ?? [],
-      }),
+      version: 6,
+      migrate: (state: unknown, _version: number) => {
+        const s = state as {
+          drumSongs?: DrumSong[];
+          patterns?: DrumPattern[];
+          activeInstruments?: DrumInstrument[];
+          kitType?: KitType | null;
+          [k: string]: unknown;
+        };
+        const kitType = s.kitType ?? null;
+        const migratedPatterns = migratePatterns(s.patterns ?? [defaultPattern()]);
+        const migratedSongs = (s.drumSongs ?? []).map(song => ({
+          ...song,
+          patterns: migratePatterns(song.patterns ?? []),
+        }));
+        // Remove hihat-open/hihat-foot from activeInstruments if present
+        const filtered = (s.activeInstruments ?? KIT_INSTRUMENTS[kitType ?? 'ludwig'])
+          .filter((i: DrumInstrument) => i !== 'hihat-open' && i !== 'hihat-foot');
+        return {
+          ...s,
+          patterns: migratedPatterns,
+          drumSongs: migratedSongs,
+          activeInstruments: filtered.length > 0 ? filtered : KIT_INSTRUMENTS[kitType ?? 'ludwig'],
+        };
+      },
     }
   )
 );
