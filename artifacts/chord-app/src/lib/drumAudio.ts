@@ -34,12 +34,26 @@ export const KIT_DEFAULTS: Record<KitType, {
 }> = {
   // ── Acoustic ──────────────────────────────────────────────────────────────
   ludwig: {
-    label: 'Ludwig Classic', description: 'Warm natural acoustic — full kit',
+    label: 'Pearl Master Studio',
+    description: '10-ply maple shells · recorded by Enoe (CC-BY-3.0) · multi-mic, unprocessed',
     soundMap: { kick:'kick-acoustic', snare:'snare-fat', 'hihat-closed':'hh-c-crisp', 'hihat-open':'hh-o-long', 'hihat-foot':'hh-f-std', 'tom-high':'tom-hi-std', 'tom-mid':'tom-m-warm', 'tom-floor':'tom-f-std', crash:'crash-std', ride:'ride-std' },
   },
   jazz: {
-    label: 'Jazz Kit', description: 'Tight brushes, dry cymbals, small kit',
-    soundMap: { kick:'kick-tight', snare:'snare-brush', 'hihat-closed':'hh-c-loose', 'hihat-open':'hh-o-short', crash:'crash-bright', ride:'ride-bell', 'tom-high':'tom-hi-tight', 'tom-mid':'tom-m-std' },
+    label: 'Pearl Master Studio (Brushed)',
+    description: 'Snare-03 variant · soft hi-hat · early-room reflections · intimate jazz character',
+    soundMap: { kick:'kick-tight', snare:'snare-brush', 'hihat-closed':'hh-c-loose', 'hihat-open':'hh-o-short', crash:'crash-bright', ride:'ride-bell', 'tom-high':'tom-hi-tight', 'tom-mid':'tom-m-std', 'tom-floor':'tom-f-std' },
+  },
+  // ── Real Music Media Open Source Drum Kit ─────────────────────────────────
+  rmm: {
+    label: 'Real Music Media Open Source Drum Kit',
+    description: 'Commercial-grade studio recording · public domain · 20+ velocity layers per instrument',
+    soundMap: { kick:'kick-acoustic', snare:'snare-fat', 'hihat-closed':'hh-c-crisp', 'hihat-open':'hh-o-long', 'hihat-foot':'hh-f-std', 'tom-high':'tom-hi-std', 'tom-mid':'tom-m-warm', 'tom-floor':'tom-f-std', crash:'crash-std', ride:'ride-std' },
+  },
+  // ── Chrome Web Audio Acoustic Kit ─────────────────────────────────────────
+  chrome: {
+    label: 'Chrome Web Audio Acoustic Kit',
+    description: 'Acoustic recording by Chris Wilson (cwilso / Google) · used in original Web Audio API demos',
+    soundMap: { kick:'kick-acoustic', snare:'snare-crack', 'hihat-closed':'hh-c-crisp', 'hihat-open':'hh-o-short', 'hihat-foot':'hh-f-std', 'tom-high':'tom-hi-std', 'tom-mid':'tom-m-warm', 'tom-floor':'tom-f-std', crash:'crash-std', ride:'ride-std' },
   },
   rock: {
     label: 'Rock Kit', description: 'Big punchy kick, fat cracking snare',
@@ -114,21 +128,21 @@ export function soundVariantLabel(inst: DrumInstrument, id: string): string {
 // roomMs: early-reflection delay in ms (0 = dry).  Used for jazz & vintage.
 interface KitInstCfg { rate: number; gain: number; roomMs?: number }
 const KIT_ACOUSTIC_CFG: Partial<Record<KitType, Partial<Record<DrumInstrument, KitInstCfg>>>> = {
-  // Ludwig Classic — natural/warm. Toms are distinct Pearl recordings; counteract BASE_RATE
-  // to play each at its native pitch (BASE_RATE: tom-high×1.35, tom-floor×0.80).
+  // Pearl Master Studio — natural/warm. Counteract BASE_RATE to play toms at native pitch.
   ludwig: {
     'tom-high':     { rate: 0.74, gain: 1.00 },   // 1.35 × 0.74 ≈ 1.00 — native pitch
     'tom-floor':    { rate: 1.25, gain: 1.00 },   // 0.80 × 1.25 = 1.00 — native pitch
   },
-  // Jazz — intimate small-room: slightly lower body, soft room bloom on toms/snare
+  // Pearl Master Studio (Brushed) — intimate small-room, soft room bloom
   jazz: {
     kick:           { rate: 0.87, gain: 0.80, roomMs: 18 },
     snare:          { rate: 0.90, gain: 0.70, roomMs: 14 },
     'hihat-closed': { rate: 0.96, gain: 0.56 },
     'hihat-open':   { rate: 0.96, gain: 0.60 },
     'hihat-foot':   { rate: 0.96, gain: 0.50 },
-    'tom-high':     { rate: 0.63, gain: 0.80, roomMs: 16 }, // 1.35×0.63≈0.85 — low jazz tom
+    'tom-high':     { rate: 0.63, gain: 0.80, roomMs: 16 },
     'tom-mid':      { rate: 0.90, gain: 0.80, roomMs: 14 },
+    'tom-floor':    { rate: 1.10, gain: 0.80, roomMs: 18 },
   },
   // Rock — punchy, cracking attack; toms at native-pitch (Pearl already tuned distinctly)
   rock: {
@@ -137,9 +151,9 @@ const KIT_ACOUSTIC_CFG: Partial<Record<KitType, Partial<Record<DrumInstrument, K
     'hihat-closed': { rate: 1.02, gain: 1.04 },
     'hihat-open':   { rate: 1.00, gain: 1.00 },
     'hihat-foot':   { rate: 1.02, gain: 1.02 },
-    'tom-high':     { rate: 0.74, gain: 1.12 },   // 1.35×0.74≈1.00 — native, extra punch
+    'tom-high':     { rate: 0.74, gain: 1.12 },
     'tom-mid':      { rate: 1.05, gain: 1.10 },
-    'tom-floor':    { rate: 1.19, gain: 1.12 },   // 0.80×1.19≈0.95 — deep floor tom
+    'tom-floor':    { rate: 1.19, gain: 1.12 },
   },
   // Vintage '60s — boomy/warm; all toms lowered & given generous early room decay
   vintage: {
@@ -147,9 +161,34 @@ const KIT_ACOUSTIC_CFG: Partial<Record<KitType, Partial<Record<DrumInstrument, K
     snare:          { rate: 0.80, gain: 0.84, roomMs: 20 },
     'hihat-closed': { rate: 0.90, gain: 0.72 },
     'hihat-open':   { rate: 0.90, gain: 0.78 },
-    'tom-high':     { rate: 0.59, gain: 0.90, roomMs: 20 }, // 1.35×0.59≈0.80 — warm
+    'tom-high':     { rate: 0.59, gain: 0.90, roomMs: 20 },
     'tom-mid':      { rate: 0.84, gain: 0.90, roomMs: 20 },
-    'tom-floor':    { rate: 1.06, gain: 0.90, roomMs: 20 }, // 0.80×1.06≈0.85 — deep boom
+    'tom-floor':    { rate: 1.06, gain: 0.90, roomMs: 20 },
+  },
+  // Real Music Media OSDK — punchy studio feel, slight brightness boost.
+  // Only one tom size in the kit; rate-shift to simulate hi/mid/floor.
+  rmm: {
+    kick:           { rate: 1.02, gain: 1.10 },
+    snare:          { rate: 1.04, gain: 1.15 },
+    'hihat-closed': { rate: 1.00, gain: 1.00 },
+    'hihat-open':   { rate: 1.00, gain: 1.00 },
+    'hihat-foot':   { rate: 1.00, gain: 0.90 },
+    'tom-high':     { rate: 1.40, gain: 1.05 },   // pitch up for hi tom
+    'tom-mid':      { rate: 1.00, gain: 1.05 },   // natural pitch for mid
+    'tom-floor':    { rate: 0.68, gain: 1.10 },   // pitch down for floor tom
+    crash:          { rate: 1.00, gain: 1.00 },
+    ride:           { rate: 1.00, gain: 0.95 },
+  },
+  // Chrome Web Audio Acoustic — bright, articulate; keep natural character
+  chrome: {
+    kick:           { rate: 1.00, gain: 1.05 },
+    snare:          { rate: 1.00, gain: 1.00 },
+    'hihat-closed': { rate: 1.05, gain: 0.95 },
+    'hihat-open':   { rate: 1.00, gain: 1.00 },
+    'hihat-foot':   { rate: 1.00, gain: 0.85 },
+    'tom-high':     { rate: 1.00, gain: 1.00 },
+    'tom-mid':      { rate: 1.00, gain: 1.00 },
+    'tom-floor':    { rate: 1.00, gain: 1.05 },
   },
 };
 
@@ -215,8 +254,9 @@ function makeNoise(ctx: AudioContext, dur: number): AudioBuffer {
 }
 
 // ── Kit-specific sample URLs ──────────────────────────────────────────────────
-// Primary: oramics.github.io/sampled — GitHub Pages, CORS *, professionally recorded
-// Fallback: cwilso MIDIDrums + Tone.js CDN
+// PEARL  — oramics.github.io/sampled  GitHub Pages, CORS *, CC-BY-3.0
+// OSDK   — raw.githubusercontent.com/crabacus  Real Music Media, Public Domain, 20+ velocity layers
+// MIDI   — raw.githubusercontent.com/cwilso   Chrome Web Audio API acoustic kit
 const PEARL  = 'https://oramics.github.io/sampled/DRUMS/pearl-master-studio/samples/'; // CC-BY-3.0
 const LM2    = 'https://oramics.github.io/sampled/DM/LM-2/samples/';                   // Public Domain
 const CR78O  = 'https://oramics.github.io/sampled/DM/CR-78/samples/';                  // Public Domain
@@ -224,6 +264,8 @@ const TR505  = 'https://oramics.github.io/sampled/DM/TR-505/samples/';          
 const TR909  = 'https://oramics.github.io/sampled/DM/TR-909/Detroit/samples/';         // free
 const MIDI   = 'https://raw.githubusercontent.com/cwilso/MIDIDrums/master/sounds/drum-samples/';
 const TONEJS = 'https://tonejs.github.io/audio/drum-samples/';
+// Real Music Media Open Source Drum Kit — public domain, commercial studio quality
+const OSDK   = 'https://raw.githubusercontent.com/crabacus/the-open-source-drumkit/master/';
 
 // Each kit maps to real recorded samples; first URL is primary, rest are fallbacks.
 const KIT_SAMPLE_URLS: Record<KitType, Partial<Record<DrumInstrument, string[]>>> = {
@@ -241,15 +283,16 @@ const KIT_SAMPLE_URLS: Record<KitType, Partial<Record<DrumInstrument, string[]>>
     crash:          [`${PEARL}crash-01.wav`,           `${TONEJS}CR78/crash.mp3`],
     ride:           [`${PEARL}ride-01.wav`,            `${TONEJS}CR78/ride.mp3`],
   },
-  // Jazz Kit — same Pearl kit, softer snare variation + ride cymbal 2
+  // Pearl Master Studio (Brushed) — snare-03 is the most open/roomy variation
   jazz: {
     kick:           [`${PEARL}kick-01.wav`,            `${MIDI}acoustic-kit/kick.wav`],
-    snare:          [`${PEARL}snare-02.wav`,           `${MIDI}acoustic-kit/snare.wav`],
+    snare:          [`${PEARL}snare-03.wav`,           `${PEARL}snare-02.wav`,        `${MIDI}acoustic-kit/snare.wav`],
     'hihat-closed': [`${PEARL}hihat-closed.wav`,       `${MIDI}acoustic-kit/hihat.wav`],
     'hihat-open':   [`${PEARL}hihat-open.wav`,         `${MIDI}acoustic-kit/hihat.wav`],
     'hihat-foot':   [`${PEARL}hihat-closed.wav`,       `${MIDI}acoustic-kit/hihat.wav`],
     'tom-high':     [`${PEARL}tom-01.wav`,             `${MIDI}acoustic-kit/tom1.wav`],
     'tom-mid':      [`${PEARL}tom-02.wav`,             `${MIDI}acoustic-kit/tom2.wav`],
+    'tom-floor':    [`${PEARL}tom-03.wav`,             `${MIDI}acoustic-kit/tom3.wav`],
     crash:          [`${PEARL}crash-02.wav`,           `${TONEJS}CR78/crash.mp3`],
     ride:           [`${PEARL}ride-02.wav`,            `${TONEJS}CR78/ride.mp3`],
   },
@@ -367,6 +410,37 @@ const KIT_SAMPLE_URLS: Record<KitType, Partial<Record<DrumInstrument, string[]>>
     ride:           [`${TR909}ride.wav`,               `${TONEJS}CR78/ride.mp3`],
     'tom-high':     [`${TR909}tom-h.wav`,              `${MIDI}4OP-FM/tom1.wav`],
     'tom-floor':    [`${TR909}tom-l.wav`,              `${MIDI}4OP-FM/tom3.wav`],
+  },
+  // ── Real Music Media Open Source Drum Kit (crabacus/the-open-source-drumkit) ──
+  // Public Domain. 20+ velocity layers. kick10/snare-top10 = mid-velocity (natural feel).
+  // All toms use the same "large-tom" sample; rate-shifting in KIT_ACOUSTIC_CFG creates hi/mid/floor.
+  // Pearl hihat used as primary (crabacus hihat has non-standard filenames).
+  rmm: {
+    kick:           [`${OSDK}kick/kick10.wav`,          `${OSDK}kick/kick8.wav`,       `${PEARL}kick-01.wav`,   `${MIDI}acoustic-kit/kick.wav`],
+    snare:          [`${OSDK}snare/snare-top10.wav`,    `${OSDK}snare/snare-top8.wav`, `${PEARL}snare-01.wav`,  `${MIDI}acoustic-kit/snare.wav`],
+    'hihat-closed': [`${PEARL}hihat-closed.wav`,        `${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-open':   [`${PEARL}hihat-open.wav`,          `${MIDI}acoustic-kit/hihat.wav`],
+    'hihat-foot':   [`${PEARL}hihat-closed.wav`,        `${MIDI}acoustic-kit/hihat.wav`],
+    'tom-high':     [`${OSDK}toms/large-tom5.wav`,      `${OSDK}toms/large-tom3.wav`,  `${PEARL}tom-01.wav`,   `${MIDI}acoustic-kit/tom1.wav`],
+    'tom-mid':      [`${OSDK}toms/large-tom5.wav`,      `${OSDK}toms/large-tom3.wav`,  `${PEARL}tom-02.wav`,   `${MIDI}acoustic-kit/tom2.wav`],
+    'tom-floor':    [`${OSDK}toms/large-tom5.wav`,      `${OSDK}toms/large-tom3.wav`,  `${PEARL}tom-03.wav`,   `${MIDI}acoustic-kit/tom3.wav`],
+    crash:          [`${OSDK}crash/crash10.wav`,        `${OSDK}crash/crash8.wav`,     `${PEARL}crash-01.wav`, `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${OSDK}ride/ride-mid-in8.wav`,    `${OSDK}ride/ride-mid-out5.wav`,`${PEARL}ride-01.wav`, `${TONEJS}CR78/ride.mp3`],
+  },
+  // ── Chrome Web Audio Acoustic Kit (cwilso/MIDIDrums acoustic-kit) ─────────
+  // By Chris Wilson (Google). Used in the original Chrome Web Audio API demo.
+  // Simple 1-layer per instrument; Pearl cymbals used as they are not in this kit.
+  chrome: {
+    kick:           [`${MIDI}acoustic-kit/kick.wav`,    `${PEARL}kick-01.wav`],
+    snare:          [`${MIDI}acoustic-kit/snare.wav`,   `${PEARL}snare-01.wav`],
+    'hihat-closed': [`${MIDI}acoustic-kit/hihat.wav`,   `${PEARL}hihat-closed.wav`],
+    'hihat-open':   [`${MIDI}acoustic-kit/hihat.wav`,   `${PEARL}hihat-open.wav`],
+    'hihat-foot':   [`${MIDI}acoustic-kit/hihat.wav`,   `${PEARL}hihat-closed.wav`],
+    'tom-high':     [`${MIDI}acoustic-kit/tom1.wav`,    `${PEARL}tom-01.wav`],
+    'tom-mid':      [`${MIDI}acoustic-kit/tom2.wav`,    `${PEARL}tom-02.wav`],
+    'tom-floor':    [`${MIDI}acoustic-kit/tom3.wav`,    `${PEARL}tom-03.wav`],
+    crash:          [`${PEARL}crash-01.wav`,            `${TONEJS}CR78/crash.mp3`],
+    ride:           [`${PEARL}ride-01.wav`,             `${TONEJS}CR78/ride.mp3`],
   },
 };
 

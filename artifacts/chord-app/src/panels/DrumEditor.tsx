@@ -55,13 +55,14 @@ const INST_LABEL: Record<DrumInstrument, string> = {
   'tom-floor': 'Floor Tom', crash: 'Crash', ride: 'Ride',
 };
 const KIT_LABEL: Record<KitType, string> = {
-  ludwig: 'Ludwig Classic', jazz: 'Jazz Kit',     rock: 'Rock Kit',   vintage: "Vintage '60s",
-  studio: 'Studio A',       r8:   'Roland R8',    linn: 'LinnDrum',   funk: 'Funk Kit',
-  cr78:   'Roland CR-78',   tr808:'Roland TR-808', techno:'Techno Kit', stark:'Stark Industrial',
+  ludwig: 'Pearl Master Studio',  jazz: 'Pearl Master (Brushed)', rock: 'Rock Kit',   vintage: "Vintage '60s",
+  studio: 'Studio A',             r8:   'Roland R8',    linn: 'LinnDrum',   funk: 'Funk Kit',
+  cr78:   'Roland CR-78',         tr808:'Roland TR-808', techno:'Techno Kit', stark:'Stark Industrial',
+  rmm:    'Real Music Media OSDK', chrome:'Chrome Acoustic',
 };
 const KIT_DESC: Record<KitType, string> = {
-  ludwig: 'Warm natural acoustic · full kit',
-  jazz:   'Tight brushes · dry cymbals · small kit',
+  ludwig: 'Pearl Master Studio · 10-ply maple shells · CC-BY-3.0',
+  jazz:   'Pearl Master Studio (brush) · snare-03 · jazz room bloom',
   rock:   'Big punchy kick · fat cracking snare',
   vintage:'Woodsy warm tones · open resonance',
   studio: 'Clean compressed bright studio kit',
@@ -72,6 +73,8 @@ const KIT_DESC: Record<KitType, string> = {
   tr808:  'Deep bass hip-hop classic · 1980',
   techno: 'Hard punching industrial rave',
   stark:  'Cold metallic machine sounds',
+  rmm:    'Real Music Media Open Source Kit · 20+ velocity layers · public domain',
+  chrome: 'Chrome Web Audio Acoustic · cwilso / Google · Web Audio API demo',
 };
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 const KIT_IMAGE: Record<KitType, string> = {
@@ -87,9 +90,11 @@ const KIT_IMAGE: Record<KitType, string> = {
   tr808:  `${BASE}/kit-tr808.webp`,
   techno: `${BASE}/kit-electronic.webp`,
   stark:  `${BASE}/kit-stark.webp`,
+  rmm:    `${BASE}/kit-acoustic.webp`,
+  chrome: `${BASE}/kit-acoustic.webp`,
 };
 const KIT_CATEGORIES: { id: string; label: string; kits: KitType[] }[] = [
-  { id: 'acoustic', label: 'Acoustic Drums', kits: ['ludwig', 'jazz', 'rock', 'vintage'] },
+  { id: 'acoustic', label: 'Acoustic Drums', kits: ['ludwig', 'jazz', 'rmm', 'chrome'] },
   { id: 'studio',   label: 'Studio Drums',   kits: ['studio', 'r8', 'linn', 'funk'] },
   { id: 'electric', label: 'Electric Drums', kits: ['cr78', 'tr808', 'techno', 'stark'] },
 ];

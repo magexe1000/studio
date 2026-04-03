@@ -16,7 +16,8 @@ export type NoteVariation =
 export type KitType =
   | 'ludwig' | 'jazz' | 'rock' | 'vintage'
   | 'studio' | 'r8'   | 'linn' | 'funk'
-  | 'cr78'   | 'tr808'| 'techno'| 'stark';
+  | 'cr78'   | 'tr808'| 'techno'| 'stark'
+  | 'rmm'    | 'chrome';
 
 export const DRUM_INSTRUMENTS: DrumInstrument[] = [
   'crash', 'ride', 'hihat-open', 'hihat-closed', 'hihat-foot',
@@ -67,7 +68,7 @@ export const INSTRUMENT_COLOR: Record<DrumInstrument, string> = {
 // hihat-open and hihat-foot are now handled as variations of hihat-closed
 export const KIT_INSTRUMENTS: Record<KitType, DrumInstrument[]> = {
   ludwig:  ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
-  jazz:    ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid'],
+  jazz:    ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
   rock:    ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
   vintage: ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
   studio:  ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
@@ -78,6 +79,9 @@ export const KIT_INSTRUMENTS: Record<KitType, DrumInstrument[]> = {
   tr808:   ['hihat-closed','snare','kick','crash','tom-high'],
   techno:  ['hihat-closed','snare','kick','crash','tom-high'],
   stark:   ['hihat-closed','snare','kick','crash'],
+  // ── New high-quality acoustic kits ─────────────────────────────────────────
+  rmm:     ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
+  chrome:  ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
 };
 
 export interface DrumHit { step: number; length: number; variation?: NoteVariation; }
@@ -90,34 +94,26 @@ export interface KitVariation { kit: KitType; label: string; desc: string; }
 export interface KitFamilyEntry { id: string; label: string; emoji: string; variations: KitVariation[]; }
 export const KIT_FAMILY: KitFamilyEntry[] = [
   { id: 'acoustic', label: 'Acoustic', emoji: '🥁', variations: [
-    { kit: 'ludwig',  label: 'Clean',   desc: 'Warm, natural full-kit sound'       },
-    { kit: 'studio',  label: 'Room',    desc: 'Close-mic studio recording'         },
-    { kit: 'vintage', label: 'Vintage', desc: "Open '60s resonance"               },
-    { kit: 'rock',    label: 'Punchy',  desc: 'Big attack, tight sustain'          },
-  ]},
-  { id: 'rock', label: 'Rock', emoji: '🎸', variations: [
-    { kit: 'rock',    label: 'Standard',   desc: 'Cracking snare, punchy kick'    },
-    { kit: 'ludwig',  label: 'Classic',    desc: 'Warm vintage rock tones'        },
-    { kit: 'funk',    label: 'Funk',       desc: 'Tight snappy groove kit'        },
-    { kit: 'stark',   label: 'Industrial', desc: 'Cold metallic machine sounds'   },
-  ]},
-  { id: 'jazz', label: 'Jazz', emoji: '🎷', variations: [
-    { kit: 'jazz',    label: 'Standard', desc: 'Tight brushes, dry cymbals'       },
-    { kit: 'vintage', label: 'Vintage',  desc: 'Woodsy warm open resonance'       },
-    { kit: 'cr78',    label: 'CR-78',    desc: '1978 vintage analog machine'      },
-    { kit: 'linn',    label: 'LinnDrum', desc: '1982 sample-based machine'        },
-  ]},
-  { id: 'electronic', label: 'Electronic', emoji: '🎛️', variations: [
-    { kit: 'tr808',   label: '808',     desc: 'Deep bass hip-hop classic'         },
-    { kit: 'techno',  label: 'Techno',  desc: 'Hard punching industrial rave'     },
-    { kit: 'r8',      label: 'Lo-fi',   desc: 'Warm electronic-acoustic hybrid'   },
-    { kit: 'linn',    label: 'Digital', desc: 'Crisp LinnDrum sample machine'     },
-  ]},
-  { id: 'studio', label: 'Studio', emoji: '🎚️', variations: [
-    { kit: 'studio',  label: 'Balanced', desc: 'Clean compressed studio kit'      },
-    { kit: 'r8',      label: 'Tight',    desc: 'Punchy 1989 hybrid'              },
-    { kit: 'ludwig',  label: 'Wide',     desc: 'Warm, wide natural staging'       },
-    { kit: 'funk',    label: 'Warm',     desc: 'Snappy groove machine'            },
+    {
+      kit: 'ludwig',
+      label: 'Clean',
+      desc: 'Pearl Master Studio — 10-ply maple shells, recorded by Enoe (CC-BY-3.0). Multi-mic, unprocessed natural tone.',
+    },
+    {
+      kit: 'rmm',
+      label: 'Open Source',
+      desc: 'Real Music Media Open Source Drum Kit — commercial-grade studio recording released to the public domain. 20+ velocity layers.',
+    },
+    {
+      kit: 'chrome',
+      label: 'Live',
+      desc: 'Chrome Web Audio Acoustic Kit — real acoustic recording by Chris Wilson (cwilso / Google). Used in the original Web Audio API demo.',
+    },
+    {
+      kit: 'jazz',
+      label: 'Brushed',
+      desc: 'Pearl Master Studio (brush character) — snare-03 variant, soft hi-hat, generous early-room reflections for intimate jazz feel.',
+    },
   ]},
 ];
 export type GrooveTag = typeof GROOVE_TAGS[number] | '';
