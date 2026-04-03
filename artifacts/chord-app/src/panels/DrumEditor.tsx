@@ -3,15 +3,15 @@ import {
 } from 'react';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
-  useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, KIT_FAMILY,
+  useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, KIT_FAMILY, HOUSE_MICS,
   stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX,
-  type DrumInstrument, type KitType, type DrumSong, type DrumMeasure, type NoteVariation,
+  type DrumInstrument, type KitType, type HouseMic, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
   type InstPlugin,
 } from '../store/useDrumStore';
 import {
-  drumScheduler, samplePool, loadDrumSamples, KIT_DEFAULTS,
-  getSoundForVariation, setInstFXMap, setInstPluginMap,
+  drumScheduler, samplePool, loadDrumSamples, loadHouseKit, houseKitPool,
+  setHouseKitMic, KIT_DEFAULTS, getSoundForVariation, setInstFXMap, setInstPluginMap,
   type SampleStatus,
 } from '../lib/drumAudio';
 import { PLUGIN_REGISTRY, defaultParamsFor } from '../lib/drumPlugins';
@@ -60,7 +60,7 @@ const KIT_LABEL: Record<KitType, string> = {
   ludwig: 'Pearl Master Studio',  jazz: 'Pearl Master (Brushed)', rock: 'Rock Kit',   vintage: "Vintage '60s",
   studio: 'Studio A',             r8:   'Roland R8',    linn: 'LinnDrum',   funk: 'Funk Kit',
   cr78:   'Roland CR-78',         tr808:'Roland TR-808', techno:'Techno Kit', stark:'Stark Industrial',
-  rmm:    'Real Music Media OSDK', chrome:'Chrome Acoustic',
+  rmm:    'Real Music Media OSDK', chrome:'Chrome Acoustic', house: 'House Kit',
 };
 const KIT_DESC: Record<KitType, string> = {
   ludwig: 'Pearl Master Studio · 10-ply maple shells · CC-BY-3.0',
@@ -77,6 +77,7 @@ const KIT_DESC: Record<KitType, string> = {
   stark:  'Cold metallic machine sounds',
   rmm:    'Real Music Media Open Source Kit · 20+ velocity layers · public domain',
   chrome: 'Chrome Web Audio Acoustic · cwilso / Google · Web Audio API demo',
+  house:  'Ultra HD · multi-velocity · round-robin real samples · 4 mic positions',
 };
 // ── Per-instrument character presets ─────────────────────────────────────────
 // Each preset applies a curated combination of FX values in one tap.
@@ -145,11 +146,13 @@ const KIT_IMAGE: Record<KitType, string> = {
   tr808:  `${BASE}/kit-tr808.webp`,
   techno: `${BASE}/kit-electronic.webp`,
   stark:  `${BASE}/kit-stark.webp`,
+  house:  `${BASE}/kit-warm.png`,
 };
 const KIT_CATEGORIES: { id: string; label: string; kits: KitType[] }[] = [
   { id: 'acoustic', label: 'Acoustic Drums', kits: ['ludwig', 'jazz', 'rmm', 'chrome'] },
   { id: 'studio',   label: 'Studio Drums',   kits: ['studio', 'r8', 'linn', 'funk'] },
   { id: 'electric', label: 'Electric Drums', kits: ['cr78', 'tr808', 'techno', 'stark'] },
+  { id: 'ultrahd',  label: 'Ultra HD',       kits: ['house'] },
 ];
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
@@ -1159,6 +1162,7 @@ export default function DrumEditor() {
     grooves, saveGroove, deleteGroove, renameGroove, loadGrooveReplace, loadGrooveAppend, duplicateGroove,
     instFX, setInstFX,
     instPlugins, setInstPlugins,
+    houseKitMic, setHouseKitMic: storeSetHouseKitMic,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -1188,6 +1192,8 @@ export default function DrumEditor() {
   const [playing, setPlaying]               = useState(false);
   const [looping, setLooping]               = useState(true);
   const [sampleStatus, setSampleStatus]     = useState<SampleStatus>('idle');
+  const [houseLoaded,  setHouseLoaded]      = useState(false);
+  const [houseProgress, setHouseProgress]  = useState({ loaded: 0, total: 0 });
   const [showBpmPanel,   setShowBpmPanel]   = useState(false);
   const [showHamburger,  setShowHamburger]  = useState(false);
   const [expandedCats,   setExpandedCats]   = useState<Set<string>>(() => new Set(['acoustic']));
@@ -1327,6 +1333,20 @@ export default function DrumEditor() {
     return () => { samplePool.onStatusChange = null; };
   }, []);
   useEffect(() => { if (kitType) loadDrumSamples(kitType); }, [kitType]);
+
+  // House kit: load Opus samples when kit === 'house' or mic changes
+  useEffect(() => {
+    if (kit !== 'house') return;
+    houseKitPool.onStatusChange = (loaded, total) => {
+      setHouseProgress({ loaded, total });
+      if (loaded >= total) setHouseLoaded(true);
+    };
+    setHouseLoaded(houseKitPool.ready);
+    loadHouseKit(houseKitMic);
+    return () => { houseKitPool.onStatusChange = null; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kit, houseKitMic]);
+
   useEffect(() => { if (playing) drumScheduler.updatePattern(pattern); }, [pattern, playing]);
 
   // ── Auto-save: persist patterns/kit into the loaded song whenever they change
@@ -1411,16 +1431,20 @@ export default function DrumEditor() {
     const vol: Partial<Record<DrumInstrument, number>> = {};
     activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
     if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
-    else { loadDrumSamples(kit); drumScheduler.start(pattern, sm, vol, masterVolume, looping, kit); setPlaying(true); }
-  }, [pattern, kit, soundMap, volumeMap, activeInstruments, masterVolume, looping]);
+    else {
+      if (kit === 'house') loadHouseKit(houseKitMic); else loadDrumSamples(kit);
+      drumScheduler.start(pattern, sm, vol, masterVolume, looping, kit); setPlaying(true);
+    }
+  }, [pattern, kit, soundMap, volumeMap, activeInstruments, masterVolume, looping, houseKitMic]);
 
   // ── Kit ──────────────────────────────────────────────────────────────────
   const handleKitSelect = useCallback((k: KitType) => {
     if (kitType === k) return;
     setKitType(k, KIT_DEFAULTS[k].soundMap);
-    loadDrumSamples(k);
+    if (k === 'house') loadHouseKit(houseKitMic);
+    else loadDrumSamples(k);
     if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
-  }, [setKitType, kitType]);
+  }, [setKitType, kitType, houseKitMic]);
 
   // ── Groove Library ────────────────────────────────────────────────────────
   const filteredGrooves = grooveFilter
@@ -1535,7 +1559,7 @@ export default function DrumEditor() {
     const id = createBlankDrumSong(createName, createArtist, bpm, createNotes, createVariant);
     loadDrumSong(id);
     setKitType(createVariant, KIT_DEFAULTS[createVariant].soundMap);
-    loadDrumSamples(createVariant);
+    if (createVariant === 'house') loadHouseKit(houseKitMic); else loadDrumSamples(createVariant);
     setActiveDrumSongId(id);
     setInEditor(true);
     setActiveTab('songs');
@@ -1581,12 +1605,12 @@ export default function DrumEditor() {
     loadDrumSong(song.id);
     if (song.kitType) {
       setKitType(song.kitType, KIT_DEFAULTS[song.kitType].soundMap);
-      loadDrumSamples(song.kitType);
+      if (song.kitType === 'house') loadHouseKit(houseKitMic); else loadDrumSamples(song.kitType);
     }
     setActiveDrumSongId(song.id);
     setInEditor(true);
     setActiveTab('songs');
-  }, [loadDrumSong, setKitType]);
+  }, [loadDrumSong, setKitType, houseKitMic]);
 
   const handleStartEdit = useCallback((song: DrumSong) => {
     setEditingSong(song);
@@ -1665,6 +1689,42 @@ export default function DrumEditor() {
       {inEditor && showHamburger && (
         <div style={{ flexShrink: 0, overflow: 'hidden', background: isAmoled ? '#000' : (isLight ? 'rgba(250,249,247,0.98)' : 'rgba(14,14,17,0.98)'), borderBottom: '1px solid rgba(128,128,128,0.10)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', animation: 'drumHamburgerIn 200ms cubic-bezier(0.22,1,0.36,1)' }}>
           <div style={{ padding: '10px 16px 14px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* ── House Kit mic selector ──────────────────────────────────── */}
+            {kit === 'house' && (<>
+              <div style={{ padding: '8px 4px 4px' }}>
+                <span style={{ color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  Mic Position
+                </span>
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  {HOUSE_MICS.map(m => {
+                    const active = houseKitMic === m.id;
+                    return (
+                      <button key={m.id} className="btn-smooth"
+                        onClick={() => {
+                          storeSetHouseKitMic(m.id);
+                          setHouseKitMic(m.id);
+                        }}
+                        style={{ flex: 1, height: 30, borderRadius: 8, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(128,128,128,0.12)', background: active ? `${accent.from}1a` : 'rgba(128,128,128,0.06)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all 160ms', fontFamily: 'Manrope,sans-serif' }}>
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {!houseLoaded && (
+                  <div style={{ marginTop: 5, fontSize: 10.5, color: 'var(--c-text-muted)', fontFamily: 'Inter,sans-serif' }}>
+                    {houseProgress.total > 0
+                      ? `Loading… ${houseProgress.loaded}/${houseProgress.total}`
+                      : 'Loading samples…'}
+                  </div>
+                )}
+                {houseLoaded && (
+                  <div style={{ marginTop: 5, fontSize: 10.5, color: accent.from, fontFamily: 'Inter,sans-serif' }}>
+                    ✓ Samples ready
+                  </div>
+                )}
+              </div>
+              <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
+            </>)}
             <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 12 }}>
               <span style={{ flex: 1, color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Loop</span>
               <button onClick={() => setLooping(l => !l)} style={{ width: 40, height: 22, borderRadius: 11, background: looping ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.18)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 220ms', flexShrink: 0 }}>

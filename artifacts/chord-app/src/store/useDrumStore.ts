@@ -19,7 +19,15 @@ export type KitType =
   | 'ludwig' | 'jazz' | 'rock' | 'vintage'
   | 'studio' | 'r8'   | 'linn' | 'funk'
   | 'cr78'   | 'tr808'| 'techno'| 'stark'
-  | 'rmm'    | 'chrome';
+  | 'rmm'    | 'chrome'| 'house';
+
+export type HouseMic = 'blend' | 'close' | 'oh' | 'room';
+export const HOUSE_MICS: { id: HouseMic; label: string; desc: string }[] = [
+  { id: 'blend', label: 'Blend',  desc: 'Mixed multi-mic for balanced, production-ready tone'  },
+  { id: 'close', label: 'Close',  desc: 'Close mic only — punchy, dry, very direct'            },
+  { id: 'oh',    label: 'OH',     desc: 'Overhead — open, airy, natural room perspective'       },
+  { id: 'room',  label: 'Room',   desc: 'Room mic — spacious live ambience'                     },
+];
 
 export const DRUM_INSTRUMENTS: DrumInstrument[] = [
   'crash', 'ride', 'hihat-open', 'hihat-closed', 'hihat-foot',
@@ -84,6 +92,8 @@ export const KIT_INSTRUMENTS: Record<KitType, DrumInstrument[]> = {
   // ── New high-quality acoustic kits ─────────────────────────────────────────
   rmm:     ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
   chrome:  ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
+  // ── Ultra-realistic multi-velocity sampled kit ────────────────────────────
+  house:   ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
 };
 
 export interface DrumHit { step: number; length: number; variation?: NoteVariation; }
@@ -112,6 +122,13 @@ export const DEFAULT_INST_FX: InstFX = {
 export interface KitVariation { kit: KitType; label: string; desc: string; }
 export interface KitFamilyEntry { id: string; label: string; variations: KitVariation[]; }
 export const KIT_FAMILY: KitFamilyEntry[] = [
+  { id: 'ultra', label: 'Ultra HD', variations: [
+    {
+      kit: 'house',
+      label: 'House Kit',
+      desc: 'Premium multi-velocity studio kit — 5 velocity layers × 7 round-robin variations per instrument. Choose mic position (Blend / Close / OH / Room) in kit settings.',
+    },
+  ]},
   { id: 'acoustic', label: 'Acoustic', variations: [
     {
       kit: 'ludwig',
@@ -259,6 +276,9 @@ interface DrumStore {
 
   instPlugins:   Partial<Record<DrumInstrument, InstPlugin[]>>;
   setInstPlugins:(inst: DrumInstrument, plugins: InstPlugin[]) => void;
+
+  houseKitMic:    HouseMic;
+  setHouseKitMic: (mic: HouseMic) => void;
 }
 
 const initial = defaultPattern();
@@ -276,6 +296,7 @@ export const useDrumStore = create<DrumStore>()(
       drumSongs:         [],
       instFX:            {},
       instPlugins:       {},
+      houseKitMic:       'blend' as HouseMic,
 
       setSoundForInstrument: (inst, soundId) =>
         set(s => ({ soundMap: { ...s.soundMap, [inst]: soundId } })),
@@ -591,6 +612,8 @@ export const useDrumStore = create<DrumStore>()(
 
       setInstPlugins: (inst, plugins) =>
         set(s => ({ instPlugins: { ...s.instPlugins, [inst]: plugins } })),
+
+      setHouseKitMic: (mic) => set({ houseKitMic: mic }),
     }),
     {
       name: 'chordex-drums',

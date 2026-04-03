@@ -1,4 +1,4 @@
-import type { DrumInstrument, DrumPattern, InstFX, KitType, NoteVariation } from '../store/useDrumStore';
+import type { DrumInstrument, DrumPattern, InstFX, KitType, HouseMic, NoteVariation } from '../store/useDrumStore';
 import { DRUM_INSTRUMENTS, stepsPerMeasure } from '../store/useDrumStore';
 import { getPlugin } from './drumPlugins';
 import type { InstPlugin } from './drumPlugins';
@@ -56,6 +56,12 @@ export const KIT_DEFAULTS: Record<KitType, {
     label: 'Chrome Web Audio Acoustic Kit',
     description: 'Acoustic recording by Chris Wilson (cwilso / Google) · used in original Web Audio API demos',
     soundMap: { kick:'kick-acoustic', snare:'snare-crack', 'hihat-closed':'hh-c-crisp', 'hihat-open':'hh-o-short', 'hihat-foot':'hh-f-std', 'tom-high':'tom-hi-std', 'tom-mid':'tom-m-warm', 'tom-floor':'tom-f-std', crash:'crash-std', ride:'ride-std' },
+  },
+  // ── Ultra-HD House Kit (multi-velocity local Opus samples) ─────────────────
+  house: {
+    label: 'House Kit',
+    description: 'Premium studio recording · 5 velocity layers · 7 round-robin variations · 4 mic positions',
+    soundMap: { kick:'kick-acoustic', snare:'snare-fat', 'hihat-closed':'hh-c-crisp', 'hihat-open':'hh-o-long', 'hihat-foot':'hh-f-std', 'tom-high':'tom-hi-std', 'tom-mid':'tom-m-warm', 'tom-floor':'tom-f-std', crash:'crash-std', ride:'ride-std' },
   },
   rock: {
     label: 'Rock Kit', description: 'Big punchy kick, fat cracking snare',
@@ -191,6 +197,14 @@ const KIT_ACOUSTIC_CFG: Partial<Record<KitType, Partial<Record<DrumInstrument, K
     'tom-high':     { rate: 1.00, gain: 1.00 },
     'tom-mid':      { rate: 1.00, gain: 1.00 },
     'tom-floor':    { rate: 1.00, gain: 1.05 },
+  },
+  // House Kit — samples are native pitch/gain; toms use separate files per size
+  house: {
+    kick:       { rate: 1.00, gain: 1.00 },
+    snare:      { rate: 1.00, gain: 1.00 },
+    'tom-high': { rate: 1.00, gain: 1.00 },
+    'tom-mid':  { rate: 1.00, gain: 1.00 },
+    'tom-floor':{ rate: 1.00, gain: 1.00 },
   },
 };
 
@@ -447,6 +461,8 @@ const KIT_SAMPLE_URLS: Record<KitType, Partial<Record<DrumInstrument, string[]>>
     crash:          [`${PEARL}crash-01.wav`,            `${TONEJS}CR78/crash.mp3`],
     ride:           [`${PEARL}ride-01.wav`,             `${TONEJS}CR78/ride.mp3`],
   },
+  // house uses HouseKitPool (local Opus), not KIT_SAMPLE_URLS
+  house: {},
 };
 
 export type SampleStatus = 'idle' | 'loading' | 'partial' | 'ready' | 'failed';
@@ -516,8 +532,129 @@ export const samplePool = new SamplePool();
 
 /** Load samples for the chosen kit on first play */
 export function loadDrumSamples(kit: KitType) {
+  if (kit === 'house') return; // House kit loaded separately via loadHouseKit()
   const { ctx } = getCtx();
   samplePool.loadForKit(kit, ctx);
+}
+
+// ── House Kit — multi-velocity local Opus sample pool ───────────────────────
+// Instruments: kick, snare, tom10 (tom-high), tom12 (tom-mid), tom14 (tom-floor), tom16 (unused)
+// Velocity layers: kick/toms: hard/med/soft; snare: crack/hard/medhard/medsoft/soft
+// Round-robins: 1–7 per velocity layer
+
+type HouseInstName = 'kick' | 'snare' | 'tom10' | 'tom12' | 'tom14';
+
+const HOUSE_INST_MAP: Partial<Record<DrumInstrument, HouseInstName>> = {
+  kick:       'kick',
+  snare:      'snare',
+  'tom-high': 'tom10',
+  'tom-mid':  'tom12',
+  'tom-floor':'tom14',
+};
+
+// Velocity selection from NoteVariation
+const HOUSE_KICK_VEL: Record<string, string> = {
+  ghost: 'soft', normal: 'med', accent: 'hard', flam: 'med',
+};
+const HOUSE_SNARE_VEL: Record<string, string> = {
+  ghost: 'soft', normal: 'med', rimshot: 'hard', accent: 'hard',
+  flam: 'medsoft', 'Med Soft': 'medsoft', crack: 'crack',
+};
+const HOUSE_TOM_VEL: Record<string, string> = {
+  ghost: 'soft', normal: 'med', accent: 'hard', flam: 'med',
+};
+
+function houseVelForVariation(inst: DrumInstrument, variation: NoteVariation): string {
+  if (inst === 'snare') return HOUSE_SNARE_VEL[variation] ?? 'med';
+  if (inst === 'kick')  return HOUSE_KICK_VEL[variation]  ?? 'med';
+  return HOUSE_TOM_VEL[variation] ?? 'med';
+}
+
+class HouseKitPool {
+  private _buffers  = new Map<string, AudioBuffer>();
+  private _loaded   = false;
+  private _loading  = false;
+  private _mic: HouseMic = 'blend';
+  private _rrCounters: Partial<Record<HouseInstName, number>> = {};
+  onStatusChange: ((loaded: number, total: number) => void) | null = null;
+
+  get mic(): HouseMic { return this._mic; }
+  get ready(): boolean { return this._loaded; }
+
+  private _key(inst: HouseInstName, mic: HouseMic, vel: string, rr: number): string {
+    return `${inst}:${mic}:${vel}:${rr}`;
+  }
+
+  async load(mic: HouseMic, ctx: AudioContext) {
+    if (this._loading && this._mic === mic && this._loaded) return;
+    // If mic changed, clear and reload
+    if (mic !== this._mic) { this._buffers.clear(); this._loaded = false; }
+    if (this._loading) return;
+    this._mic     = mic;
+    this._loading = true;
+    this._loaded  = false;
+
+    const instConfigs: { name: HouseInstName; vels: string[] }[] = [
+      { name: 'kick',  vels: ['hard','med','soft'] },
+      { name: 'snare', vels: ['crack','hard','medhard','medsoft','soft'] },
+      { name: 'tom10', vels: ['hard','med','soft'] },
+      { name: 'tom12', vels: ['hard','med','soft'] },
+      { name: 'tom14', vels: ['hard','med','soft'] },
+    ];
+
+    const tasks: Promise<void>[] = [];
+    let total = 0;
+    let loaded = 0;
+
+    for (const { name, vels } of instConfigs) {
+      for (const vel of vels) {
+        for (let rr = 1; rr <= 7; rr++) {
+          total++;
+          const key = this._key(name, mic, vel, rr);
+          const url = `/drums/realistic/${name}/${mic}/${vel}_${rr}.opus`;
+          tasks.push((async () => {
+            try {
+              const resp = await fetch(url, { cache: 'force-cache' });
+              if (!resp.ok) return;
+              const ab  = await resp.arrayBuffer();
+              const buf = await ctx.decodeAudioData(ab);
+              this._buffers.set(key, buf);
+            } catch { /* silently skip missing files */ }
+            loaded++;
+            this.onStatusChange?.(loaded, total);
+          })());
+        }
+      }
+    }
+
+    await Promise.all(tasks);
+    this._loaded  = true;
+    this._loading = false;
+  }
+
+  getBuffer(inst: HouseInstName, mic: HouseMic, vel: string, rr: number): AudioBuffer | undefined {
+    return this._buffers.get(this._key(inst, mic, vel, rr));
+  }
+
+  /** Advance and return the next round-robin index (1–7) for this instrument */
+  nextRR(inst: HouseInstName): number {
+    const cur = this._rrCounters[inst] ?? 0;
+    const next = (cur % 7) + 1;
+    this._rrCounters[inst] = next;
+    return next;
+  }
+}
+
+export const houseKitPool = new HouseKitPool();
+
+let _houseKitMic: HouseMic = 'blend';
+
+export function setHouseKitMic(mic: HouseMic) { _houseKitMic = mic; }
+
+export function loadHouseKit(mic: HouseMic) {
+  const { ctx } = getCtx();
+  _houseKitMic = mic;
+  houseKitPool.load(mic, ctx);
 }
 
 // ── Synthesis: Kick ─────────────────────────────────────────────────────────
@@ -1153,11 +1290,12 @@ function isFXDefault(fx: InstFX): boolean {
 
 // ── Main sound dispatcher ────────────────────────────────────────────────────
 export function playSoundAt(
-  soundId: string,
-  time:    number,
-  vol:     number,
-  dest:    AudioNode,
-  kit:     KitType | null = null,
+  soundId:   string,
+  time:      number,
+  vol:       number,
+  dest:      AudioNode,
+  kit:       KitType | null = null,
+  variation: NoteVariation  = 'normal',
 ) {
   const { ctx } = getCtx();
   const t    = Math.max(time, ctx.currentTime + 0.003);
@@ -1223,6 +1361,22 @@ export function playSoundAt(
     // Disconnect the GainNode after envelope completes so it can be GC'd
     const msUntilDone = (hold + release + 0.2) * 1000;
     setTimeout(() => { try { gateGain.disconnect(chainInput); } catch {} }, msUntilDone);
+  }
+
+  // ── House Kit — multi-velocity + round-robin sample playback ─────────────────
+  if (kit === 'house' && inst) {
+    const houseInst = HOUSE_INST_MAP[inst];
+    if (houseInst) {
+      const vel = houseVelForVariation(inst, variation);
+      const rr  = houseKitPool.nextRR(houseInst);
+      const buf = houseKitPool.getBuffer(houseInst, _houseKitMic, vel, rr);
+      if (buf) {
+        playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0);
+        return;
+      }
+      // Buffer not loaded yet — fall through to synthesis
+    }
+    // Hihats / cymbals have no house samples — fall through to synthesis
   }
 
   // Try kit-specific real sample first
@@ -1311,10 +1465,10 @@ class DrumScheduler {
       // Flam: play a soft grace note ~20 ms before the main hit
       if (variation === 'flam') {
         const graceT = Math.max(time - 0.020, (_ctx?.currentTime ?? 0) + 0.002);
-        playSoundAt(soundId, graceT, vol * 0.42, _masterGain!, this._kitType);
+        playSoundAt(soundId, graceT, vol * 0.42, _masterGain!, this._kitType, 'ghost');
       }
 
-      playSoundAt(soundId, time, vol, _masterGain!, this._kitType);
+      playSoundAt(soundId, time, vol, _masterGain!, this._kitType, variation);
     }
     this._scheduled.push({ step, time });
   }
