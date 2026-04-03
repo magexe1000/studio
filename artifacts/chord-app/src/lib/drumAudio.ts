@@ -827,48 +827,101 @@ function getIR(ctx: AudioContext): AudioBuffer {
 
 /**
  * Build an inline FX chain for one note and return its input node.
- * The chain output is connected to `dest`.
- *  EQ Low → EQ Mid → EQ High → Compressor → dry/wet merge → dest
+ * Chain: EQ (4-band) → [Saturator] → Compressor → Post-gain → Limiter → dry/wet reverb fork → dest
+ *
+ * Safety guarantees:
+ *  - Compressor threshold clamped to -6…-24 dB (not the old 0…-60 dB that caused explosions)
+ *  - Compressor ratio capped at 8:1
+ *  - Post-compressor gain compensates for the implicit makeup gain
+ *  - Hard limiter at -1 dBFS after the chain as a final safety net
+ *  - Reverb wet gain uses equal-power crossfade, capped at 0.45 to prevent overload
  */
 function buildFXChain(ctx: AudioContext, dest: AudioNode, fx: InstFX): AudioNode {
-  // 3-band EQ
+  // ── 4-band EQ ──────────────────────────────────────────────────────────────
   const low = ctx.createBiquadFilter();
-  low.type  = 'lowshelf'; low.frequency.value = 100; low.gain.value = fx.eqLow;
+  low.type = 'lowshelf'; low.frequency.value = 80;   low.gain.value = fx.eqLow;
+
+  const lowMid = ctx.createBiquadFilter();
+  lowMid.type = 'peaking'; lowMid.frequency.value = 350;
+  lowMid.Q.value = 1.0;   lowMid.gain.value = fx.eqLowMid ?? 0;
+
   const mid = ctx.createBiquadFilter();
-  mid.type  = 'peaking';  mid.frequency.value = 1000; mid.Q.value = 1.2; mid.gain.value = fx.eqMid;
-  const hi  = ctx.createBiquadFilter();
-  hi.type   = 'highshelf'; hi.frequency.value = 8000; hi.gain.value = fx.eqHigh;
+  mid.type = 'peaking'; mid.frequency.value = 2000;
+  mid.Q.value = 1.2;    mid.gain.value = fx.eqMid;
 
-  // Compressor
-  const comp = ctx.createDynamicsCompressor();
-  const atkT = 0.003 + fx.attack * 0.097;   // 3 ms – 100 ms
-  const ratio = 1 + fx.compress * 19;        // 1:1 – 20:1
-  const thr   = -60 * fx.compress;           // 0 to -60 dB
-  comp.attack.value  = atkT;
-  comp.release.value = 0.15;
-  comp.ratio.value   = ratio;
+  const hi = ctx.createBiquadFilter();
+  hi.type = 'highshelf'; hi.frequency.value = 10000; hi.gain.value = fx.eqHigh;
+
+  // ── Saturation waveshaper ───────────────────────────────────────────────────
+  // Adds harmonic warmth/drive; gain-compensated so overall level stays the same
+  const saturate = fx.saturate ?? 0;
+  let satOutput: AudioNode = hi;
+  if (saturate > 0.01) {
+    const ws = ctx.createWaveShaper();
+    const k  = saturate * 80;
+    const n  = 256;
+    const curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = (i * 2) / (n - 1) - 1;
+      curve[i] = ((3 + k) * x) / (1 + k * Math.abs(x));
+    }
+    ws.curve = curve;
+    ws.oversample = '4x';
+    const satComp = ctx.createGain();
+    satComp.gain.value = 1 / (1 + saturate * 0.6);   // compensate volume increase
+    hi.connect(ws); ws.connect(satComp);
+    satOutput = satComp;
+  }
+
+  // ── Compressor — safe, musical parameters ──────────────────────────────────
+  // Old code used 0 to -60 dB threshold and 1:1–20:1 ratio which caused the
+  // Web Audio auto-makeup-gain to massively boost the signal. Fixed ranges:
+  const comp   = ctx.createDynamicsCompressor();
+  const atkT   = 0.003 + fx.attack * 0.097;          // 3–100 ms
+  const ratio  = 2  + fx.compress * 6;               // 2:1–8:1  (was 1:1–20:1)
+  const thr    = -(6 + fx.compress * 18);            // -6 to -24 dB  (was 0 to -60 dB)
+  comp.attack.value    = atkT;
+  comp.release.value   = 0.08 + fx.attack * 0.12;    // 80–200 ms
+  comp.ratio.value     = ratio;
   comp.threshold.value = thr;
-  comp.knee.value = 6;
+  comp.knee.value      = 8;
 
-  // Dry / wet gain nodes for reverb
-  const dryGain = ctx.createGain(); dryGain.gain.value = 1 - fx.reverb * 0.7;
-  const wetGain = ctx.createGain(); wetGain.gain.value = fx.reverb;
+  // Post-compressor gain reduction — counteracts Web Audio's implicit makeup gain
+  const postGain = ctx.createGain();
+  postGain.gain.value = Math.pow(10, (fx.compress * -3.5) / 20);  // 0 to -3.5 dB
 
-  // Convolver for reverb
+  // ── Hard limiter — last-resort clip protection ──────────────────────────────
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -1;
+  limiter.knee.value      = 0;
+  limiter.ratio.value     = 20;
+  limiter.attack.value    = 0.001;
+  limiter.release.value   = 0.05;
+
+  // ── Reverb — equal-power crossfade, wet capped at 0.45 ────────────────────
+  // Old code: wetGain = fx.reverb (up to 1.0) — the convolver can amplify; capping at 0.45 is safe
+  const angle   = fx.reverb * (Math.PI / 2);
+  const dryGain = ctx.createGain(); dryGain.gain.value = Math.cos(angle);
+  const wetGain = ctx.createGain(); wetGain.gain.value = Math.sin(angle) * 0.45;
+
   const conv = ctx.createConvolver();
   conv.buffer = getIR(ctx);
 
-  // Wire: low → mid → hi → comp → dry/wet fork
-  low.connect(mid); mid.connect(hi); hi.connect(comp);
-  comp.connect(dryGain); dryGain.connect(dest);
-  comp.connect(conv);    conv.connect(wetGain); wetGain.connect(dest);
+  // ── Wire everything together ────────────────────────────────────────────────
+  low.connect(lowMid); lowMid.connect(mid); mid.connect(hi);
+  satOutput.connect(comp);
+  comp.connect(postGain); postGain.connect(limiter);
+  limiter.connect(dryGain); dryGain.connect(dest);
+  limiter.connect(conv);    conv.connect(wetGain); wetGain.connect(dest);
 
-  return low;  // caller connects their source to `low`
+  return low;
 }
 
 function isFXDefault(fx: InstFX): boolean {
-  return fx.compress === 0 && fx.attack === 0 && fx.eqLow === 0
-      && fx.eqMid === 0 && fx.eqHigh === 0 && fx.reverb === 0;
+  return fx.compress === 0 && fx.attack === 0
+      && fx.eqLow === 0 && (fx.eqLowMid ?? 0) === 0
+      && fx.eqMid === 0 && fx.eqHigh === 0
+      && fx.reverb === 0 && (fx.gate ?? 0) === 0 && (fx.saturate ?? 0) === 0;
 }
 
 // ── Main sound dispatcher ────────────────────────────────────────────────────
@@ -886,6 +939,13 @@ export function playSoundAt(
   // Resolve effective destination (apply per-inst FX chain if set)
   const fx = inst ? _instFXMap[inst] : undefined;
   const effectiveDest = (fx && !isFXDefault(fx)) ? buildFXChain(ctx, dest, fx) : dest;
+
+  // Gate: shorten buffer decay when fx.gate > 0 (0=full tail, 1=very tight chop)
+  // Gives e.g. snare a tight "studio" decay without the FX chain needing a real gate node.
+  const gateVal = (fx?.gate ?? 0);
+  const gateDur = gateVal > 0.02
+    ? Math.max(0.04, 0.7 * Math.pow(1 - gateVal, 1.8))   // 0.7 s → 0.04 s
+    : undefined;
 
   // Try kit-specific real sample first
   if (kit && inst && samplePool.hasForKit(kit, inst)) {
@@ -907,11 +967,11 @@ export function playSoundAt(
       // Short gate on closed/foot hihats; no room effect (too washy)
       const dur = inst === 'hihat-foot' ? 0.08 : (soundId === 'hh-c-tight' ? 0.032 : soundId === 'hh-c-crisp' ? 0.052 : 0.075);
       playBuffer(ctx, buf, t, adjVol, effectiveDest, dur, rate);
-    } else if (roomMs > 0 && effectiveDest === dest) {
+    } else if (roomMs > 0 && effectiveDest === dest && !gateDur) {
       // Only apply room effect when no FX chain (reverb already handled by FX)
       playBufferRoomy(ctx, buf, t, adjVol, effectiveDest, rate, roomMs);
     } else {
-      playBuffer(ctx, buf, t, adjVol, effectiveDest, undefined, rate);
+      playBuffer(ctx, buf, t, adjVol, effectiveDest, gateDur, rate);
     }
     return;
   }

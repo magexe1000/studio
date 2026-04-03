@@ -76,6 +76,57 @@ const KIT_DESC: Record<KitType, string> = {
   rmm:    'Real Music Media Open Source Kit · 20+ velocity layers · public domain',
   chrome: 'Chrome Web Audio Acoustic · cwilso / Google · Web Audio API demo',
 };
+// ── Per-instrument character presets ─────────────────────────────────────────
+// Each preset applies a curated combination of FX values in one tap.
+// Values use the same range as the sliders (0-1 for knobs, ±12 for EQ dB).
+type FXPreset = { label: string; values: Partial<InstFX> };
+const INST_PRESETS: Partial<Record<DrumInstrument, FXPreset[]>> = {
+  snare: [
+    { label: 'Tight',  values: { gate: 0.72, eqHigh: 5,   eqMid: 3,  compress: 0.5,  attack: 0.08, reverb: 0    } },
+    { label: 'Fat',    values: { eqLow: 6,   eqLowMid: 3, eqMid: 1,  compress: 0.38, attack: 0.3,  reverb: 0.12 } },
+    { label: 'Crack',  values: { eqHigh: 8,  eqMid: 5,    gate: 0.42, compress: 0.6,  attack: 0.04, reverb: 0    } },
+    { label: 'Brush',  values: { eqLow: 2,   eqHigh: -3,  reverb: 0.3, compress: 0.18, attack: 0.42              } },
+  ],
+  kick: [
+    { label: 'Sub',    values: { eqLow: 8,   eqMid: -4,   eqHigh: -2, gate: 0.3                                  } },
+    { label: 'Punch',  values: { eqLowMid: 5, compress: 0.5, attack: 0.15, gate: 0.28                             } },
+    { label: 'Click',  values: { eqMid: 6,   eqLow: -3,   compress: 0.35, attack: 0.04                           } },
+    { label: 'Tight',  values: { gate: 0.65, eqHigh: 2,   compress: 0.55, attack: 0.06                           } },
+  ],
+  'hihat-closed': [
+    { label: 'Bright', values: { eqHigh: 6                                                                         } },
+    { label: 'Dark',   values: { eqHigh: -5, eqLowMid: 2                                                          } },
+    { label: 'Crisp',  values: { eqHigh: 4,  compress: 0.3,  attack: 0.04                                        } },
+  ],
+  'hihat-open': [
+    { label: 'Bright', values: { eqHigh: 5                                                                         } },
+    { label: 'Dark',   values: { eqHigh: -5                                                                        } },
+    { label: 'Wash',   values: { reverb: 0.38, eqHigh: 2                                                          } },
+  ],
+  crash: [
+    { label: 'Bright', values: { eqHigh: 6                                                                         } },
+    { label: 'Dark',   values: { eqHigh: -5, reverb: 0.22                                                          } },
+    { label: 'Long',   values: { reverb: 0.45                                                                       } },
+  ],
+  ride: [
+    { label: 'Bright', values: { eqHigh: 5                                                                         } },
+    { label: 'Dark',   values: { eqHigh: -4, reverb: 0.18                                                          } },
+    { label: 'Bell',   values: { eqHigh: 3,  eqMid: 4, compress: 0.3, attack: 0.05                                } },
+  ],
+  'tom-high': [
+    { label: 'Warm',   values: { eqLow: 4,  eqHigh: -2, reverb: 0.15                                             } },
+    { label: 'Attack', values: { eqMid: 4,  compress: 0.45, attack: 0.08, gate: 0.32                             } },
+  ],
+  'tom-mid': [
+    { label: 'Warm',   values: { eqLow: 4,  eqHigh: -2, reverb: 0.15                                             } },
+    { label: 'Attack', values: { eqMid: 4,  compress: 0.45, attack: 0.08, gate: 0.32                             } },
+  ],
+  'tom-floor': [
+    { label: 'Deep',   values: { eqLow: 6,  eqMid: -2, reverb: 0.12                                              } },
+    { label: 'Punch',  values: { eqLowMid: 4, compress: 0.42, attack: 0.1                                        } },
+  ],
+};
+
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 const KIT_IMAGE: Record<KitType, string> = {
   ludwig: `${BASE}/kit-warm.png`,
@@ -2240,28 +2291,38 @@ export default function DrumEditor() {
 
       {/* ── Per-instrument FX sheet ──────────────────────────────────────── */}
       {showFXSheet && inEditor && (() => {
-        const curFX: InstFX = instFX[fxInst] ?? { ...DEFAULT_INST_FX };
+        const curFX: InstFX = { ...DEFAULT_INST_FX, ...(instFX[fxInst] ?? {}) };
         const color = INSTRUMENT_COLOR[fxInst] ?? accent.from;
-        const fxSliders: { key: keyof InstFX; label: string; min: number; max: number; step: number }[] = [
-          { key: 'compress', label: 'Compress',  min: 0, max: 1,   step: 0.01 },
-          { key: 'attack',   label: 'Attack',    min: 0, max: 1,   step: 0.01 },
-          { key: 'eqLow',    label: 'EQ Low',    min: -12, max: 12, step: 0.5 },
-          { key: 'eqMid',    label: 'EQ Mid',    min: -12, max: 12, step: 0.5 },
-          { key: 'eqHigh',   label: 'EQ High',   min: -12, max: 12, step: 0.5 },
-          { key: 'reverb',   label: 'Reverb',    min: 0, max: 1,   step: 0.01 },
+        type SliderDef = { key: keyof InstFX; label: string; min: number; max: number; step: number; hint?: string };
+        const fxSliders: SliderDef[] = [
+          // ── Dynamics ────────────────────────────────────────────────────────
+          { key: 'compress', label: 'Compress',  min: 0,   max: 1,   step: 0.01, hint: 'Squash dynamics' },
+          { key: 'attack',   label: 'Attack',    min: 0,   max: 1,   step: 0.01, hint: '0=punchy, 1=slow build' },
+          { key: 'gate',     label: 'Gate',      min: 0,   max: 1,   step: 0.01, hint: 'Chop the tail (tighter sound)' },
+          // ── EQ (4-band) ─────────────────────────────────────────────────────
+          { key: 'eqLow',    label: 'Low 80 Hz', min: -12, max: 12,  step: 0.5,  hint: 'Boom / thin' },
+          { key: 'eqLowMid', label: 'Lo-Mid 350',min: -12, max: 12,  step: 0.5,  hint: 'Body / mud' },
+          { key: 'eqMid',    label: 'Mid 2 kHz', min: -12, max: 12,  step: 0.5,  hint: 'Snap / honk' },
+          { key: 'eqHigh',   label: 'High 10k',  min: -12, max: 12,  step: 0.5,  hint: 'Air / sheen' },
+          // ── Space & character ────────────────────────────────────────────────
+          { key: 'reverb',   label: 'Reverb',    min: 0,   max: 1,   step: 0.01, hint: 'Room / ambience' },
+          { key: 'saturate', label: 'Saturate',  min: 0,   max: 1,   step: 0.01, hint: 'Tape warmth / drive' },
         ];
+        const presets = INST_PRESETS[fxInst] ?? [];
         return (
           <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
             <div onClick={() => setShowFXSheet(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              {/* drag handle */}
               <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
                 <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
               </div>
+              {/* header */}
               <div style={{ display: 'flex', alignItems: 'center', padding: '4px 20px 10px', flexShrink: 0, gap: 10 }}>
                 <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)' }}>Instrument FX</span>
                 <button onClick={() => setInstFX(fxInst, { ...DEFAULT_INST_FX })} style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-muted)', background: 'rgba(128,128,128,0.10)', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: 'Manrope' }}>Reset</button>
               </div>
-              {/* Instrument selector */}
+              {/* instrument chips */}
               <div style={{ display: 'flex', gap: 6, padding: '0 20px 12px', overflowX: 'auto', flexShrink: 0 }}>
                 {activeInstruments.map(inst => {
                   const isAct = inst === fxInst;
@@ -2275,20 +2336,48 @@ export default function DrumEditor() {
                   );
                 })}
               </div>
-              {/* Sliders */}
-              <div style={{ overflowY: 'auto', flexShrink: 1, paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 20px)' }}>
-                {fxSliders.map(({ key, label, min, max, step }) => {
-                  const val = curFX[key];
-                  const isEQ = key === 'eqLow' || key === 'eqMid' || key === 'eqHigh';
-                  const dispVal = isEQ ? (val >= 0 ? `+${val.toFixed(1)} dB` : `${val.toFixed(1)} dB`) : `${Math.round(val * 100)}%`;
+              {/* scrollable body */}
+              <div style={{ overflowY: 'auto', flexShrink: 1, paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)' }}>
+                {/* ── Character presets ────────────────────────────────── */}
+                {presets.length > 0 && (
+                  <div style={{ padding: '0 20px 14px' }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-text-muted)', fontFamily: 'Manrope' }}>Character</span>
+                    <div style={{ display: 'flex', gap: 7, marginTop: 8, flexWrap: 'wrap' }}>
+                      {presets.map(preset => {
+                        const merged = { ...DEFAULT_INST_FX, ...preset.values };
+                        const isActive = Object.keys(preset.values).every(
+                          k => Math.abs((curFX[k as keyof InstFX] ?? 0) - (preset.values[k as keyof InstFX] ?? 0)) < 0.05
+                        );
+                        return (
+                          <button key={preset.label}
+                            onClick={() => setInstFX(fxInst, merged)}
+                            style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, fontFamily: 'Manrope', cursor: 'pointer', transition: 'all 140ms', background: isActive ? color : 'var(--app-surface-high)', color: isActive ? '#fff' : 'var(--c-text-secondary)', border: isActive ? `1.5px solid ${color}` : '1.5px solid rgba(128,128,128,0.15)' }}>
+                            {preset.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {/* ── FX sliders ──────────────────────────────────────── */}
+                {fxSliders.map(({ key, label, min, max, step, hint }) => {
+                  const val = curFX[key] ?? 0;
+                  const isEQ = key === 'eqLow' || key === 'eqLowMid' || key === 'eqMid' || key === 'eqHigh';
+                  const dispVal = isEQ
+                    ? (val >= 0 ? `+${val.toFixed(1)}` : val.toFixed(1)) + ' dB'
+                    : `${Math.round(val * 100)}%`;
+                  const active = val !== 0;
                   return (
-                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 20px', borderBottom: '1px solid rgba(128,128,128,0.06)' }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0, opacity: val === 0 ? 0.25 : 1 }} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-primary)', width: 80, flexShrink: 0 }}>{label}</span>
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 20px', borderBottom: '1px solid rgba(128,128,128,0.06)' }}>
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0, opacity: active ? 1 : 0.22, transition: 'opacity 150ms' }} />
+                      <div style={{ width: 90, flexShrink: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: active ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', lineHeight: 1.2 }}>{label}</div>
+                        {hint && <div style={{ fontSize: 9, color: 'var(--c-text-muted)', fontFamily: 'Manrope', letterSpacing: '0.02em' }}>{hint}</div>}
+                      </div>
                       <input type="range" min={min} max={max} step={step} value={val}
                         onChange={e => setInstFX(fxInst, { ...curFX, [key]: parseFloat(e.target.value) })}
                         style={{ flex: 1, accentColor: color }} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-muted)', minWidth: 54, textAlign: 'right' }}>{dispVal}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: active ? color : 'var(--c-text-muted)', minWidth: 58, textAlign: 'right', fontFamily: 'Manrope', transition: 'color 150ms' }}>{dispVal}</span>
                     </div>
                   );
                 })}

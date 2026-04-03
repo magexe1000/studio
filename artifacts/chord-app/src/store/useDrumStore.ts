@@ -91,15 +91,19 @@ export const GROOVE_TAGS = ['Rock', 'Trap', 'Jazz', 'Funk', 'Fill', 'Intro', 'Ou
 
 // ── Per-instrument FX ────────────────────────────────────────────────────────
 export interface InstFX {
-  compress: number;  // 0 (off) → 1 (heavy)
-  attack:   number;  // 0 (fast punch) → 1 (slow)
-  eqLow:    number;  // -12 to +12 dB at 100 Hz
-  eqMid:    number;  // -12 to +12 dB at 1 kHz
-  eqHigh:   number;  // -12 to +12 dB at 8 kHz
-  reverb:   number;  // 0 (dry) → 1 (wet)
+  compress:  number;  // 0 (off) → 1 (heavy)
+  attack:    number;  // 0 (fast punch) → 1 (slow)
+  eqLow:     number;  // -12 to +12 dB at 80 Hz
+  eqLowMid:  number;  // -12 to +12 dB at 350 Hz
+  eqMid:     number;  // -12 to +12 dB at 2 kHz
+  eqHigh:    number;  // -12 to +12 dB at 10 kHz
+  reverb:    number;  // 0 (dry) → 1 (wet)
+  gate:      number;  // 0 (off) → 1 (tight chop)
+  saturate:  number;  // 0 (clean) → 1 (driven)
 }
 export const DEFAULT_INST_FX: InstFX = {
-  compress: 0, attack: 0, eqLow: 0, eqMid: 0, eqHigh: 0, reverb: 0,
+  compress: 0, attack: 0, eqLow: 0, eqLowMid: 0, eqMid: 0, eqHigh: 0,
+  reverb: 0, gate: 0, saturate: 0,
 };
 
 // ── Kit Family: two-level kit browser used in Create Song modal ───────────────
@@ -581,7 +585,7 @@ export const useDrumStore = create<DrumStore>()(
     }),
     {
       name: 'chordex-drums',
-      version: 7,
+      version: 8,
       migrate: (state: unknown, _version: number) => {
         const s = state as {
           drumSongs?: DrumSong[];
