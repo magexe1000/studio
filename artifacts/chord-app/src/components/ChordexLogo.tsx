@@ -1,4 +1,10 @@
 export function DrumexLogo({ size = 14 }: { size?: number }) {
+  /* Snare drum — top-down view: outer rim, head ring, 6 tension lugs, centre dot */
+  const cx = 8, cy = 8;
+  const lugs = Array.from({ length: 6 }, (_, i) => {
+    const angle = (i * Math.PI * 2) / 6 - Math.PI / 2;
+    return { x: cx + 6.1 * Math.cos(angle), y: cy + 6.1 * Math.sin(angle) };
+  });
   return (
     <svg
       width={size}
@@ -8,14 +14,16 @@ export function DrumexLogo({ size = 14 }: { size?: number }) {
       xmlns="http://www.w3.org/2000/svg"
       style={{ display: 'block', flexShrink: 0 }}
     >
-      {/* Top-left pad — active */}
-      <rect x="1" y="1" width="6.5" height="6.5" rx="1.8" fill="currentColor" />
-      {/* Top-right pad — dim */}
-      <rect x="8.5" y="1" width="6.5" height="6.5" rx="1.8" fill="currentColor" fillOpacity="0.28" />
-      {/* Bottom-left pad — dim */}
-      <rect x="1" y="8.5" width="6.5" height="6.5" rx="1.8" fill="currentColor" fillOpacity="0.28" />
-      {/* Bottom-right pad — active */}
-      <rect x="8.5" y="8.5" width="6.5" height="6.5" rx="1.8" fill="currentColor" />
+      {/* Outer rim */}
+      <circle cx={cx} cy={cy} r="7" stroke="currentColor" strokeWidth="1.6" />
+      {/* Head ring */}
+      <circle cx={cx} cy={cy} r="4.8" stroke="currentColor" strokeWidth="0.85" strokeOpacity="0.5" />
+      {/* Tension lugs */}
+      {lugs.map((l, i) => (
+        <circle key={i} cx={l.x} cy={l.y} r="0.95" fill="currentColor" />
+      ))}
+      {/* Centre sweet-spot */}
+      <circle cx={cx} cy={cy} r="1.4" fill="currentColor" />
     </svg>
   );
 }

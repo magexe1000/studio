@@ -83,7 +83,8 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
                 <span style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 22, height: 22, flexShrink: 0,
-                  color: isActive ? 'var(--accent-from)' : 'var(--c-text-secondary)',
+                  color: isActive ? 'var(--accent-from)' : 'var(--c-text-primary)',
+                  opacity: isActive ? 1 : 0.75,
                 }}>
                   <opt.Icon size={18} />
                 </span>
