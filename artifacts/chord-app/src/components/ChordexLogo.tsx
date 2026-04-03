@@ -1,3 +1,25 @@
+export function DrumexLogo({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: 'block', flexShrink: 0 }}
+    >
+      {/* Top-left pad — active */}
+      <rect x="1" y="1" width="6.5" height="6.5" rx="1.8" fill="currentColor" />
+      {/* Top-right pad — dim */}
+      <rect x="8.5" y="1" width="6.5" height="6.5" rx="1.8" fill="currentColor" fillOpacity="0.28" />
+      {/* Bottom-left pad — dim */}
+      <rect x="1" y="8.5" width="6.5" height="6.5" rx="1.8" fill="currentColor" fillOpacity="0.28" />
+      {/* Bottom-right pad — active */}
+      <rect x="8.5" y="8.5" width="6.5" height="6.5" rx="1.8" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function ChordexLogo({ size = 14 }: { size?: number }) {
   const h = Math.round(size * 17 / 13);
   return (

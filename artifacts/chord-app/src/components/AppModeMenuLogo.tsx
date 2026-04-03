@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChordexLogo } from './ChordexLogo';
+import { ChordexLogo, DrumexLogo } from './ChordexLogo';
 import { useChordStore } from '../store/useChordStore';
 
 export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }: { color?: string; size?: number }) {
@@ -22,9 +22,14 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
 
   const currentMode = settings.appMode ?? 'chords';
 
-  const OPTIONS = [
-    { value: 'chords' as const, icon: 'library_music', label: 'Chordex', desc: 'Chord library & songs' },
-    { value: 'drums'  as const, icon: 'album',         label: 'Drums',   desc: 'Drum sheet editor'   },
+  const OPTIONS: {
+    value: 'chords' | 'drums';
+    Icon: React.FC<{ size?: number }>;
+    label: string;
+    desc: string;
+  }[] = [
+    { value: 'chords', Icon: ChordexLogo, label: 'Chordex', desc: 'Chord library & songs' },
+    { value: 'drums',  Icon: DrumexLogo,  label: 'Drumex',  desc: 'Drum sheet editor'     },
   ];
 
   return (
@@ -75,15 +80,12 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
                   cursor: 'pointer', textAlign: 'left',
                 }}
               >
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    fontSize: 19, flexShrink: 0,
-                    color: isActive ? 'var(--accent-from)' : 'var(--c-text-secondary)',
-                    fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
-                  }}
-                >
-                  {opt.icon}
+                <span style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 22, height: 22, flexShrink: 0,
+                  color: isActive ? 'var(--accent-from)' : 'var(--c-text-secondary)',
+                }}>
+                  <opt.Icon size={18} />
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0 }}>{opt.label}</p>
