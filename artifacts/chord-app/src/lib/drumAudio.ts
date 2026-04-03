@@ -1503,7 +1503,8 @@ export function playSoundAt(
         playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0);
         return;
       }
-      // Buffer not loaded yet — fall through to synthesis
+      // Buffer not loaded yet — play nothing rather than falling back to synthesis
+      return;
     }
 
     // ── Cymbal routing (hi-hat, crash, ride via CymbalPool) ─────────────────
@@ -1525,7 +1526,8 @@ export function playSoundAt(
       const buf = cymbalPool.getRide(variation);
       if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
     }
-    // Fall through to synthesis if cymbal pool not yet loaded
+    // Cymbal pool not yet loaded — play nothing, don't fall back to synthesis
+    return;
   }
 
   // Try kit-specific real sample first
