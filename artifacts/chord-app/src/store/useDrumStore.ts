@@ -89,29 +89,42 @@ export interface DrumMeasure { id: string; hits: Partial<Record<DrumInstrument, 
 
 export const GROOVE_TAGS = ['Rock', 'Trap', 'Jazz', 'Funk', 'Fill', 'Intro', 'Outro', 'Loop', 'Latin'] as const;
 
+// ── Per-instrument FX ────────────────────────────────────────────────────────
+export interface InstFX {
+  compress: number;  // 0 (off) → 1 (heavy)
+  attack:   number;  // 0 (fast punch) → 1 (slow)
+  eqLow:    number;  // -12 to +12 dB at 100 Hz
+  eqMid:    number;  // -12 to +12 dB at 1 kHz
+  eqHigh:   number;  // -12 to +12 dB at 8 kHz
+  reverb:   number;  // 0 (dry) → 1 (wet)
+}
+export const DEFAULT_INST_FX: InstFX = {
+  compress: 0, attack: 0, eqLow: 0, eqMid: 0, eqHigh: 0, reverb: 0,
+};
+
 // ── Kit Family: two-level kit browser used in Create Song modal ───────────────
 export interface KitVariation { kit: KitType; label: string; desc: string; }
-export interface KitFamilyEntry { id: string; label: string; emoji: string; variations: KitVariation[]; }
+export interface KitFamilyEntry { id: string; label: string; variations: KitVariation[]; }
 export const KIT_FAMILY: KitFamilyEntry[] = [
-  { id: 'acoustic', label: 'Acoustic', emoji: '🥁', variations: [
+  { id: 'acoustic', label: 'Acoustic', variations: [
     {
       kit: 'ludwig',
-      label: 'Clean',
+      label: 'Warm',
       desc: 'Pearl Master Studio — 10-ply maple shells, recorded by Enoe (CC-BY-3.0). Multi-mic, unprocessed natural tone.',
     },
     {
       kit: 'rmm',
-      label: 'Open Source',
+      label: 'Punchy',
       desc: 'Real Music Media Open Source Drum Kit — commercial-grade studio recording released to the public domain. 20+ velocity layers.',
     },
     {
       kit: 'chrome',
-      label: 'Live',
+      label: 'Bright',
       desc: 'Chrome Web Audio Acoustic Kit — real acoustic recording by Chris Wilson (cwilso / Google). Used in the original Web Audio API demo.',
     },
     {
       kit: 'jazz',
-      label: 'Brushed',
+      label: 'Soft',
       desc: 'Pearl Master Studio (brush character) — snare-03 variant, soft hi-hat, generous early-room reflections for intimate jazz feel.',
     },
   ]},
@@ -234,6 +247,9 @@ interface DrumStore {
   loadGrooveReplace:   (id: string) => void;
   loadGrooveAppend:    (id: string) => void;
   duplicateGroove:     (id: string) => string;
+
+  instFX:     Partial<Record<DrumInstrument, InstFX>>;
+  setInstFX:  (inst: DrumInstrument, fx: InstFX) => void;
 }
 
 const initial = defaultPattern();
@@ -249,6 +265,7 @@ export const useDrumStore = create<DrumStore>()(
       kitType:           null,
       activeInstruments: KIT_INSTRUMENTS.ludwig,
       drumSongs:         [],
+      instFX:            {},
 
       setSoundForInstrument: (inst, soundId) =>
         set(s => ({ soundMap: { ...s.soundMap, [inst]: soundId } })),
@@ -558,10 +575,13 @@ export const useDrumStore = create<DrumStore>()(
         set(st => ({ drumSongs: [song, ...st.drumSongs] }));
         return song.id;
       },
+
+      setInstFX: (inst, fx) =>
+        set(s => ({ instFX: { ...s.instFX, [inst]: { ...fx } } })),
     }),
     {
       name: 'chordex-drums',
-      version: 6,
+      version: 7,
       migrate: (state: unknown, _version: number) => {
         const s = state as {
           drumSongs?: DrumSong[];

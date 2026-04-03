@@ -1,4 +1,4 @@
-import type { DrumInstrument, DrumPattern, KitType, NoteVariation } from '../store/useDrumStore';
+import type { DrumInstrument, DrumPattern, InstFX, KitType, NoteVariation } from '../store/useDrumStore';
 import { DRUM_INSTRUMENTS, stepsPerMeasure } from '../store/useDrumStore';
 
 // ── Variation → sound/volume helpers ─────────────────────────────────────────
@@ -802,6 +802,75 @@ function playBufferRoomy(
   src.stop(t + refDelay + (maxDur ?? 0.6) + 0.02);
 }
 
+// ── Per-instrument FX ────────────────────────────────────────────────────────
+
+let _instFXMap: Partial<Record<DrumInstrument, InstFX>> = {};
+
+/** Called from the React component whenever instFX state changes. */
+export function setInstFXMap(map: Partial<Record<DrumInstrument, InstFX>>) {
+  _instFXMap = map;
+}
+
+/** Cached single-channel impulse-response buffer for reverb. */
+let _irBuffer: AudioBuffer | null = null;
+function getIR(ctx: AudioContext): AudioBuffer {
+  if (_irBuffer && (_irBuffer as AudioBuffer).sampleRate === ctx.sampleRate) return _irBuffer;
+  const len  = Math.floor(ctx.sampleRate * 1.8);
+  const buf  = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4);
+  }
+  _irBuffer = buf;
+  return buf;
+}
+
+/**
+ * Build an inline FX chain for one note and return its input node.
+ * The chain output is connected to `dest`.
+ *  EQ Low → EQ Mid → EQ High → Compressor → dry/wet merge → dest
+ */
+function buildFXChain(ctx: AudioContext, dest: AudioNode, fx: InstFX): AudioNode {
+  // 3-band EQ
+  const low = ctx.createBiquadFilter();
+  low.type  = 'lowshelf'; low.frequency.value = 100; low.gain.value = fx.eqLow;
+  const mid = ctx.createBiquadFilter();
+  mid.type  = 'peaking';  mid.frequency.value = 1000; mid.Q.value = 1.2; mid.gain.value = fx.eqMid;
+  const hi  = ctx.createBiquadFilter();
+  hi.type   = 'highshelf'; hi.frequency.value = 8000; hi.gain.value = fx.eqHigh;
+
+  // Compressor
+  const comp = ctx.createDynamicsCompressor();
+  const atkT = 0.003 + fx.attack * 0.097;   // 3 ms – 100 ms
+  const ratio = 1 + fx.compress * 19;        // 1:1 – 20:1
+  const thr   = -60 * fx.compress;           // 0 to -60 dB
+  comp.attack.value  = atkT;
+  comp.release.value = 0.15;
+  comp.ratio.value   = ratio;
+  comp.threshold.value = thr;
+  comp.knee.value = 6;
+
+  // Dry / wet gain nodes for reverb
+  const dryGain = ctx.createGain(); dryGain.gain.value = 1 - fx.reverb * 0.7;
+  const wetGain = ctx.createGain(); wetGain.gain.value = fx.reverb;
+
+  // Convolver for reverb
+  const conv = ctx.createConvolver();
+  conv.buffer = getIR(ctx);
+
+  // Wire: low → mid → hi → comp → dry/wet fork
+  low.connect(mid); mid.connect(hi); hi.connect(comp);
+  comp.connect(dryGain); dryGain.connect(dest);
+  comp.connect(conv);    conv.connect(wetGain); wetGain.connect(dest);
+
+  return low;  // caller connects their source to `low`
+}
+
+function isFXDefault(fx: InstFX): boolean {
+  return fx.compress === 0 && fx.attack === 0 && fx.eqLow === 0
+      && fx.eqMid === 0 && fx.eqHigh === 0 && fx.reverb === 0;
+}
+
 // ── Main sound dispatcher ────────────────────────────────────────────────────
 export function playSoundAt(
   soundId: string,
@@ -813,6 +882,10 @@ export function playSoundAt(
   const { ctx } = getCtx();
   const t    = Math.max(time, ctx.currentTime + 0.003);
   const inst = soundIdToInst(soundId);
+
+  // Resolve effective destination (apply per-inst FX chain if set)
+  const fx = inst ? _instFXMap[inst] : undefined;
+  const effectiveDest = (fx && !isFXDefault(fx)) ? buildFXChain(ctx, dest, fx) : dest;
 
   // Try kit-specific real sample first
   if (kit && inst && samplePool.hasForKit(kit, inst)) {
@@ -833,21 +906,22 @@ export function playSoundAt(
     if (inst === 'hihat-closed' || inst === 'hihat-foot') {
       // Short gate on closed/foot hihats; no room effect (too washy)
       const dur = inst === 'hihat-foot' ? 0.08 : (soundId === 'hh-c-tight' ? 0.032 : soundId === 'hh-c-crisp' ? 0.052 : 0.075);
-      playBuffer(ctx, buf, t, adjVol, dest, dur, rate);
-    } else if (roomMs > 0) {
-      playBufferRoomy(ctx, buf, t, adjVol, dest, rate, roomMs);
+      playBuffer(ctx, buf, t, adjVol, effectiveDest, dur, rate);
+    } else if (roomMs > 0 && effectiveDest === dest) {
+      // Only apply room effect when no FX chain (reverb already handled by FX)
+      playBufferRoomy(ctx, buf, t, adjVol, effectiveDest, rate, roomMs);
     } else {
-      playBuffer(ctx, buf, t, adjVol, dest, undefined, rate);
+      playBuffer(ctx, buf, t, adjVol, effectiveDest, undefined, rate);
     }
     return;
   }
 
   // Synthesis fallback
-  if      (soundId.startsWith('kick-'))    synthKick(ctx, t, vol, dest, soundId);
-  else if (soundId.startsWith('snare-'))   synthSnare(ctx, t, vol, dest, soundId);
-  else if (soundId.startsWith('hh-'))      synthHihat(ctx, t, vol, dest, soundId);
-  else if (soundId.startsWith('tom-'))     synthTom(ctx, t, vol, dest, soundId);
-  else if (soundId.startsWith('crash-') || soundId.startsWith('ride-')) synthCymbal(ctx, t, vol, dest, soundId);
+  if      (soundId.startsWith('kick-'))    synthKick(ctx, t, vol, effectiveDest, soundId);
+  else if (soundId.startsWith('snare-'))   synthSnare(ctx, t, vol, effectiveDest, soundId);
+  else if (soundId.startsWith('hh-'))      synthHihat(ctx, t, vol, effectiveDest, soundId);
+  else if (soundId.startsWith('tom-'))     synthTom(ctx, t, vol, effectiveDest, soundId);
+  else if (soundId.startsWith('crash-') || soundId.startsWith('ride-')) synthCymbal(ctx, t, vol, effectiveDest, soundId);
 }
 
 // ── Playback scheduler ──────────────────────────────────────────────────────

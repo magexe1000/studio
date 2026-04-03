@@ -4,13 +4,13 @@ import {
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, KIT_FAMILY,
-  stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS,
+  stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX,
   type DrumInstrument, type KitType, type DrumSong, type DrumMeasure, type NoteVariation,
-  type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag,
+  type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, KIT_DEFAULTS,
-  getSoundForVariation,
+  getSoundForVariation, setInstFXMap,
   type SampleStatus,
 } from '../lib/drumAudio';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
@@ -78,8 +78,10 @@ const KIT_DESC: Record<KitType, string> = {
 };
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 const KIT_IMAGE: Record<KitType, string> = {
-  ludwig: `${BASE}/kit-acoustic.webp`,
-  jazz:   `${BASE}/kit-jazz.webp`,
+  ludwig: `${BASE}/kit-ludwig.svg`,
+  jazz:   `${BASE}/kit-jazz-kit.svg`,
+  rmm:    `${BASE}/kit-rmm.svg`,
+  chrome: `${BASE}/kit-chrome.svg`,
   rock:   `${BASE}/kit-rock.webp`,
   vintage:`${BASE}/kit-vintage.webp`,
   studio: `${BASE}/kit-studio.webp`,
@@ -90,8 +92,6 @@ const KIT_IMAGE: Record<KitType, string> = {
   tr808:  `${BASE}/kit-tr808.webp`,
   techno: `${BASE}/kit-electronic.webp`,
   stark:  `${BASE}/kit-stark.webp`,
-  rmm:    `${BASE}/kit-acoustic.webp`,
-  chrome: `${BASE}/kit-acoustic.webp`,
 };
 const KIT_CATEGORIES: { id: string; label: string; kits: KitType[] }[] = [
   { id: 'acoustic', label: 'Acoustic Drums', kits: ['ludwig', 'jazz', 'rmm', 'chrome'] },
@@ -1104,6 +1104,7 @@ export default function DrumEditor() {
     drumSongs, saveDrumSong, createBlankDrumSong, loadDrumSong, deleteDrumSong, updateDrumSong,
     restorePatterns, insertMeasureAfter, togglePatternMute, importDrumSong,
     grooves, saveGroove, deleteGroove, renameGroove, loadGrooveReplace, loadGrooveAppend, duplicateGroove,
+    instFX, setInstFX,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -1171,6 +1172,13 @@ export default function DrumEditor() {
   const [copiedMeasure, setCopiedMeasure] = useState<DrumMeasure | null>(null);
   const [openBarMenu,   setOpenBarMenu]   = useState<string | null>(null); // measureId
   const [flashBarId,    setFlashBarId]    = useState<string | null>(null); // brief highlight on paste
+
+  // ── Per-instrument FX sheet ────────────────────────────────────────────────
+  const [showFXSheet, setShowFXSheet] = useState(false);
+  const [fxInst,      setFxInst]      = useState<DrumInstrument>('kick');
+
+  // Sync instFX store → drumAudio module whenever it changes
+  useEffect(() => { setInstFXMap(instFX); }, [instFX]);
 
   // ── Quick mixer sheet + export modal + import modal ──────────────────────
   const [showMixerSheet,    setShowMixerSheet]    = useState(false);
@@ -1579,6 +1587,11 @@ export default function DrumEditor() {
                 style={{ height: 30, width: 30, borderRadius: 8, background: showMixerSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showMixerSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showMixerSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
               </button>
+              {/* Per-instrument FX button */}
+              <button onClick={() => setShowFXSheet(s => !s)} title="Instrument FX"
+                style={{ height: 30, width: 30, borderRadius: 8, background: showFXSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showFXSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showFXSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+              </button>
               <button onClick={() => setShowHamburger(h => !h)} style={{ height: 30, width: 38, borderRadius: 8, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}>
                 {[0, 1, 2].map(i => <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />)}
               </button>
@@ -1642,7 +1655,9 @@ export default function DrumEditor() {
             </div>
             {drumSongs.length === 0 ? (
               <div className="spring-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', margin: '0 20px', background: 'var(--app-surface)', borderRadius: '1.5rem', gap: 16 }}>
-                <div style={{ width: 72, height: 72, borderRadius: '50%', background: `${accent.to}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34 }}>🥁</div>
+                <div style={{ width: 72, height: 72, borderRadius: '50%', background: `${accent.to}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={accent.from} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
+                </div>
                 <div style={{ textAlign: 'center' }}>
                   <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, margin: 0 }}>No beats yet</p>
                   <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 13, marginTop: 4, margin: '4px 0 0' }}>Create your first drum beat to get started.</p>
@@ -1675,7 +1690,9 @@ export default function DrumEditor() {
                       ) : (
                         <div>
                           <button onClick={() => handleLoadSong(song)} style={{ width: '100%', textAlign: 'left', padding: '16px', display: 'flex', alignItems: 'center', gap: 14, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                            <div style={{ width: 48, height: 48, borderRadius: 12, background: `${accent.to}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>🥁</div>
+                            <div style={{ width: 48, height: 48, borderRadius: 12, background: `${accent.to}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accent.from} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
+                            </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>{song.name}</p>
                               {song.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 12, margin: '2px 0 0' }}>{song.artist}</p>}
@@ -2217,6 +2234,66 @@ export default function DrumEditor() {
         </div>
       )}
 
+      {/* ── Per-instrument FX sheet ──────────────────────────────────────── */}
+      {showFXSheet && inEditor && (() => {
+        const curFX: InstFX = instFX[fxInst] ?? { ...DEFAULT_INST_FX };
+        const color = INSTRUMENT_COLOR[fxInst] ?? accent.from;
+        const fxSliders: { key: keyof InstFX; label: string; min: number; max: number; step: number }[] = [
+          { key: 'compress', label: 'Compress',  min: 0, max: 1,   step: 0.01 },
+          { key: 'attack',   label: 'Attack',    min: 0, max: 1,   step: 0.01 },
+          { key: 'eqLow',    label: 'EQ Low',    min: -12, max: 12, step: 0.5 },
+          { key: 'eqMid',    label: 'EQ Mid',    min: -12, max: 12, step: 0.5 },
+          { key: 'eqHigh',   label: 'EQ High',   min: -12, max: 12, step: 0.5 },
+          { key: 'reverb',   label: 'Reverb',    min: 0, max: 1,   step: 0.01 },
+        ];
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+            <div onClick={() => setShowFXSheet(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', padding: '4px 20px 10px', flexShrink: 0, gap: 10 }}>
+                <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)' }}>Instrument FX</span>
+                <button onClick={() => setInstFX(fxInst, { ...DEFAULT_INST_FX })} style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-muted)', background: 'rgba(128,128,128,0.10)', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: 'Manrope' }}>Reset</button>
+              </div>
+              {/* Instrument selector */}
+              <div style={{ display: 'flex', gap: 6, padding: '0 20px 12px', overflowX: 'auto', flexShrink: 0 }}>
+                {activeInstruments.map(inst => {
+                  const isAct = inst === fxInst;
+                  const c = INSTRUMENT_COLOR[inst] ?? accent.from;
+                  const hasFX = instFX[inst] && Object.values(instFX[inst]!).some(v => v !== 0);
+                  return (
+                    <button key={inst} onClick={() => setFxInst(inst)} style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, fontFamily: 'Manrope', cursor: 'pointer', background: isAct ? `${c}22` : 'var(--app-surface-high)', border: isAct ? `1.5px solid ${c}55` : '1.5px solid transparent', color: isAct ? c : 'var(--c-text-secondary)', position: 'relative', transition: 'all 130ms' }}>
+                      {inst.replace(/-/g, ' ')}
+                      {hasFX && <span style={{ position: 'absolute', top: 3, right: 3, width: 5, height: 5, borderRadius: '50%', background: c, display: 'block' }} />}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Sliders */}
+              <div style={{ overflowY: 'auto', flexShrink: 1, paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 20px)' }}>
+                {fxSliders.map(({ key, label, min, max, step }) => {
+                  const val = curFX[key];
+                  const isEQ = key === 'eqLow' || key === 'eqMid' || key === 'eqHigh';
+                  const dispVal = isEQ ? (val >= 0 ? `+${val.toFixed(1)} dB` : `${val.toFixed(1)} dB`) : `${Math.round(val * 100)}%`;
+                  return (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 20px', borderBottom: '1px solid rgba(128,128,128,0.06)' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0, opacity: val === 0 ? 0.25 : 1 }} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-primary)', width: 80, flexShrink: 0 }}>{label}</span>
+                      <input type="range" min={min} max={max} step={step} value={val}
+                        onChange={e => setInstFX(fxInst, { ...curFX, [key]: parseFloat(e.target.value) })}
+                        style={{ flex: 1, accentColor: color }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-muted)', minWidth: 54, textAlign: 'right' }}>{dispVal}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Export modal (full-screen) ────────────────────────────────────── */}
       {showExportModal && (
         <DrumExportModal
@@ -2287,7 +2364,7 @@ export default function DrumEditor() {
                             setCreateVariant(fam.variations[0].kit);
                           }}
                           style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 14px', borderRadius: 14, cursor: 'pointer', background: isActive ? `linear-gradient(135deg,${accent.from}22,${accent.to}12)` : 'var(--app-surface-high)', border: isActive ? `1.5px solid ${accent.from}55` : '1.5px solid transparent', transition: 'all 160ms' }}>
-                          <span style={{ fontSize: 22 }}>{fam.emoji}</span>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isActive ? accent.from : 'var(--c-text-muted)'} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
                           <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'Manrope,sans-serif', color: isActive ? accent.from : 'var(--c-text-secondary)', whiteSpace: 'nowrap' }}>{fam.label}</span>
                         </button>
                       );
