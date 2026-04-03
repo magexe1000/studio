@@ -95,7 +95,7 @@ const KIT_CATEGORIES: { id: string; label: string; kits: KitType[] }[] = [
 ];
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
-type DrumTab = 'songs' | 'patterns' | 'mixer';
+type DrumTab = 'songs' | 'patterns';
 
 // ── SVG note heads ─────────────────────────────────────────────────────────
 function CircleHead({ r, color }: { r: number; color: string }) {
@@ -335,11 +335,10 @@ function IconMixer({ active }: { active: boolean }) {
   );
 }
 
-// ── Bottom nav (Songs / Patterns / Mixer) ───────────────────────────────────
+// ── Bottom nav (Songs / Patterns) ───────────────────────────────────────────
 const ALL_NAV_TABS: { id: DrumTab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
   { id: 'songs',    label: 'Songs',    Icon: IconDrumSongs },
   { id: 'patterns', label: 'Patterns', Icon: IconPatterns  },
-  { id: 'mixer',    label: 'Mixer',    Icon: IconMixer     },
 ];
 function DrumNav({ activeTab, setTab, accent, isLight, isAmoled }: {
   activeTab: DrumTab; setTab: (t: DrumTab) => void;
@@ -1210,6 +1209,21 @@ export default function DrumEditor() {
   useEffect(() => { if (kitType) loadDrumSamples(kitType); }, [kitType]);
   useEffect(() => { if (playing) drumScheduler.updatePattern(pattern); }, [pattern, playing]);
 
+  // ── Auto-save: persist patterns/kit into the loaded song whenever they change
+  useEffect(() => {
+    if (!activeDrumSongId) return;
+    const t = setTimeout(() => {
+      updateDrumSong(activeDrumSongId, {
+        patterns: JSON.parse(JSON.stringify(patterns)),
+        activePatternId: activePatternId ?? patterns[0]?.id ?? '',
+        kitType,
+      });
+    }, 800);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patterns, activePatternId, kitType, activeDrumSongId]);
+
+
   // ── Playhead ─────────────────────────────────────────────────────────────
   useEffect(() => {
     drumScheduler.onStep = (gs, mIdx, stepInM) => {
@@ -1477,10 +1491,6 @@ export default function DrumEditor() {
               <button onClick={() => setShowMixerSheet(s => !s)} title="Mixer"
                 style={{ height: 30, width: 30, borderRadius: 8, background: showMixerSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showMixerSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showMixerSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-              </button>
-              <button onClick={handleOpenSaveForm} style={{ height: 30, padding: '0 14px', borderRadius: 8, background: activeDrumSongId ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.08)', border: `1px solid ${activeDrumSongId ? accent.from + '44' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: activeDrumSongId ? '#fff' : 'var(--c-text-secondary)', fontSize: 12, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                Save
               </button>
               <button onClick={() => setShowHamburger(h => !h)} style={{ height: 30, width: 38, borderRadius: 8, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}>
                 {[0, 1, 2].map(i => <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />)}
@@ -1858,50 +1868,6 @@ export default function DrumEditor() {
           </div>
         )}
 
-        {/* ═══ MIXER TAB ════════════════════════════════════════════════════ */}
-        {activeTab === 'mixer' && (
-          <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20, paddingBottom: 100 }} className="no-scrollbar">
-            <SectionLabel>Master Volume</SectionLabel>
-            <Card>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', gap: 12 }}>
-                <span style={{ flex: 1, color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 600 }}>Master</span>
-                <span style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 700, minWidth: 36, textAlign: 'right' }}>{Math.round(masterVolume * 100)}%</span>
-                <input type="range" min={0} max={1} step={0.01} value={masterVolume}
-                  onChange={e => setMasterVolume(parseFloat(e.target.value))}
-                  style={{ width: 110, accentColor: accent.from, flexShrink: 0 }} />
-              </div>
-            </Card>
-
-            <SectionLabel>Instruments</SectionLabel>
-            <p style={{ padding: '0 16px 8px', color: 'var(--c-text-muted)', fontSize: 11 }}>Toggle visibility in the grid per-pattern. Volume is global.</p>
-            <Card>
-              {ALL_INSTS.map((inst, i) => {
-                const vol     = volumeMap[inst] ?? 1;
-                const hidden  = patternMuted.has(inst);
-                const color   = INSTRUMENT_COLOR[inst] ?? accent.from;
-                return (
-                  <div key={inst} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', opacity: hidden ? 0.55 : 1, transition: 'opacity 150ms' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, fontFamily: 'Manrope, sans-serif', fontWeight: 600, color: hidden ? 'var(--c-text-muted)' : 'var(--c-text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
-                    <span style={{ color: 'var(--c-text-muted)', fontSize: 11, fontWeight: 700, minWidth: 30, textAlign: 'right' }}>{Math.round(vol * 100)}%</span>
-                    <input type="range" min={0} max={1} step={0.01} value={vol}
-                      onChange={e => setVolumeForInstrument(inst, parseFloat(e.target.value))}
-                      style={{ width: 80, accentColor: color, flexShrink: 0 }} />
-                    {/* Eye toggle — show/hide row in grid for this pattern */}
-                    <button onClick={() => togglePatternMute(pattern.id, inst)}
-                      title={hidden ? 'Show row' : 'Hide row'}
-                      style={{ width: 28, height: 28, borderRadius: 7, background: hidden ? 'rgba(128,128,128,0.08)' : `${color}18`, border: hidden ? '1px solid rgba(128,128,128,0.12)' : `1px solid ${color}30`, cursor: 'pointer', color: hidden ? 'var(--c-text-muted)' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
-                      {hidden
-                        ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                        : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                      }
-                    </button>
-                  </div>
-                );
-              })}
-            </Card>
-          </div>
-        )}
 
       </div>
 
@@ -1942,6 +1908,16 @@ export default function DrumEditor() {
               <span style={{ fontSize: 11, color: 'var(--c-text-muted)', background: 'rgba(128,128,128,0.10)', borderRadius: 6, padding: '3px 8px', fontWeight: 600 }}>{pattern.name}</span>
             </div>
             <div style={{ overflowY: 'auto', flexShrink: 1, paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 16px)' }}>
+              {/* Master Volume row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px 10px', borderBottom: '1px solid rgba(128,128,128,0.12)', marginBottom: 2 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', flex: 1 }}>Master</span>
+                <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 700, minWidth: 30, textAlign: 'right' }}>{Math.round(masterVolume * 100)}%</span>
+                <input type="range" min={0} max={1} step={0.01} value={masterVolume}
+                  onChange={e => setMasterVolume(parseFloat(e.target.value))}
+                  style={{ width: 90, accentColor: accent.from, flexShrink: 0 }} />
+                <div style={{ width: 32, flexShrink: 0 }} />
+              </div>
               {ALL_INSTS.map((inst, i) => {
                 const vol    = volumeMap[inst] ?? 1;
                 const hidden = patternMuted.has(inst);
@@ -2032,104 +2008,6 @@ export default function DrumEditor() {
         </div>
       )}
 
-      {/* ── Save Beat form overlay ───────────────────────────────────────── */}
-      {showSaveForm && (
-        <div
-          onClick={() => setShowSaveForm(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              width: '100%', maxWidth: 480,
-              background: isAmoled ? '#080808' : (isLight ? '#f5f5f7' : '#18181b'),
-              borderRadius: '20px 20px 0 0',
-              padding: '20px 20px max(20px,env(safe-area-inset-bottom)) 20px',
-              boxShadow: '0 -8px 40px rgba(0,0,0,0.35)',
-              animation: 'drumHamburgerIn 220ms cubic-bezier(0.22,1,0.36,1)',
-            }}
-          >
-            {/* Handle bar */}
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(128,128,128,0.3)', margin: '0 auto 18px' }} />
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <p style={{ color: 'var(--c-text-primary)', fontSize: 17, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: 0 }}>
-                {activeDrumSongId ? 'Edit Beat' : 'Save Beat'}
-              </p>
-              {/* BPM badge */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, background: `${accent.from}18`, border: `1px solid ${accent.from}28` }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: accent.from, fontFamily: 'Manrope, sans-serif' }}>{pattern.bpm} BPM</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input
-                value={saveName} onChange={e => setSaveName(e.target.value)}
-                autoFocus
-                placeholder="Beat name (required)"
-                style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${saveName.trim() ? accent.from + '66' : 'rgba(128,128,128,0.18)'}`, background: 'var(--app-bg)', color: 'var(--c-text-primary)', fontSize: 14, fontWeight: 700, fontFamily: 'Manrope, sans-serif', outline: 'none', boxSizing: 'border-box', transition: 'border-color 180ms' }}
-                onKeyDown={e => { if (e.key === 'Enter' && saveName.trim()) { activeDrumSongId ? handleUpdateSong() : handleSaveAsNew(); } }}
-              />
-              <input
-                value={saveArtist} onChange={e => setSaveArtist(e.target.value)}
-                placeholder="Artist (optional)"
-                style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: '1.5px solid rgba(128,128,128,0.18)', background: 'var(--app-bg)', color: 'var(--c-text-secondary)', fontSize: 13, fontFamily: 'Manrope, sans-serif', outline: 'none', boxSizing: 'border-box' }}
-              />
-              <textarea
-                value={saveNotes} onChange={e => setSaveNotes(e.target.value)}
-                placeholder="Notes (optional)"
-                rows={2}
-                style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: '1.5px solid rgba(128,128,128,0.18)', background: 'var(--app-bg)', color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', outline: 'none', boxSizing: 'border-box', resize: 'none', lineHeight: 1.5 }}
-              />
-            </div>
-
-            {activeDrumSongId ? (
-              /* ── Editing an existing beat: Update + Save as New ── */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
-                <button
-                  onClick={handleUpdateSong}
-                  disabled={!saveName.trim()}
-                  style={{ width: '100%', padding: '12px 0', borderRadius: 10, background: saveName.trim() ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.15)', border: 'none', cursor: saveName.trim() ? 'pointer' : 'default', color: saveName.trim() ? '#fff' : 'var(--c-text-muted)', fontSize: 14, fontWeight: 700, fontFamily: 'Manrope, sans-serif', transition: 'all 200ms', boxShadow: saveName.trim() ? `0 4px 14px ${accent.from}44` : 'none' }}
-                >
-                  Update Beat
-                </button>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={handleSaveAsNew}
-                    disabled={!saveName.trim()}
-                    style={{ flex: 1, padding: '11px 0', borderRadius: 10, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.16)', cursor: saveName.trim() ? 'pointer' : 'default', color: saveName.trim() ? 'var(--c-text-primary)' : 'var(--c-text-muted)', fontSize: 13, fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}
-                  >
-                    Save as New
-                  </button>
-                  <button
-                    onClick={() => setShowSaveForm(false)}
-                    style={{ flex: 1, padding: '11px 0', borderRadius: 10, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 13, fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* ── New beat: Save + Cancel ── */
-              <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-                <button
-                  onClick={() => setShowSaveForm(false)}
-                  style={{ flex: 1, padding: '12px 0', borderRadius: 10, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 600, fontFamily: 'Manrope, sans-serif' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveAsNew}
-                  disabled={!saveName.trim()}
-                  style={{ flex: 2, padding: '12px 0', borderRadius: 10, background: saveName.trim() ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.15)', border: 'none', cursor: saveName.trim() ? 'pointer' : 'default', color: saveName.trim() ? '#fff' : 'var(--c-text-muted)', fontSize: 14, fontWeight: 700, fontFamily: 'Manrope, sans-serif', transition: 'all 200ms', boxShadow: saveName.trim() ? `0 4px 14px ${accent.from}44` : 'none' }}
-                >
-                  Save Beat
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
