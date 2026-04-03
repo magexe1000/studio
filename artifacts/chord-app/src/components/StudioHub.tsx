@@ -355,9 +355,11 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
       {/* ── APPEARANCE ── */}
       <SectionHeader icon="palette" title={t.settings.sections.appearance} />
 
-      {/* Theme Mode */}
-      <div style={{ ...cardStyle, marginBottom: '10px' }}>
-        <div style={{ padding: 'var(--density-pad) var(--density-pad) 16px' }}>
+      {/* Theme + AMOLED + Accent — single card */}
+      <div style={cardStyle}>
+
+        {/* Theme */}
+        <div style={{ padding: 'var(--density-pad) var(--density-pad) 16px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
           <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 'var(--density-card-gap)' }}>{t.settings.rows.theme}</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
             {([
@@ -376,22 +378,20 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
             })}
           </div>
         </div>
-      </div>
 
-      {/* AMOLED Mode */}
-      {(() => {
-        const isLightMode = settings.theme === 'light';
-        return (
-          <div style={{
-            ...cardStyle,
-            marginBottom: '10px',
-            background: settings.amoledMode ? 'rgba(6,6,6,0.97)' : 'var(--app-surface)',
-            border: settings.amoledMode ? '1px solid rgba(50,50,50,0.4)' : '1px solid transparent',
-            transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1), border-color 700ms ease, opacity 300ms ease',
-            opacity: isLightMode ? 0.38 : 1,
-            pointerEvents: isLightMode ? 'none' : undefined,
-          }}>
-            <div style={{ padding: 'var(--density-row-pad)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+        {/* AMOLED */}
+        {(() => {
+          const isLightMode = settings.theme === 'light';
+          return (
+            <div style={{
+              padding: 'var(--density-row-pad)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px',
+              borderBottom: '1px solid rgba(128,128,128,0.08)',
+              background: settings.amoledMode ? 'rgba(0,0,0,0.35)' : 'transparent',
+              opacity: isLightMode ? 0.38 : 1,
+              pointerEvents: isLightMode ? 'none' : undefined,
+              transition: 'background 400ms ease, opacity 300ms ease',
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
                   width: '40px', height: '40px', borderRadius: '12px',
@@ -409,12 +409,10 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
               </div>
               <Toggle value={settings.amoledMode} onChange={v => updateSettings({ amoledMode: v })} accentFrom={accent.from} accentTo={accent.to} />
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
-      {/* Accent Color */}
-      <div style={cardStyle}>
+        {/* Accent Color */}
         <div style={{ padding: 'var(--density-pad) var(--density-pad) 16px' }}>
           <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 'var(--density-card-gap)' }}>{t.settings.rows.accentColor}</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--density-card-gap)' }}>
@@ -447,6 +445,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
             })}
           </div>
         </div>
+
       </div>
 
       {/* ── ANIMATIONS ── */}
