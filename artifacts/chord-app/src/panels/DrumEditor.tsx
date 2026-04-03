@@ -3,7 +3,7 @@ import {
 } from 'react';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
-  useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS,
+  useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, INSTRUMENT_NAME, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS,
   stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX, emptyMeasure, DRUM_INSTRUMENTS,
   type DrumInstrument, type KitType, type HouseMic, type HouseCrashModel, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
@@ -1894,7 +1894,7 @@ export default function DrumEditor() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
               </button>
               {/* Per-instrument FX button */}
-              <button onClick={() => setShowFXSheet(s => !s)} title="Instrument FX"
+              <button onClick={() => { if (!showFXSheet) setFxInst(activeInstruments[0] ?? 'kick'); setShowFXSheet(s => !s); }} title="Instrument FX"
                 style={{ height: 30, width: 36, borderRadius: 8, background: showFXSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showFXSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showFXSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
                 <span style={{ fontSize: 10, fontWeight: 800, fontFamily: 'Manrope,sans-serif', letterSpacing: '0.04em' }}>FX</span>
               </button>
@@ -2741,7 +2741,7 @@ export default function DrumEditor() {
                   const hasFX = instFX[inst] && Object.values(instFX[inst]!).some(v => v !== 0);
                   return (
                     <button key={inst} onClick={() => setFxInst(inst)} style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, fontFamily: 'Manrope', cursor: 'pointer', background: isAct ? `${c}22` : 'var(--app-surface-high)', border: isAct ? `1.5px solid ${c}55` : '1.5px solid transparent', color: isAct ? c : 'var(--c-text-secondary)', position: 'relative', transition: 'all 130ms' }}>
-                      {inst.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase())}
+                      {INSTRUMENT_NAME[inst] ?? inst.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase())}
                       {hasFX && <span style={{ position: 'absolute', top: 3, right: 3, width: 5, height: 5, borderRadius: '50%', background: c, display: 'block' }} />}
                     </button>
                   );
