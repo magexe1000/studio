@@ -1,4 +1,4 @@
-import type { DrumInstrument, DrumPattern, InstFX, KitType, HouseMic, NoteVariation } from '../store/useDrumStore';
+import type { DrumInstrument, DrumPattern, InstFX, KitType, HouseMic, HouseCrashModel, NoteVariation } from '../store/useDrumStore';
 import { DRUM_INSTRUMENTS, stepsPerMeasure } from '../store/useDrumStore';
 import { getPlugin } from './drumPlugins';
 import type { InstPlugin } from './drumPlugins';
@@ -680,6 +680,106 @@ export function loadHouseKit(mic: HouseMic) {
   const { ctx } = getCtx();
   _houseKitMic = mic;
   houseKitPool.load(mic, ctx);
+  cymbalPool.load(ctx);
+}
+
+// ── House Kit Cymbal Pool — hi-hat, crash, ride WAV samples ─────────────────
+const CYMBAL_BASE = '/drums/cymbals';
+
+class CymbalPool {
+  private _buffers  = new Map<string, AudioBuffer>();
+  private _loaded   = false;
+  private _loading  = false;
+  private _rrFoot   = 0;
+  private _rrBow    = 0;
+  private _rrBell   = 0;
+  onStatusChange: ((loaded: number, total: number) => void) | null = null;
+
+  get ready(): boolean { return this._loaded; }
+
+  async load(ctx: AudioContext) {
+    if (this._loaded || this._loading) return;
+    this._loading = true;
+
+    const files = [
+      'hh-closed-soft', 'hh-closed-hard',
+      'hh-halfopen-soft', 'hh-halfopen-hard',
+      'hh-mostlyopen-soft', 'hh-mostlyopen-hard',
+      'hh-fullopen-hard',
+      'hh-foot-1', 'hh-foot-2', 'hh-foot-3', 'hh-foot-4',
+      'crash-ac18-bell',  'crash-ac18-low',  'crash-ac18-high',  'crash-ac18-tip',  'crash-ac18-choke',
+      'crash-am17-bell',  'crash-am17-low',  'crash-am17-high',  'crash-am17-tip',  'crash-am17-choke',
+      'crash-hhx18-bell', 'crash-hhx18-low', 'crash-hhx18-high', 'crash-hhx18-tip', 'crash-hhx18-choke',
+      'crash-zcp19-bell', 'crash-zcp19-low', 'crash-zcp19-high', 'crash-zcp19-tip', 'crash-zcp19-choke',
+      'ride-bell-1', 'ride-bell-2', 'ride-bow-1', 'ride-bow-2', 'ride-crash',
+    ];
+
+    const total = files.length;
+    let loaded = 0;
+
+    await Promise.all(files.map(name => (async () => {
+      try {
+        const resp = await fetch(`${CYMBAL_BASE}/${name}.wav`, { cache: 'force-cache' });
+        if (!resp.ok) return;
+        const buf = await ctx.decodeAudioData(await resp.arrayBuffer());
+        this._buffers.set(name, buf);
+      } catch { /* silently skip */ }
+      loaded++;
+      this.onStatusChange?.(loaded, total);
+    })()));
+
+    this._loaded  = true;
+    this._loading = false;
+  }
+
+  private _get(k: string): AudioBuffer | undefined { return this._buffers.get(k); }
+
+  getHHClosed(variation: NoteVariation): AudioBuffer | undefined {
+    const hard = variation === 'accent' || variation === 'open';
+    return this._get(hard ? 'hh-closed-hard' : 'hh-closed-soft');
+  }
+
+  getHHOpen(variation: NoteVariation): AudioBuffer | undefined {
+    if (variation === 'accent') return this._get('hh-fullopen-hard') ?? this._get('hh-mostlyopen-hard');
+    if (variation === 'open')   return this._get('hh-mostlyopen-soft') ?? this._get('hh-halfopen-hard');
+    return this._get('hh-halfopen-soft');
+  }
+
+  getHHFoot(): AudioBuffer | undefined {
+    const rr = (this._rrFoot % 4) + 1;
+    this._rrFoot++;
+    return this._get(`hh-foot-${rr}`);
+  }
+
+  getCrash(model: HouseCrashModel, variation: NoteVariation): AudioBuffer | undefined {
+    const sfx = variation === 'bell'   ? 'bell'  :
+                variation === 'choke'  ? 'choke' :
+                variation === 'accent' ? 'high'  :
+                variation === 'ghost'  ? 'low'   : 'tip';
+    return this._get(`crash-${model}-${sfx}`);
+  }
+
+  getRide(variation: NoteVariation): AudioBuffer | undefined {
+    if (variation === 'bell') {
+      const rr = (this._rrBell % 2) + 1;
+      this._rrBell++;
+      return this._get(`ride-bell-${rr}`);
+    }
+    if (variation === 'choke') return this._get('ride-crash');
+    const rr = (this._rrBow % 2) + 1;
+    this._rrBow++;
+    return this._get(`ride-bow-${rr}`);
+  }
+}
+
+export const cymbalPool = new CymbalPool();
+
+let _houseCrashModel: HouseCrashModel = 'ac18';
+export function setHouseCrashModel(model: HouseCrashModel): void { _houseCrashModel = model; }
+
+export function loadHouseCymbals(): void {
+  const { ctx } = getCtx();
+  cymbalPool.load(ctx);
 }
 
 // ── Synthesis: Kick ─────────────────────────────────────────────────────────
@@ -1401,7 +1501,26 @@ export function playSoundAt(
       }
       // Buffer not loaded yet — fall through to synthesis
     }
-    // Hihats / cymbals have no house samples — fall through to synthesis
+
+    // ── Cymbal routing (hi-hat, crash, ride via CymbalPool) ─────────────────
+    const HH_DUR = 0.10; // gate duration for closed hi-hat samples
+    if (inst === 'hihat-closed') {
+      const buf = cymbalPool.getHHClosed(variation);
+      if (buf) { playBuffer(ctx, buf, t, vol, chainInput, HH_DUR, 1.0); return; }
+    } else if (inst === 'hihat-open') {
+      const buf = cymbalPool.getHHOpen(variation);
+      if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
+    } else if (inst === 'hihat-foot') {
+      const buf = cymbalPool.getHHFoot();
+      if (buf) { playBuffer(ctx, buf, t, vol, chainInput, HH_DUR, 1.0); return; }
+    } else if (inst === 'crash') {
+      const buf = cymbalPool.getCrash(_houseCrashModel, variation);
+      if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
+    } else if (inst === 'ride') {
+      const buf = cymbalPool.getRide(variation);
+      if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
+    }
+    // Fall through to synthesis if cymbal pool not yet loaded
   }
 
   // Try kit-specific real sample first

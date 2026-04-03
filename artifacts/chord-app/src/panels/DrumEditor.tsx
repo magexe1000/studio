@@ -3,15 +3,16 @@ import {
 } from 'react';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
-  useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, KIT_FAMILY, HOUSE_MICS,
+  useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS,
   stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX,
-  type DrumInstrument, type KitType, type HouseMic, type DrumSong, type DrumMeasure, type NoteVariation,
+  type DrumInstrument, type KitType, type HouseMic, type HouseCrashModel, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
   type InstPlugin,
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, loadHouseKit, houseKitPool,
   setHouseKitMic, setHouseInstVelOverrides, HOUSE_VEL_CONFIGS, HOUSE_INST_LABELS,
+  setHouseCrashModel as audioSetHouseCrashModel,
   KIT_DEFAULTS, getSoundForVariation, setInstFXMap, setInstPluginMap,
   type SampleStatus, type HouseInstName,
 } from '../lib/drumAudio';
@@ -1164,6 +1165,7 @@ export default function DrumEditor() {
     instPlugins, setInstPlugins,
     houseKitMic, setHouseKitMic: storeSetHouseKitMic,
     houseInstVelOverride, setHouseInstVelOverride: storeSetInstVelOverride,
+    houseCrashModel, setHouseCrashModel: storeSetHouseCrashModel,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -1245,6 +1247,7 @@ export default function DrumEditor() {
   useEffect(() => { setInstFXMap(instFX); }, [instFX]);
   useEffect(() => { setInstPluginMap(instPlugins); }, [instPlugins]);
   useEffect(() => { setHouseInstVelOverrides(houseInstVelOverride); }, [houseInstVelOverride]);
+  useEffect(() => { audioSetHouseCrashModel(houseCrashModel); }, [houseCrashModel]);
 
   // ── Quick mixer sheet + export modal + import modal ──────────────────────
   const [showMixerSheet,    setShowMixerSheet]    = useState(false);
@@ -1781,6 +1784,26 @@ export default function DrumEditor() {
                       </div>
                     );
                   })}
+
+                  {/* ── Crash Cymbal model selector ── */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1, fontFamily: 'Manrope,sans-serif' }}>Crash Cymbal</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {HOUSE_CRASH_MODELS.map(m => {
+                        const active = houseCrashModel === m.id;
+                        return (
+                          <button key={m.id} className="btn-smooth"
+                            onClick={() => storeSetHouseCrashModel(m.id as HouseCrashModel)}
+                            title={m.desc}
+                            style={{ height: 26, padding: '0 10px', borderRadius: 6, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(128,128,128,0.14)', background: active ? `${accent.from}1a` : 'rgba(128,128,128,0.06)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', transition: 'all 140ms', fontFamily: 'Manrope,sans-serif', whiteSpace: 'nowrap' }}>
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>}
               </div>
 

@@ -29,6 +29,14 @@ export const HOUSE_MICS: { id: HouseMic; label: string; desc: string }[] = [
   { id: 'room',  label: 'Room',   desc: 'Room mic — spacious live ambience'                     },
 ];
 
+export type HouseCrashModel = 'ac18' | 'am17' | 'hhx18' | 'zcp19';
+export const HOUSE_CRASH_MODELS: { id: HouseCrashModel; label: string; desc: string }[] = [
+  { id: 'ac18',  label: 'Custom 18"',     desc: 'A-Custom 18" — bright, cutting, versatile'          },
+  { id: 'am17',  label: 'Medium 17"',     desc: 'A-Medium 17" — warm, controlled, mid-focused'        },
+  { id: 'hhx18', label: 'HHXplosion 18"', desc: 'HHXplosion 18" — explosive, dark, washy'             },
+  { id: 'zcp19', label: 'Z-Custom 19"',   desc: 'Z-Custom Projection 19" — loud, full, wide spread'   },
+];
+
 export const DRUM_INSTRUMENTS: DrumInstrument[] = [
   'crash', 'ride', 'hihat-open', 'hihat-closed', 'hihat-foot',
   'snare', 'tom-high', 'tom-mid', 'tom-floor', 'kick',
@@ -282,6 +290,9 @@ interface DrumStore {
 
   houseInstVelOverride: Partial<Record<string, string>>;
   setHouseInstVelOverride: (inst: string, vel: string | undefined) => void;
+
+  houseCrashModel: HouseCrashModel;
+  setHouseCrashModel: (model: HouseCrashModel) => void;
 }
 
 const initial = defaultPattern();
@@ -301,6 +312,7 @@ export const useDrumStore = create<DrumStore>()(
       instPlugins:       {},
       houseKitMic:          'blend' as HouseMic,
       houseInstVelOverride: {} as Partial<Record<string, string>>,
+      houseCrashModel:      'ac18' as HouseCrashModel,
 
       setSoundForInstrument: (inst, soundId) =>
         set(s => ({ soundMap: { ...s.soundMap, [inst]: soundId } })),
@@ -624,10 +636,12 @@ export const useDrumStore = create<DrumStore>()(
         if (vel === undefined) delete next[inst]; else next[inst] = vel;
         return { houseInstVelOverride: next };
       }),
+
+      setHouseCrashModel: (model) => set({ houseCrashModel: model }),
     }),
     {
       name: 'chordex-drums',
-      version: 8,
+      version: 9,
       migrate: (state: unknown, _version: number) => {
         const s = state as {
           drumSongs?: DrumSong[];
