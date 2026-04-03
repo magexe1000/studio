@@ -1,7 +1,7 @@
 {
-  "name": "Chordex",
-  "short_name": "Chordex",
-  "description": "Chord reference and song preset tool for musicians",
+  "name": "Studio",
+  "short_name": "Studio",
+  "description": "Studio — Chordex & Drumex, your complete music toolkit",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

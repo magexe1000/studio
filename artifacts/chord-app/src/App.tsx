@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
-import { ChordexLogo, DrumexLogo, StudioLogo } from './components/ChordexLogo';
+import { ChordexLogo, DrumexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
@@ -92,7 +92,6 @@ export default function App() {
 
   // ── App-switch splash on mode change ────────────────────────────────────
   type SplashPhase = 'hidden' | 'in' | 'out';
-  const [studioSplash,  setStudioSplash]  = useState<SplashPhase>('in');   // show on first load
   const [drumSplash,    setDrumSplash]    = useState<SplashPhase>('hidden');
   const [chordexSplash, setChordexSplash] = useState<SplashPhase>('hidden');
   const prevAppMode  = useRef(settings.appMode);
@@ -106,14 +105,6 @@ export default function App() {
     const t2 = setTimeout(() => set('hidden'), 1100);
     splashTimers.current = [t1, t2];
   };
-
-  // Dismiss Studio splash on first render
-  useEffect(() => {
-    const t1 = setTimeout(() => setStudioSplash('out'),    750);
-    const t2 = setTimeout(() => setStudioSplash('hidden'), 1100);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (settings.appMode === 'drums'  && prevAppMode.current !== 'drums')  fireSplash(setDrumSplash);
@@ -266,26 +257,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Studio splash — always shown first on app open */}
-        {studioSplash !== 'hidden' && (
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 600,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--app-bg)',
-            opacity:   studioSplash === 'out' ? 0 : 1,
-            transform: studioSplash === 'out' ? 'scale(1.04)' : 'scale(1)',
-            transition: 'opacity 350ms cubic-bezier(0.4,0,0.2,1), transform 350ms cubic-bezier(0.4,0,0.2,1)',
-            pointerEvents: 'none',
-          }}>
-            <div style={{ color: 'var(--c-text-primary)', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <StudioLogo size={60} />
-            </div>
-            <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <p style={{ color: 'var(--c-text-primary)', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Studio</p>
-              <p style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0, letterSpacing: '0.08em' }}>by Chordex</p>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -400,26 +371,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Studio splash — always shown first on app open */}
-      {studioSplash !== 'hidden' && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 600,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          background: 'var(--app-bg)',
-          opacity:   studioSplash === 'out' ? 0 : 1,
-          transform: studioSplash === 'out' ? 'scale(1.04)' : 'scale(1)',
-          transition: 'opacity 350ms cubic-bezier(0.4,0,0.2,1), transform 350ms cubic-bezier(0.4,0,0.2,1)',
-          pointerEvents: 'none',
-        }}>
-          <div style={{ color: 'var(--c-text-primary)', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-            <StudioLogo size={60} />
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-            <p style={{ color: 'var(--c-text-primary)', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Studio</p>
-            <p style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0, letterSpacing: '0.08em' }}>by Chordex</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

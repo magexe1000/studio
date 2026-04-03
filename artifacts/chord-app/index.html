@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
-    <title>Chordex</title>
-    <meta name="description" content="Chord reference and song preset tool for musicians" />
+    <title>Studio</title>
+    <meta name="description" content="Studio — Chordex & Drumex, your complete music toolkit" />
     <meta name="theme-color" content="#111116" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Chordex" />
+    <meta name="apple-mobile-web-app-title" content="Studio" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" type="image/svg+xml" href="./icon-512.svg" />
     <link rel="apple-touch-icon" href="./icon-512.svg" />
@@ -19,7 +19,7 @@
         position: fixed; inset: 0; z-index: 9999;
         background: #000000;
         display: flex; flex-direction: column;
-        align-items: center; justify-content: center; gap: 18px;
+        align-items: center; justify-content: center; gap: 16px;
       }
       #html-splash-logo {
         opacity: 0;
@@ -27,6 +27,7 @@
         transition: opacity 620ms cubic-bezier(0.34,1.56,0.64,1),
                     transform 620ms cubic-bezier(0.34,1.56,0.64,1);
       }
+      #html-splash-text { text-align: center; }
       #html-splash-word {
         opacity: 0;
         transform: translateY(7px);
@@ -34,32 +35,42 @@
                     transform 500ms cubic-bezier(0.25,0.46,0.45,0.94);
         font-family: system-ui, -apple-system, sans-serif;
         font-weight: bold; font-size: 28px;
-        letter-spacing: -0.02em; color: #ffffff; margin: 0;
+        letter-spacing: -0.02em; color: #ffffff; margin: 0 0 5px;
+      }
+      #html-splash-sub {
+        opacity: 0;
+        transform: translateY(5px);
+        transition: opacity 500ms 60ms cubic-bezier(0.25,0.46,0.45,0.94),
+                    transform 500ms 60ms cubic-bezier(0.25,0.46,0.45,0.94);
+        font-family: system-ui, -apple-system, sans-serif;
+        font-weight: normal; font-size: 13px;
+        letter-spacing: 0.08em; color: rgba(255,255,255,0.38); margin: 0;
       }
     </style>
   </head>
   <body>
     <div id="html-splash">
       <div id="html-splash-logo">
-        <svg width="64" height="84" viewBox="0 0 13 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="0.5" y="0.5" width="12" height="2.5" rx="1" fill="white"/>
-          <line x1="2.5"  y1="3" x2="2.5"  y2="16.5" stroke="white" stroke-width="0.9" stroke-opacity="0.35"/>
-          <line x1="6.5"  y1="3" x2="6.5"  y2="16.5" stroke="white" stroke-width="0.9" stroke-opacity="0.35"/>
-          <line x1="10.5" y1="3" x2="10.5" y2="16.5" stroke="white" stroke-width="0.9" stroke-opacity="0.35"/>
-          <line x1="0.5"  y1="8"  x2="12.5" y2="8"  stroke="white" stroke-width="0.7" stroke-opacity="0.28"/>
-          <line x1="0.5"  y1="13" x2="12.5" y2="13" stroke="white" stroke-width="0.7" stroke-opacity="0.28"/>
-          <circle cx="2.5"  cy="5.5"  r="2.1" fill="white"/>
-          <circle cx="10.5" cy="5.5"  r="2.1" fill="white"/>
-          <circle cx="6.5"  cy="10.5" r="2.1" fill="white"/>
+        <!-- Studio logo: five equalizer bars, bottom-aligned -->
+        <svg width="64" height="64" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1.5"  y="7.5"  width="2" height="8"  rx="1" fill="white" fill-opacity="0.60"/>
+          <rect x="4.5"  y="3.5"  width="2" height="12" rx="1" fill="white" fill-opacity="0.70"/>
+          <rect x="7.5"  y="1.5"  width="2" height="14" rx="1" fill="white" fill-opacity="0.90"/>
+          <rect x="10.5" y="5.5"  width="2" height="10" rx="1" fill="white" fill-opacity="0.75"/>
+          <rect x="13.5" y="9.5"  width="2" height="6"  rx="1" fill="white" fill-opacity="0.62"/>
         </svg>
       </div>
-      <p id="html-splash-word">Chordex</p>
+      <div id="html-splash-text">
+        <p id="html-splash-word">Studio</p>
+        <p id="html-splash-sub">by Chordex</p>
+      </div>
     </div>
     <div id="root"></div>
     <script>
       var splash = document.getElementById('html-splash');
       var logo   = document.getElementById('html-splash-logo');
       var word   = document.getElementById('html-splash-word');
+      var sub    = document.getElementById('html-splash-sub');
 
       requestAnimationFrame(function() {
         requestAnimationFrame(function() {
@@ -69,6 +80,8 @@
           setTimeout(function() {
             word.style.opacity   = '1';
             word.style.transform = 'translateY(0)';
+            sub.style.opacity    = '1';
+            sub.style.transform  = 'translateY(0)';
           }, 220);
 
           setTimeout(function() {
