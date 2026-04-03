@@ -30,13 +30,13 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/chord-app run dev"
-waitForPort = 5173
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/chord-app run dev"
+waitForPort = 3000
 
 [agent]
 stack = "PNPM_WORKSPACE"
