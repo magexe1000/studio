@@ -16,10 +16,13 @@ import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
 const LABEL_W  = 72;
-const ROW_H    = 52;
-const RULER_H  = 26;
-const SYS_SEP  = 20;
+const ROW_H    = 40;
+const RULER_H  = 20;
+const SYS_SEP  = 10;
 const MIN_STEP = 16;
+
+// Core instruments always visible; extras are collapsible
+const CORE_INSTS: DrumInstrument[] = ['crash', 'hihat-closed', 'snare', 'kick'];
 
 // Staff lines within each row (fraction of ROW_H)
 const STAFF_YF = [0.29, 0.52, 0.75] as const;
@@ -448,6 +451,7 @@ export default function DrumEditor() {
     toggleHit, addMeasure, deleteMeasure, updatePattern,
     duplicatePattern, deletePattern, renamePattern, setActivePattern,
     drumSongs, saveDrumSong, createBlankDrumSong, loadDrumSong, deleteDrumSong, updateDrumSong,
+    restorePatterns,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -497,6 +501,18 @@ export default function DrumEditor() {
   const [editingArtist,    setEditingArtist]    = useState('');
   const [activeDrumSongId, setActiveDrumSongId] = useState<string | null>(null);
 
+  // ── Row visibility (persisted to localStorage) ───────────────────────────
+  const [showExtraRows, setShowExtraRows] = useState<boolean>(() => {
+    try { const v = JSON.parse(localStorage.getItem('chordex-drum-ui') ?? '{}'); return v.showExtraRows !== false; }
+    catch { return true; }
+  });
+
+  // ── Undo / Redo stacks ───────────────────────────────────────────────────
+  type HistoryEntry = { patterns: typeof patterns; activePatternId: string | null };
+  const undoStack = useRef<HistoryEntry[]>([]);
+  const redoStack = useRef<HistoryEntry[]>([]);
+  const [historyCount, setHistoryCount] = useState(0);
+
   // ── Container width ──────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(340);
@@ -510,20 +526,27 @@ export default function DrumEditor() {
     return () => ro.disconnect();
   }, []);
 
+  // ── Visible instruments ───────────────────────────────────────────────────
+  const extraInsts   = useMemo(() => ALL_INSTS.filter(i => !CORE_INSTS.includes(i)), [ALL_INSTS]);
+  const visibleInsts = useMemo(
+    () => (showExtraRows ? ALL_INSTS : ALL_INSTS.filter(i => CORE_INSTS.includes(i))),
+    [ALL_INSTS, showExtraRows],
+  );
+
   // ── Layout ───────────────────────────────────────────────────────────────
   const availableW     = containerW - LABEL_W;
   const measuresPerRow = Math.max(1, Math.floor(availableW / (spm * MIN_STEP)));
   const MEASURE_W      = availableW / measuresPerRow;
   const STEP_W         = MEASURE_W / spm;
-  const SYSTEM_H       = RULER_H + ALL_INSTS.length * ROW_H;
+  const SYSTEM_H       = RULER_H + visibleInsts.length * ROW_H;
   const FULL_SYS_H     = SYSTEM_H + SYS_SEP;
 
-  const spmRef      = useRef(spm);          spmRef.current = spm;
+  const spmRef      = useRef(spm);            spmRef.current = spm;
   const mprRef      = useRef(measuresPerRow); mprRef.current = measuresPerRow;
-  const stepWRef    = useRef(STEP_W);        stepWRef.current = STEP_W;
-  const measureWRef = useRef(MEASURE_W);     measureWRef.current = MEASURE_W;
-  const sysHRef     = useRef(FULL_SYS_H);   sysHRef.current = FULL_SYS_H;
-  const allInstsRef = useRef(ALL_INSTS);     allInstsRef.current = ALL_INSTS;
+  const stepWRef    = useRef(STEP_W);         stepWRef.current = STEP_W;
+  const measureWRef = useRef(MEASURE_W);      measureWRef.current = MEASURE_W;
+  const sysHRef     = useRef(FULL_SYS_H);    sysHRef.current = FULL_SYS_H;
+  const allInstsRef = useRef(visibleInsts);   allInstsRef.current = visibleInsts;
 
   // ── System rows ──────────────────────────────────────────────────────────
   const systemRows = useMemo(() => {
@@ -536,7 +559,7 @@ export default function DrumEditor() {
   // ── Hit maps (step → variation) ──────────────────────────────────────────
   const allHitMaps = useMemo(() => {
     const map = new Map<DrumInstrument, Map<number, NoteVariation>>();
-    ALL_INSTS.forEach(inst => {
+    visibleInsts.forEach(inst => {
       const m2 = new Map<number, NoteVariation>();
       pattern.measures.forEach((m, mIdx) => {
         m.hits[inst]?.forEach(h => m2.set(mIdx * spm + h.step, h.variation ?? 'normal'));
@@ -544,7 +567,7 @@ export default function DrumEditor() {
       map.set(inst, m2);
     });
     return map;
-  }, [pattern, spm, ALL_INSTS]);
+  }, [pattern, spm, visibleInsts]);
 
   // ── Refs ─────────────────────────────────────────────────────────────────
   const scrollRef    = useRef<HTMLDivElement>(null);
@@ -574,6 +597,52 @@ export default function DrumEditor() {
     return () => { drumScheduler.onStep = null; };
   }, []);
   useEffect(() => () => { drumScheduler.stop(); }, []);
+
+  // ── Row visibility persistence ────────────────────────────────────────────
+  useEffect(() => {
+    try {
+      const prev = JSON.parse(localStorage.getItem('chordex-drum-ui') ?? '{}');
+      localStorage.setItem('chordex-drum-ui', JSON.stringify({ ...prev, showExtraRows }));
+    } catch {}
+  }, [showExtraRows]);
+
+  // ── Undo / Redo helpers ────────────────────────────────────────────────────
+  const pushUndo = useCallback(() => {
+    const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
+    undoStack.current.push({ patterns: JSON.parse(JSON.stringify(pts)), activePatternId: actId });
+    if (undoStack.current.length > 50) undoStack.current.shift();
+    redoStack.current = [];
+    setHistoryCount(undoStack.current.length);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (!undoStack.current.length) return;
+    const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
+    redoStack.current.push({ patterns: JSON.parse(JSON.stringify(pts)), activePatternId: actId });
+    const prev = undoStack.current.pop()!;
+    restorePatterns(prev.patterns, prev.activePatternId);
+    setHistoryCount(undoStack.current.length);
+  }, [restorePatterns]);
+
+  const handleRedo = useCallback(() => {
+    if (!redoStack.current.length) return;
+    const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
+    undoStack.current.push({ patterns: JSON.parse(JSON.stringify(pts)), activePatternId: actId });
+    const next = redoStack.current.pop()!;
+    restorePatterns(next.patterns, next.activePatternId);
+    setHistoryCount(undoStack.current.length);
+  }, [restorePatterns]);
+
+  // ── Keyboard shortcuts (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z) ──────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo(); }
+      else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); handleRedo(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleUndo, handleRedo]);
 
   // ── Play/stop ────────────────────────────────────────────────────────────
   const handlePlay = useCallback(() => {
@@ -613,10 +682,11 @@ export default function DrumEditor() {
 
   // ── Clear ────────────────────────────────────────────────────────────────
   const handleClear = useCallback(() => {
+    pushUndo();
     const cleared = pattern.measures.map(m => ({ ...m, hits: {} as Record<DrumInstrument, never[]> }));
     updatePattern(pattern.id, { measures: cleared } as Parameters<typeof updatePattern>[1]);
     if (drumScheduler.isPlaying) drumScheduler.updatePattern(useDrumStore.getState().patterns.find(p => p.id === pattern.id)!);
-  }, [pattern, updatePattern]);
+  }, [pattern, updatePattern, pushUndo]);
 
   // ── Cell tap ─────────────────────────────────────────────────────────────
   const handlePointerDown = (e: React.PointerEvent) => { pointerStart.current = { x: e.clientX, y: e.clientY }; };
@@ -636,12 +706,14 @@ export default function DrumEditor() {
     const measureInRow = Math.floor(cx / measureWRef.current);
     const mIdx         = sysIdx * mprRef.current + measureInRow;
     const stepInM      = Math.floor((cx % measureWRef.current) / stepWRef.current);
-    if (instIdx < 0 || instIdx >= ALL_INSTS.length) return;
+    const vis = allInstsRef.current;
+    if (instIdx < 0 || instIdx >= vis.length) return;
     if (mIdx < 0 || mIdx >= pattern.measures.length) return;
     if (stepInM < 0 || stepInM >= spm) return;
-    const inst = ALL_INSTS[instIdx];
+    const inst = vis[instIdx];
     const m    = pattern.measures[mIdx];
     if (!m) return;
+    pushUndo();
     toggleHit(pattern.id, m.id, inst, stepInM);
     // Read new state to determine the current variation for correct preview sound
     const newPat     = useDrumStore.getState().patterns.find(p => p.id === pattern.id);
@@ -761,13 +833,19 @@ export default function DrumEditor() {
             {!activeSong && <div style={{ flex: 1 }} />}
             {/* Editor controls — only on the grid tab */}
             {activeTab === 'songs' && (<>
+              {/* Undo / Redo */}
+              <button onClick={handleUndo} disabled={historyCount === 0} title="Undo (Ctrl+Z)"
+                style={{ height: 30, width: 30, borderRadius: 8, background: historyCount > 0 ? 'rgba(128,128,128,0.08)' : 'transparent', border: `1px solid ${historyCount > 0 ? 'rgba(128,128,128,0.18)' : 'transparent'}`, cursor: historyCount > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: historyCount > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: historyCount > 0 ? 1 : 0.35, flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M3 13C5.2 6.5 11.3 4 16 4a9 9 0 0 1 0 18c-4 0-7.4-2-9-5"/></svg>
+              </button>
+              <button onClick={handleRedo} disabled={redoStack.current.length === 0} title="Redo (Ctrl+Y)"
+                style={{ height: 30, width: 30, borderRadius: 8, background: redoStack.current.length > 0 ? 'rgba(128,128,128,0.08)' : 'transparent', border: `1px solid ${redoStack.current.length > 0 ? 'rgba(128,128,128,0.18)' : 'transparent'}`, cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35, flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7v6h-6"/><path d="M21 13C18.8 6.5 12.7 4 8 4a9 9 0 0 0 0 18c4 0 7.4-2 9-5"/></svg>
+              </button>
               <button onClick={handleClear} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(128,128,128,0.18)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>Clear</button>
               <button onClick={handleOpenSaveForm} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: activeDrumSongId ? `linear-gradient(135deg,${accent.from}22,${accent.to}18)` : 'rgba(128,128,128,0.08)', border: `1px solid ${activeDrumSongId ? accent.from + '44' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: activeDrumSongId ? accent.from : 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                 Save
-              </button>
-              <button onClick={() => setLooping(l => !l)} style={{ height: 30, width: 38, borderRadius: 8, background: looping ? `${accent.from}22` : 'rgba(128,128,128,0.08)', border: `1px solid ${looping ? accent.from + '44' : 'rgba(128,128,128,0.14)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: looping ? accent.from : 'var(--c-text-muted)', transition: 'all 180ms', flexShrink: 0 }}>
-                <span style={{ fontSize: 14, lineHeight: 1 }}>⟳</span>
               </button>
               <button onClick={toggleSub} style={{ height: 30, padding: '0 10px', borderRadius: 8, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 10, fontWeight: 800, flexShrink: 0 }}>1/{pattern.subdivision}</button>
               <button onClick={() => setShowHamburger(h => !h)} style={{ height: 30, width: 38, borderRadius: 8, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}>
@@ -899,14 +977,30 @@ export default function DrumEditor() {
         {/* ═══ DRUM GRID EDITOR (Songs tab, in editor) ══════════════════════ */}
         {activeTab === 'songs' && inEditor && (
           <div ref={containerRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Row visibility toggle */}
+            {extraInsts.length > 0 && (
+              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', height: 30, borderBottom: `1px solid ${barColor}`, background: 'var(--app-bg)' }}>
+                <span style={{ color: 'var(--c-text-muted)', fontSize: 9.5, fontFamily: 'Manrope', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  {showExtraRows ? `All rows (${visibleInsts.length})` : `Core rows (${visibleInsts.length})`}
+                </span>
+                <button onClick={() => setShowExtraRows(v => !v)} className="btn-smooth"
+                  style={{ height: 22, padding: '0 10px', borderRadius: 999, background: showExtraRows ? `${accent.from}15` : 'rgba(128,128,128,0.10)', border: `1px solid ${showExtraRows ? accent.from + '30' : 'rgba(128,128,128,0.16)'}`, cursor: 'pointer', color: showExtraRows ? accent.from : 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700, fontFamily: 'Manrope', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 180ms' }}>
+                  {showExtraRows ? (
+                    <><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 15l-6-6-6 6"/></svg>Hide extras</>
+                  ) : (
+                    <><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>Show all</>
+                  )}
+                </button>
+              </div>
+            )}
             <div
               ref={scrollRef}
               onPointerDown={handlePointerDown}
               onPointerUp={handlePointerUp}
-              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', paddingTop: 12, paddingBottom: 100, position: 'relative' }}
+              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', paddingTop: 8, paddingBottom: 100, position: 'relative' }}
               className="no-scrollbar"
             >
-              <div ref={playheadRef} style={{ position: 'absolute', top: 12, left: 0, width: 2, height: ALL_INSTS.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'none', borderRadius: 1 }} />
+              <div ref={playheadRef} style={{ position: 'absolute', top: 8, left: 0, width: 2, height: visibleInsts.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'none', borderRadius: 1 }} />
               {systemRows.map((rowMeasures, sysIdx) => {
                 const mStartIdx = sysIdx * measuresPerRow;
                 return (
@@ -928,7 +1022,7 @@ export default function DrumEditor() {
                             {canDelete && (
                               <button
                                 onPointerDown={e => e.stopPropagation()}
-                                onPointerUp={e => { e.stopPropagation(); if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); } deleteMeasure(pattern.id, m.id); }}
+                                onPointerUp={e => { e.stopPropagation(); pushUndo(); if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); } deleteMeasure(pattern.id, m.id); }}
                                 style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.30)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#f87171', lineHeight: 1, padding: 0 }}
                               >✕</button>
                             )}
@@ -936,12 +1030,12 @@ export default function DrumEditor() {
                         );
                       })}
                     </div>
-                    {ALL_INSTS.map((inst, instIdx) => {
+                    {visibleInsts.map((inst, instIdx) => {
                       const hitMap = allHitMaps.get(inst) ?? new Map<number, NoteVariation>();
                       const isFoc  = focusedInst === inst;
                       const varList = INST_VARIATIONS[inst];
                       return (
-                        <div key={inst} style={{ display: 'flex', height: ROW_H, borderBottom: instIdx < ALL_INSTS.length - 1 ? `1px solid ${staffColor}` : `1.5px solid ${barColor}`, background: isFoc ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)') : 'transparent' }}>
+                        <div key={inst} style={{ display: 'flex', height: ROW_H, borderBottom: instIdx < visibleInsts.length - 1 ? `1px solid ${staffColor}` : `1.5px solid ${barColor}`, background: isFoc ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)') : 'transparent' }}>
                           <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 12, paddingRight: 6, borderRight: `1px solid ${barColor}` }}>
                             <span style={{ fontSize: 8, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: isFoc ? 'var(--c-text-primary)' : 'var(--c-text-muted)', letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>{INST_LABEL[inst]}</span>
                             {varList && varList.length > 1 && (
@@ -956,7 +1050,7 @@ export default function DrumEditor() {
                 );
               })}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 32, paddingTop: 8 }}>
-                <button onClick={() => addMeasure(pattern.id)} style={{ height: 36, padding: '0 24px', borderRadius: 999, background: 'transparent', border: 'var(--add-bar-border)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}
+                <button onClick={() => { pushUndo(); addMeasure(pattern.id); }} style={{ height: 36, padding: '0 24px', borderRadius: 999, background: 'transparent', border: 'var(--add-bar-border)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}
                   onPointerEnter={e => { e.currentTarget.style.borderColor = accent.from + '70'; e.currentTarget.style.color = accent.from; }}
                   onPointerLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}>
                   <span style={{ fontSize: 16 }}>+</span><span>Add Bar</span>
