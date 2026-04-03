@@ -542,7 +542,7 @@ export function loadDrumSamples(kit: KitType) {
 // Velocity layers: kick/toms: hard/med/soft; snare: crack/hard/medhard/medsoft/soft
 // Round-robins: 1–7 per velocity layer
 
-type HouseInstName = 'kick' | 'snare' | 'tom10' | 'tom12' | 'tom14';
+export type HouseInstName = 'kick' | 'snare' | 'tom10' | 'tom12' | 'tom14';
 
 const HOUSE_INST_MAP: Partial<Record<DrumInstrument, HouseInstName>> = {
   kick:       'kick',
@@ -552,20 +552,45 @@ const HOUSE_INST_MAP: Partial<Record<DrumInstrument, HouseInstName>> = {
   'tom-floor':'tom14',
 };
 
+// ── Velocity metadata exported for UI ────────────────────────────────────────
+export type HouseVelConfig = { id: string; label: string };
+export const HOUSE_VEL_CONFIGS: Record<HouseInstName, HouseVelConfig[]> = {
+  kick:  [{ id: 'hard', label: 'Hard' }, { id: 'med',     label: 'Medium' }, { id: 'soft',    label: 'Soft'   }],
+  snare: [{ id: 'crack',label: 'Crack'}, { id: 'hard',    label: 'Hard'   }, { id: 'medhard', label: 'Med Hi' },
+          { id: 'medsoft', label: 'Med Lo' },                                 { id: 'soft',    label: 'Soft'   }],
+  tom10: [{ id: 'hard', label: 'Hard' }, { id: 'med',     label: 'Medium' }, { id: 'soft',    label: 'Soft'   }],
+  tom12: [{ id: 'hard', label: 'Hard' }, { id: 'med',     label: 'Medium' }, { id: 'soft',    label: 'Soft'   }],
+  tom14: [{ id: 'hard', label: 'Hard' }, { id: 'med',     label: 'Medium' }, { id: 'soft',    label: 'Soft'   }],
+};
+export const HOUSE_INST_LABELS: Record<HouseInstName, string> = {
+  kick: 'Kick', snare: 'Snare', tom10: 'Hi Tom', tom12: 'Mid Tom', tom14: 'Floor Tom',
+};
+
 // Velocity selection from NoteVariation
 const HOUSE_KICK_VEL: Record<string, string> = {
   ghost: 'soft', normal: 'med', accent: 'hard', flam: 'med',
 };
+// Snare has: crack / hard / medhard / medsoft / soft  (NO 'med' layer)
 const HOUSE_SNARE_VEL: Record<string, string> = {
-  ghost: 'soft', normal: 'med', rimshot: 'hard', accent: 'hard',
-  flam: 'medsoft', 'Med Soft': 'medsoft', crack: 'crack',
+  ghost: 'soft', normal: 'medhard', rimshot: 'hard', accent: 'hard',
+  flam: 'medsoft', crack: 'crack',
 };
 const HOUSE_TOM_VEL: Record<string, string> = {
   ghost: 'soft', normal: 'med', accent: 'hard', flam: 'med',
 };
 
+// Per-instrument velocity override — set from UI, bypasses dynamic velocity mapping
+let _houseInstVelOverride: Partial<Record<HouseInstName, string>> = {};
+export function setHouseInstVelOverrides(map: Partial<Record<string, string>>) {
+  _houseInstVelOverride = map as Partial<Record<HouseInstName, string>>;
+}
+
 function houseVelForVariation(inst: DrumInstrument, variation: NoteVariation): string {
-  if (inst === 'snare') return HOUSE_SNARE_VEL[variation] ?? 'med';
+  const houseInst = HOUSE_INST_MAP[inst];
+  if (houseInst && _houseInstVelOverride[houseInst]) {
+    return _houseInstVelOverride[houseInst]!;
+  }
+  if (inst === 'snare') return HOUSE_SNARE_VEL[variation] ?? 'medhard';
   if (inst === 'kick')  return HOUSE_KICK_VEL[variation]  ?? 'med';
   return HOUSE_TOM_VEL[variation] ?? 'med';
 }

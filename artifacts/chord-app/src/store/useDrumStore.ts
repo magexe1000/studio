@@ -279,6 +279,9 @@ interface DrumStore {
 
   houseKitMic:    HouseMic;
   setHouseKitMic: (mic: HouseMic) => void;
+
+  houseInstVelOverride: Partial<Record<string, string>>;
+  setHouseInstVelOverride: (inst: string, vel: string | undefined) => void;
 }
 
 const initial = defaultPattern();
@@ -296,7 +299,8 @@ export const useDrumStore = create<DrumStore>()(
       drumSongs:         [],
       instFX:            {},
       instPlugins:       {},
-      houseKitMic:       'blend' as HouseMic,
+      houseKitMic:          'blend' as HouseMic,
+      houseInstVelOverride: {} as Partial<Record<string, string>>,
 
       setSoundForInstrument: (inst, soundId) =>
         set(s => ({ soundMap: { ...s.soundMap, [inst]: soundId } })),
@@ -614,6 +618,12 @@ export const useDrumStore = create<DrumStore>()(
         set(s => ({ instPlugins: { ...s.instPlugins, [inst]: plugins } })),
 
       setHouseKitMic: (mic) => set({ houseKitMic: mic }),
+
+      setHouseInstVelOverride: (inst, vel) => set(s => {
+        const next = { ...s.houseInstVelOverride };
+        if (vel === undefined) delete next[inst]; else next[inst] = vel;
+        return { houseInstVelOverride: next };
+      }),
     }),
     {
       name: 'chordex-drums',

@@ -11,8 +11,9 @@ import {
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, loadHouseKit, houseKitPool,
-  setHouseKitMic, KIT_DEFAULTS, getSoundForVariation, setInstFXMap, setInstPluginMap,
-  type SampleStatus,
+  setHouseKitMic, setHouseInstVelOverrides, HOUSE_VEL_CONFIGS, HOUSE_INST_LABELS,
+  KIT_DEFAULTS, getSoundForVariation, setInstFXMap, setInstPluginMap,
+  type SampleStatus, type HouseInstName,
 } from '../lib/drumAudio';
 import { PLUGIN_REGISTRY, defaultParamsFor } from '../lib/drumPlugins';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
@@ -1163,6 +1164,7 @@ export default function DrumEditor() {
     instFX, setInstFX,
     instPlugins, setInstPlugins,
     houseKitMic, setHouseKitMic: storeSetHouseKitMic,
+    houseInstVelOverride, setHouseInstVelOverride: storeSetInstVelOverride,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -1241,6 +1243,7 @@ export default function DrumEditor() {
   // Sync instFX + instPlugins store → drumAudio module whenever they change
   useEffect(() => { setInstFXMap(instFX); }, [instFX]);
   useEffect(() => { setInstPluginMap(instPlugins); }, [instPlugins]);
+  useEffect(() => { setHouseInstVelOverrides(houseInstVelOverride); }, [houseInstVelOverride]);
 
   // ── Quick mixer sheet + export modal + import modal ──────────────────────
   const [showMixerSheet,    setShowMixerSheet]    = useState(false);
@@ -1687,8 +1690,8 @@ export default function DrumEditor() {
 
       {/* ── Hamburger panel ──────────────────────────────────────────────── */}
       {inEditor && showHamburger && (
-        <div style={{ flexShrink: 0, overflow: 'hidden', background: isAmoled ? '#000' : (isLight ? 'rgba(250,249,247,0.98)' : 'rgba(14,14,17,0.98)'), borderBottom: '1px solid rgba(128,128,128,0.10)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', animation: 'drumHamburgerIn 200ms cubic-bezier(0.22,1,0.36,1)' }}>
-          <div style={{ padding: '10px 16px 14px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ flexShrink: 0, overflow: 'hidden', background: isAmoled ? '#000' : (isLight ? 'rgba(250,249,247,0.98)' : 'rgba(14,14,17,0.98)'), borderBottom: '1px solid rgba(128,128,128,0.10)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', animation: 'drumHamburgerIn 200ms cubic-bezier(0.22,1,0.36,1)', maxHeight: kit === 'house' ? '70vh' : undefined }}>
+          <div className="no-scrollbar" style={{ padding: '10px 16px 14px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: kit === 'house' ? 'auto' : 'visible', maxHeight: kit === 'house' ? '70vh' : undefined }}>
             {/* ── House Kit mic selector ──────────────────────────────────── */}
             {kit === 'house' && (<>
               <div style={{ padding: '8px 4px 4px' }}>
@@ -1723,6 +1726,48 @@ export default function DrumEditor() {
                   </div>
                 )}
               </div>
+              <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 4px 4px' }} />
+
+              {/* ── Per-instrument velocity flavor ── */}
+              <div style={{ padding: '4px 4px 6px' }}>
+                <span style={{ color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  Sound Character
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                  {((['kick', 'snare', 'tom10', 'tom12', 'tom14'] as HouseInstName[])).map(hInst => {
+                    const locked = houseInstVelOverride[hInst];
+                    return (
+                      <div key={hInst}>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                          <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1, fontFamily: 'Manrope,sans-serif' }}>
+                            {HOUSE_INST_LABELS[hInst]}
+                          </span>
+                          {locked && (
+                            <button
+                              onClick={() => storeSetInstVelOverride(hInst, undefined)}
+                              style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--c-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontFamily: 'Manrope,sans-serif', letterSpacing: '0.04em' }}>
+                              AUTO
+                            </button>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          {HOUSE_VEL_CONFIGS[hInst].map(v => {
+                            const active = locked === v.id;
+                            return (
+                              <button key={v.id} className="btn-smooth"
+                                onClick={() => storeSetInstVelOverride(hInst, active ? undefined : v.id)}
+                                style={{ height: 26, padding: '0 10px', borderRadius: 6, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(128,128,128,0.14)', background: active ? `${accent.from}1a` : 'rgba(128,128,128,0.06)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', transition: 'all 140ms', fontFamily: 'Manrope,sans-serif', whiteSpace: 'nowrap' }}>
+                                {v.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
             </>)}
             <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 12 }}>
