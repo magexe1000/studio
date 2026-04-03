@@ -6,7 +6,7 @@ import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR,
   stepsPerMeasure, INST_VARIATIONS,
   type DrumInstrument, type KitType, type DrumSong, type DrumMeasure, type NoteVariation,
-  type DrumPattern,
+  type DrumPattern, type DrumHit,
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, KIT_DEFAULTS,
@@ -442,9 +442,17 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
   return <div style={{ margin: '0 16px 20px', background: 'var(--app-surface)', borderRadius: 14, border: '1px solid rgba(128,128,128,0.07)', overflow: 'hidden', ...style }}>{children}</div>;
 }
 
-// ── Export helpers ─────────────────────────────────────────────────────────
-function exportDrumSongJSON(patterns: DrumPattern[], song: DrumSong | null) {
+// ── Export config ───────────────────────────────────────────────────────────
+interface DrumExportConfig {
+  theme: 'light' | 'dark';
+  style: 'compact' | 'normal' | 'elegant';
+}
+const DEFAULT_DRUM_EXPORT_CONFIG: DrumExportConfig = { theme: 'light', style: 'elegant' };
+
+// ── JSON export ─────────────────────────────────────────────────────────────
+async function exportDrumSongJSON(patterns: DrumPattern[], song: DrumSong | null, mode: 'save' | 'share' = 'share') {
   const payload = {
+    _app: 'Drumex',
     exportedAt: new Date().toISOString(),
     song: song ? { id: song.id, name: song.name, artist: song.artist, notes: song.notes } : null,
     patterns: patterns.map(p => ({
@@ -453,126 +461,468 @@ function exportDrumSongJSON(patterns: DrumPattern[], song: DrumSong | null) {
       measures: p.measures.map((m: DrumMeasure) => ({ id: m.id, hits: m.hits })),
     })),
   };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const fileName = `${song?.name ?? 'drumex'}.json`;
+  const jsonStr  = JSON.stringify(payload, null, 2);
+  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+  if (isNative) {
+    try {
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const { Share }                 = await import('@capacitor/share');
+      const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+      const written = await Filesystem.writeFile({ path: fileName, data: b64, directory: Directory.Cache, recursive: true });
+      if (mode === 'share') await Share.share({ title: fileName, url: written.uri });
+      else await Filesystem.writeFile({ path: `Download/${fileName}`, data: b64, directory: Directory.ExternalStorage, recursive: true });
+    } catch { /* fall through to web download */ }
+    return;
+  }
+  const blob = new Blob([jsonStr], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `${song?.name ?? 'drumex'}.json`;
+  const a    = Object.assign(document.createElement('a'), { href: url, download: fileName });
   a.click();
   URL.revokeObjectURL(url);
 }
 
-function exportDrumSongPDF(
-  patterns:  DrumPattern[],
-  song:      DrumSong | null,
-  accent:    { from: string; to: string },
-) {
-  const ALL_I = CORE_INSTS as readonly DrumInstrument[];
-  const HEX_TO_RGB = (hex: string): [number, number, number] => {
-    const h = hex.replace('#', '');
-    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-  };
+// ── PDF export ──────────────────────────────────────────────────────────────
+const HEX_TO_RGB = (hex: string): [number, number, number] => {
+  const h = hex.replace('#', '');
+  const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+async function exportDrumSongPDF(
+  patterns: DrumPattern[],
+  song:     DrumSong | null,
+  accent:   { from: string; to: string },
+  cfg:      DrumExportConfig = DEFAULT_DRUM_EXPORT_CONFIG,
+  pdfName   = '',
+  mode: 'save' | 'share' = 'share',
+): Promise<boolean> {
+  const { jsPDF }  = await import('jspdf');
+  const ALL_I       = CORE_INSTS as readonly DrumInstrument[];
+  const dark        = cfg.theme === 'dark';
+  const compact     = cfg.style === 'compact';
+  const elegant     = cfg.style === 'elegant';
   const [ar, ag, ab] = HEX_TO_RGB(accent.from);
 
-  import('jspdf').then(({ jsPDF }) => {
-    const doc  = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const PW   = 297, PH = 210;
-    const MT   = 14, MB = 14, ML = 14, MR = 14;
-    const CELL = 6, LW = 32, ROW_H = 7, GAP = 4;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const PW = 297, PH = 210;
+  const MT = 14, MB = 14, ML = 14, MR = 14;
+  const CELL  = compact ? 5   : elegant ? 7   : 6;
+  const ROW_H = compact ? 5.5 : elegant ? 8   : 7;
+  const LW    = compact ? 28  : elegant ? 36  : 32;
+  const GAP   = compact ? 3   : elegant ? 6   : 4;
 
-    let page = 1;
-    const newPage = () => {
-      doc.addPage();
-      page++;
-      drawHeader(true);
-    };
-    const drawHeader = (cont: boolean) => {
-      doc.setFillColor(ar, ag, ab);
-      doc.rect(ML, MT, 3, 8, 'F');
-      doc.setFontSize(13).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
-      doc.text(song?.name ?? 'Drumex Export', ML + 6, MT + 6);
-      if (song?.artist) {
-        doc.setFontSize(9).setFont('helvetica', 'normal').setTextColor(100, 100, 100);
-        doc.text(song.artist, ML + 6 + doc.getTextWidth(song?.name ?? 'Drumex Export') + 4, MT + 6);
+  // Palette
+  const bgR = dark ? 12  : (elegant ? 246 : 255);
+  const bgG = dark ? 12  : (elegant ? 245 : 255);
+  const bgB = dark ? 12  : (elegant ? 242 : 255);
+  const rowEvenR = dark ? 26  : (elegant ? 252 : 252);
+  const rowOddR  = dark ? 20  : (elegant ? 245 : 246);
+  const labelR   = dark ? 160 : 80;
+  const borderR  = dark ? 50  : (elegant ? 200 : 218);
+  const beatR    = dark ? 80  : (elegant ? 160 : 170);
+
+  let page = 1;
+  const newPage = () => { doc.addPage(); page++; drawHeader(true); };
+
+  const drawHeader = (cont: boolean) => {
+    // Page bg
+    doc.setFillColor(bgR, bgG, bgB);
+    doc.rect(0, 0, PW, PH, 'F');
+    // Accent bar
+    doc.setFillColor(ar, ag, ab);
+    doc.rect(ML, MT, 3, elegant ? 11 : 8, 'F');
+    // Title
+    doc.setFontSize(elegant ? 15 : 12).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
+    doc.text(pdfName || song?.name || 'Drumex Export', ML + 6, MT + (elegant ? 7 : 5.5));
+    if (song?.artist) {
+      doc.setFontSize(9).setFont('helvetica', 'normal').setTextColor(labelR, labelR, labelR);
+      const titleW = doc.getTextWidth(pdfName || song?.name || 'Drumex Export');
+      doc.text(song.artist, ML + 6 + titleW + 4, MT + (elegant ? 7 : 5.5));
+    }
+    if (cont) {
+      doc.setFontSize(8).setTextColor(140, 140, 140);
+      doc.text('continued', PW - MR - 2, MT + 6, { align: 'right' });
+    }
+    doc.setFontSize(7).setTextColor(150, 150, 150);
+    doc.text(`Page ${page}`, PW - MR, PH - 5, { align: 'right' });
+    if (elegant) {
+      doc.setDrawColor(ar, ag, ab, 0.12);
+      doc.setLineWidth(0.3);
+      doc.line(ML, MT + 14, PW - MR, MT + 14);
+    }
+  };
+
+  drawHeader(false);
+  let curY = MT + (elegant ? 18 : 14);
+
+  for (const pat of patterns) {
+    const subs  = pat.subdivision ?? 16;
+    const insts = ALL_I.filter(i => !(pat.mutedInstruments ?? []).includes(i));
+
+    for (const [mi, meas] of pat.measures.entries()) {
+      const neededH = (mi === 0 ? 10 : 0) + insts.length * ROW_H + GAP;
+      if (curY + neededH > PH - MB) newPage();
+
+      if (mi === 0) {
+        doc.setFontSize(7.5).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
+        doc.text(`${pat.name}  ·  ${pat.bpm} BPM  ·  1/${subs}`, ML, curY + 5);
+        curY += 10;
       }
-      if (cont) {
-        doc.setFontSize(8).setTextColor(160, 160, 160);
-        doc.text('(continued)', PW - MR - 2, MT + 6, { align: 'right' });
+
+      doc.setFontSize(6).setFont('helvetica', 'normal').setTextColor(140, 140, 140);
+      doc.text(`Bar ${mi + 1}`, ML, curY + 3.5);
+      const measX = ML + LW;
+
+      for (let b = 0; b <= subs; b++) {
+        const isBeat = b % 4 === 0;
+        doc.setDrawColor(isBeat ? beatR : borderR, isBeat ? beatR : borderR, isBeat ? beatR : borderR);
+        doc.setLineWidth(isBeat ? 0.35 : 0.15);
+        doc.line(measX + b * CELL, curY, measX + b * CELL, curY + insts.length * ROW_H);
       }
-      doc.setFontSize(8).setTextColor(160, 160, 160);
-      doc.text(`Page ${page}`, PW - MR, PH - 6, { align: 'right' });
-    };
 
-    drawHeader(false);
-    let curY = MT + 14;
-
-    for (const pat of patterns) {
-      const subs  = pat.subdivision ?? 16;
-      const cols  = subs;
-      const insts = ALL_I.filter(i => !(pat.mutedInstruments ?? []).includes(i));
-      const patH  = insts.length * ROW_H + 12; // header row + rows
-
-      for (const [mi, meas] of pat.measures.entries()) {
-        const neededH = mi === 0 ? patH : insts.length * ROW_H + 4;
-        if (curY + neededH > PH - MB) newPage();
-
-        if (mi === 0) {
-          // Pattern title bar
-          doc.setFillColor(ar, ag, ab, 0.08);
-          doc.setFillColor(Math.min(255, ar + 50), Math.min(255, ag + 50), Math.min(255, ab + 50));
-          doc.setFontSize(8).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
-          doc.text(`${pat.name}  ·  ${pat.bpm} BPM  ·  1/${subs}`, ML, curY + 5);
-          curY += 9;
-        }
-
-        // Measure label
-        doc.setFontSize(7).setFont('helvetica', 'normal').setTextColor(130, 130, 130);
-        doc.text(`Bar ${mi + 1}`, ML, curY + 4);
-        const measX = ML + LW;
-
-        // Beat separators
-        for (let b = 0; b <= subs; b++) {
-          const isBeat = b % 4 === 0;
-          doc.setDrawColor(isBeat ? 160 : 220, isBeat ? 160 : 220, isBeat ? 160 : 220);
-          doc.setLineWidth(isBeat ? 0.4 : 0.2);
-          doc.line(measX + b * CELL, curY, measX + b * CELL, curY + insts.length * ROW_H);
-        }
-
-        for (const [ri, inst] of insts.entries()) {
-          const rowY   = curY + ri * ROW_H;
-          const color  = INSTRUMENT_COLOR[inst];
-          const [cr, cg, cb] = HEX_TO_RGB(color ?? accent.from);
-
-          // Label
-          doc.setFontSize(6).setFont('helvetica', 'normal').setTextColor(60, 60, 60);
-          doc.text(INST_LABEL[inst], ML + LW - 2, rowY + ROW_H / 2 + 2, { align: 'right' });
-
-          // Row bg
-          doc.setFillColor(ri % 2 === 0 ? 250 : 244, ri % 2 === 0 ? 250 : 244, ri % 2 === 0 ? 250 : 244);
-          doc.rect(measX, rowY, cols * CELL, ROW_H, 'F');
-
-          for (let s = 0; s < subs; s++) {
-            const active = meas.hits[inst]?.[s] ?? false;
-            if (active) {
+      for (const [ri, inst] of insts.entries()) {
+        const rowY  = curY + ri * ROW_H;
+        const [cr, cg, cb] = HEX_TO_RGB(INSTRUMENT_COLOR[inst] ?? accent.from);
+        const ev = ri % 2 === 0;
+        doc.setFillColor(ev ? rowEvenR : rowOddR, ev ? rowEvenR : rowOddR, ev ? rowEvenR : rowOddR);
+        doc.rect(measX, rowY, subs * CELL, ROW_H, 'F');
+        doc.setFontSize(5.5).setFont('helvetica', 'normal').setTextColor(labelR, labelR, labelR);
+        doc.text(INST_LABEL[inst], ML + LW - 1, rowY + ROW_H / 2 + 1.8, { align: 'right' });
+        for (let s = 0; s < subs; s++) {
+          if ((meas.hits[inst]?.find?.((h: DrumHit) => h.step === s))) {
+            if (elegant) {
+              doc.setFillColor(cr, cg, cb);
+              const r = (CELL - 1) / 2;
+              doc.roundedRect(measX + s * CELL + 0.7, rowY + 1, CELL - 1.4, ROW_H - 2, r * 0.7, r * 0.7, 'F');
+            } else {
               doc.setFillColor(cr, cg, cb);
               doc.rect(measX + s * CELL + 0.5, rowY + 1, CELL - 1, ROW_H - 2, 'F');
             }
           }
-          // Row border
-          doc.setDrawColor(225, 225, 225);
-          doc.setLineWidth(0.15);
-          doc.rect(measX, rowY, cols * CELL, ROW_H);
         }
-
-        curY += insts.length * ROW_H + GAP;
+        doc.setDrawColor(borderR, borderR, borderR);
+        doc.setLineWidth(0.12);
+        doc.rect(measX, rowY, subs * CELL, ROW_H);
       }
-
-      curY += 8; // gap between patterns
+      curY += insts.length * ROW_H + GAP;
     }
+    curY += elegant ? 10 : 7;
+  }
 
-    doc.save(`${song?.name ?? 'drumex'}.pdf`);
-  });
+  const fileName = `${pdfName || song?.name || 'drumex'}.pdf`;
+  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+  if (isNative) {
+    try {
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const { Share } = await import('@capacitor/share');
+      const b64 = doc.output('datauristring').split(',')[1];
+      if (mode === 'save') {
+        try { await Filesystem.writeFile({ path: `Download/${fileName}`, data: b64, directory: Directory.ExternalStorage, recursive: true }); return true; }
+        catch { await Filesystem.writeFile({ path: fileName, data: b64, directory: Directory.External, recursive: true }); return true; }
+      } else {
+        const written = await Filesystem.writeFile({ path: fileName, data: b64, directory: Directory.Cache, recursive: true });
+        await Share.share({ title: fileName, url: written.uri });
+        return true;
+      }
+    } catch { return false; }
+  }
+  doc.save(fileName);
+  return true;
+}
+
+// ── DrumPaperPreview ────────────────────────────────────────────────────────
+function DrumPaperPreview({ patterns, song, cfg, accent }: {
+  patterns: DrumPattern[];
+  song: DrumSong | null;
+  cfg: DrumExportConfig;
+  accent: { from: string; to: string };
+}) {
+  const dark    = cfg.theme === 'dark';
+  const elegant = cfg.style === 'elegant';
+  const compact = cfg.style === 'compact';
+  const ALL_I   = CORE_INSTS as readonly DrumInstrument[];
+
+  const bg      = dark ? '#0e0e0e' : (elegant ? '#f5f4f1' : '#ffffff');
+  const text    = dark ? '#edeae4' : '#0d0d0d';
+  const sub     = dark ? '#666'    : '#888';
+  const rowEven = dark ? '#1a1a1a' : (elegant ? '#faf9f7' : '#fafafa');
+  const rowOdd  = dark ? '#141414' : (elegant ? '#f3f2ef' : '#f4f4f5');
+  const divider = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)';
+
+  const previewPats = patterns.slice(0, compact ? 3 : 2);
+
+  return (
+    <div style={{
+      background: bg, borderRadius: 10, overflow: 'hidden',
+      boxShadow: dark
+        ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)'
+        : '0 24px 60px rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.07)',
+      transition: 'background 250ms, box-shadow 250ms',
+      width: '100%', aspectRatio: '1.414 / 1',
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: compact ? '10px 12px 8px' : '14px 16px 12px', borderBottom: `1px solid ${divider}` }}>
+        <div style={{ width: 3, height: elegant ? 20 : 14, borderRadius: 2, background: accent.from, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: compact ? 9 : 11, color: accent.from, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {song?.name ?? 'Drumex Export'}
+          </p>
+          {song?.artist && <p style={{ margin: 0, fontFamily: 'Inter', fontSize: 7, color: sub }}>{song.artist}</p>}
+        </div>
+        {elegant && <div style={{ width: 28, height: 1, background: accent.from, opacity: 0.3 }} />}
+      </div>
+
+      {/* Patterns */}
+      <div style={{ padding: compact ? '6px 8px' : '10px 12px', display: 'flex', flexDirection: 'column', gap: compact ? 6 : 10 }}>
+        {previewPats.map(pat => {
+          const insts = ALL_I.filter(i => !(pat.mutedInstruments ?? []).includes(i));
+          const subs  = pat.subdivision ?? 16;
+          const meas  = pat.measures[0];
+          if (!meas) return null;
+          return (
+            <div key={pat.id}>
+              <p style={{ margin: '0 0 3px', fontFamily: 'Manrope', fontWeight: 700, fontSize: 7, color: accent.from }}>
+                {pat.name} · {pat.bpm} BPM · 1/{subs}
+              </p>
+              <div style={{ display: 'flex', gap: 1 }}>
+                {/* Labels */}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {insts.map((inst, ri) => (
+                    <div key={inst} style={{ height: compact ? 5 : 6, display: 'flex', alignItems: 'center' }}>
+                      <span style={{ fontSize: 5, fontFamily: 'Manrope', fontWeight: 600, color: sub, whiteSpace: 'nowrap', paddingRight: 3, minWidth: compact ? 22 : 26, textAlign: 'right' }}>
+                        {INST_LABEL[inst].split(' ')[0]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {/* Grid */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  {insts.map((inst, ri) => {
+                    const color = INSTRUMENT_COLOR[inst] ?? accent.from;
+                    return (
+                      <div key={inst} style={{ display: 'flex', background: ri % 2 === 0 ? rowEven : rowOdd, height: compact ? 5 : 6, gap: '0.5px' }}>
+                        {Array.from({ length: subs }, (_, s) => {
+                          const hit = meas.hits[inst]?.find?.((h: DrumHit) => h.step === s);
+                          return (
+                            <div key={s} style={{
+                              flex: 1, height: '100%',
+                              background: hit ? color : 'transparent',
+                              borderRadius: elegant ? 1 : 0,
+                              opacity: hit ? 0.9 : 1,
+                              borderLeft: s % 4 === 0 && s > 0 ? `0.5px solid ${divider}` : undefined,
+                            }} />
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {patterns.length > previewPats.length && (
+          <p style={{ margin: 0, fontFamily: 'Manrope', fontSize: 6, color: sub }}>
+            +{patterns.length - previewPats.length} more pattern{patterns.length - previewPats.length > 1 ? 's' : ''}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── DrumExportModal ─────────────────────────────────────────────────────────
+function DrumExportModal({ patterns, song, accent, onClose }: {
+  patterns: DrumPattern[];
+  song:     DrumSong | null;
+  accent:   { from: string; to: string };
+  onClose:  () => void;
+}) {
+  const [cfg,       setCfg]     = useState<DrumExportConfig>({ ...DEFAULT_DRUM_EXPORT_CONFIG });
+  const [pdfName,   setPdfName] = useState('');
+  const [saving,    setSaving]  = useState(false);
+  const [sharing,   setSharing] = useState(false);
+  const [saveRes,   setSaveRes] = useState<'ok' | 'fail' | null>(null);
+  const [closing,   setClosing] = useState(false);
+  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+
+  const update = <K extends keyof DrumExportConfig>(k: K, v: DrumExportConfig[K]) =>
+    setCfg(prev => ({ ...prev, [k]: v }));
+
+  const handleClose = () => { setClosing(true); setTimeout(onClose, 320); };
+
+  const handlePDF = async (mode: 'save' | 'share') => {
+    if (mode === 'save') setSaving(true); else setSharing(true);
+    await new Promise(r => setTimeout(r, 80));
+    try {
+      const ok = await exportDrumSongPDF(patterns, song, accent, cfg, pdfName, mode);
+      if (mode === 'save') {
+        setSaveRes(ok ? 'ok' : 'fail');
+        setTimeout(() => setSaveRes(null), 3000);
+      } else { handleClose(); }
+    } finally {
+      if (mode === 'save') setSaving(false); else setSharing(false);
+    }
+  };
+
+  const Toggle = ({ on, onChange }: { on: boolean; onChange: () => void }) => (
+    <button onClick={onChange} className="btn-smooth"
+      style={{ width: 44, height: 26, borderRadius: 13, flexShrink: 0, position: 'relative',
+        background: on ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(72,72,72,0.25)',
+        transition: 'background 220ms' }}>
+      <div style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 10,
+        background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+        transition: 'left 220ms cubic-bezier(0.34,1.56,0.64,1)' }} />
+    </button>
+  );
+
+  const Segment = <T extends string>({ options, value, onChange }: {
+    options: { value: T; label: string }[];
+    value: T;
+    onChange: (v: T) => void;
+  }) => (
+    <div style={{ display: 'flex', background: 'var(--app-surface)', borderRadius: 10, padding: 3, gap: 2 }}>
+      {options.map(opt => {
+        const active = value === opt.value;
+        return (
+          <button key={opt.value} onClick={() => onChange(opt.value)} className="btn-smooth"
+            style={{ flex: 1, padding: '6px 10px', borderRadius: 7, fontFamily: 'Manrope', fontWeight: 700,
+              fontSize: 11, whiteSpace: 'nowrap',
+              background: active ? 'var(--app-surface-highest)' : 'transparent',
+              color: active ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
+              boxShadow: active ? '0 1px 4px rgba(0,0,0,0.18)' : 'none',
+              transition: 'all 160ms' }}>
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const Row = ({ label, sub, right }: { label: string; sub?: string; right: React.ReactNode }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '14px 16px', background: 'var(--app-surface-high)', borderRadius: 14 }}>
+      <div>
+        <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 14, color: 'var(--c-text-primary)' }}>{label}</p>
+        {sub && <p style={{ fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-secondary)', marginTop: 1 }}>{sub}</p>}
+      </div>
+      {right}
+    </div>
+  );
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--app-bg)', display: 'flex', flexDirection: 'column',
+      animation: closing ? 'sheet-down 320ms cubic-bezier(0.25,0.46,0.45,0.94) both' : 'sheet-up 340ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
+
+      {/* Header */}
+      <div style={{ paddingTop: 'max(16px,env(safe-area-inset-top))', padding: 'max(16px,env(safe-area-inset-top)) 20px 12px',
+        display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <button onClick={handleClose} className="btn-smooth"
+          style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 20 }}>arrow_back</span>
+        </button>
+        <p style={{ flex: 1, fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)' }}>Export PDF</p>
+      </div>
+
+      {/* Scrollable body */}
+      <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 0' }}>
+
+        {/* Paper preview */}
+        <div style={{ marginBottom: 28 }}>
+          <DrumPaperPreview patterns={patterns} song={song} cfg={cfg} accent={accent} />
+        </div>
+
+        <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, letterSpacing: '0.25em',
+          textTransform: 'uppercase', color: 'var(--c-text-secondary)', marginBottom: 12 }}>
+          Export Settings
+        </p>
+
+        {/* File name */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ padding: '14px 16px', background: 'var(--app-surface-high)', borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 14, color: 'var(--c-text-primary)' }}>File name</p>
+            <input type="text" value={pdfName} onChange={e => setPdfName(e.target.value)}
+              placeholder={song?.name ?? 'Beat'}
+              maxLength={80}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 10, background: 'var(--app-surface)',
+                border: '1px solid rgba(72,72,72,0.15)', color: 'var(--c-text-primary)',
+                fontFamily: 'Manrope', fontWeight: 600, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+          <Row label="Dark theme" sub="Black background, light text"
+            right={<Toggle on={cfg.theme === 'dark'} onChange={() => update('theme', cfg.theme === 'dark' ? 'light' : 'dark')} />}
+          />
+          <Row label="Layout style" sub="Visual density of the grid"
+            right={
+              <Segment
+                options={[{ value: 'compact', label: 'Compact' }, { value: 'normal', label: 'Normal' }, { value: 'elegant', label: 'Elegant' }]}
+                value={cfg.style}
+                onChange={v => update('style', v as DrumExportConfig['style'])}
+              />
+            }
+          />
+        </div>
+
+        {/* Info note */}
+        <div style={{ padding: '14px 16px', borderRadius: 14, background: `${accent.from}0d`, border: `1px solid ${accent.from}22`,
+          display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 16 }}>
+          <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: 18, flexShrink: 0, marginTop: 1 }}>info</span>
+          <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+            The PDF contains the step-sequencer grid for all patterns. Hidden rows (pattern mixer) are excluded from the export.
+          </p>
+        </div>
+      </div>
+
+      {/* Bottom actions */}
+      <div style={{ padding: '12px 20px', paddingBottom: 'max(20px,env(safe-area-inset-bottom))',
+        display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0,
+        borderTop: '1px solid rgba(72,72,72,0.08)', background: 'var(--app-bg)' }}>
+        {saveRes && (
+          <div style={{ textAlign: 'center', fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, padding: '4px 0',
+            color: saveRes === 'ok' ? '#34d399' : '#f87171' }}>
+            {saveRes === 'ok' ? 'Saved to Downloads!' : 'Could not save — try Share instead'}
+          </div>
+        )}
+        {isNative ? (
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => handlePDF('save')} disabled={saving || sharing} className="btn-smooth"
+              style={{ flex: 1, padding: 16, borderRadius: 9999, fontFamily: 'Manrope', fontWeight: 800, fontSize: 14,
+                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                background: (saving || sharing) ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
+                boxShadow: (saving || sharing) ? 'none' : `0 6px 24px ${accent.to}50`, transition: 'all 200ms' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
+                {saving ? 'hourglass_empty' : 'save'}
+              </span>
+              {saving ? 'Generating…' : 'Save to Device'}
+            </button>
+            <button onClick={() => handlePDF('share')} disabled={saving || sharing} className="btn-smooth"
+              style={{ flex: 1, padding: 16, borderRadius: 9999, fontFamily: 'Manrope', fontWeight: 800, fontSize: 14,
+                color: accent.from, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                background: 'var(--app-surface-high)', transition: 'all 200ms' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
+                {sharing ? 'hourglass_empty' : 'share'}
+              </span>
+              {sharing ? 'Generating…' : 'Share'}
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => handlePDF('share')} disabled={sharing} className="btn-smooth"
+            style={{ width: '100%', padding: 16, borderRadius: 9999, fontFamily: 'Manrope', fontWeight: 800, fontSize: 15,
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              background: sharing ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
+              boxShadow: sharing ? 'none' : `0 6px 24px ${accent.to}50`, transition: 'all 200ms' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>
+              {sharing ? 'hourglass_empty' : 'download'}
+            </span>
+            {sharing ? 'Generating…' : 'Download PDF'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ── DrumEditor ─────────────────────────────────────────────────────────────
@@ -653,9 +1003,9 @@ export default function DrumEditor() {
   const [openBarMenu,   setOpenBarMenu]   = useState<string | null>(null); // measureId
   const [flashBarId,    setFlashBarId]    = useState<string | null>(null); // brief highlight on paste
 
-  // ── Quick mixer sheet + export sheet ──────────────────────────────────────
+  // ── Quick mixer sheet + export modal ─────────────────────────────────────
   const [showMixerSheet,  setShowMixerSheet]  = useState(false);
-  const [showExportSheet, setShowExportSheet] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // ── Container width ──────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1035,16 +1385,25 @@ export default function DrumEditor() {
               <button onClick={toggleSub} style={{ height: 28, padding: '0 14px', borderRadius: 8, background: `${accent.from}18`, border: `1px solid ${accent.from}33`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>1/{pattern.subdivision}</button>
             </div>
             <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
-            <div style={{ display: 'flex', gap: 8, padding: '9px 4px' }}>
-              <button onClick={() => { setShowHamburger(false); setShowExportSheet(true); }}
-                style={{ flex: 1, height: 34, borderRadius: 9, background: `${accent.from}14`, border: `1px solid ${accent.from}33`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export
+            <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 8 }}>
+              <span style={{ flex: 1, color: 'var(--c-text-secondary)', fontSize: 13, fontWeight: 500 }}>Export</span>
+              {/* JSON icon button */}
+              <button onClick={() => { exportDrumSongJSON(patterns, activeSong); setShowHamburger(false); }}
+                title="Export as JSON" className="btn-smooth"
+                style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--app-surface-high)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 17 }}>data_object</span>
               </button>
+              {/* PDF icon button */}
+              <button onClick={() => { setShowHamburger(false); setShowExportModal(true); }}
+                title="Export as PDF" className="btn-smooth"
+                style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--app-surface-high)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 17 }}>picture_as_pdf</span>
+              </button>
+              {/* Clear button */}
               <button onClick={() => { handleClear(); setShowHamburger(false); }}
-                style={{ height: 34, padding: '0 16px', borderRadius: 9, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.22)', cursor: 'pointer', color: '#ef4444', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                Clear
+                title="Clear pattern" className="btn-smooth"
+                style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
               </button>
             </div>
           </div>
@@ -1471,35 +1830,14 @@ export default function DrumEditor() {
         </div>
       )}
 
-      {/* ── Export sheet ─────────────────────────────────────────────────── */}
-      {showExportSheet && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
-          <div onClick={() => setShowExportSheet(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
-              <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
-            </div>
-            <div style={{ padding: '4px 20px 12px' }}>
-              <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)' }}>Export</p>
-              <p style={{ margin: '0 0 18px', fontSize: 12, color: 'var(--c-text-muted)' }}>
-                {activeDrumSongId ? `"${drumSongs.find(s => s.id === activeDrumSongId)?.name ?? 'Beat'}"` : 'Current pattern set'}
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button onClick={() => { exportDrumSongPDF(patterns, drumSongs.find(s => s.id === activeDrumSongId) ?? null, accent); setShowExportSheet(false); }}
-                  style={{ height: 46, borderRadius: 12, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', color: '#fff', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                  Export as PDF
-                </button>
-                <button onClick={() => { exportDrumSongJSON(patterns, drumSongs.find(s => s.id === activeDrumSongId) ?? null); setShowExportSheet(false); }}
-                  style={{ height: 46, borderRadius: 12, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.18)', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                  Export as JSON
-                </button>
-              </div>
-            </div>
-            <div style={{ height: 'calc(env(safe-area-inset-bottom,0px) + 12px)' }} />
-          </div>
-        </div>
+      {/* ── Export modal (full-screen) ────────────────────────────────────── */}
+      {showExportModal && (
+        <DrumExportModal
+          patterns={patterns}
+          song={activeSong}
+          accent={accent}
+          onClose={() => setShowExportModal(false)}
+        />
       )}
 
       {/* ── Create Beat modal ────────────────────────────────────────────── */}
