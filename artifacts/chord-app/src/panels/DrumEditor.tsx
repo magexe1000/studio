@@ -1471,16 +1471,18 @@ export default function DrumEditor() {
 
     const update = (w: number) => { if (w > 0) setContainerW(w); };
 
-    const measure = () => {
+    let rafId: number | null = null;
+    let tries = 0;
+    const poll = () => {
       const w = el.clientWidth || el.getBoundingClientRect().width;
-      if (w > 0) { update(w); }
-      else { const raf = requestAnimationFrame(() => update(el.clientWidth || el.getBoundingClientRect().width)); return raf; }
+      if (w > 0) { update(w); return; }
+      if (tries++ < 30) rafId = requestAnimationFrame(poll);
     };
-    const raf = measure();
+    poll();
 
     const ro = new ResizeObserver(e => update(e[0].contentRect.width));
     ro.observe(el);
-    return () => { ro.disconnect(); if (raf) cancelAnimationFrame(raf); };
+    return () => { ro.disconnect(); if (rafId !== null) cancelAnimationFrame(rafId); };
   }, []);
 
   // ── Visible instruments ───────────────────────────────────────────────────
