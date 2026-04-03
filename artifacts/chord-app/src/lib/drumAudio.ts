@@ -207,6 +207,113 @@ function soundIdToInst(id: string): DrumInstrument | null {
   return null;
 }
 
+// ── Noise gate AudioWorklet ──────────────────────────────────────────────────
+//
+// Algorithm: Steve Harris's LADSPA Noise Gate (#1410) — public domain.
+// Adapted for Web Audio API AudioWorkletProcessor by this project.
+// Reference: http://plugin.org.uk/ladspa-swh/docs/ladspa-swh.html#id4032
+//
+// State machine:
+//   CLOSED  → ATTACK  when envelope > openThreshold
+//   ATTACK  → OPEN    when gain reaches 1.0 (linear ramp, fast)
+//   OPEN    → HOLD    when envelope < closeThreshold (hysteresis)
+//   HOLD    → RELEASE when hold timer expires
+//   HOLD    → OPEN    when envelope rises above openThreshold again
+//   RELEASE → CLOSED  when gain reaches floor
+//   RELEASE → ATTACK  when envelope rises above openThreshold
+//
+// Hysteresis (6 dB gap between open/close thresholds) prevents chattering
+// when the signal hovers near threshold.
+//
+const _GATE_WORKLET_CODE = `
+class DrumGateProcessor extends AudioWorkletProcessor {
+  static get parameterDescriptors() {
+    return [
+      { name: 'threshold', defaultValue: -40, minValue: -80, maxValue: 0    },
+      { name: 'attack',    defaultValue: 0.001, minValue: 0.0005, maxValue: 0.1 },
+      { name: 'hold',      defaultValue: 0.08,  minValue: 0.005,  maxValue: 2.0 },
+      { name: 'release',   defaultValue: 0.12,  minValue: 0.005,  maxValue: 4.0 },
+    ];
+  }
+  constructor() {
+    super();
+    this._gain      = 0;   // current output gain (linear, 0 = closed, 1 = open)
+    this._env       = 0;   // peak envelope follower
+    this._state     = 0;   // 0=CLOSED 1=ATTACK 2=OPEN 3=HOLD 4=RELEASE
+    this._holdLeft  = 0;   // samples remaining in hold phase
+  }
+  process(inputs, outputs, params) {
+    const inp = inputs[0]?.[0];
+    const out = outputs[0]?.[0];
+    if (!inp || !out) return true;
+
+    const thr = params.threshold[0];
+    const atk = params.attack[0];
+    const hld = params.hold[0];
+    const rel = params.release[0];
+
+    // 6 dB hysteresis: gate opens at threshold, closes at threshold - 6 dB
+    const openLin  = Math.pow(10, thr / 20);
+    const closeLin = Math.pow(10, (thr - 6) / 20);
+    const atkInc   = 1 / (sampleRate * atk);
+    const relCoef  = Math.exp(-1 / (sampleRate * rel));
+    const holdSamp = Math.ceil(sampleRate * hld);
+
+    for (let i = 0; i < inp.length; i++) {
+      // Fast-attack, slow-release peak envelope follower (env tracks loudness)
+      const abs = Math.abs(inp[i]);
+      this._env = abs > this._env ? abs : this._env * 0.99995;
+
+      switch (this._state) {
+        case 0: // CLOSED — gate is shut, gain decays to 0
+          this._gain *= relCoef;
+          if (this._env > openLin) { this._state = 1; }
+          break;
+        case 1: // ATTACK — gate opening (linear ramp = click-free opening)
+          this._gain = Math.min(1, this._gain + atkInc);
+          if (this._gain >= 1)             { this._state = 2; }
+          if (this._env < closeLin * 0.5)  { this._state = 4; } // signal died during attack
+          break;
+        case 2: // OPEN — gate fully open, passes signal at unity
+          this._gain = 1;
+          if (this._env < closeLin) { this._state = 3; this._holdLeft = holdSamp; }
+          break;
+        case 3: // HOLD — waiting before releasing (prevents chatter on decaying hits)
+          if (this._env > openLin)   { this._state = 2; break; }
+          if (--this._holdLeft <= 0) { this._state = 4; }
+          break;
+        case 4: // RELEASE — exponential fade to silence
+          this._gain *= relCoef;
+          if (this._env > openLin)  { this._state = 1; } // hit came in — re-open
+          else if (this._gain < 1e-5) { this._gain = 0; this._state = 0; }
+          break;
+      }
+      out[i] = inp[i] * this._gain;
+    }
+    return true;
+  }
+}
+registerProcessor('drum-gate-processor', DrumGateProcessor);
+`;
+
+let _gateWorkletReady  = false;
+let _gateWorkletLoading: Promise<void> | null = null;
+
+function _loadGateWorklet(ctx: AudioContext): Promise<void> {
+  if (_gateWorkletReady)   return Promise.resolve();
+  if (_gateWorkletLoading) return _gateWorkletLoading;
+  const blob = new Blob([_GATE_WORKLET_CODE], { type: 'application/javascript' });
+  const url  = URL.createObjectURL(blob);
+  _gateWorkletLoading = ctx.audioWorklet.addModule(url).then(() => {
+    _gateWorkletReady = true;
+    URL.revokeObjectURL(url);
+  }).catch(() => {
+    // Worklet unavailable — gate will fall back to scheduled GainNode envelope
+    URL.revokeObjectURL(url);
+  });
+  return _gateWorkletLoading;
+}
+
 // ── AudioContext singleton ──────────────────────────────────────────────────
 let _ctx:        AudioContext | null = null;
 let _compressor: DynamicsCompressorNode | null = null;
@@ -228,6 +335,9 @@ function getCtx(): { ctx: AudioContext; dest: AudioNode } {
 
     _masterGain.connect(_compressor);
     _compressor.connect(_ctx.destination);
+
+    // Pre-load gate worklet so it's ready before the first note plays
+    _loadGateWorklet(_ctx).catch(() => {});
   }
   if (_ctx.state === 'suspended') _ctx.resume();
   return { ctx: _ctx, dest: _masterGain! };
@@ -806,8 +916,32 @@ function playBufferRoomy(
 
 let _instFXMap: Partial<Record<DrumInstrument, InstFX>> = {};
 
+// ── Persistent FX chain cache ─────────────────────────────────────────────────
+//
+// ROOT CAUSE OF DISTORTION BUG: buildFXChain() was called once per note,
+// creating a new EQ→comp→2.2s-reverb chain for every drum hit. At 160 BPM
+// 16th notes you can have 23+ chains alive simultaneously (2.2s tail / 93ms
+// step = 23 chains), all summing into _masterGain. Signal adds 23× → clipping.
+//
+// FIX: each instrument gets one persistent FX chain, built on first use and
+// reused for all subsequent notes of that instrument. When FX params change
+// (user moves a slider), only that instrument's chain is invalidated and
+// rebuilt on the next note. Old chains are orphaned and GC'd naturally after
+// their reverb tail decays (~2.2 s).
+//
+// Note: the cache must be cleared when a new AudioContext is created (context
+// change happens when page is hidden/shown on some browsers). The `_ctx` null
+// check in `getCtx` handles this — but the cache keyed on `inst` is not
+// context-specific. To be safe we also clear on context reset.
+//
+const _persistentChains = new Map<DrumInstrument, AudioNode>();
+
 /** Called from the React component whenever instFX state changes. */
 export function setInstFXMap(map: Partial<Record<DrumInstrument, InstFX>>) {
+  // Invalidate cached chains only for instruments whose FX actually changed
+  for (const inst of Object.keys(map) as DrumInstrument[]) {
+    _persistentChains.delete(inst);
+  }
   _instFXMap = map;
 }
 
@@ -936,17 +1070,23 @@ function getIR(ctx: AudioContext): AudioBuffer {
 }
 
 /**
- * Build an inline FX chain for one note and return its input node.
- * Chain: EQ (4-band) → [Saturator] → Compressor → Post-gain → Limiter → dry/wet reverb fork → dest
+ * Build a PERSISTENT FX chain for one instrument and return its input node.
+ *
+ * Chain: [Gate worklet] → EQ (4-band) → [Saturator] → Compressor → Post-gain → Limiter → dry/wet reverb → dest
+ *
+ * This chain is built ONCE per instrument (cached in _persistentChains) and
+ * reused across all notes of that instrument, eliminating the per-note chain
+ * accumulation that caused the gain explosion.
  *
  * Safety guarantees:
- *  - Compressor threshold clamped to -6…-24 dB (not the old 0…-60 dB that caused explosions)
+ *  - Gate uses Steve Harris LADSPA algorithm (public domain, amplitude-based)
+ *  - Compressor threshold clamped to -6…-24 dB
  *  - Compressor ratio capped at 8:1
  *  - Post-compressor gain compensates for the implicit makeup gain
- *  - Hard limiter at -1 dBFS after the chain as a final safety net
- *  - Reverb wet gain uses equal-power crossfade, capped at 0.45 to prevent overload
+ *  - Hard limiter at -1 dBFS as a final safety net
+ *  - Reverb wet gain uses equal-power crossfade, capped at 0.45
  */
-function buildFXChain(ctx: AudioContext, dest: AudioNode, fx: InstFX): AudioNode {
+function buildFXChain(ctx: AudioContext, dest: AudioNode, fx: InstFX, inst: DrumInstrument): AudioNode {
   // ── 4-band EQ ──────────────────────────────────────────────────────────────
   const low = ctx.createBiquadFilter();
   low.type = 'lowshelf'; low.frequency.value = 80;   low.gain.value = fx.eqLow;
@@ -1036,13 +1176,40 @@ function buildFXChain(ctx: AudioContext, dest: AudioNode, fx: InstFX): AudioNode
   const conv = ctx.createConvolver();
   conv.buffer = getIR(ctx);
 
-  // ── Wire everything together ────────────────────────────────────────────────
+  // ── Wire EQ → sat → comp → postGain → limiter → reverb/dry → dest ──────────
   low.connect(lowMid); lowMid.connect(mid); mid.connect(hi);
   satOutput.connect(comp);
   comp.connect(postGain); postGain.connect(limiter);
   limiter.connect(dryGain); dryGain.connect(dest);
   limiter.connect(conv);    conv.connect(wetGain); wetGain.connect(dest);
 
+  // ── Gate (AudioWorklet) — inserted BEFORE the EQ ───────────────────────────
+  // Algorithm: Steve Harris LADSPA Noise Gate (#1410, public domain)
+  // The gate is the chain's entry point — note sources connect to it.
+  // Hihats are excluded (they use hard maxDur for authentic closed-hat gating).
+  //
+  // Threshold mapping:  gate=0 → -60 dBFS (always open, no effect)
+  //                     gate=0.5 → -25 dBFS (closes when hit decays 25 dB down)
+  //                     gate=1 → -5 dBFS (closes almost immediately after transient)
+  // Hold mapping:       gate=0 → 300 ms  (long natural decay)
+  //                     gate=1 → 15 ms   (very tight)
+  // Release mapping:    gate=0 → 200 ms  (smooth fade)
+  //                     gate=1 → 50 ms   (fast snap shut)
+  const gateVal  = fx.gate ?? 0;
+  const isHihat  = inst === 'hihat-closed' || inst === 'hihat-open' || inst === 'hihat-foot';
+  if (gateVal > 0.02 && !isHihat && _gateWorkletReady) {
+    const gateNode = new AudioWorkletNode(ctx, 'drum-gate-processor');
+    const thr  = -60 + gateVal * 55;                // -60 → -5 dBFS
+    const hold = 0.015 + (1 - gateVal) * 0.285;     // 300 ms → 15 ms
+    const rel  = 0.050 + (1 - gateVal) * 0.150;     // 200 ms → 50 ms
+    gateNode.parameters.get('threshold')!.value = thr;
+    gateNode.parameters.get('hold')!.value      = hold;
+    gateNode.parameters.get('release')!.value   = rel;
+    gateNode.connect(low);   // gate output → EQ input
+    return gateNode;         // chain entry = gate
+  }
+
+  // No gate (or worklet not yet loaded): chain entry is the EQ directly
   return low;
 }
 
@@ -1065,33 +1232,24 @@ export function playSoundAt(
   const t    = Math.max(time, ctx.currentTime + 0.003);
   const inst = soundIdToInst(soundId);
 
-  // Resolve effective destination (apply per-inst FX chain if set)
+  // ── Persistent FX chain lookup ────────────────────────────────────────────
+  // Each instrument gets ONE chain (gate→EQ→comp→reverb) for its lifetime.
+  // Notes route through the persistent chain rather than building a new one
+  // each hit. This eliminates the reverb-tail accumulation that caused the
+  // gain explosion when many notes played simultaneously.
   const fx = inst ? _instFXMap[inst] : undefined;
-  const effectiveDest = (fx && !isFXDefault(fx)) ? buildFXChain(ctx, dest, fx) : dest;
-
-  // ── Gate: hold + smooth exponential release (GainNode envelope) ────────────
-  // The old approach used maxDur which gave a hard buffer-length cutoff with
-  // only a 30% tail for fading. At gate > 0.5 that produced clicks.
-  //
-  // New approach: insert a GainNode before effectiveDest and schedule an
-  // envelope: hold at unity → exponential ramp to silence.
-  //   hold:    400 ms → 15 ms  as gate 0→1   (how long the full sound plays)
-  //   release: 180 ms → 50 ms  as gate 0→1   (ALWAYS ≥ 50 ms — never clicks)
-  //
-  // This is equivalent to how a hardware gate plugin works (hold + release knobs).
-  const gateVal = (fx?.gate ?? 0);
-  const isHihat = inst === 'hihat-closed' || inst === 'hihat-foot';
-  let gateDest  = effectiveDest;
-  if (gateVal > 0.02 && !isHihat) {
-    const hold    = 0.015 + (1 - gateVal) * 0.385;   // 0.40 s  → 0.015 s
-    const release = 0.050 + (1 - gateVal) * 0.130;   // 0.18 s  → 0.050 s  (never < 50 ms)
-    const gateGain = ctx.createGain();
-    gateGain.gain.setValueAtTime(1,      t);
-    gateGain.gain.setValueAtTime(1,      t + hold);
-    gateGain.gain.exponentialRampToValueAtTime(0.0001, t + hold + release);
-    gateGain.connect(effectiveDest);
-    gateDest = gateGain;
+  let effectiveDest: AudioNode = dest;
+  if (fx && !isFXDefault(fx) && inst) {
+    const cached = _persistentChains.get(inst);
+    if (cached) {
+      effectiveDest = cached;
+    } else {
+      effectiveDest = buildFXChain(ctx, dest, fx, inst);
+      _persistentChains.set(inst, effectiveDest);
+    }
   }
+
+  const isHihat = inst === 'hihat-closed' || inst === 'hihat-open' || inst === 'hihat-foot';
 
   // Try kit-specific real sample first
   if (kit && inst && samplePool.hasForKit(kit, inst)) {
@@ -1101,33 +1259,33 @@ export function playSoundAt(
     const BASE_RATE: Partial<Record<DrumInstrument, number>> = {
       'tom-high': 1.35, 'tom-mid': 1.00, 'tom-floor': 0.80,
     };
-    const cfg        = kit ? KIT_ACOUSTIC_CFG[kit]?.[inst] : undefined;
-    const baseRate   = BASE_RATE[inst] ?? 1.0;
-    const kitRate    = cfg?.rate  ?? 1.0;
-    const kitGain    = cfg?.gain  ?? 1.0;
-    const roomMs     = cfg?.roomMs ?? 0;
-    const rate       = baseRate * kitRate;
-    const adjVol     = Math.min(vol * kitGain, 1.6);
+    const cfg     = kit ? KIT_ACOUSTIC_CFG[kit]?.[inst] : undefined;
+    const baseRate = BASE_RATE[inst] ?? 1.0;
+    const kitRate  = cfg?.rate  ?? 1.0;
+    const kitGain  = cfg?.gain  ?? 1.0;
+    const roomMs   = cfg?.roomMs ?? 0;
+    const rate     = baseRate * kitRate;
+    const adjVol   = Math.min(vol * kitGain, 1.6);
 
     if (isHihat) {
-      // Short gate on closed/foot hihats — hard cutoff is musically correct here
+      // Hard duration gate on hihats — musically correct, not affected by worklet gate
       const dur = inst === 'hihat-foot' ? 0.08 : (soundId === 'hh-c-tight' ? 0.032 : soundId === 'hh-c-crisp' ? 0.052 : 0.075);
       playBuffer(ctx, buf, t, adjVol, effectiveDest, dur, rate);
-    } else if (roomMs > 0 && gateDest === effectiveDest) {
-      // Only apply room effect when no FX chain and no gate
+    } else if (roomMs > 0 && effectiveDest === dest) {
+      // Room effect only when no FX chain (would conflict with Freeverb reverb)
       playBufferRoomy(ctx, buf, t, adjVol, effectiveDest, rate, roomMs);
     } else {
-      playBuffer(ctx, buf, t, adjVol, gateDest, undefined, rate);
+      playBuffer(ctx, buf, t, adjVol, effectiveDest, undefined, rate);
     }
     return;
   }
 
-  // Synthesis fallback — use gateDest so gate envelope applies here too
-  if      (soundId.startsWith('kick-'))    synthKick(ctx, t, vol, gateDest, soundId);
-  else if (soundId.startsWith('snare-'))   synthSnare(ctx, t, vol, gateDest, soundId);
-  else if (soundId.startsWith('hh-'))      synthHihat(ctx, t, vol, effectiveDest, soundId);  // hihats skip gate
-  else if (soundId.startsWith('tom-'))     synthTom(ctx, t, vol, gateDest, soundId);
-  else if (soundId.startsWith('crash-') || soundId.startsWith('ride-')) synthCymbal(ctx, t, vol, gateDest, soundId);
+  // Synthesis fallback — all routes through effectiveDest (gate + FX in chain)
+  if      (soundId.startsWith('kick-'))    synthKick(ctx, t, vol, effectiveDest, soundId);
+  else if (soundId.startsWith('snare-'))   synthSnare(ctx, t, vol, effectiveDest, soundId);
+  else if (soundId.startsWith('hh-'))      synthHihat(ctx, t, vol, effectiveDest, soundId);
+  else if (soundId.startsWith('tom-'))     synthTom(ctx, t, vol, effectiveDest, soundId);
+  else if (soundId.startsWith('crash-') || soundId.startsWith('ride-')) synthCymbal(ctx, t, vol, effectiveDest, soundId);
 }
 
 // ── Playback scheduler ──────────────────────────────────────────────────────
