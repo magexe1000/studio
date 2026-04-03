@@ -483,24 +483,28 @@ export default function LibraryPanel() {
       {/* ── Fixed header ── */}
       <header className="flex-none px-5 pt-6 pb-3 app-bg"
         style={{
-          display: 'flex', alignItems: 'center', gap: '10px',
+          display: 'flex', alignItems: 'center', gap: '0',
           transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
         }}>
-        {/* Back button — only in category view */}
-        {mainTab === 'explore' && showType && (
+        {/* Back button — slides in/out to animate the logo position */}
+        <div style={{
+          overflow: 'hidden',
+          flexShrink: 0,
+          width: (mainTab === 'explore' && showType) ? '46px' : '0px',
+          opacity: (mainTab === 'explore' && showType) ? 1 : 0,
+          transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
+        }}>
           <button onClick={goBack} data-testid="back-button" className="btn-smooth"
             style={{
-              flexShrink: 0,
               width: '36px', height: '36px', borderRadius: '50%',
               background: 'var(--app-surface-high)',
               border: '1px solid rgba(128,128,128,0.15)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              animation: 'spring-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
               transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
             }} aria-label="Back">
             <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
           </button>
-        )}
+        </div>
         <h1
           style={{
             fontSize: '14px', fontWeight: 700,
