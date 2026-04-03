@@ -4,7 +4,7 @@ import {
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS,
-  stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX, emptyMeasure,
+  stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX, emptyMeasure, DRUM_INSTRUMENTS,
   type DrumInstrument, type KitType, type HouseMic, type HouseCrashModel, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
   type InstPlugin,
@@ -557,147 +557,307 @@ async function exportDrumSongPDF(
   patterns: DrumPattern[],
   song:     DrumSong | null,
   accent:   { from: string; to: string },
-  cfg:      DrumExportConfig = DEFAULT_DRUM_EXPORT_CONFIG,
+  _cfg:     DrumExportConfig = DEFAULT_DRUM_EXPORT_CONFIG,
   pdfName   = '',
   mode: 'save' | 'share' = 'share',
 ): Promise<boolean> {
   const { jsPDF } = await import('jspdf');
-  const ALL_I     = CORE_INSTS as readonly DrumInstrument[];
-  const dark      = cfg.theme === 'dark';
   const [ar, ag, ab] = HEX_TO_RGB(accent.from);
 
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const PW = 297, PH = 210;
-  const MT = 14, MB = 16, ML = 14, MR = 14;
-  const LW    = 26;   // label column width
-  const ROW_H = 7.5;  // instrument row height
-  const GRID_W = PW - ML - MR - LW; // available width for step cells
+  // ── Page setup — A3 landscape (big like real drum sheets) ─────────────────
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
+  const PW = 420, PH = 297;
+  const ML = 14, MR = 14, MT = 14, MB = 14;
 
-  // Palette — match the app's grid visually
-  const bg      = dark ? [13,  13,  15 ] : [252, 252, 254];
-  const cellA   = dark ? [22,  22,  26 ] : [242, 242, 248]; // beat group A
-  const cellB   = dark ? [28,  28,  34 ] : [232, 232, 240]; // beat group B
-  const label   = dark ? [160, 160, 170] : [80,  80,  90 ];
-  const gridLine= dark ? [38,  38,  45 ] : [195, 195, 205];
-  const beatLine= dark ? [60,  60,  72 ] : [160, 160, 175];
-  const barLine = dark ? [90,  90,  110] : [120, 120, 140];
+  // ── Staff geometry ────────────────────────────────────────────────────────
+  const LS      = 2.6;            // line-space (mm) — gap between adjacent staff lines
+  const STAFF_H = 4 * LS;         // 5 lines → 4 gaps = 10.4 mm
+  const ABOVE_H = 4.0 * LS;       // room above top line for cymbals
+  const BELOW_H = 7.5 * LS;       // room below bottom line for kick + foot HH
+  const SYS_H   = ABOVE_H + STAFF_H + BELOW_H; // ≈ 40 mm per system
+  const SYS_GAP = 7;
 
-  let page = 1;
-  const drawPage = (cont: boolean) => {
-    doc.setFillColor(...bg as [number,number,number]); doc.rect(0, 0, PW, PH, 'F');
-    doc.setFillColor(ar, ag, ab); doc.rect(ML, MT, 3, 10, 'F');
-    doc.setFontSize(13).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
-    doc.text(pdfName || song?.name || 'Drumex Export', ML + 7, MT + 7.5);
-    if (song?.artist) {
-      doc.setFontSize(8).setFont('helvetica', 'normal').setTextColor(...label as [number,number,number]);
-      const tw = doc.getTextWidth(pdfName || song?.name || 'Drumex Export');
-      doc.text(song.artist, ML + 7 + tw + 5, MT + 7.5);
-    }
-    if (cont) { doc.setFontSize(7).setTextColor(130,130,130); doc.text('(continued)', PW - MR, MT + 6, { align: 'right' }); }
-    doc.setFontSize(6.5).setTextColor(120,120,120); doc.text(`Page ${page}`, PW - MR, PH - 5, { align: 'right' });
-    doc.setDrawColor(ar, ag, ab); doc.setLineWidth(0.2);
-    doc.line(ML, MT + 12.5, PW - MR, MT + 12.5);
+  const CLEF_W  = 30;             // left gutter: drum clef + inst labels
+  const GRID_W  = PW - ML - MR - CLEF_W;
+  const NR      = 1.05;           // notehead radius (mm)
+
+  // ── Instrument → staff-position map ──────────────────────────────────────
+  // yOff: mm from staffTop (negative = above staff, positive = below)
+  // isX: cross notehead (cymbals); stemUp: stem direction
+  // ledger: Y offsets (from staffTop) where ledger lines are needed
+  type InstDef = { yOff: number; isX: boolean; openMark: boolean; stemUp: boolean; ledger: number[] };
+  const IDEF: Partial<Record<DrumInstrument, InstDef>> = {
+    'crash':        { yOff: -3.6*LS, isX: true,  openMark: false, stemUp: true,  ledger: [] },
+    'ride':         { yOff: -2.9*LS, isX: true,  openMark: false, stemUp: true,  ledger: [] },
+    'hihat-open':   { yOff: -2.0*LS, isX: true,  openMark: true,  stemUp: true,  ledger: [] },
+    'hihat-closed': { yOff: -2.0*LS, isX: true,  openMark: false, stemUp: true,  ledger: [] },
+    'tom-high':     { yOff:  0.5*LS, isX: false, openMark: false, stemUp: true,  ledger: [] },
+    'tom-mid':      { yOff:  1.5*LS, isX: false, openMark: false, stemUp: true,  ledger: [] },
+    'snare':        { yOff:  2.0*LS, isX: false, openMark: false, stemUp: true,  ledger: [] },
+    'tom-floor':    { yOff:  3.0*LS, isX: false, openMark: false, stemUp: true,  ledger: [] },
+    'kick':         { yOff:  5.0*LS, isX: false, openMark: false, stemUp: false, ledger: [4.5*LS] },
+    'hihat-foot':   { yOff:  6.0*LS, isX: true,  openMark: false, stemUp: false, ledger: [4.5*LS, 5.5*LS] },
   };
-  const newPage = () => { doc.addPage(); page++; drawPage(true); };
 
-  drawPage(false);
-  let curY = MT + 16;
+  // ── Drawing helpers ───────────────────────────────────────────────────────
+  const ink  = (r: number, g: number, b: number) => {
+    doc.setDrawColor(r, g, b); doc.setFillColor(r, g, b); doc.setTextColor(r, g, b);
+  };
+  const strokeOnly = (r: number, g: number, b: number) => doc.setDrawColor(r, g, b);
 
+  const drawX = (cx: number, cy: number, r: number) => {
+    const d = r * 0.85;
+    doc.setLineWidth(0.8);
+    doc.line(cx - d, cy - d, cx + d, cy + d);
+    doc.line(cx - d, cy + d, cx + d, cy - d);
+  };
+
+  const drawOval = (cx: number, cy: number, rx: number, ry: number, filled: boolean) => {
+    doc.setLineWidth(0.35);
+    doc.ellipse(cx, cy, rx, ry, filled ? 'FD' : 'D');
+  };
+
+  const drawStem = (cx: number, noteY: number, staffTop: number, stemUp: boolean) => {
+    const STEM_LEN = 3.2 * LS;
+    const stemEndY = stemUp
+      ? Math.min(noteY - STEM_LEN, staffTop - LS)
+      : Math.max(noteY + STEM_LEN, staffTop + STAFF_H + LS);
+    doc.setLineWidth(0.35);
+    const sideX = cx + (stemUp ? NR * 0.85 : -NR * 0.85);
+    doc.line(sideX, noteY + (stemUp ? -NR * 0.4 : NR * 0.4), sideX, stemEndY);
+  };
+
+  // ── Page header ───────────────────────────────────────────────────────────
+  let page = 1;
+  const HEADER_H = 28;
+
+  const drawHeader = (cont: boolean) => {
+    // White background
+    doc.setFillColor(255, 255, 255); doc.rect(0, 0, PW, PH, 'F');
+
+    const title = pdfName || song?.name || 'Drum Sheet';
+    const artist = song?.artist ?? '';
+
+    // Big song title — right-side, large
+    doc.setFont('helvetica', 'bold').setFontSize(22).setTextColor(15, 15, 20);
+    doc.text(title.toUpperCase(), PW - MR, MT + 14, { align: 'right' });
+
+    // Artist — smaller, right-side below title
+    if (artist) {
+      doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(80, 80, 90);
+      doc.text(artist, PW - MR, MT + 20, { align: 'right' });
+    }
+
+    // Thin rule under header
+    doc.setDrawColor(180, 180, 185); doc.setLineWidth(0.35);
+    doc.line(ML, MT + HEADER_H - 2, PW - MR, MT + HEADER_H - 2);
+
+    // Page number bottom-right
+    doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(140, 140, 145);
+    doc.text(`${page}`, PW - MR, PH - 5, { align: 'right' });
+    if (cont) {
+      doc.text('(cont.)', ML, PH - 5);
+    }
+  };
+
+  const newPage = () => { doc.addPage(); page++; drawHeader(true); };
+
+  drawHeader(false);
+  let curY = MT + HEADER_H;
+
+  // ── Drum key legend (first page only, top-left) ───────────────────────────
+  {
+    const kx = ML, ky = MT + 4;
+    doc.setFont('helvetica', 'bold').setFontSize(6).setTextColor(80, 80, 90);
+    doc.text('DRUM KEY', kx, ky);
+    const keyItems: [string, boolean, boolean][] = [
+      ['Crash / Ride', true, false],
+      ['Hi-Hat (closed)', true, false],
+      ['Hi-Hat (open)', true, true],
+      ['Snare / Toms', false, false],
+      ['Kick', false, false],
+    ];
+    doc.setFontSize(5.5).setFont('helvetica', 'normal');
+    keyItems.forEach(([label, isX, open], i) => {
+      const iy = ky + 3.5 + i * 4;
+      doc.setDrawColor(30, 30, 35); doc.setFillColor(30, 30, 35); doc.setLineWidth(0.6);
+      if (isX) {
+        doc.line(kx + 1.5, iy - 1.2, kx + 4, iy + 1.2);
+        doc.line(kx + 1.5, iy + 1.2, kx + 4, iy - 1.2);
+        if (open) { doc.setLineWidth(0.3); doc.ellipse(kx + 2.75, iy - 2.2, 1.1, 0.75, 'D'); }
+      } else {
+        doc.ellipse(kx + 2.75, iy, 1.35, 0.9, i === 4 ? 'D' : 'FD');
+      }
+      doc.setTextColor(70, 70, 75);
+      doc.text(label, kx + 6, iy + 1.2);
+    });
+  }
+
+  // ── Render each pattern ───────────────────────────────────────────────────
   for (const pat of patterns) {
-    const subs  = pat.subdivision ?? 16;
-    const insts = ALL_I.filter(i => !(pat.mutedInstruments ?? []).includes(i));
-    if (insts.length === 0) continue;
+    const subs = pat.subdivision ?? 16;
 
-    // Fit as many bars per row as possible with cells at least 4mm wide
-    const barsPerRow = Math.max(1, Math.min(pat.measures.length, Math.floor(GRID_W / (subs * 4))));
-    const CELL = GRID_W / (barsPerRow * subs); // fills full grid width
-    const systemH = insts.length * ROW_H;
+    // Collect instruments that have at least one hit in this pattern
+    const allInsts: DrumInstrument[] = DRUM_INSTRUMENTS.filter((i: DrumInstrument) =>
+      !(pat.mutedInstruments ?? []).includes(i) &&
+      pat.measures.some((m: DrumMeasure) => (m.hits[i]?.length ?? 0) > 0)
+    );
+    if (allInsts.length === 0) continue;
 
-    // Pattern label
-    const patHdrH = 9;
-    if (curY + patHdrH + systemH > PH - MB) { newPage(); curY = MT + 16; }
-    doc.setFontSize(8).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
-    doc.text(`${pat.name}  ·  ${pat.bpm} BPM  ·  1/${subs}`, ML, curY + 6);
-    curY += patHdrH;
+    // Bars per row — fill page width, cells at least 3.5 mm wide
+    const MIN_CELL = 3.5;
+    const barsPerRow = Math.max(1, Math.min(pat.measures.length, Math.floor(GRID_W / (subs * MIN_CELL))));
+    const CELL = GRID_W / (barsPerRow * subs);
 
-    // Iterate rows of bars
+    // Pattern heading (name · BPM · time-sig)
+    const [timN, timD] = pat.timeSignature ?? [4, 4];
+    const hdrH = 9;
+    if (curY + hdrH + SYS_H > PH - MB) { newPage(); curY = MT + HEADER_H; }
+    doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(ar, ag, ab);
+    doc.text(`${pat.name}`, ML, curY + 6);
+    doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(100, 100, 110);
+    doc.text(`  ♩ = ${pat.bpm}   ${timN}/${timD}   1/${subs}`, ML + doc.getTextWidth(pat.name) + 2, curY + 6);
+    curY += hdrH;
+
+    // ── Iterate systems (rows of bars) ──────────────────────────────────────
+    let firstSystemInPattern = true;
     for (let rowStart = 0; rowStart < pat.measures.length; rowStart += barsPerRow) {
-      const rowBars = pat.measures.slice(rowStart, rowStart + barsPerRow);
-      if (curY + systemH + 2 > PH - MB) { newPage(); curY = MT + 16; }
+      if (curY + SYS_H + 4 > PH - MB) { newPage(); curY = MT + HEADER_H; firstSystemInPattern = false; }
 
-      // Bar numbers above the grid
-      for (const [bi, _m] of rowBars.entries()) {
-        const bx = ML + LW + bi * subs * CELL;
-        doc.setFontSize(5.5).setFont('helvetica', 'normal').setTextColor(120,120,120);
-        doc.text(`${rowStart + bi + 1}`, bx + (subs * CELL) / 2, curY - 1.5, { align: 'center' });
+      const rowBars = pat.measures.slice(rowStart, rowStart + barsPerRow);
+      const staffTop = curY + ABOVE_H;   // Y of the top staff line
+      const staffLeft = ML + CLEF_W;
+
+      // ── Staff lines ───────────────────────────────────────────────────────
+      doc.setLineWidth(0.3); strokeOnly(20, 20, 25);
+      for (let ln = 0; ln < 5; ln++) {
+        const ly = staffTop + ln * LS;
+        doc.line(staffLeft, ly, staffLeft + GRID_W, ly);
       }
 
-      // Draw each instrument row
-      for (const [ri, inst] of insts.entries()) {
-        const rowY = curY + ri * ROW_H;
-        const [cr, cg, cb] = HEX_TO_RGB(INSTRUMENT_COLOR[inst] ?? accent.from);
+      // ── Drum clef — two thick vertical bars ──────────────────────────────
+      doc.setFillColor(20, 20, 25);
+      doc.rect(staffLeft - 5.5, staffTop - 0.3, 1.6, STAFF_H + 0.6, 'F');
+      doc.rect(staffLeft - 3.0, staffTop - 0.3, 2.8, STAFF_H + 0.6, 'F');
 
-        // Label
-        doc.setFontSize(5.5).setFont('helvetica', 'normal').setTextColor(...label as [number,number,number]);
-        doc.text(INST_LABEL[inst], ML + LW - 1, rowY + ROW_H / 2 + 1.9, { align: 'right' });
+      // ── Time signature (first system of pattern only) ─────────────────────
+      if (firstSystemInPattern) {
+        firstSystemInPattern = false;
+        doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(20, 20, 25);
+        const tsX = staffLeft - 13;
+        const halfH = STAFF_H / 2;
+        doc.text(`${timN}`, tsX, staffTop + halfH * 0.55, { align: 'center' });
+        doc.text(`${timD}`, tsX, staffTop + halfH * 1.55, { align: 'center' });
+      }
 
-        for (const [bi, meas] of rowBars.entries()) {
-          const barStartX = ML + LW + bi * subs * CELL;
+      // ── Instrument labels (left gutter) ───────────────────────────────────
+      ink(60, 60, 70);
+      doc.setFont('helvetica', 'normal').setFontSize(5);
+      for (const inst of allInsts) {
+        const def = IDEF[inst as DrumInstrument]; if (!def) continue;
+        const ny = staffTop + def.yOff;
+        doc.text(SHORT_LABEL[inst as DrumInstrument] ?? inst, staffLeft - 7, ny + 1.5, { align: 'right' });
+      }
 
-          for (let s = 0; s < subs; s++) {
-            const cx = barStartX + s * CELL;
-            const beatGroup = Math.floor(s / 4) % 2;
-            const cellColor = beatGroup === 0 ? cellA : cellB;
+      // ── Bar numbers ───────────────────────────────────────────────────────
+      doc.setFont('helvetica', 'normal').setFontSize(6.5).setTextColor(120, 120, 130);
+      for (let bi = 0; bi < rowBars.length; bi++) {
+        const bx = staffLeft + bi * subs * CELL;
+        doc.text(`${rowStart + bi + 1}`, bx + 1, staffTop - ABOVE_H + 4.5);
+      }
 
-            // Cell bg
-            doc.setFillColor(...cellColor as [number,number,number]);
-            doc.rect(cx, rowY, CELL, ROW_H, 'F');
-
-            // Hit fill
-            if (meas.hits[inst]?.find?.((h: DrumHit) => h.step === s)) {
-              doc.setFillColor(cr, cg, cb);
-              const pad = 0.7;
-              const rr  = Math.min(1.5, (CELL - 2 * pad) / 2, (ROW_H - 2 * pad) / 2);
-              doc.roundedRect(cx + pad, rowY + pad, CELL - 2 * pad, ROW_H - 2 * pad, rr, rr, 'F');
-            }
-
-            // Step cell border
-            doc.setDrawColor(...gridLine as [number,number,number]);
-            doc.setLineWidth(0.08);
-            doc.rect(cx, rowY, CELL, ROW_H);
-          }
-
-          // Beat group dividers (every 4 steps, thicker)
-          for (let b = 0; b <= subs; b += 4) {
-            const bx = barStartX + b * CELL;
-            doc.setDrawColor(...beatLine as [number,number,number]);
-            doc.setLineWidth(0.22);
-            doc.line(bx, rowY, bx, rowY + ROW_H);
-          }
-
-          // Bar separator (right edge of each bar)
-          doc.setDrawColor(...barLine as [number,number,number]);
-          doc.setLineWidth(0.5);
-          doc.line(barStartX + subs * CELL, rowY, barStartX + subs * CELL, rowY + ROW_H);
+      // ── Beat subdivisions background tint (every group of 4 steps) ────────
+      for (let bi = 0; bi < rowBars.length; bi++) {
+        const barX = staffLeft + bi * subs * CELL;
+        for (let beat = 0; beat < subs; beat += 4) {
+          const gx = barX + beat * CELL;
+          const gw = Math.min(4, subs - beat) * CELL;
+          const shade = (Math.floor(beat / 4) % 2 === 0) ? 248 : 240;
+          doc.setFillColor(shade, shade, shade);
+          doc.rect(gx, staffTop, gw, STAFF_H, 'F');
         }
       }
 
-      // Outer grid border
-      const totalW = rowBars.length * subs * CELL;
-      doc.setDrawColor(...barLine as [number,number,number]);
-      doc.setLineWidth(0.4);
-      doc.rect(ML + LW, curY, totalW, systemH);
-
-      // Horizontal row dividers
-      for (let ri = 1; ri < insts.length; ri++) {
-        doc.setDrawColor(...gridLine as [number,number,number]);
-        doc.setLineWidth(0.12);
-        doc.line(ML + LW, curY + ri * ROW_H, ML + LW + totalW, curY + ri * ROW_H);
+      // Redraw staff lines on top of tint
+      doc.setLineWidth(0.3); strokeOnly(20, 20, 25);
+      for (let ln = 0; ln < 5; ln++) {
+        const ly = staffTop + ln * LS;
+        doc.line(staffLeft, ly, staffLeft + GRID_W, ly);
       }
 
-      curY += systemH + 5;
+      // ── Draw hits ─────────────────────────────────────────────────────────
+      for (let bi = 0; bi < rowBars.length; bi++) {
+        const meas = rowBars[bi];
+        const barX = staffLeft + bi * subs * CELL;
+
+        for (const inst of allInsts) {
+          const def = IDEF[inst as DrumInstrument]; if (!def) continue;
+          const hits = meas.hits[inst as DrumInstrument];
+          if (!hits?.length) continue;
+
+          const noteY = staffTop + def.yOff;
+
+          for (const hit of hits) {
+            const nx = barX + (hit.step + 0.5) * CELL;
+
+            // Ledger lines
+            doc.setLineWidth(0.3); strokeOnly(20, 20, 25);
+            for (const lly of def.ledger) {
+              doc.line(nx - NR * 1.8, staffTop + lly, nx + NR * 1.8, staffTop + lly);
+            }
+
+            // Notehead
+            ink(20, 20, 25);
+            if (def.isX) {
+              drawX(nx, noteY, NR * 1.05);
+              // open hi-hat: small circle above the X
+              if (def.openMark || hit.variation === 'open') {
+                doc.setLineWidth(0.35);
+                doc.ellipse(nx, noteY - NR * 2.2, NR * 0.9, NR * 0.65, 'D');
+              }
+              // ride bell: tiny filled dot inside X
+              if (hit.variation === 'bell') {
+                doc.setFillColor(20, 20, 25);
+                doc.ellipse(nx, noteY, NR * 0.5, NR * 0.4, 'F');
+              }
+            } else {
+              const isGhost = hit.variation === 'ghost';
+              const isFilled = !isGhost;
+              drawOval(nx, noteY, NR * 1.25, NR * 0.88, isFilled);
+              // ghost: parentheses around notehead
+              if (isGhost) {
+                doc.setFontSize(7); doc.setTextColor(20, 20, 25);
+                doc.text('(', nx - NR * 2.1, noteY + NR * 1.1);
+                doc.text(')', nx + NR * 0.8, noteY + NR * 1.1);
+              }
+              // accent mark
+              if (hit.variation === 'accent') {
+                doc.setFont('helvetica', 'bold').setFontSize(7).setTextColor(20, 20, 25);
+                doc.text('>', nx - NR * 0.5, def.stemUp ? noteY - NR * 4 : noteY + NR * 5);
+              }
+            }
+
+            // Stem
+            ink(20, 20, 25);
+            drawStem(nx, noteY, staffTop, def.stemUp);
+          }
+        }
+      }
+
+      // ── Bar lines ─────────────────────────────────────────────────────────
+      doc.setLineWidth(0.45); strokeOnly(20, 20, 25);
+      for (let bi = 0; bi <= rowBars.length; bi++) {
+        const bx = staffLeft + bi * subs * CELL;
+        doc.line(bx, staffTop, bx, staffTop + STAFF_H);
+      }
+      // Double bar line at end of system (thin + thick)
+      const endX = staffLeft + rowBars.length * subs * CELL;
+      doc.setLineWidth(1.5); strokeOnly(20, 20, 25);
+      doc.line(endX + 1.2, staffTop, endX + 1.2, staffTop + STAFF_H);
+
+      curY += SYS_H + SYS_GAP;
     }
-    curY += 6;
+    curY += 4;
   }
 
   const fileName = `${pdfName || song?.name || 'drumex'}.pdf`;
