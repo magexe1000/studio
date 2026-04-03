@@ -119,3 +119,15 @@ id = "yotJauD4O-IyPgRVEcKxB"
 uri = "file://chord-app-netlify.zip"
 type = "unspecified"
 title = "Chordex — Netlify Deploy Package"
+
+[[outputs]]
+id = "ZODIHP1kSmIJ5ei6bDLFE"
+uri = "file://artifacts/chord-app/public/studio-icon-1024.png"
+type = "image"
+title = "Studio Icon — Full (1024×1024, dark background)"
+
+[[outputs]]
+id = "8qQOIdCUFG9RKf1Ru3Txe"
+uri = "file://artifacts/chord-app/public/studio-icon-foreground.png"
+type = "image"
+title = "Studio Icon — Foreground only (1024×1024, transparent)"

@@ -22,6 +22,7 @@
     "@vitejs/plugin-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "sharp": "^0.34.5",
     "tailwindcss": "catalog:",
     "vite": "catalog:"
   },
