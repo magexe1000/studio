@@ -635,8 +635,11 @@ class HouseKitPool {
       for (const vel of vels) {
         for (let rr = 1; rr <= 7; rr++) {
           total++;
-          const key = this._key(name, mic, vel, rr);
-          const url = `/drums/realistic/${name}/${mic}/${vel}_${rr}.opus`;
+          // Overhead mic barely captures kick low-end — use blend mic for kick
+          // when OH is selected, giving full-bodied punch while toms/snare stay OH.
+          const loadMic = (name === 'kick' && mic === 'oh') ? 'blend' : mic;
+          const key = this._key(name, loadMic, vel, rr);
+          const url = `/drums/realistic/${name}/${loadMic}/${vel}_${rr}.opus`;
           tasks.push((async () => {
             try {
               const resp = await fetch(url, { cache: 'force-cache' });
@@ -658,7 +661,8 @@ class HouseKitPool {
   }
 
   getBuffer(inst: HouseInstName, mic: HouseMic, vel: string, rr: number): AudioBuffer | undefined {
-    return this._buffers.get(this._key(inst, mic, vel, rr));
+    const effectiveMic = (inst === 'kick' && mic === 'oh') ? 'blend' : mic;
+    return this._buffers.get(this._key(inst, effectiveMic, vel, rr));
   }
 
   /** Advance and return the next round-robin index (1–7) for this instrument */
