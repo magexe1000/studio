@@ -521,6 +521,7 @@ export const useDrumStore = create<DrumStore>()(
           patterns: JSON.parse(JSON.stringify(song.patterns)),
           activePatternId: song.activePatternId,
           kitType: song.kitType,
+          instFX: {},
         });
       },
 
@@ -642,6 +643,7 @@ export const useDrumStore = create<DrumStore>()(
     {
       name: 'chordex-drums',
       version: 9,
+      partialize: (state) => { const { instFX: _fx, ...rest } = state; return rest as typeof state; },
       migrate: (state: unknown, _version: number) => {
         const s = state as {
           drumSongs?: DrumSong[];
