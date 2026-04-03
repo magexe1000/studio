@@ -473,6 +473,11 @@ html, body { background: var(--app-bg); }
     to   { opacity: 1; transform: translateX(-50%) translateY(0);    }
   }
 
+  @keyframes hub-return-enter {
+    from { opacity: 0; transform: scale(0.93); }
+    to   { opacity: 1; transform: scale(1);    }
+  }
+
   @keyframes mode-enter {
     from { opacity: 0; transform: scale(0.96) translateY(12px); }
     to   { opacity: 1; transform: scale(1)    translateY(0);    }

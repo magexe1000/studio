@@ -32,7 +32,10 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
     { value: 'drums',  Icon: DrumexLogo,  label: 'Drumex',  desc: 'Drum sheet editor'     },
   ];
 
-  const goToHub = () => { updateSettings({ appMode: 'hub' }); setOpen(false); };
+  const goToHub = () => {
+    setOpen(false);
+    window.dispatchEvent(new CustomEvent('studio-hub-return'));
+  };
 
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
@@ -104,23 +107,20 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
           <button
             onClick={goToHub}
             style={{
-              display: 'flex', alignItems: 'center', gap: 10,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               width: '100%', padding: '13px 14px',
               background: 'transparent', border: 'none',
-              cursor: 'pointer', textAlign: 'left',
+              cursor: 'pointer',
             }}
           >
             <span style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 22, height: 22, flexShrink: 0,
-              color: 'var(--accent-from)', opacity: 0.9,
+              width: 18, height: 18, flexShrink: 0,
+              color: 'white',
             }}>
-              <StudioLogo size={18} />
+              <StudioLogo size={16} />
             </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0 }}>Back to Hub</p>
-              <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 11, margin: '2px 0 0' }}>Studio home screen</p>
-            </div>
+            <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0 }}>Back to Hub</p>
           </button>
         </div>
       )}

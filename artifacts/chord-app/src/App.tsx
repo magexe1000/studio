@@ -94,6 +94,18 @@ export default function App() {
     };
   }, []);
 
+  // ── Hub-return exit animation ────────────────────────────────────────────
+  const [exitingToHub, setExitingToHub] = useState(false);
+  useEffect(() => {
+    const handler = () => {
+      setExitingToHub(true);
+      setTimeout(() => { updateSettings({ appMode: 'hub' }); setExitingToHub(false); }, 370);
+    };
+    window.addEventListener('studio-hub-return', handler);
+    return () => window.removeEventListener('studio-hub-return', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── App-switch splash on mode change ────────────────────────────────────
   type SplashPhase = 'hidden' | 'in' | 'out';
   const [drumSplash,    setDrumSplash]    = useState<SplashPhase>('hidden');
@@ -236,13 +248,23 @@ export default function App() {
 
   // ── Hub mode: show the Studio Hub ────────────────────────────────────────
   if (settings.appMode === 'hub') {
-    return <StudioHub />;
+    return (
+      <div style={{ animation: 'hub-return-enter 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+        <StudioHub />
+      </div>
+    );
   }
 
   // ── Drums mode: completely separate environment ──────────────────────────
   if (settings.appMode === 'drums') {
     return (
-      <div style={{ position: 'relative', height: '100dvh', overflow: 'hidden', animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+      <div style={{
+        position: 'relative', height: '100dvh', overflow: 'hidden',
+        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
+        transform: exitingToHub ? 'scale(1.10)' : undefined,
+        opacity:   exitingToHub ? 0 : undefined,
+        transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
+      }}>
         <Suspense fallback={null}><DrumEditor /></Suspense>
 
         {/* Drumex splash — shown when switching from Chordex */}
@@ -279,6 +301,9 @@ export default function App() {
         paddingTop: 'env(safe-area-inset-top)',
         '--panel-dur': `${durMs}ms`,
         animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
+        transform: exitingToHub ? 'scale(1.10)' : undefined,
+        opacity:   exitingToHub ? 0 : undefined,
+        transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
       } as React.CSSProperties}
     >
 
