@@ -627,7 +627,7 @@ export default function DrumEditor() {
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
       <div style={{
         flexShrink: 0, height: 52,
-        display: 'flex', alignItems: 'center', padding: '10px 14px 0', gap: 10,
+        display: 'flex', alignItems: 'center', padding: '10px 24px 0', gap: 10,
         background: 'var(--app-bg)',
       }}>
         {/* Logo — always visible */}
