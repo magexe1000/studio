@@ -2781,16 +2781,15 @@ export default function SongsPanel() {
           />
         )}
 
-        {/* Floating back */}
-        <button onClick={() => setActivePreset(null)} data-testid="preset-back" className="btn-smooth"
-          style={{ position: 'absolute', top: '15px', left: '16px', zIndex: 40, width: '40px', height: '40px', borderRadius: '50%', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', background: 'rgba(31,32,32,0.75)', border: '1px solid rgba(72,72,72,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.30)', animation: 'spring-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
-          <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '20px' }}>arrow_back</span>
-        </button>
-
         {/* Header */}
         <header className="flex-none app-bg" style={{ paddingTop: '18px', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px' }}>
           {/* ── Title row ── */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingLeft: '52px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+            {/* Back button */}
+            <button onClick={() => setActivePreset(null)} data-testid="preset-back" className="btn-smooth"
+              style={{ flexShrink: 0, width: '36px', height: '36px', borderRadius: '50%', background: 'var(--app-surface-high)', border: '1px solid rgba(128,128,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'spring-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both', transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)' }}>
+              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
+            </button>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 900, fontSize: '22px', letterSpacing: '-0.02em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePreset.name}</h2>
               {activePreset.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePreset.artist}</p>}

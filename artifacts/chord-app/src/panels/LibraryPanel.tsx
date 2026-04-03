@@ -480,33 +480,33 @@ export default function LibraryPanel() {
         </span>
       </button>
 
-      {/* ── Back button (category view) ── */}
-      {mainTab === 'explore' && showType && (
-        <button onClick={goBack} data-testid="back-button" className="btn-smooth"
-          style={{
-            position: 'absolute', top: '18px', left: '16px', zIndex: 40,
-            width: '40px', height: '40px', borderRadius: '50%',
-            backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-            background: 'rgba(31,32,32,0.75)',
-            border: '1px solid rgba(72,72,72,0.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.30)',
-            animation: 'spring-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
-          }} aria-label="Back">
-          <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '20px' }}>arrow_back</span>
-        </button>
-      )}
-
       {/* ── Fixed header ── */}
-      <header className="flex-none px-6 pt-6 pb-3 app-bg"
-        style={{ transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)' }}>
+      <header className="flex-none px-5 pt-6 pb-3 app-bg"
+        style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+        }}>
+        {/* Back button — only in category view */}
+        {mainTab === 'explore' && showType && (
+          <button onClick={goBack} data-testid="back-button" className="btn-smooth"
+            style={{
+              flexShrink: 0,
+              width: '36px', height: '36px', borderRadius: '50%',
+              background: 'var(--app-surface-high)',
+              border: '1px solid rgba(128,128,128,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              animation: 'spring-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
+              transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
+            }} aria-label="Back">
+            <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
+          </button>
+        )}
         <h1
           style={{
             fontSize: '14px', fontWeight: 700,
             color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em',
-            paddingLeft: (mainTab === 'explore' && showType) ? '52px' : '0',
-            transition: 'padding-left 280ms cubic-bezier(0.4, 0, 0.2, 1)',
             display: 'flex', alignItems: 'center', gap: '7px',
+            margin: 0,
           }}>
           <AppModeMenuLogo />
         </h1>
