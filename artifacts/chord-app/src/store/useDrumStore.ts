@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { InstPlugin } from '../lib/drumPlugins';
+export type { InstPlugin };
 
 export type DrumInstrument =
   | 'crash' | 'ride'
@@ -252,8 +254,11 @@ interface DrumStore {
   loadGrooveAppend:    (id: string) => void;
   duplicateGroove:     (id: string) => string;
 
-  instFX:     Partial<Record<DrumInstrument, InstFX>>;
-  setInstFX:  (inst: DrumInstrument, fx: InstFX) => void;
+  instFX:        Partial<Record<DrumInstrument, InstFX>>;
+  setInstFX:     (inst: DrumInstrument, fx: InstFX) => void;
+
+  instPlugins:   Partial<Record<DrumInstrument, InstPlugin[]>>;
+  setInstPlugins:(inst: DrumInstrument, plugins: InstPlugin[]) => void;
 }
 
 const initial = defaultPattern();
@@ -270,6 +275,7 @@ export const useDrumStore = create<DrumStore>()(
       activeInstruments: KIT_INSTRUMENTS.ludwig,
       drumSongs:         [],
       instFX:            {},
+      instPlugins:       {},
 
       setSoundForInstrument: (inst, soundId) =>
         set(s => ({ soundMap: { ...s.soundMap, [inst]: soundId } })),
@@ -582,6 +588,9 @@ export const useDrumStore = create<DrumStore>()(
 
       setInstFX: (inst, fx) =>
         set(s => ({ instFX: { ...s.instFX, [inst]: { ...fx } } })),
+
+      setInstPlugins: (inst, plugins) =>
+        set(s => ({ instPlugins: { ...s.instPlugins, [inst]: plugins } })),
     }),
     {
       name: 'chordex-drums',

@@ -7,12 +7,14 @@ import {
   stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX,
   type DrumInstrument, type KitType, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
+  type InstPlugin,
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, KIT_DEFAULTS,
-  getSoundForVariation, setInstFXMap,
+  getSoundForVariation, setInstFXMap, setInstPluginMap,
   type SampleStatus,
 } from '../lib/drumAudio';
+import { PLUGIN_REGISTRY, defaultParamsFor } from '../lib/drumPlugins';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
@@ -1156,6 +1158,7 @@ export default function DrumEditor() {
     restorePatterns, insertMeasureAfter, togglePatternMute, importDrumSong,
     grooves, saveGroove, deleteGroove, renameGroove, loadGrooveReplace, loadGrooveAppend, duplicateGroove,
     instFX, setInstFX,
+    instPlugins, setInstPlugins,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -1225,11 +1228,13 @@ export default function DrumEditor() {
   const [flashBarId,    setFlashBarId]    = useState<string | null>(null); // brief highlight on paste
 
   // ── Per-instrument FX sheet ────────────────────────────────────────────────
-  const [showFXSheet, setShowFXSheet] = useState(false);
-  const [fxInst,      setFxInst]      = useState<DrumInstrument>('kick');
+  const [showFXSheet,      setShowFXSheet]      = useState(false);
+  const [fxInst,           setFxInst]           = useState<DrumInstrument>('kick');
+  const [showPluginPicker, setShowPluginPicker] = useState(false);
 
-  // Sync instFX store → drumAudio module whenever it changes
+  // Sync instFX + instPlugins store → drumAudio module whenever they change
   useEffect(() => { setInstFXMap(instFX); }, [instFX]);
+  useEffect(() => { setInstPluginMap(instPlugins); }, [instPlugins]);
 
   // ── Quick mixer sheet + export modal + import modal ──────────────────────
   const [showMixerSheet,    setShowMixerSheet]    = useState(false);
@@ -2381,8 +2386,165 @@ export default function DrumEditor() {
                     </div>
                   );
                 })}
+
+                {/* ── Plugins section ──────────────────────────────── */}
+                {(() => {
+                  const curPlugins: InstPlugin[] = instPlugins[fxInst] ?? [];
+                  return (
+                    <div style={{ padding: '14px 20px 0' }}>
+                      {/* Section header */}
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-text-muted)', fontFamily: 'Manrope', flex: 1 }}>Plugins</span>
+                        <button
+                          onClick={() => setShowPluginPicker(true)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800, fontFamily: 'Manrope', cursor: 'pointer', background: `${color}22`, color, border: `1.5px solid ${color}55` }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                          Add Plugin
+                        </button>
+                      </div>
+
+                      {/* Active plugin cards */}
+                      {curPlugins.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '18px 0 14px', color: 'var(--c-text-muted)', fontSize: 11, fontFamily: 'Manrope' }}>
+                          No plugins added. Tap "Add Plugin" to browse.
+                        </div>
+                      )}
+                      {curPlugins.map((ip, idx) => {
+                        const def = PLUGIN_REGISTRY.find(p => p.id === ip.id);
+                        if (!def) return null;
+                        const CATEGORY_COLOR: Record<string, string> = {
+                          modulation: '#a78bfa', delay: '#60a5fa',
+                          distortion: '#f97316', filter: '#34d399',
+                        };
+                        const catColor = CATEGORY_COLOR[def.category] ?? '#94a3b8';
+                        return (
+                          <div key={`${ip.id}-${idx}`} style={{ background: 'var(--app-surface-high)', borderRadius: 12, marginBottom: 8, overflow: 'hidden', border: '1px solid rgba(128,128,128,0.10)' }}>
+                            {/* Plugin header */}
+                            <div style={{ display: 'flex', alignItems: 'center', padding: '9px 12px', gap: 8 }}>
+                              <div style={{ width: 6, height: 6, borderRadius: '50%', background: catColor, flexShrink: 0 }} />
+                              <div style={{ flex: 1 }}>
+                                <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>{def.name}</span>
+                                <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: catColor, fontFamily: 'Manrope' }}>{def.category}</span>
+                              </div>
+                              {/* Move up */}
+                              {idx > 0 && (
+                                <button onClick={() => {
+                                  const next = [...curPlugins];
+                                  [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                                  setInstPlugins(fxInst, next);
+                                }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--c-text-muted)', padding: '2px 4px', borderRadius: 4 }} title="Move up">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+                                </button>
+                              )}
+                              {/* Remove */}
+                              <button onClick={() => setInstPlugins(fxInst, curPlugins.filter((_, i) => i !== idx))}
+                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--c-text-muted)', padding: '2px 4px', borderRadius: 4 }} title="Remove plugin">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                              </button>
+                            </div>
+                            {/* Plugin params */}
+                            <div style={{ borderTop: '1px solid rgba(128,128,128,0.08)' }}>
+                              {def.params.map(param => {
+                                const val = ip.params[param.key] ?? param.default;
+                                const isNonDefault = Math.abs(val - param.default) > (param.step * 0.5);
+                                const displayVal = param.unit
+                                  ? (param.unit.includes('Hz') ? `${val % 1 === 0 ? val : val.toFixed(1)} ${param.unit}` : param.unit.startsWith('0=') ? param.unit.split(' ').find(u => val < 0.5 ? u.startsWith('0=') : u.startsWith('1='))?.split('=')[1] ?? String(val) : `${val} ${param.unit}`)
+                                  : `${Math.round(val * 100)}%`;
+                                return (
+                                  <div key={param.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 12px' }}>
+                                    <div style={{ width: 80, flexShrink: 0 }}>
+                                      <div style={{ fontSize: 10, fontWeight: 700, color: isNonDefault ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>{param.label}</div>
+                                    </div>
+                                    <input type="range" min={param.min} max={param.max} step={param.step} value={val}
+                                      onChange={e => {
+                                        const next = [...curPlugins];
+                                        next[idx] = { ...ip, params: { ...ip.params, [param.key]: parseFloat(e.target.value) } };
+                                        setInstPlugins(fxInst, next);
+                                      }}
+                                      style={{ flex: 1, accentColor: catColor }} />
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: isNonDefault ? catColor : 'var(--c-text-muted)', minWidth: 52, textAlign: 'right', fontFamily: 'Manrope' }}>{displayVal}</span>
+                                  </div>
+                                );
+                              })}
+                              {/* Credit */}
+                              <div style={{ padding: '4px 12px 8px', fontSize: 8.5, color: 'var(--c-text-muted)', fontFamily: 'Manrope', opacity: 0.7, lineHeight: 1.3 }}>{def.credit}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
+
+            {/* ── Plugin picker sheet (absolute overlay inside FX sheet) ── */}
+            {showPluginPicker && (() => {
+              const curPlugins: InstPlugin[] = instPlugins[fxInst] ?? [];
+              const CATEGORY_COLOR: Record<string, string> = {
+                modulation: '#a78bfa', delay: '#60a5fa',
+                distortion: '#f97316', filter: '#34d399',
+              };
+              type CatKey = 'modulation' | 'delay' | 'distortion' | 'filter';
+              const CATEGORY_ICONS: Record<CatKey, React.ReactNode> = {
+                modulation: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M2 12 Q6 4 10 12 Q14 20 18 12 Q22 4 24 12" strokeLinejoin="round"/></svg>,
+                delay:      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+                distortion: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 12 6 12 8 4 12 20 16 4 18 20 20 12 24 12"/></svg>,
+                filter:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+              };
+              const categories: CatKey[] = ['modulation', 'delay', 'distortion', 'filter'];
+              return (
+                <div style={{ position: 'absolute', inset: 0, zIndex: 10 }}>
+                  <div onClick={() => setShowPluginPicker(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', maxHeight: '75vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'sheet-up 280ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', flexShrink: 0 }}>
+                      <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', padding: '4px 20px 12px', flexShrink: 0 }}>
+                      <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>Add Plugin</span>
+                      <button onClick={() => setShowPluginPicker(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--c-text-muted)' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    </div>
+                    <div style={{ overflowY: 'auto', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 20px)' }}>
+                      {categories.map(cat => {
+                        const catPlugins = PLUGIN_REGISTRY.filter(p => p.category === cat);
+                        const catColor = CATEGORY_COLOR[cat] ?? '#94a3b8';
+                        return (
+                          <div key={cat} style={{ marginBottom: 4 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px 6px', color: catColor }}>
+                              {CATEGORY_ICONS[cat]}
+                              <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'Manrope' }}>{cat}</span>
+                            </div>
+                            {catPlugins.map(plugin => {
+                              const alreadyAdded = curPlugins.some(p => p.id === plugin.id);
+                              return (
+                                <div key={plugin.id} style={{ display: 'flex', alignItems: 'flex-start', padding: '8px 20px', gap: 12, borderBottom: '1px solid rgba(128,128,128,0.06)' }}>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope', marginBottom: 2 }}>{plugin.name}</div>
+                                    <div style={{ fontSize: 10, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', lineHeight: 1.4 }}>{plugin.description}</div>
+                                    <div style={{ fontSize: 8.5, color: 'var(--c-text-muted)', fontFamily: 'Manrope', marginTop: 2, opacity: 0.8 }}>{plugin.credit}</div>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      const updated = [...curPlugins, { id: plugin.id, params: defaultParamsFor(plugin.id) }];
+                                      setInstPlugins(fxInst, updated);
+                                      setShowPluginPicker(false);
+                                    }}
+                                    style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700, fontFamily: 'Manrope', cursor: 'pointer', marginTop: 2, transition: 'all 130ms', background: alreadyAdded ? 'transparent' : `${catColor}22`, color: alreadyAdded ? 'var(--c-text-muted)' : catColor, border: alreadyAdded ? '1.5px solid rgba(128,128,128,0.15)' : `1.5px solid ${catColor}55` }}>
+                                    {alreadyAdded ? 'Added' : '+ Add'}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         );
       })()}

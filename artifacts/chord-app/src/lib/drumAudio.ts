@@ -1,5 +1,7 @@
 import type { DrumInstrument, DrumPattern, InstFX, KitType, NoteVariation } from '../store/useDrumStore';
 import { DRUM_INSTRUMENTS, stepsPerMeasure } from '../store/useDrumStore';
+import { getPlugin } from './drumPlugins';
+import type { InstPlugin } from './drumPlugins';
 
 // ── Variation → sound/volume helpers ─────────────────────────────────────────
 
@@ -822,10 +824,11 @@ let _instFXMap: Partial<Record<DrumInstrument, InstFX>> = {};
 // Gate is NOT part of the persistent chain — see playSoundAt for the gate impl.
 //
 type ChainEntry = {
-  input:   AudioNode;   // entry point: note sources connect here
-  dryOut:  GainNode;    // dry path output (connected to dest)
-  wetOut:  GainNode;    // wet reverb output (connected to dest)
-  dest:    AudioNode;   // the masterGain this chain feeds into
+  input:   AudioNode;        // entry point: note sources connect here
+  dryOut:  GainNode;         // dry path output (connected to dest)
+  wetOut:  GainNode;         // wet reverb output (connected to dest)
+  dest:    AudioNode;        // the masterGain this chain feeds into
+  dispose: () => void;       // stops plugin oscillators
 };
 
 const _persistentChains = new Map<DrumInstrument, ChainEntry>();
@@ -835,7 +838,10 @@ function _teardownChain(entry: ChainEntry): void {
   // Nodes without live sources will then be GC'd by the browser.
   try { entry.dryOut.disconnect(entry.dest); } catch { /* already disconnected */ }
   try { entry.wetOut.disconnect(entry.dest); } catch { /* already disconnected */ }
+  try { entry.dispose(); } catch {}
 }
+
+let _instPluginMap: Partial<Record<DrumInstrument, InstPlugin[]>> = {};
 
 /** Called from the React component whenever instFX state changes. */
 export function setInstFXMap(map: Partial<Record<DrumInstrument, InstFX>>) {
@@ -848,6 +854,18 @@ export function setInstFXMap(map: Partial<Record<DrumInstrument, InstFX>>) {
     }
   }
   _instFXMap = map;
+}
+
+/** Called from the React component whenever plugin state changes. */
+export function setInstPluginMap(map: Partial<Record<DrumInstrument, InstPlugin[]>>) {
+  for (const inst of Object.keys(map) as DrumInstrument[]) {
+    const existing = _persistentChains.get(inst as DrumInstrument);
+    if (existing) {
+      _teardownChain(existing);
+      _persistentChains.delete(inst as DrumInstrument);
+    }
+  }
+  _instPluginMap = map;
 }
 
 /** Tear down ALL persistent chains (called when AudioContext resets). */
@@ -998,7 +1016,7 @@ function getIR(ctx: AudioContext): AudioBuffer {
  *  - Hard limiter at -1 dBFS as true last resort
  *  - Reverb wet capped at 0.45 (equal-power crossfade)
  */
-function buildFXChain(ctx: AudioContext, dest: AudioNode, fx: InstFX): ChainEntry {
+function buildFXChain(ctx: AudioContext, dest: AudioNode, fx: InstFX, plugins: InstPlugin[]): ChainEntry {
   // ── 4-band EQ — gains clamped to ±12 dB (matches UI slider range) ────────────
   // With makeup gain fully cancelled downstream, ±12 dB is safe.
   const clamp = (v: number) => Math.max(-12, Math.min(12, v));
@@ -1090,6 +1108,21 @@ function buildFXChain(ctx: AudioContext, dest: AudioNode, fx: InstFX): ChainEntr
   limiter.attack.value    = 0.001;
   limiter.release.value   = 0.05;
 
+  // ── Plugin chain — inserted between limiter and reverb ───────────────────────
+  // Each plugin's createNodes() is called to get an {input,output,dispose} tuple.
+  // Plugins are chained in order: limiter → plugin[0] → plugin[1] → … → reverb.
+  const pluginDisposers: Array<() => void> = [];
+  let pluginChainOut: AudioNode = limiter; // starts at limiter output
+
+  for (const inst of plugins) {
+    const def = getPlugin(inst.id);
+    if (!def) continue;
+    const nodes = def.createNodes(ctx, inst.params);
+    pluginChainOut.connect(nodes.input);
+    pluginChainOut = nodes.output;
+    if (nodes.dispose) pluginDisposers.push(nodes.dispose);
+  }
+
   // ── Reverb — Freeverb IR via ConvolverNode (built once, cached) ─────────────
   // Equal-power crossfade; wet capped at 0.45 (convolver can amplify)
   const angle   = fx.reverb * (Math.PI / 2);
@@ -1099,15 +1132,16 @@ function buildFXChain(ctx: AudioContext, dest: AudioNode, fx: InstFX): ChainEntr
   const conv = ctx.createConvolver();
   conv.buffer = getIR(ctx);
 
-  // ── Wire: EQ → sat → comp → postGain → limiter → dry/wet → dest ────────────
+  // ── Wire: EQ → sat → comp → postGain → limiter → [plugins] → dry/wet → dest ─
   low.connect(lowMid); lowMid.connect(mid); mid.connect(hi);
   satOutput.connect(comp);
   comp.connect(postGain); postGain.connect(limiter);
-  limiter.connect(dryGain); dryGain.connect(dest);
-  limiter.connect(conv);    conv.connect(wetGain); wetGain.connect(dest);
+  // pluginChainOut is now either limiter (no plugins) or last plugin output
+  pluginChainOut.connect(dryGain); dryGain.connect(dest);
+  pluginChainOut.connect(conv);    conv.connect(wetGain); wetGain.connect(dest);
 
-  // Return ChainEntry so the caller can disconnect dryOut/wetOut on teardown
-  return { input: low, dryOut: dryGain, wetOut: wetGain, dest };
+  const disposeAll = () => pluginDisposers.forEach(d => { try { d(); } catch {} });
+  return { input: low, dryOut: dryGain, wetOut: wetGain, dest, dispose: disposeAll };
 }
 
 function isFXDefault(fx: InstFX): boolean {
@@ -1134,47 +1168,61 @@ export function playSoundAt(
   // The chain is built on first use and torn down (disconnected from masterGain)
   // whenever FX params change — preventing the gain accumulation that caused
   // distortion.
-  const fx = inst ? _instFXMap[inst] : undefined;
+  const fx      = inst ? _instFXMap[inst]    : undefined;
+  const plugins = inst ? (_instPluginMap[inst] ?? []) : [];
+  const needsChain = (fx && !isFXDefault(fx)) || plugins.length > 0;
   let chainInput: AudioNode = dest;     // where note sources will connect
-  if (fx && !isFXDefault(fx) && inst) {
+
+  if (needsChain && inst) {
     let entry = _persistentChains.get(inst);
     if (!entry) {
-      entry = buildFXChain(ctx, dest, fx);
+      entry = buildFXChain(ctx, dest, fx ?? {
+        compress: 0, attack: 0, eqLow: 0, eqLowMid: 0, eqMid: 0, eqHigh: 0,
+        reverb: 0, gate: 0, saturate: 0,
+      }, plugins);
       _persistentChains.set(inst, entry);
     }
     chainInput = entry.input;
   }
 
   // ── Gate — scheduled per-note GainNode ───────────────────────────────────────
-  // Placed BETWEEN the note source and the persistent FX chain.
-  // Works by scheduling an audio-time envelope:
-  //   • 2 ms linear open ramp  (prevents transient click on attack)
-  //   • hold period             (how long the full sound plays)
-  //   • exponential close ramp  (smooth natural fade)
+  // Applied BETWEEN the note source and the persistent FX chain.
   //
-  // Because the timing is known exactly (we scheduled the note), this is MORE
-  // accurate than amplitude-detection gates for sequenced drums.
-  // Hihats are excluded — they use hard maxDur for authentic closed-hat behaviour.
+  // Envelope:
+  //   • 2 ms linear open ramp  (click-free onset)
+  //   • hold period            (full signal passes through)
+  //   • exponential close ramp (smooth, natural-sounding fade)
   //
-  // Mapping (gate slider 0→1):
-  //   hold:    390 ms → 15 ms   (gate=0 barely audible, gate=1 very tight)
-  //   release: 180 ms → 50 ms   (always ≥ 50 ms — never clicks)
+  // Hihats use hard maxDur instead — hard gate is correct for closed hi-hats.
+  //
+  // Hold/release curves (gate = 0→1):
+  //   hold:    1.75 s → 50 ms  (quadratic — gentle at low values, tight at top)
+  //   release: 400 ms → 150 ms (linear — always ≥ 150 ms to avoid clicks)
+  //
+  // The gateGain is disconnected from chainInput via setTimeout after the
+  // envelope ends — prevents accumulation of idle nodes in the audio graph.
   const gateVal = fx?.gate ?? 0;
   const isHihat = inst === 'hihat-closed' || inst === 'hihat-open' || inst === 'hihat-foot';
   let noteDest: AudioNode = chainInput;
 
-  if (gateVal > 0.02 && !isHihat) {
-    const hold    = 0.015 + (1 - gateVal) * 0.375;  // 390 ms → 15 ms
-    const release = 0.050 + (1 - gateVal) * 0.130;  // 180 ms → 50 ms
+  if (gateVal > 0.05 && !isHihat) {
+    const g       = gateVal;
+    const hold    = 0.050 + (1 - g) * (1 - g) * 1.70;  // 1.75 s → 50 ms  (quadratic)
+    const release = 0.150 + (1 - g) * 0.250;             // 400 ms → 150 ms (linear)
     const gateGain = ctx.createGain();
-    // Open smoothly from silence (2ms ramp prevents any click on fast transients)
-    gateGain.gain.setValueAtTime(0,      t);
-    gateGain.gain.linearRampToValueAtTime(1, t + 0.002);
-    // Hold at unity, then close exponentially
-    gateGain.gain.setValueAtTime(1,      t + 0.002 + hold);
-    gateGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.002 + hold + release);
+
+    gateGain.gain.setValueAtTime(0,       t);
+    gateGain.gain.linearRampToValueAtTime(1, t + 0.002);            // 2 ms attack
+    gateGain.gain.setValueAtTime(1,          t + 0.002 + hold);     // hold
+    gateGain.gain.exponentialRampToValueAtTime(0.0001,               // smooth close
+      t + 0.002 + hold + release);
+
     gateGain.connect(chainInput);
     noteDest = gateGain;
+
+    // Disconnect the GainNode after envelope completes so it can be GC'd
+    const msUntilDone = (hold + release + 0.2) * 1000;
+    setTimeout(() => { try { gateGain.disconnect(chainInput); } catch {} }, msUntilDone);
   }
 
   // Try kit-specific real sample first
