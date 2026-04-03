@@ -74,6 +74,18 @@ export interface DrumPattern {
   measures: DrumMeasure[];
 }
 
+export interface DrumSong {
+  id: string;
+  name: string;
+  artist: string;
+  notes: string;
+  patterns: DrumPattern[];
+  activePatternId: string;
+  kitType: KitType | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 function emptyMeasure(): DrumMeasure { return { id: `m-${uid()}`, hits: {} }; }
 function defaultPattern(): DrumPattern {
@@ -115,6 +127,12 @@ interface DrumStore {
   deleteMeasure:   (patternId: string, measureId: string) => void;
   clearMeasure:    (patternId: string, measureId: string) => void;
   duplicateMeasure:(patternId: string, measureId: string) => void;
+
+  drumSongs:      DrumSong[];
+  saveDrumSong:   (name: string, artist: string, notes: string) => string;
+  loadDrumSong:   (id: string) => void;
+  deleteDrumSong: (id: string) => void;
+  updateDrumSong: (id: string, patch: Partial<Pick<DrumSong, 'name' | 'artist' | 'notes'>>) => void;
 }
 
 const initial = defaultPattern();
@@ -129,6 +147,7 @@ export const useDrumStore = create<DrumStore>()(
       masterVolume:      0.82,
       kitType:           null,
       activeInstruments: KIT_INSTRUMENTS.ludwig,
+      drumSongs:         [],
 
       setSoundForInstrument: (inst, soundId) =>
         set(s => ({ soundMap: { ...s.soundMap, [inst]: soundId } })),
@@ -238,7 +257,51 @@ export const useDrumStore = create<DrumStore>()(
           }),
         }));
       },
+
+      saveDrumSong: (name, artist, notes) => {
+        const s = get();
+        const song: DrumSong = {
+          id: `ds-${uid()}`,
+          name: name.trim() || 'Untitled Beat',
+          artist: artist.trim(),
+          notes: notes.trim(),
+          patterns: JSON.parse(JSON.stringify(s.patterns)),
+          activePatternId: s.activePatternId ?? s.patterns[0]?.id ?? '',
+          kitType: s.kitType,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        set(st => ({ drumSongs: [song, ...st.drumSongs] }));
+        return song.id;
+      },
+
+      loadDrumSong: id => {
+        const song = get().drumSongs.find(s => s.id === id);
+        if (!song) return;
+        set({
+          patterns: JSON.parse(JSON.stringify(song.patterns)),
+          activePatternId: song.activePatternId,
+          kitType: song.kitType,
+        });
+      },
+
+      deleteDrumSong: id =>
+        set(s => ({ drumSongs: s.drumSongs.filter(x => x.id !== id) })),
+
+      updateDrumSong: (id, patch) =>
+        set(s => ({
+          drumSongs: s.drumSongs.map(x =>
+            x.id === id ? { ...x, ...patch, updatedAt: Date.now() } : x
+          ),
+        })),
     }),
-    { name: 'chordex-drums', version: 4 }
+    {
+      name: 'chordex-drums',
+      version: 5,
+      migrate: (state: unknown, _version: number) => ({
+        ...(state as object),
+        drumSongs: (state as { drumSongs?: DrumSong[] }).drumSongs ?? [],
+      }),
+    }
   )
 );
