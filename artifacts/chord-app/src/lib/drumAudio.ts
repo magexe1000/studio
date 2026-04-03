@@ -1680,6 +1680,22 @@ class DrumScheduler {
     this.onStep?.(-1, 0, 0);
   }
 
+  seekTo(step: number) {
+    if (!this._pattern) return;
+    const total = stepsPerMeasure(this._pattern) * this._pattern.measures.length;
+    const clamped = Math.max(0, Math.min(step, total - 1));
+    if (this._playing) {
+      this._currentStep   = clamped;
+      this._nextStepTime  = (_ctx?.currentTime ?? 0) + 0.06;
+      this._scheduled     = [];
+    }
+    const spm = stepsPerMeasure(this._pattern);
+    this.onStep?.(clamped, Math.floor(clamped / spm), clamped % spm);
+  }
+
+  get totalSteps(): number { return this._totalSteps; }
+  get isPlaying(): boolean { return this._playing; }
+
   pause() {
     this._playing = false;
     if (this._tickId) { clearTimeout(this._tickId); this._tickId = null; }
@@ -1723,7 +1739,6 @@ class DrumScheduler {
     playSoundAt(soundId, ctx.currentTime + 0.01, vol, dest, kit);
   }
 
-  get isPlaying() { return this._playing; }
 }
 
 export const drumScheduler = new DrumScheduler();
