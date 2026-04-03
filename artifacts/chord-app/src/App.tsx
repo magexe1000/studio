@@ -268,14 +268,15 @@ export default function App() {
 
   return (
     <div
-      className="flex flex-col h-[100dvh] w-full overflow-hidden select-none app-bg"
+      className="flex flex-col w-full overflow-hidden select-none app-bg"
       style={{
         position: 'relative',
+        height: '100dvh',
+        paddingTop: 'env(safe-area-inset-top)',
         '--panel-dur': `${durMs}ms`,
         animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
       } as React.CSSProperties}
     >
-      <div style={{ paddingTop: 'env(safe-area-inset-top)', background: 'var(--app-bg)' }} className="flex-none" />
 
       {/* Panel container */}
       <div className="flex-1 overflow-hidden relative">

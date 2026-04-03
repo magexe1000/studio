@@ -621,12 +621,14 @@ export default function DrumEditor() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
 
+      {/* ── Safe-area spacer ─────────────────────────────────────────────── */}
+      <div style={{ height: 'env(safe-area-inset-top)', background: 'var(--app-bg)', flexShrink: 0 }} />
+
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
       <div style={{
         flexShrink: 0, height: 52,
         display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10,
-        borderBottom: '1px solid rgba(128,128,128,0.1)', background: 'var(--app-bg)',
-        paddingTop: 'env(safe-area-inset-top)',
+        background: 'var(--app-bg)',
       }}>
         {/* Logo — always visible */}
         <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
