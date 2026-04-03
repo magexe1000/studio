@@ -155,16 +155,30 @@ export default function BottomNav() {
     if (newIdx === oldIdx) return;
     prevIdxRef.current = newIdx;
 
-    if (stretchTimeoutRef.current) clearTimeout(stretchTimeoutRef.current);
     const newM = measureBtn(newIdx);
     if (!newM) return;
 
+    if (stretchTimeoutRef.current) {
+      /* A stretch was in-progress — cancel it and slide cleanly to new target
+         so the pill never stays bridging two items. */
+      clearTimeout(stretchTimeoutRef.current);
+      stretchTimeoutRef.current = null;
+      setPill(p => ({ ...p, left: newM.left, right: newM.right }));
+      return;
+    }
+
     if (newIdx > oldIdx) {
       setPill(p => ({ ...p, right: newM.right }));
-      stretchTimeoutRef.current = setTimeout(() => setPill(p => ({ ...p, left: newM.left })), 70);
+      stretchTimeoutRef.current = setTimeout(() => {
+        setPill(p => ({ ...p, left: newM.left }));
+        stretchTimeoutRef.current = null;
+      }, 70);
     } else {
       setPill(p => ({ ...p, left: newM.left }));
-      stretchTimeoutRef.current = setTimeout(() => setPill(p => ({ ...p, right: newM.right })), 70);
+      stretchTimeoutRef.current = setTimeout(() => {
+        setPill(p => ({ ...p, right: newM.right }));
+        stretchTimeoutRef.current = null;
+      }, 70);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePanel]);
