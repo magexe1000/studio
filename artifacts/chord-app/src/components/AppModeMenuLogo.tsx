@@ -43,9 +43,9 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
           color,
         }}
       >
-        <ChordexLogo size={size} />
+        {currentMode === 'drums' ? <DrumexLogo size={size} /> : <ChordexLogo size={size} />}
         <span style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color }}>
-          Chordex
+          {currentMode === 'drums' ? 'Drumex' : 'Chordex'}
         </span>
         <span style={{
           fontSize: 9, opacity: 0.45, marginLeft: -2, color,

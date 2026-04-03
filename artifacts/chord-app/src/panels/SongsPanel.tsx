@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { getAllChords, getChordById, type Chord, type ChordType, type GuitarChordData } from '../data/chords';
 import { useChordStore, ACCENT_COLORS, type SongPreset, type SongSection, type CustomChord } from '../store/useChordStore';
 import { transposeChordId, transposeKeyString, formatOffset } from '../lib/transpose';
@@ -505,8 +506,6 @@ ${chordContent}
 </body></html>`;
 
   /* ── Export ─────────────────────────────────────────────────────────── */
-  const { Capacitor } = await import('@capacitor/core');
-
   // Draw PDF with jsPDF on both native and web — only the save step differs.
   const isNative = Capacitor.isNativePlatform();
   try {
@@ -1582,7 +1581,6 @@ async function exportPresetToJSON(preset: SongPreset, mode: 'save' | 'share' = '
   const content = JSON.stringify(file, null, 2);
   const fileName = `${preset.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
 
-  const { Capacitor } = await import('@capacitor/core');
   if (Capacitor.isNativePlatform()) {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
     // Reliable UTF-8 → base64 encoding
