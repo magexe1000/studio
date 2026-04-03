@@ -18,15 +18,6 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
 
-  // Dismiss the HTML splash screen as soon as React has rendered
-  useEffect(() => {
-    const splash = document.getElementById('html-splash');
-    if (splash) {
-      splash.style.opacity = '0';
-      setTimeout(() => { splash.style.display = 'none'; }, 260);
-    }
-  }, []);
-
   // On first mount: apply startupApp preference
   const startupHandled = useRef(false);
   useEffect(() => {
