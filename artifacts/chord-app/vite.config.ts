@@ -57,16 +57,23 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    target: "es2020",
+    minify: "esbuild",
+    assetsInlineLimit: 4096,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) return 'react-vendor';
-            if (id.includes('/tone/') || id.includes('@tonejs')) return 'tone';
-            if (id.includes('/zustand/')) return 'zustand';
-            if (id.includes('/jspdf/')) return 'jspdf';
-            if (id.includes('/html2canvas/')) return 'html2canvas';
-            if (id.includes('/@capacitor/')) return 'capacitor';
+          if (id.includes("node_modules")) {
+            if (
+              id.includes("/react-dom/") ||
+              id.includes("/react/") ||
+              id.includes("/scheduler/")
+            )
+              return "react-vendor";
+            if (id.includes("/zustand/")) return "zustand";
+            if (id.includes("/jspdf/")) return "jspdf";
+            if (id.includes("/@capacitor/")) return "capacitor";
+            if (id.includes("/@fontsource/")) return "fonts";
           }
         },
       },

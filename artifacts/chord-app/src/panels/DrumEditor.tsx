@@ -1,5 +1,5 @@
 import {
-  useCallback, useEffect, useMemo, useRef, useState,
+  memo, useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
@@ -75,18 +75,18 @@ const KIT_DESC: Record<KitType, string> = {
 };
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 const KIT_IMAGE: Record<KitType, string> = {
-  ludwig: `${BASE}/kit-acoustic.png`,
-  jazz:   `${BASE}/kit-jazz.png`,
-  rock:   `${BASE}/kit-rock.png`,
-  vintage:`${BASE}/kit-vintage.png`,
-  studio: `${BASE}/kit-studio.png`,
-  r8:     `${BASE}/kit-advanced.png`,
-  linn:   `${BASE}/kit-linn.png`,
-  funk:   `${BASE}/kit-funk.png`,
-  cr78:   `${BASE}/kit-cr78.png`,
-  tr808:  `${BASE}/kit-tr808.png`,
-  techno: `${BASE}/kit-electronic.png`,
-  stark:  `${BASE}/kit-stark.png`,
+  ludwig: `${BASE}/kit-acoustic.webp`,
+  jazz:   `${BASE}/kit-jazz.webp`,
+  rock:   `${BASE}/kit-rock.webp`,
+  vintage:`${BASE}/kit-vintage.webp`,
+  studio: `${BASE}/kit-studio.webp`,
+  r8:     `${BASE}/kit-advanced.webp`,
+  linn:   `${BASE}/kit-linn.webp`,
+  funk:   `${BASE}/kit-funk.webp`,
+  cr78:   `${BASE}/kit-cr78.webp`,
+  tr808:  `${BASE}/kit-tr808.webp`,
+  techno: `${BASE}/kit-electronic.webp`,
+  stark:  `${BASE}/kit-stark.webp`,
 };
 const KIT_CATEGORIES: { id: string; label: string; kits: KitType[] }[] = [
   { id: 'acoustic', label: 'Acoustic Drums', kits: ['ludwig', 'jazz', 'rock', 'vintage'] },
@@ -205,6 +205,9 @@ function NoteHead({ inst, variation, r, color }: {
   return <CircleHead r={r} color={color} />;
 }
 
+// Stable empty map — prevents creating a new reference each render for muted rows
+const EMPTY_HIT_MAP: Map<number, NoteVariation> = new Map();
+
 // ── Instrument row SVG ─────────────────────────────────────────────────────
 interface RowProps {
   inst: DrumInstrument;
@@ -220,7 +223,7 @@ interface RowProps {
   barColor: string;
   altBg: string;
 }
-const InstrumentRow = ({
+const InstrumentRow = memo(({
   inst, mStartIdx, rowMeasures, spm, stepsPerBeat, STEP_W, MEASURE_W,
   hitMap, noteColor, staffColor, barColor, altBg,
 }: RowProps) => {
@@ -296,7 +299,7 @@ const InstrumentRow = ({
       )}
     </svg>
   );
-};
+});
 
 // ── Tab icons ──────────────────────────────────────────────────────────────
 function IconDrumSongs({ active }: { active: boolean }) {
@@ -1734,10 +1737,10 @@ export default function DrumEditor() {
               ref={scrollRef}
               onPointerDown={handlePointerDown}
               onPointerUp={handlePointerUp}
-              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', paddingTop: 8, paddingBottom: 100, position: 'relative' }}
+              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: 8, paddingBottom: 100, position: 'relative' }}
               className="no-scrollbar"
             >
-              <div ref={playheadRef} style={{ position: 'absolute', top: 8 + RULER_H, left: 0, width: 2, height: visibleInsts.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'none', borderRadius: 1 }} />
+              <div ref={playheadRef} style={{ position: 'absolute', top: 8 + RULER_H, left: 0, width: 2, height: visibleInsts.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'none', borderRadius: 1, willChange: 'transform', transform: 'translateZ(0)' }} />
               {systemRows.map((rowMeasures, sysIdx) => {
                 const mStartIdx = sysIdx * measuresPerRow;
                 return (
@@ -1805,7 +1808,7 @@ export default function DrumEditor() {
                       })}
                     </div>
                     {visibleInsts.map((inst, instIdx) => {
-                      const hitMap = allHitMaps.get(inst) ?? new Map<number, NoteVariation>();
+                      const hitMap = allHitMaps.get(inst) ?? EMPTY_HIT_MAP;
                       const isFoc  = focusedInst === inst;
                       const varList = INST_VARIATIONS[inst];
                       return (
@@ -2059,7 +2062,7 @@ export default function DrumEditor() {
                         return (
                           <button key={k} onClick={() => handleKitSelect(k)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 14px', background: sel ? `${accent.from}10` : 'transparent', border: 'none', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 150ms' }}>
                             <div style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0, overflow: 'hidden', border: sel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.12)', position: 'relative' }}>
-                              <img src={KIT_IMAGE[k]} alt={KIT_LABEL[k]} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                              <img src={KIT_IMAGE[k]} alt={KIT_LABEL[k]} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                               {sel && (
                                 <div style={{ position: 'absolute', inset: 0, background: `${accent.from}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                   <div style={{ width: 16, height: 16, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700 }}>✓</div>

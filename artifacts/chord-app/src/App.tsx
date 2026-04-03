@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
-import LibraryPanel from './panels/LibraryPanel';
-import ChordPanel from './panels/ChordPanel';
-import SettingsPanel from './panels/SettingsPanel';
-import SongsPanel from './panels/SongsPanel';
-import DrumEditor from './panels/DrumEditor';
 import BottomNav from './components/BottomNav';
 import { ChordexLogo, DrumexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
+
+const LibraryPanel  = lazy(() => import('./panels/LibraryPanel'));
+const ChordPanel    = lazy(() => import('./panels/ChordPanel'));
+const SettingsPanel = lazy(() => import('./panels/SettingsPanel'));
+const SongsPanel    = lazy(() => import('./panels/SongsPanel'));
+const DrumEditor    = lazy(() => import('./panels/DrumEditor'));
 
 // Ordered left-to-right (matches nav order) — used to compute slide direction
 const NAV_ORDER = ['songs', 'library', 'chord', 'settings'] as const;
@@ -240,7 +241,7 @@ export default function App() {
   if (settings.appMode === 'drums') {
     return (
       <div style={{ position: 'relative', height: '100dvh', overflow: 'hidden', animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-        <DrumEditor />
+        <Suspense fallback={null}><DrumEditor /></Suspense>
 
         {/* Drumex splash — shown when switching from Chordex */}
         {drumSplash !== 'hidden' && (
@@ -296,10 +297,12 @@ export default function App() {
                 key={panel}
                 style={{ position: 'absolute', inset: 0, opacity: 0, pointerEvents: 'none' }}
               >
-                {panel === 'library'  && <LibraryPanel />}
-                {panel === 'chord'    && <ChordPanel />}
-                {panel === 'songs'    && <SongsPanel />}
-                {panel === 'settings' && <SettingsPanel />}
+                <Suspense fallback={null}>
+                  {panel === 'library'  && <LibraryPanel />}
+                  {panel === 'chord'    && <ChordPanel />}
+                  {panel === 'songs'    && <SongsPanel />}
+                  {panel === 'settings' && <SettingsPanel />}
+                </Suspense>
               </div>
             );
           }
@@ -315,10 +318,12 @@ export default function App() {
                 pointerEvents: isVisible && !isExiting ? 'auto' : 'none',
               }}
             >
-              {panel === 'library'  && <LibraryPanel />}
-              {panel === 'chord'    && <ChordPanel />}
-              {panel === 'songs'    && <SongsPanel />}
-              {panel === 'settings' && <SettingsPanel />}
+              <Suspense fallback={null}>
+                {panel === 'library'  && <LibraryPanel />}
+                {panel === 'chord'    && <ChordPanel />}
+                {panel === 'songs'    && <SongsPanel />}
+                {panel === 'settings' && <SettingsPanel />}
+              </Suspense>
             </div>
           );
         })}
