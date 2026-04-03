@@ -3,7 +3,7 @@ import {
 } from 'react';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
-  useDrumStore, KIT_INSTRUMENTS,
+  useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR,
   stepsPerMeasure, INST_VARIATIONS,
   type DrumInstrument, type KitType, type DrumSong, type NoteVariation,
 } from '../store/useDrumStore';
@@ -89,9 +89,8 @@ const KIT_CATEGORIES: { id: string; label: string; kits: KitType[] }[] = [
   { id: 'electric', label: 'Electric Drums', kits: ['cr78', 'tr808', 'techno', 'stark'] },
 ];
 
-// ── Tabs / Mode ────────────────────────────────────────────────────────────
-type DrumTab  = 'kit' | 'songs';
-type DrumMode = 'edit' | 'nav'; // edit = full-screen sheet; nav = kit/songs settings
+// ── Tabs ───────────────────────────────────────────────────────────────────
+type DrumTab = 'songs' | 'patterns' | 'mixer';
 
 // ── SVG note heads ─────────────────────────────────────────────────────────
 function CircleHead({ r, color }: { r: number; color: string }) {
@@ -295,42 +294,6 @@ const InstrumentRow = ({
 };
 
 // ── Tab icons ──────────────────────────────────────────────────────────────
-function IconKit({ active }: { active: boolean }) {
-  const sw = active ? 2 : 1.6; const ao = active ? 0.15 : 0;
-  return (
-    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" style={{ display: 'block' }}>
-      <circle cx="12" cy="15" r="6.5" stroke="currentColor" strokeWidth={sw} fill="currentColor" fillOpacity={ao} />
-      <circle cx="12" cy="15" r="2.8" fill="currentColor" fillOpacity={active ? 0.6 : 0} />
-      <line x1="5" y1="5.5" x2="10.5" y2="5.5" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
-      <line x1="13.5" y1="5.5" x2="19" y2="5.5" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
-    </svg>
-  );
-}
-function IconMix({ active }: { active: boolean }) {
-  const sw = active ? 2 : 1.6; const ao = active ? 1 : 0;
-  return (
-    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" style={{ display: 'block' }}>
-      <line x1="5"  y1="18" x2="5"  y2="10" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
-      <circle cx="5"  cy="10" r="2.2" fill="currentColor" fillOpacity={ao} stroke="currentColor" strokeWidth={active ? 0 : sw - 0.3} />
-      <line x1="12" y1="18" x2="12" y2="7" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
-      <circle cx="12" cy="7"  r="2.2" fill="currentColor" fillOpacity={ao} stroke="currentColor" strokeWidth={active ? 0 : sw - 0.3} />
-      <line x1="19" y1="18" x2="19" y2="13" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
-      <circle cx="19" cy="13" r="2.2" fill="currentColor" fillOpacity={ao} stroke="currentColor" strokeWidth={active ? 0 : sw - 0.3} />
-    </svg>
-  );
-}
-
-function IconEditor({ active }: { active: boolean }) {
-  const sw = active ? 2 : 1.6;
-  return (
-    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" style={{ display: 'block' }}>
-      <line x1="3" y1="5"  x2="21" y2="5"  stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
-      <line x1="3" y1="9"  x2="15" y2="9"  stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
-      <line x1="3" y1="13" x2="21" y2="13" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
-      <line x1="3" y1="17" x2="15" y2="17" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
-    </svg>
-  );
-}
 function IconDrumSongs({ active }: { active: boolean }) {
   const sw = active ? 2 : 1.6; const ao = active ? 0.13 : 0;
   return (
@@ -342,27 +305,48 @@ function IconDrumSongs({ active }: { active: boolean }) {
     </svg>
   );
 }
+function IconPatterns({ active }: { active: boolean }) {
+  const sw = active ? 2 : 1.6; const ao = active ? 0.18 : 0;
+  return (
+    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" style={{ display: 'block' }}>
+      <rect x="3" y="5" width="6" height="5" rx="1.5" stroke="currentColor" strokeWidth={sw} fill="currentColor" fillOpacity={ao} />
+      <rect x="3" y="14" width="6" height="5" rx="1.5" stroke="currentColor" strokeWidth={sw} fill="currentColor" fillOpacity={ao * 0.5} />
+      <rect x="12" y="5" width="9" height="5" rx="1.5" stroke="currentColor" strokeWidth={sw} fill="currentColor" fillOpacity={ao * 0.7} />
+      <rect x="12" y="14" width="6" height="5" rx="1.5" stroke="currentColor" strokeWidth={sw} fill="currentColor" fillOpacity={ao * 0.3} />
+    </svg>
+  );
+}
+function IconMixer({ active }: { active: boolean }) {
+  const sw = active ? 2 : 1.6; const ao = active ? 1 : 0;
+  return (
+    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" style={{ display: 'block' }}>
+      <line x1="5"  y1="19" x2="5"  y2="10" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <circle cx="5"  cy="10" r="2.2" fill="currentColor" fillOpacity={ao} stroke="currentColor" strokeWidth={active ? 0 : sw - 0.3} />
+      <line x1="12" y1="19" x2="12" y2="6" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <circle cx="12" cy="6"  r="2.2" fill="currentColor" fillOpacity={ao} stroke="currentColor" strokeWidth={active ? 0 : sw - 0.3} />
+      <line x1="19" y1="19" x2="19" y2="13" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <circle cx="19" cy="13" r="2.2" fill="currentColor" fillOpacity={ao} stroke="currentColor" strokeWidth={active ? 0 : sw - 0.3} />
+    </svg>
+  );
+}
 
-// ── Settings bottom nav (songs / editor / kit) ─────────────────────────────
-type AllTab = 'songs' | 'editor' | 'kit';
-const ALL_NAV_TABS: { id: AllTab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
-  { id: 'songs',  label: 'Songs',  Icon: IconDrumSongs },
-  { id: 'editor', label: 'Editor', Icon: IconEditor    },
-  { id: 'kit',    label: 'Kit',    Icon: IconKit        },
+// ── Bottom nav (Songs / Patterns / Mixer) ───────────────────────────────────
+const ALL_NAV_TABS: { id: DrumTab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
+  { id: 'songs',    label: 'Songs',    Icon: IconDrumSongs },
+  { id: 'patterns', label: 'Patterns', Icon: IconPatterns  },
+  { id: 'mixer',    label: 'Mixer',    Icon: IconMixer     },
 ];
-function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent, isLight, isAmoled }: {
+function DrumNav({ activeTab, setTab, accent, isLight, isAmoled }: {
   activeTab: DrumTab; setTab: (t: DrumTab) => void;
-  drumMode: DrumMode; setDrumMode: (m: DrumMode) => void;
   accent: { from: string; to: string };
   isLight: boolean; isAmoled: boolean;
 }) {
-  const currentId: AllTab = drumMode === 'edit' ? 'editor' : activeTab;
   const navRef  = useRef<HTMLElement | null>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [pill, setPill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
-  const prevIdx = useRef(ALL_NAV_TABS.findIndex(x => x.id === currentId));
+  const prevIdx = useRef(ALL_NAV_TABS.findIndex(x => x.id === activeTab));
   const strT    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [pressed, setPressed] = useState<AllTab | null>(null);
+  const [pressed, setPressed] = useState<DrumTab | null>(null);
 
   const measure = (idx: number) => {
     const btn = btnRefs.current[idx]; const nav = navRef.current;
@@ -371,18 +355,13 @@ function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent, isLight
     return { left: br.left - nr.left, right: br.right - nr.left };
   };
   useEffect(() => {
-    const m = measure(ALL_NAV_TABS.findIndex(x => x.id === currentId));
+    const m = measure(ALL_NAV_TABS.findIndex(x => x.id === activeTab));
     if (m) setPill({ ...m, ready: true });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const handlePress = (id: AllTab) => {
-    if (id === 'editor') { setDrumMode('edit'); }
-    else { setDrumMode('nav'); setTab(id as DrumTab); }
-  };
 
-  // Pill stretch animation — cancel and resolve both edges cleanly on rapid tap
   useEffect(() => {
-    const ni = ALL_NAV_TABS.findIndex(x => x.id === currentId);
+    const ni = ALL_NAV_TABS.findIndex(x => x.id === activeTab);
     const oi = prevIdx.current;
     if (ni === oi) return;
     prevIdx.current = ni;
@@ -398,7 +377,7 @@ function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent, isLight
       strT.current = setTimeout(() => setPill(p => ({ ...p, right: nm.right })), 70);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentId]);
+  }, [activeTab]);
 
   return (
     <nav ref={navRef} style={{
@@ -426,11 +405,11 @@ function SettingsNav({ activeTab, setTab, drumMode, setDrumMode, accent, isLight
         }} />
       )}
       {ALL_NAV_TABS.map(({ id, label, Icon }, i) => {
-        const isActive = currentId === id; const isPressed = pressed === id;
+        const isActive = activeTab === id; const isPressed = pressed === id;
         return (
           <button key={id} ref={el => { btnRefs.current[i] = el; }}
             onPointerDown={() => setPressed(id)}
-            onPointerUp={() => { setPressed(null); handlePress(id); }}
+            onPointerUp={() => { setPressed(null); setTab(id); }}
             onPointerLeave={() => setPressed(null)} onPointerCancel={() => setPressed(null)}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -465,9 +444,10 @@ export default function DrumEditor() {
     patterns, activePatternId,
     soundMap, volumeMap, masterVolume,
     kitType, activeInstruments,
-    setKitType, toggleInstrument, setMasterVolume,
+    setKitType, toggleInstrument, setMasterVolume, setVolumeForInstrument,
     toggleHit, addMeasure, deleteMeasure, updatePattern,
-    drumSongs, saveDrumSong, loadDrumSong, deleteDrumSong, updateDrumSong,
+    duplicatePattern, deletePattern, renamePattern, setActivePattern,
+    drumSongs, saveDrumSong, createBlankDrumSong, loadDrumSong, deleteDrumSong, updateDrumSong,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -492,16 +472,21 @@ export default function DrumEditor() {
   const altBg      = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)';
 
   // ── State ────────────────────────────────────────────────────────────────
-  const [drumMode, setDrumMode]         = useState<DrumMode>('nav');
-  const [activeTab, setActiveTab]       = useState<DrumTab>('songs');
-  const [playing, setPlaying]           = useState(false);
-  const [looping, setLooping]           = useState(true);
-  const [sampleStatus, setSampleStatus] = useState<SampleStatus>('idle');
+  const [inEditor,       setInEditor]       = useState(false);
+  const [activeTab,      setActiveTab]      = useState<DrumTab>('songs');
+  const [playing, setPlaying]               = useState(false);
+  const [looping, setLooping]               = useState(true);
+  const [sampleStatus, setSampleStatus]     = useState<SampleStatus>('idle');
   const [showBpmPanel,   setShowBpmPanel]   = useState(false);
   const [showHamburger,  setShowHamburger]  = useState(false);
   const [expandedCats,   setExpandedCats]   = useState<Set<string>>(() => new Set(['acoustic']));
   const [focusedInst,    setFocusedInst]    = useState<DrumInstrument | null>(null);
   // Songs panel state
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createName,     setCreateName]     = useState('');
+  const [createArtist,   setCreateArtist]   = useState('');
+  const [createBpm,      setCreateBpm]      = useState('120');
+  const [createNotes,    setCreateNotes]    = useState('');
   const [showSaveForm,     setShowSaveForm]     = useState(false);
   const [saveName,         setSaveName]         = useState('');
   const [saveArtist,       setSaveArtist]       = useState('');
@@ -673,9 +658,28 @@ export default function DrumEditor() {
 
   // ── Back ─────────────────────────────────────────────────────────────────
   const handleBack = () => {
-    if (drumMode === 'edit') { setDrumMode('nav'); }
-    else { drumScheduler.stop(); updateSettings({ appMode: 'chords' }); }
+    if (inEditor) {
+      if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
+      setShowHamburger(false); setShowBpmPanel(false);
+      setInEditor(false); setActiveTab('songs');
+    } else {
+      drumScheduler.stop();
+      updateSettings({ appMode: 'chords' });
+    }
   };
+
+  // ── Create Beat ───────────────────────────────────────────────────────────
+  const handleCreateBeat = useCallback(() => {
+    if (!createName.trim()) return;
+    const bpm = Math.max(40, Math.min(280, parseInt(createBpm, 10) || 120));
+    const id = createBlankDrumSong(createName, createArtist, bpm, createNotes);
+    loadDrumSong(id);
+    setActiveDrumSongId(id);
+    setInEditor(true);
+    setActiveTab('songs');
+    setShowCreateForm(false);
+    setCreateName(''); setCreateArtist(''); setCreateBpm('120'); setCreateNotes('');
+  }, [createName, createArtist, createBpm, createNotes, createBlankDrumSong, loadDrumSong]);
 
   // ── Songs ─────────────────────────────────────────────────────────────────
   const handleOpenSaveForm = useCallback(() => {
@@ -713,7 +717,8 @@ export default function DrumEditor() {
     if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
     loadDrumSong(song.id);
     setActiveDrumSongId(song.id);
-    setDrumMode('edit');
+    setInEditor(true);
+    setActiveTab('songs');
   }, [loadDrumSong]);
 
   const handleStartEdit = useCallback((song: DrumSong) => {
@@ -728,7 +733,13 @@ export default function DrumEditor() {
     setEditingSong(null);
   }, [editingSong, editingName, editingArtist, updateDrumSong]);
 
+  // ── Convenience: active song ─────────────────────────────────────────────
+  const activeSong = activeDrumSongId ? drumSongs.find(s => s.id === activeDrumSongId) ?? null : null;
+
   // ── Render ────────────────────────────────────────────────────────────────
+  const inputSt: React.CSSProperties = { width: '100%', background: 'var(--app-surface-high)', border: '1px solid rgba(72,72,72,0.12)', borderRadius: '0.625rem', padding: '11px 14px', color: 'var(--c-text-primary)', fontFamily: 'Inter', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
+  const labelSt: React.CSSProperties = { color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: 6 };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
 
@@ -736,87 +747,53 @@ export default function DrumEditor() {
       <div style={{ height: 'env(safe-area-inset-top)', background: 'var(--app-bg)', flexShrink: 0 }} />
 
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
-      <div style={{
-        flexShrink: 0, height: 52,
-        display: 'flex', alignItems: 'center', padding: '10px 24px 0', gap: 10,
-        background: 'var(--app-bg)',
-      }}>
-        {/* Logo — always visible */}
-        <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
-
-        <div style={{ flex: 1 }} />
-
-        {/* Clear + Save — only in editor */}
-        {drumMode === 'edit' && (<>
-          <button onClick={handleClear} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(128,128,128,0.18)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
-            Clear
-          </button>
-
-          {/* Save */}
-          <button
-            onClick={handleOpenSaveForm}
-            style={{ height: 30, padding: '0 12px', borderRadius: 8, background: activeDrumSongId ? `linear-gradient(135deg,${accent.from}22,${accent.to}18)` : 'rgba(128,128,128,0.08)', border: `1px solid ${activeDrumSongId ? accent.from + '44' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: activeDrumSongId ? accent.from : 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}
-            aria-label="Save beat"
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-            </svg>
-            Save
-          </button>
-
-          {/* Loop */}
-          <button
-            onClick={() => setLooping(l => !l)}
-            style={{ height: 30, width: 38, borderRadius: 8, background: looping ? `${accent.from}22` : 'rgba(128,128,128,0.08)', border: `1px solid ${looping ? accent.from + '44' : 'rgba(128,128,128,0.14)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: looping ? accent.from : 'var(--c-text-muted)', transition: 'all 180ms', flexShrink: 0 }}
-            aria-label="Toggle loop"
-          >
-            <span style={{ fontSize: 14, lineHeight: 1 }}>⟳</span>
-          </button>
-
-          {/* Step resolution */}
-          <button
-            onClick={toggleSub}
-            style={{ height: 30, padding: '0 10px', borderRadius: 8, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 10, fontWeight: 800, transition: 'all 180ms', flexShrink: 0 }}
-            aria-label="Step resolution"
-          >
-            1/{pattern.subdivision}
-          </button>
-
-          {/* Hamburger ≡ */}
-          <button
-            onClick={() => setShowHamburger(h => !h)}
-            style={{ height: 30, width: 38, borderRadius: 8, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}
-            aria-label="Options"
-          >
-            {[0, 1, 2].map(i => (
-              <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />
-            ))}
-          </button>
-        </>)}
+      <div style={{ flexShrink: 0, height: 52, display: 'flex', alignItems: 'center', padding: '10px 14px 0', gap: 8, background: 'var(--app-bg)' }}>
+        {inEditor ? (
+          <>
+            <button onClick={handleBack} style={{ height: 30, width: 30, borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)', flexShrink: 0, padding: 0 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            {activeSong && (
+              <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, minWidth: 0 }}>
+                {activeSong.name}
+              </p>
+            )}
+            {!activeSong && <div style={{ flex: 1 }} />}
+            {/* Editor controls — only on the grid tab */}
+            {activeTab === 'songs' && (<>
+              <button onClick={handleClear} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(128,128,128,0.18)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>Clear</button>
+              <button onClick={handleOpenSaveForm} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: activeDrumSongId ? `linear-gradient(135deg,${accent.from}22,${accent.to}18)` : 'rgba(128,128,128,0.08)', border: `1px solid ${activeDrumSongId ? accent.from + '44' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: activeDrumSongId ? accent.from : 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save
+              </button>
+              <button onClick={() => setLooping(l => !l)} style={{ height: 30, width: 38, borderRadius: 8, background: looping ? `${accent.from}22` : 'rgba(128,128,128,0.08)', border: `1px solid ${looping ? accent.from + '44' : 'rgba(128,128,128,0.14)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: looping ? accent.from : 'var(--c-text-muted)', transition: 'all 180ms', flexShrink: 0 }}>
+                <span style={{ fontSize: 14, lineHeight: 1 }}>⟳</span>
+              </button>
+              <button onClick={toggleSub} style={{ height: 30, padding: '0 10px', borderRadius: 8, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 10, fontWeight: 800, flexShrink: 0 }}>1/{pattern.subdivision}</button>
+              <button onClick={() => setShowHamburger(h => !h)} style={{ height: 30, width: 38, borderRadius: 8, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}>
+                {[0, 1, 2].map(i => <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />)}
+              </button>
+            </>)}
+          </>
+        ) : (
+          <>
+            <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
+            <div style={{ flex: 1 }} />
+          </>
+        )}
       </div>
 
-      {/* ── Hamburger panel ────────────────────────────────────────────────── */}
-      {showHamburger && (
-        <div style={{
-          flexShrink: 0, overflow: 'hidden',
-          background: isAmoled ? '#000' : (isLight ? 'rgba(250,249,247,0.98)' : 'rgba(14,14,17,0.98)'),
-          borderBottom: '1px solid rgba(128,128,128,0.10)',
-          backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-          animation: 'drumHamburgerIn 200ms cubic-bezier(0.22,1,0.36,1)',
-        }}>
+      {/* ── Hamburger panel ──────────────────────────────────────────────── */}
+      {inEditor && showHamburger && (
+        <div style={{ flexShrink: 0, overflow: 'hidden', background: isAmoled ? '#000' : (isLight ? 'rgba(250,249,247,0.98)' : 'rgba(14,14,17,0.98)'), borderBottom: '1px solid rgba(128,128,128,0.10)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', animation: 'drumHamburgerIn 200ms cubic-bezier(0.22,1,0.36,1)' }}>
           <div style={{ padding: '10px 16px 14px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-
-            {/* Row: Loop */}
             <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 12 }}>
               <span style={{ flex: 1, color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Loop</span>
               <button onClick={() => setLooping(l => !l)} style={{ width: 40, height: 22, borderRadius: 11, background: looping ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.18)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 220ms', flexShrink: 0 }}>
                 <span style={{ position: 'absolute', top: 3, left: looping ? 20 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)', display: 'block' }} />
               </button>
             </div>
-
             <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
-
-            {/* Row: Step resolution */}
             <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 12 }}>
               <div style={{ flex: 1 }}>
                 <span style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Step Resolution</span>
@@ -824,18 +801,6 @@ export default function DrumEditor() {
               </div>
               <button onClick={toggleSub} style={{ height: 28, padding: '0 14px', borderRadius: 8, background: `${accent.from}18`, border: `1px solid ${accent.from}33`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>1/{pattern.subdivision}</button>
             </div>
-
-            <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
-
-            {/* Row: Master Volume */}
-            <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 12 }}>
-              <span style={{ flex: 1, color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Volume</span>
-              <span style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 700, minWidth: 32, textAlign: 'right' }}>{Math.round(masterVolume * 100)}%</span>
-              <input type="range" min={0} max={1} step={0.01} value={masterVolume}
-                onChange={e => setMasterVolume(parseFloat(e.target.value))}
-                style={{ width: 100, accentColor: accent.from, flexShrink: 0 }} />
-            </div>
-
           </div>
         </div>
       )}
@@ -843,269 +808,83 @@ export default function DrumEditor() {
       {/* ── Content ──────────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
-        {/* ═══ SHEET MUSIC EDITOR ═══════════════════════════════════════════ */}
-        {drumMode === 'edit' && (
-          <div ref={containerRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div
-              ref={scrollRef}
-              onPointerDown={handlePointerDown}
-              onPointerUp={handlePointerUp}
-              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', paddingTop: 12, paddingBottom: 100, position: 'relative' }}
-              className="no-scrollbar"
-            >
-              {/* Playhead */}
-              <div ref={playheadRef} style={{ position: 'absolute', top: 12, left: 0, width: 2, height: ALL_INSTS.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'none', borderRadius: 1 }} />
-
-              {/* System rows */}
-              {systemRows.map((rowMeasures, sysIdx) => {
-                const mStartIdx = sysIdx * measuresPerRow;
-                return (
-                  <div key={sysIdx} style={{ marginBottom: SYS_SEP }}>
-                    {/* Ruler */}
-                    <div style={{ display: 'flex', height: RULER_H, marginLeft: LABEL_W, borderBottom: `1px solid ${barColor}` }}>
-                      {rowMeasures.map((m, mi) => {
-                        const globalM   = mStartIdx + mi;
-                        const canDelete = globalM > 0;
-                        return (
-                          <div key={mi} style={{ width: MEASURE_W, flexShrink: 0, display: 'flex', alignItems: 'center', paddingLeft: 6, paddingRight: 4, borderLeft: mi > 0 ? `1px solid ${barColor}` : 'none', gap: 4 }}>
-                            <span style={{ color: 'var(--c-text-primary)', fontSize: 10, fontWeight: 700, fontFamily: 'Manrope, sans-serif', opacity: 0.65 }}>
-                              {globalM + 1}
-                            </span>
-                            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                              {Array.from({ length: pattern.timeSignature[0] }, (_, bi) => (
-                                <div key={bi} style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                                  <div style={{ width: 1, height: bi === 0 ? 8 : 5, background: 'var(--c-text-primary)', opacity: bi === 0 ? 0.45 : 0.20 }} />
-                                </div>
-                              ))}
-                            </div>
-                            {/* Delete measure button — only for measures after the first */}
-                            {canDelete && (
-                              <button
-                                onPointerDown={e => e.stopPropagation()}
-                                onPointerUp={e => {
-                                  e.stopPropagation();
-                                  if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
-                                  deleteMeasure(pattern.id, m.id);
-                                }}
-                                style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.30)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#f87171', lineHeight: 1, padding: 0 }}
-                              >
-                                ✕
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Instrument staves */}
-                    {ALL_INSTS.map((inst, instIdx) => {
-                      const hitMap = allHitMaps.get(inst) ?? new Map<number, NoteVariation>();
-                      const isFoc  = focusedInst === inst;
-                      // Build a short sub-label showing available variations
-                      const varList = INST_VARIATIONS[inst];
-                      return (
-                        <div key={inst} style={{
-                          display: 'flex', height: ROW_H,
-                          borderBottom: instIdx < ALL_INSTS.length - 1 ? `1px solid ${staffColor}` : `1.5px solid ${barColor}`,
-                          background: isFoc ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)') : 'transparent',
-                        }}>
-                          <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 12, paddingRight: 6, borderRight: `1px solid ${barColor}` }}>
-                            <span style={{ fontSize: 8, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: isFoc ? 'var(--c-text-primary)' : 'var(--c-text-muted)', letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>
-                              {INST_LABEL[inst]}
-                            </span>
-                            {varList && varList.length > 1 && (
-                              <span style={{ fontSize: 6.5, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-muted)', opacity: 0.55, letterSpacing: '0.02em', whiteSpace: 'nowrap', marginTop: 1 }}>
-                                {varList.join(' · ')}
-                              </span>
-                            )}
-                          </div>
-                          <InstrumentRow
-                            inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures}
-                            spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W}
-                            hitMap={hitMap} noteColor={noteColor} staffColor={staffColor}
-                            barColor={barColor} altBg={altBg}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-
-              {/* Add Bar */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 32, paddingTop: 8 }}>
-                <button
-                  onClick={() => addMeasure(pattern.id)}
-                  style={{
-                    height: 36, padding: '0 24px', borderRadius: 999, background: 'transparent',
-                    border: 'var(--add-bar-border)',
-                    cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600,
-                    display: 'flex', alignItems: 'center', gap: 8, transition: 'all 160ms',
-                  }}
-                  onPointerEnter={e => { e.currentTarget.style.borderColor = accent.from + '70'; e.currentTarget.style.color = accent.from; }}
-                  onPointerLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}
-                >
-                  <span style={{ fontSize: 16 }}>+</span>
-                  <span>Add Bar</span>
-                </button>
-              </div>
-            </div>
-
-            {/* ── BPM + Play stacked vertically at bottom-right ── */}
-            <div style={{
-              position: 'fixed', right: 14,
-              bottom: 'max(10px, env(safe-area-inset-bottom))',
-              zIndex: 60,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            }}>
-              {/* BPM / metronome button (top) */}
-              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {/* BPM adjuster panel — pops up above the button */}
-                {showBpmPanel && (
-                  <div style={{
-                    position: 'absolute', bottom: 'calc(100% + 10px)', right: 0,
-                    background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.96)' : 'rgba(18,18,22,0.96)'),
-                    border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)',
-                    borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6,
-                    backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                    boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.50)',
-                    whiteSpace: 'nowrap',
-                    animation: 'drumHamburgerIn 160ms cubic-bezier(0.22,1,0.36,1)',
-                  }}>
-                    {([-10, -1, +1, +10] as const).map(d => (
-                      <button key={d} onClick={() => adjustBpm(d)} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700 }}>
-                        {d > 0 ? `+${d}` : d}
-                      </button>
-                    ))}
-                    <div style={{ width: 1, height: 24, background: 'rgba(128,128,128,0.2)', margin: '0 2px' }} />
-                    <span style={{ color: accent.from, fontSize: 16, fontWeight: 800, minWidth: 36, textAlign: 'center' }}>{pattern.bpm}</span>
-                  </div>
-                )}
-                <button
-                  onClick={() => setShowBpmPanel(s => !s)}
-                  style={{
-                    width: 44, height: 44, borderRadius: '50%', border: 'none',
-                    background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')),
-                    boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.10)' : '0 2px 12px rgba(0,0,0,0.50)',
-                    backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                    cursor: 'pointer', transition: 'all 160ms',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    outline: showBpmPanel ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.10)',
-                  }}
-                  aria-label={`BPM: ${pattern.bpm}`}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 4h6l1.5 12H7.5L9 4Z" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinejoin="round" />
-                    <line x1="12" y1="4" x2="17" y2="13" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinecap="round" />
-                    <rect x="10" y="2" width="4" height="2.5" rx="1" fill={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Play button (bottom — aligned with nav bar) */}
-              <button
-                onClick={handlePlay}
-                style={{
-                  width: 44, height: 44, borderRadius: '50%', border: 'none',
-                  background: playing
-                    ? (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)'))
-                    : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: playing ? 13 : 14, color: playing ? 'var(--c-text-secondary)' : '#fff',
-                  boxShadow: playing
-                    ? '0 4px 20px rgba(0,0,0,0.40), 0 0 0 1.5px rgba(255,255,255,0.08)'
-                    : `0 4px 20px ${accent.from}55, 0 0 0 1.5px rgba(255,255,255,0.12)`,
-                  backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                  transition: 'all 170ms',
-                }}
-              >
-                {playing ? '⏹' : '▶'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ═══ SONGS ════════════════════════════════════════════════════════ */}
-        {drumMode === 'nav' && activeTab === 'songs' && (
+        {/* ═══ SONGS LIST (Songs tab, not in editor) ═══════════════════════ */}
+        {activeTab === 'songs' && !inEditor && (
           <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }} className="no-scrollbar">
-
-            {/* Songs list */}
+            <div style={{ padding: '0 20px', marginTop: 12, marginBottom: 24 }}>
+              <h2 style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '2.6rem', color: 'var(--c-text-primary)', letterSpacing: '-0.04em', lineHeight: 1, margin: 0 }}>Beats</h2>
+              <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 13, marginTop: 4, margin: '4px 0 0' }}>Your drum songs</p>
+            </div>
             {drumSongs.length === 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '72px 24px 48px', gap: 12 }}>
-                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--app-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🥁</div>
-                <p style={{ color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 600, margin: 0, textAlign: 'center' }}>No saved beats yet</p>
-                <p style={{ color: 'var(--c-text-muted)', fontSize: 12, margin: 0, textAlign: 'center', lineHeight: 1.5 }}>Go to the Editor, build your beat, then tap <strong>Save</strong> in the top bar to store it here.</p>
+              <div className="spring-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', margin: '0 20px', background: 'var(--app-surface)', borderRadius: '1.5rem', gap: 16 }}>
+                <div style={{ width: 72, height: 72, borderRadius: '50%', background: `${accent.to}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34 }}>🥁</div>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, margin: 0 }}>No beats yet</p>
+                  <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 13, marginTop: 4, margin: '4px 0 0' }}>Create your first drum beat to get started.</p>
+                </div>
+                <button onClick={() => setShowCreateForm(true)} className="btn-smooth"
+                  style={{ padding: '12px 24px', borderRadius: 9999, background: `linear-gradient(135deg,${accent.from},${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, border: 'none', cursor: 'pointer', boxShadow: `0 4px 20px ${accent.to}44` }}>
+                  New Beat
+                </button>
               </div>
             ) : (
-              <div style={{ padding: '8px 16px 0' }}>
-                <p style={{ color: 'var(--c-text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px 2px' }}>
-                  {drumSongs.length} saved beat{drumSongs.length !== 1 ? 's' : ''}
-                </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '0 20px' }}>
                 {drumSongs.map(song => {
                   const isDeleting = deletingId === song.id;
                   const isEditing  = editingSong?.id === song.id;
-                  const isActive   = activeDrumSongId === song.id;
                   const kitLabel   = song.kitType ? KIT_LABEL[song.kitType] : 'No kit';
                   const pCount     = song.patterns.length;
-                  const ts         = new Date(song.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                  const activePat  = song.patterns.find(p => p.id === song.activePatternId) ?? song.patterns[0];
+                  const bpm        = activePat?.bpm ?? 120;
                   return (
-                    <div key={song.id} style={{
-                      background: isActive ? `linear-gradient(135deg,${accent.from}0e,${accent.to}08)` : 'var(--app-surface)', borderRadius: 14,
-                      border: isActive ? `1.5px solid ${accent.from}33` : '1px solid rgba(128,128,128,0.07)', marginBottom: 10, overflow: 'hidden',
-                    }}>
+                    <div key={song.id} className="card-hover" style={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(72,72,72,0.06)' }}>
                       {isEditing ? (
-                        /* ── Edit name / artist inline ── */
-                        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <input
-                            value={editingName} onChange={e => setEditingName(e.target.value)}
-                            autoFocus
-                            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid rgba(128,128,128,0.18)', background: 'var(--app-bg)', color: 'var(--c-text-primary)', fontSize: 14, fontWeight: 700, fontFamily: 'Manrope, sans-serif', outline: 'none', boxSizing: 'border-box' }}
-                            placeholder="Song name"
-                          />
-                          <input
-                            value={editingArtist} onChange={e => setEditingArtist(e.target.value)}
-                            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid rgba(128,128,128,0.18)', background: 'var(--app-bg)', color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', outline: 'none', boxSizing: 'border-box' }}
-                            placeholder="Artist (optional)"
-                          />
+                        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <input value={editingName} onChange={e => setEditingName(e.target.value)} autoFocus placeholder="Beat name" style={{ ...inputSt, fontWeight: 700 }} />
+                          <input value={editingArtist} onChange={e => setEditingArtist(e.target.value)} placeholder="Artist (optional)" style={{ ...inputSt, fontSize: 13 }} />
                           <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={handleSaveEdit} style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', color: '#fff', fontSize: 12, fontWeight: 700 }}>Save</button>
-                            <button onClick={() => setEditingSong(null)} style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600 }}>Cancel</button>
+                            <button onClick={handleSaveEdit} className="btn-smooth" style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', color: '#fff', fontSize: 13, fontWeight: 700 }}>Save</button>
+                            <button onClick={() => setEditingSong(null)} className="btn-smooth" style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 13, fontWeight: 600 }}>Cancel</button>
                           </div>
                         </div>
                       ) : (
-                        /* ── Normal song card ── */
                         <div>
-                          <button
-                            onClick={() => handleLoadSong(song)}
-                            style={{ width: '100%', padding: '12px 14px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}
-                          >
-                            {/* Drum icon */}
-                            <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: `linear-gradient(135deg,${accent.from}22,${accent.to}22)`, border: `1.5px solid ${accent.from}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-                              🥁
-                            </div>
+                          <button onClick={() => handleLoadSong(song)} style={{ width: '100%', textAlign: 'left', padding: '16px', display: 'flex', alignItems: 'center', gap: 14, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                            <div style={{ width: 48, height: 48, borderRadius: 12, background: `${accent.to}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>🥁</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ color: 'var(--c-text-primary)', fontSize: 14, fontWeight: 700, fontFamily: 'Manrope, sans-serif', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.name}</p>
-                              {song.artist && <p style={{ color: 'var(--c-text-secondary)', fontSize: 11, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.artist}</p>}
+                              <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>{song.name}</p>
+                              {song.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 12, margin: '2px 0 0' }}>{song.artist}</p>}
+                              <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <span style={{ fontSize: 10, fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-primary)', background: 'var(--app-surface-high)', padding: '2px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>{kitLabel}</span>
+                                <span style={{ fontSize: 10, fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
+                                  <span className="material-symbols-outlined" style={{ fontSize: 11, lineHeight: 1 }}>speed</span>
+                                  {bpm} BPM
+                                </span>
+                                <span style={{ fontSize: 10, fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-muted)' }}>{pCount} pattern{pCount !== 1 ? 's' : ''}</span>
+                              </div>
                             </div>
-                            <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                              <span style={{ fontSize: 15, color: isDeleting ? '#f87171' : accent.from }}>▶</span>
-                            </div>
+                            <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 20, flexShrink: 0 }}>chevron_right</span>
                           </button>
-                          {/* Meta row */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px 10px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: `${accent.from}18`, color: accent.from }}>{kitLabel}</span>
-                            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--c-text-muted)' }}>{pCount} pattern{pCount !== 1 ? 's' : ''}</span>
-                            <div style={{ flex: 1 }} />
-                            <button onClick={() => handleStartEdit(song)} style={{ fontSize: 11, color: 'var(--c-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 6px' }}>✎ Edit</button>
+                          <div style={{ display: 'flex', borderTop: '1px solid rgba(72,72,72,0.07)' }}>
+                            <button onClick={() => handleStartEdit(song)} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, background: 'transparent', border: 'none', borderRight: '1px solid rgba(72,72,72,0.07)', cursor: 'pointer' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: 14, flexShrink: 0 }}>edit</span>
+                              Edit
+                            </button>
                             {isDeleting ? (
                               <>
-                                <button onClick={() => { deleteDrumSong(song.id); setDeletingId(null); }} style={{ fontSize: 11, color: '#f87171', background: 'rgba(248,113,113,0.10)', border: 'none', borderRadius: 6, cursor: 'pointer', padding: '2px 8px', fontWeight: 700 }}>Delete</button>
-                                <button onClick={() => setDeletingId(null)} style={{ fontSize: 11, color: 'var(--c-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 6px' }}>Cancel</button>
+                                <button onClick={() => { deleteDrumSong(song.id); setDeletingId(null); }} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: '#ee7d77', fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, background: 'rgba(238,125,119,0.10)', border: 'none', cursor: 'pointer', borderRight: '1px solid rgba(72,72,72,0.07)' }}>
+                                  Confirm
+                                </button>
+                                <button onClick={() => setDeletingId(null)} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                                  Cancel
+                                </button>
                               </>
                             ) : (
-                              <button onClick={() => setDeletingId(song.id)} style={{ fontSize: 11, color: 'var(--c-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 6px' }}>🗑</button>
+                              <button onClick={() => setDeletingId(song.id)} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: '#ee7d77', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: 14, flexShrink: 0 }}>delete</span>
+                                Delete
+                              </button>
                             )}
-                            <span style={{ fontSize: 10, color: 'var(--c-text-muted)', marginLeft: 4 }}>{ts}</span>
                           </div>
                         </div>
                       )}
@@ -1117,40 +896,150 @@ export default function DrumEditor() {
           </div>
         )}
 
-        {/* ═══ KIT ══════════════════════════════════════════════════════════ */}
-        {drumMode === 'nav' && activeTab === 'kit' && (
+        {/* ═══ DRUM GRID EDITOR (Songs tab, in editor) ══════════════════════ */}
+        {activeTab === 'songs' && inEditor && (
+          <div ref={containerRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div
+              ref={scrollRef}
+              onPointerDown={handlePointerDown}
+              onPointerUp={handlePointerUp}
+              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', paddingTop: 12, paddingBottom: 100, position: 'relative' }}
+              className="no-scrollbar"
+            >
+              <div ref={playheadRef} style={{ position: 'absolute', top: 12, left: 0, width: 2, height: ALL_INSTS.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'none', borderRadius: 1 }} />
+              {systemRows.map((rowMeasures, sysIdx) => {
+                const mStartIdx = sysIdx * measuresPerRow;
+                return (
+                  <div key={sysIdx} style={{ marginBottom: SYS_SEP }}>
+                    <div style={{ display: 'flex', height: RULER_H, marginLeft: LABEL_W, borderBottom: `1px solid ${barColor}` }}>
+                      {rowMeasures.map((m, mi) => {
+                        const globalM   = mStartIdx + mi;
+                        const canDelete = globalM > 0;
+                        return (
+                          <div key={mi} style={{ width: MEASURE_W, flexShrink: 0, display: 'flex', alignItems: 'center', paddingLeft: 6, paddingRight: 4, borderLeft: mi > 0 ? `1px solid ${barColor}` : 'none', gap: 4 }}>
+                            <span style={{ color: 'var(--c-text-primary)', fontSize: 10, fontWeight: 700, fontFamily: 'Manrope, sans-serif', opacity: 0.65 }}>{globalM + 1}</span>
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                              {Array.from({ length: pattern.timeSignature[0] }, (_, bi) => (
+                                <div key={bi} style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                                  <div style={{ width: 1, height: bi === 0 ? 8 : 5, background: 'var(--c-text-primary)', opacity: bi === 0 ? 0.45 : 0.20 }} />
+                                </div>
+                              ))}
+                            </div>
+                            {canDelete && (
+                              <button
+                                onPointerDown={e => e.stopPropagation()}
+                                onPointerUp={e => { e.stopPropagation(); if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); } deleteMeasure(pattern.id, m.id); }}
+                                style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.30)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#f87171', lineHeight: 1, padding: 0 }}
+                              >✕</button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {ALL_INSTS.map((inst, instIdx) => {
+                      const hitMap = allHitMaps.get(inst) ?? new Map<number, NoteVariation>();
+                      const isFoc  = focusedInst === inst;
+                      const varList = INST_VARIATIONS[inst];
+                      return (
+                        <div key={inst} style={{ display: 'flex', height: ROW_H, borderBottom: instIdx < ALL_INSTS.length - 1 ? `1px solid ${staffColor}` : `1.5px solid ${barColor}`, background: isFoc ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)') : 'transparent' }}>
+                          <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 12, paddingRight: 6, borderRight: `1px solid ${barColor}` }}>
+                            <span style={{ fontSize: 8, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: isFoc ? 'var(--c-text-primary)' : 'var(--c-text-muted)', letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>{INST_LABEL[inst]}</span>
+                            {varList && varList.length > 1 && (
+                              <span style={{ fontSize: 6.5, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-muted)', opacity: 0.55, letterSpacing: '0.02em', whiteSpace: 'nowrap', marginTop: 1 }}>{varList.join(' · ')}</span>
+                            )}
+                          </div>
+                          <InstrumentRow inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures} spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W} hitMap={hitMap} noteColor={noteColor} staffColor={staffColor} barColor={barColor} altBg={altBg} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 32, paddingTop: 8 }}>
+                <button onClick={() => addMeasure(pattern.id)} style={{ height: 36, padding: '0 24px', borderRadius: 999, background: 'transparent', border: 'var(--add-bar-border)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}
+                  onPointerEnter={e => { e.currentTarget.style.borderColor = accent.from + '70'; e.currentTarget.style.color = accent.from; }}
+                  onPointerLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}>
+                  <span style={{ fontSize: 16 }}>+</span><span>Add Bar</span>
+                </button>
+              </div>
+            </div>
+            {/* BPM + Play */}
+            <div style={{ position: 'fixed', right: 14, bottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {showBpmPanel && (
+                  <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', right: 0, background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.96)' : 'rgba(18,18,22,0.96)'), border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)', borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.50)', whiteSpace: 'nowrap', animation: 'drumHamburgerIn 160ms cubic-bezier(0.22,1,0.36,1)' }}>
+                    {([-10, -1, +1, +10] as const).map(d => (
+                      <button key={d} onClick={() => adjustBpm(d)} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700 }}>{d > 0 ? `+${d}` : d}</button>
+                    ))}
+                    <div style={{ width: 1, height: 24, background: 'rgba(128,128,128,0.2)', margin: '0 2px' }} />
+                    <span style={{ color: accent.from, fontSize: 16, fontWeight: 800, minWidth: 36, textAlign: 'center' }}>{pattern.bpm}</span>
+                  </div>
+                )}
+                <button onClick={() => setShowBpmPanel(s => !s)} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')), boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.10)' : '0 2px 12px rgba(0,0,0,0.50)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', cursor: 'pointer', transition: 'all 160ms', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: showBpmPanel ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.10)' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 4h6l1.5 12H7.5L9 4Z" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinejoin="round" />
+                    <line x1="12" y1="4" x2="17" y2="13" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinecap="round" />
+                    <rect x="10" y="2" width="4" height="2.5" rx="1" fill={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} />
+                  </svg>
+                </button>
+              </div>
+              <button onClick={handlePlay} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: playing ? (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')) : `linear-gradient(135deg, ${accent.from}, ${accent.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: playing ? 13 : 14, color: playing ? 'var(--c-text-secondary)' : '#fff', boxShadow: playing ? '0 4px 20px rgba(0,0,0,0.40), 0 0 0 1.5px rgba(255,255,255,0.08)' : `0 4px 20px ${accent.from}55, 0 0 0 1.5px rgba(255,255,255,0.12)`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 170ms' }}>
+                {playing ? '⏹' : '▶'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ PATTERNS TAB ═════════════════════════════════════════════════ */}
+        {activeTab === 'patterns' && (
           <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20, paddingBottom: 100 }} className="no-scrollbar">
+
+            {/* Pattern manager */}
+            <SectionLabel>Patterns</SectionLabel>
+            <Card>
+              {patterns.map((p, i) => {
+                const isCurrent = p.id === activePatternId;
+                return (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: isCurrent ? `${accent.from}10` : 'transparent', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none' }}>
+                    <button onClick={() => setActivePattern(p.id)} style={{ flex: 1, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', minWidth: 0 }}>
+                      <div style={{ color: 'var(--c-text-primary)', fontSize: 13.5, fontWeight: isCurrent ? 700 : 500, fontFamily: 'Manrope, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                      <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2 }}>{p.bpm} BPM · {p.timeSignature[0]}/{p.timeSignature[1]} · {p.measures.length} bar{p.measures.length !== 1 ? 's' : ''}</div>
+                    </button>
+                    {isCurrent && <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
+                    <button onClick={() => duplicatePattern(p.id)} title="Duplicate" style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.12)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⧉</button>
+                    {patterns.length > 1 && (
+                      <button onClick={() => deletePattern(p.id)} title="Delete" style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', cursor: 'pointer', color: '#f87171', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                    )}
+                  </div>
+                );
+              })}
+            </Card>
+            <div style={{ padding: '0 16px 24px' }}>
+              <button onClick={() => { const newId = duplicatePattern(activePatternId ?? patterns[0].id); setActivePattern(newId); }} className="btn-smooth"
+                style={{ width: '100%', padding: '11px', borderRadius: 12, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.22)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <span style={{ fontSize: 16 }}>+</span> Add Pattern
+              </button>
+            </div>
+
+            {/* Kit chooser */}
+            <SectionLabel>Kit</SectionLabel>
             {KIT_CATEGORIES.map(cat => {
               const open = expandedCats.has(cat.id);
               const hasSelected = cat.kits.includes(kit);
               return (
                 <div key={cat.id} style={{ marginBottom: 12 }}>
-                  {/* Category header */}
-                  <button
-                    onClick={() => setExpandedCats(prev => {
-                      const next = new Set(prev);
-                      next.has(cat.id) ? next.delete(cat.id) : next.add(cat.id);
-                      return next;
-                    })}
-                    style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '0 16px 8px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 8 }}
-                  >
-                    <span style={{ fontSize: 11, fontWeight: 800, fontFamily: 'Manrope, sans-serif', letterSpacing: '0.07em', textTransform: 'uppercase', color: hasSelected ? accent.from : 'var(--c-text-secondary)', flex: 1 }}>
-                      {cat.label}
-                    </span>
+                  <button onClick={() => setExpandedCats(prev => { const next = new Set(prev); next.has(cat.id) ? next.delete(cat.id) : next.add(cat.id); return next; })}
+                    style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '0 16px 8px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, fontFamily: 'Manrope, sans-serif', letterSpacing: '0.07em', textTransform: 'uppercase', color: hasSelected ? accent.from : 'var(--c-text-secondary)', flex: 1 }}>{cat.label}</span>
                     {hasSelected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
                     <span style={{ fontSize: 12, color: 'var(--c-text-muted)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 200ms cubic-bezier(0.34,1.56,0.64,1)', flexShrink: 0, lineHeight: 1 }}>⌄</span>
                   </button>
-                  {/* Kits inside category */}
                   {open && (
                     <Card style={{ animation: 'drumHamburgerIn 180ms cubic-bezier(0.22,1,0.36,1)' }}>
                       {cat.kits.map((k, i) => {
                         const sel = k === kit;
                         return (
-                          <button
-                            key={k}
-                            onClick={() => handleKitSelect(k)}
-                            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 14px', background: sel ? `${accent.from}10` : 'transparent', border: 'none', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 150ms' }}
-                          >
+                          <button key={k} onClick={() => handleKitSelect(k)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 14px', background: sel ? `${accent.from}10` : 'transparent', border: 'none', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 150ms' }}>
                             <div style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0, overflow: 'hidden', border: sel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.12)', position: 'relative' }}>
                               <img src={KIT_IMAGE[k]} alt={KIT_LABEL[k]} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                               {sel && (
@@ -1183,14 +1072,101 @@ export default function DrumEditor() {
           </div>
         )}
 
+        {/* ═══ MIXER TAB ════════════════════════════════════════════════════ */}
+        {activeTab === 'mixer' && (
+          <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20, paddingBottom: 100 }} className="no-scrollbar">
+            <SectionLabel>Master Volume</SectionLabel>
+            <Card>
+              <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', gap: 12 }}>
+                <span style={{ flex: 1, color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 600 }}>Master</span>
+                <span style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 700, minWidth: 36, textAlign: 'right' }}>{Math.round(masterVolume * 100)}%</span>
+                <input type="range" min={0} max={1} step={0.01} value={masterVolume}
+                  onChange={e => setMasterVolume(parseFloat(e.target.value))}
+                  style={{ width: 110, accentColor: accent.from, flexShrink: 0 }} />
+              </div>
+            </Card>
+
+            <SectionLabel>Instruments</SectionLabel>
+            <Card>
+              {ALL_INSTS.map((inst, i) => {
+                const vol    = volumeMap[inst] ?? 1;
+                const muted  = !activeInstruments.includes(inst);
+                const color  = INSTRUMENT_COLOR[inst] ?? accent.from;
+                return (
+                  <div key={inst} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0, opacity: muted ? 0.25 : 1 }} />
+                    <span style={{ fontSize: 12, fontFamily: 'Manrope, sans-serif', fontWeight: 600, color: muted ? 'var(--c-text-muted)' : 'var(--c-text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
+                    <span style={{ color: 'var(--c-text-muted)', fontSize: 11, fontWeight: 700, minWidth: 30, textAlign: 'right' }}>{Math.round(vol * 100)}%</span>
+                    <input type="range" min={0} max={1} step={0.01} value={vol}
+                      onChange={e => setVolumeForInstrument(inst, parseFloat(e.target.value))}
+                      style={{ width: 90, accentColor: color, flexShrink: 0, opacity: muted ? 0.4 : 1 }} />
+                    <button onClick={() => toggleInstrument(inst)}
+                      title={muted ? 'Unmute' : 'Mute'}
+                      style={{ width: 28, height: 28, borderRadius: 7, background: muted ? 'rgba(128,128,128,0.08)' : `${color}18`, border: muted ? '1px solid rgba(128,128,128,0.12)' : `1px solid ${color}30`, cursor: 'pointer', color: muted ? 'var(--c-text-muted)' : color, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 180ms' }}>
+                      {muted ? '🔇' : '🔊'}
+                    </button>
+                  </div>
+                );
+              })}
+            </Card>
+          </div>
+        )}
+
       </div>
 
-      {/* ── Bottom nav (always visible) ─────────────────────────────────── */}
-      <SettingsNav
-        activeTab={activeTab} setTab={setActiveTab}
-        drumMode={drumMode} setDrumMode={setDrumMode}
-        accent={accent} isLight={isLight} isAmoled={isAmoled}
-      />
+      {/* ── Bottom nav ───────────────────────────────────────────────────── */}
+      <DrumNav activeTab={activeTab} setTab={setActiveTab} accent={accent} isLight={isLight} isAmoled={isAmoled} />
+
+      {/* ── Floating + button (songs list only) ─────────────────────────── */}
+      {!inEditor && activeTab === 'songs' && (
+        <button
+          onClick={() => setShowCreateForm(true)}
+          className="btn-smooth"
+          style={{ position: 'fixed', right: 20, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', width: 54, height: 54, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 20px ${accent.to}66`, zIndex: 50 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 26, fontVariationSettings: "'wght' 400" }}>add</span>
+        </button>
+      )}
+
+      {/* ── Create Beat modal ────────────────────────────────────────────── */}
+      {showCreateForm && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+          <div onClick={() => setShowCreateForm(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
+            </div>
+            <div style={{ padding: '4px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 20, margin: 0 }}>New Beat</p>
+              <div><label style={labelSt}>Beat Title</label><input value={createName} onChange={e => setCreateName(e.target.value)} autoFocus placeholder="e.g. Funky Groove" style={inputSt} onKeyDown={e => { if (e.key === 'Enter' && createName.trim()) handleCreateBeat(); }} /></div>
+              <div><label style={labelSt}>Artist</label><input value={createArtist} onChange={e => setCreateArtist(e.target.value)} placeholder="e.g. The Beatmakers" style={inputSt} /></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={labelSt}>BPM</label>
+                  <input type="number" min={40} max={280} value={createBpm} onChange={e => setCreateBpm(e.target.value)} style={inputSt} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: 42 }}>
+                    {([80, 100, 120, 140] as const).map(b => (
+                      <button key={b} onClick={() => setCreateBpm(String(b))} className="btn-smooth"
+                        style={{ flex: 1, height: 34, borderRadius: 8, background: createBpm === String(b) ? `${accent.from}22` : 'var(--app-surface-high)', border: `1px solid ${createBpm === String(b) ? accent.from + '44' : 'rgba(72,72,72,0.12)'}`, cursor: 'pointer', color: createBpm === String(b) ? accent.from : 'var(--c-text-muted)', fontSize: 10, fontWeight: 700 }}>
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div><label style={labelSt}>Notes</label><textarea value={createNotes} onChange={e => setCreateNotes(e.target.value)} rows={2} placeholder="Optional notes…" style={{ ...inputSt, resize: 'none', lineHeight: 1.5 } as React.CSSProperties} /></div>
+              <div style={{ display: 'flex', gap: 10, paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
+                <button onClick={() => setShowCreateForm(false)} className="btn-smooth" style={{ flex: 1, padding: 14, borderRadius: 9999, background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, border: 'none', cursor: 'pointer' }}>Cancel</button>
+                <button onClick={handleCreateBeat} className="btn-smooth"
+                  style={{ flex: 2, padding: 14, borderRadius: 9999, background: createName.trim() ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(72,72,72,0.2)', color: createName.trim() ? '#fff' : '#acabaa', fontFamily: 'Manrope', fontWeight: 800, border: 'none', cursor: createName.trim() ? 'pointer' : 'default', boxShadow: createName.trim() ? `0 4px 20px ${accent.to}40` : 'none', transition: 'all 200ms' }}>
+                  Create Beat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Save Beat form overlay ───────────────────────────────────────── */}
       {showSaveForm && (

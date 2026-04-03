@@ -166,11 +166,12 @@ interface DrumStore {
   clearMeasure:    (patternId: string, measureId: string) => void;
   duplicateMeasure:(patternId: string, measureId: string) => void;
 
-  drumSongs:      DrumSong[];
-  saveDrumSong:   (name: string, artist: string, notes: string) => string;
-  loadDrumSong:   (id: string) => void;
-  deleteDrumSong: (id: string) => void;
-  updateDrumSong: (id: string, patch: Partial<Pick<DrumSong, 'name' | 'artist' | 'notes' | 'patterns' | 'activePatternId' | 'kitType'>>) => void;
+  drumSongs:           DrumSong[];
+  saveDrumSong:        (name: string, artist: string, notes: string) => string;
+  createBlankDrumSong: (name: string, artist: string, bpm: number, notes: string) => string;
+  loadDrumSong:        (id: string) => void;
+  deleteDrumSong:      (id: string) => void;
+  updateDrumSong:      (id: string, patch: Partial<Pick<DrumSong, 'name' | 'artist' | 'notes' | 'patterns' | 'activePatternId' | 'kitType'>>) => void;
 }
 
 const initial = defaultPattern();
@@ -317,6 +318,24 @@ export const useDrumStore = create<DrumStore>()(
           patterns: JSON.parse(JSON.stringify(s.patterns)),
           activePatternId: s.activePatternId ?? s.patterns[0]?.id ?? '',
           kitType: s.kitType,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        set(st => ({ drumSongs: [song, ...st.drumSongs] }));
+        return song.id;
+      },
+
+      createBlankDrumSong: (name, artist, bpm, notes) => {
+        const p = defaultPattern();
+        p.bpm = Math.max(40, Math.min(280, bpm));
+        const song: DrumSong = {
+          id: `ds-${uid()}`,
+          name: name.trim() || 'Untitled Beat',
+          artist: artist.trim(),
+          notes: notes.trim(),
+          patterns: [p],
+          activePatternId: p.id,
+          kitType: get().kitType,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
