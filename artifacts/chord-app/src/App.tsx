@@ -6,6 +6,7 @@ import SettingsPanel from './panels/SettingsPanel';
 import SongsPanel from './panels/SongsPanel';
 import DrumEditor from './panels/DrumEditor';
 import BottomNav from './components/BottomNav';
+import { DrumexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
@@ -77,6 +78,26 @@ export default function App() {
       if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
     };
   }, []);
+
+  // ── Drumex splash on mode switch ────────────────────────────────────────
+  type SplashPhase = 'hidden' | 'in' | 'out';
+  const [drumSplash, setDrumSplash] = useState<SplashPhase>('hidden');
+  const prevAppMode   = useRef(settings.appMode);
+  const splashTimers  = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    if (settings.appMode === 'drums' && prevAppMode.current !== 'drums') {
+      splashTimers.current.forEach(clearTimeout);
+      splashTimers.current = [];
+      setDrumSplash('in');
+      const t1 = setTimeout(() => setDrumSplash('out'), 750);
+      const t2 = setTimeout(() => setDrumSplash('hidden'), 1100);
+      splashTimers.current = [t1, t2];
+    }
+    prevAppMode.current = settings.appMode;
+    return () => splashTimers.current.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.appMode]);
 
   // Which panel is fully visible (the "live" one)
   const [visiblePanel, setVisiblePanel] = useState(activePanel);
@@ -197,8 +218,29 @@ export default function App() {
   // ── Drums mode: completely separate environment ──────────────────────────
   if (settings.appMode === 'drums') {
     return (
-      <div style={{ animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both', height: '100dvh', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', height: '100dvh', overflow: 'hidden', animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
         <DrumEditor />
+
+        {/* Drumex splash — shown only when switching from Chordex */}
+        {drumSplash !== 'hidden' && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 500,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            background: '#09090d',
+            opacity:   drumSplash === 'out' ? 0 : 1,
+            transform: drumSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+            transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+            pointerEvents: 'none',
+          }}>
+            <div style={{ color: '#f0f0f2', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+              <DrumexLogo size={60} />
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+              <p style={{ color: '#f0f0f2', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Drumex</p>
+              <p style={{ color: '#71717a', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Drum sheet editor</p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
