@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useChordStore, ACCENT_COLORS, type AccentColor, type Theme } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo } from './ChordexLogo';
+import { useNavHidden, useScrollHide } from '../lib/navScroll';
 
 type HubTab = 'home' | 'settings';
 type TargetApp = 'chords' | 'drums';
@@ -27,6 +28,8 @@ export default function StudioHub() {
   const [tab, setTab]         = useState<HubTab>('home');
   const [popup, setPopup]     = useState<TargetApp | null>(null);
   const [popupIn, setPopupIn] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollHide(scrollRef);
 
   const openPopup = (app: TargetApp) => {
     setPopup(app);
@@ -63,11 +66,11 @@ export default function StudioHub() {
     }}>
 
       {/* ── Main scrollable content ── */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
 
         {/* ── HOME TAB ── */}
         {tab === 'home' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
 
             {/* Logo area */}
             <div style={{
@@ -75,7 +78,7 @@ export default function StudioHub() {
               paddingTop: 'clamp(48px, 10vh, 80px)',
               animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
             }}>
-              <div style={{ color: `var(--accent-from)` }}>
+              <div style={{ color: 'white' }}>
                 <StudioLogo size={56} />
               </div>
               <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: '10px 0 0', letterSpacing: '-0.03em', lineHeight: 1 }}>
@@ -86,64 +89,43 @@ export default function StudioHub() {
               </p>
             </div>
 
-            {/* Welcome card */}
+            {/* Combined welcome + apps card */}
             <div style={{
               width: '100%', maxWidth: 380,
               marginTop: 'clamp(28px, 6vh, 48px)',
               background: 'var(--app-surface)',
               borderRadius: 24,
-              padding: '22px 26px',
+              overflow: 'hidden',
               border: '1px solid rgba(255,255,255,0.05)',
               animation: 'hub-rise-in 500ms 80ms cubic-bezier(0.34,1.15,0.64,1) both',
               transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
             }}>
-              <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-                {greeting}
-              </p>
-              <p style={{ fontSize: 14, color: 'var(--c-text-secondary)', margin: '6px 0 0', fontWeight: 500 }}>
-                What are we picking today?
-              </p>
-            </div>
+              {/* Welcome header */}
+              <div style={{ padding: '22px 22px 18px' }}>
+                <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+                  {greeting}
+                </p>
+                <p style={{ fontSize: 14, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>
+                  What are we picking today?
+                </p>
+              </div>
 
-            {/* App cards */}
-            <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 1fr',
-              gap: 14, width: '100%', maxWidth: 380,
-              marginTop: 16,
-            }}>
+              {/* Divider */}
+              <div style={{ height: 1, background: 'rgba(128,128,128,0.1)', margin: '0 16px' }} />
+
+              {/* App rows */}
               {([
-                {
-                  app: 'chords' as TargetApp,
-                  Logo: ChordexLogo,
-                  name: 'Chordex',
-                  desc: 'Chord library & songs',
-                  delay: 160,
-                },
-                {
-                  app: 'drums' as TargetApp,
-                  Logo: DrumexLogo,
-                  name: 'Drumex',
-                  desc: 'Drum sheet editor',
-                  delay: 240,
-                },
-              ]).map(({ app, Logo, name, desc, delay }) => (
-                <AppCard
+                { app: 'chords' as TargetApp, Logo: ChordexLogo, name: 'Chordex', desc: 'Chord library & songs' },
+                { app: 'drums'  as TargetApp, Logo: DrumexLogo,  name: 'Drumex',  desc: 'Drum sheet editor'    },
+              ]).map(({ app, Logo, name, desc }, i, arr) => (
+                <AppRow
                   key={app}
-                  delay={delay}
-                  accentFrom={accent.from}
-                  accentTo={accent.to}
+                  Logo={Logo}
+                  name={name}
+                  desc={desc}
+                  last={i === arr.length - 1}
                   onClick={() => openPopup(app)}
-                >
-                  <div style={{ color: 'var(--c-text-primary)' }}>
-                    <Logo size={34} />
-                  </div>
-                  <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', margin: '12px 0 0', letterSpacing: '-0.02em' }}>
-                    {name}
-                  </p>
-                  <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: '4px 0 0', fontWeight: 500, lineHeight: 1.3 }}>
-                    {desc}
-                  </p>
-                </AppCard>
+                />
               ))}
             </div>
 
@@ -245,14 +227,14 @@ export default function StudioHub() {
   );
 }
 
-// ── App card ──────────────────────────────────────────────────────────────────
-function AppCard({
-  children, delay, accentFrom, onClick,
+// ── App row (list item inside the combined card) ───────────────────────────────
+function AppRow({
+  Logo, name, desc, last, onClick,
 }: {
-  children: React.ReactNode;
-  delay: number;
-  accentFrom: string;
-  accentTo: string;
+  Logo: React.FC<{ size: number }>;
+  name: string;
+  desc: string;
+  last: boolean;
   onClick: () => void;
 }) {
   const [pressed, setPressed] = useState(false);
@@ -263,20 +245,43 @@ function AppCard({
       onPointerDown={() => setPressed(true)}
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
+      onPointerCancel={() => setPressed(false)}
       style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-        padding: '22px 20px',
-        background: 'var(--app-surface)',
-        borderRadius: 24,
-        border: '1px solid rgba(255,255,255,0.05)',
+        display: 'flex', alignItems: 'center', gap: 14,
+        width: '100%', padding: '13px 18px',
+        background: pressed ? 'rgba(128,128,128,0.07)' : 'transparent',
+        border: 'none',
+        borderBottom: last ? 'none' : '1px solid rgba(128,128,128,0.08)',
         cursor: 'pointer', textAlign: 'left',
-        animation: `hub-rise-in 500ms ${delay}ms cubic-bezier(0.34,1.15,0.64,1) both`,
-        transform: pressed ? 'scale(0.96)' : 'scale(1)',
-        transition: `transform 120ms cubic-bezier(0.34,1.15,0.64,1), background-color 700ms cubic-bezier(0.4,0,0.2,1)`,
-        boxShadow: pressed ? `0 0 0 2px ${accentFrom}55` : 'none',
+        transform: pressed ? 'scale(0.985)' : 'scale(1)',
+        transition: 'background 100ms ease, transform 120ms cubic-bezier(0.34,1.15,0.64,1)',
+        boxSizing: 'border-box',
       }}
     >
-      {children}
+      {/* Icon pill */}
+      <div style={{
+        width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+        background: 'rgba(128,128,128,0.10)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'var(--c-text-primary)',
+      }}>
+        <Logo size={22} />
+      </div>
+
+      {/* Label */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.01em' }}>
+          {name}
+        </p>
+        <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '2px 0 0', fontWeight: 500 }}>
+          {desc}
+        </p>
+      </div>
+
+      {/* Chevron */}
+      <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0, opacity: 0.5 }}>
+        chevron_right
+      </span>
     </button>
   );
 }
@@ -535,65 +540,150 @@ function HubToggle({ value, onChange, accentFrom, accentTo }: {
   );
 }
 
-// ── Bottom nav ────────────────────────────────────────────────────────────────
+// ── Floating bottom nav (matches Chordex/Drumex style) ───────────────────────
+const HUB_NAV_ITEMS: { id: HubTab; icon: string; label: string }[] = [
+  { id: 'home',     icon: 'home',     label: 'Home'     },
+  { id: 'settings', icon: 'settings', label: 'Settings' },
+];
+
 function HubNav({ tab, setTab, accent }: {
   tab: HubTab;
   setTab: (t: HubTab) => void;
   accent: { from: string; to: string; mid: string };
 }) {
-  const items: { id: HubTab; icon: string; label: string }[] = [
-    { id: 'home',     icon: 'home',     label: 'Home' },
-    { id: 'settings', icon: 'settings', label: 'Settings' },
-  ];
+  const { settings } = useChordStore();
+  const navRef   = useRef<HTMLElement | null>(null);
+  const btnRefs  = useRef<(HTMLButtonElement | null)[]>([]);
+  const prevIdx  = useRef(HUB_NAV_ITEMS.findIndex(i => i.id === tab));
+  const stretchT = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navHidden = useNavHidden();
+
+  const [pill, setPill]       = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
+  const [pressed, setPressed] = useState<HubTab | null>(null);
+  const [entered, setEntered] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setEntered(true), 40); return () => clearTimeout(t); }, []);
+
+  const measureBtn = (idx: number) => {
+    const btn = btnRefs.current[idx];
+    const nav = navRef.current;
+    if (!btn || !nav) return null;
+    const nr = nav.getBoundingClientRect();
+    const br = btn.getBoundingClientRect();
+    return { left: br.left - nr.left, right: br.right - nr.left };
+  };
+
+  useEffect(() => {
+    const m = measureBtn(HUB_NAV_ITEMS.findIndex(i => i.id === tab));
+    if (m) setPill({ left: m.left, right: m.right, ready: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const newIdx = HUB_NAV_ITEMS.findIndex(i => i.id === tab);
+    const oldIdx = prevIdx.current;
+    if (newIdx === oldIdx) return;
+    prevIdx.current = newIdx;
+    const newM = measureBtn(newIdx);
+    if (!newM) return;
+    if (stretchT.current) { clearTimeout(stretchT.current); stretchT.current = null; setPill(p => ({ ...p, left: newM.left, right: newM.right })); return; }
+    if (newIdx > oldIdx) {
+      setPill(p => ({ ...p, right: newM.right }));
+      stretchT.current = setTimeout(() => { setPill(p => ({ ...p, left: newM.left })); stretchT.current = null; }, 70);
+    } else {
+      setPill(p => ({ ...p, left: newM.left }));
+      stretchT.current = setTimeout(() => { setPill(p => ({ ...p, right: newM.right })); stretchT.current = null; }, 70);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+  const bg = settings.amoledMode ? 'rgba(4,4,4,0.88)' : isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)';
 
   return (
-    <div style={{
-      flexShrink: 0,
-      position: 'relative',
-      zIndex: 100,
-      background: 'var(--app-surface)',
-      borderTop: '1px solid rgba(128,128,128,0.08)',
-      paddingBottom: 'env(safe-area-inset-bottom)',
-      animation: 'hub-nav-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
-      transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
-    }}>
-      <div style={{ display: 'flex', height: 64 }}>
-        {items.map(item => {
-          const active = tab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setTab(item.id)}
+    <nav
+      ref={navRef}
+      style={{
+        position: 'fixed',
+        bottom: 'max(10px, env(safe-area-inset-bottom))',
+        left: '50%',
+        width: '90%', maxWidth: '448px',
+        display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+        padding: '6px 8px',
+        borderRadius: '2rem',
+        border: `1px solid ${isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.10)'}`,
+        background: bg,
+        boxShadow: isLight
+          ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
+          : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
+        zIndex: 50,
+        overflow: 'hidden',
+        transform: (navHidden && entered)
+          ? 'translateX(-50%) translateY(calc(100% + 32px))'
+          : entered
+            ? 'translateX(-50%)'
+            : 'translateX(-50%) translateY(24px)',
+        opacity: entered ? 1 : 0,
+        transition: 'transform 420ms cubic-bezier(0.4,0,0.2,1), opacity 400ms cubic-bezier(0.34,1.15,0.64,1), background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+      }}
+    >
+      {/* Sliding pill */}
+      {pill.ready && (
+        <div aria-hidden style={{
+          position: 'absolute', top: 4,
+          left: pill.left, width: pill.right - pill.left,
+          height: 'calc(100% - 8px)',
+          borderRadius: '9999px',
+          background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+          boxShadow: `0 2px 18px ${accent.to}60`,
+          pointerEvents: 'none', zIndex: 0,
+          transition: 'left 150ms cubic-bezier(0.34,1.56,0.64,1), width 150ms cubic-bezier(0.34,1.56,0.64,1)',
+        }} />
+      )}
+
+      {HUB_NAV_ITEMS.map(({ id, icon, label }, i) => {
+        const active = tab === id;
+        const isPressed = pressed === id;
+        return (
+          <button
+            key={id}
+            ref={el => { btnRefs.current[i] = el; }}
+            onPointerDown={() => setPressed(id)}
+            onPointerUp={() => { setPressed(null); setTab(id); }}
+            onPointerLeave={() => setPressed(null)}
+            onPointerCancel={() => setPressed(null)}
+            style={{
+              flex: 1, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: 4,
+              padding: '8px 4px', borderRadius: '9999px',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: active ? '#fff' : 'var(--c-text-secondary)',
+              position: 'relative', zIndex: 1,
+              transform: isPressed ? 'scale(0.91)' : 'scale(1)',
+              transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34,1.56,0.64,1)',
+            }}
+          >
+            <span
+              className="material-symbols-outlined"
               style={{
-                flex: 1, display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 3,
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                transition: 'opacity 200ms ease',
+                fontSize: 22,
+                fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0",
+                transition: 'font-variation-settings 200ms ease',
               }}
             >
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  fontSize: 22,
-                  color: active ? accent.from : 'var(--c-text-secondary)',
-                  transition: 'color 250ms ease',
-                  fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0",
-                }}
-              >
-                {item.icon}
-              </span>
-              <span style={{
-                fontSize: 10, fontWeight: 700, fontFamily: 'Manrope',
-                color: active ? accent.from : 'var(--c-text-secondary)',
-                letterSpacing: '0.04em',
-                transition: 'color 250ms ease',
-              }}>
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
+              {icon}
+            </span>
+            <span style={{
+              fontFamily: 'Manrope, sans-serif', fontWeight: 700,
+              fontSize: '9.5px', letterSpacing: '0.08em',
+              textTransform: 'uppercase', lineHeight: 1, whiteSpace: 'nowrap',
+            }}>
+              {label}
+            </span>
+          </button>
+        );
+      })}
+    </nav>
   );
 }
