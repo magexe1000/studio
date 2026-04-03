@@ -129,9 +129,6 @@ export default function App() {
 
   const prevPanel = useRef(activePanel);
   const accent    = ACCENT_COLORS[settings.accentColor];
-  const isLight   = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
-  const splashBg  = settings.amoledMode ? '#000' : (isLight ? '#f0f0f5' : '#09090d');
-  const splashSub = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)';
 
   // Show/hide the nav based on panel and preset state.
   // Hidden (and locked so scroll can't override) only when inside the preset editor.
@@ -250,18 +247,18 @@ export default function App() {
           <div style={{
             position: 'absolute', inset: 0, zIndex: 500,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            background: splashBg,
+            background: '#09090d',
             opacity:   drumSplash === 'out' ? 0 : 1,
             transform: drumSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
             transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
             pointerEvents: 'none',
           }}>
-            <div style={{ color: accent.from, animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+            <div style={{ color: '#fff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
               <DrumexLogo size={60} />
             </div>
             <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <p style={{ color: accent.from, fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Drumex</p>
-              <p style={{ color: splashSub, fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Drum sheet editor</p>
+              <p style={{ color: '#fff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Drumex</p>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Drum sheet editor</p>
             </div>
           </div>
         )}
@@ -358,18 +355,18 @@ export default function App() {
         <div style={{
           position: 'fixed', inset: 0, zIndex: 500,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          background: splashBg,
+          background: '#09090d',
           opacity:   chordexSplash === 'out' ? 0 : 1,
           transform: chordexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
           transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
           pointerEvents: 'none',
         }}>
-          <div style={{ color: accent.from, animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+          <div style={{ color: '#fff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
             <ChordexLogo size={60} />
           </div>
           <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-            <p style={{ color: accent.from, fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Chordex</p>
-            <p style={{ color: splashSub, fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Chord library & songs</p>
+            <p style={{ color: '#fff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Chordex</p>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Chord library & songs</p>
           </div>
         </div>
       )}
