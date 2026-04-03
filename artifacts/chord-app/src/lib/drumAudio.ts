@@ -229,6 +229,7 @@ function soundIdToInst(id: string): DrumInstrument | null {
 // ── AudioContext singleton ──────────────────────────────────────────────────
 let _ctx:        AudioContext | null = null;
 let _compressor: DynamicsCompressorNode | null = null;
+let _limiter:    DynamicsCompressorNode | null = null;
 let _masterGain: GainNode | null = null;
 
 function getCtx(): { ctx: AudioContext; dest: AudioNode } {
@@ -236,17 +237,28 @@ function getCtx(): { ctx: AudioContext; dest: AudioNode } {
     _ctx = new AudioContext();
 
     _masterGain = _ctx.createGain();
-    _masterGain.gain.value = 0.85;
+    _masterGain.gain.value = 0.72;
 
+    // Gentle bus compressor — transparent glue, not a squasher.
+    // Slow attack lets transients breathe; slow release avoids pumping.
     _compressor = _ctx.createDynamicsCompressor();
-    _compressor.threshold.value = -14;
-    _compressor.knee.value       = 8;
-    _compressor.ratio.value      = 4;
-    _compressor.attack.value     = 0.003;
-    _compressor.release.value    = 0.15;
+    _compressor.threshold.value = -8;
+    _compressor.knee.value      = 12;
+    _compressor.ratio.value     = 2;
+    _compressor.attack.value    = 0.010;
+    _compressor.release.value   = 0.400;
+
+    // True-peak limiter — catches any clip before the DAC, inaudible at -1 dBFS.
+    _limiter = _ctx.createDynamicsCompressor();
+    _limiter.threshold.value = -1;
+    _limiter.knee.value      = 0;
+    _limiter.ratio.value     = 20;
+    _limiter.attack.value    = 0.001;
+    _limiter.release.value   = 0.080;
 
     _masterGain.connect(_compressor);
-    _compressor.connect(_ctx.destination);
+    _compressor.connect(_limiter);
+    _limiter.connect(_ctx.destination);
   }
   if (_ctx.state === 'suspended') _ctx.resume();
   return { ctx: _ctx, dest: _masterGain! };
@@ -1611,7 +1623,7 @@ class DrumScheduler {
       const soundId   = getSoundForVariation(inst, variation, this._soundMap, kitDefs);
       const volMult   = getVolMultForVariation(variation);
       const baseVol   = (this._volMap[inst] ?? 1) * this._masterVol;
-      const vol       = Math.min(baseVol * volMult, 1.5);
+      const vol       = Math.min(baseVol * volMult, 1.0);
 
       // Flam: play a soft grace note ~20 ms before the main hit
       if (variation === 'flam') {
