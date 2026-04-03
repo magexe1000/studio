@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StudioLogo, ChordexLogo, DrumexLogo } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import type { AppKey } from '../store/useChordStore';
@@ -29,18 +29,31 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
   const accent = ACCENT_COLORS[vis.accentColor as keyof typeof ACCENT_COLORS];
 
   const [selected, setSelected] = useState<Set<AppKey>>(new Set(['hub', 'chords', 'drums']));
-  const [visible,  setVisible]  = useState(false);
+  // `mounted`  — whether the DOM node exists (lags behind `show` on close)
+  // `open`     — drives CSS "visible" state; set after mount, cleared before unmount
+  const [mounted, setMounted] = useState(false);
+  const [open,    setOpen]    = useState(false);
+  const unmountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (show) {
+      // Cancel any pending unmount
+      if (unmountTimer.current) { clearTimeout(unmountTimer.current); unmountTimer.current = null; }
       setSelected(new Set(['hub', 'chords', 'drums']));
-      setVisible(true);
+      setMounted(true);
+      // One rAF so the browser paints the mounted state before we trigger the transition
+      requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)));
     } else {
-      setVisible(false);
+      // Animate out first, then unmount
+      setOpen(false);
+      unmountTimer.current = setTimeout(() => setMounted(false), 380);
     }
+    return () => {
+      if (unmountTimer.current) clearTimeout(unmountTimer.current);
+    };
   }, [show]);
 
-  if (!show && !visible) return null;
+  if (!mounted) return null;
 
   function toggle(key: AppKey) {
     setSelected(prev => {
@@ -58,8 +71,8 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
     onApply(Array.from(selected));
   }
 
-  const sheetTranslate = show ? '0%' : '100%';
-  const backdropOpacity = show ? 1 : 0;
+  const sheetTranslate  = open ? '0%'  : '105%';
+  const backdropOpacity = open ? 1     : 0;
 
   return (
     <div
@@ -68,7 +81,10 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
         position: 'fixed', inset: 0, zIndex: 9999,
         background: `rgba(0,0,0,0.55)`,
         opacity: backdropOpacity,
-        transition: 'opacity 280ms cubic-bezier(0.4,0,0.2,1)',
+        pointerEvents: open ? 'auto' : 'none',
+        transition: open
+          ? 'opacity 240ms cubic-bezier(0.0,0.0,0.2,1)'
+          : 'opacity 300ms cubic-bezier(0.4,0,1,1)',
         display: 'flex', alignItems: 'flex-end',
       }}
     >
@@ -81,8 +97,11 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
           padding: '12px 20px',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)',
           transform: `translateY(${sheetTranslate})`,
-          transition: 'transform 320ms cubic-bezier(0.34,1.12,0.64,1)',
+          transition: open
+            ? 'transform 380ms cubic-bezier(0.34,1.08,0.64,1)'   /* spring up  */
+            : 'transform 280ms cubic-bezier(0.4,0,1,1)',          /* snap down  */
           boxShadow: '0 -8px 40px rgba(0,0,0,0.4)',
+          willChange: 'transform',
         }}
       >
         {/* Handle */}
