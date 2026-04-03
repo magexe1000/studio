@@ -21,36 +21,52 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: 'system', label: 'Auto' },
 ];
 
+// ── Greeting helper ────────────────────────────────────────────────────────────
+function getGreeting(name?: string): string {
+  const h = new Date().getHours();
+  const timeWord = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
+
+  // Rotate through a small pool keyed to the current day so it changes daily
+  const day = Math.floor(Date.now() / 86_400_000);
+
+  if (name?.trim()) {
+    const n = name.trim();
+    const pool = [
+      `Good ${timeWord}, ${n}.`,
+      `Welcome back, ${n}.`,
+      `Ready to create, ${n}.`,
+      `Good to see you, ${n}.`,
+    ];
+    return pool[day % pool.length];
+  }
+
+  const pool = [
+    `Good ${timeWord}.`,
+    'Welcome back.',
+    'Ready to create.',
+    'Let\'s make music.',
+    'Good to have you here.',
+  ];
+  return pool[day % pool.length];
+}
+
 export default function StudioHub() {
   const { settings, updateSettings } = useChordStore();
   const accent = ACCENT_COLORS[settings.accentColor];
 
-  const [tab, setTab]         = useState<HubTab>('home');
-  const [popup, setPopup]     = useState<TargetApp | null>(null);
-  const [popupIn, setPopupIn] = useState(false);
+  const [tab, setTab]     = useState<HubTab>('home');
+  const [zooming, setZooming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
 
-  const openPopup = (app: TargetApp) => {
-    setPopup(app);
-    requestAnimationFrame(() => requestAnimationFrame(() => setPopupIn(true)));
-  };
-
-  const closePopup = () => {
-    setPopupIn(false);
-    setTimeout(() => setPopup(null), 320);
-  };
-
-  const launch = (appMode: 'chords' | 'drums', startupApp: 'chords' | 'drums' | 'hub') => {
-    closePopup();
+  const launchApp = (appMode: 'chords' | 'drums') => {
+    setZooming(true);
     setTimeout(() => {
-      updateSettings({ appMode, startupApp });
-    }, 360);
+      updateSettings({ appMode });
+    }, 380);
   };
 
-  const greeting = settings.hubUserName?.trim()
-    ? `Hi, ${settings.hubUserName.trim()}!`
-    : 'Welcome!';
+  const greeting = getGreeting(settings.hubUserName);
 
   return (
     <div style={{
@@ -62,7 +78,11 @@ export default function StudioHub() {
       flexDirection: 'column',
       paddingTop: 'env(safe-area-inset-top)',
       fontFamily: 'Manrope, sans-serif',
-      transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+      transform: zooming ? 'scale(1.10)' : 'scale(1)',
+      opacity: zooming ? 0 : 1,
+      transition: zooming
+        ? 'transform 380ms cubic-bezier(0.4,0,1,1), opacity 280ms ease-in, background-color 700ms cubic-bezier(0.4,0,0.2,1)'
+        : 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
     }}>
 
       {/* ── Main scrollable content ── */}
@@ -124,7 +144,7 @@ export default function StudioHub() {
                   name={name}
                   desc={desc}
                   last={i === arr.length - 1}
-                  onClick={() => openPopup(app)}
+                  onClick={() => launchApp(app)}
                 />
               ))}
             </div>
@@ -140,89 +160,6 @@ export default function StudioHub() {
 
       {/* ── Bottom nav ── */}
       <HubNav tab={tab} setTab={setTab} accent={accent} />
-
-      {/* ── Popup sheet ── */}
-      {popup !== null && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 200,
-          display: 'flex', alignItems: 'flex-end',
-        }}>
-          {/* Backdrop */}
-          <div
-            onClick={closePopup}
-            style={{
-              position: 'absolute', inset: 0,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(6px)',
-              WebkitBackdropFilter: 'blur(6px)',
-              opacity: popupIn ? 1 : 0,
-              transition: 'opacity 300ms cubic-bezier(0.4,0,0.2,1)',
-            }}
-          />
-          {/* Sheet */}
-          <div style={{
-            position: 'relative', zIndex: 1,
-            width: '100%',
-            background: 'var(--app-surface)',
-            borderRadius: '28px 28px 0 0',
-            padding: '8px 20px calc(max(24px, env(safe-area-inset-bottom)) + 24px)',
-            transform: popupIn ? 'translateY(0)' : 'translateY(100%)',
-            transition: 'transform 320ms cubic-bezier(0.34,1.15,0.64,1)',
-          }}>
-            {/* Handle */}
-            <div style={{ width: 36, height: 4, background: 'rgba(128,128,128,0.25)', borderRadius: 9999, margin: '10px auto 28px' }} />
-
-            <p style={{ fontSize: 19, fontWeight: 800, color: 'var(--c-text-primary)', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
-              Open in…
-            </p>
-            <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '0 0 24px', fontWeight: 500 }}>
-              Choose where you'd like to use Studio
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <PopupOption
-                icon="music_note"
-                label="Chordex only"
-                desc="Start directly in the chord library"
-                accentFrom={accent.from}
-                accentTo={accent.to}
-                onClick={() => launch('chords', 'chords')}
-              />
-              <PopupOption
-                icon="drum"
-                label="Drumex only"
-                desc="Start directly in the drum editor"
-                accentFrom={accent.from}
-                accentTo={accent.to}
-                onClick={() => launch('drums', 'drums')}
-              />
-              <PopupOption
-                icon="apps"
-                label="Everywhere"
-                desc="Use both — keep this hub as home"
-                accentFrom={accent.from}
-                accentTo={accent.to}
-                primary
-                onClick={() => launch(popup, 'hub')}
-              />
-            </div>
-
-            <button
-              onClick={closePopup}
-              style={{
-                marginTop: 16, width: '100%', padding: '14px',
-                background: 'transparent',
-                border: '1px solid rgba(128,128,128,0.15)',
-                borderRadius: 16, color: 'var(--c-text-secondary)',
-                fontSize: 14, fontWeight: 600, fontFamily: 'Manrope',
-                cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -282,61 +219,6 @@ function AppRow({
       <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0, opacity: 0.5 }}>
         chevron_right
       </span>
-    </button>
-  );
-}
-
-// ── Popup option row ──────────────────────────────────────────────────────────
-function PopupOption({
-  icon, label, desc, accentFrom, accentTo, primary, onClick,
-}: {
-  icon: string;
-  label: string;
-  desc: string;
-  accentFrom: string;
-  accentTo: string;
-  primary?: boolean;
-  onClick: () => void;
-}) {
-  const [pressed, setPressed] = useState(false);
-
-  return (
-    <button
-      onClick={onClick}
-      onPointerDown={() => setPressed(true)}
-      onPointerUp={() => setPressed(false)}
-      onPointerLeave={() => setPressed(false)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 14,
-        padding: '16px 18px',
-        background: primary
-          ? `linear-gradient(135deg, ${accentFrom}22, ${accentTo}22)`
-          : 'rgba(128,128,128,0.08)',
-        border: primary ? `1px solid ${accentFrom}44` : '1px solid transparent',
-        borderRadius: 18,
-        cursor: 'pointer', textAlign: 'left', width: '100%',
-        transform: pressed ? 'scale(0.98)' : 'scale(1)',
-        transition: 'transform 120ms cubic-bezier(0.34,1.15,0.64,1)',
-      }}
-    >
-      <div style={{
-        width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: primary ? `linear-gradient(135deg, ${accentFrom}, ${accentTo})` : 'rgba(128,128,128,0.12)',
-      }}>
-        <span className="material-symbols-outlined" style={{
-          fontSize: 20,
-          color: primary ? 'white' : 'var(--c-text-secondary)',
-        }}>{icon}</span>
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0, fontFamily: 'Manrope', letterSpacing: '-0.01em' }}>
-          {label}
-        </p>
-        <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '2px 0 0', fontWeight: 500 }}>
-          {desc}
-        </p>
-      </div>
     </button>
   );
 }
