@@ -1165,9 +1165,10 @@ export default function DrumEditor() {
   const [flashBarId,    setFlashBarId]    = useState<string | null>(null); // brief highlight on paste
 
   // ── Quick mixer sheet + export modal + import modal ──────────────────────
-  const [showMixerSheet,  setShowMixerSheet]  = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [showImportDrum,  setShowImportDrum]  = useState(false);
+  const [showMixerSheet,    setShowMixerSheet]    = useState(false);
+  const [showExportModal,   setShowExportModal]   = useState(false);
+  const [showImportDrum,    setShowImportDrum]    = useState(false);
+  const [showClearConfirm,  setShowClearConfirm]  = useState(false);
 
   // ── Groove Library state ──────────────────────────────────────────────────
   const [grooveFilter,     setGrooveFilter]     = useState<GrooveTag>('');
@@ -1557,11 +1558,11 @@ export default function DrumEditor() {
               {/* Undo / Redo */}
               <button onClick={handleUndo} disabled={historyCount === 0} title="Undo (Ctrl+Z)"
                 style={{ height: 30, width: 30, borderRadius: 8, background: historyCount > 0 ? 'rgba(128,128,128,0.08)' : 'transparent', border: `1px solid ${historyCount > 0 ? 'rgba(128,128,128,0.18)' : 'transparent'}`, cursor: historyCount > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: historyCount > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: historyCount > 0 ? 1 : 0.35, flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M3 13C5.2 6.5 11.3 4 16 4a9 9 0 0 1 0 18c-4 0-7.4-2-9-5"/></svg>
+                <span className="material-symbols-outlined" style={{ fontSize: 17, lineHeight: 1 }}>undo</span>
               </button>
               <button onClick={handleRedo} disabled={redoStack.current.length === 0} title="Redo (Ctrl+Y)"
                 style={{ height: 30, width: 30, borderRadius: 8, background: redoStack.current.length > 0 ? 'rgba(128,128,128,0.08)' : 'transparent', border: `1px solid ${redoStack.current.length > 0 ? 'rgba(128,128,128,0.18)' : 'transparent'}`, cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35, flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7v6h-6"/><path d="M21 13C18.8 6.5 12.7 4 8 4a9 9 0 0 0 0 18c4 0 7.4-2 9-5"/></svg>
+                <span className="material-symbols-outlined" style={{ fontSize: 17, lineHeight: 1 }}>redo</span>
               </button>
               {/* EQ / quick-mixer button */}
               <button onClick={() => setShowMixerSheet(s => !s)} title="Mixer"
@@ -1736,7 +1737,7 @@ export default function DrumEditor() {
               style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', paddingTop: 8, paddingBottom: 100, position: 'relative' }}
               className="no-scrollbar"
             >
-              <div ref={playheadRef} style={{ position: 'absolute', top: 8, left: 0, width: 2, height: visibleInsts.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'none', borderRadius: 1 }} />
+              <div ref={playheadRef} style={{ position: 'absolute', top: 8 + RULER_H, left: 0, width: 2, height: visibleInsts.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'none', borderRadius: 1 }} />
               {systemRows.map((rowMeasures, sysIdx) => {
                 const mStartIdx = sysIdx * measuresPerRow;
                 return (
@@ -1833,10 +1834,24 @@ export default function DrumEditor() {
             {/* BPM + Play */}
             <div style={{ position: 'fixed', right: 14, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)', zIndex: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               {/* Clear button — black bg, red trash icon */}
-              <button onClick={handleClear} title="Clear pattern" className="btn-smooth"
-                style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: isAmoled ? 'rgba(4,4,4,0.92)' : 'rgba(14,14,16,0.88)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 2px 12px rgba(0,0,0,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: '1.5px solid rgba(255,255,255,0.08)' }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-              </button>
+              <div style={{ position: 'relative' }}>
+                {showClearConfirm && (
+                  <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', right: 0, background: isAmoled ? 'rgba(4,4,4,0.98)' : (isLight ? 'rgba(250,250,252,0.98)' : 'rgba(18,18,22,0.98)'), border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: '12px 14px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', minWidth: 190, animation: 'drumHamburgerIn 150ms cubic-bezier(0.22,1,0.36,1)', zIndex: 80 }}>
+                    <p style={{ margin: '0 0 10px', fontSize: 12.5, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', lineHeight: 1.4 }}>Clear all hits?</p>
+                    <p style={{ margin: '0 0 12px', fontSize: 11, color: 'var(--c-text-muted)', lineHeight: 1.4 }}>This will erase every note in this pattern. You can undo after.</p>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => setShowClearConfirm(false)} className="btn-smooth"
+                        style={{ flex: 1, padding: '7px 0', borderRadius: 9, background: 'rgba(128,128,128,0.12)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>Cancel</button>
+                      <button onClick={() => { handleClear(); setShowClearConfirm(false); }} className="btn-smooth"
+                        style={{ flex: 1, padding: '7px 0', borderRadius: 9, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#f87171', fontFamily: 'Manrope,sans-serif' }}>Clear</button>
+                    </div>
+                  </div>
+                )}
+                <button onClick={() => setShowClearConfirm(s => !s)} title="Clear pattern" className="btn-smooth"
+                  style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: showClearConfirm ? 'rgba(239,68,68,0.18)' : (isAmoled ? 'rgba(4,4,4,0.92)' : 'rgba(14,14,16,0.88)'), backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: showClearConfirm ? '0 2px 12px rgba(239,68,68,0.3)' : '0 2px 12px rgba(0,0,0,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: showClearConfirm ? '1.5px solid rgba(239,68,68,0.4)' : '1.5px solid rgba(255,255,255,0.08)', transition: 'all 160ms' }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+              </div>
               <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 {showBpmPanel && (
                   <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', right: 0, background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.96)' : 'rgba(18,18,22,0.96)'), border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)', borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.50)', whiteSpace: 'nowrap', animation: 'drumHamburgerIn 160ms cubic-bezier(0.22,1,0.36,1)' }}>
