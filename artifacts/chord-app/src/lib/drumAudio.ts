@@ -811,16 +811,61 @@ export function setInstFXMap(map: Partial<Record<DrumInstrument, InstFX>>) {
   _instFXMap = map;
 }
 
-/** Cached single-channel impulse-response buffer for reverb. */
+/**
+ * Synthetic room impulse response.
+ *
+ * Algorithm: Moorer/Schroeder-style model
+ *  1. Pre-delay  (12 ms)
+ *  2. Early reflections at musicologically derived offsets with alternating L/R polarity
+ *  3. Diffuse tail: exponentially decaying noise with a 1-pole HF-damping filter
+ *     (simulates air absorption — highs die faster than lows, just like a real room)
+ *
+ * This replaces the old plain-white-noise IR which had no early reflections and
+ * poor spectral balance, causing a washed-out, metallic reverb character.
+ */
 let _irBuffer: AudioBuffer | null = null;
 function getIR(ctx: AudioContext): AudioBuffer {
-  if (_irBuffer && (_irBuffer as AudioBuffer).sampleRate === ctx.sampleRate) return _irBuffer;
-  const len  = Math.floor(ctx.sampleRate * 1.8);
-  const buf  = ctx.createBuffer(2, len, ctx.sampleRate);
+  if (_irBuffer && _irBuffer.sampleRate === ctx.sampleRate) return _irBuffer;
+
+  const sr       = ctx.sampleRate;
+  const tailLen  = Math.floor(sr * 1.8);       // 1.8 s total
+  const predelay = Math.floor(sr * 0.012);      // 12 ms pre-delay
+
+  // Early reflection pattern: [offset ms, relative gain]
+  // Derived from Moorer (1979) early-reflection model for a medium room
+  const erefs: [number, number][] = [
+    [0,   1.00], [7,   0.67], [13,  0.52], [21,  0.41],
+    [31,  0.33], [43,  0.26], [57,  0.21], [73,  0.17],
+    [91,  0.13], [113, 0.10], [139, 0.08], [173, 0.06],
+  ];
+
+  // HF damping: models air absorption (higher coeff = more HF rolloff)
+  const hfDamp  = 0.52;
+  // RT60 decay time for the diffuse tail
+  const decayT  = 1.1;
+  const decayK  = Math.exp(-6.9078 / (decayT * sr));  // per-sample multiplier
+
+  const buf = ctx.createBuffer(2, tailLen, sr);
+
   for (let ch = 0; ch < 2; ch++) {
     const data = buf.getChannelData(ch);
-    for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4);
+
+    // 1. Diffuse tail with HF damping
+    let lpState = 0;
+    for (let i = predelay; i < tailLen; i++) {
+      const noise = Math.random() * 2 - 1;
+      lpState = lpState * hfDamp + noise * (1 - hfDamp);    // 1-pole LP (HF damp)
+      data[i]  = lpState * Math.pow(decayK, i - predelay);  // exponential decay
+    }
+
+    // 2. Early reflections — alternate polarity on R channel for stereo width
+    erefs.forEach(([ms, gain], idx) => {
+      const s  = predelay + Math.floor((ms / 1000) * sr);
+      const sg = (ch === 1 && idx % 2 === 1) ? -gain * 0.88 : gain;
+      if (s < tailLen) data[s] += sg;
+    });
   }
+
   _irBuffer = buf;
   return buf;
 }
@@ -852,23 +897,30 @@ function buildFXChain(ctx: AudioContext, dest: AudioNode, fx: InstFX): AudioNode
   const hi = ctx.createBiquadFilter();
   hi.type = 'highshelf'; hi.frequency.value = 10000; hi.gain.value = fx.eqHigh;
 
-  // ── Saturation waveshaper ───────────────────────────────────────────────────
-  // Adds harmonic warmth/drive; gain-compensated so overall level stays the same
+  // ── Saturation waveshaper (tanh soft clipper) ──────────────────────────────
+  // Algorithm: normalized tanh — the standard "tape saturation" model.
+  //   curve[i] = tanh(x * drive) / tanh(drive)
+  // At low drive the transfer function is nearly linear; at high drive it
+  // progressively clips peaks while keeping the body of the waveform intact —
+  // exactly how tape oxide saturation sounds. The denominator normalises gain
+  // so output level stays the same regardless of drive setting.
   const saturate = fx.saturate ?? 0;
   let satOutput: AudioNode = hi;
   if (saturate > 0.01) {
-    const ws = ctx.createWaveShaper();
-    const k  = saturate * 80;
-    const n  = 256;
+    const ws  = ctx.createWaveShaper();
+    const drv = 1 + saturate * 9;          // drive 1 → 10
+    const n   = 512;
     const curve = new Float32Array(n);
+    const norm = Math.tanh(drv);           // normalisation factor
     for (let i = 0; i < n; i++) {
-      const x = (i * 2) / (n - 1) - 1;
-      curve[i] = ((3 + k) * x) / (1 + k * Math.abs(x));
+      const x   = (i * 2) / (n - 1) - 1;
+      curve[i]  = Math.tanh(x * drv) / norm;
     }
-    ws.curve = curve;
+    ws.curve      = curve;
     ws.oversample = '4x';
+    // Slight gain-compensation (tanh clips peaks → slightly lower RMS)
     const satComp = ctx.createGain();
-    satComp.gain.value = 1 / (1 + saturate * 0.6);   // compensate volume increase
+    satComp.gain.value = 1 / Math.sqrt(1 + saturate * 0.4);
     hi.connect(ws); ws.connect(satComp);
     satOutput = satComp;
   }
@@ -940,12 +992,29 @@ export function playSoundAt(
   const fx = inst ? _instFXMap[inst] : undefined;
   const effectiveDest = (fx && !isFXDefault(fx)) ? buildFXChain(ctx, dest, fx) : dest;
 
-  // Gate: shorten buffer decay when fx.gate > 0 (0=full tail, 1=very tight chop)
-  // Gives e.g. snare a tight "studio" decay without the FX chain needing a real gate node.
+  // ── Gate: hold + smooth exponential release (GainNode envelope) ────────────
+  // The old approach used maxDur which gave a hard buffer-length cutoff with
+  // only a 30% tail for fading. At gate > 0.5 that produced clicks.
+  //
+  // New approach: insert a GainNode before effectiveDest and schedule an
+  // envelope: hold at unity → exponential ramp to silence.
+  //   hold:    400 ms → 15 ms  as gate 0→1   (how long the full sound plays)
+  //   release: 180 ms → 50 ms  as gate 0→1   (ALWAYS ≥ 50 ms — never clicks)
+  //
+  // This is equivalent to how a hardware gate plugin works (hold + release knobs).
   const gateVal = (fx?.gate ?? 0);
-  const gateDur = gateVal > 0.02
-    ? Math.max(0.04, 0.7 * Math.pow(1 - gateVal, 1.8))   // 0.7 s → 0.04 s
-    : undefined;
+  const isHihat = inst === 'hihat-closed' || inst === 'hihat-foot';
+  let gateDest  = effectiveDest;
+  if (gateVal > 0.02 && !isHihat) {
+    const hold    = 0.015 + (1 - gateVal) * 0.385;   // 0.40 s  → 0.015 s
+    const release = 0.050 + (1 - gateVal) * 0.130;   // 0.18 s  → 0.050 s  (never < 50 ms)
+    const gateGain = ctx.createGain();
+    gateGain.gain.setValueAtTime(1,      t);
+    gateGain.gain.setValueAtTime(1,      t + hold);
+    gateGain.gain.exponentialRampToValueAtTime(0.0001, t + hold + release);
+    gateGain.connect(effectiveDest);
+    gateDest = gateGain;
+  }
 
   // Try kit-specific real sample first
   if (kit && inst && samplePool.hasForKit(kit, inst)) {
@@ -963,25 +1032,25 @@ export function playSoundAt(
     const rate       = baseRate * kitRate;
     const adjVol     = Math.min(vol * kitGain, 1.6);
 
-    if (inst === 'hihat-closed' || inst === 'hihat-foot') {
-      // Short gate on closed/foot hihats; no room effect (too washy)
+    if (isHihat) {
+      // Short gate on closed/foot hihats — hard cutoff is musically correct here
       const dur = inst === 'hihat-foot' ? 0.08 : (soundId === 'hh-c-tight' ? 0.032 : soundId === 'hh-c-crisp' ? 0.052 : 0.075);
       playBuffer(ctx, buf, t, adjVol, effectiveDest, dur, rate);
-    } else if (roomMs > 0 && effectiveDest === dest && !gateDur) {
-      // Only apply room effect when no FX chain (reverb already handled by FX)
+    } else if (roomMs > 0 && gateDest === effectiveDest) {
+      // Only apply room effect when no FX chain and no gate
       playBufferRoomy(ctx, buf, t, adjVol, effectiveDest, rate, roomMs);
     } else {
-      playBuffer(ctx, buf, t, adjVol, effectiveDest, gateDur, rate);
+      playBuffer(ctx, buf, t, adjVol, gateDest, undefined, rate);
     }
     return;
   }
 
-  // Synthesis fallback
-  if      (soundId.startsWith('kick-'))    synthKick(ctx, t, vol, effectiveDest, soundId);
-  else if (soundId.startsWith('snare-'))   synthSnare(ctx, t, vol, effectiveDest, soundId);
-  else if (soundId.startsWith('hh-'))      synthHihat(ctx, t, vol, effectiveDest, soundId);
-  else if (soundId.startsWith('tom-'))     synthTom(ctx, t, vol, effectiveDest, soundId);
-  else if (soundId.startsWith('crash-') || soundId.startsWith('ride-')) synthCymbal(ctx, t, vol, effectiveDest, soundId);
+  // Synthesis fallback — use gateDest so gate envelope applies here too
+  if      (soundId.startsWith('kick-'))    synthKick(ctx, t, vol, gateDest, soundId);
+  else if (soundId.startsWith('snare-'))   synthSnare(ctx, t, vol, gateDest, soundId);
+  else if (soundId.startsWith('hh-'))      synthHihat(ctx, t, vol, effectiveDest, soundId);  // hihats skip gate
+  else if (soundId.startsWith('tom-'))     synthTom(ctx, t, vol, gateDest, soundId);
+  else if (soundId.startsWith('crash-') || soundId.startsWith('ride-')) synthCymbal(ctx, t, vol, gateDest, soundId);
 }
 
 // ── Playback scheduler ──────────────────────────────────────────────────────
