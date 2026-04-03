@@ -999,12 +999,10 @@ export default function DrumEditor() {
                 style={{ height: 30, width: 30, borderRadius: 8, background: showMixerSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showMixerSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showMixerSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
               </button>
-              <button onClick={handleClear} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(128,128,128,0.18)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>Clear</button>
-              <button onClick={handleOpenSaveForm} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: activeDrumSongId ? `linear-gradient(135deg,${accent.from}22,${accent.to}18)` : 'rgba(128,128,128,0.08)', border: `1px solid ${activeDrumSongId ? accent.from + '44' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: activeDrumSongId ? accent.from : 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <button onClick={handleOpenSaveForm} style={{ height: 30, padding: '0 14px', borderRadius: 8, background: activeDrumSongId ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.08)', border: `1px solid ${activeDrumSongId ? accent.from + '44' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: activeDrumSongId ? '#fff' : 'var(--c-text-secondary)', fontSize: 12, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                 Save
               </button>
-              <button onClick={toggleSub} style={{ height: 30, padding: '0 10px', borderRadius: 8, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 10, fontWeight: 800, flexShrink: 0 }}>1/{pattern.subdivision}</button>
               <button onClick={() => setShowHamburger(h => !h)} style={{ height: 30, width: 38, borderRadius: 8, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}>
                 {[0, 1, 2].map(i => <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />)}
               </button>
@@ -1042,6 +1040,11 @@ export default function DrumEditor() {
                 style={{ flex: 1, height: 34, borderRadius: 9, background: `${accent.from}14`, border: `1px solid ${accent.from}33`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export
+              </button>
+              <button onClick={() => { handleClear(); setShowHamburger(false); }}
+                style={{ height: 34, padding: '0 16px', borderRadius: 9, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.22)', cursor: 'pointer', color: '#ef4444', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                Clear
               </button>
             </div>
           </div>
