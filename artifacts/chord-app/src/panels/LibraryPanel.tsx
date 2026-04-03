@@ -213,10 +213,11 @@ function BigInstrumentDecor({ instrument, accentFrom }: { instrument: string; ac
 
 // ── Mini fretboard preview (faded, for category tiles) ──
 type MiniBarre = { fret: number; fromString: number; toString: number };
-function MiniChordPreview({ frets, baseFret = 1, barres = [] }: {
+function MiniChordPreview({ frets, baseFret = 1, barres = [], isDark = true }: {
   frets: number[];
   baseFret?: number;
   barres?: MiniBarre[];
+  isDark?: boolean;
 }) {
   const W = 56, H = 62;
   const n = Math.min(frets.length, 6);
@@ -230,20 +231,23 @@ function MiniChordPreview({ frets, baseFret = 1, barres = [] }: {
   const base = baseFret > 1 ? baseFret : Math.max(1, minActive);
   const isOpenPosition = base <= 1;
 
+  // Flip colours to dark on light theme so the diagram is visible
+  const c = isDark ? '255,255,255' : '0,0,0';
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Nut / top line */}
       <line x1={padL} y1={padT} x2={W - padR} y2={padT}
-        stroke="rgba(255,255,255,0.65)" strokeWidth={isOpenPosition ? 3 : 1.2} strokeLinecap="round" />
+        stroke={`rgba(${c},0.65)`} strokeWidth={isOpenPosition ? 3 : 1.2} strokeLinecap="round" />
       {/* Fret lines */}
       {Array.from({ length: fretCount }).map((_, i) => (
         <line key={i} x1={padL} y1={padT + (i + 1) * fh} x2={W - padR} y2={padT + (i + 1) * fh}
-          stroke="rgba(255,255,255,0.22)" strokeWidth={0.8} />
+          stroke={`rgba(${c},0.22)`} strokeWidth={0.8} />
       ))}
       {/* String lines */}
       {Array.from({ length: n }).map((_, i) => (
         <line key={i} x1={padL + i * fw} y1={padT} x2={padL + i * fw} y2={padT + fretCount * fh}
-          stroke="rgba(255,255,255,0.28)" strokeWidth={i === 0 || i === n - 1 ? 1 : 0.65} />
+          stroke={`rgba(${c},0.28)`} strokeWidth={i === 0 || i === n - 1 ? 1 : 0.65} />
       ))}
       {/* Barre bars */}
       {barres.map((b, bi) => {
@@ -256,7 +260,7 @@ function MiniChordPreview({ frets, baseFret = 1, barres = [] }: {
           <rect key={`b${bi}`}
             x={Math.min(x1, x2)} y={cy - r}
             width={Math.abs(x2 - x1)} height={r * 2}
-            rx={r} fill="rgba(255,255,255,0.80)"
+            rx={r} fill={`rgba(${c},0.80)`}
           />
         );
       })}
@@ -269,18 +273,18 @@ function MiniChordPreview({ frets, baseFret = 1, barres = [] }: {
           b.fret === fret && i >= b.toString - 1 && i <= b.fromString - 1
         );
         if (coveredByBarre) return null;
-        return <circle key={i} cx={padL + i * fw} cy={padT + (d - 0.5) * fh} r={r} fill="rgba(255,255,255,0.80)" />;
+        return <circle key={i} cx={padL + i * fw} cy={padT + (d - 0.5) * fh} r={r} fill={`rgba(${c},0.80)`} />;
       })}
       {/* Open / mute indicators above nut */}
       {frets.slice(0, n).map((fret, i) => {
         const cx = padL + i * fw;
-        if (fret === 0) return <circle key={i} cx={cx} cy={padT - 5.5} r={2.2} stroke="rgba(255,255,255,0.42)" strokeWidth={0.9} fill="none" />;
+        if (fret === 0) return <circle key={i} cx={cx} cy={padT - 5.5} r={2.2} stroke={`rgba(${c},0.42)`} strokeWidth={0.9} fill="none" />;
         if (fret === -1) {
           const dd = 1.8;
           return (
             <g key={i}>
-              <line x1={cx - dd} y1={padT - 7 - dd} x2={cx + dd} y2={padT - 7 + dd} stroke="rgba(255,255,255,0.30)" strokeWidth={1} />
-              <line x1={cx + dd} y1={padT - 7 - dd} x2={cx - dd} y2={padT - 7 + dd} stroke="rgba(255,255,255,0.30)" strokeWidth={1} />
+              <line x1={cx - dd} y1={padT - 7 - dd} x2={cx + dd} y2={padT - 7 + dd} stroke={`rgba(${c},0.30)`} strokeWidth={1} />
+              <line x1={cx + dd} y1={padT - 7 - dd} x2={cx - dd} y2={padT - 7 + dd} stroke={`rgba(${c},0.30)`} strokeWidth={1} />
             </g>
           );
         }
@@ -345,6 +349,9 @@ export default function LibraryPanel() {
   const { selectedChordId, recentChords, favorites, selectChord, settings, activePanel } = useChordStore();
   const accent = ACCENT_COLORS[settings.accentColor];
   const t = useT();
+  const isDark = settings.theme === 'dark' ||
+    (settings.theme === 'system' && typeof window !== 'undefined' &&
+     !window.matchMedia('(prefers-color-scheme: light)').matches);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
@@ -638,6 +645,7 @@ export default function LibraryPanel() {
                           frets={sampleChords[cat.type]!.guitar.frets}
                           baseFret={sampleChords[cat.type]!.guitar.baseFret}
                           barres={sampleChords[cat.type]!.guitar.barres}
+                          isDark={isDark}
                         />
                       </div>
                     )}
