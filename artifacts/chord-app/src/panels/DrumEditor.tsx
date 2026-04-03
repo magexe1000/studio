@@ -801,160 +801,221 @@ async function exportDrumSongPDF(
 }
 
 // ── DrumPaperPreview ────────────────────────────────────────────────────────
-function DrumPaperPreview({ patterns, song, cfg, accent }: {
+// Renders the same layout as exportDrumSongPDF but as a scaled-down SVG.
+// Uses the identical coordinate space (mm units, A3 landscape = 420×297)
+// so it looks exactly like the real PDF, just smaller.
+function DrumPaperPreview({ patterns, song, accent }: {
   patterns: DrumPattern[];
   song: DrumSong | null;
   cfg: DrumExportConfig;
   accent: { from: string; to: string };
 }) {
-  const dark  = cfg.theme === 'dark';
-  const ALL_I = CORE_INSTS as readonly DrumInstrument[];
+  // ── Same constants as exportDrumSongPDF ──────────────────────────────────
+  const PW = 420, PH = 297;
+  const ML = 10, MR = 10, MT = 12, MB = 10;
+  const LABEL_COL  = 30;
+  const GRID_W     = PW - ML - MR - LABEL_COL;   // 370
+  const ROW_H      = 8.5;
+  const SYS_GAP    = 6;
+  const PAT_GAP    = 12;
+  const HDR_H      = 22;
+  const NR         = 1.35;
+  const BARS_PER_ROW = 4;
+  const PAT_HDR    = 9;
 
-  const bg       = dark ? '#0d0d0f' : '#f8f8fc';
-  const sub      = dark ? '#555'    : '#999';
-  const cellA    = dark ? '#16161e' : '#e8e8f0';
-  const cellB    = dark ? '#1c1c26' : '#dcdcea';
-  const divLine  = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.10)';
-  const beatDiv  = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.16)';
-  const barDiv   = dark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.24)';
+  // ── Same palette as the PDF dark theme ───────────────────────────────────
+  const BG     = '#111117';
+  const LBG    = '#16161e';
+  const CELL_A = '#16161e';
+  const CELL_B = '#1c1c26';
+  const C_ROW  = '#262634';
+  const C_BEAT = '#373748';
+  const C_BAR  = '#4b4b5f';
+  const C_NOTE = '#e6e6f0';
+  const C_TXT  = '#d2d2dc';
+  const C_SUB  = '#6e6e80';
 
-  const ROW_PX = 8; // preview row height in px
-  const previewPats = patterns.slice(0, 2);
+  // ── Build SVG elements ───────────────────────────────────────────────────
+  const elems: React.ReactNode[] = [];
+  let key = 0;
+  const k = () => key++;
+
+  // Background
+  elems.push(<rect key={k()} x={0} y={0} width={PW} height={PH} fill={BG} />);
+
+  // Header: accent bar + title
+  const title  = song?.name ?? 'Drum Sheet';
+  const artist = song?.artist ?? '';
+  elems.push(<rect key={k()} x={ML} y={MT + 2} width={3.5} height={14} fill={accent.from} rx={0.5} />);
+  elems.push(<text key={k()} x={ML + 9} y={MT + 12} fontFamily="Helvetica" fontWeight="bold"
+    fontSize={20} fill={C_TXT}>{title.toUpperCase()}</text>);
+  if (artist) {
+    elems.push(<text key={k()} x={ML + 9} y={MT + 18} fontFamily="Helvetica" fontSize={10} fill={C_SUB}>{artist}</text>);
+  }
+  elems.push(<line key={k()} x1={ML} y1={MT + HDR_H - 1} x2={PW - MR} y2={MT + HDR_H - 1}
+    stroke={accent.from} strokeWidth={0.4} />);
+
+  let curY = MT + HDR_H;
+
+  for (let patIdx = 0; patIdx < patterns.length; patIdx++) {
+    const pat  = patterns[patIdx];
+    const subs = pat.subdivision ?? 16;
+    const [timN, timD] = pat.timeSignature ?? [4, 4];
+    const stepsPerBeat = subs / timN;
+
+    const allInsts: DrumInstrument[] = DRUM_INSTRUMENTS.filter((i: DrumInstrument) =>
+      !(pat.mutedInstruments ?? []).includes(i) &&
+      pat.measures.some((m: DrumMeasure) => (m.hits[i]?.length ?? 0) > 0)
+    );
+    if (allInsts.length === 0) continue;
+
+    const SYS_H = allInsts.length * ROW_H;
+    const barsPerRow = Math.min(pat.measures.length, BARS_PER_ROW);
+    const CELL = GRID_W / (barsPerRow * subs);
+
+    // Pattern header bar
+    if (curY + PAT_HDR + SYS_H > PH - MB) break; // no room — stop
+    elems.push(<rect key={k()} x={ML} y={curY} width={PW - ML - MR} height={PAT_HDR - 1} fill={accent.from} />);
+    elems.push(<text key={k()} x={ML + LABEL_COL + 3} y={curY + 6.5} fontFamily="Helvetica" fontWeight="bold"
+      fontSize={9} fill="#ffffff">{pat.name}</text>);
+    elems.push(<text key={k()} x={ML + LABEL_COL + 3 + pat.name.length * 5.2} y={curY + 6.5}
+      fontFamily="Helvetica" fontSize={7.5} fill="#ffffff">
+      {`   ♩ = ${pat.bpm}   ${timN}/${timD}   1/${subs}`}
+    </text>);
+    curY += PAT_HDR;
+
+    // ── Systems ────────────────────────────────────────────────────────────
+    for (let rowStart = 0; rowStart < pat.measures.length; rowStart += barsPerRow) {
+      if (curY + SYS_H + 4 > PH - MB) break;
+
+      const rowBars  = pat.measures.slice(rowStart, rowStart + barsPerRow);
+      const gridLeft = ML + LABEL_COL;
+
+      // Background cells — full width (including ghost bars for short last row)
+      for (let ri = 0; ri < allInsts.length; ri++) {
+        const rowTop = curY + ri * ROW_H;
+        for (let bi = 0; bi < barsPerRow; bi++) {
+          for (let s = 0; s < subs; s++) {
+            const beat = Math.floor(s / stepsPerBeat);
+            const bg2  = beat % 2 === 0 ? CELL_A : CELL_B;
+            elems.push(<rect key={k()} x={gridLeft + (bi * subs + s) * CELL} y={rowTop}
+              width={CELL} height={ROW_H} fill={bg2} />);
+          }
+        }
+      }
+
+      // Label column
+      elems.push(<rect key={k()} x={ML} y={curY} width={LABEL_COL} height={SYS_H} fill={LBG} />);
+      for (let ri = 0; ri < allInsts.length; ri++) {
+        const inst   = allInsts[ri];
+        const rowTop = curY + ri * ROW_H;
+        const color  = INSTRUMENT_COLOR[inst as DrumInstrument] ?? accent.from;
+        elems.push(<rect key={k()} x={ML + 2} y={rowTop + ROW_H * 0.22} width={2.5} height={ROW_H * 0.56}
+          fill={color} rx={0.5} />);
+        elems.push(<text key={k()} x={ML + 6.5} y={rowTop + ROW_H * 0.60}
+          fontFamily="Helvetica" fontWeight="bold" fontSize={6} fill={C_TXT}
+          dominantBaseline="middle">
+          {INST_LABEL[inst as DrumInstrument] ?? inst}
+        </text>);
+        if (ri > 0) {
+          elems.push(<line key={k()} x1={ML} y1={rowTop} x2={ML + LABEL_COL + GRID_W} y2={rowTop}
+            stroke={C_ROW} strokeWidth={0.22} />);
+        }
+      }
+
+      // Grid lines: subdivisions, beats, bars
+      for (let bi = 0; bi < barsPerRow; bi++) {
+        for (let s = 1; s < subs; s++) {
+          const lx = gridLeft + (bi * subs + s) * CELL;
+          const isBeat = s % stepsPerBeat === 0;
+          elems.push(<line key={k()} x1={lx} y1={curY} x2={lx} y2={curY + SYS_H}
+            stroke={isBeat ? C_BEAT : C_ROW} strokeWidth={isBeat ? 0.32 : 0.14} />);
+        }
+      }
+      for (let bi = 0; bi <= barsPerRow; bi++) {
+        const bx = gridLeft + bi * subs * CELL;
+        const thick = bi === 0 || bi === barsPerRow;
+        elems.push(<line key={k()} x1={bx} y1={curY} x2={bx} y2={curY + SYS_H}
+          stroke={C_BAR} strokeWidth={thick ? 0.6 : 0.45} />);
+        if (bi < rowBars.length) {
+          elems.push(<text key={k()} x={bx + 1.2} y={curY - 1.2} fontFamily="Helvetica"
+            fontSize={5.5} fill={C_SUB}>{rowStart + bi + 1}</text>);
+        }
+      }
+      // Top/bottom borders
+      elems.push(<line key={k()} x1={ML} y1={curY} x2={ML + LABEL_COL + GRID_W} y2={curY}
+        stroke={C_BAR} strokeWidth={0.5} />);
+      elems.push(<line key={k()} x1={ML} y1={curY + SYS_H} x2={ML + LABEL_COL + GRID_W} y2={curY + SYS_H}
+        stroke={C_BAR} strokeWidth={0.5} />);
+
+      // Notes
+      for (let ri = 0; ri < allInsts.length; ri++) {
+        const inst   = allInsts[ri];
+        const rowTop = curY + ri * ROW_H;
+        const cy     = rowTop + ROW_H / 2;
+        const isCym  = !!IS_CYMBAL[inst as DrumInstrument];
+        const stemDn = !!STEM_DOWN[inst as DrumInstrument];
+
+        for (let bi = 0; bi < rowBars.length; bi++) {
+          for (const hit of (rowBars[bi].hits[inst as DrumInstrument] ?? [])) {
+            const cx  = gridLeft + (bi * subs + hit.step + 0.5) * CELL;
+            const sx  = cx + (stemDn ? -NR : NR) * 0.9;
+            const sy1 = cy + (stemDn ? NR : -NR) * 0.38;
+            const sy2 = stemDn ? rowTop + ROW_H - 0.8 : rowTop + 0.8;
+            // Stem
+            elems.push(<line key={k()} x1={sx} y1={sy1} x2={sx} y2={sy2}
+              stroke={C_NOTE} strokeWidth={0.38} />);
+            // Head
+            if (isCym) {
+              const d = NR * 0.9;
+              elems.push(<line key={k()} x1={cx - d} y1={cy - d} x2={cx + d} y2={cy + d}
+                stroke={C_NOTE} strokeWidth={0.85} />);
+              elems.push(<line key={k()} x1={cx - d} y1={cy + d} x2={cx + d} y2={cy - d}
+                stroke={C_NOTE} strokeWidth={0.85} />);
+              if (hit.variation === 'open' || inst === 'hihat-open') {
+                elems.push(<ellipse key={k()} cx={cx} cy={cy - NR * 2.1}
+                  rx={NR * 0.85} ry={NR * 0.6}
+                  stroke={C_NOTE} strokeWidth={0.28} fill="none" />);
+              }
+              if (hit.variation === 'bell') {
+                elems.push(<ellipse key={k()} cx={cx} cy={cy}
+                  rx={NR * 0.45} ry={NR * 0.35} fill={C_NOTE} />);
+              }
+            } else {
+              const isGhost = hit.variation === 'ghost';
+              elems.push(<ellipse key={k()} cx={cx} cy={cy}
+                rx={NR * 1.25} ry={NR * 0.85}
+                stroke={C_NOTE} strokeWidth={0.38}
+                fill={isGhost ? 'none' : C_NOTE} />);
+              if (isGhost) {
+                elems.push(<text key={k()} x={cx - NR * 2.0} y={cy + NR * 1.0}
+                  fontSize={6.5} fill={C_NOTE} fontFamily="Helvetica">(</text>);
+                elems.push(<text key={k()} x={cx + NR * 0.85} y={cy + NR * 1.0}
+                  fontSize={6.5} fill={C_NOTE} fontFamily="Helvetica">)</text>);
+              }
+              if (hit.variation === 'accent') {
+                elems.push(<text key={k()} x={cx - NR * 0.4}
+                  y={stemDn ? cy + NR * 4.5 : cy - NR * 3.2}
+                  fontSize={6} fill={C_NOTE} fontFamily="Helvetica" fontWeight="bold">&gt;</text>);
+              }
+            }
+          }
+        }
+      }
+
+      curY += SYS_H + SYS_GAP;
+    }
+    if (patIdx < patterns.length - 1) curY += PAT_GAP - SYS_GAP;
+  }
 
   return (
-    <div style={{ background: bg, borderRadius: 10, overflow: 'hidden', width: '100%', aspectRatio: '1.414 / 1',
-      boxShadow: dark ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)' : '0 16px 48px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.07)',
-      transition: 'background 250ms, box-shadow 250ms' }}>
-
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px 10px', borderBottom: `1px solid ${divLine}` }}>
-        <div style={{ width: 3, height: 16, borderRadius: 2, background: accent.from, flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, color: accent.from, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {song?.name ?? 'Drumex Export'}
-          </p>
-          {song?.artist && <p style={{ margin: 0, fontFamily: 'Inter', fontSize: 7, color: sub, marginTop: 1 }}>{song.artist}</p>}
-        </div>
-      </div>
-
-      {/* Patterns */}
-      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
-        {previewPats.map(pat => {
-          const insts = ALL_I.filter(i => !(pat.mutedInstruments ?? []).includes(i));
-          const subs  = pat.subdivision ?? 16;
-          const previewMeasures = pat.measures.slice(0, 4); // show up to 4 bars in preview
-          return (
-            <div key={pat.id}>
-              <p style={{ margin: '0 0 4px', fontFamily: 'Manrope', fontWeight: 700, fontSize: 7, color: accent.from }}>
-                {pat.name} · {pat.bpm} BPM · 1/{subs}
-              </p>
-              {/* Grid: labels + measures */}
-              <div style={{ display: 'flex', gap: 3 }}>
-                {/* Labels */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
-                  {insts.map(inst => (
-                    <div key={inst} style={{ height: ROW_PX, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                      <span style={{ fontSize: 5, fontFamily: 'Manrope', fontWeight: 600, color: sub, whiteSpace: 'nowrap', paddingRight: 3 }}>
-                        {INST_LABEL[inst].split(' ')[0]}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                {/* Bars – SVG notation grid */}
-                <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
-                  {(() => {
-                    const totalBars = previewMeasures.length;
-                    const noteColor = dark ? '#e8e8f2' : '#18181e';
-                    const noteSteps = subs * totalBars;
-                    const CELL_PX = 3.5;
-                    const svgW = noteSteps * CELL_PX;
-                    const ROW_SVG = ROW_PX;
-                    const svgH = insts.length * ROW_SVG;
-                    return (
-                      <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}
-                        style={{ display: 'block', overflow: 'visible' }}>
-                        {/* Cells */}
-                        {insts.map((inst, ri) => {
-                          const rowY = ri * ROW_SVG;
-                          return Array.from({ length: noteSteps }, (_, gi) => {
-                            const bi = Math.floor(gi / subs);
-                            const si = gi % subs;
-                            const beat = Math.floor(si / 4);
-                            const bg2 = beat % 2 === 0 ? cellA : cellB;
-                            const hit = previewMeasures[bi]?.hits[inst]?.find?.((h: DrumHit) => h.step === si);
-                            return (
-                              <rect key={`${inst}-${gi}`} x={gi * CELL_PX} y={rowY}
-                                width={CELL_PX} height={ROW_SVG}
-                                fill={hit ? (INSTRUMENT_COLOR[inst] ?? accent.from) + '28' : bg2} />
-                            );
-                          });
-                        })}
-                        {/* Beat dividers */}
-                        {Array.from({ length: noteSteps + 1 }, (_, gi) => {
-                          const isBar = gi % subs === 0;
-                          const isBeat = gi % 4 === 0;
-                          return (
-                            <line key={`v-${gi}`} x1={gi * CELL_PX} y1={0} x2={gi * CELL_PX} y2={svgH}
-                              stroke={isBar ? barDiv : isBeat ? beatDiv : divLine}
-                              strokeWidth={isBar ? 0.8 : 0.4} />
-                          );
-                        })}
-                        {/* Row dividers */}
-                        {insts.map((_, ri) => ri > 0 && (
-                          <line key={`h-${ri}`} x1={0} y1={ri * ROW_SVG} x2={svgW} y2={ri * ROW_SVG}
-                            stroke={divLine} strokeWidth={0.4} />
-                        ))}
-                        {/* Note symbols */}
-                        {insts.map((inst, ri) => {
-                          const rowY = ri * ROW_SVG;
-                          const cy = rowY + ROW_SVG / 2;
-                          const isCym = IS_CYMBAL[inst];
-                          const stemDn = STEM_DOWN[inst];
-                          const NRpx = ROW_SVG * 0.28;
-                          return previewMeasures.map((meas, bi) =>
-                            (meas.hits[inst] ?? []).map((hit: DrumHit) => {
-                              const cx = (bi * subs + hit.step + 0.5) * CELL_PX;
-                              return (
-                                <g key={`${bi}-${hit.step}`} stroke={noteColor} fill={noteColor}>
-                                  {/* Stem */}
-                                  <line x1={cx + (stemDn ? -NRpx : NRpx) * 0.9}
-                                    y1={cy + (stemDn ? NRpx : -NRpx) * 0.3}
-                                    x2={cx + (stemDn ? -NRpx : NRpx) * 0.9}
-                                    y2={stemDn ? rowY + ROW_SVG - 0.4 : rowY + 0.4}
-                                    strokeWidth={0.5} />
-                                  {/* Head */}
-                                  {isCym ? (
-                                    <>
-                                      <line x1={cx - NRpx * 0.85} y1={cy - NRpx * 0.85} x2={cx + NRpx * 0.85} y2={cy + NRpx * 0.85} strokeWidth={0.7} />
-                                      <line x1={cx - NRpx * 0.85} y1={cy + NRpx * 0.85} x2={cx + NRpx * 0.85} y2={cy - NRpx * 0.85} strokeWidth={0.7} />
-                                    </>
-                                  ) : (
-                                    <ellipse cx={cx} cy={cy} rx={NRpx * 1.2} ry={NRpx * 0.82}
-                                      strokeWidth={0.4}
-                                      fill={hit.variation === 'ghost' ? 'none' : noteColor} />
-                                  )}
-                                </g>
-                              );
-                            })
-                          );
-                        })}
-                      </svg>
-                    );
-                  })()}
-                  {pat.measures.length > 4 && (
-                    <span style={{ fontSize: 5, color: sub, paddingLeft: 3 }}>+{pat.measures.length - 4}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        {patterns.length > 2 && (
-          <p style={{ margin: 0, fontFamily: 'Manrope', fontSize: 6, color: sub }}>
-            +{patterns.length - 2} more pattern{patterns.length - 2 > 1 ? 's' : ''}
-          </p>
-        )}
-      </div>
+    <div style={{ width: '100%', aspectRatio: `${PW} / ${PH}`,
+      borderRadius: 8, overflow: 'hidden',
+      boxShadow: '0 16px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)' }}>
+      <svg viewBox={`0 0 ${PW} ${PH}`} width="100%" height="100%"
+        style={{ display: 'block' }}>
+        {elems}
+      </svg>
     </div>
   );
 }
