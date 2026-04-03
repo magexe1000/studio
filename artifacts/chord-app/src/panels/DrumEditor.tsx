@@ -6,6 +6,7 @@ import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR,
   stepsPerMeasure, INST_VARIATIONS,
   type DrumInstrument, type KitType, type DrumSong, type DrumMeasure, type NoteVariation,
+  type DrumPattern,
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, KIT_DEFAULTS,
@@ -441,6 +442,139 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
   return <div style={{ margin: '0 16px 20px', background: 'var(--app-surface)', borderRadius: 14, border: '1px solid rgba(128,128,128,0.07)', overflow: 'hidden', ...style }}>{children}</div>;
 }
 
+// ── Export helpers ─────────────────────────────────────────────────────────
+function exportDrumSongJSON(patterns: DrumPattern[], song: DrumSong | null) {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    song: song ? { id: song.id, name: song.name, artist: song.artist, notes: song.notes } : null,
+    patterns: patterns.map(p => ({
+      id: p.id, name: p.name, bpm: p.bpm, subdivision: p.subdivision,
+      mutedInstruments: p.mutedInstruments ?? [],
+      measures: p.measures.map((m: DrumMeasure) => ({ id: m.id, hits: m.hits })),
+    })),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${song?.name ?? 'drumex'}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportDrumSongPDF(
+  patterns:  DrumPattern[],
+  song:      DrumSong | null,
+  accent:    { from: string; to: string },
+) {
+  const ALL_I = CORE_INSTS as readonly DrumInstrument[];
+  const HEX_TO_RGB = (hex: string): [number, number, number] => {
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const [ar, ag, ab] = HEX_TO_RGB(accent.from);
+
+  import('jspdf').then(({ jsPDF }) => {
+    const doc  = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const PW   = 297, PH = 210;
+    const MT   = 14, MB = 14, ML = 14, MR = 14;
+    const CELL = 6, LW = 32, ROW_H = 7, GAP = 4;
+
+    let page = 1;
+    const newPage = () => {
+      doc.addPage();
+      page++;
+      drawHeader(true);
+    };
+    const drawHeader = (cont: boolean) => {
+      doc.setFillColor(ar, ag, ab);
+      doc.rect(ML, MT, 3, 8, 'F');
+      doc.setFontSize(13).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
+      doc.text(song?.name ?? 'Drumex Export', ML + 6, MT + 6);
+      if (song?.artist) {
+        doc.setFontSize(9).setFont('helvetica', 'normal').setTextColor(100, 100, 100);
+        doc.text(song.artist, ML + 6 + doc.getTextWidth(song?.name ?? 'Drumex Export') + 4, MT + 6);
+      }
+      if (cont) {
+        doc.setFontSize(8).setTextColor(160, 160, 160);
+        doc.text('(continued)', PW - MR - 2, MT + 6, { align: 'right' });
+      }
+      doc.setFontSize(8).setTextColor(160, 160, 160);
+      doc.text(`Page ${page}`, PW - MR, PH - 6, { align: 'right' });
+    };
+
+    drawHeader(false);
+    let curY = MT + 14;
+
+    for (const pat of patterns) {
+      const subs  = pat.subdivision ?? 16;
+      const cols  = subs;
+      const insts = ALL_I.filter(i => !(pat.mutedInstruments ?? []).includes(i));
+      const patH  = insts.length * ROW_H + 12; // header row + rows
+
+      for (const [mi, meas] of pat.measures.entries()) {
+        const neededH = mi === 0 ? patH : insts.length * ROW_H + 4;
+        if (curY + neededH > PH - MB) newPage();
+
+        if (mi === 0) {
+          // Pattern title bar
+          doc.setFillColor(ar, ag, ab, 0.08);
+          doc.setFillColor(Math.min(255, ar + 50), Math.min(255, ag + 50), Math.min(255, ab + 50));
+          doc.setFontSize(8).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
+          doc.text(`${pat.name}  ·  ${pat.bpm} BPM  ·  1/${subs}`, ML, curY + 5);
+          curY += 9;
+        }
+
+        // Measure label
+        doc.setFontSize(7).setFont('helvetica', 'normal').setTextColor(130, 130, 130);
+        doc.text(`Bar ${mi + 1}`, ML, curY + 4);
+        const measX = ML + LW;
+
+        // Beat separators
+        for (let b = 0; b <= subs; b++) {
+          const isBeat = b % 4 === 0;
+          doc.setDrawColor(isBeat ? 160 : 220, isBeat ? 160 : 220, isBeat ? 160 : 220);
+          doc.setLineWidth(isBeat ? 0.4 : 0.2);
+          doc.line(measX + b * CELL, curY, measX + b * CELL, curY + insts.length * ROW_H);
+        }
+
+        for (const [ri, inst] of insts.entries()) {
+          const rowY   = curY + ri * ROW_H;
+          const color  = INSTRUMENT_COLOR[inst];
+          const [cr, cg, cb] = HEX_TO_RGB(color ?? accent.from);
+
+          // Label
+          doc.setFontSize(6).setFont('helvetica', 'normal').setTextColor(60, 60, 60);
+          doc.text(INST_LABEL[inst], ML + LW - 2, rowY + ROW_H / 2 + 2, { align: 'right' });
+
+          // Row bg
+          doc.setFillColor(ri % 2 === 0 ? 250 : 244, ri % 2 === 0 ? 250 : 244, ri % 2 === 0 ? 250 : 244);
+          doc.rect(measX, rowY, cols * CELL, ROW_H, 'F');
+
+          for (let s = 0; s < subs; s++) {
+            const active = meas.hits[inst]?.[s] ?? false;
+            if (active) {
+              doc.setFillColor(cr, cg, cb);
+              doc.rect(measX + s * CELL + 0.5, rowY + 1, CELL - 1, ROW_H - 2, 'F');
+            }
+          }
+          // Row border
+          doc.setDrawColor(225, 225, 225);
+          doc.setLineWidth(0.15);
+          doc.rect(measX, rowY, cols * CELL, ROW_H);
+        }
+
+        curY += insts.length * ROW_H + GAP;
+      }
+
+      curY += 8; // gap between patterns
+    }
+
+    doc.save(`${song?.name ?? 'drumex'}.pdf`);
+  });
+}
+
 // ── DrumEditor ─────────────────────────────────────────────────────────────
 export default function DrumEditor() {
   const { settings, updateSettings } = useChordStore();
@@ -452,7 +586,7 @@ export default function DrumEditor() {
     toggleHit, addMeasure, deleteMeasure, clearMeasure, duplicateMeasure, updatePattern,
     duplicatePattern, deletePattern, renamePattern, setActivePattern,
     drumSongs, saveDrumSong, createBlankDrumSong, loadDrumSong, deleteDrumSong, updateDrumSong,
-    restorePatterns, insertMeasureAfter,
+    restorePatterns, insertMeasureAfter, togglePatternMute,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -519,6 +653,10 @@ export default function DrumEditor() {
   const [openBarMenu,   setOpenBarMenu]   = useState<string | null>(null); // measureId
   const [flashBarId,    setFlashBarId]    = useState<string | null>(null); // brief highlight on paste
 
+  // ── Quick mixer sheet + export sheet ──────────────────────────────────────
+  const [showMixerSheet,  setShowMixerSheet]  = useState(false);
+  const [showExportSheet, setShowExportSheet] = useState(false);
+
   // ── Container width ──────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(340);
@@ -534,9 +672,13 @@ export default function DrumEditor() {
 
   // ── Visible instruments ───────────────────────────────────────────────────
   const extraInsts   = useMemo(() => ALL_INSTS.filter(i => !CORE_INSTS.includes(i)), [ALL_INSTS]);
+  const patternMuted = useMemo(() => new Set(pattern.mutedInstruments ?? []), [pattern.mutedInstruments]);
   const visibleInsts = useMemo(
-    () => (showExtraRows ? ALL_INSTS : ALL_INSTS.filter(i => CORE_INSTS.includes(i))),
-    [ALL_INSTS, showExtraRows],
+    () => {
+      const base = showExtraRows ? ALL_INSTS : ALL_INSTS.filter(i => CORE_INSTS.includes(i));
+      return base.filter(i => !patternMuted.has(i));
+    },
+    [ALL_INSTS, showExtraRows, patternMuted],
   );
 
   // ── Layout ───────────────────────────────────────────────────────────────
@@ -852,6 +994,11 @@ export default function DrumEditor() {
                 style={{ height: 30, width: 30, borderRadius: 8, background: redoStack.current.length > 0 ? 'rgba(128,128,128,0.08)' : 'transparent', border: `1px solid ${redoStack.current.length > 0 ? 'rgba(128,128,128,0.18)' : 'transparent'}`, cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35, flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7v6h-6"/><path d="M21 13C18.8 6.5 12.7 4 8 4a9 9 0 0 0 0 18c4 0 7.4-2 9-5"/></svg>
               </button>
+              {/* EQ / quick-mixer button */}
+              <button onClick={() => setShowMixerSheet(s => !s)} title="Mixer"
+                style={{ height: 30, width: 30, borderRadius: 8, background: showMixerSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showMixerSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showMixerSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+              </button>
               <button onClick={handleClear} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(128,128,128,0.18)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>Clear</button>
               <button onClick={handleOpenSaveForm} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: activeDrumSongId ? `linear-gradient(135deg,${accent.from}22,${accent.to}18)` : 'rgba(128,128,128,0.08)', border: `1px solid ${activeDrumSongId ? accent.from + '44' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: activeDrumSongId ? accent.from : 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -888,6 +1035,14 @@ export default function DrumEditor() {
                 <span style={{ display: 'block', color: 'var(--c-text-muted)', fontSize: 11, marginTop: 1 }}>{pattern.subdivision === 16 ? '16th notes' : '8th notes'}</span>
               </div>
               <button onClick={toggleSub} style={{ height: 28, padding: '0 14px', borderRadius: 8, background: `${accent.from}18`, border: `1px solid ${accent.from}33`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>1/{pattern.subdivision}</button>
+            </div>
+            <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
+            <div style={{ display: 'flex', gap: 8, padding: '9px 4px' }}>
+              <button onClick={() => { setShowHamburger(false); setShowExportSheet(true); }}
+                style={{ flex: 1, height: 34, borderRadius: 9, background: `${accent.from}14`, border: `1px solid ${accent.from}33`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export
+              </button>
             </div>
           </div>
         </div>
@@ -1228,23 +1383,28 @@ export default function DrumEditor() {
             </Card>
 
             <SectionLabel>Instruments</SectionLabel>
+            <p style={{ padding: '0 16px 8px', color: 'var(--c-text-muted)', fontSize: 11 }}>Toggle visibility in the grid per-pattern. Volume is global.</p>
             <Card>
               {ALL_INSTS.map((inst, i) => {
-                const vol    = volumeMap[inst] ?? 1;
-                const muted  = !activeInstruments.includes(inst);
-                const color  = INSTRUMENT_COLOR[inst] ?? accent.from;
+                const vol     = volumeMap[inst] ?? 1;
+                const hidden  = patternMuted.has(inst);
+                const color   = INSTRUMENT_COLOR[inst] ?? accent.from;
                 return (
-                  <div key={inst} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0, opacity: muted ? 0.25 : 1 }} />
-                    <span style={{ fontSize: 12, fontFamily: 'Manrope, sans-serif', fontWeight: 600, color: muted ? 'var(--c-text-muted)' : 'var(--c-text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
+                  <div key={inst} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', opacity: hidden ? 0.55 : 1, transition: 'opacity 150ms' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontFamily: 'Manrope, sans-serif', fontWeight: 600, color: hidden ? 'var(--c-text-muted)' : 'var(--c-text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
                     <span style={{ color: 'var(--c-text-muted)', fontSize: 11, fontWeight: 700, minWidth: 30, textAlign: 'right' }}>{Math.round(vol * 100)}%</span>
                     <input type="range" min={0} max={1} step={0.01} value={vol}
                       onChange={e => setVolumeForInstrument(inst, parseFloat(e.target.value))}
-                      style={{ width: 90, accentColor: color, flexShrink: 0, opacity: muted ? 0.4 : 1 }} />
-                    <button onClick={() => toggleInstrument(inst)}
-                      title={muted ? 'Unmute' : 'Mute'}
-                      style={{ width: 28, height: 28, borderRadius: 7, background: muted ? 'rgba(128,128,128,0.08)' : `${color}18`, border: muted ? '1px solid rgba(128,128,128,0.12)' : `1px solid ${color}30`, cursor: 'pointer', color: muted ? 'var(--c-text-muted)' : color, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 180ms' }}>
-                      {muted ? '🔇' : '🔊'}
+                      style={{ width: 80, accentColor: color, flexShrink: 0 }} />
+                    {/* Eye toggle — show/hide row in grid for this pattern */}
+                    <button onClick={() => togglePatternMute(pattern.id, inst)}
+                      title={hidden ? 'Show row' : 'Hide row'}
+                      style={{ width: 28, height: 28, borderRadius: 7, background: hidden ? 'rgba(128,128,128,0.08)' : `${color}18`, border: hidden ? '1px solid rgba(128,128,128,0.12)' : `1px solid ${color}30`, cursor: 'pointer', color: hidden ? 'var(--c-text-muted)' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
+                      {hidden
+                        ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      }
                     </button>
                   </div>
                 );
@@ -1266,6 +1426,77 @@ export default function DrumEditor() {
           style={{ position: 'fixed', right: 20, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', width: 54, height: 54, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 20px ${accent.to}66`, zIndex: 50 }}>
           <span className="material-symbols-outlined" style={{ fontSize: 26, fontVariationSettings: "'wght' 400" }}>add</span>
         </button>
+      )}
+
+      {/* ── Quick Mixer sheet (EQ button in editor toolbar) ──────────────── */}
+      {showMixerSheet && inEditor && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+          <div onClick={() => setShowMixerSheet(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '4px 20px 10px', flexShrink: 0 }}>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)' }}>Pattern Mixer</span>
+              <span style={{ fontSize: 11, color: 'var(--c-text-muted)', background: 'rgba(128,128,128,0.10)', borderRadius: 6, padding: '3px 8px', fontWeight: 600 }}>{pattern.name}</span>
+            </div>
+            <div style={{ overflowY: 'auto', flexShrink: 1, paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 16px)' }}>
+              {ALL_INSTS.map((inst, i) => {
+                const vol    = volumeMap[inst] ?? 1;
+                const hidden = patternMuted.has(inst);
+                const color  = INSTRUMENT_COLOR[inst] ?? accent.from;
+                return (
+                  <div key={inst} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', opacity: hidden ? 0.5 : 1, transition: 'opacity 150ms' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: hidden ? 'var(--c-text-muted)' : 'var(--c-text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
+                    <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 700, minWidth: 30, textAlign: 'right' }}>{Math.round(vol * 100)}%</span>
+                    <input type="range" min={0} max={1} step={0.01} value={vol}
+                      onChange={e => setVolumeForInstrument(inst, parseFloat(e.target.value))}
+                      style={{ width: 90, accentColor: color, flexShrink: 0 }} />
+                    <button onClick={() => togglePatternMute(pattern.id, inst)} title={hidden ? 'Show row' : 'Hide row'}
+                      style={{ width: 32, height: 32, borderRadius: 8, background: hidden ? 'rgba(128,128,128,0.08)' : `${color}18`, border: hidden ? '1px solid rgba(128,128,128,0.12)' : `1px solid ${color}30`, cursor: 'pointer', color: hidden ? 'var(--c-text-muted)' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
+                      {hidden
+                        ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      }
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Export sheet ─────────────────────────────────────────────────── */}
+      {showExportSheet && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+          <div onClick={() => setShowExportSheet(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
+            </div>
+            <div style={{ padding: '4px 20px 12px' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)' }}>Export</p>
+              <p style={{ margin: '0 0 18px', fontSize: 12, color: 'var(--c-text-muted)' }}>
+                {activeDrumSongId ? `"${drumSongs.find(s => s.id === activeDrumSongId)?.name ?? 'Beat'}"` : 'Current pattern set'}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button onClick={() => { exportDrumSongPDF(patterns, drumSongs.find(s => s.id === activeDrumSongId) ?? null, accent); setShowExportSheet(false); }}
+                  style={{ height: 46, borderRadius: 12, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', color: '#fff', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  Export as PDF
+                </button>
+                <button onClick={() => { exportDrumSongJSON(patterns, drumSongs.find(s => s.id === activeDrumSongId) ?? null); setShowExportSheet(false); }}
+                  style={{ height: 46, borderRadius: 12, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.18)', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                  Export as JSON
+                </button>
+              </div>
+            </div>
+            <div style={{ height: 'calc(env(safe-area-inset-bottom,0px) + 12px)' }} />
+          </div>
+        </div>
       )}
 
       {/* ── Create Beat modal ────────────────────────────────────────────── */}

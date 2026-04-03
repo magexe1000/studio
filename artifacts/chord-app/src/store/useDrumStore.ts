@@ -89,6 +89,7 @@ export interface DrumPattern {
   timeSignature: [number, number];
   subdivision: 8 | 16;
   measures: DrumMeasure[];
+  mutedInstruments?: DrumInstrument[];
 }
 
 export interface DrumSong {
@@ -167,6 +168,7 @@ interface DrumStore {
   clearMeasure:       (patternId: string, measureId: string) => void;
   duplicateMeasure:   (patternId: string, measureId: string) => void;
   insertMeasureAfter: (patternId: string, afterMeasureId: string, hitsTemplate: DrumMeasure['hits']) => string;
+  togglePatternMute:  (patternId: string, inst: DrumInstrument) => void;
 
   drumSongs:           DrumSong[];
   saveDrumSong:        (name: string, artist: string, notes: string) => string;
@@ -326,6 +328,20 @@ export const useDrumStore = create<DrumStore>()(
         }));
         return newM.id;
       },
+
+      togglePatternMute: (patternId, inst) =>
+        set(s => ({
+          patterns: s.patterns.map(p => {
+            if (p.id !== patternId) return p;
+            const muted = p.mutedInstruments ?? [];
+            return {
+              ...p,
+              mutedInstruments: muted.includes(inst)
+                ? muted.filter(i => i !== inst)
+                : [...muted, inst],
+            };
+          }),
+        })),
 
       saveDrumSong: (name, artist, notes) => {
         const s = get();
