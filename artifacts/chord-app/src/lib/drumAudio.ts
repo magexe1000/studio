@@ -1668,13 +1668,14 @@ class DrumScheduler {
     this._nextStepTime  = _ctx!.currentTime + 0.06;
     this._playing    = true;
     this._scheduled  = [];
+    this.onStep?.(0, 0, 0); // snap playhead to beat 1 immediately
     this.doTick();
   }
 
   stop() {
     this._playing = false;
     if (this._tickId) { clearTimeout(this._tickId); this._tickId = null; }
-    this.onStep?.(0, 0, -1);
+    this.onStep?.(-1, 0, 0);
   }
 
   pause() {

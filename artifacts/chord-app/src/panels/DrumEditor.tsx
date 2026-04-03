@@ -1306,6 +1306,10 @@ export default function DrumEditor() {
   const measureWRef = useRef(MEASURE_W);      measureWRef.current = MEASURE_W;
   const sysHRef     = useRef(FULL_SYS_H);    sysHRef.current = FULL_SYS_H;
   const allInstsRef = useRef(visibleInsts);   allInstsRef.current = visibleInsts;
+  const totalStepsRef = useRef(spm * pattern.measures.length);
+  totalStepsRef.current = spm * pattern.measures.length;
+  const secPerStepRef = useRef(0);
+  secPerStepRef.current = (60 / pattern.bpm) / (pattern.subdivision / pattern.timeSignature[1]);
 
   // ── System rows ──────────────────────────────────────────────────────────
   const systemRows = useMemo(() => {
@@ -1372,8 +1376,10 @@ export default function DrumEditor() {
 
 
   // ── Playhead ─────────────────────────────────────────────────────────────
+  const endAdvTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     drumScheduler.onStep = (gs, mIdx, stepInM) => {
+      if (endAdvTimerRef.current) { clearTimeout(endAdvTimerRef.current); endAdvTimerRef.current = null; }
       if (gs < 0) { if (playheadRef.current) playheadRef.current.style.display = 'none'; return; }
       const sp = spmRef.current; const mpr = mprRef.current; const sw = stepWRef.current; const sh = sysHRef.current;
       const systemIdx = Math.floor(mIdx / mpr); const measureInRow = mIdx % mpr; const stepInRow = measureInRow * sp + stepInM;
@@ -1381,6 +1387,14 @@ export default function DrumEditor() {
       if (playheadRef.current) { playheadRef.current.style.transform = `translate(${x}px, ${y}px)`; playheadRef.current.style.display = 'block'; }
       const el = scrollRef.current;
       if (el) { const rowBottom = y + RULER_H + allInstsRef.current.length * ROW_H; if (y < el.scrollTop || rowBottom > el.scrollTop + el.clientHeight) el.scrollTop = Math.max(0, y - 40); }
+      // On the last step, advance the playhead to the end bar line after one step duration
+      if (gs === totalStepsRef.current - 1) {
+        const endX = LABEL_W + (stepInRow + 1) * sw;
+        endAdvTimerRef.current = setTimeout(() => {
+          if (playheadRef.current) playheadRef.current.style.transform = `translate(${endX}px, ${y}px)`;
+          endAdvTimerRef.current = null;
+        }, secPerStepRef.current * 1000);
+      }
     };
     return () => { drumScheduler.onStep = null; };
   }, []);
