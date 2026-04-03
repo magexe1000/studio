@@ -1,3 +1,24 @@
+export function StudioLogo({ size = 14 }: { size?: number }) {
+  /* Studio — five equalizer bars of varying height, bottom-aligned */
+  const bars = [
+    { x: 1.5, h: 8  },
+    { x: 4.5, h: 12 },
+    { x: 7.5, h: 14 },
+    { x: 10.5, h: 10 },
+    { x: 13.5, h: 6  },
+  ];
+  const bw = 2; const bottom = 15.5;
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none"
+      xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', flexShrink: 0 }}>
+      {bars.map((b, i) => (
+        <rect key={i} x={b.x} y={bottom - b.h} width={bw} height={b.h}
+          rx={1} fill="currentColor" fillOpacity={0.6 + i * 0.1} />
+      ))}
+    </svg>
+  );
+}
+
 export function DrumexLogo({ size = 14 }: { size?: number }) {
   /* Snare drum — top-down view: outer rim, head ring, 6 tension lugs, centre dot */
   const cx = 8, cy = 8;
