@@ -2231,7 +2231,7 @@ export default function DrumEditor() {
                               preserveAspectRatio="none"
                             >
                               {Array.from({ length: spm }, (_, s) => {
-                                const x      = (s + 0.5) * STEP_W;
+                                const x      = s * STEP_W;
                                 const isBeat = s % stepsPerBeat === 0;
                                 const isDown = s === 0;
                                 const h      = isDown ? 11 : isBeat ? 7 : 4;
