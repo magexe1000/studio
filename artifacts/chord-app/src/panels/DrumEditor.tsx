@@ -1662,8 +1662,9 @@ export default function DrumEditor() {
       <div style={{ flexShrink: 0, height: 52, display: 'flex', alignItems: 'center', padding: '10px 14px 0', gap: 8, background: 'var(--app-bg)' }}>
         {inEditor ? (
           <>
-            <button onClick={handleBack} style={{ height: 30, width: 30, borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)', flexShrink: 0, padding: 0 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            <button onClick={handleBack} className="btn-smooth" style={{ height: 30, padding: '0 10px 0 7px', borderRadius: 999, background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.10)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, color: 'var(--c-text-secondary)', flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', lineHeight: 1 }}>Back</span>
             </button>
             {activeSong && (
               <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, minWidth: 0 }}>
