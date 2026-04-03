@@ -1503,16 +1503,17 @@ export function playSoundAt(
     }
 
     // ── Cymbal routing (hi-hat, crash, ride via CymbalPool) ─────────────────
-    const HH_DUR = 0.10; // gate duration for closed hi-hat samples
     if (inst === 'hihat-closed') {
       const buf = cymbalPool.getHHClosed(variation);
-      if (buf) { playBuffer(ctx, buf, t, vol, chainInput, HH_DUR, 1.0); return; }
+      // No artificial gate — the real recorded sample already has the correct
+      // closed articulation and natural decay; gating it makes it sound fake.
+      if (buf) { playBuffer(ctx, buf, t, vol, chainInput, undefined, 1.0); return; }
     } else if (inst === 'hihat-open') {
       const buf = cymbalPool.getHHOpen(variation);
       if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
     } else if (inst === 'hihat-foot') {
       const buf = cymbalPool.getHHFoot();
-      if (buf) { playBuffer(ctx, buf, t, vol, chainInput, HH_DUR, 1.0); return; }
+      if (buf) { playBuffer(ctx, buf, t, vol, chainInput, undefined, 1.0); return; }
     } else if (inst === 'crash') {
       const buf = cymbalPool.getCrash(_houseCrashModel, variation);
       if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
