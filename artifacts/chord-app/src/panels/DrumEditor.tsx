@@ -987,7 +987,7 @@ function DrumImportModal({ accent, onImport, onClose }: {
           id: `p-import-${Math.random().toString(36).slice(2)}`,
           name: p.name ?? 'Pattern',
           bpm: Math.max(40, Math.min(280, Number(p.bpm) || 120)),
-          subdivision: Number(p.subdivision) || 16,
+          subdivision: ([8, 16].includes(Number(p.subdivision)) ? Number(p.subdivision) : 16) as 8 | 16,
           timeSignature: [4, 4] as [number, number],
           mutedInstruments: Array.isArray(p.mutedInstruments) ? p.mutedInstruments : [],
           measures: Array.isArray(p.measures)
@@ -1095,7 +1095,7 @@ export default function DrumEditor() {
     kitType, activeInstruments,
     setKitType, toggleInstrument, setMasterVolume, setVolumeForInstrument,
     toggleHit, addMeasure, deleteMeasure, clearMeasure, duplicateMeasure, updatePattern,
-    duplicatePattern, deletePattern, renamePattern, setActivePattern,
+    addBlankPattern, duplicatePattern, deletePattern, renamePattern, setActivePattern,
     drumSongs, saveDrumSong, createBlankDrumSong, loadDrumSong, deleteDrumSong, updateDrumSong,
     restorePatterns, insertMeasureAfter, togglePatternMute, importDrumSong,
     grooves, saveGroove, deleteGroove, renameGroove, loadGrooveReplace, loadGrooveAppend, duplicateGroove,
@@ -1175,6 +1175,8 @@ export default function DrumEditor() {
 
   // ── Groove Library state ──────────────────────────────────────────────────
   const [grooveFilter,     setGrooveFilter]     = useState<GrooveTag>('');
+  const [patRenameId,      setPatRenameId]      = useState<string | null>(null);
+  const [patRenameName,    setPatRenameName]    = useState('');
   const [grooveMenuId,     setGrooveMenuId]     = useState<string | null>(null);
   const [previewingGrooveId, setPreviewingGrooveId] = useState<string | null>(null);
   const [showSaveGroove,   setShowSaveGroove]   = useState(false);
@@ -1889,26 +1891,55 @@ export default function DrumEditor() {
             <Card>
               {patterns.map((p, i) => {
                 const isCurrent = p.id === activePatternId;
+                const isRenaming = patRenameId === p.id;
                 return (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: isCurrent ? `${accent.from}10` : 'transparent', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none' }}>
-                    <button onClick={() => setActivePattern(p.id)} style={{ flex: 1, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', minWidth: 0 }}>
-                      <div style={{ color: isCurrent ? accent.from : 'var(--c-text-primary)', fontSize: 13.5, fontWeight: isCurrent ? 700 : 500, fontFamily: 'Manrope, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                      <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2 }}>{p.bpm} BPM · {p.timeSignature[0]}/{p.timeSignature[1]} · {p.measures.length} bar{p.measures.length !== 1 ? 's' : ''}</div>
-                    </button>
-                    {isCurrent && <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
-                    <button onClick={() => duplicatePattern(p.id)} title="Duplicate" style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.12)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⧉</button>
-                    {patterns.length > 1 && (
-                      <button onClick={() => deletePattern(p.id)} title="Delete" style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', cursor: 'pointer', color: '#f87171', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                  <div key={p.id} style={{ borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', background: isCurrent ? `${accent.from}10` : 'transparent' }}>
+                    {isRenaming ? (
+                      <div style={{ padding: '10px 14px', display: 'flex', gap: 6 }}>
+                        <input
+                          autoFocus
+                          value={patRenameName}
+                          onChange={e => setPatRenameName(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') { renamePattern(p.id, patRenameName.trim() || p.name); setPatRenameId(null); } else if (e.key === 'Escape') setPatRenameId(null); }}
+                          style={{ flex: 1, padding: '7px 10px', borderRadius: 8, background: 'var(--app-bg)', border: `1.5px solid ${accent.from}55`, color: 'var(--c-text-primary)', fontSize: 13, fontFamily: 'Manrope,sans-serif', outline: 'none' }}
+                        />
+                        <button onClick={() => setPatRenameId(null)} className="btn-smooth"
+                          style={{ padding: '7px 10px', borderRadius: 8, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--c-text-secondary)' }}>✕</button>
+                        <button onClick={() => { renamePattern(p.id, patRenameName.trim() || p.name); setPatRenameId(null); }} className="btn-smooth"
+                          style={{ padding: '7px 12px', borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#fff' }}>OK</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px' }}>
+                        {isCurrent && <div style={{ width: 5, height: 5, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
+                        <button
+                          onClick={() => { setActivePattern(p.id); setActiveTab('songs'); setInEditor(true); }}
+                          style={{ flex: 1, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', minWidth: 0 }}>
+                          <div style={{ color: isCurrent ? accent.from : 'var(--c-text-primary)', fontSize: 13.5, fontWeight: isCurrent ? 700 : 500, fontFamily: 'Manrope, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                          <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2 }}>{p.bpm} BPM · {p.timeSignature[0]}/{p.timeSignature[1]} · {p.measures.length} bar{p.measures.length !== 1 ? 's' : ''}</div>
+                        </button>
+                        <button onClick={() => { setPatRenameName(p.name); setPatRenameId(p.id); }} title="Rename" className="btn-smooth"
+                          style={{ width: 30, height: 30, borderRadius: 7, background: 'transparent', border: '1px solid rgba(128,128,128,0.12)', cursor: 'pointer', color: 'var(--c-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
+                        </button>
+                        <button onClick={() => duplicatePattern(p.id)} title="Duplicate" className="btn-smooth"
+                          style={{ width: 30, height: 30, borderRadius: 7, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.12)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⧉</button>
+                        {patterns.length > 1 && (
+                          <button onClick={() => deletePattern(p.id)} title="Delete" className="btn-smooth"
+                            style={{ width: 30, height: 30, borderRadius: 7, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', cursor: 'pointer', color: '#f87171', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                        )}
+                      </div>
                     )}
                   </div>
                 );
               })}
             </Card>
-            <div style={{ padding: '0 16px 24px' }}>
-              <button onClick={() => { const newId = duplicatePattern(activePatternId ?? patterns[0].id); setActivePattern(newId); }} className="btn-smooth"
-                style={{ width: '100%', padding: '11px', borderRadius: 12, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.22)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <span style={{ fontSize: 16 }}>+</span> Add Pattern
+            <div style={{ padding: '0 16px 24px', display: 'flex', gap: 8 }}>
+              <button onClick={() => { addBlankPattern(); }} className="btn-smooth"
+                style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.22)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <span style={{ fontSize: 16 }}>+</span> New Pattern
               </button>
+              <button onClick={() => duplicatePattern(activePatternId ?? patterns[0].id)} className="btn-smooth" title="Duplicate current"
+                style={{ padding: '11px 14px', borderRadius: 12, background: 'var(--app-surface)', border: '1px solid rgba(128,128,128,0.15)', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⧉</button>
             </div>
 
             {/* ── Groove Library ────────────────────────────────────────── */}
@@ -2008,7 +2039,9 @@ export default function DrumEditor() {
                           </div>
                           {/* 3-dots menu button */}
                           <button onClick={() => setGrooveMenuId(menuOpen ? null : g.id)} className="btn-smooth"
-                            style={{ width: 28, height: 28, borderRadius: 7, border: menuOpen ? `1px solid ${accent.from}44` : '1px solid rgba(128,128,128,0.15)', background: menuOpen ? `${accent.from}12` : 'transparent', cursor: 'pointer', color: menuOpen ? accent.from : 'var(--c-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, letterSpacing: '0.1em', transition: 'all 140ms' }}>···</button>
+                            style={{ width: 36, height: 36, borderRadius: 9, border: menuOpen ? `1px solid ${accent.from}44` : '1px solid rgba(128,128,128,0.15)', background: menuOpen ? `${accent.from}12` : 'rgba(128,128,128,0.06)', cursor: 'pointer', color: menuOpen ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 140ms' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>more_vert</span>
+                          </button>
                         </div>
                       )}
 
@@ -2016,15 +2049,18 @@ export default function DrumEditor() {
                       {menuOpen && !isRenaming && (
                         <div style={{ margin: '0 14px 10px', background: isAmoled ? 'rgba(4,4,4,0.98)' : (isLight ? 'rgba(250,250,252,0.98)' : 'rgba(20,20,26,0.98)'), borderRadius: 12, border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.35)', overflow: 'hidden', animation: 'drumHamburgerIn 150ms cubic-bezier(0.22,1,0.36,1)' }}>
                           {[
-                            { label: 'Load (replace)', icon: 'file_download', action: () => { loadGrooveReplace(g.id); setGrooveMenuId(null); setActiveTab('songs'); } },
-                            { label: 'Append to pattern', icon: 'playlist_add', action: () => { loadGrooveAppend(g.id); setGrooveMenuId(null); setActiveTab('songs'); } },
-                            { label: 'Duplicate', icon: 'content_copy', action: () => { duplicateGroove(g.id); setGrooveMenuId(null); } },
-                            { label: 'Rename / Retag', icon: 'edit', action: () => { setGrooveRenameName(g.name); setGrooveRenameTag(g.tag); setGrooveRenameId(g.id); setGrooveMenuId(null); } },
+                            { label: 'Use this groove', sublabel: 'Replaces current pattern hits', icon: 'file_download', action: () => { loadGrooveReplace(g.id); setGrooveMenuId(null); setActiveTab('songs'); } },
+                            { label: 'Append to pattern', sublabel: 'Add bars after current end', icon: 'playlist_add', action: () => { loadGrooveAppend(g.id); setGrooveMenuId(null); setActiveTab('songs'); } },
+                            { label: 'Duplicate', sublabel: 'Save a copy to the library', icon: 'content_copy', action: () => { duplicateGroove(g.id); setGrooveMenuId(null); } },
+                            { label: 'Rename / Retag', sublabel: 'Edit name or genre tag', icon: 'edit', action: () => { setGrooveRenameName(g.name); setGrooveRenameTag(g.tag); setGrooveRenameId(g.id); setGrooveMenuId(null); } },
                           ].map((item, idx) => (
                             <button key={item.label} onClick={item.action} className="btn-smooth"
-                              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 14px', background: 'transparent', border: 'none', borderTop: idx > 0 ? '1px solid rgba(128,128,128,0.08)' : 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 13, textAlign: 'left' }}>
-                              <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-secondary)' }}>{item.icon}</span>
-                              {item.label}
+                              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', background: 'transparent', border: 'none', borderTop: idx > 0 ? '1px solid rgba(128,128,128,0.08)' : 'none', cursor: 'pointer', textAlign: 'left' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0 }}>{item.icon}</span>
+                              <div>
+                                <div style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 600 }}>{item.label}</div>
+                                <div style={{ color: 'var(--c-text-muted)', fontSize: 10.5, marginTop: 1 }}>{item.sublabel}</div>
+                              </div>
                             </button>
                           ))}
                           <div style={{ height: 1, background: 'rgba(128,128,128,0.10)', margin: '0 10px' }} />
@@ -2039,56 +2075,6 @@ export default function DrumEditor() {
                   );
                 })}
               </Card>
-            )}
-            <div style={{ height: 12 }} />
-
-            {/* Kit chooser */}
-            <SectionLabel>Kit</SectionLabel>
-            {KIT_CATEGORIES.map(cat => {
-              const open = expandedCats.has(cat.id);
-              const hasSelected = cat.kits.includes(kit);
-              return (
-                <div key={cat.id} style={{ marginBottom: 12 }}>
-                  <button onClick={() => setExpandedCats(prev => { const next = new Set(prev); next.has(cat.id) ? next.delete(cat.id) : next.add(cat.id); return next; })}
-                    style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '0 16px 8px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, fontFamily: 'Manrope, sans-serif', letterSpacing: '0.07em', textTransform: 'uppercase', color: hasSelected ? accent.from : 'var(--c-text-secondary)', flex: 1 }}>{cat.label}</span>
-                    {hasSelected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
-                    <span style={{ fontSize: 12, color: 'var(--c-text-muted)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 200ms cubic-bezier(0.34,1.56,0.64,1)', flexShrink: 0, lineHeight: 1 }}>⌄</span>
-                  </button>
-                  {open && (
-                    <Card style={{ animation: 'drumHamburgerIn 180ms cubic-bezier(0.22,1,0.36,1)' }}>
-                      {cat.kits.map((k, i) => {
-                        const sel = k === kit;
-                        return (
-                          <button key={k} onClick={() => handleKitSelect(k)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 14px', background: sel ? `${accent.from}10` : 'transparent', border: 'none', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 150ms' }}>
-                            <div style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0, overflow: 'hidden', border: sel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.12)', position: 'relative' }}>
-                              <img src={KIT_IMAGE[k]} alt={KIT_LABEL[k]} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                              {sel && (
-                                <div style={{ position: 'absolute', inset: 0, background: `${accent.from}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700 }}>✓</div>
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ color: 'var(--c-text-primary)', fontSize: 13.5, fontWeight: 600 }}>{KIT_LABEL[k]}</div>
-                              <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{KIT_DESC[k]}</div>
-                            </div>
-                            {sel && <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
-                          </button>
-                        );
-                      })}
-                    </Card>
-                  )}
-                </div>
-              );
-            })}
-            {sampleStatus !== 'idle' && (
-              <div style={{ padding: '0 16px', marginBottom: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, background: sampleStatus === 'loading' ? 'rgba(245,158,11,0.08)' : 'rgba(74,222,128,0.06)', border: `1px solid ${sampleStatus === 'loading' ? '#f59e0b20' : '#4ade8020'}` }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: sampleStatus === 'loading' ? '#f59e0b' : '#4ade80' }} />
-                  <span style={{ color: sampleStatus === 'loading' ? '#d97706' : '#4ade80', fontSize: 12, fontWeight: 600 }}>{sampleStatus === 'loading' ? 'Loading samples…' : 'Samples ready'}</span>
-                </div>
-              </div>
             )}
           </div>
         )}

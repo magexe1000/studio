@@ -206,6 +206,7 @@ interface DrumStore {
   setActiveInstruments:    (insts: DrumInstrument[]) => void;
 
   createPattern:    () => string;
+  addBlankPattern:  () => string;
   duplicatePattern: (id: string) => string;
   deletePattern:    (id: string) => void;
   renamePattern:    (id: string, name: string) => void;
@@ -275,6 +276,22 @@ export const useDrumStore = create<DrumStore>()(
         const p = defaultPattern();
         p.name = `Pattern ${get().patterns.length + 1}`;
         set(s => ({ patterns: [...s.patterns, p], activePatternId: p.id }));
+        return p.id;
+      },
+
+      addBlankPattern: () => {
+        const s = get();
+        const src = s.patterns.find(p => p.id === s.activePatternId) ?? s.patterns[0];
+        const num = s.patterns.length + 1;
+        const p: DrumPattern = {
+          id: `p-${uid()}`,
+          name: `Pattern ${num}`,
+          bpm: src?.bpm ?? 120,
+          timeSignature: src?.timeSignature ?? [4, 4],
+          subdivision: src?.subdivision ?? 16,
+          measures: [emptyMeasure()],
+        };
+        set(st => ({ patterns: [...st.patterns, p], activePatternId: p.id }));
         return p.id;
       },
 
