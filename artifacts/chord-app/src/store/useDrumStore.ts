@@ -82,6 +82,20 @@ export const KIT_INSTRUMENTS: Record<KitType, DrumInstrument[]> = {
 
 export interface DrumHit { step: number; length: number; variation?: NoteVariation; }
 export interface DrumMeasure { id: string; hits: Partial<Record<DrumInstrument, DrumHit[]>>; }
+
+export const GROOVE_TAGS = ['Rock', 'Trap', 'Jazz', 'Funk', 'Fill', 'Intro', 'Outro', 'Loop', 'Latin'] as const;
+export type GrooveTag = typeof GROOVE_TAGS[number] | '';
+
+export interface GrooveEntry {
+  id: string;
+  name: string;
+  tag: GrooveTag;
+  bpm: number;
+  bars: number;
+  subdivision: 8 | 16;
+  measures: DrumMeasure[];
+  savedAt: number;
+}
 export interface DrumPattern {
   id: string;
   name: string;
@@ -179,6 +193,14 @@ interface DrumStore {
 
   restorePatterns:  (patterns: DrumPattern[], activePatternId: string | null) => void;
   importDrumSong:   (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string) => string;
+
+  grooves:             GrooveEntry[];
+  saveGroove:          (name: string, tag: GrooveTag) => string;
+  deleteGroove:        (id: string) => void;
+  renameGroove:        (id: string, name: string, tag: GrooveTag) => void;
+  loadGrooveReplace:   (id: string) => void;
+  loadGrooveAppend:    (id: string) => void;
+  duplicateGroove:     (id: string) => string;
 }
 
 const initial = defaultPattern();
@@ -400,6 +422,77 @@ export const useDrumStore = create<DrumStore>()(
         })),
 
       restorePatterns: (pts, actId) => set({ patterns: pts, activePatternId: actId }),
+
+      grooves: [],
+
+      saveGroove: (name, tag) => {
+        const s = get();
+        const pat = s.patterns.find(p => p.id === s.activePatternId) ?? s.patterns[0];
+        if (!pat) return '';
+        const entry: GrooveEntry = {
+          id: `g-${uid()}`,
+          name: name.trim() || pat.name,
+          tag,
+          bpm: pat.bpm,
+          bars: pat.measures.length,
+          subdivision: pat.subdivision,
+          measures: JSON.parse(JSON.stringify(pat.measures)),
+          savedAt: Date.now(),
+        };
+        set(st => ({ grooves: [entry, ...st.grooves] }));
+        return entry.id;
+      },
+
+      deleteGroove: id => set(s => ({ grooves: s.grooves.filter(g => g.id !== id) })),
+
+      renameGroove: (id, name, tag) =>
+        set(s => ({ grooves: s.grooves.map(g => g.id === id ? { ...g, name: name.trim() || g.name, tag } : g) })),
+
+      loadGrooveReplace: id => {
+        const { grooves, activePatternId } = get();
+        const groove = grooves.find(g => g.id === id);
+        if (!groove) return;
+        const newMeasures: DrumMeasure[] = JSON.parse(JSON.stringify(groove.measures)).map((m: DrumMeasure) => ({ ...m, id: `m-${uid()}` }));
+        set(s => ({
+          patterns: s.patterns.map(p =>
+            p.id === activePatternId
+              ? { ...p, bpm: groove.bpm, subdivision: groove.subdivision, measures: newMeasures }
+              : p
+          ),
+        }));
+      },
+
+      loadGrooveAppend: id => {
+        const { grooves, activePatternId } = get();
+        const groove = grooves.find(g => g.id === id);
+        if (!groove) return;
+        const appendMeasures: DrumMeasure[] = JSON.parse(JSON.stringify(groove.measures)).map((m: DrumMeasure) => ({ ...m, id: `m-${uid()}` }));
+        set(s => ({
+          patterns: s.patterns.map(p =>
+            p.id === activePatternId
+              ? { ...p, measures: [...p.measures, ...appendMeasures] }
+              : p
+          ),
+        }));
+      },
+
+      duplicateGroove: id => {
+        const groove = get().grooves.find(g => g.id === id);
+        if (!groove) return id;
+        const dup: GrooveEntry = {
+          ...JSON.parse(JSON.stringify(groove)),
+          id: `g-${uid()}`,
+          name: `${groove.name} (copy)`,
+          savedAt: Date.now(),
+        };
+        set(s => {
+          const idx = s.grooves.findIndex(g => g.id === id);
+          const next = [...s.grooves];
+          next.splice(idx + 1, 0, dup);
+          return { grooves: next };
+        });
+        return dup.id;
+      },
 
       importDrumSong: (name, artist, notes, patterns, activePatternId) => {
         const song: DrumSong = {

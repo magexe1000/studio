@@ -4,9 +4,9 @@ import {
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR,
-  stepsPerMeasure, INST_VARIATIONS,
+  stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS,
   type DrumInstrument, type KitType, type DrumSong, type DrumMeasure, type NoteVariation,
-  type DrumPattern, type DrumHit,
+  type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag,
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, KIT_DEFAULTS,
@@ -1095,6 +1095,7 @@ export default function DrumEditor() {
     duplicatePattern, deletePattern, renamePattern, setActivePattern,
     drumSongs, saveDrumSong, createBlankDrumSong, loadDrumSong, deleteDrumSong, updateDrumSong,
     restorePatterns, insertMeasureAfter, togglePatternMute, importDrumSong,
+    grooves, saveGroove, deleteGroove, renameGroove, loadGrooveReplace, loadGrooveAppend, duplicateGroove,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -1165,6 +1166,17 @@ export default function DrumEditor() {
   const [showMixerSheet,  setShowMixerSheet]  = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showImportDrum,  setShowImportDrum]  = useState(false);
+
+  // ── Groove Library state ──────────────────────────────────────────────────
+  const [grooveFilter,     setGrooveFilter]     = useState<GrooveTag>('');
+  const [grooveMenuId,     setGrooveMenuId]     = useState<string | null>(null);
+  const [previewingGrooveId, setPreviewingGrooveId] = useState<string | null>(null);
+  const [showSaveGroove,   setShowSaveGroove]   = useState(false);
+  const [savGrName,        setSavGrName]        = useState('');
+  const [savGrTag,         setSavGrTag]         = useState<GrooveTag>('');
+  const [grooveRenameId,   setGrooveRenameId]   = useState<string | null>(null);
+  const [grooveRenameName, setGrooveRenameName] = useState('');
+  const [grooveRenameTag,  setGrooveRenameTag]  = useState<GrooveTag>('');
 
   // ── Container width ──────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1332,6 +1344,30 @@ export default function DrumEditor() {
     loadDrumSamples(k);
     if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
   }, [setKitType, kitType]);
+
+  // ── Groove Library ────────────────────────────────────────────────────────
+  const filteredGrooves = grooveFilter
+    ? grooves.filter(g => g.tag === grooveFilter)
+    : grooves;
+
+  const handleGroovePreview = useCallback((groove: GrooveEntry) => {
+    if (previewingGrooveId === groove.id && drumScheduler.isPlaying) {
+      drumScheduler.stop(); setPlaying(false); setPreviewingGrooveId(null); return;
+    }
+    if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
+    const sm = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
+    const vol: Partial<Record<DrumInstrument, number>> = {};
+    activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
+    const tempPat: DrumPattern = {
+      id: groove.id, name: groove.name, bpm: groove.bpm,
+      timeSignature: [4, 4], subdivision: groove.subdivision,
+      measures: groove.measures,
+    };
+    loadDrumSamples(kit);
+    drumScheduler.start(tempPat, sm, vol, masterVolume, true, kit);
+    setPreviewingGrooveId(groove.id);
+    setPlaying(false);
+  }, [previewingGrooveId, kit, soundMap, volumeMap, activeInstruments, masterVolume]);
 
   // ── BPM ──────────────────────────────────────────────────────────────────
   const adjustBpm = useCallback((d: number) => {
@@ -1821,15 +1857,15 @@ export default function DrumEditor() {
         {activeTab === 'patterns' && (
           <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20, paddingBottom: 100 }} className="no-scrollbar">
 
-            {/* Pattern manager */}
-            <SectionLabel>Patterns</SectionLabel>
+            {/* ── Song Patterns ─────────────────────────────────────────── */}
+            <SectionLabel>This Song's Patterns</SectionLabel>
             <Card>
               {patterns.map((p, i) => {
                 const isCurrent = p.id === activePatternId;
                 return (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: isCurrent ? `${accent.from}10` : 'transparent', borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none' }}>
                     <button onClick={() => setActivePattern(p.id)} style={{ flex: 1, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', minWidth: 0 }}>
-                      <div style={{ color: 'var(--c-text-primary)', fontSize: 13.5, fontWeight: isCurrent ? 700 : 500, fontFamily: 'Manrope, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                      <div style={{ color: isCurrent ? accent.from : 'var(--c-text-primary)', fontSize: 13.5, fontWeight: isCurrent ? 700 : 500, fontFamily: 'Manrope, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
                       <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2 }}>{p.bpm} BPM · {p.timeSignature[0]}/{p.timeSignature[1]} · {p.measures.length} bar{p.measures.length !== 1 ? 's' : ''}</div>
                     </button>
                     {isCurrent && <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
@@ -1847,6 +1883,137 @@ export default function DrumEditor() {
                 <span style={{ fontSize: 16 }}>+</span> Add Pattern
               </button>
             </div>
+
+            {/* ── Groove Library ────────────────────────────────────────── */}
+            <SectionLabel>Groove Library</SectionLabel>
+
+            {/* Save current pattern as groove */}
+            <div style={{ padding: '0 16px 14px' }}>
+              <button onClick={() => { setSavGrName(pattern.name); setSavGrTag(''); setShowSaveGroove(true); }} className="btn-smooth"
+                style={{ width: '100%', padding: '12px 16px', borderRadius: 14, background: `linear-gradient(135deg,${accent.from}18,${accent.to}12)`, border: `1px solid ${accent.from}30`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 16 }}>bookmark_add</span>
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: accent.from, fontFamily: 'Manrope,sans-serif' }}>Save as Groove</div>
+                  <div style={{ fontSize: 11, color: 'var(--c-text-muted)', marginTop: 1 }}>Store "{pattern.name}" to your library</div>
+                </div>
+              </button>
+            </div>
+
+            {/* Tag filter chips */}
+            {grooves.length > 0 && (
+              <div className="no-scrollbar" style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '0 16px 12px' }}>
+                {(['', ...GROOVE_TAGS] as (GrooveTag | '')[]).map(tag => {
+                  const label = tag === '' ? 'All' : tag;
+                  const active = grooveFilter === tag;
+                  return (
+                    <button key={label} onClick={() => setGrooveFilter(tag as GrooveTag)} className="btn-smooth"
+                      style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, fontFamily: 'Manrope,sans-serif', cursor: 'pointer', border: active ? `1.5px solid ${accent.from}` : '1.5px solid rgba(128,128,128,0.18)', background: active ? `${accent.from}18` : 'transparent', color: active ? accent.from : 'var(--c-text-secondary)', transition: 'all 150ms' }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Groove list */}
+            {grooves.length === 0 ? (
+              <div style={{ margin: '0 16px 24px', padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.18)', textAlign: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--c-text-muted)', display: 'block', marginBottom: 8 }}>library_music</span>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No grooves saved yet</p>
+                <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--c-text-muted)' }}>Save any pattern above to build your library</p>
+              </div>
+            ) : filteredGrooves.length === 0 ? (
+              <div style={{ margin: '0 16px 24px', padding: '20px', textAlign: 'center', color: 'var(--c-text-muted)', fontSize: 12 }}>
+                No grooves tagged "{grooveFilter}"
+              </div>
+            ) : (
+              <Card>
+                {filteredGrooves.map((g, i) => {
+                  const isPreviewPlaying = previewingGrooveId === g.id && drumScheduler.isPlaying;
+                  const menuOpen = grooveMenuId === g.id;
+                  const isRenaming = grooveRenameId === g.id;
+                  return (
+                    <div key={g.id} style={{ borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', position: 'relative' }}>
+                      {isRenaming ? (
+                        /* Inline rename form */
+                        <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <input
+                            autoFocus
+                            value={grooveRenameName}
+                            onChange={e => setGrooveRenameName(e.target.value)}
+                            style={{ padding: '8px 10px', borderRadius: 8, background: 'var(--app-bg)', border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-primary)', fontSize: 13, fontFamily: 'Manrope,sans-serif', outline: 'none' }}
+                          />
+                          <div className="no-scrollbar" style={{ display: 'flex', gap: 5, overflowX: 'auto' }}>
+                            {(['', ...GROOVE_TAGS] as (GrooveTag | '')[]).map(tag => {
+                              const label = tag === '' ? 'None' : tag;
+                              const active = grooveRenameTag === tag;
+                              return (
+                                <button key={label} onClick={() => setGrooveRenameTag(tag as GrooveTag)} className="btn-smooth"
+                                  style={{ flexShrink: 0, padding: '4px 10px', borderRadius: 16, fontSize: 10, fontWeight: 700, cursor: 'pointer', border: active ? `1.5px solid ${accent.from}` : '1.5px solid rgba(128,128,128,0.18)', background: active ? `${accent.from}18` : 'transparent', color: active ? accent.from : 'var(--c-text-muted)' }}>
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => setGrooveRenameId(null)} className="btn-smooth"
+                              style={{ flex: 1, padding: '7px', borderRadius: 8, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--c-text-secondary)' }}>Cancel</button>
+                            <button onClick={() => { renameGroove(g.id, grooveRenameName, grooveRenameTag); setGrooveRenameId(null); }} className="btn-smooth"
+                              style={{ flex: 1, padding: '7px', borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#fff' }}>Save</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px' }}>
+                          {/* Play preview button */}
+                          <button onClick={() => handleGroovePreview(g)} className="btn-smooth"
+                            style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isPreviewPlaying ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.12)', color: isPreviewPlaying ? '#fff' : 'var(--c-text-secondary)', transition: 'all 160ms' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{isPreviewPlaying ? 'stop' : 'play_arrow'}</span>
+                          </button>
+                          {/* Groove info */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.name}</span>
+                              {g.tag && <span style={{ fontSize: 9.5, fontWeight: 800, color: accent.from, background: `${accent.from}15`, borderRadius: 5, padding: '2px 6px', flexShrink: 0, letterSpacing: '0.03em' }}>{g.tag}</span>}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--c-text-muted)', marginTop: 1 }}>{g.bpm} BPM · {g.bars} bar{g.bars !== 1 ? 's' : ''} · 1/{g.subdivision}</div>
+                          </div>
+                          {/* 3-dots menu button */}
+                          <button onClick={() => setGrooveMenuId(menuOpen ? null : g.id)} className="btn-smooth"
+                            style={{ width: 28, height: 28, borderRadius: 7, border: menuOpen ? `1px solid ${accent.from}44` : '1px solid rgba(128,128,128,0.15)', background: menuOpen ? `${accent.from}12` : 'transparent', cursor: 'pointer', color: menuOpen ? accent.from : 'var(--c-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, letterSpacing: '0.1em', transition: 'all 140ms' }}>···</button>
+                        </div>
+                      )}
+
+                      {/* Context menu */}
+                      {menuOpen && !isRenaming && (
+                        <div style={{ margin: '0 14px 10px', background: isAmoled ? 'rgba(4,4,4,0.98)' : (isLight ? 'rgba(250,250,252,0.98)' : 'rgba(20,20,26,0.98)'), borderRadius: 12, border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.35)', overflow: 'hidden', animation: 'drumHamburgerIn 150ms cubic-bezier(0.22,1,0.36,1)' }}>
+                          {[
+                            { label: 'Load (replace)', icon: 'file_download', action: () => { loadGrooveReplace(g.id); setGrooveMenuId(null); setActiveTab('songs'); } },
+                            { label: 'Append to pattern', icon: 'playlist_add', action: () => { loadGrooveAppend(g.id); setGrooveMenuId(null); setActiveTab('songs'); } },
+                            { label: 'Duplicate', icon: 'content_copy', action: () => { duplicateGroove(g.id); setGrooveMenuId(null); } },
+                            { label: 'Rename / Retag', icon: 'edit', action: () => { setGrooveRenameName(g.name); setGrooveRenameTag(g.tag); setGrooveRenameId(g.id); setGrooveMenuId(null); } },
+                          ].map((item, idx) => (
+                            <button key={item.label} onClick={item.action} className="btn-smooth"
+                              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 14px', background: 'transparent', border: 'none', borderTop: idx > 0 ? '1px solid rgba(128,128,128,0.08)' : 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 13, textAlign: 'left' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-secondary)' }}>{item.icon}</span>
+                              {item.label}
+                            </button>
+                          ))}
+                          <div style={{ height: 1, background: 'rgba(128,128,128,0.10)', margin: '0 10px' }} />
+                          <button onClick={() => { deleteGroove(g.id); setGrooveMenuId(null); if (previewingGrooveId === g.id) { drumScheduler.stop(); setPreviewingGrooveId(null); } }} className="btn-smooth"
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 13, textAlign: 'left' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </Card>
+            )}
+            <div style={{ height: 12 }} />
 
             {/* Kit chooser */}
             <SectionLabel>Kit</SectionLabel>
@@ -1923,6 +2090,62 @@ export default function DrumEditor() {
             style={{ width: 54, height: 54, borderRadius: '50%', background: `linear-gradient(135deg,${accent.from},${accent.to})`, color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 20px ${accent.to}66`, pointerEvents: 'auto' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 26, fontVariationSettings: "'wght' 400" }}>add</span>
           </button>
+        </div>
+      )}
+
+      {/* ── Save Groove sheet ────────────────────────────────────────────── */}
+      {showSaveGroove && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200 }} onClick={() => setShowSaveGroove(false)}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)' }} />
+          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both', paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.25)' }} />
+            </div>
+            <div style={{ padding: '8px 20px 16px', display: 'flex', alignItems: 'center' }}>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif' }}>Save to Groove Library</span>
+              <button onClick={() => setShowSaveGroove(false)} style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(128,128,128,0.12)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+              </button>
+            </div>
+            <div style={{ padding: '0 20px 16px' }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-muted)', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>NAME</label>
+              <input
+                autoFocus
+                value={savGrName}
+                onChange={e => setSavGrName(e.target.value)}
+                placeholder="Groove name…"
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, background: 'var(--app-bg)', border: '1px solid rgba(128,128,128,0.2)', color: 'var(--c-text-primary)', fontSize: 14, fontFamily: 'Manrope,sans-serif', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ padding: '0 20px 20px' }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-muted)', letterSpacing: '0.05em', display: 'block', marginBottom: 8 }}>TAG</label>
+              <div className="no-scrollbar" style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
+                {(['', ...GROOVE_TAGS] as (GrooveTag | '')[]).map(tag => {
+                  const label = tag === '' ? 'None' : tag;
+                  const active = savGrTag === tag;
+                  return (
+                    <button key={label} onClick={() => setSavGrTag(tag as GrooveTag)} className="btn-smooth"
+                      style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', cursor: 'pointer', border: active ? `1.5px solid ${accent.from}` : '1.5px solid rgba(128,128,128,0.18)', background: active ? `${accent.from}18` : 'transparent', color: active ? accent.from : 'var(--c-text-secondary)', transition: 'all 140ms' }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ padding: '0 20px' }}>
+              <button
+                disabled={!savGrName.trim()}
+                onClick={() => {
+                  if (!savGrName.trim()) return;
+                  saveGroove(savGrName.trim(), savGrTag);
+                  setShowSaveGroove(false);
+                }}
+                className="btn-smooth"
+                style={{ width: '100%', padding: '14px', borderRadius: 14, background: savGrName.trim() ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.12)', border: 'none', cursor: savGrName.trim() ? 'pointer' : 'default', color: savGrName.trim() ? '#fff' : 'var(--c-text-muted)', fontSize: 15, fontWeight: 700, fontFamily: 'Manrope,sans-serif', transition: 'all 200ms' }}>
+                Save Groove
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
