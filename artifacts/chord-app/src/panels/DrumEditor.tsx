@@ -576,16 +576,17 @@ async function exportDrumSongPDF(
   // ── Page setup — A3 landscape ─────────────────────────────────────────────
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
   const PW = 420, PH = 297;
-  const ML = 12, MR = 12, MT = 14, MB = 12;
+  const ML = 10, MR = 10, MT = 12, MB = 10;
 
   // ── Layout constants ──────────────────────────────────────────────────────
-  const LABEL_COL = 28;       // mm — left label column
-  const GRID_W    = PW - ML - MR - LABEL_COL;
-  const ROW_H     = 6.2;      // mm per instrument row
-  const SYS_GAP   = 5;        // mm between systems
-  const PAT_GAP   = 10;       // mm between patterns
-  const HDR_H     = 20;       // mm for song header
-  const NR        = 1.0;      // notehead radius
+  const LABEL_COL = 30;       // mm — left label column
+  const GRID_W    = PW - ML - MR - LABEL_COL;  // 370mm usable grid
+  const ROW_H     = 8.5;      // mm per instrument row (larger = more readable)
+  const SYS_GAP   = 6;        // mm between systems
+  const PAT_GAP   = 12;       // mm between patterns
+  const HDR_H     = 22;       // mm for song header
+  const NR        = 1.35;     // notehead radius
+  const BARS_PER_ROW = 4;     // always 4 bars per system row
 
   // ── Dark editor palette ───────────────────────────────────────────────────
   const BG     = [17,  17,  23 ] as const;
@@ -605,21 +606,21 @@ async function exportDrumSongPDF(
 
   const drawXNote = (cx: number, cy: number, r: number) => {
     const d = r * 0.9;
-    doc.setLineWidth(0.7);
+    doc.setLineWidth(0.85);
     doc.line(cx - d, cy - d, cx + d, cy + d);
     doc.line(cx - d, cy + d, cx + d, cy - d);
   };
 
   const drawOvalNote = (cx: number, cy: number, filled: boolean) => {
-    doc.setLineWidth(0.3);
-    doc.ellipse(cx, cy, NR * 1.2, NR * 0.82, filled ? 'FD' : 'D');
+    doc.setLineWidth(0.38);
+    doc.ellipse(cx, cy, NR * 1.25, NR * 0.85, filled ? 'FD' : 'D');
   };
 
   const drawStemNote = (cx: number, cy: number, stemDown: boolean, rowTop: number) => {
-    doc.setLineWidth(0.3);
+    doc.setLineWidth(0.38);
     const sx = cx + (stemDown ? -NR * 0.9 : NR * 0.9);
-    const sy1 = cy + (stemDown ?  NR * 0.35 : -NR * 0.35);
-    const sy2 = stemDown ? (rowTop + ROW_H - 0.6) : (rowTop + 0.6);
+    const sy1 = cy + (stemDown ?  NR * 0.38 : -NR * 0.38);
+    const sy2 = stemDown ? (rowTop + ROW_H - 0.8) : (rowTop + 0.8);
     doc.line(sx, sy1, sx, sy2);
   };
 
@@ -629,16 +630,16 @@ async function exportDrumSongPDF(
     fill(BG[0], BG[1], BG[2]); doc.rect(0, 0, PW, PH, 'F');
     const title  = pdfName || song?.name || 'Drum Sheet';
     const artist = song?.artist ?? '';
-    fill(ar, ag, ab); doc.rect(ML, MT + 2, 3, 13, 'F');
-    doc.setFont('helvetica', 'bold').setFontSize(17); textC(C_TXT[0], C_TXT[1], C_TXT[2]);
-    doc.text(title.toUpperCase(), ML + 8, MT + 10);
+    fill(ar, ag, ab); doc.rect(ML, MT + 2, 3.5, 14, 'F');
+    doc.setFont('helvetica', 'bold').setFontSize(20); textC(C_TXT[0], C_TXT[1], C_TXT[2]);
+    doc.text(title.toUpperCase(), ML + 9, MT + 12);
     if (artist) {
-      doc.setFont('helvetica', 'normal').setFontSize(8); textC(C_SUB[0], C_SUB[1], C_SUB[2]);
-      doc.text(artist, ML + 8, MT + 16);
+      doc.setFont('helvetica', 'normal').setFontSize(10); textC(C_SUB[0], C_SUB[1], C_SUB[2]);
+      doc.text(artist, ML + 9, MT + 18);
     }
-    stroke(ar, ag, ab); doc.setLineWidth(0.35);
-    doc.line(ML, MT + HDR_H - 2, PW - MR, MT + HDR_H - 2);
-    doc.setFont('helvetica', 'normal').setFontSize(6.5); textC(C_SUB[0], C_SUB[1], C_SUB[2]);
+    stroke(ar, ag, ab); doc.setLineWidth(0.4);
+    doc.line(ML, MT + HDR_H - 1, PW - MR, MT + HDR_H - 1);
+    doc.setFont('helvetica', 'normal').setFontSize(8); textC(C_SUB[0], C_SUB[1], C_SUB[2]);
     doc.text(`${page}`, PW - MR, PH - 5, { align: 'right' });
     if (cont) doc.text('(cont.)', ML, PH - 5);
   };
@@ -659,20 +660,20 @@ async function exportDrumSongPDF(
     );
     if (allInsts.length === 0) continue;
 
-    const SYS_H = allInsts.length * ROW_H;
-    const PAT_HDR = 8;
-    const MIN_CELL = 2.8;
-    const barsPerRow = Math.max(1, Math.min(pat.measures.length, Math.floor(GRID_W / (subs * MIN_CELL))));
-    const CELL = GRID_W / (barsPerRow * subs);
+    const SYS_H   = allInsts.length * ROW_H;
+    const PAT_HDR = 9;
+    // Fixed bars-per-row so the grid always uses full page width
+    const barsPerRow = Math.min(pat.measures.length, BARS_PER_ROW);
+    const CELL = GRID_W / (barsPerRow * subs); // always fills GRID_W exactly
 
     // Pattern header row
     if (curY + PAT_HDR + SYS_H > PH - MB) { newPage(); curY = MT + HDR_H; }
     fill(ar, ag, ab); doc.rect(ML, curY, PW - ML - MR, PAT_HDR - 1, 'F');
-    doc.setFont('helvetica', 'bold').setFontSize(7.5); textC(255, 255, 255); doc.setTextColor(255, 255, 255);
-    doc.text(pat.name, ML + LABEL_COL + 2, curY + 5.5);
-    doc.setFont('helvetica', 'normal').setFontSize(6.5);
+    doc.setFont('helvetica', 'bold').setFontSize(9); textC(255, 255, 255); doc.setTextColor(255, 255, 255);
+    doc.text(pat.name, ML + LABEL_COL + 3, curY + 6.5);
+    doc.setFont('helvetica', 'normal').setFontSize(7.5);
     doc.text(`   ♩ = ${pat.bpm}   ${timN}/${timD}   1/${subs}`,
-      ML + LABEL_COL + 2 + doc.getTextWidth(pat.name), curY + 5.5);
+      ML + LABEL_COL + 3 + doc.getTextWidth(pat.name), curY + 6.5);
     curY += PAT_HDR;
 
     // ── Systems (rows of bars) ───────────────────────────────────────────────
@@ -681,12 +682,12 @@ async function exportDrumSongPDF(
 
       const rowBars  = pat.measures.slice(rowStart, rowStart + barsPerRow);
       const gridLeft = ML + LABEL_COL;
-      const rowW     = barsPerRow * subs * CELL;
+      const rowW     = GRID_W; // always full page width
 
-      // ── Background cells ─────────────────────────────────────────────────
+      // ── Background cells — always fill full rowW including empty ghost bars ─
       for (let ri = 0; ri < allInsts.length; ri++) {
         const rowTop = curY + ri * ROW_H;
-        for (let bi = 0; bi < rowBars.length; bi++) {
+        for (let bi = 0; bi < barsPerRow; bi++) {       // ← barsPerRow, not rowBars.length
           for (let s = 0; s < subs; s++) {
             const beat = Math.floor(s / stepsPerBeat);
             const bg = beat % 2 === 0 ? CELL_A : CELL_B;
@@ -702,31 +703,32 @@ async function exportDrumSongPDF(
         const inst   = allInsts[ri];
         const rowTop = curY + ri * ROW_H;
         const [cr, cg, cb] = HEX_TO_RGB(INSTRUMENT_COLOR[inst as DrumInstrument] ?? accent.from);
-        fill(cr, cg, cb); doc.rect(ML + 2, rowTop + ROW_H * 0.22, 2, ROW_H * 0.56, 'F');
-        doc.setFont('helvetica', 'bold').setFontSize(5); textC(C_TXT[0], C_TXT[1], C_TXT[2]);
-        doc.text(INST_LABEL[inst as DrumInstrument] ?? inst, ML + 6, rowTop + ROW_H * 0.56);
+        fill(cr, cg, cb); doc.rect(ML + 2, rowTop + ROW_H * 0.22, 2.5, ROW_H * 0.56, 'F');
+        doc.setFont('helvetica', 'bold').setFontSize(6); textC(C_TXT[0], C_TXT[1], C_TXT[2]);
+        doc.text(INST_LABEL[inst as DrumInstrument] ?? inst, ML + 6.5, rowTop + ROW_H * 0.60);
         if (ri > 0) { stroke(C_ROW[0], C_ROW[1], C_ROW[2]); doc.setLineWidth(0.22); doc.line(ML, rowTop, ML + LABEL_COL + rowW, rowTop); }
       }
 
-      // ── Grid lines: beat + bar ────────────────────────────────────────────
-      for (let bi = 0; bi < rowBars.length; bi++) {
+      // ── Grid lines: beat + bar (draw across full barsPerRow width) ────────
+      for (let bi = 0; bi < barsPerRow; bi++) {         // ← barsPerRow
         for (let s = 1; s < subs; s++) {
           const lx = gridLeft + (bi * subs + s) * CELL;
-          if (s % stepsPerBeat === 0) { stroke(C_BEAT[0], C_BEAT[1], C_BEAT[2]); doc.setLineWidth(0.28); }
-          else { stroke(C_ROW[0], C_ROW[1], C_ROW[2]); doc.setLineWidth(0.13); }
+          if (s % stepsPerBeat === 0) { stroke(C_BEAT[0], C_BEAT[1], C_BEAT[2]); doc.setLineWidth(0.32); }
+          else { stroke(C_ROW[0], C_ROW[1], C_ROW[2]); doc.setLineWidth(0.14); }
           doc.line(lx, curY, lx, curY + SYS_H);
         }
       }
-      for (let bi = 0; bi <= rowBars.length; bi++) {
+      for (let bi = 0; bi <= barsPerRow; bi++) {        // ← barsPerRow
         const bx = gridLeft + bi * subs * CELL;
-        stroke(C_BAR[0], C_BAR[1], C_BAR[2]); doc.setLineWidth(bi === 0 || bi === rowBars.length ? 0.55 : 0.42);
+        stroke(C_BAR[0], C_BAR[1], C_BAR[2]); doc.setLineWidth(bi === 0 || bi === barsPerRow ? 0.6 : 0.45);
         doc.line(bx, curY, bx, curY + SYS_H);
-        if (bi < rowBars.length) {
-          doc.setFont('helvetica', 'normal').setFontSize(4.5); textC(C_SUB[0], C_SUB[1], C_SUB[2]);
-          doc.text(`${rowStart + bi + 1}`, bx + 1, curY - 1);
+        if (bi < rowBars.length) { // bar numbers only for actual bars
+          doc.setFont('helvetica', 'normal').setFontSize(5.5); textC(C_SUB[0], C_SUB[1], C_SUB[2]);
+          doc.text(`${rowStart + bi + 1}`, bx + 1.2, curY - 1.2);
         }
       }
-      stroke(C_BAR[0], C_BAR[1], C_BAR[2]); doc.setLineWidth(0.42);
+      // Top/bottom system borders (full width)
+      stroke(C_BAR[0], C_BAR[1], C_BAR[2]); doc.setLineWidth(0.5);
       doc.line(ML, curY, ML + LABEL_COL + rowW, curY);
       doc.line(ML, curY + SYS_H, ML + LABEL_COL + rowW, curY + SYS_H);
 
