@@ -1,9 +1,10 @@
 import React, { useRef } from 'react';
-import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
+import { useChordStore, ACCENT_COLORS, type ActivePanel } from '../store/useChordStore';
 import { useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
+import { IconSongs, IconLibrary, IconChords, IconSettings } from '../components/BottomNav';
 
 export default function SettingsPanel() {
   const { settings, updateSettings } = useChordStore();
@@ -102,6 +103,51 @@ export default function SettingsPanel() {
           </SettingRow>
           <SettingRow label={t.settings.rows.openStringMarkers} desc={t.settings.rows.openStringMarkersDesc}>
             <Toggle value={settings.showOpenStrings} onChange={v => updateSettings({ showOpenStrings: v })} accentFrom={acc.from} accentTo={acc.to} />
+          </SettingRow>
+        </div>
+
+        {/* ── DISPLAY ── */}
+        <SectionHeader icon="dashboard" title={t.settings.sections.display} />
+        <div style={cardStyle}>
+          <SettingRow label={t.settings.rows.chordColors} desc={t.settings.rows.chordColorsDesc}>
+            <Toggle value={settings.showChordQualityColors} onChange={v => updateSettings({ showChordQualityColors: v })} accentFrom={acc.from} accentTo={acc.to} />
+          </SettingRow>
+          <SettingRow label={t.settings.rows.defaultTab} desc={t.settings.rows.defaultTabDesc}>
+            {(() => {
+              const cur = settings.defaultTab ?? 'library';
+              const tabs: { value: ActivePanel; Icon: React.FC<{ active: boolean }> }[] = [
+                { value: 'songs',    Icon: IconSongs    },
+                { value: 'library',  Icon: IconLibrary  },
+                { value: 'chord',    Icon: IconChords   },
+                { value: 'settings', Icon: IconSettings },
+              ];
+              return (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {tabs.map(({ value, Icon }) => {
+                    const active = cur === value;
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => updateSettings({ defaultTab: value })}
+                        style={{
+                          width: '40px', height: '40px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          borderRadius: '10px',
+                          border: active ? `2px solid ${acc.from}` : '2px solid transparent',
+                          background: active ? `linear-gradient(135deg, ${acc.from}22, ${acc.to}18)` : 'var(--app-surface-low)',
+                          color: active ? acc.from : 'var(--c-text-secondary)',
+                          cursor: 'pointer',
+                          transition: 'all 150ms ease',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Icon active={active} />
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </SettingRow>
         </div>
 

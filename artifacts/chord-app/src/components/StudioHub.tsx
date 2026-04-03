@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type ActivePanel } from '../store/useChordStore';
+import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo } from './ChordexLogo';
 import { useNavHidden, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
-import { IconSongs, IconLibrary, IconChords, IconSettings } from './BottomNav';
 
 type HubTab = 'home' | 'settings';
 type TargetApp = 'chords' | 'drums';
@@ -485,82 +484,6 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
             accentTo={accent.to}
           />
         </SettingRow>
-        <SettingRow label={t.settings.rows.chordColors} desc={t.settings.rows.chordColorsDesc}>
-          <Toggle value={settings.showChordQualityColors} onChange={v => updateSettings({ showChordQualityColors: v })} accentFrom={accent.from} accentTo={accent.to} />
-        </SettingRow>
-        <SettingRow label={t.settings.rows.startupApp} desc={t.settings.rows.startupAppDesc}>
-          {(() => {
-            const cur = settings.startupApp ?? 'chords';
-            const opts: { value: 'chords' | 'drums'; label: string }[] = [
-              { value: 'chords', label: t.settings.rows.startupAppChords },
-              { value: 'drums',  label: t.settings.rows.startupAppDrums  },
-            ];
-            return (
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {opts.map(({ value, label }) => {
-                  const active = cur === value;
-                  return (
-                    <button
-                      key={value}
-                      onClick={() => updateSettings({ startupApp: value })}
-                      style={{
-                        height: '40px', padding: '0 12px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                        borderRadius: '10px',
-                        border: active ? `2px solid ${accent.from}` : '2px solid transparent',
-                        background: active ? `linear-gradient(135deg, ${accent.from}22, ${accent.to}18)` : 'var(--app-surface-low)',
-                        color: active ? accent.from : 'var(--c-text-secondary)',
-                        cursor: 'pointer',
-                        transition: 'all 150ms ease',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {value === 'chords' ? <ChordexLogo size={14} /> : <DrumexLogo size={14} />}
-                      <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'Manrope, sans-serif' }}>{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </SettingRow>
-        <SettingRow label={t.settings.rows.defaultTab} desc={t.settings.rows.defaultTabDesc}>
-          {(() => {
-            const cur = settings.defaultTab ?? 'library';
-            const tabs: { value: ActivePanel; Icon: React.FC<{ active: boolean }> }[] = [
-              { value: 'songs',    Icon: IconSongs    },
-              { value: 'library',  Icon: IconLibrary  },
-              { value: 'chord',    Icon: IconChords   },
-              { value: 'settings', Icon: IconSettings },
-            ];
-            return (
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {tabs.map(({ value, Icon }) => {
-                  const active = cur === value;
-                  return (
-                    <button
-                      key={value}
-                      onClick={() => updateSettings({ defaultTab: value })}
-                      style={{
-                        width: '40px', height: '40px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        borderRadius: '10px',
-                        border: active ? `2px solid ${accent.from}` : '2px solid transparent',
-                        background: active ? `linear-gradient(135deg, ${accent.from}22, ${accent.to}18)` : 'var(--app-surface-low)',
-                        color: active ? accent.from : 'var(--c-text-secondary)',
-                        cursor: 'pointer',
-                        transition: 'all 150ms ease',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon active={active} />
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </SettingRow>
       </div>
 
       {/* ── FEEDBACK ── */}
@@ -593,10 +516,8 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
       <div style={cardStyle}>
         <div style={{ padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {[
-            { label: t.settings.about.version,       value: '1.5.0'                           },
-            { label: t.settings.about.designSystem,  value: 'Chordex'                         },
-            { label: t.settings.about.chordLibrary,  value: t.settings.about.chordLibraryValue },
-            { label: t.settings.about.storage,       value: t.settings.about.storageValue      },
+            { label: t.settings.about.version, value: '1.5.0'                      },
+            { label: t.settings.about.storage, value: t.settings.about.storageValue },
           ].map(({ label, value }) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{label}</span>
