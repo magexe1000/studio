@@ -131,3 +131,9 @@ id = "8qQOIdCUFG9RKf1Ru3Txe"
 uri = "file://artifacts/chord-app/public/studio-icon-foreground.png"
 type = "image"
 title = "Studio Icon — Foreground only (1024×1024, transparent)"
+
+[[outputs]]
+id = "MJP6SbgMoitgw0qbbx6Yt"
+uri = "file://artifacts/chord-app/public/studio-icon-android.png"
+type = "image"
+title = "Studio Icon — Android (1024×1024, full square)"
