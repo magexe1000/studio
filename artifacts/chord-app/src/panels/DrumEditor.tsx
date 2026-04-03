@@ -2225,13 +2225,23 @@ export default function DrumEditor() {
                         return (
                           <div key={mi} style={{ width: MEASURE_W, flexShrink: 0, display: 'flex', alignItems: 'center', paddingLeft: 6, paddingRight: 2, borderLeft: mi > 0 ? `1px solid ${barColor}` : 'none', gap: 4, position: 'relative', background: isFlash ? `${accent.from}22` : 'transparent', transition: 'background 400ms' }}>
                             <span style={{ color: 'var(--c-text-primary)', fontSize: 10, fontWeight: 700, fontFamily: 'Manrope, sans-serif', opacity: 0.65, flexShrink: 0 }}>{globalM + 1}</span>
-                            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                              {Array.from({ length: pattern.timeSignature[0] }, (_, bi) => (
-                                <div key={bi} style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                                  <div style={{ width: 1, height: bi === 0 ? 8 : 5, background: 'var(--c-text-primary)', opacity: bi === 0 ? 0.45 : 0.20 }} />
-                                </div>
-                              ))}
-                            </div>
+                            <svg
+                              style={{ position: 'absolute', bottom: 0, left: 0, width: MEASURE_W, height: 13, pointerEvents: 'none' }}
+                              viewBox={`0 0 ${MEASURE_W} 13`}
+                              preserveAspectRatio="none"
+                            >
+                              {Array.from({ length: spm }, (_, s) => {
+                                const x      = (s + 0.5) * STEP_W;
+                                const isBeat = s % stepsPerBeat === 0;
+                                const isDown = s === 0;
+                                const h      = isDown ? 11 : isBeat ? 7 : 4;
+                                const op     = isDown ? 0.55 : isBeat ? 0.30 : 0.14;
+                                return (
+                                  <line key={s} x1={x} y1={13 - h} x2={x} y2={13}
+                                    stroke="var(--c-text-primary)" strokeWidth={isDown ? 1.2 : 0.8} opacity={op} />
+                                );
+                              })}
+                            </svg>
                             {/* ··· menu button */}
                             <button
                               onPointerDown={e => e.stopPropagation()}

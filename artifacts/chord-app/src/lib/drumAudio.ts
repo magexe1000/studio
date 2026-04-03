@@ -1565,7 +1565,7 @@ export function playSoundAt(
 }
 
 // ── Playback scheduler ──────────────────────────────────────────────────────
-const LOOKAHEAD_S = 0.10;
+const LOOKAHEAD_S = 0.15;
 const TICK_MS     = 22;
 
 class DrumScheduler {
@@ -1666,12 +1666,22 @@ class DrumScheduler {
     this._looping    = loop;
     this._kitType    = kitType ?? null;
     this._totalSteps = stepsPerMeasure(pattern) * pattern.measures.length;
-    this._currentStep   = 0;
-    this._nextStepTime  = _ctx!.currentTime + 0.06;
-    this._playing    = true;
-    this._scheduled  = [];
-    this.onStep?.(0, 0, 0); // snap playhead to beat 1 immediately
-    this.doTick();
+    this._currentStep = 0;
+    this._playing     = true;
+    this._scheduled   = [];
+    this.onStep?.(0, 0, 0);
+
+    const ctx = _ctx!;
+    const kick = () => {
+      if (!this._playing) return;
+      this._nextStepTime = ctx.currentTime + 0.12;
+      this.doTick();
+    };
+    if (ctx.state === 'running') {
+      kick();
+    } else {
+      ctx.resume().then(kick);
+    }
   }
 
   stop() {
@@ -1717,9 +1727,18 @@ class DrumScheduler {
     this._kitType   = kitType ?? this._kitType;
     if (!this._totalSteps && pattern)
       this._totalSteps = stepsPerMeasure(pattern) * pattern.measures.length;
-    this._nextStepTime = _ctx ? _ctx.currentTime + 0.05 : 0.05;
     this._playing = true;
-    this.doTick();
+    const ctx = _ctx;
+    const kick = () => {
+      if (!this._playing) return;
+      this._nextStepTime = ctx ? ctx.currentTime + 0.12 : 0.12;
+      this.doTick();
+    };
+    if (!ctx || ctx.state === 'running') {
+      kick();
+    } else {
+      ctx.resume().then(kick);
+    }
   }
 
   updatePattern(pattern: DrumPattern) {
