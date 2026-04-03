@@ -446,7 +446,7 @@ interface DrumExportConfig {
   theme: 'light' | 'dark';
   style: 'compact' | 'normal' | 'elegant';
 }
-const DEFAULT_DRUM_EXPORT_CONFIG: DrumExportConfig = { theme: 'light', style: 'elegant' };
+const DEFAULT_DRUM_EXPORT_CONFIG: DrumExportConfig = { theme: 'dark', style: 'normal' };
 
 // ── JSON export ─────────────────────────────────────────────────────────────
 async function exportDrumSongJSON(patterns: DrumPattern[], song: DrumSong | null, mode: 'save' | 'share' = 'share') {
@@ -496,117 +496,143 @@ async function exportDrumSongPDF(
   pdfName   = '',
   mode: 'save' | 'share' = 'share',
 ): Promise<boolean> {
-  const { jsPDF }  = await import('jspdf');
-  const ALL_I       = CORE_INSTS as readonly DrumInstrument[];
-  const dark        = cfg.theme === 'dark';
-  const compact     = cfg.style === 'compact';
-  const elegant     = cfg.style === 'elegant';
+  const { jsPDF } = await import('jspdf');
+  const ALL_I     = CORE_INSTS as readonly DrumInstrument[];
+  const dark      = cfg.theme === 'dark';
   const [ar, ag, ab] = HEX_TO_RGB(accent.from);
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const PW = 297, PH = 210;
-  const MT = 14, MB = 14, ML = 14, MR = 14;
-  const CELL  = compact ? 5   : elegant ? 7   : 6;
-  const ROW_H = compact ? 5.5 : elegant ? 8   : 7;
-  const LW    = compact ? 28  : elegant ? 36  : 32;
-  const GAP   = compact ? 3   : elegant ? 6   : 4;
+  const MT = 14, MB = 16, ML = 14, MR = 14;
+  const LW    = 26;   // label column width
+  const ROW_H = 7.5;  // instrument row height
+  const GRID_W = PW - ML - MR - LW; // available width for step cells
 
-  // Palette
-  const bgR = dark ? 12  : (elegant ? 246 : 255);
-  const bgG = dark ? 12  : (elegant ? 245 : 255);
-  const bgB = dark ? 12  : (elegant ? 242 : 255);
-  const rowEvenR = dark ? 26  : (elegant ? 252 : 252);
-  const rowOddR  = dark ? 20  : (elegant ? 245 : 246);
-  const labelR   = dark ? 160 : 80;
-  const borderR  = dark ? 50  : (elegant ? 200 : 218);
-  const beatR    = dark ? 80  : (elegant ? 160 : 170);
+  // Palette — match the app's grid visually
+  const bg      = dark ? [13,  13,  15 ] : [252, 252, 254];
+  const cellA   = dark ? [22,  22,  26 ] : [242, 242, 248]; // beat group A
+  const cellB   = dark ? [28,  28,  34 ] : [232, 232, 240]; // beat group B
+  const label   = dark ? [160, 160, 170] : [80,  80,  90 ];
+  const gridLine= dark ? [38,  38,  45 ] : [195, 195, 205];
+  const beatLine= dark ? [60,  60,  72 ] : [160, 160, 175];
+  const barLine = dark ? [90,  90,  110] : [120, 120, 140];
 
   let page = 1;
-  const newPage = () => { doc.addPage(); page++; drawHeader(true); };
-
-  const drawHeader = (cont: boolean) => {
-    // Page bg
-    doc.setFillColor(bgR, bgG, bgB);
-    doc.rect(0, 0, PW, PH, 'F');
-    // Accent bar
-    doc.setFillColor(ar, ag, ab);
-    doc.rect(ML, MT, 3, elegant ? 11 : 8, 'F');
-    // Title
-    doc.setFontSize(elegant ? 15 : 12).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
-    doc.text(pdfName || song?.name || 'Drumex Export', ML + 6, MT + (elegant ? 7 : 5.5));
+  const drawPage = (cont: boolean) => {
+    doc.setFillColor(...bg as [number,number,number]); doc.rect(0, 0, PW, PH, 'F');
+    doc.setFillColor(ar, ag, ab); doc.rect(ML, MT, 3, 10, 'F');
+    doc.setFontSize(13).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
+    doc.text(pdfName || song?.name || 'Drumex Export', ML + 7, MT + 7.5);
     if (song?.artist) {
-      doc.setFontSize(9).setFont('helvetica', 'normal').setTextColor(labelR, labelR, labelR);
-      const titleW = doc.getTextWidth(pdfName || song?.name || 'Drumex Export');
-      doc.text(song.artist, ML + 6 + titleW + 4, MT + (elegant ? 7 : 5.5));
+      doc.setFontSize(8).setFont('helvetica', 'normal').setTextColor(...label as [number,number,number]);
+      const tw = doc.getTextWidth(pdfName || song?.name || 'Drumex Export');
+      doc.text(song.artist, ML + 7 + tw + 5, MT + 7.5);
     }
-    if (cont) {
-      doc.setFontSize(8).setTextColor(140, 140, 140);
-      doc.text('continued', PW - MR - 2, MT + 6, { align: 'right' });
-    }
-    doc.setFontSize(7).setTextColor(150, 150, 150);
-    doc.text(`Page ${page}`, PW - MR, PH - 5, { align: 'right' });
-    if (elegant) {
-      doc.setDrawColor(ar, ag, ab, 0.12);
-      doc.setLineWidth(0.3);
-      doc.line(ML, MT + 14, PW - MR, MT + 14);
-    }
+    if (cont) { doc.setFontSize(7).setTextColor(130,130,130); doc.text('(continued)', PW - MR, MT + 6, { align: 'right' }); }
+    doc.setFontSize(6.5).setTextColor(120,120,120); doc.text(`Page ${page}`, PW - MR, PH - 5, { align: 'right' });
+    doc.setDrawColor(ar, ag, ab); doc.setLineWidth(0.2);
+    doc.line(ML, MT + 12.5, PW - MR, MT + 12.5);
   };
+  const newPage = () => { doc.addPage(); page++; drawPage(true); };
 
-  drawHeader(false);
-  let curY = MT + (elegant ? 18 : 14);
+  drawPage(false);
+  let curY = MT + 16;
 
   for (const pat of patterns) {
     const subs  = pat.subdivision ?? 16;
     const insts = ALL_I.filter(i => !(pat.mutedInstruments ?? []).includes(i));
+    if (insts.length === 0) continue;
 
-    for (const [mi, meas] of pat.measures.entries()) {
-      const neededH = (mi === 0 ? 10 : 0) + insts.length * ROW_H + GAP;
-      if (curY + neededH > PH - MB) newPage();
+    // Fit as many bars per row as possible with cells at least 4mm wide
+    const barsPerRow = Math.max(1, Math.min(pat.measures.length, Math.floor(GRID_W / (subs * 4))));
+    const CELL = GRID_W / (barsPerRow * subs); // fills full grid width
+    const systemH = insts.length * ROW_H;
 
-      if (mi === 0) {
-        doc.setFontSize(7.5).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
-        doc.text(`${pat.name}  ·  ${pat.bpm} BPM  ·  1/${subs}`, ML, curY + 5);
-        curY += 10;
+    // Pattern label
+    const patHdrH = 9;
+    if (curY + patHdrH + systemH > PH - MB) { newPage(); curY = MT + 16; }
+    doc.setFontSize(8).setFont('helvetica', 'bold').setTextColor(ar, ag, ab);
+    doc.text(`${pat.name}  ·  ${pat.bpm} BPM  ·  1/${subs}`, ML, curY + 6);
+    curY += patHdrH;
+
+    // Iterate rows of bars
+    for (let rowStart = 0; rowStart < pat.measures.length; rowStart += barsPerRow) {
+      const rowBars = pat.measures.slice(rowStart, rowStart + barsPerRow);
+      if (curY + systemH + 2 > PH - MB) { newPage(); curY = MT + 16; }
+
+      // Bar numbers above the grid
+      for (const [bi, _m] of rowBars.entries()) {
+        const bx = ML + LW + bi * subs * CELL;
+        doc.setFontSize(5.5).setFont('helvetica', 'normal').setTextColor(120,120,120);
+        doc.text(`${rowStart + bi + 1}`, bx + (subs * CELL) / 2, curY - 1.5, { align: 'center' });
       }
 
-      doc.setFontSize(6).setFont('helvetica', 'normal').setTextColor(140, 140, 140);
-      doc.text(`Bar ${mi + 1}`, ML, curY + 3.5);
-      const measX = ML + LW;
-
-      for (let b = 0; b <= subs; b++) {
-        const isBeat = b % 4 === 0;
-        doc.setDrawColor(isBeat ? beatR : borderR, isBeat ? beatR : borderR, isBeat ? beatR : borderR);
-        doc.setLineWidth(isBeat ? 0.35 : 0.15);
-        doc.line(measX + b * CELL, curY, measX + b * CELL, curY + insts.length * ROW_H);
-      }
-
+      // Draw each instrument row
       for (const [ri, inst] of insts.entries()) {
-        const rowY  = curY + ri * ROW_H;
+        const rowY = curY + ri * ROW_H;
         const [cr, cg, cb] = HEX_TO_RGB(INSTRUMENT_COLOR[inst] ?? accent.from);
-        const ev = ri % 2 === 0;
-        doc.setFillColor(ev ? rowEvenR : rowOddR, ev ? rowEvenR : rowOddR, ev ? rowEvenR : rowOddR);
-        doc.rect(measX, rowY, subs * CELL, ROW_H, 'F');
-        doc.setFontSize(5.5).setFont('helvetica', 'normal').setTextColor(labelR, labelR, labelR);
-        doc.text(INST_LABEL[inst], ML + LW - 1, rowY + ROW_H / 2 + 1.8, { align: 'right' });
-        for (let s = 0; s < subs; s++) {
-          if ((meas.hits[inst]?.find?.((h: DrumHit) => h.step === s))) {
-            if (elegant) {
+
+        // Label
+        doc.setFontSize(5.5).setFont('helvetica', 'normal').setTextColor(...label as [number,number,number]);
+        doc.text(INST_LABEL[inst], ML + LW - 1, rowY + ROW_H / 2 + 1.9, { align: 'right' });
+
+        for (const [bi, meas] of rowBars.entries()) {
+          const barStartX = ML + LW + bi * subs * CELL;
+
+          for (let s = 0; s < subs; s++) {
+            const cx = barStartX + s * CELL;
+            const beatGroup = Math.floor(s / 4) % 2;
+            const cellColor = beatGroup === 0 ? cellA : cellB;
+
+            // Cell bg
+            doc.setFillColor(...cellColor as [number,number,number]);
+            doc.rect(cx, rowY, CELL, ROW_H, 'F');
+
+            // Hit fill
+            if (meas.hits[inst]?.find?.((h: DrumHit) => h.step === s)) {
               doc.setFillColor(cr, cg, cb);
-              const r = (CELL - 1) / 2;
-              doc.roundedRect(measX + s * CELL + 0.7, rowY + 1, CELL - 1.4, ROW_H - 2, r * 0.7, r * 0.7, 'F');
-            } else {
-              doc.setFillColor(cr, cg, cb);
-              doc.rect(measX + s * CELL + 0.5, rowY + 1, CELL - 1, ROW_H - 2, 'F');
+              const pad = 0.7;
+              const rr  = Math.min(1.5, (CELL - 2 * pad) / 2, (ROW_H - 2 * pad) / 2);
+              doc.roundedRect(cx + pad, rowY + pad, CELL - 2 * pad, ROW_H - 2 * pad, rr, rr, 'F');
             }
+
+            // Step cell border
+            doc.setDrawColor(...gridLine as [number,number,number]);
+            doc.setLineWidth(0.08);
+            doc.rect(cx, rowY, CELL, ROW_H);
           }
+
+          // Beat group dividers (every 4 steps, thicker)
+          for (let b = 0; b <= subs; b += 4) {
+            const bx = barStartX + b * CELL;
+            doc.setDrawColor(...beatLine as [number,number,number]);
+            doc.setLineWidth(0.22);
+            doc.line(bx, rowY, bx, rowY + ROW_H);
+          }
+
+          // Bar separator (right edge of each bar)
+          doc.setDrawColor(...barLine as [number,number,number]);
+          doc.setLineWidth(0.5);
+          doc.line(barStartX + subs * CELL, rowY, barStartX + subs * CELL, rowY + ROW_H);
         }
-        doc.setDrawColor(borderR, borderR, borderR);
-        doc.setLineWidth(0.12);
-        doc.rect(measX, rowY, subs * CELL, ROW_H);
       }
-      curY += insts.length * ROW_H + GAP;
+
+      // Outer grid border
+      const totalW = rowBars.length * subs * CELL;
+      doc.setDrawColor(...barLine as [number,number,number]);
+      doc.setLineWidth(0.4);
+      doc.rect(ML + LW, curY, totalW, systemH);
+
+      // Horizontal row dividers
+      for (let ri = 1; ri < insts.length; ri++) {
+        doc.setDrawColor(...gridLine as [number,number,number]);
+        doc.setLineWidth(0.12);
+        doc.line(ML + LW, curY + ri * ROW_H, ML + LW + totalW, curY + ri * ROW_H);
+      }
+
+      curY += systemH + 5;
     }
-    curY += elegant ? 10 : 7;
+    curY += 6;
   }
 
   const fileName = `${pdfName || song?.name || 'drumex'}.pdf`;
@@ -637,93 +663,98 @@ function DrumPaperPreview({ patterns, song, cfg, accent }: {
   cfg: DrumExportConfig;
   accent: { from: string; to: string };
 }) {
-  const dark    = cfg.theme === 'dark';
-  const elegant = cfg.style === 'elegant';
-  const compact = cfg.style === 'compact';
-  const ALL_I   = CORE_INSTS as readonly DrumInstrument[];
+  const dark  = cfg.theme === 'dark';
+  const ALL_I = CORE_INSTS as readonly DrumInstrument[];
 
-  const bg      = dark ? '#0e0e0e' : (elegant ? '#f5f4f1' : '#ffffff');
-  const text    = dark ? '#edeae4' : '#0d0d0d';
-  const sub     = dark ? '#666'    : '#888';
-  const rowEven = dark ? '#1a1a1a' : (elegant ? '#faf9f7' : '#fafafa');
-  const rowOdd  = dark ? '#141414' : (elegant ? '#f3f2ef' : '#f4f4f5');
-  const divider = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)';
+  const bg       = dark ? '#0d0d0f' : '#f8f8fc';
+  const sub      = dark ? '#555'    : '#999';
+  const cellA    = dark ? '#16161e' : '#e8e8f0';
+  const cellB    = dark ? '#1c1c26' : '#dcdcea';
+  const divLine  = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.10)';
+  const beatDiv  = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.16)';
+  const barDiv   = dark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.24)';
 
-  const previewPats = patterns.slice(0, compact ? 3 : 2);
+  const ROW_PX = 8; // preview row height in px
+  const previewPats = patterns.slice(0, 2);
 
   return (
-    <div style={{
-      background: bg, borderRadius: 10, overflow: 'hidden',
-      boxShadow: dark
-        ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)'
-        : '0 24px 60px rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.07)',
-      transition: 'background 250ms, box-shadow 250ms',
-      width: '100%', aspectRatio: '1.414 / 1',
-    }}>
+    <div style={{ background: bg, borderRadius: 10, overflow: 'hidden', width: '100%', aspectRatio: '1.414 / 1',
+      boxShadow: dark ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)' : '0 16px 48px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.07)',
+      transition: 'background 250ms, box-shadow 250ms' }}>
+
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: compact ? '10px 12px 8px' : '14px 16px 12px', borderBottom: `1px solid ${divider}` }}>
-        <div style={{ width: 3, height: elegant ? 20 : 14, borderRadius: 2, background: accent.from, flexShrink: 0 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px 10px', borderBottom: `1px solid ${divLine}` }}>
+        <div style={{ width: 3, height: 16, borderRadius: 2, background: accent.from, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: compact ? 9 : 11, color: accent.from, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, color: accent.from, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {song?.name ?? 'Drumex Export'}
           </p>
-          {song?.artist && <p style={{ margin: 0, fontFamily: 'Inter', fontSize: 7, color: sub }}>{song.artist}</p>}
+          {song?.artist && <p style={{ margin: 0, fontFamily: 'Inter', fontSize: 7, color: sub, marginTop: 1 }}>{song.artist}</p>}
         </div>
-        {elegant && <div style={{ width: 28, height: 1, background: accent.from, opacity: 0.3 }} />}
       </div>
 
       {/* Patterns */}
-      <div style={{ padding: compact ? '6px 8px' : '10px 12px', display: 'flex', flexDirection: 'column', gap: compact ? 6 : 10 }}>
+      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
         {previewPats.map(pat => {
           const insts = ALL_I.filter(i => !(pat.mutedInstruments ?? []).includes(i));
           const subs  = pat.subdivision ?? 16;
-          const meas  = pat.measures[0];
-          if (!meas) return null;
+          const previewMeasures = pat.measures.slice(0, 4); // show up to 4 bars in preview
           return (
             <div key={pat.id}>
-              <p style={{ margin: '0 0 3px', fontFamily: 'Manrope', fontWeight: 700, fontSize: 7, color: accent.from }}>
+              <p style={{ margin: '0 0 4px', fontFamily: 'Manrope', fontWeight: 700, fontSize: 7, color: accent.from }}>
                 {pat.name} · {pat.bpm} BPM · 1/{subs}
               </p>
-              <div style={{ display: 'flex', gap: 1 }}>
+              {/* Grid: labels + measures */}
+              <div style={{ display: 'flex', gap: 3 }}>
                 {/* Labels */}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {insts.map((inst, ri) => (
-                    <div key={inst} style={{ height: compact ? 5 : 6, display: 'flex', alignItems: 'center' }}>
-                      <span style={{ fontSize: 5, fontFamily: 'Manrope', fontWeight: 600, color: sub, whiteSpace: 'nowrap', paddingRight: 3, minWidth: compact ? 22 : 26, textAlign: 'right' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
+                  {insts.map(inst => (
+                    <div key={inst} style={{ height: ROW_PX, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                      <span style={{ fontSize: 5, fontFamily: 'Manrope', fontWeight: 600, color: sub, whiteSpace: 'nowrap', paddingRight: 3 }}>
                         {INST_LABEL[inst].split(' ')[0]}
                       </span>
                     </div>
                   ))}
                 </div>
-                {/* Grid */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  {insts.map((inst, ri) => {
-                    const color = INSTRUMENT_COLOR[inst] ?? accent.from;
-                    return (
-                      <div key={inst} style={{ display: 'flex', background: ri % 2 === 0 ? rowEven : rowOdd, height: compact ? 5 : 6, gap: '0.5px' }}>
-                        {Array.from({ length: subs }, (_, s) => {
-                          const hit = meas.hits[inst]?.find?.((h: DrumHit) => h.step === s);
-                          return (
-                            <div key={s} style={{
-                              flex: 1, height: '100%',
-                              background: hit ? color : 'transparent',
-                              borderRadius: elegant ? 1 : 0,
-                              opacity: hit ? 0.9 : 1,
-                              borderLeft: s % 4 === 0 && s > 0 ? `0.5px solid ${divider}` : undefined,
-                            }} />
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
+                {/* Bars */}
+                <div style={{ flex: 1, display: 'flex', gap: 1.5, overflow: 'hidden' }}>
+                  {previewMeasures.map((meas, bi) => (
+                    <div key={bi} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, borderRight: bi < previewMeasures.length - 1 ? `1px solid ${barDiv}` : 'none', paddingRight: bi < previewMeasures.length - 1 ? 1.5 : 0 }}>
+                      {insts.map((inst, ri) => {
+                        const color = INSTRUMENT_COLOR[inst] ?? accent.from;
+                        return (
+                          <div key={inst} style={{ display: 'flex', height: ROW_PX, gap: 0 }}>
+                            {Array.from({ length: subs }, (_, s) => {
+                              const hit = meas.hits[inst]?.find?.((h: DrumHit) => h.step === s);
+                              const bg2 = Math.floor(s / 4) % 2 === 0 ? cellA : cellB;
+                              return (
+                                <div key={s} style={{
+                                  flex: 1, height: '100%',
+                                  background: hit ? color : bg2,
+                                  borderRadius: hit ? 1 : 0,
+                                  outline: `0.5px solid ${s % 4 === 0 && s > 0 ? beatDiv : divLine}`,
+                                  outlineOffset: '-0.5px',
+                                }} />
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                  {pat.measures.length > 4 && (
+                    <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 4 }}>
+                      <span style={{ fontSize: 5, color: sub }}>+{pat.measures.length - 4}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           );
         })}
-        {patterns.length > previewPats.length && (
+        {patterns.length > 2 && (
           <p style={{ margin: 0, fontFamily: 'Manrope', fontSize: 6, color: sub }}>
-            +{patterns.length - previewPats.length} more pattern{patterns.length - previewPats.length > 1 ? 's' : ''}
+            +{patterns.length - 2} more pattern{patterns.length - 2 > 1 ? 's' : ''}
           </p>
         )}
       </div>
