@@ -1463,15 +1463,24 @@ export default function DrumEditor() {
 
   // ── Container width ──────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerW, setContainerW] = useState(340);
+  const [containerW, setContainerW] = useState(0);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    setContainerW(el.clientWidth);
-    const ro = new ResizeObserver(e => setContainerW(e[0].contentRect.width));
+
+    const update = (w: number) => { if (w > 0) setContainerW(w); };
+
+    const measure = () => {
+      const w = el.clientWidth || el.getBoundingClientRect().width;
+      if (w > 0) { update(w); }
+      else { const raf = requestAnimationFrame(() => update(el.clientWidth || el.getBoundingClientRect().width)); return raf; }
+    };
+    const raf = measure();
+
+    const ro = new ResizeObserver(e => update(e[0].contentRect.width));
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => { ro.disconnect(); if (raf) cancelAnimationFrame(raf); };
   }, []);
 
   // ── Visible instruments ───────────────────────────────────────────────────
@@ -2212,7 +2221,7 @@ export default function DrumEditor() {
                   }}
                 />
               </div>
-              {systemRows.map((rowMeasures, sysIdx) => {
+              {containerW > LABEL_W && systemRows.map((rowMeasures, sysIdx) => {
                 const mStartIdx = sysIdx * measuresPerRow;
                 return (
                   <div key={sysIdx} style={{ marginBottom: SYS_SEP }}>
