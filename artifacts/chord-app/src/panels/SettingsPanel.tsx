@@ -4,6 +4,7 @@ import { useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { IconSongs, IconLibrary, IconChords, IconSettings } from '../components/BottomNav';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
+import { ChordexLogo, DrumexLogo } from '../components/ChordexLogo';
 
 interface ToggleProps {
   value: boolean;
@@ -339,6 +340,46 @@ export default function SettingsPanel() {
           </SettingRow>
           <SettingRow label={t.settings.rows.chordColors} desc={t.settings.rows.chordColorsDesc}>
             <Toggle value={settings.showChordQualityColors} onChange={v => updateSettings({ showChordQualityColors: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+          <SettingRow label={t.settings.rows.startupApp} desc={t.settings.rows.startupAppDesc}>
+            {(() => {
+              const cur = settings.startupApp ?? 'chords';
+              const opts: { value: 'chords' | 'drums'; label: string }[] = [
+                { value: 'chords', label: t.settings.rows.startupAppChords },
+                { value: 'drums',  label: t.settings.rows.startupAppDrums  },
+              ];
+              return (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {opts.map(({ value, label }) => {
+                    const active = cur === value;
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => updateSettings({ startupApp: value })}
+                        style={{
+                          height: '40px', padding: '0 12px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                          borderRadius: '10px',
+                          border: active ? `2px solid ${accent.from}` : '2px solid transparent',
+                          background: active
+                            ? `linear-gradient(135deg, ${accent.from}22, ${accent.to}18)`
+                            : 'var(--app-surface-low)',
+                          color: active ? accent.from : 'var(--c-text-secondary)',
+                          cursor: 'pointer',
+                          transition: 'all 150ms ease',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {value === 'chords'
+                          ? <ChordexLogo size={14} />
+                          : <DrumexLogo  size={14} />}
+                        <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'Manrope, sans-serif' }}>{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </SettingRow>
           <SettingRow label={t.settings.rows.defaultTab} desc={t.settings.rows.defaultTabDesc}>
             {(() => {

@@ -16,12 +16,29 @@ const NAV_ORDER = ['songs', 'library', 'chord', 'settings'] as const;
 const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
-  const { activePanel, settings, setActivePanel, activePresetId } = useChordStore();
+  const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
 
-  // On first mount, jump to the user's preferred start tab
+  // On first mount: apply startupApp preference
+  const startupHandled = useRef(false);
   useEffect(() => {
-    const tab = settings.defaultTab ?? 'library';
-    if (tab !== 'library') setActivePanel(tab);
+    const startApp = settings.startupApp ?? 'chords';
+    if (startApp === 'drums') {
+      // Force drums mode (handles case where last session was in chords)
+      prevAppMode.current = 'drums'; // prevent double-splash from appMode effect
+      updateSettings({ appMode: 'drums' });
+      // Show Drumex splash on startup
+      setDrumSplash('in');
+      const t1 = setTimeout(() => setDrumSplash('out'), 750);
+      const t2 = setTimeout(() => setDrumSplash('hidden'), 1100);
+      splashTimers.current = [t1, t2];
+    } else {
+      // Force chords mode (handles case where last session was in drums)
+      prevAppMode.current = 'chords'; // prevent splash from triggering on mode reset
+      updateSettings({ appMode: 'chords' });
+      const tab = settings.defaultTab ?? 'library';
+      if (tab !== 'library') setActivePanel(tab);
+    }
+    startupHandled.current = true;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

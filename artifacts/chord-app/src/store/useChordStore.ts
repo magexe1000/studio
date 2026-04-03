@@ -78,6 +78,7 @@ export interface AppSettings {
   language: Language;
   preferFlats: boolean;
   defaultTab: ActivePanel;
+  startupApp: 'chords' | 'drums';
   appMode: 'chords' | 'drums';
   chordAssistant: boolean;
   assistantSmartSuggestions: boolean;
@@ -191,6 +192,7 @@ export const useChordStore = create<ChordStore>()(
         language: 'en',
         preferFlats: false,
         defaultTab: 'library',
+        startupApp: 'chords',
         appMode: 'chords',
         chordAssistant: false,
         assistantSmartSuggestions: true,
