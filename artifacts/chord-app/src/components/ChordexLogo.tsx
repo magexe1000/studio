@@ -3,7 +3,6 @@ export function StudioLogo({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 512 512" fill="none"
       xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', flexShrink: 0 }}>
-      <rect width="512" height="512" rx="110" fill="currentColor" fillOpacity="0.12"/>
       <path
         d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256"
         stroke="currentColor" strokeWidth="44"
