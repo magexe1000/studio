@@ -5,6 +5,7 @@ import { ChordexLogo, DrumexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
+import StudioHub from './components/StudioHub';
 
 const LibraryPanel  = lazy(() => import('./panels/LibraryPanel'));
 const ChordPanel    = lazy(() => import('./panels/ChordPanel'));
@@ -22,10 +23,13 @@ export default function App() {
   // On first mount: apply startupApp preference
   const startupHandled = useRef(false);
   useEffect(() => {
-    const startApp = settings.startupApp ?? 'chords';
+    const startApp = settings.startupApp ?? 'hub';
     if (startApp === 'drums') {
       prevAppMode.current = 'drums';
       updateSettings({ appMode: 'drums' });
+    } else if (startApp === 'hub') {
+      prevAppMode.current = 'hub';
+      updateSettings({ appMode: 'hub' });
     } else {
       prevAppMode.current = 'chords';
       updateSettings({ appMode: 'chords' });
@@ -229,6 +233,11 @@ export default function App() {
     const t = setTimeout(() => setExitingPanel(null), durMs + 20);
     return () => clearTimeout(t);
   }, [activePanel, durMs]);
+
+  // ── Hub mode: show the Studio Hub ────────────────────────────────────────
+  if (settings.appMode === 'hub') {
+    return <StudioHub />;
+  }
 
   // ── Drums mode: completely separate environment ──────────────────────────
   if (settings.appMode === 'drums') {

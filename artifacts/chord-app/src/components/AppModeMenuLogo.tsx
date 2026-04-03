@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChordexLogo, DrumexLogo } from './ChordexLogo';
+import { ChordexLogo, DrumexLogo, StudioLogo } from './ChordexLogo';
 import { useChordStore } from '../store/useChordStore';
 
 export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }: { color?: string; size?: number }) {
@@ -31,6 +31,8 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
     { value: 'chords', Icon: ChordexLogo, label: 'Chordex', desc: 'Chord library & songs' },
     { value: 'drums',  Icon: DrumexLogo,  label: 'Drumex',  desc: 'Drum sheet editor'     },
   ];
+
+  const goToHub = () => { updateSettings({ appMode: 'hub' }); setOpen(false); };
 
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
@@ -76,7 +78,7 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
                   width: '100%', padding: '13px 14px',
                   background: isActive ? 'rgba(128,128,255,0.07)' : 'transparent',
                   border: 'none',
-                  borderBottom: i < OPTIONS.length - 1 ? '1px solid rgba(128,128,128,0.09)' : 'none',
+                  borderBottom: '1px solid rgba(128,128,128,0.09)',
                   cursor: 'pointer', textAlign: 'left',
                 }}
               >
@@ -98,6 +100,28 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
               </button>
             );
           })}
+          {/* Hub shortcut */}
+          <button
+            onClick={goToHub}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              width: '100%', padding: '13px 14px',
+              background: 'transparent', border: 'none',
+              cursor: 'pointer', textAlign: 'left',
+            }}
+          >
+            <span style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 22, height: 22, flexShrink: 0,
+              color: 'var(--accent-from)', opacity: 0.9,
+            }}>
+              <StudioLogo size={18} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0 }}>Back to Hub</p>
+              <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 11, margin: '2px 0 0' }}>Studio home screen</p>
+            </div>
+          </button>
         </div>
       )}
     </div>

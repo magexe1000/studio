@@ -78,8 +78,9 @@ export interface AppSettings {
   language: Language;
   preferFlats: boolean;
   defaultTab: ActivePanel;
-  startupApp: 'chords' | 'drums';
-  appMode: 'chords' | 'drums';
+  startupApp: 'chords' | 'drums' | 'hub';
+  appMode: 'chords' | 'drums' | 'hub';
+  hubUserName: string;
   chordAssistant: boolean;
   assistantSmartSuggestions: boolean;
   assistantProgressionTips: boolean;
@@ -192,8 +193,9 @@ export const useChordStore = create<ChordStore>()(
         language: 'en',
         preferFlats: false,
         defaultTab: 'library',
-        startupApp: 'chords',
-        appMode: 'chords',
+        startupApp: 'hub',
+        appMode: 'hub',
+        hubUserName: '',
         chordAssistant: false,
         assistantSmartSuggestions: true,
         assistantProgressionTips: true,
@@ -499,6 +501,20 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
+      version: 1,
+      migrate: (stored: unknown, fromVersion: number) => {
+        const s = stored as Record<string, unknown>;
+        if (fromVersion < 1) {
+          // First migration: show the hub to all existing users
+          if (s.settings && typeof s.settings === 'object') {
+            const settings = s.settings as Record<string, unknown>;
+            settings.startupApp  = 'hub';
+            settings.appMode     = 'hub';
+            settings.hubUserName = settings.hubUserName ?? '';
+          }
+        }
+        return s;
+      },
       partialize: (state) => ({
         favorites: state.favorites,
         recentChords: state.recentChords,
