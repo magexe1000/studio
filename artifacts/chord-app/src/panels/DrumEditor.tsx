@@ -4,7 +4,7 @@ import {
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS,
-  stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX,
+  stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX, emptyMeasure,
   type DrumInstrument, type KitType, type HouseMic, type HouseCrashModel, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
   type InstPlugin,
@@ -1513,10 +1513,9 @@ export default function DrumEditor() {
   // ── Clear ────────────────────────────────────────────────────────────────
   const handleClear = useCallback(() => {
     pushUndo();
-    const cleared = pattern.measures.map(m => ({ ...m, hits: {} as Record<DrumInstrument, never[]> }));
-    updatePattern(pattern.id, { measures: cleared } as Parameters<typeof updatePattern>[1]);
-    if (drumScheduler.isPlaying) drumScheduler.updatePattern(useDrumStore.getState().patterns.find(p => p.id === pattern.id)!);
-  }, [pattern, updatePattern, pushUndo]);
+    updatePattern(pattern.id, { measures: [emptyMeasure()] } as Parameters<typeof updatePattern>[1]);
+    if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
+  }, [pattern.id, updatePattern, pushUndo]);
 
   // ── Cell tap ─────────────────────────────────────────────────────────────
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -2082,8 +2081,8 @@ export default function DrumEditor() {
               <div style={{ position: 'relative' }}>
                 {showClearConfirm && (
                   <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', right: 0, background: isAmoled ? 'rgba(4,4,4,0.98)' : (isLight ? 'rgba(250,250,252,0.98)' : 'rgba(18,18,22,0.98)'), border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: '12px 14px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', minWidth: 190, animation: 'drumHamburgerIn 150ms cubic-bezier(0.22,1,0.36,1)', zIndex: 80 }}>
-                    <p style={{ margin: '0 0 10px', fontSize: 12.5, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', lineHeight: 1.4 }}>Clear all hits?</p>
-                    <p style={{ margin: '0 0 12px', fontSize: 11, color: 'var(--c-text-muted)', lineHeight: 1.4 }}>This will erase every note in this pattern. You can undo after.</p>
+                    <p style={{ margin: '0 0 10px', fontSize: 12.5, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', lineHeight: 1.4 }}>Reset pattern?</p>
+                    <p style={{ margin: '0 0 12px', fontSize: 11, color: 'var(--c-text-muted)', lineHeight: 1.4 }}>All hits and extra bars will be removed, leaving one empty bar. You can undo after.</p>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button onClick={() => setShowClearConfirm(false)} className="btn-smooth"
                         style={{ flex: 1, padding: '7px 0', borderRadius: 9, background: 'rgba(128,128,128,0.12)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>Cancel</button>

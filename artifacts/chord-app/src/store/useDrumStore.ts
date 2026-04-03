@@ -195,7 +195,7 @@ export interface DrumSong {
 }
 
 function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
-function emptyMeasure(): DrumMeasure { return { id: `m-${uid()}`, hits: {} }; }
+export function emptyMeasure(): DrumMeasure { return { id: `m-${uid()}`, hits: {} }; }
 function defaultPattern(): DrumPattern {
   return { id: `p-${uid()}`, name: 'Pattern 1', bpm: 120, timeSignature: [4, 4], subdivision: 16, measures: [emptyMeasure()] };
 }
