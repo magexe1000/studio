@@ -1,20 +1,14 @@
 export function StudioLogo({ size = 14 }: { size?: number }) {
-  /* Studio — five equalizer bars of varying height, bottom-aligned */
-  const bars = [
-    { x: 1.5, h: 8  },
-    { x: 4.5, h: 12 },
-    { x: 7.5, h: 14 },
-    { x: 10.5, h: 10 },
-    { x: 13.5, h: 6  },
-  ];
-  const bw = 2; const bottom = 15.5;
+  /* Studio — sine wave mark, matches app icon */
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none"
+    <svg width={size} height={size} viewBox="0 0 512 512" fill="none"
       xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', flexShrink: 0 }}>
-      {bars.map((b, i) => (
-        <rect key={i} x={b.x} y={bottom - b.h} width={bw} height={b.h}
-          rx={1} fill="currentColor" fillOpacity={0.6 + i * 0.1} />
-      ))}
+      <rect width="512" height="512" rx="110" fill="currentColor" fillOpacity="0.12"/>
+      <path
+        d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256"
+        stroke="currentColor" strokeWidth="44"
+        strokeLinecap="round" strokeLinejoin="round" fill="none"
+      />
     </svg>
   );
 }

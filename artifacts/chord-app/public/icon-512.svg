@@ -1,22 +1,17 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Dark background with rounded corners -->
-  <rect width="512" height="512" rx="112" fill="#111116"/>
-  <!-- The Chordex fretboard logo, scaled up and centered (original viewBox 0 0 13 17, scaled ~26x to fit 512) -->
-  <!-- Scale factor: 512/13 = ~39.4 but we want padding, so let's use 22x scale centered -->
-  <!-- Original 13x17 → scaled to 260x340, centered in 512x512: offset x=(512-260)/2=126, y=(512-340)/2=86 -->
-  <!-- Nut: rect x="0.5" y="0.5" width="12" height="2.5" rx="1" → scaled 22x: x=11+126, y=11+86, w=264, h=55, rx=22 -->
-  <rect x="137" y="97" width="264" height="55" rx="22" fill="white"/>
-  <!-- Strings: x=2.5*22+126=181, x=6.5*22+126=269, x=10.5*22+126=357, y1=3*22+86=152, y2=16.5*22+86=449 -->
-  <line x1="181" y1="152" x2="181" y2="449" stroke="white" stroke-width="10" stroke-opacity="0.35"/>
-  <line x1="269" y1="152" x2="269" y2="449" stroke="white" stroke-width="10" stroke-opacity="0.35"/>
-  <line x1="357" y1="152" x2="357" y2="449" stroke="white" stroke-width="10" stroke-opacity="0.35"/>
-  <!-- Fret lines: y=8*22+86=262, y=13*22+86=372; x1=0.5*22+126=137, x2=12.5*22+126=401 -->
-  <line x1="137" y1="262" x2="401" y2="262" stroke="white" stroke-width="8" stroke-opacity="0.28"/>
-  <line x1="137" y1="372" x2="401" y2="372" stroke="white" stroke-width="8" stroke-opacity="0.28"/>
-  <!-- Chord dots: cx=2.5*22+126=181, cy=5.5*22+86=207, r=2.1*22=46 -->
-  <circle cx="181" cy="207" r="46" fill="white"/>
-  <!-- cx=10.5*22+126=357, cy=207 -->
-  <circle cx="357" cy="207" r="46" fill="white"/>
-  <!-- cx=6.5*22+126=269, cy=10.5*22+86=317 -->
-  <circle cx="269" cy="317" r="46" fill="white"/>
+  <defs>
+    <linearGradient id="bg" x1="256" y1="0" x2="256" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1c1c26"/>
+      <stop offset="100%" stop-color="#0b0b10"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg)"/>
+  <path
+    d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256"
+    stroke="white"
+    stroke-width="44"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
 </svg>
