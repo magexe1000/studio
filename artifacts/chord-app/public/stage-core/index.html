@@ -238,10 +238,16 @@
 
 /* 11. Reposition toolbar and category bars around the new layout */
 @media (max-width: 767px) {
-  /* Toolbar near the top (header is now hidden; stay clear of React overlay ~40px) */
+  /* Canvas fills from top — header is gone, no more 64px gap */
+  #canvas-container { top: 0 !important; }
+  /* Push stage viewport down to clear the toolbar row (40px) + React overlay */
+  #stage-viewport { padding-top: 58px !important; }
+  /* Toolbar row 1: zoom/tools near top, clearing the React overlay (ends ~40px) */
   #bottom-toolbar {
-    top: 14px !important;
+    top: 10px !important;
   }
+  /* Action bar (SAVE + PDF) sits below the toolbar row so they don't overlap */
+  #rider-action-bar { top: 54px !important; }
   /* Lift element-category bar above the nav pill (pill height ~62px + 10px bottom + 10px gap) */
   #mobile-cat-bar {
     bottom: 82px !important;
@@ -802,7 +808,7 @@ header { display: none !important; }
   </div>
 </header>
 
-<!-- Rider-only action bar: SAVE + PDF, shown only when Rider view is active -->
+<!-- Stage action bar: SAVE + PDF, shown only on the Stage (Editor) view -->
 <div id="rider-action-bar">
   <button onclick="openPresetsPanel()"
     style="display:flex;align-items:center;gap:5px;background:rgba(255,116,57,0.14);color:#ff7439;border:1px solid rgba(255,116,57,0.28);border-radius:8px;padding:5px 11px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:background 0.15s,border-color 0.15s;"
@@ -824,7 +830,7 @@ header { display: none !important; }
   <div id="sc-nav-pill" style="left:0;width:0;opacity:0;"></div>
   <button class="mob-tab active" data-view="Editor" onclick="switchView('Editor')">
     <span class="material-symbols-outlined sc-nav-icon">grid_on</span>
-    <span data-i18n="navEditor">Editor</span>
+    <span>Stage</span>
   </button>
   <button class="mob-tab" data-view="Setup" id="setup-mob-tab" onclick="activateSetup()">
     <span class="material-symbols-outlined sc-nav-icon">folder_open</span>
@@ -3018,9 +3024,9 @@ window.addEventListener('message', function(e) {
       }
     }
 
-    /* Show/hide rider action bar (SAVE + PDF) */
+    /* Show/hide stage action bar (SAVE + PDF) — only on Stage (Editor) view */
     var riderBar = document.getElementById('rider-action-bar');
-    if (riderBar) riderBar.style.display = (view === 'Rider') ? 'flex' : 'none';
+    if (riderBar) riderBar.style.display = (view === 'Editor') ? 'flex' : 'none';
 
     /* Update pill — use Setup tab for all setup views */
     var nav = document.getElementById('mobile-nav-bar');
@@ -3034,8 +3040,12 @@ window.addEventListener('message', function(e) {
   function initPill() {
     var nav = document.getElementById('mobile-nav-bar');
     var activeBtn = nav && nav.querySelector('.mob-tab.active');
-    if (activeBtn) updatePill(activeBtn, 'right');
-    else setTimeout(initPill, 50);
+    if (activeBtn) {
+      updatePill(activeBtn, 'right');
+      /* Show action bar if starting on the Stage (Editor) view */
+      var riderBar = document.getElementById('rider-action-bar');
+      if (riderBar) riderBar.style.display = (activeBtn.dataset.view === 'Editor') ? 'flex' : 'none';
+    } else setTimeout(initPill, 50);
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(initPill, 80); });
