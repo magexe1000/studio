@@ -838,8 +838,9 @@ function switchView(view) {
   if (expSheet)  { expSheet.style.display = 'none'; }
   if (document.getElementById('mob-exp-set-btn'))
     document.getElementById('mob-exp-set-btn').classList.remove('active');
-  // Hide the bottom nav pill while in Export view so it doesn't overlap the export top bar
-  if (typeof setScNavHidden === 'function') setScNavHidden(isExport);
+  // Completely hide the bottom nav bar in Export view; restore it on any other view
+  var mobileNav = document.getElementById('mobile-nav-bar');
+  if (mobileNav) mobileNav.style.display = isExport ? 'none' : '';
 }
 
 // ── Mobile sidebar helpers ──────────────────────────────────
