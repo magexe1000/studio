@@ -53,8 +53,8 @@ export default function StageCorePanel() {
   const accentKey = (settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
   const accent    = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
 
-  // Show back button for any view that isn't the root Editor canvas
-  const showBack = curView !== 'Editor';
+  // Show back button only inside the four sub-sections of Setup (not on SetupHub or Preferences)
+  const showBack = curView === 'Rider' || curView === 'Setlist' || curView === 'Gear' || curView === 'Members';
 
   const getWin = useCallback((): StageWin | null => {
     try { return iframeRef.current?.contentWindow as StageWin | null; }
