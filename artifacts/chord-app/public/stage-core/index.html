@@ -2004,6 +2004,12 @@ header { display: none !important; }
   </button>
   <div class="sc-section-wrap">
 
+    <!-- Header — matches Rider style -->
+    <div style="margin-bottom:14px;">
+      <h1 class="sc-section-title">Setlist</h1>
+      <p style="font-family:'Space Grotesk';font-size:11px;color:#484847;margin:3px 0 0;"><span id="sl-rev">Rev 1.0</span>&nbsp;·&nbsp;<span id="sl-date-val"></span></p>
+    </div>
+
     <!-- ── Big stat cards (stacked) ── -->
     <div class="sl-big-stat" style="margin-bottom:10px;">
       <p class="sl-big-stat-label">Songs Count</p>
@@ -3247,6 +3253,12 @@ window.addEventListener('message', function(e) {
     window.parent.dispatchEvent(new CustomEvent('studio-hub-return'));
   }
 });
+
+// Populate Setlist header date (mirrors Rider logic in app.js)
+(function() {
+  var el = document.getElementById('sl-date-val');
+  if (el) el.textContent = new Date().toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+})();
 </script>
 
 <!-- ═══════════ Chordex-style bottom nav: pill tracker + slide animations ══════════ -->

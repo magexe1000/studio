@@ -144,23 +144,6 @@ export default function StageCorePanel() {
         {/* App mode logo — shifts right as back button slides in */}
         <AppModeMenuLogo color="rgba(255,255,255,0.90)" size={13} />
 
-        {/* ── Section title — centered absolutely so it never shifts logo/back ── */}
-        {showBack && (
-          <div style={{
-            position: 'absolute', left: 0, right: 0,
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            pointerEvents: 'none',
-          }}>
-            <span style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 13, fontWeight: 700, letterSpacing: '0.06em',
-              textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)',
-            }}>
-              {curView}
-            </span>
-          </div>
-        )}
-
         <div style={{ flex: 1 }} />
 
         {/* SAVE + PDF buttons — only shown on the Stage canvas */}
