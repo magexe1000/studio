@@ -1,14 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- ⚡ Blocking theme detection — runs before ANY CSS renders to eliminate flash -->
+<!-- ⚡ Blocking theme + accent detection — runs before ANY CSS renders to eliminate flash -->
 <script>
 (function(){
-  var h = typeof location !== 'undefined' ? location.hash : '';
-  if (h && h.indexOf('light') !== -1) {
-    document.documentElement.setAttribute('data-theme', 'light');
+  var h = typeof location !== 'undefined' ? location.hash.slice(1) : '';
+  var parts = h.split(',');
+  var theme      = parts[0] || 'dark';
+  var accentFrom = parts[1] ? decodeURIComponent(parts[1]) : '#679cff';
+  var accentHot  = parts[2] ? decodeURIComponent(parts[2]) : '#007aff';
+
+  // Apply theme immediately
+  if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  else document.documentElement.removeAttribute('data-theme');
+
+  // Apply accent CSS vars immediately so no flash on first paint
+  var root = document.documentElement;
+  function h2r(c) {
+    return [parseInt(c.slice(1,3),16), parseInt(c.slice(3,5),16), parseInt(c.slice(5,7),16)];
   }
-  // Also expose for parent-injected theme
+  var a = h2r(accentFrom), ht = h2r(accentHot);
+  root.style.setProperty('--accent',      accentFrom);
+  root.style.setProperty('--hot',         accentHot);
+  root.style.setProperty('--accent-dark', '#fff');
+  root.style.setProperty('--accent-08',   'rgba('+a[0]+','+a[1]+','+a[2]+',0.08)');
+  root.style.setProperty('--accent-10',   'rgba('+a[0]+','+a[1]+','+a[2]+',0.10)');
+  root.style.setProperty('--accent-12',   'rgba('+a[0]+','+a[1]+','+a[2]+',0.12)');
+  root.style.setProperty('--accent-14',   'rgba('+a[0]+','+a[1]+','+a[2]+',0.14)');
+  root.style.setProperty('--accent-20',   'rgba('+a[0]+','+a[1]+','+a[2]+',0.20)');
+  root.style.setProperty('--accent-22',   'rgba('+a[0]+','+a[1]+','+a[2]+',0.22)');
+  root.style.setProperty('--accent-30',   'rgba('+a[0]+','+a[1]+','+a[2]+',0.30)');
+  root.style.setProperty('--accent-40',   'rgba('+a[0]+','+a[1]+','+a[2]+',0.40)');
+  root.style.setProperty('--accent-50',   'rgba('+a[0]+','+a[1]+','+a[2]+',0.50)');
+  root.style.setProperty('--accent-60',   'rgba('+a[0]+','+a[1]+','+a[2]+',0.60)');
+  root.style.setProperty('--accent-70',   'rgba('+a[0]+','+a[1]+','+a[2]+',0.70)');
+  root.style.setProperty('--hot-dark',    'rgba('+ht[0]+','+ht[1]+','+ht[2]+',0.25)');
+  root.style.setProperty('--hot-10',      'rgba('+ht[0]+','+ht[1]+','+ht[2]+',0.10)');
+  root.style.setProperty('--hot-20',      'rgba('+ht[0]+','+ht[1]+','+ht[2]+',0.20)');
+
+  // Expose for parent-injected updates
   window.__setTheme = function(t) {
     if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
     else document.documentElement.removeAttribute('data-theme');
@@ -1368,6 +1398,11 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
 /* ── Hide the canvas-level tools FAB — those tools are now in the React header bar ── */
 #sc-tools-fab { display: none !important; }
 
+/* ── Canvas bg: controlled by CSS so data-theme (set before first paint) determines initial color,
+      eliminating the flash. JS updateCanvasBg() still overrides via inline style for user swatches. ── */
+#stage-canvas { background-color: #1a1a1a; }
+html[data-theme="light"] #stage-canvas { background-color: #ffffff; }
+
 /* ── Light mode: stage canvas uses dark grid lines and a visible border ── */
 html[data-theme="light"] #stage-canvas {
   border: 2px solid rgba(0,0,0,0.45) !important;
@@ -2320,7 +2355,7 @@ html[data-theme="light"] .bg-swatch--dark { display: none !important; }
     <!-- Stage Viewport -->
     <div id="stage-viewport" class="w-full h-full flex items-center justify-center" style="padding:20px 16px;"
          ondragover="event.preventDefault()" ondrop="handleDrop(event)">
-      <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - 40px) * 16 / 9));aspect-ratio:16/9;background-color:#1a1a1a;border:2px solid rgba(72,72,71,0.12);overflow:visible;">
+      <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - 40px) * 16 / 9));aspect-ratio:16/9;border:2px solid rgba(72,72,71,0.12);overflow:visible;">
 
         <!-- mode-pill lives outside canvas, see #mode-pill in body -->
 

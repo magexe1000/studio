@@ -4391,8 +4391,8 @@ function _sessionRestore() {
     if (d.lang)        state.lang        = d.lang;
     if (d.canvasBg) {
       state.canvasBg = d.canvasBg;
-      const cv = document.getElementById('stage-canvas');
-      if (cv) cv.style.backgroundColor = d.canvasBg;
+      // Do NOT set inline style here — CSS rule handles the correct theme-based bg before first paint.
+      // applySettings() runs immediately after _sessionRestore() and will apply the correct bg.
     }
     if (d.navOrder)  state.navOrder  = d.navOrder;
     if (d.gridSize)  state.gridSize  = d.gridSize;
@@ -5245,9 +5245,10 @@ function loadSettings() {
 //  SETTINGS — apply to DOM
 // ══════════════════════════════════════════════════════════
 function applySettings() {
-  // Canvas background
-  const sc = document.getElementById('stage-canvas');
-  if (sc) sc.style.backgroundColor = state.canvasBg;
+  // Canvas background is intentionally NOT set here.
+  // The CSS rule (#stage-canvas / html[data-theme="light"] #stage-canvas) sets the correct
+  // initial color before first paint, and injectTheme() from the React parent corrects it
+  // after the iframe loads. Setting it here would cause a flash when the saved bg is cross-theme.
 
   // Grid size: update CSS background-size
   _applyGridSize(state.gridSize);
