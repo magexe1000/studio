@@ -407,58 +407,52 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
       {/* Theme + AMOLED + Accent — single card */}
       <div style={cardStyle}>
 
-        {/* Theme */}
+        {/* Theme + AMOLED — 2×2 grid */}
         <div style={{ padding: 'var(--density-pad) var(--density-pad) 16px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' }}>
             {([
-              { value: 'system', label: t.settings.rows.themeSystem, icon: 'brightness_auto' },
-              { value: 'light',  label: t.settings.rows.themeLight,  icon: 'light_mode'      },
-              { value: 'dark',   label: t.settings.rows.themeDark,   icon: 'dark_mode'       },
-            ] as { value: Theme; label: string; icon: string }[]).map(opt => {
-              const isActive = hubVis.theme === opt.value;
+              { value: 'system', label: t.settings.rows.themeSystem, icon: 'brightness_auto', amoled: false },
+              { value: 'light',  label: t.settings.rows.themeLight,  icon: 'light_mode',      amoled: false },
+              { value: 'dark',   label: t.settings.rows.themeDark,   icon: 'dark_mode',        amoled: false },
+              { value: 'dark',   label: 'AMOLED',                    icon: 'contrast',          amoled: true  },
+            ] as { value: Theme; label: string; icon: string; amoled: boolean }[]).map((opt, i) => {
+              const isActive = opt.amoled
+                ? hubVis.amoledMode
+                : hubVis.theme === opt.value && !hubVis.amoledMode;
+              const isDisabled = opt.amoled && hubVis.theme === 'light';
               return (
-                <button key={opt.value} onClick={() => requestChange({ theme: opt.value })} className="btn-smooth"
-                  style={{ padding: '12px 6px', borderRadius: '12px', background: isActive ? `${accent.from}22` : 'var(--app-surface-high)', border: `1.5px solid ${isActive ? accent.from + '66' : 'transparent'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', transition: 'background 200ms ease, border-color 200ms ease' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '22px', color: isActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease' }}>{opt.icon}</span>
-                  <p style={{ color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease' }}>{opt.label}</p>
+                <button key={i}
+                  onClick={() => {
+                    if (isDisabled) return;
+                    if (opt.amoled) requestChange({ theme: 'dark', amoledMode: true });
+                    else requestChange({ theme: opt.value, amoledMode: false });
+                  }}
+                  className="btn-smooth"
+                  style={{
+                    padding: '12px 6px', borderRadius: '12px',
+                    background: isActive ? (opt.amoled ? '#000' : `${accent.from}22`) : 'var(--app-surface-high)',
+                    border: `1.5px solid ${isActive ? (opt.amoled ? 'rgba(255,255,255,0.18)' : accent.from + '66') : 'transparent'}`,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                    opacity: isDisabled ? 0.35 : 1,
+                    transition: 'background 200ms ease, border-color 200ms ease, opacity 200ms ease',
+                    cursor: isDisabled ? 'default' : 'pointer',
+                  }}>
+                  <span className="material-symbols-outlined" style={{
+                    fontSize: '22px',
+                    color: isActive ? (opt.amoled ? 'rgba(255,255,255,0.9)' : accent.from) : 'var(--c-text-secondary)',
+                    fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
+                    transition: 'color 200ms ease',
+                  }}>{opt.icon}</span>
+                  <p style={{
+                    color: isActive ? (opt.amoled ? 'rgba(255,255,255,0.9)' : 'var(--c-text-primary)') : 'var(--c-text-secondary)',
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)',
+                    transition: 'color 200ms ease',
+                  }}>{opt.label}</p>
                 </button>
               );
             })}
           </div>
         </div>
-
-        {/* AMOLED */}
-        {(() => {
-          const isLightMode = hubVis.theme === 'light';
-          return (
-            <div style={{
-              padding: 'var(--density-row-pad)',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px',
-              borderBottom: '1px solid rgba(128,128,128,0.08)',
-              background: hubVis.amoledMode ? 'rgba(0,0,0,0.35)' : 'transparent',
-              opacity: isLightMode ? 0.38 : 1,
-              pointerEvents: isLightMode ? 'none' : undefined,
-              transition: 'background 400ms ease, opacity 300ms ease',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '40px', height: '40px', borderRadius: '12px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: hubVis.amoledMode ? '#030303' : 'var(--app-surface-high)',
-                  border: hubVis.amoledMode ? '1px solid #2a2a2a' : 'none',
-                  transition: 'background-color 300ms ease',
-                }}>
-                  <span className="material-symbols-outlined" style={{ color: hubVis.amoledMode ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontSize: '20px' }}>dark_mode</span>
-                </div>
-                <div>
-                  <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-base)' }}>{t.settings.rows.amoledMode}</p>
-                  <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)', marginTop: '2px' }}>{t.settings.rows.amoledModeDesc}</p>
-                </div>
-              </div>
-              <Toggle value={hubVis.amoledMode} onChange={v => requestChange({ amoledMode: v })} accentFrom={accent.from} accentTo={accent.to} />
-            </div>
-          );
-        })()}
 
         {/* Accent Color */}
         <div style={{ padding: 'var(--density-pad) var(--density-pad) 16px' }}>
