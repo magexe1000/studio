@@ -3949,22 +3949,42 @@ function setPresets(arr) {
 }
 
 function openPresetsPanel() {
-  document.getElementById('presets-panel').style.display = 'flex';
   document.getElementById('presets-backdrop').style.display = 'block';
+  document.getElementById('presets-panel').classList.add('preset-open');
+  hideSaveForm();
   renderPresetsList();
-  setTimeout(() => document.getElementById('preset-name-input').focus(), 80);
   lcIcons();
 }
 function closePresetsPanel() {
-  document.getElementById('presets-panel').style.display = 'none';
+  document.getElementById('presets-panel').classList.remove('preset-open');
   document.getElementById('presets-backdrop').style.display = 'none';
+  hideSaveForm();
+}
+
+function triggerSavePreset() {
+  const form = document.getElementById('presets-save-form');
+  if (!form) return;
+  if (form.classList.contains('pf-open')) {
+    hideSaveForm();
+  } else {
+    form.classList.add('pf-open');
+    setTimeout(() => document.getElementById('preset-name-input')?.focus(), 50);
+  }
+}
+
+function hideSaveForm() {
+  const form = document.getElementById('presets-save-form');
+  if (!form) return;
+  form.classList.remove('pf-open');
+  const input = document.getElementById('preset-name-input');
+  if (input) input.value = '';
 }
 
 function savePreset() {
   const nameEl = document.getElementById('preset-name-input');
   const name = nameEl.value.trim();
-  if (!name) { nameEl.style.borderBottomColor = '#ff716c'; return; }
-  nameEl.style.borderBottomColor = '#333';
+  if (!name) { nameEl.style.borderColor = '#ff716c'; return; }
+  nameEl.style.borderColor = '';
   const presets = getPresets();
   presets.unshift({
     id: Date.now(),
@@ -3977,7 +3997,7 @@ function savePreset() {
     canvasH: state.canvasH,
   });
   setPresets(presets);
-  nameEl.value = '';
+  hideSaveForm();
   renderPresetsList();
   showToast(T('presetSaved') + ': "' + name + '"');
 }
@@ -4017,22 +4037,17 @@ function renderPresetsList() {
   const container = document.getElementById('presets-list');
   const presets = getPresets();
   if (!presets.length) {
-    container.innerHTML = `<div style="padding:32px 0;text-align:center;font-family:'Space Grotesk';font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.15em;color:#333;">No saved presets yet</div>`;
+    container.innerHTML = `<div class="presets-empty">No presets yet.<br>Save your current stage setup.</div>`;
     return;
   }
   container.innerHTML = presets.map(p => `
-    <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;background:#111;border:1px solid #1e1e1e;margin-bottom:6px;transition:border-color 0.15s;"
-         onmouseover="this.style.borderColor='rgba(255,116,57,0.3)'" onmouseout="this.style.borderColor='#1e1e1e'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Space Grotesk';font-size:12px;font-weight:700;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
-        <div style="font-family:'Inter';font-size:9px;color:#484847;margin-top:3px;">${p.savedAt} &nbsp;·&nbsp; ${p.elements.length} element${p.elements.length!==1?'s':''}</div>
+    <div class="preset-item">
+      <div class="preset-item-info">
+        <div class="preset-item-name">${p.name}</div>
+        <div class="preset-item-meta">${p.elements.length} element${p.elements.length!==1?'s':''}</div>
       </div>
-      <button onclick="loadPreset(${p.id})" title="Load preset"
-        style="padding:6px 12px;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(122,175,255,0.1);color:#7aafff;border:1px solid rgba(122,175,255,0.25);cursor:pointer;"
-        onmouseover="this.style.background='rgba(122,175,255,0.2)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">Load</button>
-      <button onclick="deletePreset(${p.id})" title="Delete preset"
-        style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:#333;cursor:pointer;"
-        onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#333'">
+      <button class="preset-item-load" onclick="loadPreset(${p.id})" title="Load preset">Load</button>
+      <button class="preset-item-del" onclick="deletePreset(${p.id})" title="Delete preset">
         <i data-lucide="trash-2" style="width:13px;height:13px;stroke-width:2;pointer-events:none;"></i>
       </button>
     </div>`).join('');

@@ -2065,62 +2065,42 @@ html[data-theme="light"] .bg-swatch--dark { display: none !important; }
 </div>
 
 <!-- ═══════════════ PRESETS PANEL ═══════════════ -->
-<div id="presets-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:340px;z-index:8500;background:var(--c-bg, #0d0d0f);border-left:1px solid rgba(128,128,128,0.12);box-shadow:-20px 0 60px rgba(0,0,0,0.6);flex-direction:column;overflow:hidden;font-family:'Space Grotesk',sans-serif;">
+<div id="presets-panel">
 
-  <!-- Panel header -->
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 16px;border-bottom:1px solid rgba(128,128,128,0.10);flex-shrink:0;">
-    <div>
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.16em;color:var(--hot);margin-bottom:3px;">Stage Presets</div>
-      <div style="font-size:11px;font-weight:600;color:rgba(180,180,190,0.55);letter-spacing:0.01em;">Save &amp; restore full setups</div>
-    </div>
-    <button onclick="closePresetsPanel()" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:rgba(140,140,150,0.6);background:rgba(128,128,128,0.10);border:1px solid rgba(128,128,128,0.12);border-radius:50%;cursor:pointer;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,80,70,0.12)';this.style.color='#ff716c'" onmouseout="this.style.background='rgba(128,128,128,0.10)';this.style.color='rgba(140,140,150,0.6)'">
-      <span class="material-symbols-outlined" style="font-size:16px;line-height:1;">close</span>
+  <!-- Header: back arrow + label -->
+  <div id="presets-panel-hdr">
+    <button id="presets-back-btn" onclick="closePresetsPanel()">
+      <span class="material-symbols-outlined" style="font-size:15px;display:block;">arrow_back</span>
     </button>
+    <span id="presets-panel-title">Presets</span>
   </div>
 
-  <!-- Save current as preset -->
-  <div style="padding:16px 20px;border-bottom:1px solid rgba(128,128,128,0.10);flex-shrink:0;">
-    <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.18em;color:rgba(160,160,170,0.5);margin-bottom:10px;">Save Current Setup</div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input id="preset-name-input" type="text" placeholder="e.g. Rock Band Setup..."
-        style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(128,128,128,0.18);border-radius:10px;color:#e8e8ec;font-family:'Space Grotesk';font-size:12px;font-weight:600;padding:9px 13px;outline:none;transition:border-color 0.15s;"
-        onfocus="this.style.borderColor='var(--hot)'" onblur="this.style.borderColor='rgba(128,128,128,0.18)'"
-        onkeydown="if(event.key==='Enter') savePreset()" />
-      <button onclick="savePreset()" style="display:flex;align-items:center;gap:6px;padding:9px 14px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--hot);color:#fff;border:none;border-radius:10px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.82'" onmouseout="this.style.opacity='1'">
-        <span class="material-symbols-outlined" style="font-size:14px;line-height:1;">save</span>
-        Save
-      </button>
+  <!-- Scrollable body -->
+  <div id="presets-list-wrap">
+
+    <!-- "+ Save as Preset" trigger row -->
+    <div id="presets-save-row" onclick="triggerSavePreset()">
+      <span class="material-symbols-outlined" style="font-size:17px;">add</span>
+      <span>Save as Preset</span>
     </div>
-    <div style="font-size:10px;color:rgba(120,120,130,0.7);margin-top:8px;font-family:'Inter';">Saves stage elements, roles, connections &amp; setlist</div>
-  </div>
 
-  <!-- Quick presets -->
-  <div style="padding:14px 20px;border-bottom:1px solid rgba(128,128,128,0.10);flex-shrink:0;">
-    <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.18em;color:rgba(160,160,170,0.5);margin-bottom:10px;">Quick Presets</div>
-    <div style="display:flex;flex-direction:column;gap:5px;">
-      <button onclick="loadQuickPreset('rock')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:rgba(255,255,255,0.04);border:1px solid rgba(128,128,128,0.13);border-radius:10px;color:#d4d4d8;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.15s;" onmouseover="var c=getComputedStyle(document.documentElement).getPropertyValue('--hot').trim();this.style.borderColor=c;this.style.background='var(--hot-08, rgba(128,0,255,0.08))';this.style.color=c" onmouseout="this.style.borderColor='rgba(128,128,128,0.13)';this.style.background='rgba(255,255,255,0.04)';this.style.color='#d4d4d8'">
-        <span>Rock Band</span>
-        <span style="font-size:9px;color:rgba(130,130,140,0.7);font-weight:600;letter-spacing:0.04em;">DRUMS · BASS · 2 GTR · KEYS · VOX</span>
-      </button>
-      <button onclick="loadQuickPreset('acoustic')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:rgba(255,255,255,0.04);border:1px solid rgba(128,128,128,0.13);border-radius:10px;color:#d4d4d8;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.15s;" onmouseover="var c=getComputedStyle(document.documentElement).getPropertyValue('--hot').trim();this.style.borderColor=c;this.style.background='var(--hot-08, rgba(128,0,255,0.08))';this.style.color=c" onmouseout="this.style.borderColor='rgba(128,128,128,0.13)';this.style.background='rgba(255,255,255,0.04)';this.style.color='#d4d4d8'">
-        <span>Acoustic Set</span>
-        <span style="font-size:9px;color:rgba(130,130,140,0.7);font-weight:600;letter-spacing:0.04em;">2 GUITARS · CAJON · VOCALS</span>
-      </button>
-      <button onclick="loadQuickPreset('fullband')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:rgba(255,255,255,0.04);border:1px solid rgba(128,128,128,0.13);border-radius:10px;color:#d4d4d8;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.15s;" onmouseover="var c=getComputedStyle(document.documentElement).getPropertyValue('--hot').trim();this.style.borderColor=c;this.style.background='var(--hot-08, rgba(128,0,255,0.08))';this.style.color=c" onmouseout="this.style.borderColor='rgba(128,128,128,0.13)';this.style.background='rgba(255,255,255,0.04)';this.style.color='#d4d4d8'">
-        <span>Full Band</span>
-        <span style="font-size:9px;color:rgba(130,130,140,0.7);font-weight:600;letter-spacing:0.04em;">DRUMS · BASS · 2 GTR · KEYS</span>
-      </button>
+    <!-- Inline name form — shown only when save row is tapped -->
+    <div id="presets-save-form">
+      <input id="preset-name-input" type="text" placeholder="Name this preset…"
+        onkeydown="if(event.key==='Enter')savePreset();else if(event.key==='Escape')hideSaveForm()" />
+      <div id="presets-save-actions">
+        <button id="presets-cancel-btn" onclick="hideSaveForm()">Cancel</button>
+        <button id="presets-confirm-btn" onclick="savePreset()">Save</button>
+      </div>
     </div>
-  </div>
 
-  <!-- Saved presets list -->
-  <div style="flex:1;overflow-y:auto;padding:14px 20px;">
-    <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.18em;color:rgba(160,160,170,0.5);margin-bottom:10px;">My Presets</div>
+    <!-- Saved presets list (populated by JS) -->
     <div id="presets-list"></div>
+
   </div>
 </div>
 <!-- Presets backdrop -->
-<div id="presets-backdrop" onclick="closePresetsPanel()" style="display:none;position:fixed;inset:0;z-index:8400;background:rgba(0,0,0,0.4);"></div>
+<div id="presets-backdrop" onclick="closePresetsPanel()" style="display:none;position:fixed;inset:0;z-index:8400;background:rgba(0,0,0,0.35);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);"></div>
 
 <!-- ═══════════════════════ EDITOR VIEW ═══════════════════════ -->
 <div id="view-Editor" class="view-page active">
