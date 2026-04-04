@@ -2116,9 +2116,8 @@ export default function DrumEditor() {
       <div style={{ flexShrink: 0, height: 52, display: 'flex', alignItems: 'center', padding: '10px 14px 0', gap: 8, background: 'var(--app-bg)' }}>
         {inEditor ? (
           <>
-            <button onClick={handleBack} className="btn-smooth" style={{ height: 30, padding: '0 10px 0 7px', borderRadius: 999, background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.10)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, color: 'var(--c-text-secondary)', flexShrink: 0 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-              <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', lineHeight: 1 }}>Back</span>
+            <button onClick={handleBack} className="btn-smooth" aria-label="Back" style={{ width: 36, height: 36, borderRadius: '50%', background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.10)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 20 }}>arrow_back</span>
             </button>
             {activeSong && (
               <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, minWidth: 0 }}>
@@ -2360,7 +2359,7 @@ export default function DrumEditor() {
 
         {/* ═══ SONGS LIST (Songs tab, not in editor) ═══════════════════════ */}
         {activeTab === 'songs' && !inEditor && (
-          <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }} className="no-scrollbar">
+          <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }} className="no-scrollbar panel-enter-left">
             <div style={{ padding: '0 20px', marginTop: 12, marginBottom: 24 }}>
               <h2 style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '2.6rem', color: 'var(--c-text-primary)', letterSpacing: '-0.04em', lineHeight: 1, margin: 0 }}>Beats</h2>
               <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 13, marginTop: 4, margin: '4px 0 0' }}>Your drum songs</p>
@@ -2456,7 +2455,7 @@ export default function DrumEditor() {
 
         {/* ═══ DRUM GRID EDITOR (Songs tab, in editor) ══════════════════════ */}
         {activeTab === 'songs' && inEditor && (
-          <div ref={containerCallbackRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div ref={containerCallbackRef} className="panel-enter-right" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Row visibility toggle */}
             {extraInsts.length > 0 && (
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', height: 30, borderBottom: `1px solid ${barColor}`, background: 'var(--app-bg)' }}>
@@ -2637,7 +2636,7 @@ export default function DrumEditor() {
                   </div>
                 )}
                 <button onClick={() => setShowClearConfirm(s => !s)} title="Clear pattern" className="btn-smooth"
-                  style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: showClearConfirm ? 'rgba(239,68,68,0.18)' : (isAmoled ? 'rgba(4,4,4,0.92)' : 'rgba(14,14,16,0.88)'), backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: showClearConfirm ? '0 2px 12px rgba(239,68,68,0.3)' : '0 2px 12px rgba(0,0,0,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: showClearConfirm ? '1.5px solid rgba(239,68,68,0.4)' : '1.5px solid rgba(255,255,255,0.08)', transition: 'all 160ms' }}>
+                  style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: showClearConfirm ? 'rgba(239,68,68,0.18)' : (isAmoled ? 'rgba(4,4,4,0.92)' : isLight ? 'rgba(220,220,224,0.92)' : 'rgba(14,14,16,0.88)'), backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: showClearConfirm ? '0 2px 12px rgba(239,68,68,0.3)' : (isLight ? '0 2px 12px rgba(0,0,0,0.12)' : '0 2px 12px rgba(0,0,0,0.55)'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: showClearConfirm ? '1.5px solid rgba(239,68,68,0.4)' : (isLight ? '1.5px solid rgba(0,0,0,0.12)' : '1.5px solid rgba(255,255,255,0.08)'), transition: 'all 160ms' }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                 </button>
               </div>
