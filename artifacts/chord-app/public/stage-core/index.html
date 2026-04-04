@@ -147,6 +147,83 @@
 /* 9. Hide the status bar entirely — not needed in the embedded experience */
 #status-bar { display: none !important; }
 
+/* 12. Hide the logo dropdown button — clean header for the embedded context */
+#logo-btn { display: none !important; }
+#logo-menu { display: none !important; }
+
+/* 13. Hide the old modal settings panel — content lives in the Preferences view now */
+#settings-panel, #settings-panel-backdrop { display: none !important; }
+
+/* 14. Preferences view — Chordex-style cards */
+#view-Assistant {
+  padding-top: 0 !important;
+  background: #0a0a0e !important;
+}
+.sc-prefs-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 18px 160px;
+}
+.sc-prefs-scroll::-webkit-scrollbar { width: 4px; }
+.sc-prefs-scroll::-webkit-scrollbar-track { background: transparent; }
+.sc-prefs-scroll::-webkit-scrollbar-thumb { background: rgba(122,175,255,0.15); border-radius: 2px; }
+
+.sc-prefs-section-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent, #7aafff);
+  margin: 0 0 8px 4px;
+}
+.sc-prefs-card {
+  background: rgba(255,255,255,0.04);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+.sc-prefs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.sc-prefs-row:last-child { border-bottom: none; }
+.sc-prefs-row-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e8e8ed;
+  margin: 0 0 2px;
+}
+.sc-prefs-row-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #484847;
+  margin: 0;
+  line-height: 1.4;
+}
+.sc-prefs-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.sc-prefs-chip {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(72,72,71,0.35);
+  background: transparent;
+  color: #767575;
+  cursor: pointer;
+  transition: all 0.13s;
+}
+.sc-prefs-chip.active, .sc-prefs-chip:hover { background: rgba(122,175,255,0.12); border-color: rgba(122,175,255,0.35); color: #7aafff; }
+
 /* 10. With status bar gone the nav pill can sit lower */
 #mobile-nav-bar {
   bottom: 10px !important;
@@ -405,334 +482,12 @@
 </div>
 
 <!-- Settings Panel Backdrop -->
-<div id="settings-panel-backdrop" onclick="closeSettings()"></div>
+<div id="settings-panel-backdrop"></div>
 
-<!-- Settings Panel -->
-<div id="settings-panel">
-  <!-- Header -->
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid rgba(72,72,71,0.15);flex-shrink:0;">
-    <div>
-      <p class="settings-section-label" style="margin-bottom:4px;">Beta v1.0.0</p>
-      <p style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:900;color:#fff;margin:0;letter-spacing:-0.02em;" data-i18n="settingsTitle">Settings</p>
-    </div>
-    <button onclick="closeSettings()" style="width:32px;height:32px;background:rgba(255,255,255,0.06);border:none;border-radius:7px;cursor:pointer;color:#6b7280;display:flex;align-items:center;justify-content:center;transition:background 0.12s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
-      <span class="material-symbols-outlined" style="font-size:18px;">close</span>
-    </button>
-  </div>
-  <!-- Scrollable Content -->
-  <div style="flex:1;overflow-y:auto;overflow-x:hidden;">
+<!-- Settings Panel (all settings moved to Preferences view) -->
+<div id="settings-panel"></div>
 
-    <!-- Language -->
-    <div class="settings-section">
-      <p class="settings-section-label" data-i18n="settingsLang">Language</p>
-      <p class="settings-section-hint" data-i18n="settingsLangHint">Switch the entire app language.</p>
-      <div style="display:flex;gap:0;margin-top:2px;">
-        <button id="settings-lang-en" onclick="setLang('en')" style="flex:1;padding:9px 0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#7aafff;color:#002e5d;border:none;cursor:pointer;transition:all 0.15s;">EN — English</button>
-        <button id="settings-lang-es" onclick="setLang('es')" style="flex:1;padding:9px 0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#262626;color:#767575;border:none;cursor:pointer;transition:all 0.15s;">ES — Español</button>
-      </div>
-    </div>
-
-    <!-- Navigation Order -->
-    <div class="settings-section">
-      <p class="settings-section-label" data-i18n="settingsNavOrder">Navigation Order</p>
-      <p class="settings-section-hint" data-i18n="settingsNavOrderHint">Drag sections to reorder the top navigation.</p>
-      <ul id="settings-nav-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px;"></ul>
-    </div>
-
-    <!-- Canvas Background -->
-    <div class="settings-section">
-      <p class="settings-section-label" data-i18n="settingsCanvasBg">Canvas Background</p>
-      <p class="settings-section-hint" data-i18n="settingsCanvasBgHint">Set the stage plot canvas color.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;" id="settings-canvas-bg">
-        <button class="bg-swatch" data-bg="#1a1a1a" onclick="updateCanvasBg('#1a1a1a')">
-          <div class="bg-swatch-preview" style="background:#1a1a1a;"></div>
-          <span class="bg-swatch-label">Default</span>
-        </button>
-        <button class="bg-swatch" data-bg="#111111" onclick="updateCanvasBg('#111111')">
-          <div class="bg-swatch-preview" style="background:#111111;"></div>
-          <span class="bg-swatch-label">Darker</span>
-        </button>
-        <button class="bg-swatch" data-bg="#0f1217" onclick="updateCanvasBg('#0f1217')">
-          <div class="bg-swatch-preview" style="background:#0f1217;"></div>
-          <span class="bg-swatch-label">Navy</span>
-        </button>
-        <button class="bg-swatch" data-bg="#1a1510" onclick="updateCanvasBg('#1a1510')">
-          <div class="bg-swatch-preview" style="background:#1a1510;"></div>
-          <span class="bg-swatch-label">Warm</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- App Theme -->
-    <div class="settings-section">
-      <p class="settings-section-label" data-i18n="settingsTheme">App Theme</p>
-      <p class="settings-section-hint" data-i18n="settingsThemeHint">Choose the accent color scheme for the entire interface.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="theme-swatch-btn t-active" data-theme="electric" onclick="applyTheme('electric')">
-          <div class="theme-swatch-preview">
-            <div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#7aafff;"></div>
-              <div class="theme-swatch-h" style="background:#ff7439;"></div>
-            </div>
-          </div>
-          <span class="theme-swatch-label" data-i18n="themeElectric">Electric</span>
-        </button>
-        <button class="theme-swatch-btn" data-theme="lime" onclick="applyTheme('lime')">
-          <div class="theme-swatch-preview">
-            <div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#a3e635;"></div>
-              <div class="theme-swatch-h" style="background:#ff7439;"></div>
-            </div>
-          </div>
-          <span class="theme-swatch-label" data-i18n="themeLime">Lime</span>
-        </button>
-        <button class="theme-swatch-btn" data-theme="cyan" onclick="applyTheme('cyan')">
-          <div class="theme-swatch-preview">
-            <div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#22d3ee;"></div>
-              <div class="theme-swatch-h" style="background:#f97316;"></div>
-            </div>
-          </div>
-          <span class="theme-swatch-label" data-i18n="themeCyan">Cyan</span>
-        </button>
-        <button class="theme-swatch-btn" data-theme="amber" onclick="applyTheme('amber')">
-          <div class="theme-swatch-preview">
-            <div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#fbbf24;"></div>
-              <div class="theme-swatch-h" style="background:#ef4444;"></div>
-            </div>
-          </div>
-          <span class="theme-swatch-label" data-i18n="themeAmber">Amber</span>
-        </button>
-        <button class="theme-swatch-btn" data-theme="violet" onclick="applyTheme('violet')">
-          <div class="theme-swatch-preview">
-            <div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#c084fc;"></div>
-              <div class="theme-swatch-h" style="background:#fb923c;"></div>
-            </div>
-          </div>
-          <span class="theme-swatch-label" data-i18n="themeViolet">Violet</span>
-        </button>
-        <button class="theme-swatch-btn" data-theme="rose" onclick="applyTheme('rose')">
-          <div class="theme-swatch-preview">
-            <div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#fb7185;"></div>
-              <div class="theme-swatch-h" style="background:#a78bfa;"></div>
-            </div>
-          </div>
-          <span class="theme-swatch-label" data-i18n="themeRose">Rose</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Grid Size -->
-    <div class="settings-section">
-      <p class="settings-section-label" data-i18n="settingsGridSize">Grid Size</p>
-      <p class="settings-section-hint" data-i18n="settingsGridSizeHint">Controls the spacing of the stage grid lines.</p>
-      <div style="display:flex;gap:6px;">
-        <button class="setting-chip" data-gs="40" onclick="updateGridSize(40)" data-i18n="settingsGridFine">Fine</button>
-        <button class="setting-chip" data-gs="80" onclick="updateGridSize(80)" data-i18n="settingsGridNormal">Normal</button>
-        <button class="setting-chip" data-gs="120" onclick="updateGridSize(120)" data-i18n="settingsGridCoarse">Coarse</button>
-      </div>
-    </div>
-
-    <!-- Status Bar -->
-    <div class="settings-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-        <div>
-          <p class="settings-section-label" style="margin-bottom:3px;" data-i18n="settingsStatusBar">Status Bar</p>
-          <p class="settings-section-hint" style="margin:0;" data-i18n="settingsStatusBarHint">Show plot info at the bottom of the editor.</p>
-        </div>
-        <button id="settings-sb-toggle" class="toggle-switch on" onclick="toggleStatusBarVis()" title="Toggle status bar"></button>
-      </div>
-    </div>
-
-    <!-- Snap to Grid -->
-    <div class="settings-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-        <div>
-          <p class="settings-section-label" style="margin-bottom:3px;" data-i18n="settingsSnap">Snap to Grid</p>
-          <p class="settings-section-hint" style="margin:0;" data-i18n="settingsSnapHint">Elements snap to grid when dragging.</p>
-        </div>
-        <button id="settings-snap-toggle" class="toggle-switch" onclick="toggleSnapFromSettings()" title="Toggle snap"></button>
-      </div>
-    </div>
-
-    <!-- Connections Visible -->
-    <div class="settings-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-        <div>
-          <p class="settings-section-label" style="margin-bottom:3px;" data-i18n="settingsConn">Show Connections</p>
-          <p class="settings-section-hint" style="margin:0;" data-i18n="settingsConnHint">Display lines between connected elements.</p>
-        </div>
-        <button id="settings-conn-toggle" class="toggle-switch on" onclick="toggleConnectionsFromSettings()" title="Toggle connections"></button>
-      </div>
-    </div>
-
-    <!-- Auto Wiring -->
-    <div class="settings-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-        <div>
-          <p class="settings-section-label" style="margin-bottom:3px;">Auto Wiring</p>
-          <p class="settings-section-hint" style="margin:0;">Automatically connect related elements when added to the stage.</p>
-        </div>
-        <button id="settings-autowire-toggle" class="toggle-switch" onclick="toggleAutoWire(!autoWireEnabled)" title="Toggle auto wiring"></button>
-      </div>
-    </div>
-
-    <!-- Connection Line Style -->
-    <div class="settings-section">
-      <p class="settings-section-label">Connection Line Style</p>
-      <p class="settings-section-hint">Choose how signal lines appear between elements.</p>
-      <div style="display:flex;gap:6px;">
-        <button class="setting-chip active" data-ls="solid" onclick="setConnLineStyle('solid')">— Solid</button>
-        <button class="setting-chip" data-ls="dashed" onclick="setConnLineStyle('dashed')">-- Dashed</button>
-      </div>
-    </div>
-
-    <!-- Element Labels -->
-    <div class="settings-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-        <div>
-          <p class="settings-section-label" style="margin-bottom:3px;">Element Labels</p>
-          <p class="settings-section-hint" style="margin:0;">Show or hide name labels under stage elements.</p>
-        </div>
-        <button id="settings-labels-toggle" class="toggle-switch on" onclick="toggleLabelsFromSettings()" title="Toggle labels"></button>
-      </div>
-    </div>
-
-    <!-- Animations -->
-    <div class="settings-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-        <div>
-          <p class="settings-section-label" style="margin-bottom:3px;">Animations</p>
-          <p class="settings-section-hint" style="margin:0;">Disable for a faster feel on slower devices.</p>
-        </div>
-        <button id="settings-anim-toggle" class="toggle-switch on" onclick="toggleAnimationsFromSettings()" title="Toggle animations"></button>
-      </div>
-    </div>
-
-    <!-- Smart Suggestions -->
-    <div class="settings-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-        <div>
-          <p class="settings-section-label" style="margin-bottom:3px;">Smart Suggestions</p>
-          <p class="settings-section-hint" style="margin:0;">Show audio engineering tips when placing elements on stage.</p>
-        </div>
-        <button id="settings-ss-toggle" class="toggle-switch" onclick="toggleSmartSuggestions()" title="Toggle smart suggestions"></button>
-      </div>
-    </div>
-
-    <!-- Stage Balance Visualizer -->
-    <div class="settings-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-        <div>
-          <p class="settings-section-label" style="margin-bottom:3px;">Stage Balance Visualizer</p>
-          <p class="settings-section-hint" style="margin:0;">Show a L/C/R balance bar at the top of the stage canvas.</p>
-        </div>
-        <button id="settings-sbv-toggle" class="toggle-switch" onclick="toggleStageBalance()" title="Toggle stage balance visualizer"></button>
-      </div>
-    </div>
-
-    <!-- Offline Mode -->
-    <div class="settings-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-        <div>
-          <p class="settings-section-label" style="margin-bottom:3px;">Offline Mode</p>
-          <p class="settings-section-hint" style="margin:0;">Disable all cloud &amp; AI features. App runs fully from cache — perfect for no-internet gigs.</p>
-        </div>
-        <button id="settings-offline-toggle" class="toggle-switch" onclick="toggleOfflineMode()" title="Toggle offline mode"></button>
-      </div>
-    </div>
-
-    <!-- Include Last Updated in Exports -->
-    <div class="settings-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-        <div>
-          <p class="settings-section-label" style="margin-bottom:3px;">Last Updated in Exports</p>
-          <p class="settings-section-hint" style="margin:0;">Show "Last Updated" timestamp and version number on exported PDFs and print view.</p>
-        </div>
-        <button id="settings-lu-toggle" class="toggle-switch on" onclick="toggleShowLastUpdated()" title="Toggle last updated in exports"></button>
-      </div>
-    </div>
-
-    <!-- StageMind Intelligence -->
-    <div class="settings-section">
-      <p class="settings-section-label" style="display:flex;align-items:center;gap:6px;"><span style="color:#7aafff;">⚡</span> StageMind Intelligence</p>
-      <p class="settings-section-hint" style="margin-bottom:10px;">Layout analysis, conflict detection, and predictive setup suggestions.</p>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:10px;">
-        <span class="settings-section-hint" style="margin:0;font-weight:600;color:#aaa;">Master Switch</span>
-        <button id="settings-smi-toggle" class="toggle-switch on" onclick="toggleSmIntelligence()" title="Toggle StageMind Intelligence"></button>
-      </div>
-      <div id="smi-sub-toggles" style="display:flex;flex-direction:column;gap:8px;padding-left:12px;border-left:2px solid rgba(122,175,255,0.18);">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-          <span class="settings-section-hint" style="margin:0;">Auto Optimization</span>
-          <button id="settings-smi-ao-toggle" class="toggle-switch on" onclick="toggleSmAutoOpt()" title="Toggle Auto Optimization"></button>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-          <span class="settings-section-hint" style="margin:0;">Conflict Detection</span>
-          <button id="settings-smi-cd-toggle" class="toggle-switch on" onclick="toggleSmConflict()" title="Toggle Conflict Detection"></button>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-          <span class="settings-section-hint" style="margin:0;">Predictive Setup</span>
-          <button id="settings-smi-ps-toggle" class="toggle-switch on" onclick="toggleSmPredict()" title="Toggle Predictive Setup"></button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Keyboard Shortcuts -->
-    <div class="settings-section">
-      <p class="settings-section-label">Keyboard Shortcuts</p>
-      <p class="settings-section-hint" style="margin-bottom:10px;">Quick reference for power users.</p>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-family:'Inter',sans-serif;font-size:12px;color:#888;">Undo</span>
-          <span style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;color:#555;background:#1e1e1e;border:1px solid #333;padding:2px 8px;letter-spacing:0.06em;">Ctrl Z</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-family:'Inter',sans-serif;font-size:12px;color:#888;">Redo</span>
-          <span style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;color:#555;background:#1e1e1e;border:1px solid #333;padding:2px 8px;letter-spacing:0.06em;">Ctrl Y</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-family:'Inter',sans-serif;font-size:12px;color:#888;">Duplicate element</span>
-          <span style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;color:#555;background:#1e1e1e;border:1px solid #333;padding:2px 8px;letter-spacing:0.06em;">Ctrl D</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-family:'Inter',sans-serif;font-size:12px;color:#888;">Delete element</span>
-          <span style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;color:#555;background:#1e1e1e;border:1px solid #333;padding:2px 8px;letter-spacing:0.06em;">Del / ⌫</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-family:'Inter',sans-serif;font-size:12px;color:#888;">Save project</span>
-          <span style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;color:#555;background:#1e1e1e;border:1px solid #333;padding:2px 8px;letter-spacing:0.06em;">Ctrl S</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-family:'Inter',sans-serif;font-size:12px;color:#888;">Deselect / cancel</span>
-          <span style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;color:#555;background:#1e1e1e;border:1px solid #333;padding:2px 8px;letter-spacing:0.06em;">Esc</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Backup & Data -->
-    <div class="settings-section">
-      <p class="settings-section-label">Backup & Data</p>
-      <p class="settings-section-hint" style="margin-bottom:10px;">Export or restore your full project as a local file.</p>
-      <button onclick="backupJSON()" style="width:100%;padding:10px 14px;background:rgba(122,175,255,0.1);border:1px solid rgba(122,175,255,0.2);color:#7aafff;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px;transition:background 0.15s;" onmouseover="this.style.background='rgba(122,175,255,0.18)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">
-        <span class="material-symbols-outlined" style="font-size:15px;">download</span>
-        Download Backup (.json)
-      </button>
-      <button onclick="restoreFromJSON()" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid #2a2a2a;color:#888;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
-        <span class="material-symbols-outlined" style="font-size:15px;">upload</span>
-        Restore from File
-      </button>
-    </div>
-
-    <!-- Footer credit -->
-    <div style="padding:28px 24px 32px;text-align:center;">
-      <p style="font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;color:#3a3a3a;margin:0 0 5px;letter-spacing:0.04em;">From Mag, With Love</p>
-      <p style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:600;color:#2a2a2a;margin:0;letter-spacing:0.12em;text-transform:uppercase;">v1.0.0</p>
-    </div>
-
-  </div>
+</div>
 </div>
 
 <!-- Account Panel Backdrop -->
@@ -1002,8 +757,8 @@
     <span data-i18n="navMembers">Members</span>
   </button>
   <button class="mob-tab" data-view="Assistant" onclick="switchView('Assistant')">
-    <span class="material-symbols-outlined sc-nav-icon">smart_toy</span>
-    <span>AI</span>
+    <span class="material-symbols-outlined sc-nav-icon">tune</span>
+    <span>Settings</span>
   </button>
 </div>
 
@@ -2411,65 +2166,210 @@
 
 
 <!-- ═══════════════════════ ASSISTANT VIEW ═══════════════════════ -->
-<div id="view-Assistant" class="view-page" style="display:none;height:100vh;padding-top:64px;box-sizing:border-box;flex-direction:column;background:#0e0e0e;">
+<div id="view-Assistant" class="view-page" style="display:none;height:100vh;box-sizing:border-box;flex-direction:column;background:#0a0a0e;">
 
-  <!-- Header -->
-  <div id="sm-header" style="padding:16px 24px 0;width:100%;box-sizing:border-box;flex-shrink:0;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-      <div>
-        <h1 id="sm-title" style="font-family:'Space Grotesk';font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:0.04em;color:#e0e0e0;margin:0;">StageMind</h1>
-        <p id="sm-subtitle" style="font-family:'Inter';font-size:10px;color:#484847;margin:0;letter-spacing:0.05em;">AI Stage Production Assistant</p>
+  <!-- Preferences header -->
+  <div style="padding:20px 22px 10px;flex-shrink:0;">
+    <p style="font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--accent,#7aafff);margin:0 0 4px;">Stage Core</p>
+    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:900;letter-spacing:-0.03em;color:#fff;margin:0;line-height:1;">Preferences</h1>
+    <p style="font-family:'Inter',sans-serif;font-size:12px;color:#484847;margin:6px 0 0;">Customize your Stage Core experience.</p>
+  </div>
+
+  <!-- Scrollable settings content -->
+  <div class="sc-prefs-scroll">
+
+    <!-- ── APPEARANCE ── -->
+    <p class="sc-prefs-section-label" style="margin-top:18px;">Appearance</p>
+    <div class="sc-prefs-card">
+      <!-- Theme -->
+      <div class="sc-prefs-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <div>
+          <p class="sc-prefs-row-label" data-i18n="settingsTheme">App Theme</p>
+          <p class="sc-prefs-row-hint" data-i18n="settingsThemeHint">Choose the accent colour for the interface.</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="theme-swatch-btn t-active" data-theme="electric" onclick="applyTheme('electric')">
+            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
+              <div class="theme-swatch-a" style="background:#7aafff;"></div>
+              <div class="theme-swatch-h" style="background:#ff7439;"></div>
+            </div></div>
+            <span class="theme-swatch-label" data-i18n="themeElectric">Electric</span>
+          </button>
+          <button class="theme-swatch-btn" data-theme="lime" onclick="applyTheme('lime')">
+            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
+              <div class="theme-swatch-a" style="background:#a3e635;"></div>
+              <div class="theme-swatch-h" style="background:#ff7439;"></div>
+            </div></div>
+            <span class="theme-swatch-label" data-i18n="themeLime">Lime</span>
+          </button>
+          <button class="theme-swatch-btn" data-theme="cyan" onclick="applyTheme('cyan')">
+            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
+              <div class="theme-swatch-a" style="background:#22d3ee;"></div>
+              <div class="theme-swatch-h" style="background:#f97316;"></div>
+            </div></div>
+            <span class="theme-swatch-label" data-i18n="themeCyan">Cyan</span>
+          </button>
+          <button class="theme-swatch-btn" data-theme="amber" onclick="applyTheme('amber')">
+            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
+              <div class="theme-swatch-a" style="background:#fbbf24;"></div>
+              <div class="theme-swatch-h" style="background:#ef4444;"></div>
+            </div></div>
+            <span class="theme-swatch-label" data-i18n="themeAmber">Amber</span>
+          </button>
+          <button class="theme-swatch-btn" data-theme="violet" onclick="applyTheme('violet')">
+            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
+              <div class="theme-swatch-a" style="background:#c084fc;"></div>
+              <div class="theme-swatch-h" style="background:#fb923c;"></div>
+            </div></div>
+            <span class="theme-swatch-label" data-i18n="themeViolet">Violet</span>
+          </button>
+          <button class="theme-swatch-btn" data-theme="rose" onclick="applyTheme('rose')">
+            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
+              <div class="theme-swatch-a" style="background:#fb7185;"></div>
+              <div class="theme-swatch-h" style="background:#a78bfa;"></div>
+            </div></div>
+            <span class="theme-swatch-label" data-i18n="themeRose">Rose</span>
+          </button>
+        </div>
       </div>
-      <div style="flex:1;"></div>
-      <button id="sm-clear-btn" onclick="smClearChat()" title="Clear conversation"
-        style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;background:rgba(72,72,71,0.12);border:1px solid rgba(72,72,71,0.25);color:#484847;padding:5px 10px;cursor:pointer;transition:all 0.15s;"
-        onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(72,72,71,0.5)'"
-        onmouseout="this.style.color='#484847';this.style.borderColor='rgba(72,72,71,0.25)'">Clear</button>
+      <!-- Canvas Background -->
+      <div class="sc-prefs-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <div>
+          <p class="sc-prefs-row-label" data-i18n="settingsCanvasBg">Canvas Background</p>
+          <p class="sc-prefs-row-hint" data-i18n="settingsCanvasBgHint">Set the stage plot canvas colour.</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="settings-canvas-bg">
+          <button class="bg-swatch" data-bg="#1a1a1a" onclick="updateCanvasBg('#1a1a1a')">
+            <div class="bg-swatch-preview" style="background:#1a1a1a;"></div>
+            <span class="bg-swatch-label">Default</span>
+          </button>
+          <button class="bg-swatch" data-bg="#111111" onclick="updateCanvasBg('#111111')">
+            <div class="bg-swatch-preview" style="background:#111111;"></div>
+            <span class="bg-swatch-label">Darker</span>
+          </button>
+          <button class="bg-swatch" data-bg="#0f1217" onclick="updateCanvasBg('#0f1217')">
+            <div class="bg-swatch-preview" style="background:#0f1217;"></div>
+            <span class="bg-swatch-label">Navy</span>
+          </button>
+          <button class="bg-swatch" data-bg="#1a1510" onclick="updateCanvasBg('#1a1510')">
+            <div class="bg-swatch-preview" style="background:#1a1510;"></div>
+            <span class="bg-swatch-label">Warm</span>
+          </button>
+        </div>
+      </div>
     </div>
-    <!-- Sub-tabs -->
-    <div style="display:flex;gap:0;border-bottom:1px solid rgba(72,72,71,0.2);">
-      <button id="sm-tab-chat" class="sm-subtab active" onclick="smSwitchTab('chat')">Chat</button>
-      <button id="sm-tab-intel" class="sm-subtab" onclick="smSwitchTab('intel')">
-        Intelligence
-        <span id="sm-intel-badge" style="display:none;background:#ff716c;color:#fff;font-size:7px;font-weight:700;font-family:'Space Grotesk';border-radius:10px;padding:1px 5px;margin-left:5px;vertical-align:middle;"></span>
-      </button>
-    </div>
-  </div>
 
-  <!-- Messages (Chat tab) -->
-  <div id="sm-messages" style="flex:1;overflow-y:auto;padding:16px 24px;width:100%;box-sizing:border-box;"></div>
-
-  <!-- Intelligence Panel -->
-  <div id="sm-intel-panel" style="display:none;flex:1;overflow-y:auto;padding:16px 24px;width:100%;box-sizing:border-box;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#484847;margin:0;">Stage Analysis</p>
-      <button onclick="smRunAnalysis()" style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;background:rgba(122,175,255,0.1);border:1px solid rgba(122,175,255,0.3);color:#7aafff;padding:5px 12px;cursor:pointer;transition:all 0.15s;"
-        onmouseover="this.style.background='rgba(122,175,255,0.2)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">
-        ⚡ Analyze Stage
-      </button>
+    <!-- ── LANGUAGE ── -->
+    <p class="sc-prefs-section-label" data-i18n="settingsLang">Language</p>
+    <div class="sc-prefs-card">
+      <div class="sc-prefs-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <p class="sc-prefs-row-hint" data-i18n="settingsLangHint">Switch the entire app language.</p>
+        <div style="display:flex;gap:0;width:100%;border-radius:10px;overflow:hidden;">
+          <button id="settings-lang-en" onclick="setLang('en')" style="flex:1;padding:10px 0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#7aafff;color:#002e5d;border:none;cursor:pointer;transition:all 0.15s;">EN — English</button>
+          <button id="settings-lang-es" onclick="setLang('es')" style="flex:1;padding:10px 0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#1a1a1e;color:#767575;border:none;cursor:pointer;transition:all 0.15s;">ES — Español</button>
+        </div>
+      </div>
     </div>
-    <div id="sm-intel-results" style="font-family:'Inter';font-size:12px;color:#484847;text-align:center;padding:24px 0;">
-      Click "Analyze Stage" to scan your current setup.
-    </div>
-  </div>
 
-  <!-- Input area -->
-  <div id="sm-input-area" style="border-top:1px solid rgba(72,72,71,0.15);padding:10px 24px 14px;background:#0e0e0e;width:100%;box-sizing:border-box;flex-shrink:0;">
-    <div id="sm-input-box" style="display:flex;gap:8px;align-items:flex-end;background:#111217;border:1px solid rgba(72,72,71,0.25);padding:8px;transition:border-color 0.15s;"
-         onfocusin="this.style.borderColor='rgba(122,175,255,0.3)'"
-         onfocusout="this.style.borderColor='rgba(72,72,71,0.25)'">
-      <textarea id="sm-input" rows="1"
-        onkeydown="smHandleKey(event)" oninput="smAutoResize(this)"
-        placeholder="Ask me anything about live sound…"
-        style="flex:1;background:transparent;border:none;outline:none;resize:none;font-family:'Inter';font-size:13px;color:#e0e0e0;line-height:1.5;height:38px;max-height:120px;overflow-y:auto;padding:8px 4px 0;"></textarea>
-      <button id="sm-send-btn" onclick="smSendMessage()" title="Send"
-        style="flex-shrink:0;width:36px;height:36px;background:linear-gradient(135deg,#7aafff,#5a9fff);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity 0.15s;-webkit-tap-highlight-color:transparent;">
-        <span class="material-symbols-outlined" style="font-size:18px;color:#000;">send</span>
-      </button>
+    <!-- ── CANVAS ── -->
+    <p class="sc-prefs-section-label" data-i18n="settingsGridSize">Canvas</p>
+    <div class="sc-prefs-card">
+      <!-- Grid Size -->
+      <div class="sc-prefs-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <div>
+          <p class="sc-prefs-row-label" data-i18n="settingsGridSize">Grid Size</p>
+          <p class="sc-prefs-row-hint" data-i18n="settingsGridSizeHint">Controls the spacing of the stage grid lines.</p>
+        </div>
+        <div class="sc-prefs-chips">
+          <button class="setting-chip sc-prefs-chip" data-gs="40" onclick="updateGridSize(40)" data-i18n="settingsGridFine">Fine</button>
+          <button class="setting-chip sc-prefs-chip" data-gs="80" onclick="updateGridSize(80)" data-i18n="settingsGridNormal">Normal</button>
+          <button class="setting-chip sc-prefs-chip" data-gs="120" onclick="updateGridSize(120)" data-i18n="settingsGridCoarse">Coarse</button>
+        </div>
+      </div>
+      <!-- Snap to Grid -->
+      <div class="sc-prefs-row">
+        <div>
+          <p class="sc-prefs-row-label" data-i18n="settingsSnap">Snap to Grid</p>
+          <p class="sc-prefs-row-hint" data-i18n="settingsSnapHint">Elements snap to grid when dragging.</p>
+        </div>
+        <button id="settings-snap-toggle" class="toggle-switch" onclick="toggleSnapFromSettings()" title="Toggle snap"></button>
+      </div>
+      <!-- Connections -->
+      <div class="sc-prefs-row">
+        <div>
+          <p class="sc-prefs-row-label" data-i18n="settingsConn">Show Connections</p>
+          <p class="sc-prefs-row-hint" data-i18n="settingsConnHint">Draw audio/video connection lines between elements.</p>
+        </div>
+        <button id="settings-conn-toggle" class="toggle-switch on" onclick="toggleConnectionsFromSettings()" title="Toggle connections"></button>
+      </div>
+      <!-- Auto Wire -->
+      <div class="sc-prefs-row">
+        <div>
+          <p class="sc-prefs-row-label" data-i18n="settingsAutoWire">Auto Wire</p>
+          <p class="sc-prefs-row-hint" data-i18n="settingsAutoWireHint">Automatically connect compatible elements.</p>
+        </div>
+        <button id="settings-autowire-toggle" class="toggle-switch" onclick="toggleAutoWire(!autoWireEnabled)" title="Toggle auto wiring"></button>
+      </div>
+      <!-- Stage Balance -->
+      <div class="sc-prefs-row">
+        <div>
+          <p class="sc-prefs-row-label">Stage Balance Visualizer</p>
+          <p class="sc-prefs-row-hint">Show an L/C/R balance indicator at the top of the canvas.</p>
+        </div>
+        <button id="settings-sbv-toggle" class="toggle-switch" onclick="toggleStageBalance()" title="Toggle stage balance visualizer"></button>
+      </div>
     </div>
-    <p id="sm-disclaimer" style="font-family:'Inter';font-size:9px;color:#2a2a2a;margin:5px 0 0;text-align:center;letter-spacing:0.05em;">StageMind — live sound &amp; stage production knowledge engine</p>
-  </div>
 
+    <!-- ── EDITOR ── -->
+    <p class="sc-prefs-section-label">Editor</p>
+    <div class="sc-prefs-card">
+      <!-- Element Labels -->
+      <div class="sc-prefs-row">
+        <div>
+          <p class="sc-prefs-row-label">Element Labels</p>
+          <p class="sc-prefs-row-hint">Show name labels under stage elements.</p>
+        </div>
+        <button id="settings-labels-toggle" class="toggle-switch on" onclick="toggleLabelsFromSettings()" title="Toggle labels"></button>
+      </div>
+      <!-- Animations -->
+      <div class="sc-prefs-row">
+        <div>
+          <p class="sc-prefs-row-label">Animations</p>
+          <p class="sc-prefs-row-hint">Disable for a faster feel on slower devices.</p>
+        </div>
+        <button id="settings-anim-toggle" class="toggle-switch on" onclick="toggleAnimationsFromSettings()" title="Toggle animations"></button>
+      </div>
+      <!-- Smart Suggestions -->
+      <div class="sc-prefs-row">
+        <div>
+          <p class="sc-prefs-row-label">Smart Suggestions</p>
+          <p class="sc-prefs-row-hint">Show audio engineering tips when placing elements.</p>
+        </div>
+        <button id="settings-ss-toggle" class="toggle-switch" onclick="toggleSmartSuggestions()" title="Toggle smart suggestions"></button>
+      </div>
+    </div>
+
+    <!-- ── EXPORT ── -->
+    <p class="sc-prefs-section-label">Export</p>
+    <div class="sc-prefs-card">
+      <!-- Last Updated -->
+      <div class="sc-prefs-row">
+        <div>
+          <p class="sc-prefs-row-label">Last Updated Timestamp</p>
+          <p class="sc-prefs-row-hint">Show "Last Updated" on exported PDFs.</p>
+        </div>
+        <button id="settings-lu-toggle" class="toggle-switch on" onclick="toggleShowLastUpdated()" title="Toggle last updated in exports"></button>
+      </div>
+    </div>
+
+    <!-- Placeholder IDs that legacy JS may reference (kept hidden) -->
+    <div style="display:none;">
+      <button id="settings-sb-toggle" class="toggle-switch on" onclick="toggleStatusBarVis()"></button>
+      <button id="settings-offline-toggle" class="toggle-switch" onclick="toggleOfflineMode()"></button>
+      <ul id="settings-nav-list"></ul>
+    </div>
+
+  </div><!-- end sc-prefs-scroll -->
 </div>
 
 <!-- ══ MOBILE-ONLY GLOBAL OVERLAYS (at body level so position:fixed always works) ══ -->
@@ -2888,6 +2788,10 @@ window.addEventListener('message', function(e) {
 
   var VIEW_ORDER = ['Editor', 'Rider', 'Setlist', 'Gear', 'Members', 'Assistant'];
   var _curView = 'Editor';
+
+  /* ── Redirect openSettings() to the inline Preferences view ─────────── */
+  window.openSettings = function () { window.switchView('Assistant'); };
+  window.closeSettings = function () {};
 
   /* ── Pill position tracker ───────────────────────────────────────────── */
   var _stretchTimer = null;
