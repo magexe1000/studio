@@ -145,36 +145,37 @@ export default function StageCorePanel() {
 
         <div style={{ flex: 1 }} />
 
-        {/* SAVE button — accent-coloured like Chordex/Drumex */}
-        <button
-          onClick={() => getWin()?.openPresetsPanel?.()}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            background: `${accent.from}22`, color: accent.from,
-            border: `1px solid ${accent.from}44`, borderRadius: 8,
-            padding: '5px 11px', fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-            textTransform: 'uppercase', cursor: 'pointer',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 13, lineHeight: 1 }}>layers</span>
-          Save
-        </button>
+        {/* SAVE + PDF buttons — only shown on the Stage canvas */}
+        {curView === 'Editor' && <>
+          <button
+            onClick={() => getWin()?.openPresetsPanel?.()}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              background: `${accent.from}22`, color: accent.from,
+              border: `1px solid ${accent.from}44`, borderRadius: 8,
+              padding: '5px 11px', fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+              textTransform: 'uppercase', cursor: 'pointer',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 13, lineHeight: 1 }}>layers</span>
+            Save
+          </button>
 
-        {/* PDF / Export button */}
-        <button
-          onClick={() => getWin()?.switchView?.('Export')}
-          title="Export to PDF"
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 32, height: 32,
-            background: 'rgba(255,255,255,0.06)', color: 'rgba(180,185,200,0.7)',
-            border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8,
-            cursor: 'pointer',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>picture_as_pdf</span>
-        </button>
+          <button
+            onClick={() => getWin()?.switchView?.('Export')}
+            title="Export to PDF"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 32, height: 32,
+              background: 'rgba(255,255,255,0.06)', color: 'rgba(180,185,200,0.7)',
+              border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8,
+              cursor: 'pointer',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>picture_as_pdf</span>
+          </button>
+        </>}
       </div>
 
       {/* Stage Core iframe fills remaining space */}
