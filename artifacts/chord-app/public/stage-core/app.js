@@ -3968,7 +3968,6 @@ function triggerSavePreset() {
     hideSaveForm();
   } else {
     form.classList.add('pf-open');
-    setTimeout(() => document.getElementById('preset-name-input')?.focus({ preventScroll: true }), 50);
   }
 }
 

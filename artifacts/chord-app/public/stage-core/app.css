@@ -2841,7 +2841,7 @@ html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important
 /* ── List wrapper ── */
 #presets-list-wrap {
   overflow: visible;
-  padding: 6px;
+  padding: 0 6px 6px;
   display: flex;
   flex-direction: column;
 }
