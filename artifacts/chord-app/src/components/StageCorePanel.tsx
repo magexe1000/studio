@@ -70,12 +70,10 @@ export default function StageCorePanel() {
   const { settings } = useChordStore();
   const [curView, setCurView] = useState<string>('Editor');
 
-  // Always follow the global hub accent so Stagex matches whatever theme the user has selected
-  const accentKey = (settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
-  const accent    = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
-
-  // Derive the stage-specific theme so the wrapper background matches the splash
+  // Derive the stage-specific theme/accent from per-app settings, falling back to global
   const stageVis  = settings.perApp?.stage ?? { theme: 'dark' as const, accentColor: 'blue' as const, amoledMode: false };
+  const accentKey = (stageVis.accentColor ?? settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
+  const accent    = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
   const isLight   = stageVis.theme === 'light';
 
   // Freeze the initial src with the correct theme hash so the iframe never reloads on theme change.
