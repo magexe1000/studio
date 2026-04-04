@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StudioLogo, ChordexLogo, DrumexLogo } from './ChordexLogo';
+import { StudioLogo, ChordexLogo, DrumexLogo, StageCoreLogoIcon } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import type { AppKey } from '../store/useChordStore';
 
@@ -10,9 +10,10 @@ interface AppCard {
 }
 
 const APP_CARDS: AppCard[] = [
-  { key: 'hub',    label: 'Studio',  Logo: StudioLogo  },
-  { key: 'chords', label: 'Chordex', Logo: ChordexLogo },
-  { key: 'drums',  label: 'Drumex',  Logo: DrumexLogo  },
+  { key: 'hub',    label: 'Studio',  Logo: StudioLogo       },
+  { key: 'chords', label: 'Chordex', Logo: ChordexLogo      },
+  { key: 'drums',  label: 'Drumex',  Logo: DrumexLogo       },
+  { key: 'stage',  label: 'Stagex',  Logo: StageCoreLogoIcon },
 ];
 
 interface ApplyToSheetProps {
@@ -39,7 +40,7 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
     if (show) {
       // Cancel any pending unmount
       if (unmountTimer.current) { clearTimeout(unmountTimer.current); unmountTimer.current = null; }
-      setSelected(new Set(['hub', 'chords', 'drums']));
+      setSelected(new Set(['hub', 'chords', 'drums', 'stage']));
       setMounted(true);
       // One rAF so the browser paints the mounted state before we trigger the transition
       requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)));

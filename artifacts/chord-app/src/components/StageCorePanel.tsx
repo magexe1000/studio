@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
 import { setBackHandler } from '../lib/backStack';
+import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 
 type StageWin = Window & {
   stageGoBack?: () => boolean;
@@ -8,8 +9,46 @@ type StageWin = Window & {
   switchView?: (v: string) => void;
 };
 
+function hexToRgb(hex: string): [number, number, number] {
+  return [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ];
+}
+
+function injectAccentVars(iframe: HTMLIFrameElement, from: string, to: string) {
+  try {
+    const root = iframe.contentDocument?.documentElement;
+    if (!root) return;
+    const [r, g, b] = hexToRgb(from);
+    const [hr, hg, hb] = hexToRgb(to);
+    root.style.setProperty('--accent',      from);
+    root.style.setProperty('--accent-dark', '#fff');
+    root.style.setProperty('--accent-08', `rgba(${r},${g},${b},0.08)`);
+    root.style.setProperty('--accent-10', `rgba(${r},${g},${b},0.10)`);
+    root.style.setProperty('--accent-12', `rgba(${r},${g},${b},0.12)`);
+    root.style.setProperty('--accent-14', `rgba(${r},${g},${b},0.14)`);
+    root.style.setProperty('--accent-20', `rgba(${r},${g},${b},0.20)`);
+    root.style.setProperty('--accent-22', `rgba(${r},${g},${b},0.22)`);
+    root.style.setProperty('--accent-30', `rgba(${r},${g},${b},0.30)`);
+    root.style.setProperty('--accent-40', `rgba(${r},${g},${b},0.40)`);
+    root.style.setProperty('--accent-50', `rgba(${r},${g},${b},0.50)`);
+    root.style.setProperty('--accent-60', `rgba(${r},${g},${b},0.60)`);
+    root.style.setProperty('--accent-70', `rgba(${r},${g},${b},0.70)`);
+    root.style.setProperty('--hot',      to);
+    root.style.setProperty('--hot-dark', `rgba(${hr},${hg},${hb},0.25)`);
+    root.style.setProperty('--hot-10',   `rgba(${hr},${hg},${hb},0.10)`);
+    root.style.setProperty('--hot-20',   `rgba(${hr},${hg},${hb},0.20)`);
+  } catch { /* cross-origin guard */ }
+}
+
 export default function StageCorePanel() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { settings } = useChordStore();
+
+  const stageVis = settings.perApp?.stage ?? { accentColor: settings.accentColor ?? 'blue' };
+  const accent   = ACCENT_COLORS[stageVis.accentColor as keyof typeof ACCENT_COLORS];
 
   const getWin = useCallback((): StageWin | null => {
     try { return iframeRef.current?.contentWindow as StageWin | null; }
@@ -21,10 +60,17 @@ export default function StageCorePanel() {
     if (!iframe) return;
     const handleLoad = () => {
       try { iframe.contentWindow?.postMessage('stage-core-ping', '*'); } catch {}
+      injectAccentVars(iframe, accent.from, accent.to);
     };
     iframe.addEventListener('load', handleLoad);
     return () => iframe.removeEventListener('load', handleLoad);
-  }, []);
+  }, [accent.from, accent.to]);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    injectAccentVars(iframe, accent.from, accent.to);
+  }, [accent.from, accent.to]);
 
   useEffect(() => {
     const handler = (): boolean => getWin()?.stageGoBack?.() ?? false;
@@ -35,10 +81,8 @@ export default function StageCorePanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#0a0a0e' }}>
 
-      {/* Safe-area spacer — matches Drumex/Chordex */}
       <div style={{ height: 'env(safe-area-inset-top)', background: '#0a0a0e', flexShrink: 0 }} />
 
-      {/* 52px header bar — matches Drumex/Chordex exactly */}
       <div style={{
         flexShrink: 0,
         height: 52,
@@ -52,13 +96,12 @@ export default function StageCorePanel() {
 
         <div style={{ flex: 1 }} />
 
-        {/* SAVE button */}
         <button
           onClick={() => getWin()?.openPresetsPanel?.()}
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
-            background: 'rgba(255,116,57,0.14)', color: '#ff7439',
-            border: '1px solid rgba(255,116,57,0.28)', borderRadius: 8,
+            background: `${accent.from}22`, color: accent.from,
+            border: `1px solid ${accent.from}44`, borderRadius: 8,
             padding: '5px 11px', fontFamily: "'Space Grotesk', sans-serif",
             fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
             textTransform: 'uppercase', cursor: 'pointer',
@@ -68,7 +111,6 @@ export default function StageCorePanel() {
           Save
         </button>
 
-        {/* PDF / Export button */}
         <button
           onClick={() => getWin()?.switchView?.('Export')}
           title="Export to PDF"
@@ -84,7 +126,6 @@ export default function StageCorePanel() {
         </button>
       </div>
 
-      {/* Stage Core iframe fills remaining space */}
       <iframe
         ref={iframeRef}
         src="/stage-core/index.html"

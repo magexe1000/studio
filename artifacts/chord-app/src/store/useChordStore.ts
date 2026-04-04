@@ -214,6 +214,7 @@ export const useChordStore = create<ChordStore>()(
           hub:    { theme: 'dark', accentColor: 'blue', amoledMode: false },
           chords: { theme: 'dark', accentColor: 'blue', amoledMode: false },
           drums:  { theme: 'dark', accentColor: 'blue', amoledMode: false },
+          stage:  { theme: 'dark', accentColor: 'blue', amoledMode: false },
         },
       },
       favorites: [],
