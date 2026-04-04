@@ -137,6 +137,13 @@ export default function StageCorePanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: stageBg, transition: 'background 300ms ease' }}>
 
+      {/* Safe-area spacer + 52px header — both collapse when in Export view */}
+      <div style={{
+        flexShrink: 0,
+        overflow: 'hidden',
+        height: curView === 'Export' ? 0 : 'calc(env(safe-area-inset-top) + 52px)',
+        transition: 'height 200ms ease',
+      }}>
       {/* Safe-area spacer */}
       <div style={{ height: 'env(safe-area-inset-top)', background: stageHdr, flexShrink: 0 }} />
 
@@ -248,6 +255,7 @@ export default function StageCorePanel() {
           </div>
         )}
       </div>
+      </div>{/* end collapsible header wrapper */}
 
       {/* Stage Core iframe fills remaining space */}
       <iframe

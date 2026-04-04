@@ -417,7 +417,7 @@ select option { background: #1a1a1a; color: #fff; }
   /* Export view: full-width flex column on mobile */
   #view-Export {
     margin-left: 0 !important;
-    padding-top: 64px !important;
+    padding-top: 0 !important;
     height: 100vh !important;
     overflow: hidden !important;
     flex-direction: column !important;
