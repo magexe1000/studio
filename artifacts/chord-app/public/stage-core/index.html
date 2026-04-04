@@ -4,17 +4,17 @@
 <base href="/stage-core/">
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Stage Core | Stage Plot Editor</title>
-<meta name="description" content="Stage Core — professional stage plot and technical rider editor for musicians and engineers. Build stage layouts, manage inputs, and export to PDF."/>
+<title>Stagex | Stage Plot Editor</title>
+<meta name="description" content="Stagex — professional stage plot and technical rider editor for musicians and engineers. Build stage layouts, manage inputs, and export to PDF."/>
 <meta name="theme-color" content="#0e0e0e"/>
 <meta property="og:type" content="website"/>
-<meta property="og:title" content="Stage Core | Stage Plot Editor"/>
+<meta property="og:title" content="Stagex | Stage Plot Editor"/>
 <meta property="og:description" content="Professional stage plot and technical rider editor. Build visual stage layouts, manage musician inputs, and export to PDF."/>
 <meta property="og:image" content="/opengraph.jpg"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Stage Core | Stage Plot Editor"/>
+<meta name="twitter:title" content="Stagex | Stage Plot Editor"/>
 <meta name="twitter:description" content="Professional stage plot and technical rider editor for musicians and engineers."/>
 <meta name="twitter:image" content="/opengraph.jpg"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
@@ -227,6 +227,12 @@
 /* 10. With status bar gone the nav pill can sit lower */
 #mobile-nav-bar {
   bottom: 10px !important;
+  transition: opacity 420ms ease, transform 420ms cubic-bezier(0.4,0,0.2,1) !important;
+}
+
+/* Scroll-hide: slide nav down out of view (keep the -50% X-center) */
+#mobile-nav-bar.sc-nav-hidden {
+  transform: translateX(-50%) translateY(calc(100% + 28px)) !important;
 }
 
 /* 11. Reposition toolbar and category bars around the new layout */
@@ -286,7 +292,7 @@
       </button>
     </div>
     <div class="auth-footer-link">
-      <span id="auth-footer-text">New to Stage Core? </span>
+      <span id="auth-footer-text">New to Stagex? </span>
       <button id="auth-footer-switch" onclick="switchAuthTab(currentAuthTab==='login'?'signup':'login')">Create Account</button>
     </div>
   </div>
@@ -499,7 +505,7 @@
   <!-- Header -->
   <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid rgba(72,72,71,0.15);flex-shrink:0;">
     <div>
-      <p class="ap-label" style="margin-bottom:4px;">Stage Core</p>
+      <p class="ap-label" style="margin-bottom:4px;">Stagex</p>
       <p style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:900;color:#fff;margin:0;letter-spacing:-0.02em;">Account</p>
     </div>
     <button onclick="closeAccountPanel()" style="width:32px;height:32px;background:rgba(255,255,255,0.06);border:none;border-radius:7px;cursor:pointer;color:#6b7280;display:flex;align-items:center;justify-content:center;transition:background 0.12s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
@@ -513,7 +519,7 @@
     <!-- ── LOGGED OUT ── -->
     <div id="ap-logged-out" style="display:block;">
       <div style="padding:32px 24px 0;">
-        <p class="ap-signin-title">Welcome to Stage Core</p>
+        <p class="ap-signin-title">Welcome to Stagex</p>
         <p class="ap-signin-desc">Sign in to save your stage plots to the cloud and access them from any device.</p>
         <button class="ap-signin-btn primary" onclick="closeAccountPanel(); openAuthModal('login');">
           Sign In
@@ -672,7 +678,7 @@
       <span class="material-symbols-outlined" style="font-size:20px;">menu</span>
     </button>
     <button id="logo-btn" onclick="toggleLogoMenu(event)" style="position:relative;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:3px;padding:0;font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:900;letter-spacing:-0.02em;color:#7aafff;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-      Stage Core
+      Stagex
       <span class="material-symbols-outlined" style="font-size:14px;opacity:0.6;margin-top:1px;">expand_more</span>
     </button>
     <nav id="desktop-nav" class="hidden md:flex gap-6 items-center h-full">
@@ -2057,7 +2063,7 @@
         <!-- FOOTER -->
         <div id="exp-footer" style="padding:16px 28px;background:#0a0a0a;display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;">
           <div>
-            <p style="font-family:'Space Grotesk';font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#fff;margin:0 0 2px;">Stage Core</p>
+            <p style="font-family:'Space Grotesk';font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#fff;margin:0 0 2px;">Stagex</p>
             <p style="font-size:9px;color:#484847;margin:0;text-transform:uppercase;letter-spacing:0.1em;" data-i18n="footerSub">Professional Stage Plot &amp; Technical Rider Editor</p>
           </div>
           <div style="text-align:right;">
@@ -2170,7 +2176,7 @@
 
   <!-- Preferences header -->
   <div style="padding:20px 22px 10px;flex-shrink:0;">
-    <p style="font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--accent,#7aafff);margin:0 0 4px;">Stage Core</p>
+    <p style="font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--accent,#7aafff);margin:0 0 4px;">Stagex</p>
     <h1 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:900;letter-spacing:-0.03em;color:#fff;margin:0;line-height:1;">Preferences</h1>
     <p style="font-family:'Inter',sans-serif;font-size:12px;color:#484847;margin:6px 0 0;">Customize your Stage Core experience.</p>
   </div>
@@ -2793,6 +2799,35 @@ window.addEventListener('message', function(e) {
   window.openSettings = function () { window.switchView('Assistant'); };
   window.closeSettings = function () {};
 
+  /* ── Scroll-hide nav (mirrors Chordex useNavHidden behaviour) ────────── */
+  var _scNavHidden = false;
+  var _scLastScrollY = 0;
+
+  function setScNavHidden(hidden) {
+    var nav = document.getElementById('mobile-nav-bar');
+    if (!nav || _scNavHidden === hidden) return;
+    _scNavHidden = hidden;
+    nav.classList.toggle('sc-nav-hidden', hidden);
+  }
+
+  function attachScrollHide(el) {
+    if (!el) return;
+    el.addEventListener('scroll', function () {
+      var y = el.scrollTop;
+      if (y < 30) { setScNavHidden(false); _scLastScrollY = y; return; }
+      var dy = y - _scLastScrollY;
+      if (Math.abs(dy) < 6) return;
+      setScNavHidden(dy > 0);
+      _scLastScrollY = y;
+    }, { passive: true });
+  }
+
+  // Attach to every scrollable view container and the preferences scroll
+  ['Rider', 'Setlist', 'Gear', 'Members'].forEach(function (v) {
+    attachScrollHide(document.getElementById('view-' + v));
+  });
+  attachScrollHide(document.querySelector('.sc-prefs-scroll'));
+
   /* ── Pill position tracker ───────────────────────────────────────────── */
   var _stretchTimer = null;
 
@@ -2850,6 +2885,10 @@ window.addEventListener('message', function(e) {
     var nextIdx = VIEW_ORDER.indexOf(view);
     var dir = nextIdx >= prevIdx ? 'right' : 'left';
     _curView = view;
+
+    /* Always restore nav visibility when the user switches views */
+    setScNavHidden(false);
+    _scLastScrollY = 0;
 
     _orig(view);
 

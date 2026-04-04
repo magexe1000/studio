@@ -189,7 +189,7 @@ export default function StudioHub() {
               {([
                 { app: 'chords' as TargetApp, Logo: ChordexLogo,       name: 'Chordex',    desc: 'Chord library & songs'       },
                 { app: 'drums'  as TargetApp, Logo: DrumexLogo,        name: 'Drumex',     desc: 'Drum sheet editor'           },
-                { app: 'stage'  as TargetApp, Logo: StageCoreLogoIcon, name: 'Stage Core', desc: 'Stage plot & tech rider'     },
+                { app: 'stage'  as TargetApp, Logo: StageCoreLogoIcon, name: 'Stagex',     desc: 'Stage plot & tech rider'     },
               ]).map(({ app, Logo, name, desc }, i, arr) => (
                 <AppRow
                   key={app}

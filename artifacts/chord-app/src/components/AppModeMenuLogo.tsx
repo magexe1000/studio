@@ -30,7 +30,7 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
   }[] = [
     { value: 'chords', Icon: ChordexLogo,       label: 'Chordex',    desc: 'Chord library & songs'   },
     { value: 'drums',  Icon: DrumexLogo,        label: 'Drumex',     desc: 'Drum sheet editor'       },
-    { value: 'stage',  Icon: StageCoreLogoIcon, label: 'Stage Core', desc: 'Stage plot & tech rider' },
+    { value: 'stage',  Icon: StageCoreLogoIcon, label: 'Stagex',     desc: 'Stage plot & tech rider' },
   ];
 
   const goToHub = () => {
@@ -51,7 +51,7 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
       >
         {currentMode === 'drums' ? <DrumexLogo size={size} /> : currentMode === 'stage' ? <StageCoreLogoIcon size={size} /> : <ChordexLogo size={size} />}
         <span style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color }}>
-          {currentMode === 'drums' ? 'Drumex' : currentMode === 'stage' ? 'Stage Core' : 'Chordex'}
+          {currentMode === 'drums' ? 'Drumex' : currentMode === 'stage' ? 'Stagex' : 'Chordex'}
         </span>
         <span style={{
           fontSize: 9, opacity: 0.45, marginLeft: -2, color,
