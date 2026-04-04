@@ -1143,7 +1143,7 @@ function _applyOfflineModeUI() {
       badge = document.createElement('div');
       badge.id = 'offline-mode-badge';
       badge.title = 'Offline Mode — AI features disabled';
-      badge.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);' +
+      badge.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);' +
         'background:#1a1a1a;border:1px solid #ffaa00;color:#ffaa00;font-family:"Space Grotesk",sans-serif;' +
         'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;' +
         'padding:3px 10px;border-radius:4px;z-index:9999;pointer-events:none;';
@@ -2948,7 +2948,7 @@ function _setElPresets(arr) {
 
 function _scPrompt(title, defaultVal, onConfirm) {
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);backdrop-filter:blur(2px);';
+  overlay.style.cssText = 'position:absolute;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);backdrop-filter:blur(2px);';
   const box = document.createElement('div');
   box.style.cssText = 'background:#111217;border:1px solid rgba(122,175,255,0.2);border-radius:10px;padding:20px 22px 16px;min-width:270px;box-shadow:0 12px 48px rgba(0,0,0,0.8);display:flex;flex-direction:column;gap:12px;';
   const lbl = document.createElement('p');
@@ -3030,7 +3030,7 @@ function scOpenElPresets() {
     panel = document.createElement('div');
     panel.id = 'sc-el-presets-panel';
     panel.style.cssText = [
-      'position:fixed;bottom:142px;right:14px;width:212px;max-height:400px;',
+      'position:absolute;bottom:142px;right:14px;width:212px;max-height:400px;',
       'z-index:5001;display:flex;flex-direction:column;overflow:hidden;',
       'border-radius:18px;',
       'backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);',
@@ -3075,7 +3075,7 @@ function _showPresetsDrop() {
   if (!drop) {
     drop = document.createElement('div');
     drop.id = 'sc-presets-drop';
-    drop.style.cssText = 'position:fixed;z-index:9100;background:#111217;border:1px solid rgba(122,175,255,0.13);border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.85);width:260px;max-height:420px;display:flex;flex-direction:column;opacity:0;transform:translateY(-4px);transition:opacity .15s ease,transform .15s ease;pointer-events:none;';
+    drop.style.cssText = 'position:absolute;z-index:9100;background:#111217;border:1px solid rgba(122,175,255,0.13);border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.85);width:260px;max-height:420px;display:flex;flex-direction:column;opacity:0;transform:translateY(-4px);transition:opacity .15s ease,transform .15s ease;pointer-events:none;';
     drop.addEventListener('mouseenter', () => clearTimeout(_presetsDropTimer));
     drop.addEventListener('mouseleave', _scheduleHideDrop);
     document.body.appendChild(drop);
@@ -3280,7 +3280,7 @@ function openTimelinePanel() {
     document.body.appendChild(panel);
   }
   panel.style.cssText = [
-    `position:fixed;left:0;top:${panelTop}px;height:${panelHeight}px;width:224px;`,
+    `position:absolute;left:0;top:${panelTop}px;height:${panelHeight}px;width:224px;`,
     'background:rgba(10,10,12,0.97);',
     'border:1px solid rgba(72,72,71,0.35);border-left:none;',
     'border-radius:0 10px 10px 0;',
@@ -3489,7 +3489,7 @@ function _showPwGate(storedHash, encodedPayload) {
   if (document.getElementById('sc-pw-gate')) return;
   const overlay = document.createElement('div');
   overlay.id = 'sc-pw-gate';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0c;display:flex;align-items:center;justify-content:center;';
+  overlay.style.cssText = 'position:absolute;inset:0;z-index:99999;background:#0a0a0c;display:flex;align-items:center;justify-content:center;';
   overlay.innerHTML = `
     <div style="background:#111;border:1px solid rgba(122,175,255,0.25);padding:32px;width:340px;max-width:90vw;position:relative;">
       <button onclick="document.getElementById('sc-pw-gate').remove();history.replaceState(null,'',location.pathname)"

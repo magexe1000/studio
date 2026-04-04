@@ -87,87 +87,16 @@
 <link rel="stylesheet" href="app.css"/>
 <script src="cloud-stub.js"></script>
 <style>
-/* ── Global body: fast-tap + coordinate system for iframe interactions ──────
- *
- * Chrome Android iframe bug: position:fixed elements inside an iframe have
- * their touch events misrouted to the PARENT frame even when the visual
- * position looks correct. The only reliable fix is position:absolute, which
- * works perfectly inside iframes on all Android Chrome versions.
- *
- * Strategy:
- *   1. body gets position:relative so it becomes the containing block for
- *      all position:absolute children (equivalent to the viewport/fixed
- *      approach, since body fills 100% of the iframe).
- *   2. Every interactive element that was position:fixed is overridden to
- *      position:absolute below — same visual result, but touches land correctly.
- *   3. transform:translateZ(0) is kept for GPU compositing + render perf.
- * ─────────────────────────────────────────────────────────────────────────── */
-body {
-  position: relative;          /* containing block for all absolute children */
-  width: 100%;
-  height: 100vh;
+/* ── Global body ────────────────────────────────────────────────────────── */
+html, body {
+  height: 100%;
   overflow: hidden;
-  transform: translateZ(0);    /* GPU layer; also keeps fixed descendants jailed */
+}
+body {
+  transform: translateZ(0);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
-
-/* ── Convert position:fixed → position:absolute for all interactive UI ──────
- * position:absolute relative to body = same visual position as fixed
- * (body is 100vw × 100vh), but touches are correctly delivered in Chrome Android. */
-
-/* Bottom navigation pill */
-#mobile-nav-bar {
-  position: absolute !important;
-}
-
-/* FAB speed-dial wrap + its backdrop */
-#sc-fab-wrap     { position: absolute !important; }
-#sc-dial-backdrop { position: absolute !important; }
-
-/* Item sub-sheet (slides up when a category chip is tapped) */
-#sc-item-sheet { position: absolute !important; }
-
-/* Top floating toolbar (zoom / undo / redo controls) */
-#bottom-toolbar { position: absolute !important; }
-
-/* Right-side properties panel */
-#properties-panel { position: absolute !important; }
-
-/* Mode pill (connect/active-tool indicator) */
-#mode-pill { position: absolute !important; }
-
-/* Context menu */
-#sc-ctx { position: absolute !important; }
-
-/* Toast notification */
-#sc-toast { position: absolute !important; }
-
-/* Chain / cable panel */
-#sc-chain-panel { position: absolute !important; }
-
-/* Timeline panel */
-#timeline-panel { position: absolute !important; }
-
-/* Smart-suggest card */
-#smart-suggest-card { position: absolute !important; }
-
-/* Export bottom bar */
-#mob-export-bar { position: absolute !important; }
-
-/* PTR (pull-to-refresh) indicator */
-#ptr-indicator { position: absolute !important; }
-#ptr-label     { position: absolute !important; }
-
-/* Full-screen modal overlays (inset:0 = fills body = fills iframe) */
-.sc-overlay              { position: absolute !important; }
-#confirm-modal           { position: absolute !important; }
-#custom-el-modal         { position: absolute !important; }
-#smart-sort-modal        { position: absolute !important; }
-#gear-modal              { position: absolute !important; }
-#share-modal             { position: absolute !important; }
-#delete-account-modal    { position: absolute !important; }
-#tl-item-modal           { position: absolute !important; }
 
 /* ═══════════════ CHORDEX-STYLE BOTTOM NAV ═══════════════════════════════ */
 
@@ -177,7 +106,7 @@ body {
 /* 2. Promote mobile-nav-bar to always-visible floating bottom pill */
 #mobile-nav-bar {
   display: flex !important;
-  position: fixed !important;
+  position: absolute !important;
   top: auto !important;
   bottom: 40px !important;
   left: 50% !important;
@@ -512,7 +441,7 @@ html, body {
 /* Views fill the iframe from top */
 .view-page { top: 0 !important; }
 
-/* Override position:fixed on scrollable-view — inside an iframe, position:fixed can escape
+/* Override position:absolute on scrollable-view — inside an iframe, position:absolute can escape
    the iframe boundary on Chrome Android and overlap the React header bar above.
    position:absolute is scoped to the iframe viewport and behaves correctly. */
 .scrollable-view {
@@ -1232,7 +1161,7 @@ html[data-theme="light"] #stage-empty-state  { color: #bbb !important; }
    FAB SPEED DIAL  (#sc-fab-wrap)
 ══════════════════════════════════════════ */
 #sc-fab-wrap {
-  position: fixed;
+  position: absolute;
   bottom: 80px;
   right: 14px;
   z-index: 200;
@@ -1311,7 +1240,7 @@ html[data-theme="light"] #stage-empty-state  { color: #bbb !important; }
 /* Tap-outside backdrop */
 #sc-dial-backdrop {
   display: none;
-  position: fixed; inset: 0; z-index: 198;
+  position: absolute; inset: 0; z-index: 198;
   -webkit-tap-highlight-color: transparent;
 }
 #sc-fab-wrap.sc-dial-open + #sc-dial-backdrop { display: block; }
@@ -1357,7 +1286,7 @@ html[data-theme="light"] .sc-dial-chip {
    ITEM SUB-SHEET  (#sc-item-sheet)
 ══════════════════════════════════════════ */
 #sc-item-sheet {
-  position: fixed;
+  position: absolute;
   bottom: 142px;   /* sits above the FAB button */
   right: 14px;
   width: 212px;
@@ -1669,7 +1598,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 <div id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
 
 <!-- ═══════════════ CUSTOM CONFIRM MODAL ═══════════════ -->
-<div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);">
+<div id="confirm-modal" style="display:none;position:absolute;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);">
   <div style="width:380px;max-width:92vw;background:#111;border:1px solid #2a2a2a;box-shadow:0 24px 80px rgba(0,0,0,0.9);">
     <div style="padding:28px 28px 0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
@@ -1721,7 +1650,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
   </div>
 </div>
 <!-- Presets backdrop -->
-<div id="presets-backdrop" onclick="closePresetsPanel()" style="display:none;position:fixed;inset:0;z-index:8400;background:transparent;"></div>
+<div id="presets-backdrop" onclick="closePresetsPanel()" style="display:none;position:absolute;inset:0;z-index:8400;background:transparent;"></div>
 
 <!-- ═══════════════════════ EDITOR VIEW ═══════════════════════ -->
 <div id="view-Editor" class="view-page active">
@@ -2007,7 +1936,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
   </main>
 
   <!-- CONFLICT POPUP (tip-style card) -->
-  <div id="conflict-banner" style="display:none;position:fixed;bottom:54px;right:14px;width:230px;background:#0f1014;border:1px solid rgba(255,170,0,0.28);z-index:500;padding:10px 12px 10px;font-family:'Space Grotesk',sans-serif;opacity:0;transform:translateY(6px);transition:opacity 0.18s ease,transform 0.18s ease;pointer-events:auto;">
+  <div id="conflict-banner" style="display:none;position:absolute;bottom:54px;right:14px;width:230px;background:#0f1014;border:1px solid rgba(255,170,0,0.28);z-index:500;padding:10px 12px 10px;font-family:'Space Grotesk',sans-serif;opacity:0;transform:translateY(6px);transition:opacity 0.18s ease,transform 0.18s ease;pointer-events:auto;">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:5px;">
       <span style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.16em;color:#ffaa00;">⚠ Channel Conflict</span>
       <button onclick="dismissConflictPopup()" style="background:none;border:none;cursor:pointer;color:#2a2a2a;font-size:14px;line-height:1;padding:0;flex-shrink:0;transition:color 0.12s;margin-top:-1px;" onmouseover="this.style.color='#555'" onmouseout="this.style.color='#2a2a2a'">×</button>
@@ -2268,7 +2197,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
   </footer>
 
   <!-- Autosave name modal -->
-  <div id="autosave-modal" style="display:none;position:fixed;bottom:40px;right:16px;z-index:400;background:#111217;border:1px solid var(--accent-14);border-radius:8px;padding:14px 16px;width:230px;box-shadow:0 8px 40px rgba(0,0,0,0.75);">
+  <div id="autosave-modal" style="display:none;position:absolute;bottom:40px;right:16px;z-index:400;background:#111217;border:1px solid var(--accent-14);border-radius:8px;padding:14px 16px;width:230px;box-shadow:0 8px 40px rgba(0,0,0,0.75);">
     <p style="font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--accent);margin:0 0 10px;">Autosave preset name</p>
     <input id="autosave-name-input" type="text" placeholder="e.g. My Show" maxlength="40"
            style="width:100%;box-sizing:border-box;background:#0a0a0a;border:none;border-bottom:1px solid #333;color:#fff;font-family:'Space Grotesk';font-size:11px;padding:5px 0;outline:none;margin-bottom:12px;"
@@ -2455,7 +2384,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 </div>
 
 <!-- ═══════════════ ADD SONG BOTTOM SHEET ═══════════════ -->
-<div id="song-modal" style="display:none;position:fixed;inset:0;z-index:9000;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);" onclick="if(event.target===this)closeSongModal()">
+<div id="song-modal" style="display:none;position:absolute;inset:0;z-index:9000;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);" onclick="if(event.target===this)closeSongModal()">
   <div id="song-sheet" style="width:100%;max-width:540px;background:#1c1c1c;border-radius:20px 20px 0 0;box-shadow:0 -12px 60px rgba(0,0,0,0.9);transform:translateY(100%);transition:transform 320ms cubic-bezier(0.32,0.72,0,1);padding-bottom:max(env(safe-area-inset-bottom,0px),16px);">
     <!-- Drag pill -->
     <div style="display:flex;justify-content:center;padding:10px 0 2px;">
@@ -2517,7 +2446,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 </div>
 
 <!-- ═══════════════ SECTIONS MODAL ═══════════════ -->
-<div id="sections-modal" style="display:none;position:fixed;inset:0;z-index:9200;align-items:center;justify-content:center;background:rgba(0,0,0,0.9);">
+<div id="sections-modal" style="display:none;position:absolute;inset:0;z-index:9200;align-items:center;justify-content:center;background:rgba(0,0,0,0.9);">
   <div style="width:420px;max-width:95vw;background:#0e0e0e;border:1px solid rgba(122,175,255,0.2);border-radius:20px;box-shadow:0 24px 80px rgba(0,0,0,0.8);overflow:hidden;">
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;border-bottom:1px solid rgba(255,255,255,0.06);">
@@ -2569,7 +2498,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 </div>
 
 <!-- ═══════════════ BATCH IMPORT MODAL ═══════════════ -->
-<div id="batch-import-modal" style="display:none;position:fixed;inset:0;z-index:9200;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
+<div id="batch-import-modal" style="display:none;position:absolute;inset:0;z-index:9200;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
   <div style="width:580px;max-width:95vw;max-height:90vh;background:#0e0e0e;border:1px solid var(--accent-30);box-shadow:0 24px 80px rgba(0,0,0,0.7);display:flex;flex-direction:column;overflow:hidden;">
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
@@ -2612,7 +2541,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 </div>
 
 <!-- ═══════════════ ADD SEGMENT MODAL ═══════════════ -->
-<div id="segment-modal" style="display:none;position:fixed;inset:0;z-index:9100;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
+<div id="segment-modal" style="display:none;position:absolute;inset:0;z-index:9100;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
   <div style="width:420px;max-width:95vw;background:#0e0e0e;border:1px solid var(--accent-30);box-shadow:0 24px 80px rgba(0,0,0,0.6);">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a1a1a;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -2641,7 +2570,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 </div>
 
 <!-- ═══════════════ SMART SORT MODAL ═══════════════ -->
-<div id="smart-sort-modal" style="display:none;position:fixed;inset:0;z-index:9200;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
+<div id="smart-sort-modal" style="display:none;position:absolute;inset:0;z-index:9200;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
   <div style="width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;background:#0e0e0e;border:1px solid rgba(200,162,255,0.3);box-shadow:0 24px 80px rgba(0,0,0,0.7);">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -2717,7 +2646,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 </div>
 
 <!-- ═══════════════ ADD GEAR MODAL ═══════════════ -->
-<div id="gear-modal" style="display:none;position:fixed;inset:0;z-index:9000;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
+<div id="gear-modal" style="display:none;position:absolute;inset:0;z-index:9000;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
   <div style="width:480px;max-width:95vw;background:#0e0e0e;border:1px solid var(--hot-10);box-shadow:0 24px 80px rgba(0,0,0,0.6);">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a1a1a;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -3267,14 +3196,14 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
   </div><!-- end sc-prefs-scroll -->
 </div>
 
-<!-- ══ MOBILE-ONLY GLOBAL OVERLAYS (at body level so position:fixed always works) ══ -->
+<!-- ══ MOBILE-ONLY GLOBAL OVERLAYS (at body level so position:absolute always works) ══ -->
 
 <!-- Pull-to-refresh indicator -->
-<div id="ptr-indicator" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;height:3px;background:linear-gradient(90deg,var(--accent),var(--hot));transition:opacity 0.3s;"></div>
-<div id="ptr-label" style="display:none;position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(14,14,14,0.92);border:1px solid var(--accent-30);border-radius:8px;padding:8px 16px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--accent);white-space:nowrap;">↓ Pull to refresh</div>
+<div id="ptr-indicator" style="display:none;position:absolute;top:0;left:0;right:0;z-index:999;height:3px;background:linear-gradient(90deg,var(--accent),var(--hot));transition:opacity 0.3s;"></div>
+<div id="ptr-label" style="display:none;position:absolute;top:50px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(14,14,14,0.92);border:1px solid var(--accent-30);border-radius:8px;padding:8px 16px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--accent);white-space:nowrap;">↓ Pull to refresh</div>
 
 <!-- Export floating action bar -->
-<div id="mob-export-bar" class="mob-hidden" style="position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:500;">
+<div id="mob-export-bar" class="mob-hidden" style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:500;">
   <button onclick="exportPDF()" id="mob-exp-pdf-btn">
     <span class="material-symbols-outlined">picture_as_pdf</span>
     Export
@@ -3288,7 +3217,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <!-- Export settings sheet (fully inline-styled, no CSS dependency) -->
 <div id="mob-export-settings"
      style="display:none;
-            position:fixed;
+            position:absolute;
             bottom:72px;
             left:50%;
             transform:translateX(-50%);
@@ -3404,7 +3333,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
 
 <!-- ═══════════════════════ SMART SUGGESTION CARD ═══════════════════════ -->
-<div id="smart-suggest-card" style="display:none;position:fixed;bottom:44px;right:14px;width:230px;background:#0f1014;border:1px solid rgba(72,72,71,0.35);z-index:500;padding:10px 12px 8px;font-family:'Space Grotesk',sans-serif;opacity:0;transform:translateY(6px);transition:opacity 0.18s ease,transform 0.18s ease;">
+<div id="smart-suggest-card" style="display:none;position:absolute;bottom:44px;right:14px;width:230px;background:#0f1014;border:1px solid rgba(72,72,71,0.35);z-index:500;padding:10px 12px 8px;font-family:'Space Grotesk',sans-serif;opacity:0;transform:translateY(6px);transition:opacity 0.18s ease,transform 0.18s ease;">
   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:5px;">
     <span style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.16em;color:#484847;">Tip · <span id="smart-suggest-type" style="color:#555;"></span></span>
     <button onclick="dismissSuggestion()" style="background:none;border:none;cursor:pointer;color:#2a2a2a;font-size:14px;line-height:1;padding:0;flex-shrink:0;transition:color 0.12s;margin-top:-1px;" onmouseover="this.style.color='#555'" onmouseout="this.style.color='#2a2a2a'">×</button>
@@ -3415,7 +3344,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
 
 <!-- ═══════════════════════ CUSTOM ELEMENT MODAL ═══════════════════════ -->
-<div id="custom-el-modal" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+<div id="custom-el-modal" style="display:none;position:absolute;inset:0;z-index:800;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
   <div style="background:#111217;border:1px solid var(--accent-14);width:360px;max-width:calc(100vw - 32px);font-family:'Space Grotesk',sans-serif;">
     <!-- Modal header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(72,72,71,0.15);">
@@ -3486,7 +3415,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <!-- ============================================================
      TIMELINE PANEL — Show Timeline right-side panel
      ============================================================ -->
-<div id="timeline-panel" style="display:none;position:fixed;top:64px;right:0;bottom:0;width:420px;z-index:8400;background:#0a0a0a;border-left:1px solid rgba(197,255,201,0.15);box-shadow:-24px 0 80px rgba(0,0,0,0.7);flex-direction:column;overflow:hidden;">
+<div id="timeline-panel" style="display:none;position:absolute;top:64px;right:0;bottom:0;width:420px;z-index:8400;background:#0a0a0a;border-left:1px solid rgba(197,255,201,0.15);box-shadow:-24px 0 80px rgba(0,0,0,0.7);flex-direction:column;overflow:hidden;">
   <!-- Header -->
   <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.05);flex-shrink:0;">
     <div>
@@ -3511,7 +3440,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 </div>
 
 <!-- TIMELINE ITEM EDIT MODAL -->
-<div id="tl-item-modal" style="display:none;position:fixed;inset:0;z-index:8600;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+<div id="tl-item-modal" style="display:none;position:absolute;inset:0;z-index:8600;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
   <div style="background:#111;border:1px solid rgba(72,72,71,0.3);width:340px;padding:24px;">
     <div style="font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#c5ffc9;margin-bottom:18px;">Edit Item</div>
     <input type="hidden" id="tl-edit-id">
@@ -3547,7 +3476,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <!-- ============================================================
      SHARE MODAL
      ============================================================ -->
-<div id="share-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+<div id="share-modal" style="display:none;position:absolute;inset:0;z-index:9000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
   <div style="background:#111;border:1px solid rgba(197,255,201,0.2);width:480px;max-width:92vw;padding:28px;position:relative;">
     <button onclick="closeShareModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:#555;cursor:pointer;font-size:20px;line-height:1;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#555'">×</button>
     <div style="font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#c5ffc9;margin-bottom:6px;">Share Project</div>
@@ -3605,7 +3534,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <!-- ============================================================
      DELETE ACCOUNT CONFIRMATION MODAL
      ============================================================ -->
-<div id="delete-account-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;">
+<div id="delete-account-modal" style="display:none;position:absolute;inset:0;z-index:10000;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;">
   <div style="background:#111;border:1px solid rgba(255,113,108,0.35);width:400px;max-width:92vw;padding:28px;position:relative;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
       <span class="material-symbols-outlined" style="font-size:20px;color:#ff716c;">delete_forever</span>
@@ -3636,7 +3565,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 </div>
 
 <!-- CABLE CONTEXT MENU -->
-<div id="cable-context-menu" style="display:none;position:fixed;z-index:6000;min-width:178px;background:#111217;border:1px solid var(--accent-14);box-shadow:0 8px 32px rgba(0,0,0,0.85);font-family:'Space Grotesk',sans-serif;overflow:hidden;">
+<div id="cable-context-menu" style="display:none;position:absolute;z-index:6000;min-width:178px;background:#111217;border:1px solid var(--accent-14);box-shadow:0 8px 32px rgba(0,0,0,0.85);font-family:'Space Grotesk',sans-serif;overflow:hidden;">
   <div style="padding:7px 12px 5px;border-bottom:1px solid rgba(72,72,71,0.2);">
     <p style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0;">Cable Type</p>
   </div>
@@ -3803,7 +3732,7 @@ window.addEventListener('message', function(e) {
     var setupTab = document.getElementById('setup-mob-tab');
     if (setupTab) setupTab.classList.toggle('active', isSetup);
 
-    /* Slide the new page in — skip Editor (it has position:fixed children) */
+    /* Slide the new page in — skip Editor (it has position:absolute children) */
     if (view !== 'Editor') {
       var page = document.getElementById('view-' + view);
       if (page) {

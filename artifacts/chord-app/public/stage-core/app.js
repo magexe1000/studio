@@ -4581,7 +4581,7 @@ async function exportPDF() {
 
       const wrap = document.createElement('div');
       wrap.style.cssText =
-        `position:fixed;left:-9999px;top:0;width:${CAPTURE_WIDTH}px;` +
+        `position:absolute;left:-9999px;top:0;width:${CAPTURE_WIDTH}px;` +
         `background:#0e0e0e;z-index:-9999;pointer-events:none;font-family:Inter,sans-serif;`;
       const clone = el.cloneNode(true);
       clone.style.margin = '0';
