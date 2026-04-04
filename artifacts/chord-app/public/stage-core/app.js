@@ -2954,9 +2954,9 @@ function renderSetlist() {
   // Segments pills bar
   _renderSegmentsBar();
   if (!state.setlist.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="padding:56px 0;text-align:center;">
+    tbody.innerHTML = `<div style="padding:56px 0;text-align:center;">
       <div style="font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">No songs added yet — hit ADD SONG to build your setlist.</div>
-    </td></tr>`;
+    </div>`;
     return;
   }
   // Build rows, inserting segment divider whenever the segment changes
@@ -2971,20 +2971,16 @@ function renderSetlist() {
       if (curSegId && segMap[curSegId]) {
         const seg = segMap[curSegId];
         const count = state.setlist.filter(s => s.segmentId === seg.id).length;
-        rows += `<tr>
-          <td colspan="9" style="background:${seg.color}14;border-left:3px solid ${seg.color};padding:7px 16px;">
+        rows += `<div style="background:${seg.color}14;border-left:3px solid ${seg.color};padding:7px 16px;">
             <div style="display:flex;align-items:center;gap:12px;">
               <span style="font-family:'Space Grotesk';font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.25em;color:${seg.color};">${seg.name}</span>
               <span style="font-size:9px;color:#484847;">${count} song${count!==1?'s':''}</span>
             </div>
-          </td>
-        </tr>`;
+          </div>`;
       } else if (!curSegId && lastSegId !== '__INIT__') {
-        rows += `<tr>
-          <td colspan="9" style="background:#1a1a1a22;border-left:3px solid #484847;padding:7px 16px;">
+        rows += `<div style="background:#1a1a1a22;border-left:3px solid #484847;padding:7px 16px;">
             <span style="font-family:'Space Grotesk';font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.25em;color:#484847;">Unassigned</span>
-          </td>
-        </tr>`;
+          </div>`;
       }
       lastSegId = curSegId;
     }
@@ -3000,24 +2996,22 @@ function renderSetlist() {
       ? `<p class="sl-notes-txt">${safeNotes}</p>`
       : `<p class="sl-notes-txt sl-notes-empty">No notes — edit song to add cues</p>`;
     rows += `
-    <tr class="sl-song-row" style="animation-delay:${Math.min(i, 10) * 40}ms">
-      <td colspan="9">
-        <div class="sl-song-row-main" onclick="toggleSongNotes(${song.id})">
-          <span class="sl-song-num">${String(i+1).padStart(2,'0')}</span>
-          <div class="sl-song-info">
-            <div class="sl-song-title">${song.title}</div>
-            ${song.artist ? `<div class="sl-song-artist">${song.artist}</div>` : ''}
-          </div>
-          <div class="sl-song-chips">${chipKey}${chipBpm}${chipDur}</div>
-          <button onclick="event.stopPropagation();removeSong(${song.id})" class="sl-del-btn" title="Remove">
-            <i data-lucide="trash-2" style="width:14px;height:14px;stroke-width:2;"></i>
-          </button>
+    <div class="sl-song-row" style="animation-delay:${Math.min(i, 10) * 40}ms">
+      <div class="sl-song-row-main" onclick="toggleSongNotes(${song.id})">
+        <span class="sl-song-num">${String(i+1).padStart(2,'0')}</span>
+        <div class="sl-song-info">
+          <div class="sl-song-title">${song.title}</div>
+          ${song.artist ? `<div class="sl-song-artist">${song.artist}</div>` : ''}
         </div>
-        <div class="sl-notes-exp" id="sl-notes-${song.id}">
-          <div class="sl-notes-inner">${notesHtml}</div>
-        </div>
-      </td>
-    </tr>`;
+        <div class="sl-song-chips">${chipKey}${chipBpm}${chipDur}</div>
+        <button onclick="event.stopPropagation();removeSong(${song.id})" class="sl-del-btn" title="Remove">
+          <i data-lucide="trash-2" style="width:14px;height:14px;stroke-width:2;"></i>
+        </button>
+      </div>
+      <div class="sl-notes-exp" id="sl-notes-${song.id}">
+        <div class="sl-notes-inner">${notesHtml}</div>
+      </div>
+    </div>`;
   });
   tbody.innerHTML = rows;
   lcIcons();

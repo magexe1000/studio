@@ -582,13 +582,11 @@ header { display: none !important; }
 }
 
 /* ── Song row card layout ── */
-.sl-card-table { width: 100%; border-collapse: collapse; }
 @keyframes sl-row-in {
   from { opacity: 0; transform: translateX(-10px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 .sl-song-row { border-bottom: 1px solid rgba(255,255,255,0.04); animation: sl-row-in 360ms cubic-bezier(0.22,1,0.36,1) both; }
-.sl-song-row > td { padding: 0 !important; display: block !important; }
 .sl-song-row:last-child { border-bottom: none; }
 .sl-song-row-main {
   display: flex; align-items: center; gap: 10px;
@@ -2060,10 +2058,7 @@ header { display: none !important; }
 
     <!-- ── Song list ── -->
     <div class="sl-song-container">
-      <table class="sl-card-table">
-        <thead><tr style="display:none;"><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></thead>
-        <tbody id="setlist-body"></tbody>
-      </table>
+      <div id="setlist-body"></div>
     </div>
 
     <!-- ── Add New Track pill ── -->
