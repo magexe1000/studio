@@ -62,14 +62,26 @@ function injectTheme(iframe: HTMLIFrameElement, theme: string) {
     if (!root) return;
     if (theme === 'light') {
       root.setAttribute('data-theme', 'light');
-      // Reset canvas background to a light-appropriate default
       const win = iframe.contentWindow as (Window & { updateCanvasBg?: (c: string) => void }) | null;
       win?.updateCanvasBg?.('#ffffff');
     } else {
       root.removeAttribute('data-theme');
-      // Restore dark canvas background default
       const win = iframe.contentWindow as (Window & { updateCanvasBg?: (c: string) => void }) | null;
       win?.updateCanvasBg?.('#1a1a1a');
+    }
+  } catch { /* cross-origin guard */ }
+}
+
+function injectAmoled(iframe: HTMLIFrameElement, amoled: boolean) {
+  try {
+    const root = iframe.contentDocument?.documentElement;
+    if (!root) return;
+    if (amoled) {
+      root.setAttribute('data-amoled', '1');
+      const win = iframe.contentWindow as (Window & { updateCanvasBg?: (c: string) => void }) | null;
+      win?.updateCanvasBg?.('#000000');
+    } else {
+      root.removeAttribute('data-amoled');
     }
   } catch { /* cross-origin guard */ }
 }
@@ -122,6 +134,7 @@ export default function StageCorePanel() {
       try { iframe.contentWindow?.postMessage('stage-core-ping', '*'); } catch {}
       injectAccentVars(iframe, accent.from, accent.to);
       injectTheme(iframe, stageVis.theme ?? 'dark');
+      injectAmoled(iframe, isAmoled);
       // Register view-change callback so React knows when to show/hide back button
       try {
         (iframe.contentWindow as StageWin).__onViewChange = (view: string) => setCurView(view);
@@ -129,7 +142,7 @@ export default function StageCorePanel() {
     };
     iframe.addEventListener('load', handleLoad);
     return () => iframe.removeEventListener('load', handleLoad);
-  }, [accent.from, accent.to, stageVis.theme]);
+  }, [accent.from, accent.to, stageVis.theme, isAmoled]);
 
   // Re-inject accent vars + theme whenever they change (after iframe is loaded)
   useEffect(() => {
@@ -138,6 +151,13 @@ export default function StageCorePanel() {
     injectAccentVars(iframe, accent.from, accent.to);
     injectTheme(iframe, stageVis.theme ?? 'dark');
   }, [accent.from, accent.to, stageVis.theme]);
+
+  // Re-inject AMOLED state whenever it changes
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    injectAmoled(iframe, isAmoled);
+  }, [isAmoled]);
 
   // Register global back handler (OS back gesture / Android back button)
   useEffect(() => {
