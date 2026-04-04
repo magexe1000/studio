@@ -135,7 +135,7 @@ export default function StageCorePanel() {
         alignItems: 'center',
         padding: '10px 14px 0',
         background: stageHdr,
-        gap: 8,
+        gap: showBack ? 8 : 0,
         position: 'relative',
       }}>
 
