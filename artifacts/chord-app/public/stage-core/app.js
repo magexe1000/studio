@@ -2925,103 +2925,231 @@ function _fmtDuration(totalSecs) {
   const m = Math.floor(totalSecs / 60), s = totalSecs % 60;
   return m + ':' + String(s).padStart(2,'0');
 }
+// Returns only song items (not section headers) from the mixed setlist array
+function _onlySongs() {
+  return (state.setlist || []).filter(item => !item.type || item.type === 'song');
+}
+
 function renderSetlist() {
   const tbody = document.getElementById('setlist-body');
+  if (!tbody) return;
+  const songs = _onlySongs();
   const countEl = document.getElementById('sl-stat-count');
-  const durEl = document.getElementById('sl-stat-duration');
-  const engEl = document.getElementById('sl-stat-energy');
-  const segWrap = document.getElementById('sl-stat-segments-wrap');
+  const durEl   = document.getElementById('sl-stat-duration');
+  const engEl   = document.getElementById('sl-stat-energy');
+  const segWrap  = document.getElementById('sl-stat-segments-wrap');
   const segBlock = document.getElementById('sl-stat-segments-block');
-  const segStat = document.getElementById('sl-stat-segments');
-  if (countEl) countEl.textContent = state.setlist.length;
+  const segStat  = document.getElementById('sl-stat-segments');
+  if (countEl) countEl.textContent = songs.length;
   if (durEl) {
-    const totalSecs = state.setlist.reduce((s, song) => s + _parseDurationSecs(song.duration), 0);
+    const totalSecs = songs.reduce((s, song) => s + _parseDurationSecs(song.duration), 0);
     durEl.textContent = totalSecs ? _fmtDuration(totalSecs) : '0:00';
   }
   if (engEl) {
-    if (state.setlist.length) {
-      const avg = Math.round(state.setlist.reduce((s, song) => s + _derivedEnergy(song), 0) / state.setlist.length);
+    if (songs.length) {
+      const avg = Math.round(songs.reduce((a, song) => a + _derivedEnergy(song), 0) / songs.length);
       engEl.textContent = avg + '/100';
     } else {
       engEl.textContent = '—';
     }
   }
-  // Segments stat
   const hasSeg = state.segments && state.segments.length > 0;
-  if (segWrap) segWrap.style.display = hasSeg ? 'block' : 'none';
+  if (segWrap)  segWrap.style.display  = hasSeg ? 'block' : 'none';
   if (segBlock) segBlock.style.display = hasSeg ? 'block' : 'none';
-  if (segStat) segStat.textContent = state.segments.length;
-  // Segments pills bar
+  if (segStat)  segStat.textContent    = state.segments.length;
   _renderSegmentsBar();
+
   if (!state.setlist.length) {
     tbody.innerHTML = `<div style="padding:56px 0;text-align:center;">
-      <div style="font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">No songs added yet — hit ADD SONG to build your setlist.</div>
+      <div style="font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">No songs yet — tap ADD NEW TRACK to start your setlist.</div>
     </div>`;
     return;
   }
-  // Build rows, inserting segment divider whenever the segment changes
-  const segMap = Object.fromEntries((state.segments||[]).map(s => [s.id, s]));
-  const segOptions = (state.segments||[]).map(s =>
-    `<option value="${s.id}">${s.name}</option>`).join('');
-  let rows = '';
-  let lastSegId = '__INIT__';
-  state.setlist.forEach((song, i) => {
-    const curSegId = song.segmentId || '';
-    if (curSegId !== lastSegId) {
-      if (curSegId && segMap[curSegId]) {
-        const seg = segMap[curSegId];
-        const count = state.setlist.filter(s => s.segmentId === seg.id).length;
-        rows += `<div style="background:${seg.color}14;border-left:3px solid ${seg.color};padding:7px 16px;">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <span style="font-family:'Space Grotesk';font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.25em;color:${seg.color};">${seg.name}</span>
-              <span style="font-size:9px;color:#484847;">${count} song${count!==1?'s':''}</span>
-            </div>
-          </div>`;
-      } else if (!curSegId && lastSegId !== '__INIT__') {
-        rows += `<div style="background:#1a1a1a22;border-left:3px solid #484847;padding:7px 16px;">
-            <span style="font-family:'Space Grotesk';font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.25em;color:#484847;">Unassigned</span>
-          </div>`;
-      }
-      lastSegId = curSegId;
-    }
-    const seg = curSegId && segMap[curSegId] ? segMap[curSegId] : null;
-    const segBadge = seg
-      ? `<span style="display:inline-block;padding:2px 7px;background:${seg.color}22;color:${seg.color};font-family:'Space Grotesk';font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;border:1px solid ${seg.color}44;">${seg.name}</span>`
-      : `<span style="color:#484847;font-size:11px;">—</span>`;
-    const chipKey = song.key ? `<span class="sl-chip-key">${song.key}</span>` : '';
-    const chipBpm = song.bpm ? `<span class="sl-chip-bpm">${song.bpm} BPM</span>` : '';
-    const chipDur = (song.duration && song.duration !== '—') ? `<span class="sl-chip-dur">${song.duration}</span>` : '';
-    const safeNotes = (song.notes || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const notesHtml = song.notes
-      ? `<p class="sl-notes-txt">${safeNotes}</p>`
-      : `<p class="sl-notes-txt sl-notes-empty">No notes — edit song to add cues</p>`;
-    rows += `
-    <div class="sl-song-row" style="animation-delay:${Math.min(i, 10) * 40}ms">
-      <div class="sl-song-row-main" onclick="toggleSongNotes(${song.id})">
-        <span class="sl-song-num">${String(i+1).padStart(2,'0')}</span>
-        <div class="sl-song-info">
-          <div class="sl-song-title">${song.title}</div>
-          ${song.artist ? `<div class="sl-song-artist">${song.artist}</div>` : ''}
+
+  let songIdx = 0;
+  let html = '';
+  state.setlist.forEach((item, i) => {
+    if (item.type === 'section') {
+      html += `
+      <div class="sl-section-hdr" data-sid="${item.id}"
+        style="border-left-color:${item.color};"
+        draggable="true"
+        ondragstart="event.stopPropagation();_slDragStart(event,'${item.id}')"
+        ondragend="_slDragEnd(event)"
+        ondragover="event.preventDefault();_slDragOver(event)"
+        ondragleave="_slDragLeave(event)"
+        ondrop="event.preventDefault();_slDrop(event,'${item.id}')">
+        <span class="sl-drag-handle">
+          <span class="material-symbols-outlined" style="font-size:15px;">drag_indicator</span>
+        </span>
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+          <div style="width:8px;height:8px;border-radius:50%;background:${item.color};flex-shrink:0;box-shadow:0 0 6px ${item.color}88;"></div>
+          <div>
+            <div class="sl-section-hdr-name" style="color:${item.color};">${item.name}</div>
+            ${item.description ? `<div class="sl-section-hdr-desc">${item.description}</div>` : ''}
+          </div>
         </div>
-        <div class="sl-song-chips">${chipKey}${chipBpm}${chipDur}</div>
-        <button onclick="event.stopPropagation();removeSong(${song.id})" class="sl-del-btn" title="Remove">
-          <i data-lucide="trash-2" style="width:14px;height:14px;stroke-width:2;"></i>
+        <button onclick="event.stopPropagation();removeSection('${item.id}')" class="sl-del-btn" title="Remove section">
+          <span class="material-symbols-outlined" style="font-size:14px;">close</span>
         </button>
-      </div>
-      <div class="sl-notes-exp" id="sl-notes-${song.id}">
-        <div class="sl-notes-inner">${notesHtml}</div>
-      </div>
-    </div>`;
+      </div>`;
+    } else {
+      songIdx++;
+      const chipKey = item.key ? `<span class="sl-chip-key">${item.key}</span>` : '';
+      const chipBpm = item.bpm ? `<span class="sl-chip-bpm">${item.bpm} BPM</span>` : '';
+      const chipDur = (item.duration && item.duration !== '—') ? `<span class="sl-chip-dur">${item.duration}</span>` : '';
+      const safeNotes = (item.notes || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const notesHtml = item.notes
+        ? `<p class="sl-notes-txt">${safeNotes}</p>`
+        : `<p class="sl-notes-txt sl-notes-empty">No notes — edit song to add cues</p>`;
+      html += `
+      <div class="sl-song-row" data-sid="${item.id}" style="animation-delay:${Math.min(i,10)*40}ms"
+        draggable="true"
+        ondragstart="event.stopPropagation();_slDragStart(event,${item.id})"
+        ondragend="_slDragEnd(event)"
+        ondragover="event.preventDefault();_slDragOver(event)"
+        ondragleave="_slDragLeave(event)"
+        ondrop="event.preventDefault();_slDrop(event,${item.id})">
+        <div class="sl-song-row-main" onclick="toggleSongNotes(${item.id})">
+          <span class="sl-drag-handle" ontouchstart="_slTouchStart(event)" ontouchmove="_slTouchMove(event)" ontouchend="_slTouchEnd()">
+            <span class="material-symbols-outlined" style="font-size:16px;">drag_indicator</span>
+          </span>
+          <span class="sl-song-num">${String(songIdx).padStart(2,'0')}</span>
+          <div class="sl-song-info">
+            <div class="sl-song-title">${item.title}</div>
+            ${item.artist ? `<div class="sl-song-artist">${item.artist}</div>` : ''}
+          </div>
+          <div class="sl-song-chips">${chipKey}${chipBpm}${chipDur}</div>
+          <button onclick="event.stopPropagation();removeSong(${item.id})" class="sl-del-btn" title="Remove">
+            <i data-lucide="trash-2" style="width:14px;height:14px;stroke-width:2;"></i>
+          </button>
+        </div>
+        <div class="sl-notes-exp" id="sl-notes-${item.id}">
+          <div class="sl-notes-inner">${notesHtml}</div>
+        </div>
+      </div>`;
+    }
   });
-  tbody.innerHTML = rows;
+  tbody.innerHTML = html;
   lcIcons();
   updateStatusBar();
+  _slInitTouchDrag();
 }
 
 function toggleSongNotes(songId) {
   const el = document.getElementById('sl-notes-' + songId);
   if (!el) return;
   el.classList.toggle('open');
+}
+
+// ── Sections (inline setlist dividers) ──────────────────────────────
+const _SL_SECTION_TYPES = {
+  opening: { name: 'Opening Segment', description: 'A strong, high-energy opener to grab attention and establish competence.', color: '#ff7439' },
+  main:    { name: 'Main Set',        description: 'The core journey — 3–4 song clusters alternating high & low energy.', color: '#7aafff' },
+  closing: { name: 'Closing Segment', description: 'A powerful crowd-pleaser to end the main set on a high note.', color: '#c8a2ff' },
+  encore:  { name: 'Encore',          description: 'An optional major hit performed after the main set concludes.', color: '#c5ffc9' },
+};
+
+function openSectionsModal()  { const m = document.getElementById('sections-modal'); if (m) m.style.display = 'flex'; }
+function closeSectionsModal() { const m = document.getElementById('sections-modal'); if (m) m.style.display = 'none'; }
+
+function addSection(type) {
+  const st = _SL_SECTION_TYPES[type] || { name: type, description: '', color: '#7aafff' };
+  state.setlist.push({ id: 'sec-' + Date.now(), type: 'section', sectionType: type, name: st.name, description: st.description, color: st.color });
+  closeSectionsModal();
+  renderSetlist();
+  if (typeof pushHistory === 'function')      pushHistory();
+  if (typeof markAutosaveDirty === 'function') markAutosaveDirty();
+}
+
+function removeSection(id) {
+  state.setlist = state.setlist.filter(s => String(s.id) !== String(id));
+  renderSetlist();
+  if (typeof pushHistory === 'function')      pushHistory();
+  if (typeof markAutosaveDirty === 'function') markAutosaveDirty();
+}
+
+// ── Drag-to-reorder (HTML5 desktop) ─────────────────────────────────
+function _slDragStart(e, sid) {
+  e.dataTransfer.setData('sl-sid', String(sid));
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => { const r = document.querySelector(`[data-sid="${sid}"]`); if (r) r.classList.add('sl-row-dragging'); }, 0);
+}
+function _slDragEnd(e) {
+  document.querySelectorAll('.sl-row-dragging').forEach(el => el.classList.remove('sl-row-dragging'));
+  document.querySelectorAll('.sl-drag-over').forEach(el => el.classList.remove('sl-drag-over'));
+}
+function _slDragOver(e) { e.currentTarget.classList.add('sl-drag-over'); }
+function _slDragLeave(e) { e.currentTarget.classList.remove('sl-drag-over'); }
+function _slDrop(e, targetSid) {
+  document.querySelectorAll('.sl-drag-over,.sl-row-dragging').forEach(el => el.classList.remove('sl-drag-over','sl-row-dragging'));
+  const sid = e.dataTransfer.getData('sl-sid');
+  if (!sid || String(sid) === String(targetSid)) return;
+  const fromIdx = state.setlist.findIndex(s => String(s.id) === String(sid));
+  const toIdx   = state.setlist.findIndex(s => String(s.id) === String(targetSid));
+  if (fromIdx === -1 || toIdx === -1) return;
+  const [item] = state.setlist.splice(fromIdx, 1);
+  state.setlist.splice(toIdx, 0, item);
+  renderSetlist();
+  if (typeof pushHistory === 'function')      pushHistory();
+  if (typeof markAutosaveDirty === 'function') markAutosaveDirty();
+}
+
+// ── Drag-to-reorder (touch / mobile) ────────────────────────────────
+let _slTouchDrag = null;
+let _slTouchInitialized = false;
+
+function _slInitTouchDrag() {
+  if (_slTouchInitialized) return;
+  _slTouchInitialized = true;
+  const body = document.getElementById('setlist-body');
+  if (!body) return;
+  body.addEventListener('touchstart', _slTouchStart, { passive: false });
+  body.addEventListener('touchmove',  _slTouchMove,  { passive: false });
+  body.addEventListener('touchend',   _slTouchEnd);
+  body.addEventListener('touchcancel',_slTouchEnd);
+}
+
+function _slTouchStart(e) {
+  if (!e.target.closest('.sl-drag-handle')) return;
+  e.preventDefault();
+  const row = e.target.closest('[data-sid]');
+  if (!row) return;
+  row.classList.add('sl-row-dragging');
+  _slTouchDrag = { sid: row.dataset.sid, row, targetSid: null };
+}
+
+function _slTouchMove(e) {
+  if (!_slTouchDrag) return;
+  e.preventDefault();
+  document.querySelectorAll('.sl-drag-over').forEach(el => el.classList.remove('sl-drag-over'));
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const targetRow = el && el.closest('[data-sid]');
+  if (targetRow && targetRow.dataset.sid !== _slTouchDrag.sid) {
+    targetRow.classList.add('sl-drag-over');
+    _slTouchDrag.targetSid = targetRow.dataset.sid;
+  } else {
+    _slTouchDrag.targetSid = null;
+  }
+}
+
+function _slTouchEnd() {
+  if (!_slTouchDrag) return;
+  _slTouchDrag.row.classList.remove('sl-row-dragging');
+  document.querySelectorAll('.sl-drag-over').forEach(el => el.classList.remove('sl-drag-over'));
+  const { sid, targetSid } = _slTouchDrag;
+  _slTouchDrag = null;
+  if (!targetSid || targetSid === sid) return;
+  const fromIdx = state.setlist.findIndex(s => String(s.id) === String(sid));
+  const toIdx   = state.setlist.findIndex(s => String(s.id) === String(targetSid));
+  if (fromIdx === -1 || toIdx === -1) return;
+  const [item] = state.setlist.splice(fromIdx, 1);
+  state.setlist.splice(toIdx, 0, item);
+  _slTouchInitialized = false; // allow re-init after DOM rebuild
+  renderSetlist();
+  if (typeof pushHistory === 'function')      pushHistory();
+  if (typeof markAutosaveDirty === 'function') markAutosaveDirty();
 }
 
 function _renderSegmentsBar() {
@@ -3031,7 +3159,7 @@ function _renderSegmentsBar() {
   if (!segs.length) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
   bar.innerHTML = segs.map(seg => {
-    const count = state.setlist.filter(s => s.segmentId === seg.id).length;
+    const count = _onlySongs().filter(s => s.segmentId === seg.id).length;
     return `<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;background:${seg.color}18;border:1px solid ${seg.color}44;">
       <div style="width:8px;height:8px;background:${seg.color};flex-shrink:0;"></div>
       <span style="font-family:'Space Grotesk';font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:${seg.color};">${seg.name}</span>

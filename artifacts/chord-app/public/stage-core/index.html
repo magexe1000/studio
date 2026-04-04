@@ -534,6 +534,31 @@ header { display: none !important; }
 .rd-card .sc-table-scroll { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; }
 
 /* ═══════════════════════════════════════════════════════════════════
+   DRAG & DROP — setlist reorder
+   ═══════════════════════════════════════════════════════════════════ */
+.sl-drag-handle { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; cursor:grab; color:#2a2a2a; flex-shrink:0; -webkit-tap-highlight-color:transparent; touch-action:none; }
+.sl-drag-handle:active { cursor:grabbing; color:#484847; }
+.sl-row-dragging { opacity:0.5; transform:scale(0.98); }
+.sl-drag-over { box-shadow:0 0 0 2px var(--accent) inset !important; border-radius:12px !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   INLINE SECTION HEADERS — setlist
+   ═══════════════════════════════════════════════════════════════════ */
+.sl-section-hdr { display:flex; align-items:center; gap:10px; padding:10px 14px; margin-bottom:4px; border-radius:10px; background:rgba(255,255,255,0.03); border-left:3px solid var(--accent); cursor:grab; -webkit-tap-highlight-color:transparent; }
+.sl-section-hdr-name { font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; line-height:1.2; }
+.sl-section-hdr-desc { font-family:'Inter',sans-serif; font-size:11px; color:#484847; line-height:1.4; margin-top:2px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SECTIONS MODAL — section type picker
+   ═══════════════════════════════════════════════════════════════════ */
+.sl-sec-card { display:flex; align-items:center; gap:12px; width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:13px 14px; cursor:pointer; text-align:left; -webkit-tap-highlight-color:transparent; transition:background 120ms ease, border-color 120ms ease; }
+.sl-sec-card:active { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); transform:scale(0.98); }
+.sl-sec-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.sl-sec-card-body { flex:1; min-width:0; }
+.sl-sec-card-name { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:800; letter-spacing:-0.01em; margin-bottom:3px; }
+.sl-sec-card-desc { font-family:'Inter',sans-serif; font-size:11px; color:#484847; line-height:1.45; }
+
+/* ═══════════════════════════════════════════════════════════════════
    SETLIST REDESIGN — reference-matched card layout
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -2103,14 +2128,11 @@ header { display: none !important; }
     <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:14px;">
       <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.55rem;font-weight:800;color:#e0e0e0;margin:0;letter-spacing:-0.025em;line-height:1.15;">Current<br>Arrangement</h2>
       <div style="display:flex;gap:6px;flex-shrink:0;padding-bottom:2px;">
-        <button onclick="openTimelinePanel()" class="sl-refine-btn" title="Timeline">
-          <span class="material-symbols-outlined" style="font-size:14px;">timeline</span>
-        </button>
         <button onclick="openBatchImport()" class="sl-refine-btn" title="Import">
           <span class="material-symbols-outlined" style="font-size:14px;">playlist_add</span>
         </button>
-        <button onclick="openSmartSortModal()" id="btn-smart-sort" class="sl-refine-btn">
-          <span class="material-symbols-outlined" style="font-size:14px;">filter_list</span>Refine
+        <button onclick="openSectionsModal()" class="sl-refine-btn">
+          <span class="material-symbols-outlined" style="font-size:14px;">view_agenda</span>Sections
         </button>
       </div>
     </div>
@@ -2205,6 +2227,58 @@ header { display: none !important; }
     <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid #1a1a1a;">
       <button onclick="closeSongModal()" style="padding:10px 24px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#1a1a1a;color:#767575;border:1px solid #262626;cursor:pointer;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#767575'">Cancel</button>
       <button onclick="saveSong()" style="padding:10px 32px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Add to Setlist</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SECTIONS MODAL ═══════════════ -->
+<div id="sections-modal" style="display:none;position:fixed;inset:0;z-index:9200;align-items:center;justify-content:center;background:rgba(0,0,0,0.9);">
+  <div style="width:420px;max-width:95vw;background:#0e0e0e;border:1px solid rgba(122,175,255,0.2);border-radius:20px;box-shadow:0 24px 80px rgba(0,0,0,0.8);overflow:hidden;">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:3px;height:20px;background:var(--accent);border-radius:2px;flex-shrink:0;"></div>
+        <div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#484847;margin-bottom:2px;">Setlist</div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:900;color:#e0e0e0;margin:0;letter-spacing:-0.02em;">Add Section</h2>
+        </div>
+      </div>
+      <button onclick="closeSectionsModal()" style="background:rgba(255,255,255,0.05);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#888;font-size:18px;line-height:1;">×</button>
+    </div>
+    <!-- Section type cards -->
+    <div style="padding:16px;display:flex;flex-direction:column;gap:8px;">
+      <button onclick="addSection('opening')" class="sl-sec-card">
+        <span class="sl-sec-dot" style="background:#ff7439;box-shadow:0 0 8px #ff743966;"></span>
+        <div class="sl-sec-card-body">
+          <div class="sl-sec-card-name" style="color:#ff7439;">Opening Segment</div>
+          <div class="sl-sec-card-desc">A strong, high-energy opener to grab attention and establish competence.</div>
+        </div>
+        <span class="material-symbols-outlined" style="font-size:16px;color:#333;flex-shrink:0;">chevron_right</span>
+      </button>
+      <button onclick="addSection('main')" class="sl-sec-card">
+        <span class="sl-sec-dot" style="background:#7aafff;box-shadow:0 0 8px #7aafff66;"></span>
+        <div class="sl-sec-card-body">
+          <div class="sl-sec-card-name" style="color:#7aafff;">Main Set</div>
+          <div class="sl-sec-card-desc">The core journey — 3–4 song clusters alternating high &amp; low energy in a "W" shape.</div>
+        </div>
+        <span class="material-symbols-outlined" style="font-size:16px;color:#333;flex-shrink:0;">chevron_right</span>
+      </button>
+      <button onclick="addSection('closing')" class="sl-sec-card">
+        <span class="sl-sec-dot" style="background:#c8a2ff;box-shadow:0 0 8px #c8a2ff66;"></span>
+        <div class="sl-sec-card-body">
+          <div class="sl-sec-card-name" style="color:#c8a2ff;">Closing Segment</div>
+          <div class="sl-sec-card-desc">A powerful crowd-pleaser to end the main set on a high note.</div>
+        </div>
+        <span class="material-symbols-outlined" style="font-size:16px;color:#333;flex-shrink:0;">chevron_right</span>
+      </button>
+      <button onclick="addSection('encore')" class="sl-sec-card">
+        <span class="sl-sec-dot" style="background:#c5ffc9;box-shadow:0 0 8px #c5ffc966;"></span>
+        <div class="sl-sec-card-body">
+          <div class="sl-sec-card-name" style="color:#c5ffc9;">Encore</div>
+          <div class="sl-sec-card-desc">An optional final song or two — often a major hit after the main set concludes.</div>
+        </div>
+        <span class="material-symbols-outlined" style="font-size:16px;color:#333;flex-shrink:0;">chevron_right</span>
+      </button>
     </div>
   </div>
 </div>
