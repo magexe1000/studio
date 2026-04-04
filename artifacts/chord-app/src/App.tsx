@@ -273,6 +273,7 @@ export default function App() {
       <div style={{
         position: 'relative', height: '100dvh', overflow: 'hidden',
         background: stageBgColor,
+        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
         transform: exitingToHub ? 'scale(1.10)' : undefined,
         opacity:   exitingToHub ? 0 : undefined,
         transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
