@@ -1184,14 +1184,14 @@ html[data-theme="light"] .sc-dial-chip {
 
 /* ── FAB "return home" spring animation (class toggled by JS on close) ── */
 @keyframes sc-fab-return {
-  0%   { transform: translateY(-10px) scale(0.88); }
-  40%  { transform: translateY(4px)   scale(1.14); }
-  65%  { transform: translateY(-2px)  scale(0.96); }
-  82%  { transform: translateY(1px)   scale(1.04); }
-  100% { transform: translateY(0)     scale(1);    }
+  0%   { transform: translateY(0)    scale(1);    }
+  28%  { transform: translateY(-8px) scale(1.16); }
+  58%  { transform: translateY(3px)  scale(0.94); }
+  80%  { transform: translateY(-1px) scale(1.04); }
+  100% { transform: translateY(0)    scale(1);    }
 }
 #sc-fab-btn.sc-fab-returning {
-  animation: sc-fab-return 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: sc-fab-return 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 /* ══════════════════════════════════════════
@@ -2192,16 +2192,16 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
   <div id="desktop-el-tray"></div>
 
   <!-- MAIN CANVAS -->
-  <main id="canvas-container" class="absolute bg-surface-container-low overflow-hidden vtools-open" style="left:0;right:0;top:64px;bottom:32px;">
+  <main id="canvas-container" class="absolute bg-surface-container-low overflow-hidden" style="left:0;right:0;top:64px;bottom:32px;">
 
     <!-- ══════════ VERTICAL STAGE TOOLBAR ══════════ -->
     <div id="sc-vtools">
       <!-- Collapse / expand handle -->
-      <button id="sc-vtools-toggle" onclick="toggleSCVTools()" title="Show / hide tools">
+      <button id="sc-vtools-toggle" onclick="toggleSCVTools()" title="Show tools">
         <span class="material-symbols-outlined" style="font-size:15px;">more_vert</span>
       </button>
-      <!-- Tools panel -->
-      <div id="sc-vtools-body">
+      <!-- Tools panel — starts collapsed, opened via toggle button -->
+      <div id="sc-vtools-body" class="vtools-collapsed">
         <!-- Zoom group -->
         <button onclick="zoomIn()" class="sc-vtool-btn" title="Zoom In">
           <span class="material-symbols-outlined" style="font-size:17px;">zoom_in</span>
