@@ -835,19 +835,19 @@ textarea.sng-input { line-height:1.5; }
   width: 100%; padding: 15px 20px;
   font-family: 'Space Grotesk', sans-serif; font-size: 13px;
   font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
-  background: linear-gradient(135deg, #679cff, #007aff); color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--hot)); color: #fff;
   border: none; border-radius: 100px; cursor: pointer;
   -webkit-tap-highlight-color: transparent; margin-bottom: 20px;
   position: relative; overflow: hidden;
   transition: transform 200ms cubic-bezier(0.34,1.4,0.64,1),
               filter 200ms ease,
               box-shadow 200ms ease;
-  box-shadow: 0 4px 22px #007aff44;
+  box-shadow: 0 4px 22px var(--accent-40);
 }
 .sl-add-btn:active {
   transform: scale(0.95);
   filter: brightness(0.88);
-  box-shadow: 0 1px 6px #007aff22;
+  box-shadow: 0 1px 6px var(--accent-20);
 }
 /* ripple layer */
 .sl-add-btn::after {
@@ -1126,10 +1126,10 @@ html[data-theme="light"] #stage-empty-state  { color: #bbb !important; }
   pointer-events: all;
   width: 50px; height: 50px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #679cff, #007aff);
+  background: linear-gradient(135deg, var(--accent), var(--hot));
   border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 24px rgba(0,122,255,0.50), 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 24px var(--accent-50), 0 2px 8px rgba(0,0,0,0.3);
   -webkit-tap-highlight-color: transparent;
   flex-shrink: 0;
   transition: box-shadow 200ms ease, transform 120ms cubic-bezier(0.34,1.56,0.64,1);
@@ -1367,6 +1367,29 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
 #lib-panel { display: none !important; }
 /* ── Hide the canvas-level tools FAB — those tools are now in the React header bar ── */
 #sc-tools-fab { display: none !important; }
+
+/* ── Light mode: stage canvas uses dark grid lines and a visible border ── */
+html[data-theme="light"] #stage-canvas {
+  border: 2px solid rgba(0,0,0,0.45) !important;
+}
+html[data-theme="light"] .stage-grid {
+  background-image:
+    linear-gradient(rgba(0,0,0,0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.14) 1px, transparent 1px),
+    linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px) !important;
+}
+html[data-theme="light"] .stage-grid.grid-off {
+  background-image: none !important;
+}
+/* ── Canvas bg swatch visibility per theme ── */
+html:not([data-theme="light"]) .bg-swatch--light { display: none !important; }
+html[data-theme="light"] .bg-swatch--dark { display: none !important; }
+
+/* ── Landscape: expand canvas to fill available space ── */
+@media (orientation: landscape) {
+  #stage-viewport { padding: 6px 8px !important; }
+}
 </style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden select-none" style="height:100vh;">
@@ -1915,8 +1938,8 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Setlist')">
-        <div class="sc-hub-icon" style="background:rgba(197,255,201,0.09);">
-          <span class="material-symbols-outlined" style="font-size:23px;color:#c5ffc9;">format_list_numbered</span>
+        <div class="sc-hub-icon" style="background:var(--accent-10);">
+          <span class="material-symbols-outlined" style="font-size:23px;color:var(--accent);">format_list_numbered</span>
         </div>
         <div class="sc-hub-text">
           <p class="sc-hub-title">Setlist</p>
@@ -2294,10 +2317,10 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
       </div>
     </div>
 
-    <!-- Stage Viewport — extra bottom padding lifts the DOWNSTAGE label well above the floating toolbar -->
-    <div id="stage-viewport" class="w-full h-full flex items-center justify-center" style="padding:60px 24px;"
+    <!-- Stage Viewport -->
+    <div id="stage-viewport" class="w-full h-full flex items-center justify-center" style="padding:20px 16px;"
          ondragover="event.preventDefault()" ondrop="handleDrop(event)">
-      <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(980px,calc(100vw - 48px),calc((100vh - 252px) * 16 / 9));aspect-ratio:16/9;background-color:#1a1a1a;border:2px solid rgba(72,72,71,0.12);overflow:visible;">
+      <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - 40px) * 16 / 9));aspect-ratio:16/9;background-color:#1a1a1a;border:2px solid rgba(72,72,71,0.12);overflow:visible;">
 
         <!-- mode-pill lives outside canvas, see #mode-pill in body -->
 
@@ -2307,7 +2330,7 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
         <!-- Elements Layer -->
         <div id="elements-layer" class="absolute inset-0"></div>
 
-        <div class="absolute font-headline font-bold tracking-widest text-primary uppercase pointer-events-none" style="bottom:-22px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:0.4em;" data-i18n="downstageLabel">Downstage / Audience</div>
+        <div class="absolute font-headline font-bold tracking-widest uppercase pointer-events-none" style="bottom:-22px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:0.4em;color:var(--accent);" data-i18n="downstageLabel">Downstage / Audience</div>
 
         <!-- Stage Balance Visualizer (shown when elements present) -->
         <div id="stage-balance-bar" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:8;pointer-events:none;flex-direction:column-reverse;">
@@ -3456,29 +3479,47 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
           <p class="sc-prefs-row-hint" data-i18n="settingsCanvasBgHint">Set the stage plot canvas colour.</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;" id="settings-canvas-bg">
-          <button class="bg-swatch" data-bg="#1a1a1a" onclick="updateCanvasBg('#1a1a1a')">
+          <!-- Dark mode swatches -->
+          <button class="bg-swatch bg-swatch--dark" data-bg="#1a1a1a" onclick="updateCanvasBg('#1a1a1a')">
             <div class="bg-swatch-preview" style="background:#1a1a1a;"></div>
             <span class="bg-swatch-label">Shadow</span>
           </button>
-          <button class="bg-swatch" data-bg="#0d0d0d" onclick="updateCanvasBg('#0d0d0d')">
+          <button class="bg-swatch bg-swatch--dark" data-bg="#0d0d0d" onclick="updateCanvasBg('#0d0d0d')">
             <div class="bg-swatch-preview" style="background:#0d0d0d;"></div>
             <span class="bg-swatch-label">Void</span>
           </button>
-          <button class="bg-swatch" data-bg="#1a1d22" onclick="updateCanvasBg('#1a1d22')">
+          <button class="bg-swatch bg-swatch--dark" data-bg="#1a1d22" onclick="updateCanvasBg('#1a1d22')">
             <div class="bg-swatch-preview" style="background:#1a1d22;"></div>
             <span class="bg-swatch-label">Graphite</span>
           </button>
-          <button class="bg-swatch" data-bg="#131a22" onclick="updateCanvasBg('#131a22')">
+          <button class="bg-swatch bg-swatch--dark" data-bg="#131a22" onclick="updateCanvasBg('#131a22')">
             <div class="bg-swatch-preview" style="background:#131a22;"></div>
             <span class="bg-swatch-label">Slate</span>
           </button>
-          <button class="bg-swatch" data-bg="#0e0d18" onclick="updateCanvasBg('#0e0d18')">
+          <button class="bg-swatch bg-swatch--dark" data-bg="#0e0d18" onclick="updateCanvasBg('#0e0d18')">
             <div class="bg-swatch-preview" style="background:#0e0d18;"></div>
             <span class="bg-swatch-label">Midnight</span>
           </button>
-          <button class="bg-swatch" data-bg="#111a14" onclick="updateCanvasBg('#111a14')">
+          <button class="bg-swatch bg-swatch--dark" data-bg="#111a14" onclick="updateCanvasBg('#111a14')">
             <div class="bg-swatch-preview" style="background:#111a14;"></div>
             <span class="bg-swatch-label">Forest</span>
+          </button>
+          <!-- Light mode swatches (canvas bg is forced white by CSS, these are informational) -->
+          <button class="bg-swatch bg-swatch--light active" data-bg="#ffffff" onclick="updateCanvasBg('#ffffff')">
+            <div class="bg-swatch-preview" style="background:#ffffff;border:1px solid rgba(0,0,0,0.15);"></div>
+            <span class="bg-swatch-label">White</span>
+          </button>
+          <button class="bg-swatch bg-swatch--light" data-bg="#f5f4f0" onclick="updateCanvasBg('#f5f4f0')">
+            <div class="bg-swatch-preview" style="background:#f5f4f0;border:1px solid rgba(0,0,0,0.10);"></div>
+            <span class="bg-swatch-label">Cream</span>
+          </button>
+          <button class="bg-swatch bg-swatch--light" data-bg="#ebebeb" onclick="updateCanvasBg('#ebebeb')">
+            <div class="bg-swatch-preview" style="background:#ebebeb;border:1px solid rgba(0,0,0,0.10);"></div>
+            <span class="bg-swatch-label">Mist</span>
+          </button>
+          <button class="bg-swatch bg-swatch--light" data-bg="#e8edf5" onclick="updateCanvasBg('#e8edf5')">
+            <div class="bg-swatch-preview" style="background:#e8edf5;border:1px solid rgba(0,0,0,0.10);"></div>
+            <span class="bg-swatch-label">Sky</span>
           </button>
         </div>
       </div>

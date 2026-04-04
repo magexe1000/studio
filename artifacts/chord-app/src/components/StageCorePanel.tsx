@@ -59,8 +59,14 @@ function injectTheme(iframe: HTMLIFrameElement, theme: string) {
     if (!root) return;
     if (theme === 'light') {
       root.setAttribute('data-theme', 'light');
+      // Reset canvas background to a light-appropriate default
+      const win = iframe.contentWindow as (Window & { updateCanvasBg?: (c: string) => void }) | null;
+      win?.updateCanvasBg?.('#ffffff');
     } else {
       root.removeAttribute('data-theme');
+      // Restore dark canvas background default
+      const win = iframe.contentWindow as (Window & { updateCanvasBg?: (c: string) => void }) | null;
+      win?.updateCanvasBg?.('#1a1a1a');
     }
   } catch { /* cross-origin guard */ }
 }
