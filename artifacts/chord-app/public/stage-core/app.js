@@ -4564,7 +4564,7 @@ async function exportPDF() {
 
     const CAPTURE_WIDTH = 900;
     const SCALE      = 1.5;
-    const GAP_MM     = 1.5;
+    const GAP_MM     = 8;
 
     const SECTION_IDS = [
       'exp-cover', 'exp-stage-section', 'exp-input-section',
@@ -4585,8 +4585,32 @@ async function exportPDF() {
         `background:#0e0e0e;z-index:-9999;pointer-events:none;font-family:Inter,sans-serif;`;
       const clone = el.cloneNode(true);
       clone.style.margin = '0';
-      clone.querySelectorAll('[contenteditable]')
-           .forEach(e => e.setAttribute('contenteditable', 'false'));
+      // Give every section generous padding so text never clips
+      if (!clone.style.padding || clone.style.padding === '0px') {
+        clone.style.paddingTop    = '32px';
+        clone.style.paddingBottom = '32px';
+        clone.style.paddingLeft   = '28px';
+        clone.style.paddingRight  = '28px';
+      } else {
+        clone.style.paddingTop    = '32px';
+        clone.style.paddingBottom = '32px';
+      }
+      // Ensure all text wraps and never overflows
+      clone.style.wordBreak     = 'break-word';
+      clone.style.overflowWrap  = 'break-word';
+      clone.style.overflow      = 'visible';
+      clone.style.height        = 'auto';
+      clone.style.maxHeight     = 'none';
+      // Fix editable notes: remove fixed height so it fully expands
+      clone.querySelectorAll('[contenteditable]').forEach(e => {
+        e.setAttribute('contenteditable', 'false');
+        e.style.minHeight  = 'auto';
+        e.style.height     = 'auto';
+        e.style.maxHeight  = 'none';
+        e.style.overflow   = 'visible';
+        e.style.wordBreak  = 'break-word';
+        e.style.overflowWrap = 'break-word';
+      });
       wrap.appendChild(clone);
       document.body.appendChild(wrap);
       wraps.push(wrap);
@@ -5128,15 +5152,15 @@ function refreshExportConnectivity() {
     const cards = state.riderNeeds.map(need => {
       const nt = NEED_TYPES[need.type] || NEED_TYPES.custom;
       const lbl = state.lang === 'es' ? (nt.labelEs || nt.label) : nt.label;
-      return `<div style="padding:9px 12px;background:#131313;border-left:2px solid ${nt.color};">
-        <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:${nt.color};margin:0 0 4px;">${lbl}</p>
-        <p style="font-size:12px;color:#adaaaa;margin:0;line-height:1.5;">${need.value || '—'}</p>
+      return `<div style="padding:12px 14px;background:#131313;border-left:2px solid ${nt.color};">
+        <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:${nt.color};margin:0 0 6px;">${lbl}</p>
+        <p style="font-size:12px;color:#adaaaa;margin:0;line-height:1.7;word-break:break-word;overflow-wrap:break-word;">${need.value || '—'}</p>
       </div>`;
     }).join('');
     reqsHtml = `
       <div>
         <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#c8a2ff;margin:0 0 6px;">${T('riderReqs')}</p>
-        <div style="display:flex;flex-direction:column;gap:6px;">${cards}</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">${cards}</div>
       </div>`;
   }
 
