@@ -1,8 +1,8 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
-import { ChordexLogo, DrumexLogo, StageCoreLogoIcon } from './components/ChordexLogo';
+import { ChordexLogo, DrumexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
@@ -110,11 +110,8 @@ export default function App() {
   type SplashPhase = 'hidden' | 'in' | 'out';
   const [drumSplash,    setDrumSplash]    = useState<SplashPhase>('hidden');
   const [chordexSplash, setChordexSplash] = useState<SplashPhase>('hidden');
-  const [stageSplash,   setStageSplash]   = useState<SplashPhase>('hidden');
   const prevAppMode      = useRef(settings.appMode);
   const splashTimers     = useRef<ReturnType<typeof setTimeout>[]>([]);
-  // Stage splash uses its own timer ref so the useEffect cleanup can't cancel it
-  const stageSplashTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const fireSplash = (set: (p: SplashPhase) => void) => {
     splashTimers.current.forEach(clearTimeout);
@@ -125,31 +122,11 @@ export default function App() {
     splashTimers.current = [t1, t2];
   };
 
-  const fireStageSplash = () => {
-    stageSplashTimers.current.forEach(clearTimeout);
-    stageSplashTimers.current = [];
-    setStageSplash('in');
-    const t1 = setTimeout(() => setStageSplash('out'),    750);
-    const t2 = setTimeout(() => setStageSplash('hidden'), 1100);
-    stageSplashTimers.current = [t1, t2];
-  };
-
   useEffect(() => {
     if (settings.appMode === 'drums'  && prevAppMode.current !== 'drums')  fireSplash(setDrumSplash);
     if (settings.appMode === 'chords' && prevAppMode.current !== 'chords') fireSplash(setChordexSplash);
     prevAppMode.current = settings.appMode;
     return () => splashTimers.current.forEach(clearTimeout);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.appMode]);
-
-  // Stage splash fires in a layout effect so it appears in the very first paint
-  // when entering Stagex — prevents the iframe's white-loading-background from flashing.
-  // Uses its own separate timer ref to avoid being cancelled by the useEffect cleanup above.
-  useLayoutEffect(() => {
-    if (settings.appMode === 'stage' && prevAppMode.current !== 'stage') {
-      fireStageSplash();
-    }
-    return () => stageSplashTimers.current.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.appMode]);
 
@@ -291,46 +268,16 @@ export default function App() {
   if (settings.appMode === 'stage') {
     const stageIsAmoled = activeVis.amoledMode;
     const stageIsLight  = activeVis.theme === 'light';
-    const stageBgColor  = stageIsAmoled ? '#000000' : stageIsLight ? '#f2f1ef' : '#0e0e0e';
+    const stageBgColor  = stageIsAmoled ? '#000000' : stageIsLight ? '#f2f1ef' : '#1a1a1a';
     return (
       <div style={{
         position: 'relative', height: '100dvh', overflow: 'hidden',
         background: stageBgColor,
-        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
         transform: exitingToHub ? 'scale(1.10)' : undefined,
         opacity:   exitingToHub ? 0 : undefined,
         transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
       }}>
         <Suspense fallback={null}><StageCorePanel /></Suspense>
-
-        {/* Stage Core splash — shown when entering from hub/other app */}
-        {stageSplash !== 'hidden' && (() => {
-          const isAmoled = activeVis.amoledMode;
-          const isLight  = activeVis.theme === 'light';
-          const splashBg = isAmoled ? '#000000' : isLight ? '#f2f1ef' : '#0e0e0e';
-          const splashFg = isLight ? '#0e0e0e' : '#ffffff';
-          const splashSub = isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.45)';
-          return (
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 10000,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              background: splashBg,
-              opacity:   stageSplash === 'out' ? 0 : 1,
-              transform: stageSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
-              transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
-              pointerEvents: 'none',
-            }}>
-              <div style={{ color: splashFg, animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                <StageCoreLogoIcon size={60} />
-              </div>
-              <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                <p style={{ color: splashFg, fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Stagex</p>
-                <p style={{ color: splashSub, fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Stage plot & tech rider</p>
-              </div>
-            </div>
-          );
-        })()}
-
       </div>
     );
   }
