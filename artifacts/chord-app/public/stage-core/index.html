@@ -1182,6 +1182,18 @@ html[data-theme="light"] .sc-dial-chip {
 /* Backdrop also shows when item sheet is open */
 #sc-fab-wrap.sc-items-open + #sc-dial-backdrop { display: block; }
 
+/* ── FAB open animation (class toggled by JS on open) ── */
+@keyframes sc-fab-open {
+  0%   { transform: scale(1);    }
+  30%  { transform: scale(0.84); }
+  65%  { transform: scale(1.12); }
+  85%  { transform: scale(0.96); }
+  100% { transform: scale(1);    }
+}
+#sc-fab-btn.sc-fab-opening {
+  animation: sc-fab-open 380ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
 /* ── FAB "return home" spring animation (class toggled by JS on close) ── */
 @keyframes sc-fab-return {
   0%   { transform: translateY(0)    scale(1);    }
@@ -1915,12 +1927,12 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
 
 <!-- ══════ FAB SPEED DIAL ══════ -->
 <div id="sc-fab-wrap" class="mob-hidden">
-  <!-- Category chips — built by JS, fan upward -->
-  <div id="sc-dial-items"></div>
-  <!-- Main + button -->
+  <!-- Main + button — FIRST in DOM so column-reverse places it at the bottom -->
   <button id="sc-fab-btn" onclick="toggleSCDial()">
     <span id="sc-fab-icon" class="material-symbols-outlined">add</span>
   </button>
+  <!-- Category chips — built by JS, fan upward ABOVE the FAB -->
+  <div id="sc-dial-items"></div>
 </div>
 <!-- Tap-outside backdrop (handles both chip dial and item sheet) -->
 <div id="sc-dial-backdrop" onclick="closeSCDial();closeItemSheet(false);"></div>

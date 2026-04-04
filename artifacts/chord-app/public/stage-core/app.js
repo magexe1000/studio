@@ -992,6 +992,14 @@ function openSCDial() {
   const chips = wrap ? wrap.querySelectorAll('.sc-dial-chip') : [];
   chips.forEach((chip, i) => { chip.style.transitionDelay = `${i * 40}ms`; });
   if (wrap) wrap.classList.add('sc-dial-open');
+  // Spring "open" pulse on the FAB button
+  const btn = document.getElementById('sc-fab-btn');
+  if (btn) {
+    btn.classList.remove('sc-fab-opening');
+    void btn.offsetWidth;
+    btn.classList.add('sc-fab-opening');
+    setTimeout(() => btn.classList.remove('sc-fab-opening'), 400);
+  }
 }
 
 function closeSCDial() {
