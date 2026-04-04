@@ -70,7 +70,7 @@ function buildPrintSVG(data: GuitarChordData, dark = false, accentColor = '#679c
     s += `<rect x="${pL - 1}" y="${pT - Math.round(5 * scale)}" width="${(numS - 1) * cW + 2}" height="${Math.round(5 * scale)}" rx="2" fill="${dotFill}"/>`;
   }
   if (!showNut && !noLabel) {
-    s += `<text x="${pL - Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(9 * scale)}" fill="${textColor}" text-anchor="end" dominant-baseline="middle">${baseFret}fr</text>`;
+    s += `<text x="${pL - Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(9 * scale)}" fill="${textColor}" text-anchor="end" dominant-baseline="middle">${baseFret}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
@@ -136,7 +136,7 @@ function buildPrintFretboardSVG(
   if (showNut) {
     s += `<rect x="${pL - 1}" y="${pT - Math.round(5 * scale)}" width="${(numStrings - 1) * strSpacing + 2}" height="${Math.round(5 * scale)}" rx="2" fill="${dotFill}"/>`;
   } else if (!noLabel) {
-    s += `<text x="${pL - Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(9 * scale)}" fill="${textColor}" text-anchor="end" dominant-baseline="middle">${baseFret}fr</text>`;
+    s += `<text x="${pL - Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(9 * scale)}" fill="${textColor}" text-anchor="end" dominant-baseline="middle">${baseFret}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
@@ -1492,9 +1492,83 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
               color: '#e7e5e4', fontFamily: 'Manrope', fontWeight: 600, fontSize: '15px',
               outline: 'none', boxSizing: 'border-box',
               transition: 'border-color 200ms ease',
-              marginBottom: '24px',
+              marginBottom: '16px',
             }}
           />
+
+          {/* PDF personalization options */}
+          <div style={{ display: 'flex', gap: '7px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '20px' }}>
+
+            {/* Paper size */}
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '2px', gap: '1px' }}>
+              {(['a4', 'letter'] as const).map(v => {
+                const active = (cfg.paperSize ?? 'a4') === v;
+                return (
+                  <button key={v} onClick={() => update('paperSize', v)} className="btn-smooth"
+                    style={{ padding: '5px 11px', borderRadius: '6px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase',
+                      background: active ? accent.from : 'transparent',
+                      color: active ? '#fff' : '#6e6e80',
+                      transition: 'all 160ms ease' }}>
+                    {v === 'a4' ? 'A4' : 'US'}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Orientation */}
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '2px', gap: '1px' }}>
+              {([['portrait', 'Port'] as const, ['landscape', 'Land'] as const]).map(([v, lbl]) => {
+                const active = cfg.orientation === v;
+                return (
+                  <button key={v} onClick={() => update('orientation', v)} className="btn-smooth"
+                    style={{ padding: '5px 11px', borderRadius: '6px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em',
+                      background: active ? accent.from : 'transparent',
+                      color: active ? '#fff' : '#6e6e80',
+                      transition: 'all 160ms ease' }}>
+                    {lbl}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Export style */}
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '2px', gap: '1px' }}>
+              {([['minimal', 'Min'] as const, ['elegant', 'Ele'] as const, ['compact', 'Cmp'] as const]).map(([v, lbl]) => {
+                const active = (cfg.exportStyle ?? 'elegant') === v;
+                return (
+                  <button key={v} onClick={() => update('exportStyle', v as ExportConfig['exportStyle'])} className="btn-smooth"
+                    style={{ padding: '5px 11px', borderRadius: '6px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em',
+                      background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
+                      color: active ? '#e7e5e4' : '#6e6e80',
+                      transition: 'all 160ms ease' }}>
+                    {lbl}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Dark theme chip */}
+            <button onClick={() => update('theme', cfg.theme === 'dark' ? 'light' : 'dark')} className="btn-smooth"
+              style={{ padding: '5px 12px', borderRadius: '8px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px',
+                background: cfg.theme === 'dark' ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.04)',
+                color: cfg.theme === 'dark' ? '#e7e5e4' : '#6e6e80',
+                border: cfg.theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.04)',
+                transition: 'all 160ms ease' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '13px', fontVariationSettings: cfg.theme === 'dark' ? "'FILL' 1" : "'FILL' 0" }}>dark_mode</span>
+              Dark
+            </button>
+
+            {/* Diagrams chip */}
+            <button onClick={() => update('chordDisplay', cfg.chordDisplay !== 'name' ? 'name' : 'both')} className="btn-smooth"
+              style={{ padding: '5px 12px', borderRadius: '8px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px',
+                background: cfg.chordDisplay !== 'name' ? `${accent.from}20` : 'rgba(255,255,255,0.04)',
+                color: cfg.chordDisplay !== 'name' ? accent.from : '#6e6e80',
+                border: cfg.chordDisplay !== 'name' ? `1px solid ${accent.from}2e` : '1px solid rgba(255,255,255,0.04)',
+                transition: 'all 160ms ease' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '13px', fontVariationSettings: cfg.chordDisplay !== 'name' ? "'FILL' 1" : "'FILL' 0" }}>grid_view</span>
+              Diagrams
+            </button>
+          </div>
 
           <div style={{
             padding: '14px 16px', borderRadius: '12px',
@@ -1520,80 +1594,6 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
         WebkitBackdropFilter: 'blur(28px)',
         borderTop: '1px solid rgba(255,255,255,0.06)',
       }}>
-        {/* Options row */}
-        <div style={{ padding: '14px 16px 10px', display: 'flex', gap: '7px', flexWrap: 'wrap', alignItems: 'center' }}>
-
-          {/* Paper size */}
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '2px', gap: '1px' }}>
-            {(['a4', 'letter'] as const).map(v => {
-              const active = (cfg.paperSize ?? 'a4') === v;
-              return (
-                <button key={v} onClick={() => update('paperSize', v)} className="btn-smooth"
-                  style={{ padding: '5px 11px', borderRadius: '6px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase',
-                    background: active ? accent.from : 'transparent',
-                    color: active ? '#fff' : '#6e6e80',
-                    transition: 'all 160ms ease' }}>
-                  {v === 'a4' ? 'A4' : 'US'}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Orientation */}
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '2px', gap: '1px' }}>
-            {([['portrait', 'Port'] as const, ['landscape', 'Land'] as const]).map(([v, lbl]) => {
-              const active = cfg.orientation === v;
-              return (
-                <button key={v} onClick={() => update('orientation', v)} className="btn-smooth"
-                  style={{ padding: '5px 11px', borderRadius: '6px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em',
-                    background: active ? accent.from : 'transparent',
-                    color: active ? '#fff' : '#6e6e80',
-                    transition: 'all 160ms ease' }}>
-                  {lbl}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Export style */}
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '2px', gap: '1px' }}>
-            {([['minimal', 'Min'] as const, ['elegant', 'Ele'] as const, ['compact', 'Cmp'] as const]).map(([v, lbl]) => {
-              const active = (cfg.exportStyle ?? 'elegant') === v;
-              return (
-                <button key={v} onClick={() => update('exportStyle', v as ExportConfig['exportStyle'])} className="btn-smooth"
-                  style={{ padding: '5px 11px', borderRadius: '6px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em',
-                    background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
-                    color: active ? '#e7e5e4' : '#6e6e80',
-                    transition: 'all 160ms ease' }}>
-                  {lbl}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Dark theme chip */}
-          <button onClick={() => update('theme', cfg.theme === 'dark' ? 'light' : 'dark')} className="btn-smooth"
-            style={{ padding: '5px 12px', borderRadius: '8px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px',
-              background: cfg.theme === 'dark' ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.04)',
-              color: cfg.theme === 'dark' ? '#e7e5e4' : '#6e6e80',
-              border: cfg.theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.04)',
-              transition: 'all 160ms ease' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '13px', fontVariationSettings: cfg.theme === 'dark' ? "'FILL' 1" : "'FILL' 0" }}>dark_mode</span>
-            Dark
-          </button>
-
-          {/* Diagrams chip */}
-          <button onClick={() => update('chordDisplay', cfg.chordDisplay !== 'name' ? 'name' : 'both')} className="btn-smooth"
-            style={{ padding: '5px 12px', borderRadius: '8px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px',
-              background: cfg.chordDisplay !== 'name' ? `${accent.from}20` : 'rgba(255,255,255,0.04)',
-              color: cfg.chordDisplay !== 'name' ? accent.from : '#6e6e80',
-              border: cfg.chordDisplay !== 'name' ? `1px solid ${accent.from}2e` : '1px solid rgba(255,255,255,0.04)',
-              transition: 'all 160ms ease' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '13px', fontVariationSettings: cfg.chordDisplay !== 'name' ? "'FILL' 1" : "'FILL' 0" }}>grid_view</span>
-            Diagrams
-          </button>
-        </div>
-
         {/* Export button */}
         <div style={{ padding: '6px 16px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))', display: 'flex', gap: '10px', position: 'relative' }}>
           {saveResult && (
