@@ -811,7 +811,7 @@ function switchView(view) {
   if (view === 'Setlist') renderSetlist();
   if (view === 'Gear') { renderGear(); lcIcons(); }
   if (view === 'Members') { renderMembersView(); lcIcons(); }
-  if (view === 'Export') refreshExport();
+  if (view === 'Export') { if (prevView !== 'Export') state.prevView = prevView || 'Editor'; refreshExport(); }
   // Hide the app header in Export view for a full-bleed document feel
   const appHeader = document.querySelector('header');
   if (appHeader) appHeader.style.display = view === 'Export' ? 'none' : '';
@@ -4793,6 +4793,7 @@ function refreshExport() {
   }
   applyTranslations();
   _initExportBarHide();
+  _initExportSwipeBack();
 }
 
 function refreshExportCanvas() {
@@ -5289,6 +5290,33 @@ function loadSettings() {
 // ══════════════════════════════════════════════════════════
 //  SETTINGS — apply to DOM
 // ══════════════════════════════════════════════════════════
+// ── Export navigation helpers ─────────────────────────────────
+function leaveExport() {
+  switchView(state.prevView || 'Editor');
+}
+
+function _initExportSwipeBack() {
+  const scroll = document.getElementById('export-preview-scroll');
+  if (!scroll || scroll._swipeBackInit) return;
+  scroll._swipeBackInit = true;
+  let startX = 0, startY = 0, triggered = false;
+  scroll.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    triggered = false;
+  }, { passive: true });
+  scroll.addEventListener('touchmove', function(e) {
+    if (triggered) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = Math.abs(e.touches[0].clientY - startY);
+    // Swipe right from left edge (first 40px) with more horizontal than vertical movement
+    if (startX < 40 && dx > 60 && dy < 80) {
+      triggered = true;
+      leaveExport();
+    }
+  }, { passive: true });
+}
+
 function _applyAmoled(on) {
   if (on) {
     document.documentElement.setAttribute('data-amoled', '1');
