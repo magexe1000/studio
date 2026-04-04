@@ -7,6 +7,7 @@ import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 import StudioHub from './components/StudioHub';
+const StageCorePanel = lazy(() => import('./components/StageCorePanel'));
 
 const LibraryPanel  = lazy(() => import('./panels/LibraryPanel'));
 const ChordPanel    = lazy(() => import('./panels/ChordPanel'));
@@ -261,6 +262,21 @@ export default function App() {
     return (
       <div style={{ animation: 'hub-return-enter 380ms cubic-bezier(0.0, 0.0, 0.2, 1) both' }}>
         <StudioHub />
+      </div>
+    );
+  }
+
+  // ── Stage Core mode: full-screen iframe wrapper ─────────────────────────
+  if (settings.appMode === 'stage') {
+    return (
+      <div style={{
+        position: 'relative', height: '100dvh', overflow: 'hidden',
+        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
+        transform: exitingToHub ? 'scale(1.10)' : undefined,
+        opacity:   exitingToHub ? 0 : undefined,
+        transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
+      }}>
+        <Suspense fallback={null}><StageCorePanel /></Suspense>
       </div>
     );
   }

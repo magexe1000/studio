@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChordexLogo, DrumexLogo, StudioLogo } from './ChordexLogo';
+import { ChordexLogo, DrumexLogo, StudioLogo, StageCoreLogoIcon } from './ChordexLogo';
 import { useChordStore } from '../store/useChordStore';
 
 export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }: { color?: string; size?: number }) {
@@ -23,13 +23,14 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
   const currentMode = settings.appMode ?? 'chords';
 
   const OPTIONS: {
-    value: 'chords' | 'drums';
+    value: 'chords' | 'drums' | 'stage';
     Icon: React.FC<{ size?: number }>;
     label: string;
     desc: string;
   }[] = [
-    { value: 'chords', Icon: ChordexLogo, label: 'Chordex', desc: 'Chord library & songs' },
-    { value: 'drums',  Icon: DrumexLogo,  label: 'Drumex',  desc: 'Drum sheet editor'     },
+    { value: 'chords', Icon: ChordexLogo,       label: 'Chordex',    desc: 'Chord library & songs'   },
+    { value: 'drums',  Icon: DrumexLogo,        label: 'Drumex',     desc: 'Drum sheet editor'       },
+    { value: 'stage',  Icon: StageCoreLogoIcon, label: 'Stage Core', desc: 'Stage plot & tech rider' },
   ];
 
   const goToHub = () => {
@@ -48,9 +49,9 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
           color,
         }}
       >
-        {currentMode === 'drums' ? <DrumexLogo size={size} /> : <ChordexLogo size={size} />}
+        {currentMode === 'drums' ? <DrumexLogo size={size} /> : currentMode === 'stage' ? <StageCoreLogoIcon size={size} /> : <ChordexLogo size={size} />}
         <span style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color }}>
-          {currentMode === 'drums' ? 'Drumex' : 'Chordex'}
+          {currentMode === 'drums' ? 'Drumex' : currentMode === 'stage' ? 'Stage Core' : 'Chordex'}
         </span>
         <span style={{
           fontSize: 9, opacity: 0.45, marginLeft: -2, color,

@@ -42,6 +42,27 @@ export function DrumexLogo({ size = 14 }: { size?: number }) {
   );
 }
 
+export function StageCoreLogoIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none"
+      xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', flexShrink: 0 }}>
+      {/* Stage platform */}
+      <rect x="1" y="10" width="14" height="2.5" rx="1" fill="currentColor" fillOpacity="0.9" />
+      {/* Left speaker */}
+      <rect x="1" y="4" width="3.5" height="5.5" rx="0.8" stroke="currentColor" strokeWidth="1.1" />
+      <circle cx="2.75" cy="6.2" r="0.8" fill="currentColor" />
+      <circle cx="2.75" cy="8.1" r="0.55" fill="currentColor" fillOpacity="0.6" />
+      {/* Right speaker */}
+      <rect x="11.5" y="4" width="3.5" height="5.5" rx="0.8" stroke="currentColor" strokeWidth="1.1" />
+      <circle cx="13.25" cy="6.2" r="0.8" fill="currentColor" />
+      <circle cx="13.25" cy="8.1" r="0.55" fill="currentColor" fillOpacity="0.6" />
+      {/* Center mic stand */}
+      <line x1="8" y1="4" x2="8" y2="9.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+      <circle cx="8" cy="3.2" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function ChordexLogo({ size = 14 }: { size?: number }) {
   const h = Math.round(size * 17 / 13);
   return (

@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
-import { StudioLogo, ChordexLogo, DrumexLogo } from './ChordexLogo';
+import { StudioLogo, ChordexLogo, DrumexLogo, StageCoreLogoIcon } from './ChordexLogo';
 import { useNavHidden, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import ApplyToSheet from './ApplyToSheet';
 
 type HubTab = 'home' | 'settings';
-type TargetApp = 'chords' | 'drums';
+type TargetApp = 'chords' | 'drums' | 'stage';
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: 'dark',   label: 'Dark' },
@@ -110,7 +110,7 @@ export default function StudioHub() {
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
 
-  const launchApp = (appMode: 'chords' | 'drums') => {
+  const launchApp = (appMode: 'chords' | 'drums' | 'stage') => {
     setZooming(true);
     setTimeout(() => {
       updateSettings({ appMode });
@@ -187,8 +187,9 @@ export default function StudioHub() {
 
               {/* App rows */}
               {([
-                { app: 'chords' as TargetApp, Logo: ChordexLogo, name: 'Chordex', desc: 'Chord library & songs' },
-                { app: 'drums'  as TargetApp, Logo: DrumexLogo,  name: 'Drumex',  desc: 'Drum sheet editor'    },
+                { app: 'chords' as TargetApp, Logo: ChordexLogo,       name: 'Chordex',    desc: 'Chord library & songs'       },
+                { app: 'drums'  as TargetApp, Logo: DrumexLogo,        name: 'Drumex',     desc: 'Drum sheet editor'           },
+                { app: 'stage'  as TargetApp, Logo: StageCoreLogoIcon, name: 'Stage Core', desc: 'Stage plot & tech rider'     },
               ]).map(({ app, Logo, name, desc }, i, arr) => (
                 <AppRow
                   key={app}

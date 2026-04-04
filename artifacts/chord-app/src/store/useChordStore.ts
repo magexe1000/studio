@@ -5,7 +5,7 @@ import type { Chord, Instrument } from '../data/chords';
 export type Theme = 'dark' | 'light' | 'system';
 export type ActivePanel = 'library' | 'chord' | 'settings' | 'songs';
 export type AccentColor = 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'teal';
-export type AppKey = 'hub' | 'chords' | 'drums';
+export type AppKey = 'hub' | 'chords' | 'drums' | 'stage';
 
 export interface PerAppVisuals {
   theme: Theme;
@@ -85,8 +85,8 @@ export interface AppSettings {
   language: Language;
   preferFlats: boolean;
   defaultTab: ActivePanel;
-  startupApp: 'chords' | 'drums' | 'hub';
-  appMode: 'chords' | 'drums' | 'hub';
+  startupApp: 'chords' | 'drums' | 'hub' | 'stage';
+  appMode: 'chords' | 'drums' | 'hub' | 'stage';
   hubUserName: string;
   chordAssistant: boolean;
   assistantSmartSuggestions: boolean;
