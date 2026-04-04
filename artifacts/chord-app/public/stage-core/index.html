@@ -492,6 +492,119 @@ header { display: none !important; }
 }
 .sc-table tbody tr:last-child td { border-bottom: none; }
 .sc-table tbody tr:hover  { background: rgba(255,255,255,0.02); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SETLIST REDESIGN — reference-matched card layout
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Big stacked stat cards */
+.sl-big-stat {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 18px 20px;
+  position: relative; overflow: hidden;
+}
+.sl-big-stat-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.2em; color: #484847; margin: 0 0 8px;
+}
+.sl-big-stat-val {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2.8rem; font-weight: 900; line-height: 1; margin: 0; color: #fff;
+}
+
+/* Compact action buttons (top-right of Arrangement header) */
+.sl-refine-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 10px; font-family: 'Space Grotesk', sans-serif;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  background: rgba(255,255,255,0.05); color: #adaaaa;
+  border: 1px solid rgba(255,255,255,0.09); border-radius: 8px;
+  cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent;
+}
+.sl-refine-btn:active { opacity: 0.7; }
+
+/* Song list container */
+.sl-song-container {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px; overflow: hidden; margin-bottom: 12px;
+}
+
+/* Card-style song rows via display:flex override */
+.sl-card-table { width: 100%; border-collapse: collapse; }
+.sl-card-table tbody tr {
+  display: flex; align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  padding: 2px 14px;
+  transition: background 110ms ease; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.sl-card-table tbody tr:last-child { border-bottom: none; }
+.sl-card-table tbody tr:active { background: rgba(255,255,255,0.04); }
+/* Col 1: number */
+.sl-card-table tbody td:nth-child(1) {
+  font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700;
+  color: #333; min-width: 28px; padding: 16px 6px 16px 0;
+}
+/* Col 2: title — grows */
+.sl-card-table tbody td:nth-child(2) {
+  flex: 1; min-width: 0; font-family: 'Space Grotesk'; font-size: 14px; font-weight: 700;
+  color: #e0e0e0; padding: 16px 10px 16px 2px; line-height: 1.25;
+}
+/* Col 3: segment — hide */
+.sl-card-table tbody td:nth-child(3) { display: none; }
+/* Col 4: key — accent */
+.sl-card-table tbody td:nth-child(4) {
+  font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700;
+  color: var(--accent); padding: 16px 4px; white-space: nowrap;
+}
+/* Col 5: BPM — muted */
+.sl-card-table tbody td:nth-child(5) {
+  font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600;
+  color: #484847; padding: 16px 4px; white-space: nowrap;
+}
+/* Col 6: duration */
+.sl-card-table tbody td:nth-child(6) {
+  font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600;
+  color: #adaaaa; padding: 16px 0 16px 8px; white-space: nowrap;
+}
+/* Col 7: energy — hide */
+.sl-card-table tbody td:nth-child(7) { display: none; }
+/* Col 8: notes — hide */
+.sl-card-table tbody td:nth-child(8) { display: none; }
+/* Col 9: actions */
+.sl-card-table tbody td:nth-child(9) {
+  padding: 16px 0 16px 8px; display: flex; align-items: center;
+}
+
+/* "Add New Track" pill button */
+.sl-add-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 15px 20px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 13px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  background: var(--accent); color: var(--accent-dark);
+  border: none; border-radius: 100px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; margin-bottom: 20px;
+}
+.sl-add-btn:active { opacity: 0.8; }
+
+/* Setlist Insights card rows */
+.sl-insight-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: 'Space Grotesk', sans-serif;
+}
+.sl-insight-row:last-child { border-bottom: none; padding-bottom: 0; }
+.sl-insight-label {
+  font-size: 11px; font-weight: 600; color: #484847;
+}
+.sl-insight-val {
+  font-size: 12px; font-weight: 700; color: #e0e0e0; text-align: right;
+}
 </style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden select-none" style="height:100vh;">
@@ -1812,74 +1925,80 @@ header { display: none !important; }
   </button>
   <div class="sc-section-wrap">
 
-    <!-- Header -->
-    <div style="margin-bottom:12px;">
-      <h1 class="sc-section-title">Setlist</h1>
+    <!-- ── Big stat cards (stacked) ── -->
+    <div class="sl-big-stat" style="margin-bottom:10px;">
+      <p class="sl-big-stat-label">Songs Count</p>
+      <p id="sl-stat-count" class="sl-big-stat-val">0</p>
     </div>
 
-    <!-- Action pill strip — horizontal scroll on small screens -->
-    <div style="display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;">
-      <button onclick="openTimelinePanel()" class="sc-pill-btn" style="background:rgba(197,255,201,0.07);color:#c5ffc9;border:1px solid rgba(197,255,201,0.15);flex-shrink:0;">
-        <span class="material-symbols-outlined" style="font-size:13px;">timeline</span>Timeline
-      </button>
-      <button onclick="openSmartSortModal()" id="btn-smart-sort" class="sc-pill-btn" style="background:rgba(200,162,255,0.07);color:#c8a2ff;border:1px solid rgba(200,162,255,0.15);flex-shrink:0;">
-        <span class="material-symbols-outlined" style="font-size:13px;">auto_awesome</span>Sort
-      </button>
-      <button onclick="openBatchImport()" class="sc-pill-btn" style="background:var(--accent-20);color:var(--accent);border:1px solid var(--accent-14);flex-shrink:0;">
-        <span class="material-symbols-outlined" style="font-size:13px;">playlist_add</span>Import
-      </button>
-      <button onclick="addSong()" class="sc-pill-btn" style="background:var(--accent);color:var(--accent-dark);border:none;flex-shrink:0;">
-        <span class="material-symbols-outlined" style="font-size:13px;">add</span>Add Song
-      </button>
+    <div class="sl-big-stat" style="margin-bottom:10px;">
+      <p class="sl-big-stat-label">Total Duration</p>
+      <p id="sl-stat-duration" class="sl-big-stat-val" style="color:var(--hot);">0:00</p>
     </div>
+
+    <div class="sl-big-stat" style="margin-bottom:20px;">
+      <p class="sl-big-stat-label">Avg Energy</p>
+      <p id="sl-stat-energy" class="sl-big-stat-val" style="color:var(--accent);">—</p>
+    </div>
+
+    <!-- Segments stat card (revealed by app.js) -->
+    <div id="sl-stat-segments-block" style="display:none;margin-bottom:10px;">
+      <div class="sl-big-stat">
+        <p class="sl-big-stat-label">Segments</p>
+        <p id="sl-stat-segments" class="sl-big-stat-val" style="color:#c8a2ff;">0</p>
+      </div>
+    </div>
+    <!-- Hidden compat div -->
+    <div id="sl-stat-segments-wrap" style="display:none;"></div>
 
     <!-- Segments pills bar -->
-    <div id="segments-bar" style="display:none;flex-wrap:wrap;gap:7px;margin-bottom:12px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;"></div>
+    <div id="segments-bar" style="display:none;flex-wrap:wrap;gap:7px;margin-bottom:16px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;"></div>
 
-    <!-- Song table -->
-    <div class="sc-table-scroll" style="margin-bottom:12px;">
-      <table class="sc-table" style="min-width:540px;">
-        <thead>
-          <tr>
-            <th style="width:32px;">#</th>
-            <th>Title</th>
-            <th style="width:76px;">Segment</th>
-            <th style="width:44px;">Key</th>
-            <th style="width:48px;">BPM</th>
-            <th style="width:60px;">Duration</th>
-            <th style="width:76px;">Energy</th>
-            <th>Notes</th>
-            <th style="width:28px;"></th>
-          </tr>
-        </thead>
+    <!-- ── "Current Arrangement" header + action buttons ── -->
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:14px;">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.55rem;font-weight:800;color:#e0e0e0;margin:0;letter-spacing:-0.025em;line-height:1.15;">Current<br>Arrangement</h2>
+      <div style="display:flex;gap:6px;flex-shrink:0;padding-bottom:2px;">
+        <button onclick="openTimelinePanel()" class="sl-refine-btn" title="Timeline">
+          <span class="material-symbols-outlined" style="font-size:14px;">timeline</span>
+        </button>
+        <button onclick="openBatchImport()" class="sl-refine-btn" title="Import">
+          <span class="material-symbols-outlined" style="font-size:14px;">playlist_add</span>
+        </button>
+        <button onclick="openSmartSortModal()" id="btn-smart-sort" class="sl-refine-btn">
+          <span class="material-symbols-outlined" style="font-size:14px;">filter_list</span>Refine
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Song list ── -->
+    <div class="sl-song-container">
+      <table class="sl-card-table">
+        <thead><tr style="display:none;"><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></thead>
         <tbody id="setlist-body"></tbody>
       </table>
     </div>
 
-    <!-- Stats — 3-col grid -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;">
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Songs</p>
-        <p id="sl-stat-count" class="sc-stat-val" style="color:var(--accent);">0</p>
+    <!-- ── Add New Track pill ── -->
+    <button onclick="addSong()" class="sl-add-btn">
+      <span class="material-symbols-outlined" style="font-size:16px;">add_circle</span>Add New Track
+    </button>
+
+    <!-- ── Setlist Insights (static) ── -->
+    <div class="sc-card">
+      <p class="sc-card-title" style="margin-bottom:14px;">Setlist Insights</p>
+      <div class="sl-insight-row">
+        <span class="sl-insight-label">Tempo Stability</span>
+        <span class="sl-insight-val" style="color:var(--accent);">Analysing…</span>
       </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Duration</p>
-        <p id="sl-stat-duration" class="sc-stat-val" style="color:var(--hot);">0:00</p>
+      <div class="sl-insight-row">
+        <span class="sl-insight-label">Key Variety</span>
+        <span class="sl-insight-val">—</span>
       </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Avg Energy</p>
-        <p id="sl-stat-energy" class="sc-stat-val" style="color:#adaaaa;">—</p>
+      <div class="sl-insight-row">
+        <span class="sl-insight-label">Transition Fluidity</span>
+        <span class="sl-insight-val">—</span>
       </div>
     </div>
-    <!-- Segments stat (revealed by app.js when segments exist) -->
-    <div id="sl-stat-segments-block" style="display:none;">
-      <div class="sc-stat-card" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;">
-        <p class="sc-stat-label" style="margin:0;">Segments</p>
-        <p id="sl-stat-segments" class="sc-stat-val" style="color:#c8a2ff;font-size:18px;">0</p>
-      </div>
-    </div>
-    <!-- Hidden compat div (app.js toggles this as a visual separator) -->
-    <div id="sl-stat-segments-wrap" style="display:none;"></div>
 
   </div>
 </div>
