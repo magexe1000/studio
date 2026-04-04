@@ -8,7 +8,7 @@ const translations = {
       songs: 'Songs',
       library: 'Library',
       chords: 'Chords',
-      settings: 'Settings',
+      settings: 'Preferences',
     },
 
     /* ── Library Panel ── */
@@ -357,7 +357,7 @@ const translations = {
       songs: 'Canciones',
       library: 'Biblioteca',
       chords: 'Acordes',
-      settings: 'Ajustes',
+      settings: 'Preferencias',
     },
 
     library: {
