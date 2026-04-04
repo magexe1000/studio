@@ -3950,12 +3950,6 @@ function setPresets(arr) {
 
 function openPresetsPanel(triggerEl) {
   const panel = document.getElementById('presets-panel');
-  // Position panel just below the button that triggered it
-  if (triggerEl && panel) {
-    const rect = triggerEl.getBoundingClientRect();
-    panel.style.top = (rect.bottom + 6) + 'px';
-    panel.style.right = (window.innerWidth - rect.right) + 'px';
-  }
   document.getElementById('presets-backdrop').style.display = 'block';
   panel.classList.add('preset-open');
   hideSaveForm();
