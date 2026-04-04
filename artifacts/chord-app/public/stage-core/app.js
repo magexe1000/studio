@@ -818,7 +818,6 @@ function switchView(view) {
   // On mobile, close sidebar drawer when switching views
   closeMobileSidebar();
   // On mobile, only show category bar + toolbar on Editor view
-  const catBar     = document.getElementById('mobile-cat-bar');
   const elTray     = document.getElementById('mobile-el-tray');
   const scVtools   = document.getElementById('sc-vtools');
   const fabWrap    = document.getElementById('sc-fab-wrap');
@@ -826,11 +825,10 @@ function switchView(view) {
   const expSheet   = document.getElementById('mob-export-settings');
   const isEditor   = (view === 'Editor');
   const isExport   = (view === 'Export');
-  if (catBar)    catBar.classList.toggle('mob-hidden', !isEditor);
   if (elTray)    elTray.classList.remove('mob-tray-open');
   if (scVtools)  scVtools.classList.toggle('mob-hidden', !isEditor);
   if (fabWrap)   fabWrap.classList.toggle('mob-hidden', !isEditor);
-  if (!isEditor) closeSCDial();
+  if (!isEditor) { closeSCDial(); closeItemSheet(false); }
   if (expBar)    expBar.classList.toggle('mob-hidden', !isExport);
   if (expSheet)  { expSheet.style.display = 'none'; }
   if (document.getElementById('mob-exp-set-btn'))
@@ -945,7 +943,7 @@ function closeMobileElTray() {
 }
 
 // ══════════════════════════════════════════════════════════
-//  FAB SPEED DIAL
+//  FAB SPEED DIAL  +  ITEM SHEET  (two-level menu)
 // ══════════════════════════════════════════════════════════
 const SC_DIAL_CATS = [
   { cat: 'mics',   icon: 'mic',                      label: 'Mics'        },
@@ -968,15 +966,21 @@ function _buildDial() {
     const iconColor = item.accent ? 'var(--accent)' : item.gold ? '#f0b429' : 'currentColor';
     chip.innerHTML = `<span class="material-symbols-outlined sc-dial-chip-icon" style="color:${iconColor}">${item.icon}</span><span>${item.label}</span>`;
     chip.addEventListener('click', () => {
-      closeSCDial();
-      if (item.action === 'presets') { setTimeout(() => scOpenElPresets(), 90); }
-      else { setTimeout(() => openMobileCat(item.cat), 90); }
+      if (item.action === 'presets') {
+        closeSCDial();
+        setTimeout(() => scOpenElPresets(), 90);
+      } else {
+        openItemSheet(item.cat, item.label);
+      }
     });
     container.appendChild(chip);
   });
 }
 
 function toggleSCDial() {
+  const sheet = document.getElementById('sc-item-sheet');
+  const sheetOpen = sheet && sheet.classList.contains('sc-sheet-open');
+  if (sheetOpen) { closeItemSheet(false); return; }
   _dialOpen ? closeSCDial() : openSCDial();
 }
 
@@ -986,7 +990,6 @@ function openSCDial() {
   closeMobileElTray();
   const wrap  = document.getElementById('sc-fab-wrap');
   const chips = wrap ? wrap.querySelectorAll('.sc-dial-chip') : [];
-  // Stagger: bottom chip first (i=0 = shortest delay)
   chips.forEach((chip, i) => { chip.style.transitionDelay = `${i * 40}ms`; });
   if (wrap) wrap.classList.add('sc-dial-open');
 }
@@ -996,10 +999,66 @@ function closeSCDial() {
   _dialOpen = false;
   const wrap  = document.getElementById('sc-fab-wrap');
   const chips = wrap ? wrap.querySelectorAll('.sc-dial-chip') : [];
-  // Reverse stagger: top chips disappear first
   const total = chips.length;
   chips.forEach((chip, i) => { chip.style.transitionDelay = `${(total - 1 - i) * 22}ms`; });
   if (wrap) wrap.classList.remove('sc-dial-open');
+}
+
+// ── Item sheet: second-level panel that replaces the bottom cat bar ──
+function openItemSheet(cat, label) {
+  // Quickly collapse chips (no stagger, instant feel)
+  if (_dialOpen) {
+    _dialOpen = false;
+    const wrap  = document.getElementById('sc-fab-wrap');
+    const chips = wrap ? wrap.querySelectorAll('.sc-dial-chip') : [];
+    chips.forEach(chip => { chip.style.transitionDelay = '0ms'; });
+    if (wrap) wrap.classList.remove('sc-dial-open');
+  }
+
+  const sheet   = document.getElementById('sc-item-sheet');
+  const titleEl = document.getElementById('sc-item-sheet-title');
+  const listEl  = document.getElementById('sc-item-list');
+  const wrap    = document.getElementById('sc-fab-wrap');
+  if (!sheet || !listEl) return;
+
+  if (titleEl) titleEl.textContent = label;
+  listEl.innerHTML = '';
+
+  (library[cat] || []).forEach(item => {
+    const btn = document.createElement('button');
+    if (item._isCreate) {
+      btn.className = 'sc-item-btn sc-item-btn--create';
+      btn.innerHTML = `<span class="sc-item-btn-icon"><span class="material-symbols-outlined" style="font-size:15px;">add</span></span><span class="sc-item-btn-name">New Custom</span>`;
+      btn.addEventListener('click', () => { closeItemSheet(false); openCustomElementModal(); });
+    } else if (item.isCustom) {
+      btn.className = 'sc-item-btn';
+      const ico = item.imageData
+        ? `<img src="${item.imageData}" style="width:20px;height:20px;object-fit:contain;" draggable="false"/>`
+        : `<span style="font-size:15px;line-height:1;">${item.emoji || '🎵'}</span>`;
+      btn.innerHTML = `<span class="sc-item-btn-icon">${ico}</span><span class="sc-item-btn-name">${item.name}</span>`;
+      btn.addEventListener('click', () => { addItemToStage(item); closeItemSheet(false); });
+    } else {
+      btn.className = 'sc-item-btn';
+      btn.innerHTML = `<span class="sc-item-btn-icon">${iconHtml(item.icon, 16, 'color:#7aafff;')}</span><span class="sc-item-btn-name">${item.name}</span>`;
+      btn.addEventListener('click', () => { addItemToStage(item); closeItemSheet(false); });
+    }
+    listEl.appendChild(btn);
+  });
+  lcIcons();
+
+  // Show sheet + keep FAB in × state
+  setTimeout(() => {
+    if (wrap) wrap.classList.add('sc-items-open');
+    sheet.classList.add('sc-sheet-open');
+  }, 100);
+}
+
+function closeItemSheet(goBackToChips) {
+  const sheet = document.getElementById('sc-item-sheet');
+  const wrap  = document.getElementById('sc-fab-wrap');
+  if (sheet) sheet.classList.remove('sc-sheet-open');
+  if (wrap)  wrap.classList.remove('sc-items-open');
+  if (goBackToChips) { setTimeout(() => openSCDial(), 190); }
 }
 
 // ── Mobile: add library item directly to center of stage ──────

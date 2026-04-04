@@ -1163,6 +1163,144 @@ html[data-theme="light"] .sc-dial-chip {
   color: #222 !important;
   box-shadow: 0 4px 20px rgba(0,0,0,0.12) !important;
 }
+
+/* FAB icon also rotates to × when the item sheet is open */
+#sc-fab-wrap.sc-items-open #sc-fab-icon { transform: rotate(45deg); }
+/* Backdrop also shows when item sheet is open */
+#sc-fab-wrap.sc-items-open + #sc-dial-backdrop { display: block; }
+
+/* ══════════════════════════════════════════
+   ITEM SUB-SHEET  (#sc-item-sheet)
+══════════════════════════════════════════ */
+#sc-item-sheet {
+  position: fixed;
+  bottom: 142px;   /* sits above the FAB button */
+  right: 14px;
+  width: 212px;
+  max-height: 320px;
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  background: rgba(16,16,20,0.97);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 18px;
+  overflow: hidden;
+  /* starts off-screen ↓ and scaled down */
+  transform: translateY(18px) scale(0.93);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 330ms cubic-bezier(0.34,1.56,0.64,1),
+              opacity 240ms ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.60);
+}
+#sc-item-sheet.sc-sheet-open {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: all;
+}
+
+#sc-item-sheet-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 14px 9px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+#sc-item-back {
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #c0c0c0;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+  transition: background 120ms ease;
+}
+#sc-item-back:active { background: rgba(255,255,255,0.16); }
+
+#sc-item-sheet-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #888;
+  flex: 1;
+}
+
+#sc-item-list {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+#sc-item-list::-webkit-scrollbar { display: none; }
+
+.sc-item-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 11px;
+  cursor: pointer;
+  color: #c0c0c0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  width: 100%;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 110ms ease, color 110ms ease;
+}
+.sc-item-btn:active { background: rgba(255,255,255,0.09); color: #fff; }
+
+.sc-item-btn-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: rgba(122,175,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: #7aafff;
+}
+.sc-item-btn-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sc-item-btn--create {
+  color: var(--accent) !important;
+}
+.sc-item-btn--create .sc-item-btn-icon {
+  background: rgba(122,175,255,0.08) !important;
+  border: 1px dashed rgba(122,175,255,0.30);
+}
+
+/* Light theme */
+html[data-theme="light"] #sc-item-sheet {
+  background: rgba(248,248,250,0.98) !important;
+  border-color: rgba(0,0,0,0.09) !important;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.12) !important;
+}
+html[data-theme="light"] #sc-item-sheet-header { border-bottom-color: rgba(0,0,0,0.07) !important; }
+html[data-theme="light"] #sc-item-back { background: rgba(0,0,0,0.06) !important; color: #444 !important; }
+html[data-theme="light"] #sc-item-sheet-title { color: #666 !important; }
+html[data-theme="light"] .sc-item-btn { color: #1a1a1a !important; }
+html[data-theme="light"] .sc-item-btn:active { background: rgba(0,0,0,0.06) !important; }
+html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !important; }
+
+/* ── Permanently kill the old mobile cat bar (replaced by FAB+sheet) ── */
+#mobile-cat-bar { display: none !important; }
 </style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden select-none" style="height:100vh;">
@@ -1784,10 +1922,21 @@ html[data-theme="light"] .sc-dial-chip {
     <span id="sc-fab-icon" class="material-symbols-outlined">add</span>
   </button>
 </div>
-<!-- Tap-outside backdrop -->
-<div id="sc-dial-backdrop" onclick="closeSCDial()"></div>
+<!-- Tap-outside backdrop (handles both chip dial and item sheet) -->
+<div id="sc-dial-backdrop" onclick="closeSCDial();closeItemSheet(false);"></div>
 
-<!-- Mobile element tray — overlays the top of the canvas when a category is open -->
+<!-- Item sub-sheet: slides up above the FAB when a category chip is tapped -->
+<div id="sc-item-sheet">
+  <div id="sc-item-sheet-header">
+    <button id="sc-item-back" onclick="closeItemSheet(true)">
+      <span class="material-symbols-outlined" style="font-size:15px;display:block;">arrow_back</span>
+    </button>
+    <span id="sc-item-sheet-title"></span>
+  </div>
+  <div id="sc-item-list"></div>
+</div>
+
+<!-- Mobile element tray — kept for desktop/compat; hidden on mobile -->
 <div id="mobile-el-tray"></div>
 
 <!-- Sidebar backdrop (kept for compatibility) -->
