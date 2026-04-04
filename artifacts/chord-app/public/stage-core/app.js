@@ -2965,13 +2965,13 @@ function renderRiderNeeds() {
     const activePresets = (isEs ? (nt.presetsEs || nt.presets) : nt.presets);
     const presets = activePresets.map(p =>
       `<button onclick="applyNeedPreset('${need.id}',this.textContent)" title="${p}"
-        style="padding:3px 8px;font-size:10px;font-family:'Space Grotesk';background:#1a1a1a;color:#adaaaa;border:1px solid rgba(72,72,71,0.35);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${p}</button>`
+        style="padding:3px 8px;font-size:10px;font-family:'Space Grotesk';background:var(--rn-chip-bg);color:var(--rn-muted);border:1px solid var(--rn-border);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${p}</button>`
     ).join('');
     return `
-    <div style="border-left:3px solid ${nt.color};background:#1a1a1a;">
+    <div style="border-left:3px solid ${nt.color};background:var(--rn-card-bg);">
       <div style="display:flex;align-items:center;gap:8px;padding:10px 12px 6px;">
         <select onchange="updateNeedType('${need.id}',this.value)"
-          style="flex:1;padding:5px 8px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:#111;color:${nt.color};border:1px solid rgba(72,72,71,0.4);cursor:pointer;">
+          style="flex:1;padding:5px 8px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--rn-input-bg);color:${nt.color};border:1px solid var(--rn-border);cursor:pointer;">
           ${typeOptions}
         </select>
         <button onclick="removeRiderNeed('${need.id}')"
@@ -2980,7 +2980,7 @@ function renderRiderNeeds() {
       ${presets ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:0 12px 8px;">${presets}</div>` : ''}
       <div style="padding:0 12px 10px;">
         <textarea rows="2" onchange="updateNeedValue('${need.id}',this.value)"
-          style="width:100%;resize:none;background:#111;color:#fff;border:1px solid rgba(72,72,71,0.3);padding:7px 10px;font-family:'Inter';font-size:12px;line-height:1.5;box-sizing:border-box;">${need.value}</textarea>
+          style="width:100%;resize:none;background:var(--rn-input-bg);color:var(--rn-text);border:1px solid var(--rn-border);padding:7px 10px;font-family:'Inter';font-size:12px;line-height:1.5;box-sizing:border-box;">${need.value}</textarea>
       </div>
     </div>`;
   }).join('');
