@@ -2555,10 +2555,13 @@ function toggleConnectionsVisible() {
 //  VERTICAL TOOLBAR: TOGGLE COLLAPSE
 // ══════════════════════════════════════════════════════════
 function toggleSCVTools() {
-  const body   = document.getElementById('sc-vtools-body');
-  const toggle = document.getElementById('sc-vtools-toggle');
+  const body      = document.getElementById('sc-vtools-body');
+  const toggle    = document.getElementById('sc-vtools-toggle');
+  const container = document.getElementById('canvas-container');
   if (!body) return;
   const isNowCollapsed = body.classList.toggle('vtools-collapsed');
+  // Mirror state onto the container so the CSS slide rule can respond
+  if (container) container.classList.toggle('vtools-open', !isNowCollapsed);
   if (toggle) {
     toggle.title = isNowCollapsed ? 'Show tools' : 'Hide tools';
   }
