@@ -798,6 +798,8 @@ function switchView(view) {
     }
   }
   document.querySelectorAll('[data-view="' + view + '"]').forEach(b => b.classList.add('active'));
+  // Sync active state of all preference UI chips whenever the Preferences view opens
+  if (view === 'Preferences') syncSettingsUI();
   updateStatusBar(); // keep status bar stats current on every view switch
   // Sync mobile tabs
   document.querySelectorAll('.mob-tab').forEach(b => {
@@ -5413,8 +5415,8 @@ function updateCanvasBg(color) {
 function updateGridSize(size) {
   state.gridSize = size;
   _applyGridSize(size);
-  // Update chip active states
-  document.querySelectorAll('#settings-panel .setting-chip[data-gs]').forEach(btn => {
+  // Update chip active states (selector is document-wide; old #settings-panel is hidden)
+  document.querySelectorAll('.setting-chip[data-gs]').forEach(btn => {
     btn.classList.toggle('active', parseInt(btn.dataset.gs) === size);
   });
   saveSettings();
@@ -5598,8 +5600,8 @@ function syncSettingsUI() {
   document.querySelectorAll('#settings-canvas-bg .bg-swatch').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.bg === state.canvasBg);
   });
-  // Grid size chips
-  document.querySelectorAll('#settings-panel .setting-chip[data-gs]').forEach(btn => {
+  // Grid size chips (selector is document-wide; old #settings-panel is hidden)
+  document.querySelectorAll('.setting-chip[data-gs]').forEach(btn => {
     btn.classList.toggle('active', parseInt(btn.dataset.gs) === state.gridSize);
   });
   // Status bar toggle
