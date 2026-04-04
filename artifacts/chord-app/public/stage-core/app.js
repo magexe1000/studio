@@ -2485,6 +2485,19 @@ function toggleConnectionsVisible() {
 }
 
 // ══════════════════════════════════════════════════════════
+//  VERTICAL TOOLBAR: TOGGLE COLLAPSE
+// ══════════════════════════════════════════════════════════
+function toggleSCVTools() {
+  const body   = document.getElementById('sc-vtools-body');
+  const toggle = document.getElementById('sc-vtools-toggle');
+  if (!body) return;
+  const isNowCollapsed = body.classList.toggle('vtools-collapsed');
+  if (toggle) {
+    toggle.title = isNowCollapsed ? 'Show tools' : 'Hide tools';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
 //  TOOLBAR: GRID / SNAP / CONNECT / ZOOM
 // ══════════════════════════════════════════════════════════
 function _setToolBtn(id, active, activeColor) {

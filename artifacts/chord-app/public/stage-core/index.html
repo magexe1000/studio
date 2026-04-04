@@ -255,14 +255,101 @@
 @media (max-width: 767px) {
   /* Canvas fills from top inside iframe — bottom:0 overrides the original bottom:32px (status bar gone) */
   #canvas-container { top: 0 !important; bottom: 0 !important; }
-  /* Toolbar floats at the very top of the canvas area, centred horizontally */
-  #bottom-toolbar { top: 8px !important; bottom: auto !important; left: 50% !important; }
   /* SAVE + PDF align to the right of the toolbar row */
   #rider-action-bar { top: 8px !important; }
   /* Lift element-category bar above the nav pill */
   #mobile-cat-bar { bottom: 82px !important; }
   /* Lift element tray above the category bar */
   #mobile-el-tray { bottom: 120px !important; }
+}
+
+/* ══════════════════════════════════════════
+   VERTICAL STAGE TOOLBAR  (#sc-vtools)
+══════════════════════════════════════════ */
+#sc-vtools {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+#sc-vtools-toggle {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: rgba(14,14,14,0.94);
+  border: 1px solid rgba(255,255,255,0.09);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #767575;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 140ms ease, background 140ms ease;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+#sc-vtools-toggle:hover { color: #c8c8c8; background: rgba(255,255,255,0.08); }
+#sc-vtools-body {
+  background: rgba(14,14,14,0.94);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 16px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  overflow: hidden;
+  max-height: 700px;
+  opacity: 1;
+  transition: max-height 300ms cubic-bezier(0.4,0,0.2,1),
+              opacity 220ms ease,
+              padding 260ms ease;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.65);
+}
+#sc-vtools-body.vtools-collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.sc-vtool-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #767575;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 130ms ease, background 130ms ease;
+  flex-shrink: 0;
+}
+.sc-vtool-btn:hover { color: #c8c8c8; background: rgba(255,255,255,0.07); }
+.sc-vtool-sep {
+  width: 22px;
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+  margin: 2px 0;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+/* Layer popup opens to the RIGHT in vertical mode */
+#layer-panel {
+  top: 0 !important;
+  bottom: auto !important;
+  left: calc(100% + 10px) !important;
+  right: auto !important;
+  transform: translateX(-6px) !important;
 }
 
 /* Unify the canvas background — body, html and the canvas container all use the same dark
@@ -1640,49 +1727,64 @@ textarea.sng-input { line-height:1.5; }
   <!-- MAIN CANVAS -->
   <main id="canvas-container" class="absolute bg-surface-container-low overflow-hidden" style="left:0;right:0;top:64px;bottom:32px;">
 
-    <!-- Floating toolbar — bottom:6px keeps it below the DOWNSTAGE label (which sits at ~50px from bottom with padding-bottom:80px) -->
-    <div id="bottom-toolbar" class="absolute z-30 flex items-center gap-1" style="bottom:44px;transform:translateX(-50%);background:rgba(14,14,14,0.97);border:1px solid rgba(72,72,71,0.25);border-radius:8px;">
-      <button onclick="zoomIn()" style="padding:5px 7px;color:#767575;background:none;border:none;cursor:pointer;display:flex;align-items:center;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='#767575'" title="Zoom In">
-        <span class="material-symbols-outlined" style="font-size:18px;">zoom_in</span>
+    <!-- ══════════ VERTICAL STAGE TOOLBAR ══════════ -->
+    <div id="sc-vtools">
+      <!-- Collapse / expand handle -->
+      <button id="sc-vtools-toggle" onclick="toggleSCVTools()" title="Show / hide tools">
+        <span class="material-symbols-outlined" style="font-size:15px;">more_vert</span>
       </button>
-      <button onclick="zoomOut()" style="padding:5px 7px;color:#767575;background:none;border:none;cursor:pointer;display:flex;align-items:center;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='#767575'" title="Zoom Out">
-        <span class="material-symbols-outlined" style="font-size:18px;">zoom_out</span>
-      </button>
-      <button id="btn-gig-eye" onclick="toggleGigMode()" style="padding:5px 7px;color:#767575;background:none;border:none;cursor:pointer;display:flex;align-items:center;transition:color 0.15s;" title="Focus Mode — hide all editing tools">
-        <span id="gig-eye-icon" class="material-symbols-outlined" style="font-size:18px;transition:color 0.15s;">visibility</span>
-      </button>
-      <div style="width:1px;height:18px;background:rgba(72,72,71,0.4);margin:0 3px;"></div>
-      <button id="btn-grid" onclick="toggleGrid()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent-14);color:var(--accent);transition:all 0.15s;" title="Toggle Grid">
-        <span class="material-symbols-outlined" style="font-size:16px;">grid_on</span><span data-i18n="tbGrid">Grid</span>
-      </button>
-      <button id="btn-snap" onclick="toggleSnap()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:transparent;color:#767575;transition:all 0.15s;" title="Snap to Grid">
-        <span class="material-symbols-outlined" style="font-size:16px;">align_horizontal_left</span><span data-i18n="tbSnap">Snap</span>
-      </button>
-      <button id="btn-connect" onclick="toggleConnect()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:transparent;color:#767575;transition:all 0.15s;" title="Connection Mode">
-        <span class="material-symbols-outlined" style="font-size:16px;">hub</span><span data-i18n="tbConnect">Connect</span>
-      </button>
-      <button id="btn-connections" onclick="toggleConnectionsVisible()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent-14);color:var(--accent);transition:all 0.15s;" title="Show / Hide Connection Lines">
-        <span class="material-symbols-outlined" style="font-size:16px;">cable</span><span data-i18n="tbLines">Lines</span>
-      </button>
-      <div style="width:1px;height:18px;background:rgba(72,72,71,0.4);margin:0 3px;"></div>
-      <button onclick="autoArrangeElements()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:transparent;color:#767575;transition:all 0.15s;" onmouseover="this.style.color='#c5ffc9'" onmouseout="this.style.color='#767575'" title="Auto-arrange elements on stage">
-        <span class="material-symbols-outlined" style="font-size:16px;">auto_fix_high</span><span class="desktop-only" style="display:inline;">Arrange</span>
-      </button>
-      <div style="width:1px;height:18px;background:rgba(72,72,71,0.4);margin:0 3px;"></div>
-      <!-- Layers button with hover popup -->
-      <div id="layers-wrapper" style="position:relative;" onmouseenter="_layerHoverEnter()" onmouseleave="_layerHoverLeave()">
-        <button id="btn-layers" onclick="toggleLayerPanel()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:transparent;color:#767575;transition:all 0.15s;" title="Layer Visibility">
-          <span class="material-symbols-outlined" style="font-size:16px;">layers</span><span class="desktop-only">Layers</span>
+      <!-- Tools panel -->
+      <div id="sc-vtools-body">
+        <!-- Zoom group -->
+        <button onclick="zoomIn()" class="sc-vtool-btn" title="Zoom In">
+          <span class="material-symbols-outlined" style="font-size:17px;">zoom_in</span>
         </button>
-        <!-- Layer panel — pops up above the button on hover -->
-        <div id="layer-panel" style="position:absolute;bottom:calc(100% + 10px);right:0;z-index:300;background:#111217;border:1px solid var(--accent-14);border-radius:8px;padding:10px 14px;min-width:190px;box-shadow:0 8px 40px rgba(0,0,0,0.8);opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity 0.2s ease,transform 0.2s ease;">
-          <p style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:#484847;margin:0 0 8px;">Layers</p>
-          <div id="layer-list" style="display:flex;flex-direction:column;gap:5px;"></div>
+        <button onclick="zoomOut()" class="sc-vtool-btn" title="Zoom Out">
+          <span class="material-symbols-outlined" style="font-size:17px;">zoom_out</span>
+        </button>
+        <button id="btn-gig-eye" onclick="toggleGigMode()" class="sc-vtool-btn" title="Focus Mode — hide editing tools">
+          <span id="gig-eye-icon" class="material-symbols-outlined" style="font-size:17px;">visibility</span>
+        </button>
+        <div class="sc-vtool-sep"></div>
+        <!-- Toggle group -->
+        <button id="btn-grid" onclick="toggleGrid()" class="sc-vtool-btn" title="Toggle Grid" style="background:rgba(122,175,255,0.18);color:#7aafff;">
+          <span class="material-symbols-outlined" style="font-size:17px;">grid_on</span>
+        </button>
+        <button id="btn-snap" onclick="toggleSnap()" class="sc-vtool-btn" title="Snap to Grid">
+          <span class="material-symbols-outlined" style="font-size:17px;">align_horizontal_left</span>
+        </button>
+        <button id="btn-connect" onclick="toggleConnect()" class="sc-vtool-btn" title="Connection Mode">
+          <span class="material-symbols-outlined" style="font-size:17px;">hub</span>
+        </button>
+        <button id="btn-connections" onclick="toggleConnectionsVisible()" class="sc-vtool-btn" title="Show / Hide Connection Lines" style="background:rgba(122,175,255,0.18);color:#7aafff;">
+          <span class="material-symbols-outlined" style="font-size:17px;">cable</span>
+        </button>
+        <div class="sc-vtool-sep"></div>
+        <!-- Action group -->
+        <button onclick="autoArrangeElements()" class="sc-vtool-btn" title="Auto-arrange elements"
+          onmouseover="this.style.color='#c5ffc9';this.style.background='rgba(197,255,201,0.08)'"
+          onmouseout="this.style.color='#767575';this.style.background=''">
+          <span class="material-symbols-outlined" style="font-size:17px;">auto_fix_high</span>
+        </button>
+        <div class="sc-vtool-sep"></div>
+        <!-- Layers button with popup to the right -->
+        <div id="layers-wrapper" style="position:relative;" onmouseenter="_layerHoverEnter()" onmouseleave="_layerHoverLeave()">
+          <button id="btn-layers" onclick="toggleLayerPanel()" class="sc-vtool-btn" title="Layer Visibility">
+            <span class="material-symbols-outlined" style="font-size:17px;">layers</span>
+          </button>
+          <!-- Layer panel — pops open to the RIGHT -->
+          <div id="layer-panel" style="position:absolute;top:0;left:calc(100% + 10px);z-index:300;background:#111217;border:1px solid var(--accent-14);border-radius:12px;padding:10px 14px;min-width:190px;box-shadow:0 8px 40px rgba(0,0,0,0.8);opacity:0;transform:translateX(-6px);pointer-events:none;transition:opacity 0.2s ease,transform 0.2s ease;">
+            <p style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:#484847;margin:0 0 8px;">Layers</p>
+            <div id="layer-list" style="display:flex;flex-direction:column;gap:5px;"></div>
+          </div>
         </div>
+        <!-- Clear -->
+        <button onclick="clearStage()" class="sc-vtool-btn" title="Clear all elements"
+          onmouseover="this.style.color='#ff6b6b';this.style.background='rgba(255,107,107,0.08)'"
+          onmouseout="this.style.color='#767575';this.style.background=''">
+          <span class="material-symbols-outlined" style="font-size:17px;">delete_sweep</span>
+        </button>
       </div>
-      <button onclick="clearStage()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:transparent;color:#767575;transition:all 0.15s;" onmouseover="this.style.color='#ff6b6b'" onmouseout="this.style.color='#767575'" title="Clear all elements from stage">
-        <span class="material-symbols-outlined" style="font-size:16px;">delete_sweep</span><span data-i18n="tbClear">Clear</span>
-      </button>
     </div>
 
     <!-- Stage Viewport — extra bottom padding lifts the DOWNSTAGE label well above the floating toolbar -->

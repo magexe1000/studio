@@ -906,17 +906,17 @@ function _layerSetOpen(open) {
   if (panel) {
     if (open) {
       panel.style.opacity       = '0';
-      panel.style.transform     = 'translateY(6px)';
+      panel.style.transform     = 'translateX(-6px)';
       panel.style.pointerEvents = 'none';
       panel.style.display       = 'block';
       // Force reflow so transition fires
       panel.getBoundingClientRect();
       panel.style.opacity       = '1';
-      panel.style.transform     = 'translateY(0)';
+      panel.style.transform     = 'translateX(0)';
       panel.style.pointerEvents = 'all';
     } else {
       panel.style.opacity       = '0';
-      panel.style.transform     = 'translateY(6px)';
+      panel.style.transform     = 'translateX(-6px)';
       panel.style.pointerEvents = 'none';
     }
   }
