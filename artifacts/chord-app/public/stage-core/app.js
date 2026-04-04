@@ -4355,7 +4355,7 @@ function _doAutosave() {
 // ══════════════════════════════════════════════════════════
 function saveProject() {
   try {
-    localStorage.setItem('stagecoreProject', JSON.stringify({ schemaVersion: 6, members: state.members, riderNeeds: state.riderNeeds, lang: state.lang, segments: state.segments, setlist: state.setlist, timeline: state.timeline }));
+    localStorage.setItem('stagecoreProject', JSON.stringify({ schemaVersion: 7, members: state.members, riderNeeds: state.riderNeeds, lang: state.lang, segments: state.segments, setlist: state.setlist, timeline: state.timeline, gear: state.gear }));
   } catch(e) {}
   _sessionSave();
   showToast(T('projectSaved'));
@@ -4417,6 +4417,7 @@ function _sessionRestore() {
     renderMembersView();
     renderGear();
     renderRiderNeeds();
+    renderSetlist();
   } catch(e) {
     loadSaved();
   }
@@ -4459,12 +4460,21 @@ function loadSaved() {
         state.timeline = d.timeline;
       }
     }
+    if (d.schemaVersion >= 7) {
+      if (d.gear && Array.isArray(d.gear)) {
+        state.gear = d.gear;
+        _gearNextId = state.gear.reduce((max, g) => Math.max(max, (g.id || 0) + 1), 1);
+      }
+    }
     // Theme can be saved in any schema version
     if (d.theme && THEMES[d.theme]) {
       state.theme = d.theme;
       applyTheme(d.theme);
     }
     renderMembersView();
+    renderGear();
+    renderRiderNeeds();
+    renderSetlist();
   } catch(e) {}
 }
 
@@ -5168,9 +5178,7 @@ function showToast(msg) {
 // ══════════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════════
-// Clear any saved session — reload always starts fresh
-localStorage.removeItem('sc_session');
-localStorage.removeItem('stagecoreProject');
+// Session data is preserved across reloads (autosave enabled)
 
 // (beforeunload warning removed — reload without prompting)
 
@@ -5645,8 +5653,13 @@ document.addEventListener('click', function(e) {
 //  INIT
 // ══════════════════════════════════════════════════════════
 loadSettings();
+_sessionRestore(); // Restore all saved data (members, setlist, gear, rider, etc.)
 applySettings();
 renderNav();
+
+// Ensure data is saved when the iframe is hidden (user switches app or navigates away)
+window.addEventListener('pagehide', _sessionSave);
+document.addEventListener('visibilitychange', () => { if (document.hidden) _sessionSave(); });
 // Trigger the view-switch side-effects so desktop cat bar / mobile bars are in the right state
 switchView('Editor');
 
