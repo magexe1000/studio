@@ -497,13 +497,50 @@ header { display: none !important; }
    SETLIST REDESIGN — reference-matched card layout
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Big stacked stat cards */
+/* ── Setlist view entrance animation ── */
+@keyframes sl-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes sl-val-pop {
+  0%   { transform: scale(0.85); opacity: 0; }
+  65%  { transform: scale(1.06); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+@keyframes sl-ripple {
+  0%   { transform: scale(0); opacity: 0.35; }
+  100% { transform: scale(3); opacity: 0; }
+}
+#view-Setlist.active .sc-section-wrap > * {
+  animation: sl-fade-up 380ms cubic-bezier(0.22,1,0.36,1) both;
+}
+#view-Setlist.active .sc-section-wrap > *:nth-child(1) { animation-delay: 0ms; }
+#view-Setlist.active .sc-section-wrap > *:nth-child(2) { animation-delay: 55ms; }
+#view-Setlist.active .sc-section-wrap > *:nth-child(3) { animation-delay: 110ms; }
+#view-Setlist.active .sc-section-wrap > *:nth-child(4) { animation-delay: 150ms; }
+#view-Setlist.active .sc-section-wrap > *:nth-child(5) { animation-delay: 190ms; }
+#view-Setlist.active .sc-section-wrap > *:nth-child(6) { animation-delay: 220ms; }
+#view-Setlist.active .sc-section-wrap > *:nth-child(7) { animation-delay: 250ms; }
+#view-Setlist.active .sc-section-wrap > *:nth-child(8) { animation-delay: 275ms; }
+
+/* ── Big stacked stat cards ── */
 .sl-big-stat {
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  padding: 18px 20px;
+  border-radius: 16px; padding: 18px 20px;
   position: relative; overflow: hidden;
+  cursor: pointer;
+  transition: transform 180ms cubic-bezier(0.34,1.2,0.64,1),
+              background 180ms ease,
+              border-color 180ms ease,
+              box-shadow 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.sl-big-stat:active {
+  transform: scale(0.97);
+  background: rgba(255,255,255,0.055);
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.04);
 }
 .sl-big-stat-label {
   font-family: 'Space Grotesk', sans-serif;
@@ -513,9 +550,11 @@ header { display: none !important; }
 .sl-big-stat-val {
   font-family: 'Space Grotesk', sans-serif;
   font-size: 2.8rem; font-weight: 900; line-height: 1; margin: 0; color: #fff;
+  transition: transform 220ms cubic-bezier(0.34,1.4,0.64,1);
 }
+.sl-big-stat:active .sl-big-stat-val { transform: scale(0.94); }
 
-/* Compact action buttons (top-right of Arrangement header) */
+/* ── Compact action buttons ── */
 .sl-refine-btn {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 7px 10px; font-family: 'Space Grotesk', sans-serif;
@@ -523,32 +562,47 @@ header { display: none !important; }
   background: rgba(255,255,255,0.05); color: #adaaaa;
   border: 1px solid rgba(255,255,255,0.09); border-radius: 8px;
   cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent;
+  transition: transform 150ms cubic-bezier(0.34,1.3,0.64,1),
+              background 150ms ease,
+              color 150ms ease,
+              border-color 150ms ease;
 }
-.sl-refine-btn:active { opacity: 0.7; }
+.sl-refine-btn:active {
+  transform: scale(0.90);
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  border-color: rgba(255,255,255,0.18);
+}
 
-/* Song list container */
+/* ── Song list container ── */
 .sl-song-container {
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 16px; overflow: hidden; margin-bottom: 12px;
 }
 
-/* Card-style song rows via display:flex override */
+/* ── Card-style song rows ── */
 .sl-card-table { width: 100%; border-collapse: collapse; }
 .sl-card-table tbody tr {
   display: flex; align-items: center;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   padding: 2px 14px;
-  transition: background 110ms ease; cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 140ms ease, transform 140ms cubic-bezier(0.34,1.2,0.64,1);
+  position: relative;
 }
 .sl-card-table tbody tr:last-child { border-bottom: none; }
-.sl-card-table tbody tr:active { background: rgba(255,255,255,0.04); }
+.sl-card-table tbody tr:active {
+  background: rgba(255,255,255,0.06);
+  transform: scaleX(0.985);
+}
 /* Col 1: number */
 .sl-card-table tbody td:nth-child(1) {
   font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700;
   color: #333; min-width: 28px; padding: 16px 6px 16px 0;
+  transition: color 140ms ease;
 }
+.sl-card-table tbody tr:active td:nth-child(1) { color: #666; }
 /* Col 2: title — grows */
 .sl-card-table tbody td:nth-child(2) {
   flex: 1; min-width: 0; font-family: 'Space Grotesk'; font-size: 14px; font-weight: 700;
@@ -580,7 +634,7 @@ header { display: none !important; }
   padding: 16px 0 16px 8px; display: flex; align-items: center;
 }
 
-/* "Add New Track" pill button */
+/* ── "Add New Track" pill button ── */
 .sl-add-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   width: 100%; padding: 15px 20px;
@@ -589,10 +643,29 @@ header { display: none !important; }
   background: var(--accent); color: var(--accent-dark);
   border: none; border-radius: 100px; cursor: pointer;
   -webkit-tap-highlight-color: transparent; margin-bottom: 20px;
+  position: relative; overflow: hidden;
+  transition: transform 200ms cubic-bezier(0.34,1.4,0.64,1),
+              filter 200ms ease,
+              box-shadow 200ms ease;
+  box-shadow: 0 4px 18px var(--accent-20);
 }
-.sl-add-btn:active { opacity: 0.8; }
+.sl-add-btn:active {
+  transform: scale(0.95);
+  filter: brightness(0.88);
+  box-shadow: 0 1px 6px var(--accent-14);
+}
+/* ripple layer */
+.sl-add-btn::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: rgba(255,255,255,0.18);
+  transform: scale(0); opacity: 0;
+  transition: transform 0ms, opacity 0ms;
+}
+.sl-add-btn:active::after {
+  animation: sl-ripple 400ms ease-out forwards;
+}
 
-/* Setlist Insights card rows */
+/* ── Setlist Insights card rows ── */
 .sl-insight-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
@@ -604,6 +677,12 @@ header { display: none !important; }
 }
 .sl-insight-val {
   font-size: 12px; font-weight: 700; color: #e0e0e0; text-align: right;
+  transition: transform 220ms cubic-bezier(0.34,1.4,0.64,1), color 220ms ease;
+}
+/* Stat values animate in when view is active */
+#view-Setlist.active .sl-big-stat-val {
+  animation: sl-val-pop 420ms cubic-bezier(0.34,1.2,0.64,1) both;
+  animation-delay: 80ms;
 }
 </style>
 </head>
