@@ -280,44 +280,92 @@ header { display: none !important; }
   gap: 8px;
 }
 
-/* Setup sub-nav — secondary tab bar above the main nav for Setup group */
-#setup-sub-nav {
+/* ── Setup Hub — card list ──────────────────────────────────────────── */
+#view-SetupHub {
   position: fixed;
-  bottom: 88px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 199;
-  display: none;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #0a0a0e;
+}
+.sc-hub-card {
+  width: 100%;
+  display: flex;
   align-items: center;
-  background: rgba(12,12,16,0.93);
-  border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 12px;
-  padding: 4px;
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.60);
-  width: min(92vw, 380px);
-  gap: 2px;
-}
-.setup-sub-tab {
-  flex: 1;
-  padding: 6px 4px;
-  background: transparent;
-  border: none;
-  border-radius: 8px;
-  color: rgba(180,185,200,0.50);
-  font-family: 'Manrope', 'Space Grotesk', sans-serif;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  gap: 14px;
+  padding: 17px 18px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
   cursor: pointer;
-  transition: background 0.13s, color 0.13s;
-  white-space: nowrap;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 130ms ease, transform 110ms ease, border-color 130ms ease;
+  outline: none;
 }
-.setup-sub-tab.active {
-  background: rgba(122,175,255,0.14);
-  color: #7aafff;
+.sc-hub-card:hover  { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); }
+.sc-hub-card:active { transform: scale(0.97); background: rgba(255,255,255,0.10); }
+.sc-hub-icon {
+  width: 48px; height: 48px;
+  border-radius: 13px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sc-hub-text { flex: 1; min-width: 0; }
+.sc-hub-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px; font-weight: 700;
+  color: #f0f0f0; margin: 0 0 3px;
+  letter-spacing: -0.01em; line-height: 1.2;
+}
+.sc-hub-sub {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px; font-weight: 500;
+  color: #5a5a59; margin: 0;
+}
+.sc-hub-chevron { font-size: 20px !important; color: rgba(255,255,255,0.18); flex-shrink: 0; }
+
+/* ── Back button inside each setup section ─────────────────────────── */
+.sc-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #5a5a59;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 120ms ease;
+  margin-bottom: 12px;
+}
+.sc-back-btn:hover  { color: #c0c0c0; }
+.sc-back-btn:active { opacity: 0.7; }
+
+/* ── Mobile layout fixes for setup views ───────────────────────────── */
+@media (max-width: 767px) {
+  #view-Rider, #view-Setlist, #view-Gear, #view-Members {
+    padding: 16px 16px 110px !important;
+  }
+  /* Shrink oversized 48-56px headlines on mobile */
+  #view-Rider  h1 { font-size: 26px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
+  #view-Setlist h1 { font-size: 26px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
+  #view-Gear   h1 { font-size: 26px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
+  #view-Members h1 { font-size: 26px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
+  /* Hide padding-left accent bar on mobile (compact layout) */
+  #view-Gear section, #view-Members section, #view-Rider section:first-child {
+    padding-left: 0 !important;
+    border-left: none !important;
+  }
+  /* Stats grid: 2-column on mobile */
+  #gear-stats-row { grid-template-columns: repeat(2,1fr) !important; }
 }
 </style>
 </head>
@@ -842,24 +890,66 @@ header { display: none !important; }
   </button>
 </div>
 
-<!-- Setup secondary sub-nav (Rider / Setlist / Gear / Members) -->
-<div id="setup-sub-nav">
-  <button class="setup-sub-tab active" data-view="Rider" onclick="switchView('Rider')">
-    <span class="material-symbols-outlined" style="font-size:14px;display:block;margin-bottom:2px;">description</span>
-    Rider
-  </button>
-  <button class="setup-sub-tab" data-view="Setlist" onclick="switchView('Setlist')">
-    <span class="material-symbols-outlined" style="font-size:14px;display:block;margin-bottom:2px;">queue_music</span>
-    Setlist
-  </button>
-  <button class="setup-sub-tab" data-view="Gear" onclick="switchView('Gear')">
-    <span class="material-symbols-outlined" style="font-size:14px;display:block;margin-bottom:2px;">inventory_2</span>
-    Gear
-  </button>
-  <button class="setup-sub-tab" data-view="Members" onclick="switchView('Members')">
-    <span class="material-symbols-outlined" style="font-size:14px;display:block;margin-bottom:2px;">group</span>
-    Members
-  </button>
+<!-- ═══════════ SETUP HUB — card list ═══════════ -->
+<div id="view-SetupHub" class="view-page" style="display:none;">
+  <div style="padding:20px 16px 110px;">
+
+    <!-- Section heading -->
+    <div style="margin-bottom:28px;padding-top:4px;">
+      <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.22em;color:#484847;margin:0 0 5px;">Stagex</p>
+      <h1 style="font-family:'Space Grotesk';font-size:30px;font-weight:900;color:#f2f2f2;margin:0;letter-spacing:-0.025em;line-height:1.1;">Setup</h1>
+      <p style="font-family:'Space Grotesk';font-size:13px;color:#5a5a59;margin:6px 0 0;font-weight:500;">Manage your show documents</p>
+    </div>
+
+    <!-- Cards -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+
+      <button class="sc-hub-card" onclick="switchView('Rider')">
+        <div class="sc-hub-icon" style="background:rgba(122,175,255,0.11);">
+          <span class="material-symbols-outlined" style="font-size:23px;color:#7aafff;">receipt_long</span>
+        </div>
+        <div class="sc-hub-text">
+          <p class="sc-hub-title">Rider</p>
+          <p class="sc-hub-sub">Technical input list &amp; PDF export</p>
+        </div>
+        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+      </button>
+
+      <button class="sc-hub-card" onclick="switchView('Setlist')">
+        <div class="sc-hub-icon" style="background:rgba(197,255,201,0.09);">
+          <span class="material-symbols-outlined" style="font-size:23px;color:#c5ffc9;">queue_music</span>
+        </div>
+        <div class="sc-hub-text">
+          <p class="sc-hub-title">Setlist</p>
+          <p class="sc-hub-sub">Song order, timing &amp; segments</p>
+        </div>
+        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+      </button>
+
+      <button class="sc-hub-card" onclick="switchView('Gear')">
+        <div class="sc-hub-icon" style="background:rgba(255,116,57,0.11);">
+          <span class="material-symbols-outlined" style="font-size:23px;color:#ff7439;">inventory_2</span>
+        </div>
+        <div class="sc-hub-text">
+          <p class="sc-hub-title">Gear</p>
+          <p class="sc-hub-sub">Equipment, backline &amp; load-in checklist</p>
+        </div>
+        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+      </button>
+
+      <button class="sc-hub-card" onclick="switchView('Members')">
+        <div class="sc-hub-icon" style="background:rgba(200,162,255,0.10);">
+          <span class="material-symbols-outlined" style="font-size:23px;color:#c8a2ff;">group</span>
+        </div>
+        <div class="sc-hub-text">
+          <p class="sc-hub-title">Members</p>
+          <p class="sc-hub-sub">Band roster &amp; crew contacts</p>
+        </div>
+        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+      </button>
+
+    </div>
+  </div>
 </div>
 
 <!-- Mobile category pill bar (top:128px on mobile, hidden on desktop) -->
@@ -1514,6 +1604,9 @@ header { display: none !important; }
 
 <!-- ═══════════════════════ RIDER VIEW ═══════════════════════ -->
 <div id="view-Rider" class="view-page scrollable-view technical-grid" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
+  <button class="sc-back-btn" onclick="switchView('SetupHub')">
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
+  </button>
   <div class="max-w-5xl mx-auto space-y-12">
     <section class="flex flex-col md:flex-row justify-between items-end gap-6" style="border-left:4px solid #7aafff;padding-left:24px;">
       <div>
@@ -1599,6 +1692,9 @@ header { display: none !important; }
 
 <!-- ═══════════════════════ SETLIST VIEW ═══════════════════════ -->
 <div id="view-Setlist" class="view-page scrollable-view technical-grid" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
+  <button class="sc-back-btn" onclick="switchView('SetupHub')">
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
+  </button>
   <div class="max-w-4xl mx-auto">
     <div class="flex justify-between items-end mb-8">
       <div>
@@ -1827,6 +1923,9 @@ header { display: none !important; }
 
 <!-- ═══════════════════════ GEAR VIEW ═══════════════════════ -->
 <div id="view-Gear" class="view-page scrollable-view technical-grid" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
+  <button class="sc-back-btn" onclick="switchView('SetupHub')">
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
+  </button>
   <div class="max-w-5xl mx-auto">
 
     <!-- Header -->
@@ -1931,6 +2030,9 @@ header { display: none !important; }
 
 <!-- ═══════════════════════ MEMBERS VIEW ═══════════════════════ -->
 <div id="view-Members" class="view-page scrollable-view technical-grid" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
+  <button class="sc-back-btn" onclick="switchView('SetupHub')">
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
+  </button>
   <div style="max-width:960px;margin:0 auto;">
 
     <!-- Header -->
@@ -2886,7 +2988,7 @@ window.addEventListener('message', function(e) {
 (function () {
   'use strict';
 
-  var VIEW_ORDER = ['Editor', 'Rider', 'Setlist', 'Gear', 'Members', 'Assistant'];
+  var VIEW_ORDER = ['Editor', 'SetupHub', 'Rider', 'Setlist', 'Gear', 'Members', 'Assistant'];
   var _curView = 'Editor';
 
   /* ── Redirect openSettings() to the inline Preferences view ─────────── */
@@ -2973,11 +3075,10 @@ window.addEventListener('message', function(e) {
   }
 
   /* ── Setup group helpers ─────────────────────────────────────────────── */
-  var SETUP_VIEWS = ['Rider', 'Setlist', 'Gear', 'Members'];
-  var _lastSetupView = 'Rider';
+  var SETUP_VIEWS = ['SetupHub', 'Rider', 'Setlist', 'Gear', 'Members'];
 
   window.activateSetup = function () {
-    switchView(_lastSetupView);
+    switchView('SetupHub');
   };
 
   /* ── Patch switchView for slide animations + Setup group ─────────────── */
@@ -2988,24 +3089,13 @@ window.addEventListener('message', function(e) {
     var dir = nextIdx >= prevIdx ? 'right' : 'left';
     _curView = view;
 
-    /* Track last active setup view */
-    if (SETUP_VIEWS.indexOf(view) !== -1) { _lastSetupView = view; }
-
     /* Always restore nav visibility when the user switches views */
     setScNavHidden(false);
     _scLastScrollY = 0;
 
     _orig(view);
 
-    /* ── Setup sub-nav: show/hide + sync active tab ── */
     var isSetup = SETUP_VIEWS.indexOf(view) !== -1;
-    var subNav = document.getElementById('setup-sub-nav');
-    if (subNav) subNav.style.display = isSetup ? 'flex' : 'none';
-    if (isSetup) {
-      document.querySelectorAll('.setup-sub-tab').forEach(function (b) {
-        b.classList.toggle('active', b.dataset.view === view);
-      });
-    }
 
     /* ── Sync main nav: Setup mob-tab active on any setup view ── */
     var setupTab = document.getElementById('setup-mob-tab');
