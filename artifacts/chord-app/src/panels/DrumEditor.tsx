@@ -1487,27 +1487,37 @@ export default function DrumEditor() {
   const [grooveRenameTag,  setGrooveRenameTag]  = useState<GrooveTag>('');
 
   // ── Container width ──────────────────────────────────────────────────────
+  // Use a stable callback ref so the observer re-attaches every time the
+  // container div mounts (e.g. first open of the editor, or after a tab switch
+  // remounts the content wrapper). A plain useEffect(fn,[]) misses mounts that
+  // happen after the initial render because containerRef.current is null then.
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(0);
+  const _roRef  = useRef<ResizeObserver | null>(null);
+  const _rafRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    const el = containerRef.current;
+  const containerCallbackRef = useCallback((el: HTMLDivElement | null) => {
+    // Tear down previous observer / animation frame
+    if (_roRef.current)  { _roRef.current.disconnect(); _roRef.current = null; }
+    if (_rafRef.current !== null) { cancelAnimationFrame(_rafRef.current); _rafRef.current = null; }
+    // Keep the imperative ref in sync (used by pointer/playhead handlers)
+    (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
     if (!el) return;
 
     const update = (w: number) => { if (w > 0) setContainerW(w); };
 
-    let rafId: number | null = null;
     let tries = 0;
     const poll = () => {
       const w = el.clientWidth || el.getBoundingClientRect().width;
       if (w > 0) { update(w); return; }
-      if (tries++ < 30) rafId = requestAnimationFrame(poll);
+      if (tries++ < 40) _rafRef.current = requestAnimationFrame(poll);
     };
     poll();
 
     const ro = new ResizeObserver(e => update(e[0].contentRect.width));
     ro.observe(el);
-    return () => { ro.disconnect(); if (rafId !== null) cancelAnimationFrame(rafId); };
+    _roRef.current = ro;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Visible instruments ───────────────────────────────────────────────────
@@ -2268,7 +2278,7 @@ export default function DrumEditor() {
 
         {/* ═══ DRUM GRID EDITOR (Songs tab, in editor) ══════════════════════ */}
         {activeTab === 'songs' && inEditor && (
-          <div ref={containerRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div ref={containerCallbackRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Row visibility toggle */}
             {extraInsts.length > 0 && (
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', height: 30, borderBottom: `1px solid ${barColor}`, background: 'var(--app-bg)' }}>
