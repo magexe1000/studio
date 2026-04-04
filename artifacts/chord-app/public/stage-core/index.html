@@ -150,12 +150,13 @@
   top: 4px !important;
   height: calc(100% - 8px) !important;
   border-radius: 999px !important;
-  background: linear-gradient(135deg, #679cff, #007aff) !important;
-  box-shadow: 0 2px 18px #007aff55 !important;
+  background: linear-gradient(135deg, var(--accent), var(--hot)) !important;
+  box-shadow: 0 2px 18px var(--accent-30) !important;
   pointer-events: none !important;
   z-index: 0 !important;
   transition: left 150ms cubic-bezier(0.34,1.56,0.64,1),
-              width 150ms cubic-bezier(0.34,1.56,0.64,1) !important;
+              width 150ms cubic-bezier(0.34,1.56,0.64,1),
+              background 400ms ease !important;
 }
 
 /* 5. Add bottom padding to scrollable views so content doesn't hide behind nav */

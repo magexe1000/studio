@@ -49,7 +49,10 @@ function injectAccentVars(iframe: HTMLIFrameElement, from: string, to: string) {
     // Also paint the sliding nav pill directly so it always reflects the live accent
     // even if CSS variable inheritance is delayed by the browser paint cycle
     const pill = doc?.getElementById('sc-nav-pill');
-    if (pill) pill.style.background = from;
+    if (pill) {
+      pill.style.background = `linear-gradient(135deg, ${from}, ${to})`;
+      pill.style.boxShadow  = `0 2px 18px rgba(${r},${g},${b},0.35)`;
+    }
   } catch { /* cross-origin guard */ }
 }
 
