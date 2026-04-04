@@ -180,66 +180,69 @@ export default function StageCorePanel() {
         <div style={{ flex: 1 }} />
 
         {/* SAVE + tool buttons — only shown on the Stage canvas */}
-        {curView === 'Editor' && <>
+        {curView === 'Editor' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
 
-          {/* ── Tool pills: MEASURE · ZONES · LENGTH · HISTORY ── */}
-          {(
-            [
-              { label: 'Measure', icon: 'straighten',  fn: () => getWin()?.scActivateMeasure?.()   },
-              { label: 'Zones',   icon: 'grid_4x4',    fn: () => getWin()?.scToggleZones?.()       },
-              { label: 'Length',  icon: 'cable',        fn: () => getWin()?.scToggleCableLength?.() },
-              { label: 'History', icon: 'history',      fn: () => getWin()?.openTimelinePanel?.()   },
-            ] as { label: string; icon: string; fn: () => void }[]
-          ).map(({ label, icon, fn }) => (
+            {/* ── Tool pills: MEASURE · ZONES · LENGTH · HISTORY ── */}
+            {(
+              [
+                { label: 'Measure', icon: 'straighten',  fn: () => getWin()?.scActivateMeasure?.()   },
+                { label: 'Zones',   icon: 'grid_4x4',    fn: () => getWin()?.scToggleZones?.()       },
+                { label: 'Length',  icon: 'cable',        fn: () => getWin()?.scToggleCableLength?.() },
+                { label: 'History', icon: 'history',      fn: () => getWin()?.openTimelinePanel?.()   },
+              ] as { label: string; icon: string; fn: () => void }[]
+            ).map(({ label, icon, fn }) => (
+              <button
+                key={label}
+                onClick={fn}
+                title={label}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 32, height: 32,
+                  background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)',
+                  color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(180,185,200,0.75)',
+                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
+                  borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>
+              </button>
+            ))}
+
+            {/* ── Save preset ── */}
             <button
-              key={label}
-              onClick={fn}
-              title={label}
+              onClick={() => getWin()?.openPresetsPanel?.()}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                background: `${accent.from}22`, color: accent.from,
+                border: `1px solid ${accent.from}44`, borderRadius: 100,
+                padding: '5px 11px', fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+                textTransform: 'uppercase', cursor: 'pointer',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 13, lineHeight: 1 }}>layers</span>
+              Save
+            </button>
+
+            {/* ── PDF export ── */}
+            <button
+              onClick={() => getWin()?.switchView?.('Export')}
+              title="Export to PDF"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 32, height: 32,
-                background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)',
-                color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(180,185,200,0.75)',
+                background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+                color: isLight ? 'rgba(0,0,0,0.5)' : 'rgba(180,185,200,0.7)',
                 border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
-                borderRadius: 8, cursor: 'pointer', flexShrink: 0,
+                borderRadius: '50%', cursor: 'pointer',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>picture_as_pdf</span>
             </button>
-          ))}
 
-          {/* ── Save preset ── */}
-          <button
-            onClick={() => getWin()?.openPresetsPanel?.()}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              background: `${accent.from}22`, color: accent.from,
-              border: `1px solid ${accent.from}44`, borderRadius: 8,
-              padding: '5px 11px', fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-              textTransform: 'uppercase', cursor: 'pointer',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 13, lineHeight: 1 }}>layers</span>
-            Save
-          </button>
-
-          {/* ── PDF export ── */}
-          <button
-            onClick={() => getWin()?.switchView?.('Export')}
-            title="Export to PDF"
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 32, height: 32,
-              background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
-              color: isLight ? 'rgba(0,0,0,0.5)' : 'rgba(180,185,200,0.7)',
-              border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
-              borderRadius: 8, cursor: 'pointer',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>picture_as_pdf</span>
-          </button>
-        </>}
+          </div>
+        )}
       </div>
 
       {/* Stage Core iframe fills remaining space */}
