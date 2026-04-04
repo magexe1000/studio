@@ -90,6 +90,7 @@ export default function StageCorePanel() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { settings } = useChordStore();
   const [curView, setCurView] = useState<string>('Editor');
+  const [fabTapped, setFabTapped] = useState(false);
 
   // Detect landscape orientation — collapses the React header bar so the
   // Stagex canvas gets full screen in landscape while on the Stage Editor.
@@ -151,6 +152,19 @@ export default function StageCorePanel() {
       injectAccentVars(iframe, accent.from, accent.to);
       injectTheme(iframe, stageVis.theme ?? 'dark');
       injectAmoled(iframe, isAmoled);
+      // Hide iframe's own FAB + nav bar — React renders replacements in the parent frame
+      try {
+        const doc = iframe.contentDocument;
+        if (doc) {
+          let s = doc.getElementById('react-overlay-hide');
+          if (!s) {
+            s = doc.createElement('style');
+            s.id = 'react-overlay-hide';
+            s.textContent = '#sc-fab-btn { visibility: hidden !important; } #mobile-nav-bar { visibility: hidden !important; }';
+            doc.head.appendChild(s);
+          }
+        }
+      } catch {}
       // Register view-change callback so React knows when to show/hide back button
       try {
         (iframe.contentWindow as StageWin).__onViewChange = (view: string) => setCurView(view);
@@ -324,18 +338,13 @@ export default function StageCorePanel() {
           allow="clipboard-write"
         />
 
-        {/* ── FAB touch proxy ── */}
+        {/* ── React FAB — replaces the iframe's FAB for reliable touch on Android ── */}
         {curView === 'Editor' && (
           <button
-            onPointerDown={(e) => {
-              e.currentTarget.style.transform = 'scale(0.88)';
-            }}
-            onPointerUp={(e) => {
-              e.currentTarget.style.transform = '';
+            onClick={() => {
+              setFabTapped(true);
+              setTimeout(() => setFabTapped(false), 300);
               callIframe('toggleSCDial');
-            }}
-            onPointerCancel={(e) => {
-              e.currentTarget.style.transform = '';
             }}
             aria-label="Add instrument"
             style={{
@@ -345,56 +354,86 @@ export default function StageCorePanel() {
               width: 50,
               height: 50,
               borderRadius: '50%',
-              background: 'transparent',
+              background: fabTapped
+                ? `linear-gradient(135deg, ${accent.to}, ${accent.from})`
+                : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
               border: 'none',
               zIndex: 10,
               cursor: 'pointer',
               WebkitTapHighlightColor: 'transparent',
               touchAction: 'manipulation',
-              transition: 'transform 120ms cubic-bezier(0.34,1.56,0.64,1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: `0 4px 24px ${accent.from}80, 0 2px 8px rgba(0,0,0,0.3)`,
               padding: 0,
+              transition: 'transform 120ms cubic-bezier(0.34,1.56,0.64,1)',
             }}
-          />
+          >
+            <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 24, lineHeight: 1 }}>add</span>
+          </button>
         )}
 
-        {/* ── Nav bar touch proxies ── */}
+        {/* ── React Nav Bar — replaces the iframe's nav for reliable touch on Android ── */}
         <div style={{
           position: 'absolute',
           bottom: 0,
-          left: 0,
-          right: 0,
-          height: 56,
+          left: 8,
+          right: 8,
+          height: 52,
           display: 'flex',
           zIndex: 10,
-          pointerEvents: 'none',
+          borderRadius: 999,
+          background: isLight ? 'rgba(230,230,228,0.95)' : 'rgba(38,38,38,0.95)',
+          overflow: 'hidden',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          marginBottom: 6,
         }}>
-          {[
-            { view: 'Editor', label: 'Stage' },
-            { view: 'Setup', label: 'Setup' },
-            { view: 'Preferences', label: 'Preferences' },
-          ].map(({ view, label }) => (
-            <button
-              key={view}
-              onClick={() => {
-                if (view === 'Setup') {
-                  callIframe('activateSetup');
-                } else {
-                  callIframe('switchView', view);
-                }
-              }}
-              aria-label={label}
-              style={{
-                flex: 1,
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                pointerEvents: 'auto',
-                WebkitTapHighlightColor: 'transparent',
-                touchAction: 'manipulation',
-                padding: 0,
-              }}
-            />
-          ))}
+          {([
+            { view: 'Editor', label: 'STAGE', icon: 'grid_view' },
+            { view: 'Setup', label: 'SETUP', icon: 'folder_open' },
+            { view: 'Preferences', label: 'PREFERENCES', icon: 'tune' },
+          ] as { view: string; label: string; icon: string }[]).map(({ view, label, icon }) => {
+            const isActive = (view === 'Editor' && curView === 'Editor') ||
+                             (view === 'Setup' && ['SetupHub','Rider','Setlist','Gear','Members'].includes(curView)) ||
+                             (view === 'Preferences' && curView === 'Preferences');
+            return (
+              <button
+                key={view}
+                onClick={() => {
+                  if (view === 'Setup') {
+                    callIframe('activateSetup');
+                  } else {
+                    callIframe('switchView', view);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 3,
+                  background: isActive
+                    ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
+                    : 'transparent',
+                  border: 'none',
+                  borderRadius: 999,
+                  cursor: 'pointer',
+                  color: isActive ? '#fff' : (isLight ? '#888' : 'rgba(255,255,255,0.45)'),
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                  padding: '8px 4px',
+                  margin: 4,
+                  transition: 'background 200ms ease, color 200ms ease',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 20, lineHeight: 1 }}>{icon}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.5 }}>{label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
