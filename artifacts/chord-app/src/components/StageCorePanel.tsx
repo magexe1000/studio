@@ -214,17 +214,16 @@ export default function StageCorePanel() {
             {/* ── Save preset ── */}
             <button
               onClick={() => getWin()?.openPresetsPanel?.()}
+              title="Presets"
               style={{
-                display: 'flex', alignItems: 'center', gap: 5,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 32, height: 32,
                 background: `${accent.from}22`, color: accent.from,
-                border: `1px solid ${accent.from}44`, borderRadius: 100,
-                padding: '5px 11px', fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-                textTransform: 'uppercase', cursor: 'pointer',
+                border: `1px solid ${accent.from}44`, borderRadius: '50%',
+                cursor: 'pointer', flexShrink: 0,
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 13, lineHeight: 1 }}>layers</span>
-              Save
+              <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>save</span>
             </button>
 
             {/* ── PDF export ── */}
