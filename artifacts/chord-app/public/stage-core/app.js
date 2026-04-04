@@ -838,9 +838,16 @@ function switchView(view) {
   if (expSheet)  { expSheet.style.display = 'none'; }
   if (document.getElementById('mob-exp-set-btn'))
     document.getElementById('mob-exp-set-btn').classList.remove('active');
-  // Completely hide the bottom nav bar in Export view; restore it on any other view
+  // Completely hide the bottom nav bar in Export view; restore it on any other view.
+  // Must use setProperty('display','none','important') because the nav CSS uses display:flex !important
   var mobileNav = document.getElementById('mobile-nav-bar');
-  if (mobileNav) mobileNav.style.display = isExport ? 'none' : '';
+  if (mobileNav) {
+    if (isExport) {
+      mobileNav.style.setProperty('display', 'none', 'important');
+    } else {
+      mobileNav.style.removeProperty('display');
+    }
+  }
 }
 
 // ── Mobile sidebar helpers ──────────────────────────────────
