@@ -532,6 +532,9 @@ header { display: none !important; }
 .rd-card-icon { font-size: 18px !important; color: var(--accent, #7aafff); }
 .rd-card-title { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 800; color: #e0e0e0; margin: 0; letter-spacing: -0.01em; }
 .rd-card .sc-table-scroll { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; }
+.rd-notes-textarea { font-family: 'Inter', sans-serif; font-size: 13px; color: #5a5a59; line-height: 1.65; background: transparent; border: none; width: 100%; box-sizing: border-box; resize: vertical; min-height: 96px; outline: none; padding: 0; }
+.rd-notes-textarea:focus { color: #8a8a89; }
+.rd-notes-textarea::placeholder { color: #333; }
 
 /* ═══════════════════════════════════════════════════════════════════
    DRAG & DROP — setlist reorder
@@ -1991,19 +1994,13 @@ header { display: none !important; }
   </button>
   <div class="sc-section-wrap">
 
-    <!-- Header — editorial left-accent style -->
-    <div class="rd-header-block">
-      <p class="rd-eyebrow">Technical Rider</p>
-      <h1 class="sc-section-title">Rider</h1>
-      <div class="rd-header-meta">
-        <span id="rider-rev">Rev 2.4</span>
-        <span style="color:#333;">·</span>
-        <span id="rider-date-val"></span>
-        <div class="rd-draft-badge">
-          <span class="rd-draft-dot"></span>
-          <span>Draft Mode</span>
-        </div>
+    <!-- Header — logo + section name only -->
+    <div style="margin-bottom:18px;">
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+        <span class="material-symbols-outlined" style="font-size:13px;color:#555;line-height:1;">grid_view</span>
+        <span style="font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;color:#555;letter-spacing:-0.01em;">Chordex ·</span>
       </div>
+      <h1 class="sc-section-title">Rider</h1>
     </div>
 
     <!-- Stats + Action buttons row -->
@@ -2019,9 +2016,6 @@ header { display: none !important; }
       <div class="rd-actions">
         <button onclick="generateInputListFromStage()" class="rd-btn rd-btn--hot" title="Auto-populate from stage elements">
           <span class="material-symbols-outlined" style="font-size:14px;">bolt</span>From Stage
-        </button>
-        <button onclick="addRiderNeed()" class="rd-btn rd-btn--ghost">
-          <span class="material-symbols-outlined" style="font-size:14px;">add</span>Add Need
         </button>
       </div>
     </div>
@@ -2060,7 +2054,10 @@ header { display: none !important; }
     <div class="rd-card">
       <div class="rd-card-header">
         <span class="material-symbols-outlined rd-card-icon">checklist</span>
-        <h3 class="rd-card-title">Technical Requirements</h3>
+        <h3 class="rd-card-title" style="flex:1;">Technical Requirements</h3>
+        <button onclick="addRiderNeed()" class="rd-btn rd-btn--ghost" style="padding:6px 12px;font-size:9px;">
+          <span class="material-symbols-outlined" style="font-size:13px;">add</span>Add Need
+        </button>
       </div>
       <div id="rider-needs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
@@ -2071,12 +2068,12 @@ header { display: none !important; }
         <span class="material-symbols-outlined rd-card-icon">description</span>
         <h3 class="rd-card-title">Technical Notes</h3>
       </div>
-      <p style="font-family:'Inter';font-size:13px;color:#5a5a59;line-height:1.65;margin:0 0 8px;">
-        Artist provides all instruments, IEM transmitters, and playback rack. Venue supplies microphones, stands, and XLR cabling. PA must sustain 105 dB continuous at FOH.
-      </p>
-      <p style="font-family:'Inter';font-size:13px;color:#5a5a59;line-height:1.65;margin:0;">
-        Front-fills mandatory for the first 3 rows. All wireless systems must be frequency-coordinated before load-in.
-      </p>
+      <textarea id="rider-notes-text" class="rd-notes-textarea"
+        placeholder="Add technical notes, venue requirements, hospitality requests…"
+        oninput="if(typeof markAutosaveDirty==='function')markAutosaveDirty()"
+      >Artist provides all instruments, IEM transmitters, and playback rack. Venue supplies microphones, stands, and XLR cabling. PA must sustain 105 dB continuous at FOH.
+
+Front-fills mandatory for the first 3 rows. All wireless systems must be frequency-coordinated before load-in.</textarea>
     </div>
 
   </div>
