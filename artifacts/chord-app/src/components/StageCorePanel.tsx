@@ -92,10 +92,10 @@ export default function StageCorePanel() {
   }, [getWin]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#0a0a0e' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#0e0e0e' }}>
 
       {/* Safe-area spacer */}
-      <div style={{ height: 'env(safe-area-inset-top)', background: '#0a0a0e', flexShrink: 0 }} />
+      <div style={{ height: 'env(safe-area-inset-top)', background: '#0e0e0e', flexShrink: 0 }} />
 
       {/* 52px header bar */}
       <div style={{
@@ -104,7 +104,7 @@ export default function StageCorePanel() {
         display: 'flex',
         alignItems: 'center',
         padding: '10px 14px 0',
-        background: '#0a0a0e',
+        background: '#0e0e0e',
         gap: 8,
       }}>
 
