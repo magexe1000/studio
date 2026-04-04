@@ -8,13 +8,17 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
   const ref = useRef<HTMLDivElement>(null);
 
   const appKey = settings.appMode ?? 'chords';
-  const activeVis = settings.perApp?.[appKey as keyof typeof settings.perApp] ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
+  const activeVis = settings.perApp?.[appKey as keyof typeof settings.perApp] ?? {
+    theme:       settings.theme       ?? 'dark',
+    accentColor: settings.accentColor ?? 'blue',
+    amoledMode:  settings.amoledMode  ?? false,
+  };
   const isLight = (activeVis as { theme: string }).theme === 'light' ||
     ((activeVis as { theme: string }).theme === 'system' && typeof window !== 'undefined' &&
      window.matchMedia('(prefers-color-scheme: light)').matches);
   const resolvedColor = color ?? (isLight ? '#18181b' : '#d4d4d8');
 
-  const accentKey = (settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
+  const accentKey = ((activeVis as { accentColor?: string }).accentColor ?? settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
   const accent = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
 
   useEffect(() => {
