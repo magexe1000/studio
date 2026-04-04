@@ -246,7 +246,7 @@ export default function StageCorePanel() {
         ref={iframeRef}
         src={iframeSrc}
         title="Stagex"
-        style={{ flex: 1, width: '100%', border: 'none', display: 'block' }}
+        style={{ flex: 1, width: '100%', border: 'none', display: 'block', backgroundColor: stageBg }}
         allow="clipboard-write"
       />
     </div>

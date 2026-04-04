@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
@@ -128,9 +128,17 @@ export default function App() {
   useEffect(() => {
     if (settings.appMode === 'drums'  && prevAppMode.current !== 'drums')  fireSplash(setDrumSplash);
     if (settings.appMode === 'chords' && prevAppMode.current !== 'chords') fireSplash(setChordexSplash);
-    if (settings.appMode === 'stage'  && prevAppMode.current !== 'stage')  fireSplash(setStageSplash);
     prevAppMode.current = settings.appMode;
     return () => splashTimers.current.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.appMode]);
+
+  // Stage splash fires in a layout effect so it appears in the very first paint
+  // when entering Stagex — prevents the iframe's white-loading-background from flashing.
+  useLayoutEffect(() => {
+    if (settings.appMode === 'stage' && prevAppMode.current !== 'stage') {
+      fireSplash(setStageSplash);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.appMode]);
 
@@ -270,9 +278,13 @@ export default function App() {
 
   // ── Stage Core mode: full-screen iframe wrapper ─────────────────────────
   if (settings.appMode === 'stage') {
+    const stageIsAmoled = activeVis.amoledMode;
+    const stageIsLight  = activeVis.theme === 'light';
+    const stageBgColor  = stageIsAmoled ? '#000000' : stageIsLight ? '#f2f1ef' : '#0e0e0e';
     return (
       <div style={{
         position: 'relative', height: '100dvh', overflow: 'hidden',
+        background: stageBgColor,
         animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
         transform: exitingToHub ? 'scale(1.10)' : undefined,
         opacity:   exitingToHub ? 0 : undefined,
@@ -284,7 +296,7 @@ export default function App() {
         {stageSplash !== 'hidden' && (() => {
           const isAmoled = activeVis.amoledMode;
           const isLight  = activeVis.theme === 'light';
-          const splashBg = isAmoled ? '#000000' : isLight ? '#ffffff' : '#0e0e0e';
+          const splashBg = isAmoled ? '#000000' : isLight ? '#f2f1ef' : '#0e0e0e';
           const splashFg = isLight ? '#0e0e0e' : '#ffffff';
           const splashSub = isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.45)';
           return (
