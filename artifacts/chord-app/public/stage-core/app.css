@@ -2666,6 +2666,11 @@ body.share-mode::after {
 }
 
 /* ── Export bottom bar chips ──────────────────────────────── */
+/* Export options drawer open state */
+#exp-options-drawer.exp-options-open {
+  max-height: 300px !important;
+}
+
 .exp-chip {
   display: inline-flex;
   align-items: center;

@@ -4686,6 +4686,60 @@ function toggleExpChip(sectionId, chipId) {
   const isOn = chip.classList.toggle('exp-chip--on');
   const el = document.getElementById(sectionId);
   if (el) el.style.display = isOn ? '' : 'none';
+  // Keep drawer toggle in sync if drawer is open
+  const drawer = document.getElementById('exp-options-drawer');
+  if (drawer && drawer.classList.contains('exp-options-open')) {
+    const map = {
+      'exp-stage-section':   'drw-tog-stage',
+      'exp-input-section':   'drw-tog-input',
+      'exp-notes-section':   'drw-tog-notes',
+      'exp-gear-section':    'drw-tog-gear',
+      'exp-lighting-section':'drw-tog-lighting',
+    };
+    const togId = map[sectionId];
+    if (togId) {
+      const tog = document.getElementById(togId);
+      if (tog) {
+        tog.textContent = isOn ? 'toggle_on' : 'toggle_off';
+        tog.style.color = isOn ? 'var(--accent)' : '#3a3a3a';
+      }
+    }
+  }
+}
+
+// Sync a single drawer row icon from section visibility
+function syncDrawerRow(sectionId, togId) {
+  const sec = document.getElementById(sectionId);
+  const tog = document.getElementById(togId);
+  if (!sec || !tog) return;
+  const isOn = sec.style.display !== 'none';
+  tog.textContent = isOn ? 'toggle_on' : 'toggle_off';
+  tog.style.color = isOn ? 'var(--accent)' : '#3a3a3a';
+}
+
+// Open/close the options drawer and sync all rows on open
+function toggleExportOptions() {
+  const drawer = document.getElementById('exp-options-drawer');
+  const btn    = document.getElementById('exp-opts-btn');
+  if (!drawer) return;
+  const isOpen = drawer.classList.toggle('exp-options-open');
+  if (btn) btn.style.background = isOpen ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)';
+  if (!isOpen) return;
+  // Sync all drawer toggles from current section visibility
+  [
+    ['exp-stage-section',    'drw-tog-stage'],
+    ['exp-input-section',    'drw-tog-input'],
+    ['exp-notes-section',    'drw-tog-notes'],
+    ['exp-gear-section',     'drw-tog-gear'],
+    ['exp-lighting-section', 'drw-tog-lighting'],
+  ].forEach(([secId, togId]) => {
+    const sec = document.getElementById(secId);
+    const tog = document.getElementById(togId);
+    if (!sec || !tog) return;
+    const isOn = sec.style.display !== 'none';
+    tog.textContent = isOn ? 'toggle_on' : 'toggle_off';
+    tog.style.color = isOn ? 'var(--accent)' : '#3a3a3a';
+  });
 }
 
 // ── Export bar scroll-hide wiring ────────────────────────────
@@ -5295,6 +5349,11 @@ function loadSettings() {
 // ══════════════════════════════════════════════════════════
 // ── Export navigation helpers ─────────────────────────────────
 function leaveExport() {
+  // Close options drawer before leaving
+  const drawer = document.getElementById('exp-options-drawer');
+  const btn    = document.getElementById('exp-opts-btn');
+  if (drawer) drawer.classList.remove('exp-options-open');
+  if (btn) btn.style.background = 'rgba(255,255,255,0.05)';
   const target = state.prevView || 'Editor';
   switchView(target);
 }

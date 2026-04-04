@@ -3235,10 +3235,42 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
       <p style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.26em;color:#333;margin:0 0 2px;">Export Preview</p>
       <p id="exp-topbar-name" style="font-family:'Space Grotesk';font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#adaaaa;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Technical Rider</p>
     </div>
+    <button id="exp-opts-btn" onclick="toggleExportOptions()" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);cursor:pointer;border-radius:4px;flex-shrink:0;transition:background 0.15s;" title="Sections" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="if(!document.getElementById('exp-options-drawer').classList.contains('exp-options-open'))this.style.background='rgba(255,255,255,0.05)'">
+      <span class="material-symbols-outlined" style="font-size:16px;color:#767575;">tune</span>
+    </button>
     <button onclick="exportPDF()" style="display:flex;align-items:center;gap:5px;height:30px;padding:0 12px;font-family:'Space Grotesk';font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent);color:var(--accent-dark,#000);border:none;cursor:pointer;border-radius:4px;flex-shrink:0;transition:opacity 0.15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
       <span class="material-symbols-outlined" style="font-size:13px;">picture_as_pdf</span>
       PDF
     </button>
+  </div>
+
+  <!-- Sections options drawer (slides down from top bar) -->
+  <div id="exp-options-drawer" style="flex-shrink:0;overflow:hidden;max-height:0;transition:max-height 0.28s ease;background:#070707;border-bottom:1px solid rgba(255,255,255,0.05);">
+    <div style="padding:10px 14px 14px;">
+      <p style="font-family:'Space Grotesk';font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.3em;color:#282828;margin:0 0 10px;">Include Sections</p>
+      <div style="display:flex;flex-direction:column;gap:0;">
+        <button onclick="toggleExpChip('exp-stage-section','chip-stage');syncDrawerRow('exp-stage-section','drw-tog-stage')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 0;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;text-align:left;">
+          <span style="font-family:'Space Grotesk';font-size:12px;font-weight:600;color:#adaaaa;">Stage Plot</span>
+          <span class="material-symbols-outlined" id="drw-tog-stage" style="font-size:22px;color:var(--accent);transition:color 0.15s;">toggle_on</span>
+        </button>
+        <button onclick="toggleExpChip('exp-input-section','chip-input');syncDrawerRow('exp-input-section','drw-tog-input')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 0;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;text-align:left;">
+          <span style="font-family:'Space Grotesk';font-size:12px;font-weight:600;color:#adaaaa;">Input List</span>
+          <span class="material-symbols-outlined" id="drw-tog-input" style="font-size:22px;color:var(--accent);transition:color 0.15s;">toggle_on</span>
+        </button>
+        <button onclick="toggleExpChip('exp-notes-section','chip-notes');syncDrawerRow('exp-notes-section','drw-tog-notes')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 0;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;text-align:left;">
+          <span style="font-family:'Space Grotesk';font-size:12px;font-weight:600;color:#adaaaa;">Technical Notes</span>
+          <span class="material-symbols-outlined" id="drw-tog-notes" style="font-size:22px;color:var(--accent);transition:color 0.15s;">toggle_on</span>
+        </button>
+        <button onclick="toggleExpChip('exp-gear-section','chip-gear');syncDrawerRow('exp-gear-section','drw-tog-gear')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 0;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;text-align:left;">
+          <span style="font-family:'Space Grotesk';font-size:12px;font-weight:600;color:#adaaaa;">Gear / Load-In</span>
+          <span class="material-symbols-outlined" id="drw-tog-gear" style="font-size:22px;color:var(--accent);transition:color 0.15s;">toggle_on</span>
+        </button>
+        <button onclick="toggleExpChip('exp-lighting-section','chip-lighting');syncDrawerRow('exp-lighting-section','drw-tog-lighting')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 0;background:transparent;border:none;cursor:pointer;text-align:left;">
+          <span style="font-family:'Space Grotesk';font-size:12px;font-weight:600;color:#adaaaa;">Lighting Rider</span>
+          <span class="material-symbols-outlined" id="drw-tog-lighting" style="font-size:22px;color:#3a3a3a;transition:color 0.15s;">toggle_off</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Full-width scrollable document preview -->
@@ -4111,7 +4143,7 @@ window.addEventListener('message', function(e) {
   }
 
   // Attach to every scrollable view container and the preferences scroll
-  ['Rider', 'Setlist', 'Gear', 'Members'].forEach(function (v) {
+  ['Rider', 'Setlist', 'Gear', 'Members', 'SetupHub'].forEach(function (v) {
     attachScrollHide(document.getElementById('view-' + v));
   });
   attachScrollHide(document.querySelector('.sc-prefs-scroll'));
