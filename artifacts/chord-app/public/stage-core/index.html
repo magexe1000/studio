@@ -857,6 +857,157 @@ textarea.sng-input { line-height:1.5; }
   animation: sl-val-pop 420ms cubic-bezier(0.34,1.2,0.64,1) both;
   animation-delay: 80ms;
 }
+
+/* ═══════════════════════════════════════════════════════
+   LIGHT THEME  — applied when html[data-theme="light"]
+═══════════════════════════════════════════════════════ */
+html[data-theme="light"],
+html[data-theme="light"] body {
+  background: #f5f5f7 !important;
+  color: #0e0e0e !important;
+}
+
+/* ── Base surfaces ── */
+html[data-theme="light"] #canvas-container { background: #f5f5f7 !important; }
+html[data-theme="light"] .scrollable-view  { background: #f5f5f7 !important; }
+html[data-theme="light"] .view-page        { background: #f5f5f7 !important; }
+html[data-theme="light"] #view-Assistant   { background: #f5f5f7 !important; }
+html[data-theme="light"] header            { background: #f5f5f7 !important; border-bottom: 1px solid rgba(0,0,0,0.07) !important; }
+
+/* ── Stage viewport & canvas ── */
+html[data-theme="light"] #stage-viewport   { background: #f0f0f2 !important; }
+
+/* ── Bottom nav bar ── */
+html[data-theme="light"] #mobile-nav-bar {
+  background: rgba(245,245,247,0.97) !important;
+  border: 1px solid rgba(0,0,0,0.09) !important;
+}
+html[data-theme="light"] .mob-tab          { color: #888 !important; }
+html[data-theme="light"] .mob-tab .sc-nav-icon { color: #888 !important; }
+html[data-theme="light"] .mob-tab.active   { color: #0e0e0e !important; background: rgba(0,0,0,0.06) !important; }
+html[data-theme="light"] #sc-nav-pill      { background: #0e0e0e !important; }
+
+/* ── Vertical toolbar ── */
+html[data-theme="light"] #sc-vtools-toggle {
+  background: rgba(245,245,247,0.96) !important;
+  border-color: rgba(0,0,0,0.10) !important;
+  color: #555 !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+}
+html[data-theme="light"] #sc-vtools-body {
+  background: rgba(245,245,247,0.96) !important;
+  border-color: rgba(0,0,0,0.10) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+}
+html[data-theme="light"] .sc-vtool-btn         { color: #555 !important; }
+html[data-theme="light"] .sc-vtool-btn:hover   { color: #0e0e0e !important; background: rgba(0,0,0,0.06) !important; }
+html[data-theme="light"] .sc-vtool-sep         { background: rgba(0,0,0,0.08) !important; }
+
+/* ── Mobile category bar & element tray ── */
+html[data-theme="light"] #mobile-cat-bar {
+  background: rgba(245,245,247,0.97) !important;
+  border-top: 1px solid rgba(0,0,0,0.08) !important;
+}
+html[data-theme="light"] #mobile-el-tray {
+  background: rgba(250,250,252,0.99) !important;
+  border-top: 1px solid rgba(0,0,0,0.08) !important;
+}
+html[data-theme="light"] .mob-cat-btn         { color: #555 !important; }
+html[data-theme="light"] .mob-cat-btn.active  { color: var(--accent) !important; }
+html[data-theme="light"] .mob-el-item         { background: #fff !important; border-color: rgba(0,0,0,0.09) !important; color: #333 !important; }
+html[data-theme="light"] .mob-el-item:active  { background: rgba(0,0,0,0.05) !important; }
+
+/* ── Section headers & text ── */
+html[data-theme="light"] .sc-section-title    { color: #0e0e0e !important; }
+html[data-theme="light"] .sc-prefs-section-label .sc-sec-icon { color: #888 !important; }
+html[data-theme="light"] .sc-prefs-section-label .sc-sec-text { color: #888 !important; }
+
+/* ── Preferences cards ── */
+html[data-theme="light"] .sc-prefs-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.07);
+}
+html[data-theme="light"] .sc-prefs-row        { border-bottom-color: rgba(0,0,0,0.06) !important; }
+html[data-theme="light"] .sc-prefs-row-label  { color: #0e0e0e !important; }
+html[data-theme="light"] .sc-prefs-row-hint   { color: #888 !important; }
+html[data-theme="light"] .sc-prefs-chip {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.10) !important;
+  color: #555 !important;
+}
+html[data-theme="light"] .sc-prefs-chip.active { background: var(--accent-12) !important; border-color: var(--accent-30) !important; color: var(--accent) !important; }
+
+/* ── Rider ── */
+html[data-theme="light"] .rd-eyebrow         { color: #999 !important; }
+html[data-theme="light"] .rd-header-meta     { color: #999 !important; }
+html[data-theme="light"] .rd-draft-badge     { background: rgba(0,0,0,0.04) !important; border-color: rgba(0,0,0,0.08) !important; }
+html[data-theme="light"] .rd-stat-block      { background: #ffffff !important; border-color: rgba(0,0,0,0.08) !important; }
+html[data-theme="light"] .rd-stat-label      { color: #999 !important; }
+html[data-theme="light"] .rd-stat-val        { color: #0e0e0e !important; }
+html[data-theme="light"] .rd-card            { background: #ffffff !important; box-shadow: 0 1px 8px rgba(0,0,0,0.07); }
+html[data-theme="light"] .rd-card-title      { color: #0e0e0e !important; }
+html[data-theme="light"] .rd-card .sc-table-scroll { background: #f5f5f7 !important; border-color: rgba(0,0,0,0.07) !important; }
+html[data-theme="light"] .rd-notes-textarea  { color: #555 !important; }
+html[data-theme="light"] .rd-notes-textarea:focus { color: #0e0e0e !important; }
+html[data-theme="light"] .rd-notes-textarea::placeholder { color: #bbb !important; }
+html[data-theme="light"] .rd-btn--ghost      { background: rgba(0,0,0,0.04) !important; color: #555 !important; border-color: rgba(0,0,0,0.10) !important; }
+
+/* ── Rider title ── */
+html[data-theme="light"] .rd-big-title       { color: #0e0e0e !important; }
+html[data-theme="light"] [style*="color:#fff"][class*="rd-"] { color: #0e0e0e; }
+
+/* ── Setlist ── */
+html[data-theme="light"] .sl-header-wrap     { background: #f5f5f7 !important; }
+html[data-theme="light"] .sl-section-hdr     { background: rgba(0,0,0,0.03) !important; }
+html[data-theme="light"] .sl-sec-card        { background: #ffffff !important; border-color: rgba(0,0,0,0.08) !important; }
+html[data-theme="light"] .sl-song-title      { color: #0e0e0e !important; }
+html[data-theme="light"] .sl-song-artist     { color: #888 !important; }
+html[data-theme="light"] .sl-drag-handle     { color: #bbb !important; }
+html[data-theme="light"] .sl-chip            { background: rgba(0,0,0,0.05) !important; color: #555 !important; }
+html[data-theme="light"] .sl-notes-txt       { background: rgba(0,0,0,0.03) !important; border-left-color: rgba(0,0,0,0.12) !important; color: #666 !important; }
+html[data-theme="light"] .sl-insight-row     { border-bottom-color: rgba(0,0,0,0.06) !important; }
+html[data-theme="light"] .sl-insight-label   { color: #888 !important; }
+html[data-theme="light"] .sl-insight-val     { color: #0e0e0e !important; }
+html[data-theme="light"] .sl-big-stat-val    { color: #0e0e0e !important; }
+html[data-theme="light"] .sl-big-stat-label  { color: #888 !important; }
+html[data-theme="light"] .sl-insights-card   { background: #ffffff !important; border-color: rgba(0,0,0,0.08) !important; }
+
+/* ── Song add sheet ── */
+html[data-theme="light"] #song-sheet {
+  background: #f5f5f7 !important;
+}
+html[data-theme="light"] #song-sheet-backdrop { background: rgba(0,0,0,0.35) !important; }
+html[data-theme="light"] .sng-label           { color: #888 !important; }
+html[data-theme="light"] .sng-input           { background: #ebebed !important; color: #0e0e0e !important; border: 1px solid rgba(0,0,0,0.08) !important; }
+html[data-theme="light"] .sng-section-pill    { background: rgba(0,0,0,0.04) !important; border-color: rgba(0,0,0,0.10) !important; color: #555 !important; }
+html[data-theme="light"] .sng-btn-cancel      { background: rgba(0,0,0,0.06) !important; color: #555 !important; }
+
+/* ── Lib / side panels ── */
+html[data-theme="light"] #lib-panel {
+  background: #f0f0f2 !important;
+  border-right: 1px solid rgba(0,0,0,0.08) !important;
+}
+html[data-theme="light"] #properties-panel {
+  background: #f0f0f2 !important;
+  border-color: rgba(0,0,0,0.10) !important;
+}
+html[data-theme="light"] #layer-panel {
+  background: #ffffff !important;
+  border-color: rgba(0,0,0,0.10) !important;
+}
+
+/* ── Setup hub & back button ── */
+html[data-theme="light"] .sc-back-btn        { color: #555 !important; }
+html[data-theme="light"] .sc-back-btn:hover  { color: #0e0e0e !important; }
+html[data-theme="light"] .sc-action-btn--ghost { background: rgba(0,0,0,0.05) !important; color: #555 !important; border-color: rgba(0,0,0,0.10) !important; }
+
+/* ── Status bar & misc text ── */
+html[data-theme="light"] #status-bar         { background: #f0f0f2 !important; color: #888 !important; border-top-color: rgba(0,0,0,0.07) !important; }
+html[data-theme="light"] #mode-pill          { background: rgba(0,0,0,0.07) !important; color: #555 !important; }
+html[data-theme="light"] .connect-banner     { background: rgba(0,0,0,0.75) !important; }
+
+/* ── "Drag elements here" placeholder on stage ── */
+html[data-theme="light"] #stage-empty-state  { color: #bbb !important; }
 </style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden select-none" style="height:100vh;">

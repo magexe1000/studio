@@ -49,6 +49,18 @@ function injectAccentVars(iframe: HTMLIFrameElement, from: string, to: string) {
   } catch { /* cross-origin guard */ }
 }
 
+function injectTheme(iframe: HTMLIFrameElement, theme: string) {
+  try {
+    const root = iframe.contentDocument?.documentElement;
+    if (!root) return;
+    if (theme === 'light') {
+      root.setAttribute('data-theme', 'light');
+    } else {
+      root.removeAttribute('data-theme');
+    }
+  } catch { /* cross-origin guard */ }
+}
+
 export default function StageCorePanel() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { settings } = useChordStore();
@@ -73,13 +85,14 @@ export default function StageCorePanel() {
     catch { return null; }
   }, []);
 
-  // Register __onViewChange callback and inject accent vars on iframe load
+  // Register __onViewChange callback and inject accent vars + theme on iframe load
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
     const handleLoad = () => {
       try { iframe.contentWindow?.postMessage('stage-core-ping', '*'); } catch {}
       injectAccentVars(iframe, accent.from, accent.to);
+      injectTheme(iframe, stageVis.theme ?? 'dark');
       // Register view-change callback so React knows when to show/hide back button
       try {
         (iframe.contentWindow as StageWin).__onViewChange = (view: string) => setCurView(view);
@@ -87,14 +100,15 @@ export default function StageCorePanel() {
     };
     iframe.addEventListener('load', handleLoad);
     return () => iframe.removeEventListener('load', handleLoad);
-  }, [accent.from, accent.to]);
+  }, [accent.from, accent.to, stageVis.theme]);
 
-  // Re-inject accent vars whenever accent changes (after iframe is loaded)
+  // Re-inject accent vars + theme whenever they change (after iframe is loaded)
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
     injectAccentVars(iframe, accent.from, accent.to);
-  }, [accent.from, accent.to]);
+    injectTheme(iframe, stageVis.theme ?? 'dark');
+  }, [accent.from, accent.to, stageVis.theme]);
 
   // Register global back handler (OS back gesture / Android back button)
   useEffect(() => {
@@ -149,7 +163,7 @@ export default function StageCorePanel() {
         </div>
 
         {/* App mode logo — shifts right as back button slides in */}
-        <AppModeMenuLogo color="rgba(255,255,255,0.90)" size={13} />
+        <AppModeMenuLogo color={isLight ? 'rgba(0,0,0,0.80)' : 'rgba(255,255,255,0.90)'} size={13} />
 
         <div style={{ flex: 1 }} />
 
@@ -176,9 +190,10 @@ export default function StageCorePanel() {
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 32, height: 32,
-              background: 'rgba(255,255,255,0.06)', color: 'rgba(180,185,200,0.7)',
-              border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8,
-              cursor: 'pointer',
+              background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+              color: isLight ? 'rgba(0,0,0,0.5)' : 'rgba(180,185,200,0.7)',
+              border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
+              borderRadius: 8, cursor: 'pointer',
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>picture_as_pdf</span>
