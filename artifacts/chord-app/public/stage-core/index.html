@@ -171,13 +171,23 @@
 .sc-prefs-scroll::-webkit-scrollbar-thumb { background: var(--accent-14); border-radius: 2px; }
 
 .sc-prefs-section-label {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 0 12px;
+}
+.sc-prefs-section-label .sc-sec-icon {
+  font-size: 16px;
+  color: #acabaa;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+.sc-prefs-section-label .sc-sec-text {
+  font-family: 'Manrope', 'Space Grotesk', sans-serif;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--accent, #7aafff);
-  margin: 0 0 8px 4px;
+  letter-spacing: 0.2em;
+  color: #acabaa;
 }
 .sc-prefs-card {
   background: rgba(255,255,255,0.04);
@@ -2375,7 +2385,7 @@ header { display: none !important; }
 <div id="view-Assistant" class="view-page" style="display:none;height:100vh;box-sizing:border-box;flex-direction:column;background:#0e0e0e;">
 
   <!-- Preferences header -->
-  <div style="padding:16px 22px 10px;flex-shrink:0;">
+  <div style="padding:8px 22px 10px;flex-shrink:0;">
     <h1 style="font-family:'Space Grotesk',sans-serif;font-size:2.8rem;font-weight:800;letter-spacing:-0.04em;color:#fff;margin:0;line-height:1;">Preferences</h1>
     <p style="font-family:'Inter',sans-serif;font-size:12px;color:#484847;margin:6px 0 0;">Customize your Stage Core experience.</p>
   </div>
@@ -2384,7 +2394,10 @@ header { display: none !important; }
   <div class="sc-prefs-scroll">
 
     <!-- ── APPEARANCE ── -->
-    <p class="sc-prefs-section-label" style="margin-top:18px;">Appearance</p>
+    <div class="sc-prefs-section-label">
+      <span class="material-symbols-outlined sc-sec-icon">palette</span>
+      <span class="sc-sec-text">Appearance</span>
+    </div>
     <div class="sc-prefs-card">
       <!-- Canvas Background -->
       <div class="sc-prefs-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
@@ -2422,7 +2435,10 @@ header { display: none !important; }
     </div>
 
     <!-- ── CANVAS ── -->
-    <p class="sc-prefs-section-label" data-i18n="settingsGridSize">Canvas</p>
+    <div class="sc-prefs-section-label">
+      <span class="material-symbols-outlined sc-sec-icon">grid_on</span>
+      <span class="sc-sec-text">Canvas</span>
+    </div>
     <div class="sc-prefs-card">
       <!-- Grid Size -->
       <div class="sc-prefs-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
@@ -2471,7 +2487,10 @@ header { display: none !important; }
     </div>
 
     <!-- ── EDITOR ── -->
-    <p class="sc-prefs-section-label">Editor</p>
+    <div class="sc-prefs-section-label">
+      <span class="material-symbols-outlined sc-sec-icon">edit</span>
+      <span class="sc-sec-text">Editor</span>
+    </div>
     <div class="sc-prefs-card">
       <!-- Element Labels -->
       <div class="sc-prefs-row">
@@ -2500,7 +2519,10 @@ header { display: none !important; }
     </div>
 
     <!-- ── EXPORT ── -->
-    <p class="sc-prefs-section-label">Export</p>
+    <div class="sc-prefs-section-label">
+      <span class="material-symbols-outlined sc-sec-icon">picture_as_pdf</span>
+      <span class="sc-sec-text">Export</span>
+    </div>
     <div class="sc-prefs-card">
       <!-- Last Updated -->
       <div class="sc-prefs-row">
