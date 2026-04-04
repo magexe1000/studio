@@ -240,14 +240,14 @@
 @media (max-width: 767px) {
   /* Canvas fills from top — header is gone, no more 64px gap */
   #canvas-container { top: 0 !important; }
-  /* Push stage viewport down to clear the toolbar row (40px) + React overlay */
-  #stage-viewport { padding-top: 58px !important; }
-  /* Toolbar row 1: zoom/tools near top, clearing the React overlay (ends ~40px) */
+  /* Push stage viewport down to clear the toolbar (52px top + ~36px height + gap) */
+  #stage-viewport { padding-top: 96px !important; }
+  /* Toolbar sits BELOW the Stagex app-switch logo row (~38px tall) */
   #bottom-toolbar {
-    top: 10px !important;
+    top: 52px !important;
   }
-  /* Action bar (SAVE + PDF) sits below the toolbar row so they don't overlap */
-  #rider-action-bar { top: 54px !important; }
+  /* SAVE + PDF stay true top-right — same row as the Stagex logo, right side */
+  #rider-action-bar { top: 10px !important; }
   /* Lift element-category bar above the nav pill (pill height ~62px + 10px bottom + 10px gap) */
   #mobile-cat-bar {
     bottom: 82px !important;
