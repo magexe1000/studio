@@ -22,7 +22,7 @@ const state = {
   navOrder: ['Editor','Rider','Setlist','Gear','Members'],
   gridSize: 80,
   canvasBg: '#1a1a1a',
-  showStatusBar: true,
+  showStatusBar: false,
   labelsVisible: true,
   connLineStyle: 'solid',
   reducedAnimations: false,
@@ -4259,7 +4259,7 @@ function setAutosaveUI(mode) {
   if (mode === 'off') {
     dot.className = '';
     dot.innerHTML = '';
-    dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:#ff4646;flex-shrink:0;transition:background 0.2s,box-shadow 0.2s;box-shadow:none;';
+    dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:#484847;flex-shrink:0;transition:background 0.2s,box-shadow 0.2s;box-shadow:none;';
     lbl.textContent = 'AUTOSAVE: OFF';
     lbl.style.color = '#484847';
   } else if (mode === 'on') {
@@ -5226,7 +5226,7 @@ function loadSettings() {
     if (Array.isArray(s.navOrder) && s.navOrder.length === 5) state.navOrder = s.navOrder;
     if (s.gridSize) state.gridSize = s.gridSize;
     if (s.canvasBg) state.canvasBg = s.canvasBg;
-    if (s.showStatusBar !== undefined) state.showStatusBar = s.showStatusBar;
+    /* showStatusBar intentionally not restored — always hidden in embedded view */
     if (s.snapToGrid !== undefined) state.snapToGrid = s.snapToGrid;
     if (s.connectionsVisible !== undefined) state.connectionsVisible = s.connectionsVisible;
     if (s.labelsVisible !== undefined) state.labelsVisible = s.labelsVisible;
@@ -6537,7 +6537,7 @@ function _applyCloudData(d) {
   // Presets
   if (Array.isArray(d.presets)) setPresets(d.presets);
   // Settings
-  if (d.showStatusBar           !== undefined) state.showStatusBar           = d.showStatusBar;
+  /* showStatusBar intentionally not restored — always hidden in embedded view */
   if (d.snapToGrid              !== undefined) state.snapToGrid              = d.snapToGrid;
   if (d.connectionsVisible      !== undefined) state.connectionsVisible      = d.connectionsVisible;
   if (d.labelsVisible           !== undefined) state.labelsVisible           = d.labelsVisible;
