@@ -283,7 +283,7 @@ export default function App() {
         {/* Stage Core splash — shown when entering from hub/other app */}
         {stageSplash !== 'hidden' && (
           <div style={{
-            position: 'absolute', inset: 0, zIndex: 500,
+            position: 'absolute', inset: 0, zIndex: 10000,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             background: '#0e0e0e',
             opacity:   stageSplash === 'out' ? 0 : 1,

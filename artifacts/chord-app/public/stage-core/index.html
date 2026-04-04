@@ -156,11 +156,12 @@
 
 /* 14. Preferences view — Chordex-style cards */
 #view-Assistant {
-  padding-top: 0 !important;
+  padding-top: 52px !important;
   background: #0a0a0e !important;
 }
 .sc-prefs-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0 18px 160px;
@@ -237,9 +238,9 @@
 
 /* 11. Reposition toolbar and category bars around the new layout */
 @media (max-width: 767px) {
-  /* Toolbar right below the header */
+  /* Toolbar near the top (header is now hidden; stay clear of React overlay ~40px) */
   #bottom-toolbar {
-    top: 54px !important;
+    top: 14px !important;
   }
   /* Lift element-category bar above the nav pill (pill height ~62px + 10px bottom + 10px gap) */
   #mobile-cat-bar {
@@ -249,6 +250,28 @@
   #mobile-el-tray {
     bottom: 120px !important;
   }
+}
+
+/* 12. Hide the native header bar entirely — React overlay replaces it */
+header { display: none !important; }
+
+/* Views fill the viewport from top now that the header is gone */
+.view-page { top: 0 !important; }
+
+/* Non-editor views: push content below the React AppModeMenuLogo overlay (~40px) */
+#view-Rider, #view-Setlist, #view-Gear, #view-Members, #view-Assistant {
+  padding-top: 52px !important;
+}
+
+/* Rider-only action bar (SAVE + PDF) — shown via JS when on Rider */
+#rider-action-bar {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  right: 14px;
+  z-index: 100;
+  display: none;
+  align-items: center;
+  gap: 8px;
 }
 </style>
 </head>
@@ -739,6 +762,23 @@
   </div>
 </header>
 
+<!-- Rider-only action bar: SAVE + PDF, shown only when Rider view is active -->
+<div id="rider-action-bar">
+  <button onclick="openPresetsPanel()"
+    style="display:flex;align-items:center;gap:5px;background:rgba(255,116,57,0.14);color:#ff7439;border:1px solid rgba(255,116,57,0.28);border-radius:8px;padding:5px 11px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:background 0.15s,border-color 0.15s;"
+    onmouseover="this.style.background='rgba(255,116,57,0.24)';this.style.borderColor='rgba(255,116,57,0.50)'"
+    onmouseout="this.style.background='rgba(255,116,57,0.14)';this.style.borderColor='rgba(255,116,57,0.28)'">
+    <i data-lucide="layers" style="width:12px;height:12px;stroke-width:2.5;flex-shrink:0;"></i>
+    <span data-i18n="saveBtnMob">Save</span>
+  </button>
+  <button onclick="switchView('Export')" title="Export to PDF"
+    style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:rgba(255,255,255,0.06);color:rgba(180,185,200,0.7);border:1px solid rgba(255,255,255,0.10);border-radius:8px;cursor:pointer;transition:background 0.15s,color 0.15s;"
+    onmouseover="this.style.background='rgba(255,255,255,0.12)';this.style.color='rgba(255,255,255,0.95)'"
+    onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(180,185,200,0.7)'">
+    <span class="material-symbols-outlined" style="font-size:16px;line-height:1;">picture_as_pdf</span>
+  </button>
+</div>
+
 <!-- Bottom pill navigation — replaces the old top tabs for all screen sizes -->
 <div id="mobile-nav-bar">
   <div id="sc-nav-pill" style="left:0;width:0;opacity:0;"></div>
@@ -764,7 +804,7 @@
   </button>
   <button class="mob-tab" data-view="Assistant" onclick="switchView('Assistant')">
     <span class="material-symbols-outlined sc-nav-icon">tune</span>
-    <span>Settings</span>
+    <span>Prefs</span>
   </button>
 </div>
 
@@ -2175,7 +2215,7 @@
 <div id="view-Assistant" class="view-page" style="display:none;height:100vh;box-sizing:border-box;flex-direction:column;background:#0a0a0e;">
 
   <!-- Preferences header -->
-  <div style="padding:20px 22px 10px;flex-shrink:0;">
+  <div style="padding:8px 22px 10px;flex-shrink:0;">
     <p style="font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--accent,#7aafff);margin:0 0 4px;">Stagex</p>
     <h1 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:900;letter-spacing:-0.03em;color:#fff;margin:0;line-height:1;">Preferences</h1>
     <p style="font-family:'Inter',sans-serif;font-size:12px;color:#484847;margin:6px 0 0;">Customize your Stage Core experience.</p>
@@ -2904,6 +2944,10 @@ window.addEventListener('message', function(e) {
         }, 280);
       }
     }
+
+    /* Show/hide rider action bar (SAVE + PDF) */
+    var riderBar = document.getElementById('rider-action-bar');
+    if (riderBar) riderBar.style.display = (view === 'Rider') ? 'flex' : 'none';
 
     /* Update pill */
     var nav = document.getElementById('mobile-nav-bar');
