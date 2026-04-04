@@ -34,18 +34,18 @@ export default function ChordDiagram({ data, accentFrom, fretsMulti }: Props) {
   // String thickness (low E = thickest)
   const stringWidths = [1.4, 1.1, 0.85, 0.7, 0.6, 0.5];
 
+  // Fret indicator position as % of SVG dimensions (for HTML overlay)
+  const fretIndTopPct  = ((padT + cellH / 2) / H) * 100;
+  const fretIndLeftPct = (padL / W) * 100;
+
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+    <div style={{ position: 'relative' }}>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
       {/* Fretboard warm background */}
       <rect x={padL} y={padT} width={innerW} height={innerH} rx={2.5} fill="rgba(28,18,8,0.45)" />
       {/* Nut */}
       {showNut && (
         <rect x={padL - 1} y={padT - 3.5} width={innerW + 2} height={3.5} rx={1.5} fill="#888" opacity={0.7} />
-      )}
-      {/* BaseFret number */}
-      {!showNut && (
-        <text x={padL - 3} y={padT + cellH / 2} textAnchor="end" fontSize={8} fill="#6b6b6b"
-          dominantBaseline="middle" fontFamily="Inter" fontWeight="700">{baseFret}</text>
       )}
       {/* Fret lines */}
       {Array.from({ length: numFrets + 1 }).map((_, i) => (
@@ -115,5 +115,29 @@ export default function ChordDiagram({ data, accentFrom, fretsMulti }: Props) {
         return null;
       })}
     </svg>
+    {/* Fret position indicator — pure HTML so it renders crisply and always above SVG dots */}
+    {!showNut && (
+      <span style={{
+        position: 'absolute',
+        left: 0,
+        width: `${fretIndLeftPct}%`,
+        top: `${fretIndTopPct}%`,
+        transform: 'translateY(-50%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        paddingRight: '3px',
+        fontSize: '9px',
+        fontFamily: '"Inter", system-ui, sans-serif',
+        fontWeight: 700,
+        color: '#6b6b6b',
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+        pointerEvents: 'none',
+        userSelect: 'none',
+        zIndex: 2,
+      }}>{baseFret}</span>
+    )}
+    </div>
   );
 }

@@ -44,7 +44,7 @@ const DEFAULT_EXPORT_CONFIG: ExportConfig = {
 };
 
 /* ──────────────────── PDF EXPORT ──────────────────── */
-function buildPrintSVG(data: GuitarChordData, dark = false, accentColor = '#679cff', scale = 1): string {
+function buildPrintSVG(data: GuitarChordData, dark = false, accentColor = '#679cff', scale = 1, noLabel = false): string {
   const W = Math.round(160 * scale), H = Math.round(180 * scale);
   const numS = 6, numF = 5;
   const pL = Math.round(32 * scale), pT = Math.round(32 * scale);
@@ -69,7 +69,7 @@ function buildPrintSVG(data: GuitarChordData, dark = false, accentColor = '#679c
   if (showNut) {
     s += `<rect x="${pL - 1}" y="${pT - Math.round(5 * scale)}" width="${(numS - 1) * cW + 2}" height="${Math.round(5 * scale)}" rx="2" fill="${dotFill}"/>`;
   }
-  if (!showNut) {
+  if (!showNut && !noLabel) {
     s += `<text x="${pL - Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(9 * scale)}" fill="${textColor}" text-anchor="end" dominant-baseline="middle">${baseFret}fr</text>`;
   }
   for (let i = 0; i <= numF; i++) {
@@ -114,7 +114,7 @@ function buildPrintFretboardSVG(
   frets: number[], baseFret: number,
   barres: { fret: number; fromString: number; toString: number }[],
   numStrings: number,
-  dark = false, accentColor = '#679cff', scale = 1,
+  dark = false, accentColor = '#679cff', scale = 1, noLabel = false,
 ): string {
   const W = Math.round(160 * scale), H = Math.round(180 * scale);
   const numF = 5;
@@ -135,7 +135,7 @@ function buildPrintFretboardSVG(
   let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
   if (showNut) {
     s += `<rect x="${pL - 1}" y="${pT - Math.round(5 * scale)}" width="${(numStrings - 1) * strSpacing + 2}" height="${Math.round(5 * scale)}" rx="2" fill="${dotFill}"/>`;
-  } else {
+  } else if (!noLabel) {
     s += `<text x="${pL - Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(9 * scale)}" fill="${textColor}" text-anchor="end" dominant-baseline="middle">${baseFret}fr</text>`;
   }
   for (let i = 0; i <= numF; i++) {
@@ -614,10 +614,11 @@ ${chordContent}
           img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgStr)))}`;
         });
 
-      type CardData = { name: string; png: string; notes: string; type: string };
+      type CardData = { name: string; png: string; notes: string; type: string; baseFret: number; showNut: boolean };
 
       const cards: CardData[] = await Promise.all(entries.map(async entry => {
         let name = '', svgStr = '', notes = '', type = '';
+        let baseFret = 1, showNut = true;
         if (entry.isCustom) {
           const cc = entry.customChord;
           name = cc.name;
@@ -625,22 +626,25 @@ ${chordContent}
             svgStr = buildPrintPianoSVG(cc.pianoKeys ?? [], dark, C_ACCENT, svgSc);
           } else {
             const frets = cc.frets ?? [];
-            const baseFret = frets.some(f => f > 4)
+            baseFret = frets.some(f => f > 4)
               ? Math.max(1, Math.min(...frets.filter(f => f > 0))) : 1;
+            showNut = baseFret === 1;
             const strings = (cc.instrument === 'bass') ? 4 : 4;
             svgStr = cc.instrument === 'guitar'
-              ? buildPrintSVG({ frets, fingers: [], barres: cc.barres ?? [], baseFret }, dark, C_ACCENT, svgSc)
-              : buildPrintFretboardSVG(frets, baseFret, cc.barres ?? [], strings, dark, C_ACCENT, svgSc);
+              ? buildPrintSVG({ frets, fingers: [], barres: cc.barres ?? [], baseFret }, dark, C_ACCENT, svgSc, true)
+              : buildPrintFretboardSVG(frets, baseFret, cc.barres ?? [], strings, dark, C_ACCENT, svgSc, true);
           }
         } else {
           const ch = entry.chord;
           name  = ch.name;
           notes = (ch.notes ?? []).join(' ');
           type  = ch.type ?? '';
-          svgStr = buildPrintSVG(ch.guitar, dark, C_ACCENT, svgSc);
+          baseFret = ch.guitar.baseFret ?? 1;
+          showNut  = baseFret === 1;
+          svgStr = buildPrintSVG(ch.guitar, dark, C_ACCENT, svgSc, true);
         }
         const png = hasDiag ? await svgToPng(svgStr) : '';
-        return { name, png, notes, type };
+        return { name, png, notes, type, baseFret, showNut };
       }));
 
       /* ── Draw helpers ──────────────────────────────────────── */
@@ -734,6 +738,18 @@ ${chordContent}
           const imgX = cx + CARD_PAD_X;
           const imgY = iy;
           doc.addImage(card.png, 'PNG', imgX, imgY, DIAG_W, DIAG_H);
+          // Fret position indicator — drawn as crisp vector PDF text so it's never rasterized
+          if (!card.showNut) {
+            // Align to the left-padding area of the diagram (pL=32 out of W=160 → 20% from left)
+            const labelX = imgX + DIAG_W * 0.185;
+            // Vertically: first fret center = (pT + cH/2) / H ≈ 25.3% from top
+            // (pT=32, cH=(180-32-14)/5=26.8, so 32+13.4=45.4 / 180 = 25.2%)
+            const labelY = imgY + DIAG_H * 0.253;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(compact ? 5 : 6);
+            doc.setTextColor(...hexRgb(C_MUTED));
+            doc.text(`${card.baseFret}fr`, labelX, labelY, { align: 'right' });
+          }
           iy += DIAG_H + 1;
         }
 
