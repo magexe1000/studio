@@ -73,6 +73,10 @@ export default function StageCorePanel() {
   // Derive the stage-specific theme so the wrapper background matches the splash
   const stageVis  = settings.perApp?.stage ?? { theme: 'dark' as const, accentColor: 'blue' as const, amoledMode: false };
   const isLight   = stageVis.theme === 'light';
+
+  // Freeze the initial src with the correct theme hash so the iframe never reloads on theme change.
+  // The hash is read by a blocking inline script in index.html <head> — no flash.
+  const iframeSrc = useRef(`/stage-core/index.html${isLight ? '#light' : '#dark'}`).current;
   const isAmoled  = stageVis.amoledMode;
   const stageBg   = isAmoled ? '#000000' : isLight ? '#f5f5f5' : '#0e0e0e';
   const stageHdr  = isAmoled ? '#000000' : isLight ? '#f5f5f5' : '#0e0e0e';
@@ -204,7 +208,7 @@ export default function StageCorePanel() {
       {/* Stage Core iframe fills remaining space */}
       <iframe
         ref={iframeRef}
-        src="/stage-core/index.html"
+        src={iframeSrc}
         title="Stagex"
         style={{ flex: 1, width: '100%', border: 'none', display: 'block' }}
         allow="clipboard-write"
