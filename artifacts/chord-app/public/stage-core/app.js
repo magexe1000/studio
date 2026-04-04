@@ -4872,12 +4872,7 @@ function showToast(msg) {
 localStorage.removeItem('sc_session');
 localStorage.removeItem('stagecoreProject');
 
-// Warn before reload/close so the user doesn't lose unsaved work
-window.addEventListener('beforeunload', (e) => {
-  if (!_sessionDirty) return;
-  e.preventDefault();
-  e.returnValue = '';
-});
+// (beforeunload warning removed — reload without prompting)
 
 setLang(state.lang);
 updateDropHint();
