@@ -238,18 +238,29 @@
 
 /* 11. Reposition toolbar — React header bar is ABOVE the iframe now, so toolbar goes to top:0 */
 @media (max-width: 767px) {
-  /* Canvas fills from top inside iframe */
-  #canvas-container { top: 0 !important; }
-  /* Stage viewport padded to clear the in-iframe toolbar row (~48px) */
-  #stage-viewport { padding-top: 52px !important; }
-  /* Toolbar at the very top of the iframe (React header sits outside above it) */
-  #bottom-toolbar { top: 0 !important; }
+  /* Canvas fills from top inside iframe — bottom:0 overrides the original bottom:32px (status bar gone) */
+  #canvas-container { top: 0 !important; bottom: 0 !important; }
+  /* Toolbar floats at the very top of the canvas area, centred horizontally */
+  #bottom-toolbar { top: 8px !important; bottom: auto !important; left: 50% !important; }
   /* SAVE + PDF align to the right of the toolbar row */
   #rider-action-bar { top: 8px !important; }
   /* Lift element-category bar above the nav pill */
   #mobile-cat-bar { bottom: 82px !important; }
   /* Lift element tray above the category bar */
   #mobile-el-tray { bottom: 120px !important; }
+}
+
+/* Unify the canvas background — body, html and the canvas container all use the same dark
+   base so there is no visible seam between the React header above and the iframe content */
+html, body {
+  background: #0a0a0e !important;
+}
+#canvas-container {
+  background: #0a0a0e !important;
+}
+/* stage-viewport no longer needs the 52px top push — the toolbar floats above the canvas rect */
+#stage-viewport {
+  padding-top: 24px !important;
 }
 
 /* 12. Hide the native header bar — React header replaces it */

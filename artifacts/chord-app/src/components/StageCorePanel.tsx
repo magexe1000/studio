@@ -49,8 +49,9 @@ export default function StageCorePanel() {
   const { settings } = useChordStore();
   const [curView, setCurView] = useState<string>('Editor');
 
-  const stageVis = settings.perApp?.stage ?? { accentColor: settings.accentColor ?? 'blue' };
-  const accent   = ACCENT_COLORS[stageVis.accentColor as keyof typeof ACCENT_COLORS];
+  // Always follow the global hub accent so Stagex matches whatever theme the user has selected
+  const accentKey = (settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
+  const accent    = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
 
   // Show back button for any view that isn't the root Editor canvas
   const showBack = curView !== 'Editor';
