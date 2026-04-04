@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useChordStore, ACCENT_COLORS, type ActivePanel } from '../store/useChordStore';
+import { useChordStore, ACCENT_COLORS, type ActivePanel, type AppKey } from '../store/useChordStore';
 import { useNavHidden } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 
@@ -122,8 +122,11 @@ export default function BottomNav() {
     { panel: 'settings', Icon: IconSettings, label: t.nav.settings },
   ];
   const accent   = ACCENT_COLORS[settings.accentColor];
-  const isLight  = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
-  const amoledBg = settings.amoledMode
+  // Derive the active per-app theme the same way App.tsx does (per-app beats global)
+  const appKey   = (settings.appMode ?? 'hub') as AppKey;
+  const activeVis = settings.perApp?.[appKey] ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
+  const isLight  = activeVis.theme === 'light' || (activeVis.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+  const amoledBg = activeVis.amoledMode
     ? 'rgba(4,4,4,0.88)'
     : isLight
       ? 'rgba(240,240,242,0.82)'
