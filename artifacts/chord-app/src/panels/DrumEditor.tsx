@@ -406,10 +406,11 @@ const ALL_NAV_TABS: { id: DrumTab; label: string; Icon: React.FC<{ active: boole
   { id: 'songs',    label: 'Songs',    Icon: IconDrumSongs },
   { id: 'patterns', label: 'Patterns', Icon: IconPatterns  },
 ];
-function DrumNav({ activeTab, setTab, accent, isLight, isAmoled }: {
+function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, onPrefs }: {
   activeTab: DrumTab; setTab: (t: DrumTab) => void;
   accent: { from: string; to: string };
   isLight: boolean; isAmoled: boolean;
+  onPrefs: () => void;
 }) {
   const navRef  = useRef<HTMLElement | null>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -495,6 +496,23 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled }: {
           </button>
         );
       })}
+      {/* Preferences icon — right side, outside the pill tab area */}
+      <button
+        onPointerUp={onPrefs}
+        className="btn-smooth"
+        style={{
+          width: 36, height: 36, borderRadius: '50%', background: 'transparent', border: 'none',
+          cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 3, color: isLight ? 'rgba(0,0,0,0.4)' : '#71717a', position: 'relative', zIndex: 1, flexShrink: 0,
+        }}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="6" x2="8" y2="3"/><line x1="8" y1="6" x2="8" y2="9"/>
+          <line x1="4" y1="12" x2="20" y2="12"/><line x1="14" y1="12" x2="14" y2="9"/><line x1="14" y1="12" x2="14" y2="15"/>
+          <line x1="4" y1="18" x2="20" y2="18"/><line x1="10" y1="18" x2="10" y2="15"/><line x1="10" y1="18" x2="10" y2="21"/>
+        </svg>
+        <span style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: '9px', letterSpacing: '0.09em', textTransform: 'uppercase', lineHeight: 1 }}>Prefs</span>
+      </button>
     </nav>
   );
 }
@@ -1897,7 +1915,6 @@ export default function DrumEditor() {
   const menuItemSt: React.CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12.5, fontFamily: 'Manrope', fontWeight: 600, textAlign: 'left', transition: 'background 120ms' };
 
   return (
-    <>
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
 
       {/* ── Safe-area spacer ─────────────────────────────────────────────── */}
@@ -1954,18 +1971,6 @@ export default function DrumEditor() {
           <>
             <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
             <div style={{ flex: 1 }} />
-            <button
-              onClick={() => setShowPrefs(true)}
-              className="btn-smooth"
-              title="Preferences"
-              style={{ height: 30, width: 30, borderRadius: 8, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.12)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)', flexShrink: 0, padding: 0 }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="6" x2="8" y2="3"/><line x1="8" y1="6" x2="8" y2="9"/>
-                <line x1="4" y1="12" x2="20" y2="12"/><line x1="14" y1="12" x2="14" y2="9"/><line x1="14" y1="12" x2="14" y2="15"/>
-                <line x1="4" y1="18" x2="20" y2="18"/><line x1="10" y1="18" x2="10" y2="15"/><line x1="10" y1="18" x2="10" y2="21"/>
-              </svg>
-            </button>
           </>
         )}
       </div>
@@ -2667,7 +2672,7 @@ export default function DrumEditor() {
       </div>
 
       {/* ── Bottom nav ───────────────────────────────────────────────────── */}
-      <DrumNav activeTab={activeTab} setTab={setActiveTab} accent={accent} isLight={isLight} isAmoled={isAmoled} />
+      <DrumNav activeTab={activeTab} setTab={setActiveTab} accent={accent} isLight={isLight} isAmoled={isAmoled} onPrefs={() => setShowPrefs(true)} />
 
       {/* ── Floating buttons (songs list only): import above + add ──────── */}
       {!inEditor && activeTab === 'songs' && (
@@ -3036,10 +3041,8 @@ export default function DrumEditor() {
         );
       })()}
 
+      {/* ── Drum Preferences overlay ─────────────────────────────────────── */}
+      {showPrefs && <DrumPrefsPanel onClose={() => setShowPrefs(false)} />}
     </div>
-
-    {/* ── Drum Preferences overlay ──────────────────────────────────────── */}
-    {showPrefs && <DrumPrefsPanel onClose={() => setShowPrefs(false)} />}
-    </>
   );
 }
