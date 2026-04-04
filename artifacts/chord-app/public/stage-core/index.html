@@ -87,19 +87,87 @@
 <link rel="stylesheet" href="app.css"/>
 <script src="cloud-stub.js"></script>
 <style>
-/* ── Global body: fast-tap + jail position:fixed inside iframe ───────────── */
+/* ── Global body: fast-tap + coordinate system for iframe interactions ──────
+ *
+ * Chrome Android iframe bug: position:fixed elements inside an iframe have
+ * their touch events misrouted to the PARENT frame even when the visual
+ * position looks correct. The only reliable fix is position:absolute, which
+ * works perfectly inside iframes on all Android Chrome versions.
+ *
+ * Strategy:
+ *   1. body gets position:relative so it becomes the containing block for
+ *      all position:absolute children (equivalent to the viewport/fixed
+ *      approach, since body fills 100% of the iframe).
+ *   2. Every interactive element that was position:fixed is overridden to
+ *      position:absolute below — same visual result, but touches land correctly.
+ *   3. transform:translateZ(0) is kept for GPU compositing + render perf.
+ * ─────────────────────────────────────────────────────────────────────────── */
 body {
-  /*
-   * translateZ(0) creates a new containing block for all position:fixed
-   * descendants. Without it, Chrome Android routes touches on fixed elements
-   * to the PARENT frame (Chordex) instead of this iframe — making every nav
-   * tap, FAB press, and dialog click silently miss.  The transform is a
-   * zero-offset identity so desktop hit-testing is completely unaffected.
-   */
-  transform: translateZ(0);
+  position: relative;          /* containing block for all absolute children */
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  transform: translateZ(0);    /* GPU layer; also keeps fixed descendants jailed */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* ── Convert position:fixed → position:absolute for all interactive UI ──────
+ * position:absolute relative to body = same visual position as fixed
+ * (body is 100vw × 100vh), but touches are correctly delivered in Chrome Android. */
+
+/* Bottom navigation pill */
+#mobile-nav-bar {
+  position: absolute !important;
+}
+
+/* FAB speed-dial wrap + its backdrop */
+#sc-fab-wrap     { position: absolute !important; }
+#sc-dial-backdrop { position: absolute !important; }
+
+/* Item sub-sheet (slides up when a category chip is tapped) */
+#sc-item-sheet { position: absolute !important; }
+
+/* Top floating toolbar (zoom / undo / redo controls) */
+#bottom-toolbar { position: absolute !important; }
+
+/* Right-side properties panel */
+#properties-panel { position: absolute !important; }
+
+/* Mode pill (connect/active-tool indicator) */
+#mode-pill { position: absolute !important; }
+
+/* Context menu */
+#sc-ctx { position: absolute !important; }
+
+/* Toast notification */
+#sc-toast { position: absolute !important; }
+
+/* Chain / cable panel */
+#sc-chain-panel { position: absolute !important; }
+
+/* Timeline panel */
+#timeline-panel { position: absolute !important; }
+
+/* Smart-suggest card */
+#smart-suggest-card { position: absolute !important; }
+
+/* Export bottom bar */
+#mob-export-bar { position: absolute !important; }
+
+/* PTR (pull-to-refresh) indicator */
+#ptr-indicator { position: absolute !important; }
+#ptr-label     { position: absolute !important; }
+
+/* Full-screen modal overlays (inset:0 = fills body = fills iframe) */
+.sc-overlay              { position: absolute !important; }
+#confirm-modal           { position: absolute !important; }
+#custom-el-modal         { position: absolute !important; }
+#smart-sort-modal        { position: absolute !important; }
+#gear-modal              { position: absolute !important; }
+#share-modal             { position: absolute !important; }
+#delete-account-modal    { position: absolute !important; }
+#tl-item-modal           { position: absolute !important; }
 
 /* ═══════════════ CHORDEX-STYLE BOTTOM NAV ═══════════════════════════════ */
 
