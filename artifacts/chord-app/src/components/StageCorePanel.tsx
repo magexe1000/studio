@@ -146,17 +146,17 @@ export default function StageCorePanel() {
     return () => setBackHandler(null);
   }, [getWin]);
 
+  // Collapse header in Export view or when landscape + Editor (immersive canvas mode)
+  const collapseHeader = curView === 'Export' || (isLandscape && curView === 'Editor');
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: stageBg, transition: 'background 300ms ease' }}>
 
       {/* Safe-area spacer + 52px header — collapses in Export view and in landscape on the Editor */}
-      {(() => {
-        const collapseHeader = curView === 'Export' || (isLandscape && curView === 'Editor');
-        return (
       <div style={{
         flexShrink: 0,
-        // overflow:hidden is needed only when collapsing so the height animation clips content.
-        // When fully expanded, visible allows the app-switch dropdown to render below the header.
+        // overflow:hidden clips content during the height animation; visible allows the
+        // app-switch dropdown to render below the header when fully expanded.
         overflow: collapseHeader ? 'hidden' : 'visible',
         height: collapseHeader ? 0 : 'calc(env(safe-area-inset-top) + 52px)',
         transition: 'height 260ms cubic-bezier(0.4,0,0.2,1)',
@@ -273,8 +273,6 @@ export default function StageCorePanel() {
         )}
       </div>
       </div>{/* end collapsible header wrapper */}
-      );
-      })()}
 
       {/* Stage Core iframe fills remaining space */}
       <iframe
