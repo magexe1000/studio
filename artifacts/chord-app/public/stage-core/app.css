@@ -2821,15 +2821,54 @@ html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important
     bottom: 0 !important;
   }
 
-  /* ── Tighter stage-viewport padding so the canvas uses maximum space ──
-     Right side has a bit more room so the FAB button doesn't overlap. */
+  /* ── Tighter padding; right side leaves room for the FAB ── */
   #stage-viewport {
-    padding: 6px 68px 6px 8px !important;
+    padding: 4px 64px 4px 6px !important;
   }
 
-  /* ── FAB: nudge slightly up so it sits clear of the viewport edge ── */
+  /* ── Plot canvas: use nearly the full viewport height for a bigger plot ──
+     Portrait formula is (100vh - 40px); landscape viewports are short so we
+     drop the subtracted margin to 16px, giving a much larger 16:9 canvas. */
+  #stage-canvas {
+    max-width: min(1080px, calc(100vw - 12px), calc((100vh - 16px) * 16 / 9)) !important;
+  }
+
+  /* ── Left toolbar: anchor to top so it can't overflow the bottom edge ──
+     Default "top:50% / translateY(-50%)" centres it, but in landscape the
+     fully-expanded body is often taller than the viewport, clipping both edges. */
+  #sc-vtools {
+    top:       8px !important;
+    transform: none !important;
+  }
+  /* Cap body height and quietly scroll; hide scrollbar */
+  #sc-vtools-body {
+    max-height: calc(100vh - 52px) !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+  }
+  #sc-vtools-body::-webkit-scrollbar { display: none !important; }
+
+  /* ── FAB: clear the hidden nav bar so the button is fully on-screen ── */
   #sc-fab-wrap {
     bottom: 14px !important;
     right:  14px !important;
+  }
+
+  /* ── Dial category chips: cap height so they can't escape the top edge ──
+     Chips stack upward above the FAB; constrain to viewport height minus
+     the FAB area (50px button + 14px inset + small breathing room). */
+  #sc-dial-items {
+    max-height: calc(100vh - 88px) !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+  }
+  #sc-dial-items::-webkit-scrollbar { display: none !important; }
+
+  /* ── Item sub-sheet: recalculate bottom to match repositioned FAB ──
+     Portrait base was bottom:142px (above nav bar + FAB). Landscape:
+     14px edge inset + 50px FAB + 12px gap = 76px. */
+  #sc-item-sheet {
+    bottom:     76px !important;
+    max-height: calc(100vh - 90px) !important;
   }
 }
