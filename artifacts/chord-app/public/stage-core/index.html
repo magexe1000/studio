@@ -1436,6 +1436,36 @@ html[data-theme="light"] .bg-swatch--dark { display: none !important; }
 @media (orientation: landscape) {
   #stage-viewport { padding: 6px 8px !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   AMOLED OVERRIDE BLOCK
+   Must come AFTER the light-theme block above so it wins the cascade
+   when both data-amoled="1" and data-theme="light" are present.
+   (Same attribute-selector specificity → source order decides.)
+══════════════════════════════════════════════════════════════════ */
+html[data-amoled="1"],
+html[data-amoled="1"] body { background: #000 !important; }
+html[data-amoled="1"] header { background: #000 !important; }
+html[data-amoled="1"] .view-page { background: #000 !important; }
+html[data-amoled="1"] .scrollable-view { background: #000 !important; }
+html[data-amoled="1"] #view-Assistant { background: #000 !important; }
+html[data-amoled="1"] #canvas-container { background: #000 !important; }
+html[data-amoled="1"] #stage-viewport { background: #000 !important; }
+html[data-amoled="1"] #view-SetupHub,
+html[data-amoled="1"] #view-Rider,
+html[data-amoled="1"] #view-Setlist,
+html[data-amoled="1"] #view-Gear,
+html[data-amoled="1"] #view-Members,
+html[data-amoled="1"] #view-Export { background: #000 !important; }
+html[data-amoled="1"] #mobile-nav-bar {
+  background: rgba(0,0,0,0.97) !important;
+  border-top-color: rgba(255,255,255,0.06) !important;
+}
+html[data-amoled="1"] #sc-vtools { background: rgba(0,0,0,0.96) !important; }
+html[data-amoled="1"] #settings-panel { background: #000 !important; }
+html[data-amoled="1"] #lib-panel { background: #000 !important; }
+html[data-amoled="1"] #sc-chain-panel { background: #000 !important; }
+html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 </style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden select-none" style="height:100vh;">

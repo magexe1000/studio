@@ -422,7 +422,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
               return (
                 <button key={i}
                   onClick={() => {
-                    if (opt.amoled) requestChange({ amoledMode: true });
+                    if (opt.amoled) requestChange({ theme: 'dark', amoledMode: true });
                     else requestChange({ theme: opt.value, amoledMode: false });
                   }}
                   className="btn-smooth"
