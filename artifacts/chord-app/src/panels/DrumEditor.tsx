@@ -428,7 +428,7 @@ function IconPrefs({ active }: { active: boolean }) {
 const ALL_NAV_TABS: { id: DrumTab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
   { id: 'songs',    label: 'Songs',    Icon: IconDrumSongs },
   { id: 'patterns', label: 'Patterns', Icon: IconPatterns  },
-  { id: 'prefs',    label: 'Prefs',    Icon: IconPrefs     },
+  { id: 'prefs',    label: 'Preferences', Icon: IconPrefs  },
 ];
 function DrumNav({ activeTab, setTab, accent, isLight, isAmoled }: {
   activeTab: DrumTab; setTab: (t: DrumTab) => void;
