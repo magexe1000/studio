@@ -16,17 +16,17 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
 ];
 
 // ── Session index — stable within one app open, advances each fresh launch ─────
-const _SESSION_KEY = 'sx_session';
-const _INDEX_KEY   = 'sx_idx';
+// A module-level variable resets to null on every page load (fresh JS context)
+// but stays stable across React re-renders, avoiding sessionStorage/PWA quirks.
+const _INDEX_KEY = 'sx_idx';
+let _cachedIdx: number | null = null;
 
 function getSessionIndex(): number {
-  const stored = sessionStorage.getItem(_SESSION_KEY);
-  if (stored !== null) return parseInt(stored, 10);
+  if (_cachedIdx !== null) return _cachedIdx;
   const prev = parseInt(localStorage.getItem(_INDEX_KEY) ?? '-1', 10);
-  const next = prev + 1;
-  localStorage.setItem(_INDEX_KEY, String(next));
-  sessionStorage.setItem(_SESSION_KEY, String(next));
-  return next;
+  _cachedIdx = prev + 1;
+  localStorage.setItem(_INDEX_KEY, String(_cachedIdx));
+  return _cachedIdx;
 }
 
 // ── Greeting pairs — greeting + subtitle are always shown together ─────────────
