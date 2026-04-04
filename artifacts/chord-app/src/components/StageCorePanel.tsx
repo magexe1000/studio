@@ -171,7 +171,7 @@ export default function StageCorePanel() {
   const collapseHeader = curView === 'Export' || (isLandscape && curView === 'Editor');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: stageBg, transition: 'background 300ms ease' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: stageBg, transition: 'background 180ms ease' }}>
 
       {/* Safe-area spacer + 52px header — collapses in Export view and in landscape on the Editor */}
       <div style={{
@@ -193,6 +193,7 @@ export default function StageCorePanel() {
         alignItems: 'center',
         padding: '10px 14px 0',
         background: stageHdr,
+        transition: 'background 180ms ease',
         gap: showBack ? 8 : 0,
         position: 'relative',
       }}>

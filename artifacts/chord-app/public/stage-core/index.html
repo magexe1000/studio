@@ -550,6 +550,17 @@ header { display: none !important; }
 /* Hide in-iframe SAVE+PDF bar — recreated in the React header bar above the iframe */
 #rider-action-bar { display: none !important; }
 
+/* ── Smooth theme / AMOLED / accent background transitions ─────── */
+html, body,
+header,
+#canvas-container,
+#mobile-nav-bar,
+.view-page, .scrollable-view,
+#view-SetupHub, #view-Rider, #view-Setlist, #view-Gear, #view-Members,
+#view-Assistant, #view-Export {
+  transition: background 180ms ease, background-color 180ms ease !important;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    SHARED SUB-VIEW COMPONENT SYSTEM
    ═══════════════════════════════════════════════════════════════════ */
