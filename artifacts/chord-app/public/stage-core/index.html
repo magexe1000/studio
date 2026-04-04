@@ -106,8 +106,8 @@
   top: 4px !important;
   height: calc(100% - 8px) !important;
   border-radius: 999px !important;
-  background: var(--accent) !important;
-  box-shadow: 0 2px 18px var(--accent-40) !important;
+  background: linear-gradient(135deg, #679cff, #007aff) !important;
+  box-shadow: 0 2px 18px #007aff55 !important;
   pointer-events: none !important;
   z-index: 0 !important;
   transition: left 150ms cubic-bezier(0.34,1.56,0.64,1),
@@ -726,19 +726,19 @@ textarea.sng-input { line-height:1.5; }
   width: 100%; padding: 15px 20px;
   font-family: 'Space Grotesk', sans-serif; font-size: 13px;
   font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
-  background: var(--accent); color: var(--accent-dark);
+  background: linear-gradient(135deg, #679cff, #007aff); color: #fff;
   border: none; border-radius: 100px; cursor: pointer;
   -webkit-tap-highlight-color: transparent; margin-bottom: 20px;
   position: relative; overflow: hidden;
   transition: transform 200ms cubic-bezier(0.34,1.4,0.64,1),
               filter 200ms ease,
               box-shadow 200ms ease;
-  box-shadow: 0 4px 18px var(--accent-20);
+  box-shadow: 0 4px 22px #007aff44;
 }
 .sl-add-btn:active {
   transform: scale(0.95);
   filter: brightness(0.88);
-  box-shadow: 0 1px 6px var(--accent-14);
+  box-shadow: 0 1px 6px #007aff22;
 }
 /* ripple layer */
 .sl-add-btn::after {
@@ -2157,20 +2157,20 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
       <span class="material-symbols-outlined" style="font-size:16px;">add_circle</span>Add New Track
     </button>
 
-    <!-- ── Setlist Insights (static) ── -->
+    <!-- ── Setlist Insights ── -->
     <div class="sc-card">
       <p class="sc-card-title" style="margin-bottom:14px;">Setlist Insights</p>
       <div class="sl-insight-row">
         <span class="sl-insight-label">Tempo Stability</span>
-        <span class="sl-insight-val" style="color:var(--accent);">Analysing…</span>
+        <span class="sl-insight-val" id="insight-tempo">—</span>
       </div>
       <div class="sl-insight-row">
         <span class="sl-insight-label">Key Variety</span>
-        <span class="sl-insight-val">—</span>
+        <span class="sl-insight-val" id="insight-keys">—</span>
       </div>
       <div class="sl-insight-row">
         <span class="sl-insight-label">Transition Fluidity</span>
-        <span class="sl-insight-val">—</span>
+        <span class="sl-insight-val" id="insight-flow">—</span>
       </div>
     </div>
 

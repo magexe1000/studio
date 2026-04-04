@@ -2963,6 +2963,7 @@ function renderSetlist() {
     tbody.innerHTML = `<div style="padding:56px 0;text-align:center;">
       <div style="font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">No songs yet — tap ADD NEW TRACK to start your setlist.</div>
     </div>`;
+    renderSetlistInsights();
     return;
   }
 
@@ -3034,6 +3035,7 @@ function renderSetlist() {
   lcIcons();
   updateStatusBar();
   _slInitTouchDrag();
+  renderSetlistInsights();
 }
 
 function toggleSongNotes(songId) {
@@ -3167,6 +3169,64 @@ function _renderSegmentsBar() {
       <button onclick="removeSegment(${seg.id})" style="background:none;border:none;color:#484847;cursor:pointer;padding:0;margin-left:2px;line-height:1;font-size:13px;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'" title="Remove segment">×</button>
     </div>`;
   }).join('');
+}
+
+function renderSetlistInsights() {
+  const songs = _onlySongs();
+  const tEl = document.getElementById('insight-tempo');
+  const kEl = document.getElementById('insight-keys');
+  const fEl = document.getElementById('insight-flow');
+  if (!tEl || !kEl || !fEl) return;
+
+  if (!songs.length) {
+    tEl.textContent = '—'; tEl.style.color = '';
+    kEl.textContent = '—'; kEl.style.color = '';
+    fEl.textContent = '—'; fEl.style.color = '';
+    return;
+  }
+
+  // ── Tempo Stability ──
+  const bpms = songs.map(s => Number(s.bpm) || 120);
+  const avgBpm = Math.round(bpms.reduce((a, b) => a + b, 0) / bpms.length);
+  const bpmRange = Math.max(...bpms) - Math.min(...bpms);
+  let tempoLabel, tempoColor;
+  if (bpmRange <= 10)       { tempoLabel = `Steady · ${avgBpm} BPM avg`;   tempoColor = '#5ddd8a'; }
+  else if (bpmRange <= 30)  { tempoLabel = `Stable · ${avgBpm} BPM avg`;   tempoColor = '#679cff'; }
+  else if (bpmRange <= 60)  { tempoLabel = `Moderate · ${avgBpm} BPM avg`; tempoColor = '#f0a500'; }
+  else                      { tempoLabel = `Dynamic · ${avgBpm} BPM avg`;  tempoColor = '#ff7a5a'; }
+  tEl.textContent = tempoLabel;
+  tEl.style.color = tempoColor;
+
+  // ── Key Variety ──
+  const uniqueKeys = [...new Set(songs.map(s => s.key || 'C'))];
+  const keyCount = uniqueKeys.length;
+  let keysLabel, keysColor;
+  if (keyCount === 1)      { keysLabel = `Single key (${uniqueKeys[0]})`;   keysColor = '#5ddd8a'; }
+  else if (keyCount <= 3)  { keysLabel = `${keyCount} keys · Focused`;      keysColor = '#679cff'; }
+  else if (keyCount <= 5)  { keysLabel = `${keyCount} keys · Varied`;       keysColor = '#f0a500'; }
+  else                     { keysLabel = `${keyCount} keys · Wide range`;   keysColor = '#ff7a5a'; }
+  kEl.textContent = keysLabel;
+  kEl.style.color = keysColor;
+
+  // ── Transition Fluidity ──
+  if (songs.length < 2) {
+    fEl.textContent = 'Single song';
+    fEl.style.color = '#767575';
+    return;
+  }
+  let smoothPairs = 0;
+  for (let i = 0; i < songs.length - 1; i++) {
+    if ((songs[i].key || 'C') === (songs[i + 1].key || 'C')) smoothPairs++;
+  }
+  const total = songs.length - 1;
+  const ratio = smoothPairs / total;
+  let flowLabel, flowColor;
+  if (ratio === 1)       { flowLabel = 'All smooth transitions';      flowColor = '#5ddd8a'; }
+  else if (ratio >= 0.7) { flowLabel = `${smoothPairs}/${total} smooth`;  flowColor = '#679cff'; }
+  else if (ratio >= 0.4) { flowLabel = `${smoothPairs}/${total} smooth`;  flowColor = '#f0a500'; }
+  else                   { flowLabel = `${smoothPairs}/${total} smooth`;  flowColor = '#ff7a5a'; }
+  fEl.textContent = flowLabel;
+  fEl.style.color = flowColor;
 }
 
 let _sngSelectedSection = null;
