@@ -6,7 +6,7 @@ import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls
 export default function DrumPrefsPanel() {
   const { settings } = useChordStore();
   const { drumPrefs, updateDrumPrefs } = useDrumStore();
-  const acc = ACCENT_COLORS[settings.accentColor];
+  const acc = ACCENT_COLORS[(settings.perApp?.drums?.accentColor ?? settings.accentColor) as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue;
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const cardStyle: React.CSSProperties = {
