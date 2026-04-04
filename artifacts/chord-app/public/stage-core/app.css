@@ -425,11 +425,11 @@ select option { background: #1a1a1a; color: #fff; }
   }
   #exp-cover h1 { font-size: 28px !important; }
 
-  /* Scroll area fills remaining space */
+  /* Scroll area fills remaining space — bottom pad clears the two-row action bar */
   #export-preview-scroll {
     flex: 1 !important;
     min-height: 0 !important;
-    padding: 16px 14px 88px !important;
+    padding: 0 0 110px !important;
   }
 
   /* Bottom bar stays pinned at the bottom of the view */
@@ -439,6 +439,8 @@ select option { background: #1a1a1a; color: #fff; }
     height: auto !important;
     overflow: visible !important;
   }
+  /* Hide chips-row scrollbar */
+  #export-bottom-bar div:first-child::-webkit-scrollbar { display: none !important; }
 
   /* Hide hidden compatibility panel */
   #export-options-panel { display: none !important; }

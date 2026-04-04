@@ -4726,6 +4726,10 @@ function refreshExport() {
   const dateStr = now.toLocaleDateString(locale, { month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase();
   const dateEl = document.getElementById('exp-date');
   if (dateEl) dateEl.textContent = dateStr;
+  // Sync topbar name to the editable project name
+  const topbarName = document.getElementById('exp-topbar-name');
+  const projName   = document.getElementById('exp-project-name');
+  if (topbarName && projName) topbarName.textContent = projName.textContent || 'Technical Rider';
 
   const elCount = document.getElementById('exp-el-count');
   if (elCount) elCount.textContent = state.elements.length;
@@ -4752,7 +4756,7 @@ function refreshExport() {
   const luFooter  = document.getElementById('exp-footer-last-updated');
 
   if (luBox)  luBox.style.display  = showLU ? '' : 'none';
-  if (verBox) verBox.style.display = showLU ? '' : 'none';
+  if (verBox) verBox.style.display = showLU ? 'inline-flex' : 'none';
   if (staleWarn) staleWarn.style.display = 'none';
   if (luFooter)  luFooter.style.display  = showLU ? '' : 'none';
 
