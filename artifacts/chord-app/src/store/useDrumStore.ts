@@ -13,7 +13,7 @@ export type DrumInstrument =
 export type NoteVariation =
   | 'normal' | 'ghost' | 'rimshot' | 'flam'
   | 'open' | 'pedal'
-  | 'accent' | 'bell' | 'choke';
+  | 'accent' | 'bell' | 'choke' | 'ride';
 
 export type KitType =
   | 'ludwig' | 'jazz' | 'rock' | 'vintage'
@@ -52,12 +52,12 @@ export const INST_VARIATIONS: Partial<Record<DrumInstrument, NoteVariation[]>> =
   'tom-high':     ['normal', 'accent'],
   'tom-mid':      ['normal', 'accent'],
   'tom-floor':    ['normal', 'accent'],
-  crash:          ['normal', 'choke'],
-  ride:           ['normal', 'bell'],
+  // crash row now represents ALL cymbals: crash (normal/choke) + ride (ride/bell)
+  crash:          ['normal', 'choke', 'ride', 'bell'],
 };
 
 export const INSTRUMENT_NAME: Record<DrumInstrument, string> = {
-  crash:          'Crash',
+  crash:          'Cymbal',
   ride:           'Ride',
   'hihat-open':   'Open HH',
   'hihat-closed': 'Hi-Hat',
@@ -84,24 +84,23 @@ export const INSTRUMENT_COLOR: Record<DrumInstrument, string> = {
 
 // Display order: high pitch → low pitch (hi-hat top, kick bottom)
 // hihat-open and hihat-foot are now handled as variations of hihat-closed
+// 'ride' has been folded into 'crash' as variations ('ride'/'bell') — no longer a separate row
 export const KIT_INSTRUMENTS: Record<KitType, DrumInstrument[]> = {
-  ludwig:  ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
-  jazz:    ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
-  rock:    ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
+  ludwig:  ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
+  jazz:    ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
+  rock:    ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
   vintage: ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
-  studio:  ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
-  r8:      ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
-  linn:    ['hihat-closed','snare','kick','crash','ride','tom-high'],
-  funk:    ['hihat-closed','snare','kick','crash','ride','tom-high'],
+  studio:  ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
+  r8:      ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
+  linn:    ['hihat-closed','snare','kick','crash','tom-high'],
+  funk:    ['hihat-closed','snare','kick','crash','tom-high'],
   cr78:    ['hihat-closed','snare','kick','crash','tom-high'],
   tr808:   ['hihat-closed','snare','kick','crash','tom-high'],
   techno:  ['hihat-closed','snare','kick','crash','tom-high'],
   stark:   ['hihat-closed','snare','kick','crash'],
-  // ── New high-quality acoustic kits ─────────────────────────────────────────
-  rmm:     ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
-  chrome:  ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
-  // ── Ultra-realistic multi-velocity sampled kit ────────────────────────────
-  house:   ['hihat-closed','snare','kick','crash','ride','tom-high','tom-mid','tom-floor'],
+  rmm:     ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
+  chrome:  ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
+  house:   ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
 };
 
 export interface DrumHit { step: number; length: number; variation?: NoteVariation; }
@@ -207,24 +206,43 @@ export function measureHasHits(m: DrumMeasure): boolean {
   return Object.values(m.hits).some(arr => arr && arr.length > 0);
 }
 
-// Migrate a set of patterns: fold hihat-open/hihat-foot hits into hihat-closed with variations
+// Migrate patterns: fold hihat-open/hihat-foot into hihat-closed, and ride into crash (as variations)
 function migratePatterns(patterns: DrumPattern[]): DrumPattern[] {
   return patterns.map(p => ({
     ...p,
     measures: p.measures.map(m => {
-      const existing: DrumHit[] = [...(m.hits['hihat-closed'] ?? [])];
+      // ── Hi-hat fold ──────────────────────────────────────────────────────
+      const hhHits: DrumHit[] = [...(m.hits['hihat-closed'] ?? [])];
       (m.hits['hihat-open'] ?? []).forEach(h => {
-        if (!existing.some(c => c.step === h.step))
-          existing.push({ ...h, variation: 'open' as NoteVariation });
+        if (!hhHits.some(c => c.step === h.step))
+          hhHits.push({ ...h, variation: 'open' as NoteVariation });
       });
       (m.hits['hihat-foot'] ?? []).forEach(h => {
-        if (!existing.some(c => c.step === h.step))
-          existing.push({ ...h, variation: 'pedal' as NoteVariation });
+        if (!hhHits.some(c => c.step === h.step))
+          hhHits.push({ ...h, variation: 'pedal' as NoteVariation });
       });
-      existing.sort((a, b) => a.step - b.step);
+      hhHits.sort((a, b) => a.step - b.step);
+
+      // ── Cymbal fold: ride → crash with 'ride'/'bell' variation ───────────
+      const cymHits: DrumHit[] = [...(m.hits['crash'] ?? [])];
+      (m.hits['ride'] ?? []).forEach(h => {
+        if (!cymHits.some(c => c.step === h.step)) {
+          const var_: NoteVariation = h.variation === 'bell' ? 'bell' : 'ride';
+          cymHits.push({ ...h, variation: var_ });
+        }
+      });
+      cymHits.sort((a, b) => a.step - b.step);
+
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { 'hihat-open': _o, 'hihat-foot': _f, ...rest } = m.hits as Partial<Record<string, DrumHit[]>>;
-      return { ...m, hits: { ...rest, 'hihat-closed': existing } as Partial<Record<DrumInstrument, DrumHit[]>> };
+      const { 'hihat-open': _o, 'hihat-foot': _f, ride: _r, ...rest } = m.hits as Partial<Record<string, DrumHit[]>>;
+      return {
+        ...m,
+        hits: {
+          ...rest,
+          'hihat-closed': hhHits,
+          crash: cymHits,
+        } as Partial<Record<DrumInstrument, DrumHit[]>>,
+      };
     }),
   }));
 }
@@ -711,7 +729,7 @@ export const useDrumStore = create<DrumStore>()(
     }),
     {
       name: 'chordex-drums',
-      version: 10,
+      version: 11,
       partialize: (state) => { const { instFX: _fx, ...rest } = state; return rest as typeof state; },
       migrate: (state: unknown, _version: number) => {
         const s = state as {
@@ -727,9 +745,9 @@ export const useDrumStore = create<DrumStore>()(
           ...song,
           patterns: migratePatterns(song.patterns ?? []),
         }));
-        // Remove hihat-open/hihat-foot from activeInstruments if present
+        // Remove folded instruments from activeInstruments
         const filtered = (s.activeInstruments ?? KIT_INSTRUMENTS[kitType ?? 'ludwig'])
-          .filter((i: DrumInstrument) => i !== 'hihat-open' && i !== 'hihat-foot');
+          .filter((i: DrumInstrument) => i !== 'hihat-open' && i !== 'hihat-foot' && i !== 'ride');
         return {
           ...s,
           patterns: migratedPatterns,

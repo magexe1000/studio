@@ -18,6 +18,9 @@ export function getSoundForVariation(
   }
   if (inst === 'snare'  && variation === 'rimshot') return 'snare-rimshot';
   if (inst === 'ride'   && variation === 'bell')    return 'ride-bell';
+  // Cymbal row: crash instrument now carries ride hits as 'ride'/'bell' variations
+  if (inst === 'crash'  && variation === 'ride') return soundMap['ride'] ?? kitDefaults['ride'] ?? 'ride-std';
+  if (inst === 'crash'  && variation === 'bell') return 'ride-bell';
   return soundMap[inst] ?? kitDefaults[inst] ?? defaultSoundId(inst);
 }
 

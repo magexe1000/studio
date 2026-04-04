@@ -52,12 +52,12 @@ const NOTE_YF: Record<DrumInstrument, number> = {
 const SHORT_LABEL: Record<DrumInstrument, string> = {
   kick: 'Kick', snare: 'Snare', 'hihat-closed': 'HH', 'hihat-open': 'O.HH',
   'hihat-foot': 'HHF', 'tom-high': 'Hi', 'tom-mid': 'Mid',
-  'tom-floor': 'Floor', crash: 'Crash', ride: 'Ride',
+  'tom-floor': 'Floor', crash: 'Cym', ride: 'Ride',
 };
 const INST_LABEL: Record<DrumInstrument, string> = {
   kick: 'Kick', snare: 'Snare', 'hihat-closed': 'Hi-Hat', 'hihat-open': 'Open HH',
   'hihat-foot': 'HH Foot', 'tom-high': 'Tom Hi', 'tom-mid': 'Tom Mid',
-  'tom-floor': 'Floor Tom', crash: 'Crash', ride: 'Ride',
+  'tom-floor': 'Floor Tom', crash: 'Cymbal', ride: 'Ride',
 };
 const KIT_LABEL: Record<KitType, string> = {
   ludwig: 'Pearl Master Studio',  jazz: 'Pearl Master (Brushed)', rock: 'Rock Kit',   vintage: "Vintage '60s",
@@ -166,13 +166,13 @@ const TAB_ORDER: DrumTab[] = ['songs', 'patterns', 'prefs'];
 function CircleHead({ r, color }: { r: number; color: string }) {
   return <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} />;
 }
-function XHead({ r, color }: { r: number; color: string }) {
+function XHead({ r, color, opacity = 1 }: { r: number; color: string; opacity?: number }) {
   const d = r * 0.85;
   return (
-    <>
+    <g opacity={opacity}>
       <line x1={-d} y1={-d} x2={d} y2={d} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
       <line x1={d}  y1={-d} x2={-d} y2={d} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
-    </>
+    </g>
   );
 }
 // Ghost: small faded circle
@@ -253,6 +253,8 @@ function NoteHead({ inst, variation, r, color }: {
   }
   if (inst === 'crash') {
     if (variation === 'choke') return <ChokeHead r={r} color={color} />;
+    if (variation === 'bell')  return <BellHead  r={r} color={color} />;
+    if (variation === 'ride')  return <XHead     r={r} color={color} opacity={0.65} />;
     return <XHead r={r} color={color} />;
   }
   if (inst === 'ride') {
@@ -336,10 +338,11 @@ const InstrumentRow = memo(({
           const rawVariation = hitMap.get(globalStep) ?? 'normal';
           const variation: NoteVariation = showVariations ? rawVariation : 'normal';
 
-          // Pedal variation of HH sits at the bottom of the row (foot position)
-          const noteY = (inst === 'hihat-closed' && rawVariation === 'pedal' && showVariations)
-            ? ROW_H * 0.86
-            : defaultNoteY;
+          // Pedal HH sits at the bottom; ride hits on the cymbal row sit slightly lower
+          const noteY =
+            (inst === 'hihat-closed' && rawVariation === 'pedal' && showVariations) ? ROW_H * 0.86 :
+            (inst === 'crash' && (rawVariation === 'ride' || rawVariation === 'bell') && showVariations) ? ROW_H * 0.28 :
+            defaultNoteY;
 
           const cx     = (mi * spm + s) * STEP_W + STEP_W / 2;
           const cy     = noteY;
@@ -1595,6 +1598,14 @@ export default function DrumEditor() {
     setSampleStatus(samplePool.status);
     return () => { samplePool.onStatusChange = null; };
   }, []);
+  // Cleanup on unmount: stop scheduler + clear any pending count-in timers
+  useEffect(() => {
+    return () => {
+      drumScheduler.stop();
+      countInTimers.current.forEach(clearTimeout);
+      countInTimers.current = [];
+    };
+  }, []);
   useEffect(() => { if (kitType) loadDrumSamples(kitType); }, [kitType]);
 
   // House kit: load Opus samples when kit === 'house' or mic changes
@@ -1901,11 +1912,19 @@ export default function DrumEditor() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kit, soundMap, volumeMap, activeInstruments, masterVolume, houseKitMic, toggleHit, simpleToggleHit]);
 
+  const cancelPointer = () => {
+    pointerStart.current = null;
+    isDragging.current   = false;
+    dragFilled.current.clear();
+  };
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (openBarMenu) setOpenBarMenu(null);
     pointerStart.current = { x: e.clientX, y: e.clientY };
     isDragging.current   = false;
     dragFilled.current.clear();
+    // Capture the pointer so move/up fire even if finger leaves the element
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -2443,6 +2462,8 @@ export default function DrumEditor() {
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
+              onPointerLeave={cancelPointer}
+              onPointerCancel={cancelPointer}
               style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: 8, paddingBottom: 100, position: 'relative' }}
               className="no-scrollbar"
             >
