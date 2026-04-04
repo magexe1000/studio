@@ -28,6 +28,9 @@ window.SC = {
   cloudDeleteProject:   async () => {},
 };
 
+// Auto-bypass the sign-in gate — running in local guest mode
+localStorage.setItem('sc_welcomed', '1');
+
 setTimeout(() => {
   if (typeof window.onSCAuthChange === 'function') {
     window.onSCAuthChange(null);
