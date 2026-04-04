@@ -64,7 +64,7 @@ function buildPrintSVG(data: GuitarChordData, dark = false, accentColor = '#679c
   const muteColor  = dark ? '#555'    : '#bbb';
   const openStroke = dark ? '#555'    : '#aaaaaa';
 
-  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" overflow="visible">`;
 
   if (showNut) {
     s += `<rect x="${pL - 1}" y="${pT - Math.round(5 * scale)}" width="${(numS - 1) * cW + 2}" height="${Math.round(5 * scale)}" rx="2" fill="${dotFill}"/>`;
@@ -132,7 +132,7 @@ function buildPrintFretboardSVG(
   const textColor  = dark ? '#777'    : '#999';
   const muteColor  = dark ? '#555'    : '#bbb';
   const openStroke = dark ? '#555'    : '#aaaaaa';
-  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" overflow="visible">`;
   if (showNut) {
     s += `<rect x="${pL - 1}" y="${pT - Math.round(5 * scale)}" width="${(numStrings - 1) * strSpacing + 2}" height="${Math.round(5 * scale)}" rx="2" fill="${dotFill}"/>`;
   } else if (!noLabel) {
@@ -185,7 +185,7 @@ function buildPrintPianoSVG(keys: number[], dark = false, accentColor = '#679cff
   const blackColor = dark ? '#1c1c1e' : '#1a1a1e';
   const strokeColor = dark ? '#383838' : '#d0d0d0';
   const bgColor     = dark ? '#252525' : '#e8e8e8';
-  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" overflow="visible">`;
   s += `<rect width="${W}" height="${H}" rx="5" fill="${bgColor}"/>`;
   for (let i = 0; i < numWhite; i++) {
     const chroma = WHITE_CHROMAS[i % 7];
@@ -424,7 +424,7 @@ body{
   line-height:1;color:${text};margin-bottom:6px;
 }
 .artist{font-size:${artistSz};font-weight:500;color:${sub};margin-top:4px;}
-.meta-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:${compact ? '8px' : '12px'};}
+.meta-row{display:flex;flex-direction:column;gap:${compact ? '4px' : '5px'};margin-top:${compact ? '8px' : '12px'};}
 .header-right{
   flex-shrink:0;text-align:right;padding-top:4px;
   font-size:10px;font-weight:700;color:${muted};
@@ -459,8 +459,8 @@ body{
   font-size:${chordNameSz};font-weight:900;letter-spacing:-0.02em;
   color:${text};margin-bottom:${compact ? '6px' : '10px'};line-height:1;
 }
-.chord-diagram{display:flex;justify-content:center;margin-bottom:${diagMb};}
-.chord-diagram svg{max-width:100%;height:auto;}
+.chord-diagram{display:flex;justify-content:center;margin-bottom:${diagMb};overflow:visible;}
+.chord-diagram svg{max-width:100%;height:auto;overflow:visible;}
 .chord-notes{font-size:${compact ? '8px' : '9px'};color:${notesTxt};letter-spacing:0.04em;margin-bottom:2px;}
 .chord-type{font-size:${compact ? '7px' : '8px'};font-weight:700;color:${typeTxt};letter-spacing:0.18em;text-transform:uppercase;}
 .chord-instr{display:inline-block;padding:${compact ? '1px 6px' : '2px 8px'};border-radius:9999px;font-size:${compact ? '6px' : '7px'};font-weight:800;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:${compact ? '5px' : '8px'};}
@@ -740,8 +740,8 @@ ${chordContent}
           doc.addImage(card.png, 'PNG', imgX, imgY, DIAG_W, DIAG_H);
           // Fret position indicator — drawn as crisp vector PDF text so it's never rasterized
           if (!card.showNut) {
-            // Align to the left-padding area of the diagram (pL=32 out of W=160 → 20% from left)
-            const labelX = imgX + DIAG_W * 0.185;
+            // text-anchor="end" at x=(pL-6)/W = 26/160 = 0.1625 in the SVG coordinate space
+            const labelX = imgX + DIAG_W * 0.1625;
             // Vertically: first fret center = (pT + cH/2) / H ≈ 25.3% from top
             // (pT=32, cH=(180-32-14)/5=26.8, so 32+13.4=45.4 / 180 = 25.2%)
             const labelY = imgY + DIAG_H * 0.253;
