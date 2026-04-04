@@ -1002,6 +1002,14 @@ function closeSCDial() {
   const total = chips.length;
   chips.forEach((chip, i) => { chip.style.transitionDelay = `${(total - 1 - i) * 22}ms`; });
   if (wrap) wrap.classList.remove('sc-dial-open');
+  // Spring "return home" pulse on the FAB button
+  const btn = document.getElementById('sc-fab-btn');
+  if (btn) {
+    btn.classList.remove('sc-fab-returning');
+    void btn.offsetWidth; // force reflow to restart animation
+    btn.classList.add('sc-fab-returning');
+    setTimeout(() => btn.classList.remove('sc-fab-returning'), 520);
+  }
 }
 
 // ── Item sheet: second-level panel that replaces the bottom cat bar ──
@@ -1058,7 +1066,18 @@ function closeItemSheet(goBackToChips) {
   const wrap  = document.getElementById('sc-fab-wrap');
   if (sheet) sheet.classList.remove('sc-sheet-open');
   if (wrap)  wrap.classList.remove('sc-items-open');
-  if (goBackToChips) { setTimeout(() => openSCDial(), 190); }
+  if (goBackToChips) {
+    setTimeout(() => openSCDial(), 190);
+  } else {
+    // Spring "return home" pulse when the FAB lands back in its resting state
+    const btn = document.getElementById('sc-fab-btn');
+    if (btn) {
+      btn.classList.remove('sc-fab-returning');
+      void btn.offsetWidth;
+      btn.classList.add('sc-fab-returning');
+      setTimeout(() => btn.classList.remove('sc-fab-returning'), 520);
+    }
+  }
 }
 
 // ── Mobile: add library item directly to center of stage ──────

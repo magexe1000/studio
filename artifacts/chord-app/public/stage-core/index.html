@@ -152,10 +152,10 @@
       it would render in flow without this override) */
 #desktop-cat-bar { display: none !important; }
 
-/* 8. On ≥768px screens: restore desktop cat-bar behaviour unchanged */
+/* 8. Desktop cat-bar fully suppressed — FAB dial replaces it on all breakpoints */
 @media (min-width: 768px) {
-  #desktop-cat-bar { display: none !important; }
-  #desktop-cat-bar.desk-bar-visible { display: flex !important; }
+  #desktop-cat-bar,
+  #desktop-cat-bar.desk-bar-visible { display: none !important; }
 }
 
 /* 9. Hide the status bar entirely — not needed in the embedded experience */
@@ -1171,6 +1171,18 @@ html[data-theme="light"] .sc-dial-chip {
 #sc-fab-wrap.sc-items-open #sc-fab-icon { transform: rotate(45deg); }
 /* Backdrop also shows when item sheet is open */
 #sc-fab-wrap.sc-items-open + #sc-dial-backdrop { display: block; }
+
+/* ── FAB "return home" spring animation (class toggled by JS on close) ── */
+@keyframes sc-fab-return {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.18); }
+  65%  { transform: scale(0.94); }
+  85%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+#sc-fab-btn.sc-fab-returning {
+  animation: sc-fab-return 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
 
 /* ══════════════════════════════════════════
    ITEM SUB-SHEET  (#sc-item-sheet)
