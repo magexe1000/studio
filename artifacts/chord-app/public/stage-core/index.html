@@ -115,8 +115,8 @@
 }
 
 /* 5. Add bottom padding to scrollable views so content doesn't hide behind nav */
-#view-Rider, #view-Setlist, #view-Gear, #view-Members, #view-Assistant {
-  padding-bottom: 140px !important;
+#view-Rider, #view-Setlist, #view-Gear, #view-Members {
+  padding-bottom: 160px !important;
 }
 
 /* 6. View slide animations (replaces the old opacity-only entering) */
@@ -272,6 +272,46 @@ header { display: none !important; }
   display: none;
   align-items: center;
   gap: 8px;
+}
+
+/* Setup sub-nav — secondary tab bar above the main nav for Setup group */
+#setup-sub-nav {
+  position: fixed;
+  bottom: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 199;
+  display: none;
+  align-items: center;
+  background: rgba(12,12,16,0.93);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 12px;
+  padding: 4px;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.60);
+  width: min(92vw, 380px);
+  gap: 2px;
+}
+.setup-sub-tab {
+  flex: 1;
+  padding: 6px 4px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: rgba(180,185,200,0.50);
+  font-family: 'Manrope', 'Space Grotesk', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.13s, color 0.13s;
+  white-space: nowrap;
+}
+.setup-sub-tab.active {
+  background: rgba(122,175,255,0.14);
+  color: #7aafff;
 }
 </style>
 </head>
@@ -786,25 +826,33 @@ header { display: none !important; }
     <span class="material-symbols-outlined sc-nav-icon">grid_on</span>
     <span data-i18n="navEditor">Editor</span>
   </button>
-  <button class="mob-tab" data-view="Rider" onclick="switchView('Rider')">
-    <span class="material-symbols-outlined sc-nav-icon">description</span>
-    <span data-i18n="navRider">Rider</span>
-  </button>
-  <button class="mob-tab" data-view="Setlist" onclick="switchView('Setlist')">
-    <span class="material-symbols-outlined sc-nav-icon">queue_music</span>
-    <span data-i18n="navSetlist">Setlist</span>
-  </button>
-  <button class="mob-tab" data-view="Gear" onclick="switchView('Gear')">
-    <span class="material-symbols-outlined sc-nav-icon">inventory_2</span>
-    <span data-i18n="navGear">Gear</span>
-  </button>
-  <button class="mob-tab" data-view="Members" onclick="switchView('Members')">
-    <span class="material-symbols-outlined sc-nav-icon">group</span>
-    <span data-i18n="navMembers">Members</span>
+  <button class="mob-tab" data-view="Setup" id="setup-mob-tab" onclick="activateSetup()">
+    <span class="material-symbols-outlined sc-nav-icon">folder_open</span>
+    <span>Setup</span>
   </button>
   <button class="mob-tab" data-view="Assistant" onclick="switchView('Assistant')">
     <span class="material-symbols-outlined sc-nav-icon">tune</span>
-    <span>Prefs</span>
+    <span>Preferences</span>
+  </button>
+</div>
+
+<!-- Setup secondary sub-nav (Rider / Setlist / Gear / Members) -->
+<div id="setup-sub-nav">
+  <button class="setup-sub-tab active" data-view="Rider" onclick="switchView('Rider')">
+    <span class="material-symbols-outlined" style="font-size:14px;display:block;margin-bottom:2px;">description</span>
+    Rider
+  </button>
+  <button class="setup-sub-tab" data-view="Setlist" onclick="switchView('Setlist')">
+    <span class="material-symbols-outlined" style="font-size:14px;display:block;margin-bottom:2px;">queue_music</span>
+    Setlist
+  </button>
+  <button class="setup-sub-tab" data-view="Gear" onclick="switchView('Gear')">
+    <span class="material-symbols-outlined" style="font-size:14px;display:block;margin-bottom:2px;">inventory_2</span>
+    Gear
+  </button>
+  <button class="setup-sub-tab" data-view="Members" onclick="switchView('Members')">
+    <span class="material-symbols-outlined" style="font-size:14px;display:block;margin-bottom:2px;">group</span>
+    Members
   </button>
 </div>
 
@@ -2918,7 +2966,15 @@ window.addEventListener('message', function(e) {
     }
   }
 
-  /* ── Patch switchView for slide animations ───────────────────────────── */
+  /* ── Setup group helpers ─────────────────────────────────────────────── */
+  var SETUP_VIEWS = ['Rider', 'Setlist', 'Gear', 'Members'];
+  var _lastSetupView = 'Rider';
+
+  window.activateSetup = function () {
+    switchView(_lastSetupView);
+  };
+
+  /* ── Patch switchView for slide animations + Setup group ─────────────── */
   var _orig = window.switchView;
   window.switchView = function (view) {
     var prevIdx = VIEW_ORDER.indexOf(_curView);
@@ -2926,11 +2982,28 @@ window.addEventListener('message', function(e) {
     var dir = nextIdx >= prevIdx ? 'right' : 'left';
     _curView = view;
 
+    /* Track last active setup view */
+    if (SETUP_VIEWS.indexOf(view) !== -1) { _lastSetupView = view; }
+
     /* Always restore nav visibility when the user switches views */
     setScNavHidden(false);
     _scLastScrollY = 0;
 
     _orig(view);
+
+    /* ── Setup sub-nav: show/hide + sync active tab ── */
+    var isSetup = SETUP_VIEWS.indexOf(view) !== -1;
+    var subNav = document.getElementById('setup-sub-nav');
+    if (subNav) subNav.style.display = isSetup ? 'flex' : 'none';
+    if (isSetup) {
+      document.querySelectorAll('.setup-sub-tab').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.view === view);
+      });
+    }
+
+    /* ── Sync main nav: Setup mob-tab active on any setup view ── */
+    var setupTab = document.getElementById('setup-mob-tab');
+    if (setupTab) setupTab.classList.toggle('active', isSetup);
 
     /* Slide the new page in — skip Editor (it has position:fixed children) */
     if (view !== 'Editor') {
@@ -2949,9 +3022,11 @@ window.addEventListener('message', function(e) {
     var riderBar = document.getElementById('rider-action-bar');
     if (riderBar) riderBar.style.display = (view === 'Rider') ? 'flex' : 'none';
 
-    /* Update pill */
+    /* Update pill — use Setup tab for all setup views */
     var nav = document.getElementById('mobile-nav-bar');
-    var activeBtn = nav && nav.querySelector('.mob-tab[data-view="' + view + '"]');
+    var activeBtn = isSetup
+      ? document.getElementById('setup-mob-tab')
+      : nav && nav.querySelector('.mob-tab[data-view="' + view + '"]');
     requestAnimationFrame(function () { updatePill(activeBtn, dir); });
   };
 
