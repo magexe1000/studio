@@ -2815,7 +2815,6 @@ html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important
   align-items: center;
   gap: 10px;
   padding: 13px 16px 11px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
   flex-shrink: 0;
 }
 #presets-back-btn {
@@ -2871,15 +2870,30 @@ html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important
 }
 #presets-save-row:active { background: rgba(255,255,255,0.06); }
 
-/* ── Inline save form (hidden until triggered) ── */
+/* ── Inline save form — drops out of the save row with a height animation ── */
 #presets-save-form {
-  display: none;
+  display: flex;
   flex-direction: column;
   gap: 7px;
-  padding: 2px 4px 6px;
+  /* Collapsed state: no height, no padding, invisible */
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+  overflow: hidden;
+  opacity: 0;
   flex-shrink: 0;
+  transition: max-height 280ms cubic-bezier(0.4,0,0.2,1),
+              opacity 200ms ease,
+              padding 280ms cubic-bezier(0.4,0,0.2,1);
 }
-#presets-save-form.pf-open { display: flex; }
+#presets-save-form.pf-open {
+  max-height: 130px;   /* tall enough for input + action row */
+  padding-top: 4px;
+  padding-bottom: 8px;
+  opacity: 1;
+}
 
 #preset-name-input {
   background: rgba(255,255,255,0.07);
