@@ -31,6 +31,135 @@
 <link rel="stylesheet" href="stage-core.css"/>
 <link rel="stylesheet" href="app.css"/>
 <script src="cloud-stub.js"></script>
+<style>
+/* ═══════════════ CHORDEX-STYLE BOTTOM NAV ═══════════════════════════════ */
+
+/* 1. Hide the desktop top-nav tabs — bottom nav replaces them for all sizes */
+#desktop-nav { display: none !important; }
+
+/* 2. Promote mobile-nav-bar to always-visible floating bottom pill */
+#mobile-nav-bar {
+  display: flex !important;
+  position: fixed !important;
+  top: auto !important;
+  bottom: 40px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  right: auto !important;
+  width: min(92vw, 520px) !important;
+  height: auto !important;
+  border-radius: 999px !important;
+  border-bottom: none !important;
+  border: 1px solid rgba(255,255,255,0.09) !important;
+  padding: 4px !important;
+  background: rgba(12,12,16,0.90) !important;
+  backdrop-filter: blur(20px) saturate(180%) brightness(1.04) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(1.04) !important;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.65), 0 1.5px 0 rgba(255,255,255,0.07) inset !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  overflow: hidden !important;
+  z-index: 200 !important;
+  transition: opacity 420ms ease !important;
+  scrollbar-width: none !important;
+}
+#mobile-nav-bar::-webkit-scrollbar { display: none; }
+
+/* 3. Each nav button — icon + label, pill-shaped */
+.mob-tab {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  padding: 8px 4px !important;
+  border-radius: 999px !important;
+  border: none !important;
+  border-bottom: none !important;
+  background: transparent !important;
+  font-family: 'Manrope', 'Space Grotesk', sans-serif !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: rgba(180,185,200,0.45) !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  position: relative !important;
+  z-index: 1 !important;
+  transition: color 130ms ease, transform 120ms cubic-bezier(0.34,1.56,0.64,1) !important;
+  -webkit-font-smoothing: antialiased !important;
+  min-width: 0 !important;
+}
+.mob-tab:active { transform: scale(0.91) !important; }
+.mob-tab.active { color: #fff !important; border-bottom: none !important; }
+.mob-tab .sc-nav-icon {
+  font-size: 20px !important;
+  line-height: 1 !important;
+  display: block !important;
+}
+
+/* 4. Sliding pill background behind the active button */
+#sc-nav-pill {
+  position: absolute !important;
+  top: 4px !important;
+  height: calc(100% - 8px) !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, #5a9ff5, #7aafff) !important;
+  box-shadow: 0 2px 18px rgba(122,175,255,0.40) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  transition: left 150ms cubic-bezier(0.34,1.56,0.64,1),
+              width 150ms cubic-bezier(0.34,1.56,0.64,1) !important;
+}
+
+/* 5. Add bottom padding to scrollable views so content doesn't hide behind nav */
+#view-Rider, #view-Setlist, #view-Gear, #view-Members, #view-Assistant {
+  padding-bottom: 140px !important;
+}
+
+/* 6. View slide animations (replaces the old opacity-only entering) */
+.sc-slide-left  { animation: sc-from-right 240ms cubic-bezier(0.22,1,0.36,1) both !important; }
+.sc-slide-right { animation: sc-from-left  240ms cubic-bezier(0.22,1,0.36,1) both !important; }
+
+@keyframes sc-from-right {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes sc-from-left {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+/* Suppress old view-entering transition — our animation handles it */
+.view-entering { transition: none !important; opacity: 1 !important; transform: none !important; }
+
+/* 7. Desktop element cat-bar — always hidden on mobile (it has no mobile CSS, so
+      it would render in flow without this override) */
+#desktop-cat-bar { display: none !important; }
+
+/* 8. On ≥768px screens: restore desktop cat-bar behaviour unchanged */
+@media (min-width: 768px) {
+  #desktop-cat-bar { display: none !important; }
+  #desktop-cat-bar.desk-bar-visible { display: flex !important; }
+}
+
+/* 9. Reposition the editor tools toolbar (it was at top:98px to sit below the
+      old 40px top-tab-bar; with that tab-bar gone, move it right below the header) */
+@media (max-width: 767px) {
+  #bottom-toolbar {
+    top: 58px !important;
+  }
+  /* Lift the element-category pill bar above the new bottom nav */
+  #mobile-cat-bar {
+    bottom: 116px !important;
+  }
+  /* Lift the element tray as well */
+  #mobile-el-tray {
+    bottom: 152px !important;
+  }
+}
+</style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden select-none" style="height:100vh;">
 
@@ -835,14 +964,33 @@
   </div>
 </header>
 
-<!-- Mobile view-tab navigation (hidden on desktop) -->
-<div id="mobile-nav-bar" style="display:none;">
-  <button class="mob-tab active" data-view="Editor"    onclick="switchView('Editor')"    data-i18n="navEditor">Editor</button>
-  <button class="mob-tab"        data-view="Rider"     onclick="switchView('Rider')"     data-i18n="navRider">Rider</button>
-  <button class="mob-tab"        data-view="Setlist"   onclick="switchView('Setlist')"   data-i18n="navSetlist">Setlist</button>
-  <button class="mob-tab"        data-view="Gear"      onclick="switchView('Gear')"      data-i18n="navGear">Gear</button>
-  <button class="mob-tab"        data-view="Members"   onclick="switchView('Members')"   data-i18n="navMembers">Members</button>
-  <button class="mob-tab"        data-view="Assistant" onclick="switchView('Assistant')">AI</button>
+<!-- Bottom pill navigation — replaces the old top tabs for all screen sizes -->
+<div id="mobile-nav-bar">
+  <div id="sc-nav-pill" style="left:0;width:0;opacity:0;"></div>
+  <button class="mob-tab active" data-view="Editor" onclick="switchView('Editor')">
+    <span class="material-symbols-outlined sc-nav-icon">grid_on</span>
+    <span data-i18n="navEditor">Editor</span>
+  </button>
+  <button class="mob-tab" data-view="Rider" onclick="switchView('Rider')">
+    <span class="material-symbols-outlined sc-nav-icon">description</span>
+    <span data-i18n="navRider">Rider</span>
+  </button>
+  <button class="mob-tab" data-view="Setlist" onclick="switchView('Setlist')">
+    <span class="material-symbols-outlined sc-nav-icon">queue_music</span>
+    <span data-i18n="navSetlist">Setlist</span>
+  </button>
+  <button class="mob-tab" data-view="Gear" onclick="switchView('Gear')">
+    <span class="material-symbols-outlined sc-nav-icon">inventory_2</span>
+    <span data-i18n="navGear">Gear</span>
+  </button>
+  <button class="mob-tab" data-view="Members" onclick="switchView('Members')">
+    <span class="material-symbols-outlined sc-nav-icon">group</span>
+    <span data-i18n="navMembers">Members</span>
+  </button>
+  <button class="mob-tab" data-view="Assistant" onclick="switchView('Assistant')">
+    <span class="material-symbols-outlined sc-nav-icon">smart_toy</span>
+    <span>AI</span>
+  </button>
 </div>
 
 <!-- Mobile category pill bar (top:128px on mobile, hidden on desktop) -->
@@ -2717,6 +2865,117 @@ window.addEventListener('message', function(e) {
     window.parent.dispatchEvent(new CustomEvent('studio-hub-return'));
   }
 });
+</script>
+
+<!-- ═══════════ Chordex-style bottom nav: pill tracker + slide animations ══════════ -->
+<script>
+(function () {
+  'use strict';
+
+  var VIEW_ORDER = ['Editor', 'Rider', 'Setlist', 'Gear', 'Members', 'Assistant'];
+  var _curView = 'Editor';
+
+  /* ── Pill position tracker ───────────────────────────────────────────── */
+  var _stretchTimer = null;
+
+  function measureBtn(btn) {
+    var nav = document.getElementById('mobile-nav-bar');
+    if (!nav || !btn) return null;
+    var navRect = nav.getBoundingClientRect();
+    var btnRect = btn.getBoundingClientRect();
+    return { left: btnRect.left - navRect.left, width: btnRect.width };
+  }
+
+  function updatePill(targetBtn, direction) {
+    var pill = document.getElementById('sc-nav-pill');
+    if (!pill || !targetBtn) return;
+
+    var m = measureBtn(targetBtn);
+    if (!m) return;
+
+    if (pill.style.opacity === '0') {
+      /* First paint — snap immediately */
+      pill.style.transition = 'none';
+      pill.style.left  = m.left + 'px';
+      pill.style.width = m.width + 'px';
+      pill.style.opacity = '1';
+      return;
+    }
+
+    /* Elastic stretch: extend the leading edge first, then collapse trailing */
+    if (_stretchTimer) { clearTimeout(_stretchTimer); _stretchTimer = null; }
+
+    if (direction === 'right') {
+      /* Moving right: extend right edge first */
+      pill.style.width = (m.left + m.width - parseFloat(pill.style.left || 0)) + 'px';
+      _stretchTimer = setTimeout(function () {
+        pill.style.left  = m.left + 'px';
+        pill.style.width = m.width + 'px';
+        _stretchTimer = null;
+      }, 70);
+    } else {
+      /* Moving left: extend left edge first */
+      var oldRight = parseFloat(pill.style.left || 0) + parseFloat(pill.style.width || 0);
+      pill.style.left  = m.left + 'px';
+      pill.style.width = (oldRight - m.left) + 'px';
+      _stretchTimer = setTimeout(function () {
+        pill.style.width = m.width + 'px';
+        _stretchTimer = null;
+      }, 70);
+    }
+  }
+
+  /* ── Patch switchView for slide animations ───────────────────────────── */
+  var _orig = window.switchView;
+  window.switchView = function (view) {
+    var prevIdx = VIEW_ORDER.indexOf(_curView);
+    var nextIdx = VIEW_ORDER.indexOf(view);
+    var dir = nextIdx >= prevIdx ? 'right' : 'left';
+    _curView = view;
+
+    _orig(view);
+
+    /* Slide the new page in — skip Editor (it has position:fixed children) */
+    if (view !== 'Editor') {
+      var page = document.getElementById('view-' + view);
+      if (page) {
+        page.classList.remove('sc-slide-left', 'sc-slide-right', 'view-entering');
+        void page.offsetWidth; /* force reflow */
+        page.classList.add(dir === 'right' ? 'sc-slide-left' : 'sc-slide-right');
+        setTimeout(function () {
+          page.classList.remove('sc-slide-left', 'sc-slide-right');
+        }, 280);
+      }
+    }
+
+    /* Update pill */
+    var nav = document.getElementById('mobile-nav-bar');
+    var activeBtn = nav && nav.querySelector('.mob-tab[data-view="' + view + '"]');
+    requestAnimationFrame(function () { updatePill(activeBtn, dir); });
+  };
+
+  /* ── Initial pill position on load ──────────────────────────────────── */
+  function initPill() {
+    var nav = document.getElementById('mobile-nav-bar');
+    var activeBtn = nav && nav.querySelector('.mob-tab.active');
+    if (activeBtn) updatePill(activeBtn, 'right');
+    else setTimeout(initPill, 50);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(initPill, 80); });
+  } else {
+    setTimeout(initPill, 80);
+  }
+
+  window.addEventListener('resize', function () {
+    var nav = document.getElementById('mobile-nav-bar');
+    var activeBtn = nav && nav.querySelector('.mob-tab.active');
+    if (!activeBtn) return;
+    var pill = document.getElementById('sc-nav-pill');
+    var m = measureBtn(activeBtn);
+    if (pill && m) { pill.style.left = m.left + 'px'; pill.style.width = m.width + 'px'; }
+  });
+})();
 </script>
 </body>
 </html>
