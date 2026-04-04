@@ -162,7 +162,7 @@ export default function StageCorePanel() {
         transition: 'height 260ms cubic-bezier(0.4,0,0.2,1)',
       }}>
       {/* Safe-area spacer */}
-      <div style={{ height: 'env(safe-area-inset-top)', background: stageHdr, flexShrink: 0 }} />
+      <div style={{ height: 'env(safe-area-inset-top)', background: 'transparent', flexShrink: 0 }} />
 
       {/* 52px header bar */}
       <div style={{

@@ -2781,7 +2781,7 @@ html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important
 
 #presets-panel {
   position: fixed;
-  bottom: 144px;   /* sits above FAB + nav bar */
+  top: 58px;       /* just below the Stagex header bar */
   right: 14px;
   width: 264px;
   max-height: 420px;
@@ -2796,8 +2796,9 @@ html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important
   -webkit-backdrop-filter: blur(20px);
   box-shadow: 0 8px 40px rgba(0,0,0,0.70);
   font-family: 'Space Grotesk', sans-serif;
-  /* Hidden by default — animates in via .preset-open */
-  transform: translateY(14px) scale(0.93);
+  /* Hidden by default — animates DOWN from the button via .preset-open */
+  transform: translateY(-14px) scale(0.93);
+  transform-origin: top right;
   opacity: 0;
   pointer-events: none;
   transition: transform 330ms cubic-bezier(0.34,1.56,0.64,1),
@@ -2986,11 +2987,11 @@ html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important
 /* ── AMOLED ── */
 html[data-amoled="1"] #presets-panel { background: rgba(0,0,0,0.98) !important; }
 
-/* ── Landscape: repositioned above the landscape FAB ── */
+/* ── Landscape: keep at top, allow taller panel ── */
 @media screen and (orientation: landscape) and (max-width: 960px) {
   #presets-panel {
-    bottom: 76px !important;
-    max-height: calc(100vh - 90px) !important;
+    top: 8px !important;
+    max-height: calc(100vh - 20px) !important;
   }
 }
 
