@@ -3035,26 +3035,48 @@ function scSaveAsPreset(nameHint) {
 }
 
 function scOpenElPresets() {
+  // Close the item sheet if open so they don't overlap
+  const itemSheet = document.getElementById('sc-item-sheet');
+  if (itemSheet) itemSheet.classList.remove('sc-sheet-open');
+  const fabWrap = document.getElementById('sc-fab-wrap');
+  if (fabWrap) fabWrap.classList.remove('sc-items-open');
+
   let panel = document.getElementById('sc-el-presets-panel');
   if (!panel) {
     panel = document.createElement('div');
     panel.id = 'sc-el-presets-panel';
     panel.style.cssText = [
-      'position:fixed;top:0;right:-320px;bottom:0;width:300px;',
-      'background:#0e0e0e;border-left:1px solid rgba(72,72,71,0.3);',
-      'z-index:5001;display:flex;flex-direction:column;',
-      'transition:right 0.25s cubic-bezier(.16,1,.3,1);',
+      'position:fixed;bottom:142px;right:14px;width:212px;max-height:400px;',
+      'z-index:5001;display:flex;flex-direction:column;overflow:hidden;',
+      'border-radius:18px;',
+      'backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);',
+      'transform:translateY(18px) scale(0.93);opacity:0;pointer-events:none;',
+      'transition:transform 330ms cubic-bezier(0.34,1.56,0.64,1),opacity 240ms ease;',
     ].join('');
     document.body.appendChild(panel);
   }
+  // Sync visual style to current theme
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  panel.style.background = isLight ? 'rgba(248,248,250,0.98)' : 'rgba(16,16,20,0.97)';
+  panel.style.border = isLight ? '1px solid rgba(0,0,0,0.09)' : '1px solid rgba(255,255,255,0.10)';
+  panel.style.boxShadow = isLight ? '0 8px 40px rgba(0,0,0,0.12)' : '0 8px 40px rgba(0,0,0,0.60)';
+
   _elPresetsOpen = true;
   _renderElPresetsPanel();
-  requestAnimationFrame(() => { panel.style.right = '0'; });
+  requestAnimationFrame(() => {
+    panel.style.transform = 'translateY(0) scale(1)';
+    panel.style.opacity = '1';
+    panel.style.pointerEvents = 'all';
+  });
 }
 
 function scCloseElPresets() {
   const panel = document.getElementById('sc-el-presets-panel');
-  if (panel) panel.style.right = '-320px';
+  if (panel) {
+    panel.style.transform = 'translateY(18px) scale(0.93)';
+    panel.style.opacity = '0';
+    panel.style.pointerEvents = 'none';
+  }
   _elPresetsOpen = false;
 }
 
@@ -3145,31 +3167,42 @@ function _renderElPresetsPanel() {
   const panel = document.getElementById('sc-el-presets-panel');
   if (!panel) return;
   const presets = _getElPresets();
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const sepColor = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)';
+  const delColor = isLight ? 'rgba(0,0,0,0.2)' : 'rgba(120,120,120,0.3)';
+
+  const presetRows = presets.length === 0
+    ? `<p style="font-family:'Inter';font-size:10px;color:#484847;text-align:center;margin:18px 4px;line-height:1.7;padding:0 6px;">No presets yet.<br>Select elements<br>and save.</p>`
+    : presets.map(p => `
+        <div style="position:relative;">
+          <button class="sc-item-btn" onclick="scLoadElPreset(${p.id});scCloseElPresets();">
+            <span class="sc-item-btn-icon">
+              <span class="material-symbols-outlined" style="font-size:14px;">bookmark</span>
+            </span>
+            <span class="sc-item-btn-name" title="${p.name}">${p.name}</span>
+            <span style="font-family:'Inter';font-size:9px;color:#484847;flex-shrink:0;padding-right:18px;">${p.count}</span>
+          </button>
+          <button onclick="event.stopPropagation();_deleteElPreset(${p.id})" title="Delete"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:${delColor};cursor:pointer;font-size:15px;line-height:1;padding:4px;-webkit-tap-highlight-color:transparent;transition:color .12s;"
+            onmouseover="this.style.color='#ff5050'" onmouseout="this.style.color='${delColor}'">×</button>
+        </div>`).join('');
+
   panel.innerHTML = `
-    <div style="display:flex;align-items:center;padding:16px 18px;border-bottom:1px solid rgba(72,72,71,0.22);flex-shrink:0;">
-      <span style="font-family:'Space Grotesk';font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#e0e0e0;flex:1;">Element Presets</span>
-      <button onclick="scCloseElPresets()" style="background:none;border:none;color:#484847;cursor:pointer;font-size:20px;line-height:1;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#484847'">×</button>
+    <div style="display:flex;align-items:center;gap:9px;padding:12px 14px 9px;flex-shrink:0;border-bottom:1px solid ${sepColor};">
+      <button onclick="scCloseElPresets()"
+        style="width:26px;height:26px;border-radius:8px;background:rgba(128,128,128,0.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#888;-webkit-tap-highlight-color:transparent;flex-shrink:0;transition:background 120ms ease;">
+        <span class="material-symbols-outlined" style="font-size:15px;">arrow_back_ios_new</span>
+      </button>
+      <span style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#888;flex:1;">Presets</span>
     </div>
-    <div style="padding:12px 18px;border-bottom:1px solid rgba(72,72,71,0.15);flex-shrink:0;">
-      <p style="font-family:'Inter';font-size:10px;color:#484847;margin:0 0 10px;line-height:1.5;">Multi-select elements on stage, then save as a reusable group.</p>
-      <button onclick="scSaveAsPreset()" style="width:100%;padding:8px;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;background:rgba(122,175,255,0.1);border:1px solid rgba(122,175,255,0.25);color:#7aafff;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(122,175,255,0.18)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">+ Save Selection as Preset</button>
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:10px 18px;">
-      ${presets.length === 0
-        ? '<p style="font-family:\'Inter\';font-size:10px;color:#2a2a2a;text-align:center;margin-top:24px;">No presets saved yet.<br>Select elements and save your first preset.</p>'
-        : presets.map(p => `
-          <div style="background:#111;border:1px solid rgba(72,72,71,0.2);margin-bottom:8px;padding:10px 12px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-              <span style="font-family:'Space Grotesk';font-size:11px;font-weight:700;color:#e0e0e0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.name}">${p.name}</span>
-              <span style="font-family:'Inter';font-size:9px;color:#2a2a2a;flex-shrink:0;">${p.count} elem</span>
-            </div>
-            <div style="font-family:'Inter';font-size:9px;color:#2a2a2a;margin-bottom:8px;">${p.savedAt}</div>
-            <div style="display:flex;gap:6px;">
-              <button onclick="scLoadElPreset(${p.id})" style="flex:1;padding:5px 0;font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;background:rgba(122,175,255,0.08);border:1px solid rgba(122,175,255,0.2);color:#7aafff;cursor:pointer;transition:background .12s;" onmouseover="this.style.background='rgba(122,175,255,0.16)'" onmouseout="this.style.background='rgba(122,175,255,0.08)'">Load onto Stage</button>
-              <button onclick="_renameElPreset(${p.id})" title="Rename" style="padding:5px 9px;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#484847;cursor:pointer;font-size:12px;transition:all .12s;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#484847'">✎</button>
-              <button onclick="_deleteElPreset(${p.id})" title="Delete" style="padding:5px 9px;background:transparent;border:1px solid rgba(255,113,108,0.2);color:#484847;cursor:pointer;font-size:12px;transition:all .12s;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'">×</button>
-            </div>
-          </div>`).join('')}
+    <div style="overflow-y:auto;overflow-x:hidden;padding:6px;display:flex;flex-direction:column;gap:1px;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-height:340px;">
+      <button class="sc-item-btn sc-item-btn--create" onclick="scSaveAsPreset()">
+        <span class="sc-item-btn-icon">
+          <span class="material-symbols-outlined" style="font-size:15px;">add</span>
+        </span>
+        <span class="sc-item-btn-name">Save as Preset</span>
+      </button>
+      ${presetRows}
     </div>`;
   _refreshPresetsDrop();
 }
