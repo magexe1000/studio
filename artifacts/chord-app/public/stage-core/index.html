@@ -236,37 +236,31 @@
   transform: translateX(-50%) translateY(calc(100% + 28px)) !important;
 }
 
-/* 11. Reposition toolbar and category bars around the new layout */
+/* 11. Reposition toolbar — React header bar is ABOVE the iframe now, so toolbar goes to top:0 */
 @media (max-width: 767px) {
-  /* Canvas fills from top — header is gone, no more 64px gap */
+  /* Canvas fills from top inside iframe */
   #canvas-container { top: 0 !important; }
-  /* Push stage viewport down to clear the toolbar (52px top + ~36px height + gap) */
-  #stage-viewport { padding-top: 96px !important; }
-  /* Toolbar sits BELOW the Stagex app-switch logo row (~38px tall) */
-  #bottom-toolbar {
-    top: 52px !important;
-  }
-  /* SAVE + PDF stay true top-right — same row as the Stagex logo, right side */
-  #rider-action-bar { top: 10px !important; }
-  /* Lift element-category bar above the nav pill (pill height ~62px + 10px bottom + 10px gap) */
-  #mobile-cat-bar {
-    bottom: 82px !important;
-  }
+  /* Stage viewport padded to clear the in-iframe toolbar row (~48px) */
+  #stage-viewport { padding-top: 52px !important; }
+  /* Toolbar at the very top of the iframe (React header sits outside above it) */
+  #bottom-toolbar { top: 0 !important; }
+  /* SAVE + PDF align to the right of the toolbar row */
+  #rider-action-bar { top: 8px !important; }
+  /* Lift element-category bar above the nav pill */
+  #mobile-cat-bar { bottom: 82px !important; }
   /* Lift element tray above the category bar */
-  #mobile-el-tray {
-    bottom: 120px !important;
-  }
+  #mobile-el-tray { bottom: 120px !important; }
 }
 
-/* 12. Hide the native header bar entirely — React overlay replaces it */
+/* 12. Hide the native header bar — React header replaces it */
 header { display: none !important; }
 
-/* Views fill the viewport from top now that the header is gone */
+/* Views fill the iframe from top */
 .view-page { top: 0 !important; }
 
-/* Non-editor views: push content below the React AppModeMenuLogo overlay (~40px) */
+/* Sub-views: React header (52px) is outside the iframe, only a small inner top pad needed */
 #view-Rider, #view-Setlist, #view-Gear, #view-Members, #view-Assistant {
-  padding-top: 52px !important;
+  padding-top: 16px !important;
 }
 
 /* Rider-only action bar (SAVE + PDF) — shown via JS when on Rider */
@@ -370,6 +364,9 @@ header { display: none !important; }
 
 /* Hide the ← Setup back buttons — swipe gesture handles navigation */
 .sc-back-btn { display: none !important; }
+
+/* Hide in-iframe SAVE+PDF bar — recreated in the React header bar above the iframe */
+#rider-action-bar { display: none !important; }
 </style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden select-none" style="height:100vh;">
@@ -895,7 +892,7 @@ header { display: none !important; }
 
 <!-- ═══════════ SETUP HUB — card list ═══════════ -->
 <div id="view-SetupHub" class="view-page" style="display:none;">
-  <div style="padding:72px 16px 110px;">
+  <div style="padding:20px 16px 110px;">
 
     <!-- Section heading -->
     <div style="margin-bottom:28px;">
@@ -1605,7 +1602,7 @@ header { display: none !important; }
 </div><!-- /Editor View -->
 
 <!-- ═══════════════════════ RIDER VIEW ═══════════════════════ -->
-<div id="view-Rider" class="view-page scrollable-view" style="padding-top:72px;padding-left:22px;padding-right:22px;padding-bottom:64px;display:none;">
+<div id="view-Rider" class="view-page scrollable-view" style="padding-top:16px;padding-left:22px;padding-right:22px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
     <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
   </button>
@@ -1690,7 +1687,7 @@ header { display: none !important; }
 </div>
 
 <!-- ═══════════════════════ SETLIST VIEW ═══════════════════════ -->
-<div id="view-Setlist" class="view-page scrollable-view" style="padding-top:72px;padding-left:22px;padding-right:22px;padding-bottom:64px;display:none;">
+<div id="view-Setlist" class="view-page scrollable-view" style="padding-top:16px;padding-left:22px;padding-right:22px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
     <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
   </button>
@@ -1921,7 +1918,7 @@ header { display: none !important; }
 </div>
 
 <!-- ═══════════════════════ GEAR VIEW ═══════════════════════ -->
-<div id="view-Gear" class="view-page scrollable-view" style="padding-top:72px;padding-left:22px;padding-right:22px;padding-bottom:64px;display:none;">
+<div id="view-Gear" class="view-page scrollable-view" style="padding-top:16px;padding-left:22px;padding-right:22px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
     <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
   </button>
@@ -2026,7 +2023,7 @@ header { display: none !important; }
 </div>
 
 <!-- ═══════════════════════ MEMBERS VIEW ═══════════════════════ -->
-<div id="view-Members" class="view-page scrollable-view" style="padding-top:72px;padding-left:22px;padding-right:22px;padding-bottom:64px;display:none;">
+<div id="view-Members" class="view-page scrollable-view" style="padding-top:16px;padding-left:22px;padding-right:22px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
     <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
   </button>
@@ -2362,7 +2359,7 @@ header { display: none !important; }
 <div id="view-Assistant" class="view-page" style="display:none;height:100vh;box-sizing:border-box;flex-direction:column;background:#0a0a0e;">
 
   <!-- Preferences header -->
-  <div style="padding:72px 22px 10px;flex-shrink:0;">
+  <div style="padding:16px 22px 10px;flex-shrink:0;">
     <h1 style="font-family:'Space Grotesk',sans-serif;font-size:2.8rem;font-weight:800;letter-spacing:-0.04em;color:#fff;margin:0;line-height:1;">Preferences</h1>
     <p style="font-family:'Inter',sans-serif;font-size:12px;color:#484847;margin:6px 0 0;">Customize your Stage Core experience.</p>
   </div>
