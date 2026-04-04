@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
+import { setBackHandler } from '../lib/backStack';
 
 export default function StageCorePanel() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -14,6 +15,20 @@ export default function StageCorePanel() {
     };
     iframe.addEventListener('load', handleLoad);
     return () => iframe.removeEventListener('load', handleLoad);
+  }, []);
+
+  // Register with the global back stack so OS/browser back gesture works
+  useEffect(() => {
+    const handler = (): boolean => {
+      try {
+        const win = iframeRef.current?.contentWindow as (Window & { stageGoBack?: () => boolean }) | null;
+        return win?.stageGoBack?.() ?? false;
+      } catch {
+        return false;
+      }
+    };
+    setBackHandler(handler);
+    return () => setBackHandler(null);
   }, []);
 
   return (

@@ -367,6 +367,9 @@ header { display: none !important; }
 #view-Rider, #view-Setlist, #view-Gear, #view-Members {
   background: #0a0a0e !important;
 }
+
+/* Hide the ← Setup back buttons — swipe gesture handles navigation */
+.sc-back-btn { display: none !important; }
 </style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden select-none" style="height:100vh;">
@@ -3144,9 +3147,22 @@ window.addEventListener('message', function(e) {
     if (pill && m) { pill.style.left = m.left + 'px'; pill.style.width = m.width + 'px'; }
   });
 
-  /* ── Swipe-right back gesture for Setup sub-views ───────────────────── */
-  var _swipeX = 0, _swipeY = 0;
+  /* ── Global back function called by the React parent via contentWindow ── */
   var SWIPE_BACK = ['Rider', 'Setlist', 'Gear', 'Members'];
+  window.stageGoBack = function () {
+    if (SWIPE_BACK.indexOf(_curView) !== -1) {
+      window.switchView('SetupHub');
+      return true;
+    }
+    if (_curView === 'SetupHub') {
+      window.switchView('Editor');
+      return true;
+    }
+    return false;
+  };
+
+  /* ── Swipe-right back gesture (touch-within-iframe fallback) ─────────── */
+  var _swipeX = 0, _swipeY = 0;
   document.addEventListener('touchstart', function (e) {
     _swipeX = e.touches[0].clientX;
     _swipeY = e.touches[0].clientY;
@@ -3155,9 +3171,7 @@ window.addEventListener('message', function(e) {
     var dx = e.changedTouches[0].clientX - _swipeX;
     var dy = e.changedTouches[0].clientY - _swipeY;
     if (dx > 55 && Math.abs(dy) < 100 && _swipeX < 44) {
-      if (SWIPE_BACK.indexOf(_curView) !== -1) {
-        window.switchView('SetupHub');
-      }
+      window.stageGoBack();
     }
   }, { passive: true });
 
