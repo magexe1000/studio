@@ -820,14 +820,17 @@ function switchView(view) {
   // On mobile, only show category bar + toolbar on Editor view
   const catBar     = document.getElementById('mobile-cat-bar');
   const elTray     = document.getElementById('mobile-el-tray');
-  const mobToolbar = document.getElementById('bottom-toolbar');
+  const scVtools   = document.getElementById('sc-vtools');
+  const fabWrap    = document.getElementById('sc-fab-wrap');
   const expBar     = document.getElementById('mob-export-bar');
   const expSheet   = document.getElementById('mob-export-settings');
   const isEditor   = (view === 'Editor');
   const isExport   = (view === 'Export');
   if (catBar)    catBar.classList.toggle('mob-hidden', !isEditor);
   if (elTray)    elTray.classList.remove('mob-tray-open');
-  if (mobToolbar) mobToolbar.classList.toggle('mob-hidden', !isEditor);
+  if (scVtools)  scVtools.classList.toggle('mob-hidden', !isEditor);
+  if (fabWrap)   fabWrap.classList.toggle('mob-hidden', !isEditor);
+  if (!isEditor) closeSCDial();
   if (expBar)    expBar.classList.toggle('mob-hidden', !isExport);
   if (expSheet)  { expSheet.style.display = 'none'; }
   if (document.getElementById('mob-exp-set-btn'))
@@ -941,6 +944,64 @@ function closeMobileElTray() {
   document.querySelectorAll('.mob-cat-btn').forEach(b => b.classList.remove('active'));
 }
 
+// ══════════════════════════════════════════════════════════
+//  FAB SPEED DIAL
+// ══════════════════════════════════════════════════════════
+const SC_DIAL_CATS = [
+  { cat: 'mics',   icon: 'mic',                      label: 'Mics'        },
+  { cat: 'drums',  icon: 'music_note',                label: 'Drums'       },
+  { cat: 'inst',   icon: 'electric_bolt',             label: 'Instruments' },
+  { cat: 'amps',   icon: 'speaker',                   label: 'Amps'        },
+  { cat: 'mon',    icon: 'volume_up',                 label: 'Audio'       },
+  { cat: 'util',   icon: 'settings_input_component',  label: 'Utilities'   },
+  { cat: 'custom', icon: 'add_circle',                label: 'Custom',  accent: true },
+  { cat: null,     icon: 'bookmark',                  label: 'Presets', gold: true, action: 'presets' },
+];
+let _dialOpen = false;
+
+function _buildDial() {
+  const container = document.getElementById('sc-dial-items');
+  if (!container || container.childElementCount > 0) return;
+  SC_DIAL_CATS.forEach(item => {
+    const chip = document.createElement('button');
+    chip.className = 'sc-dial-chip';
+    const iconColor = item.accent ? 'var(--accent)' : item.gold ? '#f0b429' : 'currentColor';
+    chip.innerHTML = `<span class="material-symbols-outlined sc-dial-chip-icon" style="color:${iconColor}">${item.icon}</span><span>${item.label}</span>`;
+    chip.addEventListener('click', () => {
+      closeSCDial();
+      if (item.action === 'presets') { setTimeout(() => scOpenElPresets(), 90); }
+      else { setTimeout(() => openMobileCat(item.cat), 90); }
+    });
+    container.appendChild(chip);
+  });
+}
+
+function toggleSCDial() {
+  _dialOpen ? closeSCDial() : openSCDial();
+}
+
+function openSCDial() {
+  _buildDial();
+  _dialOpen = true;
+  closeMobileElTray();
+  const wrap  = document.getElementById('sc-fab-wrap');
+  const chips = wrap ? wrap.querySelectorAll('.sc-dial-chip') : [];
+  // Stagger: bottom chip first (i=0 = shortest delay)
+  chips.forEach((chip, i) => { chip.style.transitionDelay = `${i * 40}ms`; });
+  if (wrap) wrap.classList.add('sc-dial-open');
+}
+
+function closeSCDial() {
+  if (!_dialOpen) return;
+  _dialOpen = false;
+  const wrap  = document.getElementById('sc-fab-wrap');
+  const chips = wrap ? wrap.querySelectorAll('.sc-dial-chip') : [];
+  // Reverse stagger: top chips disappear first
+  const total = chips.length;
+  chips.forEach((chip, i) => { chip.style.transitionDelay = `${(total - 1 - i) * 22}ms`; });
+  if (wrap) wrap.classList.remove('sc-dial-open');
+}
+
 // ── Mobile: add library item directly to center of stage ──────
 function addItemToStage(item) {
   const rect = stageCanvas.getBoundingClientRect();
@@ -970,8 +1031,14 @@ function addItemToStage(item) {
   closeMobileSidebar();
 }
 // Nav is now rendered dynamically via renderNav()
-// init Editor visible
+// init Editor visible — also show FAB and vertical toolbar for the initial view
 document.getElementById('view-Editor').style.display = 'block';
+(function() {
+  const fab = document.getElementById('sc-fab-wrap');
+  if (fab) fab.classList.remove('mob-hidden');
+  const vt = document.getElementById('sc-vtools');
+  if (vt) vt.classList.remove('mob-hidden');
+})();
 
 // ══════════════════════════════════════════════════════════
 //  LIBRARY — Accordion

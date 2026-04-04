@@ -2522,7 +2522,7 @@ function _buildChainView(container) {
   const _keepIds = [
     'properties-panel', 'sc-ctx', 'sc-tools-fab',
     'sc-el-presets-panel', 'sc-presets-drop', 'sc-hist-panel', 'layer-panel',
-    'sm-panel', 'bottom-toolbar',
+    'sm-panel', 'sc-vtools', 'sc-fab-wrap', 'sc-dial-backdrop',
   ];
   function _isUiPanel(target) {
     return _keepIds.some(function(id) {
