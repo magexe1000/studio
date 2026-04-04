@@ -151,7 +151,7 @@ export default function App() {
     accentColor: settings.accentColor ?? 'blue',
     amoledMode:  settings.amoledMode  ?? false,
   };
-  const accent = ACCENT_COLORS[activeVis.accentColor];
+  const accent = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
 
   // Show/hide the nav based on panel and preset state.
   // Hidden (and locked so scroll can't override) only when inside the preset editor.
