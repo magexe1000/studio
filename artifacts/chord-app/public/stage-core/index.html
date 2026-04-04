@@ -144,19 +144,27 @@
   #desktop-cat-bar.desk-bar-visible { display: flex !important; }
 }
 
-/* 9. Reposition the editor tools toolbar (it was at top:98px to sit below the
-      old 40px top-tab-bar; with that tab-bar gone, move it right below the header) */
+/* 9. Hide the status bar entirely — not needed in the embedded experience */
+#status-bar { display: none !important; }
+
+/* 10. With status bar gone the nav pill can sit lower */
+#mobile-nav-bar {
+  bottom: 10px !important;
+}
+
+/* 11. Reposition toolbar and category bars around the new layout */
 @media (max-width: 767px) {
+  /* Toolbar right below the header */
   #bottom-toolbar {
-    top: 58px !important;
+    top: 54px !important;
   }
-  /* Lift the element-category pill bar above the new bottom nav */
+  /* Lift element-category bar above the nav pill (pill height ~62px + 10px bottom + 10px gap) */
   #mobile-cat-bar {
-    bottom: 116px !important;
+    bottom: 82px !important;
   }
-  /* Lift the element tray as well */
+  /* Lift element tray above the category bar */
   #mobile-el-tray {
-    bottom: 152px !important;
+    bottom: 120px !important;
   }
 }
 </style>
@@ -954,12 +962,18 @@
         </div>
       </div>
     </div>
-    <button onclick="openPresetsPanel()" class="px-5 py-2 font-headline font-bold uppercase tracking-wider text-sm" style="background:#ff7439;color:#fff;border:none;transition:all 0.15s;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
-      <span style="display:flex;align-items:center;gap:7px;"><i data-lucide="layers" style="width:14px;height:14px;stroke-width:2.5;flex-shrink:0;"></i> <span class="desktop-only" style="display:inline;" data-i18n="saveBtnDesk">Save / Presets</span><span class="mobile-only" style="display:none;" data-i18n="saveBtnMob">Save</span></span>
+    <button onclick="openPresetsPanel()"
+      style="display:flex;align-items:center;gap:5px;background:rgba(255,116,57,0.14);color:#ff7439;border:1px solid rgba(255,116,57,0.28);border-radius:8px;padding:5px 11px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:background 0.15s,border-color 0.15s;flex-shrink:0;"
+      onmouseover="this.style.background='rgba(255,116,57,0.24)';this.style.borderColor='rgba(255,116,57,0.50)'"
+      onmouseout="this.style.background='rgba(255,116,57,0.14)';this.style.borderColor='rgba(255,116,57,0.28)'">
+      <i data-lucide="layers" style="width:12px;height:12px;stroke-width:2.5;flex-shrink:0;"></i>
+      <span data-i18n="saveBtnMob">Save</span>
     </button>
-    <button onclick="switchView('Export')" class="px-5 py-2 font-headline font-bold uppercase tracking-wider text-sm bg-surface-variant text-on-surface hover:bg-surface-bright transition-colors" id="btn-export-pdf">
-      <span class="desktop-only" style="display:inline;">Export</span>
-      <span class="mobile-only" style="display:none;align-items:center;gap:5px;"><span class="material-symbols-outlined" style="font-size:15px;">picture_as_pdf</span> Export</span>
+    <button onclick="switchView('Export')" id="btn-export-pdf" title="Export to PDF"
+      style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:rgba(255,255,255,0.06);color:rgba(180,185,200,0.7);border:1px solid rgba(255,255,255,0.10);border-radius:8px;cursor:pointer;transition:background 0.15s,color 0.15s;flex-shrink:0;"
+      onmouseover="this.style.background='rgba(255,255,255,0.12)';this.style.color='rgba(255,255,255,0.95)'"
+      onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(180,185,200,0.7)'">
+      <span class="material-symbols-outlined" style="font-size:16px;line-height:1;">picture_as_pdf</span>
     </button>
   </div>
 </header>
