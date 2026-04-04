@@ -23,7 +23,7 @@ export default function StageCorePanel() {
     <div style={{ position: 'relative', width: '100%', height: '100dvh', overflow: 'hidden' }}>
       <iframe
         ref={iframeRef}
-        src="/stage-core/"
+        src="/stage-core/index.html"
         title="Stage Core"
         style={{
           position: 'absolute',
