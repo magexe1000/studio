@@ -140,7 +140,10 @@ export default function StageCorePanel() {
       {/* Safe-area spacer + 52px header — both collapse when in Export view */}
       <div style={{
         flexShrink: 0,
-        overflow: 'hidden',
+        // overflow:hidden is needed only when collapsing (Export mode) so the height animation clips
+        // the header content. When fully expanded, it must be visible so the app-switch dropdown
+        // can render below the header without being clipped.
+        overflow: curView === 'Export' ? 'hidden' : 'visible',
         height: curView === 'Export' ? 0 : 'calc(env(safe-area-inset-top) + 52px)',
         transition: 'height 200ms ease',
       }}>
