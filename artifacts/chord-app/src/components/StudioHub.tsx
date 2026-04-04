@@ -430,8 +430,8 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
                   className="btn-smooth"
                   style={{
                     padding: '12px 6px', borderRadius: '12px',
-                    background: isActive ? (opt.amoled ? '#000' : `${accent.from}22`) : 'var(--app-surface-high)',
-                    border: `1.5px solid ${isActive ? (opt.amoled ? 'rgba(255,255,255,0.18)' : accent.from + '66') : 'transparent'}`,
+                    background: isActive ? `${accent.from}22` : 'var(--app-surface-high)',
+                    border: `1.5px solid ${isActive ? accent.from + '66' : 'transparent'}`,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
                     opacity: isDisabled ? 0.35 : 1,
                     transition: 'background 200ms ease, border-color 200ms ease, opacity 200ms ease',
@@ -439,12 +439,12 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
                   }}>
                   <span className="material-symbols-outlined" style={{
                     fontSize: '22px',
-                    color: isActive ? (opt.amoled ? 'rgba(255,255,255,0.9)' : accent.from) : 'var(--c-text-secondary)',
+                    color: isActive ? accent.from : 'var(--c-text-secondary)',
                     fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
                     transition: 'color 200ms ease',
                   }}>{opt.icon}</span>
                   <p style={{
-                    color: isActive ? (opt.amoled ? 'rgba(255,255,255,0.9)' : 'var(--c-text-primary)') : 'var(--c-text-secondary)',
+                    color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
                     fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)',
                     transition: 'color 200ms ease',
                   }}>{opt.label}</p>
