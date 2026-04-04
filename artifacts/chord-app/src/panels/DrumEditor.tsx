@@ -1063,6 +1063,20 @@ function DrumExportModal({ patterns, song, accent, onClose }: {
   const [saveRes,   setSaveRes] = useState<'ok' | 'fail' | null>(null);
   const [closing,   setClosing] = useState(false);
   const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [barVisible, setBarVisible] = useState(true);
+  const lastScrollTop = useRef(0);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const sy = el.scrollTop;
+      setBarVisible(sy <= lastScrollTop.current || sy < 50);
+      lastScrollTop.current = sy;
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
 
   const update = <K extends keyof DrumExportConfig>(k: K, v: DrumExportConfig[K]) =>
     setCfg(prev => ({ ...prev, [k]: v }));
@@ -1129,114 +1143,153 @@ function DrumExportModal({ patterns, song, accent, onClose }: {
   );
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--app-bg)', display: 'flex', flexDirection: 'column',
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: '#0e0e0e', display: 'flex', flexDirection: 'column',
       animation: closing ? 'sheet-down 320ms cubic-bezier(0.25,0.46,0.45,0.94) both' : 'sheet-up 340ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
 
-      {/* Header */}
-      <div style={{ paddingTop: 'max(16px,env(safe-area-inset-top))', padding: 'max(16px,env(safe-area-inset-top)) 20px 12px',
-        display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        <button onClick={handleClose} className="btn-smooth"
-          style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 20 }}>arrow_back</span>
-        </button>
-        <p style={{ flex: 1, fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)' }}>Export PDF</p>
-      </div>
-
-      {/* Scrollable body */}
-      <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 0' }}>
-
-        {/* Paper preview */}
-        <div style={{ marginBottom: 28 }}>
-          <DrumPaperPreview patterns={patterns} song={song} cfg={cfg} accent={accent} />
-        </div>
-
-        <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, letterSpacing: '0.25em',
-          textTransform: 'uppercase', color: 'var(--c-text-secondary)', marginBottom: 12 }}>
-          Export Settings
-        </p>
-
-        {/* File name */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ padding: '14px 16px', background: 'var(--app-surface-high)', borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 14, color: 'var(--c-text-primary)' }}>File name</p>
-            <input type="text" value={pdfName} onChange={e => setPdfName(e.target.value)}
-              placeholder={song?.name ?? 'Beat'}
-              maxLength={80}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 10, background: 'var(--app-surface)',
-                border: '1px solid rgba(72,72,72,0.15)', color: 'var(--c-text-primary)',
-                fontFamily: 'Manrope', fontWeight: 600, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+      {/* ── Header ── */}
+      <div style={{ paddingTop: 'env(safe-area-inset-top)', background: '#191a1a', flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: 56 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={handleClose} className="btn-smooth"
+              style={{ width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', flexShrink: 0 }}>
+              <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: 22 }}>arrow_back</span>
+            </button>
+            <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#e7e5e4', lineHeight: 1 }}>
+              Export Preview
+            </p>
           </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-          <Row label="Dark theme" sub="Black background, light text"
-            right={<Toggle on={cfg.theme === 'dark'} onChange={() => update('theme', cfg.theme === 'dark' ? 'light' : 'dark')} />}
-          />
-          <Row label="Layout style" sub="Visual density of the grid"
-            right={
-              <Segment
-                options={[{ value: 'compact', label: 'Compact' }, { value: 'normal', label: 'Normal' }, { value: 'elegant', label: 'Elegant' }]}
-                value={cfg.style}
-                onChange={v => update('style', v as DrumExportConfig['style'])}
-              />
-            }
-          />
-        </div>
-
-        {/* Info note */}
-        <div style={{ padding: '14px 16px', borderRadius: 14, background: `${accent.from}0d`, border: `1px solid ${accent.from}22`,
-          display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 16 }}>
-          <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: 18, flexShrink: 0, marginTop: 1 }}>info</span>
-          <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.5, margin: 0 }}>
-            The PDF contains the step-sequencer grid for all patterns. Hidden rows (pattern mixer) are excluded from the export.
-          </p>
+          <span style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: 700, color: '#484848', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(72,72,72,0.3)' }}>
+            PDF
+          </span>
         </div>
       </div>
 
-      {/* Bottom actions */}
-      <div style={{ padding: '12px 20px', paddingBottom: 'max(20px,env(safe-area-inset-bottom))',
-        display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0,
-        borderTop: '1px solid rgba(72,72,72,0.08)', background: 'var(--app-bg)' }}>
-        {saveRes && (
-          <div style={{ textAlign: 'center', fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, padding: '4px 0',
-            color: saveRes === 'ok' ? '#34d399' : '#f87171' }}>
-            {saveRes === 'ok' ? 'Saved to Downloads!' : 'Could not save — try Share instead'}
+      {/* ── Scrollable body ── */}
+      <div ref={scrollRef} className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', paddingBottom: 170 }}>
+
+        {/* Paper stage */}
+        <div style={{ padding: '32px 24px 28px', background: '#0a0a0a', position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.1, pointerEvents: 'none',
+            backgroundImage: 'radial-gradient(#555 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <DrumPaperPreview patterns={patterns} song={song} cfg={cfg} accent={accent} />
           </div>
-        )}
-        {isNative ? (
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => handlePDF('save')} disabled={saving || sharing} className="btn-smooth"
-              style={{ flex: 1, padding: 16, borderRadius: 9999, fontFamily: 'Manrope', fontWeight: 800, fontSize: 14,
-                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                background: (saving || sharing) ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
-                boxShadow: (saving || sharing) ? 'none' : `0 6px 24px ${accent.to}50`, transition: 'all 200ms' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
-                {saving ? 'hourglass_empty' : 'save'}
-              </span>
-              {saving ? 'Generating…' : 'Save to Device'}
-            </button>
-            <button onClick={() => handlePDF('share')} disabled={saving || sharing} className="btn-smooth"
-              style={{ flex: 1, padding: 16, borderRadius: 9999, fontFamily: 'Manrope', fontWeight: 800, fontSize: 14,
-                color: accent.from, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                background: 'var(--app-surface-high)', transition: 'all 200ms' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
-                {sharing ? 'hourglass_empty' : 'share'}
-              </span>
-              {sharing ? 'Generating…' : 'Share'}
-            </button>
-          </div>
-        ) : (
-          <button onClick={() => handlePDF('share')} disabled={sharing} className="btn-smooth"
-            style={{ width: '100%', padding: 16, borderRadius: 9999, fontFamily: 'Manrope', fontWeight: 800, fontSize: 15,
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              background: sharing ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
-              boxShadow: sharing ? 'none' : `0 6px 24px ${accent.to}50`, transition: 'all 200ms' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>
-              {sharing ? 'hourglass_empty' : 'download'}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 14 }}>
+            <span style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#3a3a3a' }}>
+              {patterns.length} {patterns.length === 1 ? 'pattern' : 'patterns'}
             </span>
-            {sharing ? 'Generating…' : 'Download PDF'}
+            <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#3a3a3a', display: 'inline-block' }} />
+            <span style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#3a3a3a' }}>
+              A3 Landscape
+            </span>
+          </div>
+        </div>
+
+        {/* File name + note */}
+        <div style={{ padding: '28px 20px 8px' }}>
+          <p style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#484848', marginBottom: 10 }}>
+            File Name
+          </p>
+          <input type="text" value={pdfName} onChange={e => setPdfName(e.target.value)}
+            placeholder={song?.name ?? 'Beat'} maxLength={80}
+            style={{ width: '100%', padding: '13px 16px', borderRadius: 12, background: '#191a1a',
+              border: '1px solid rgba(72,72,72,0.25)', color: '#e7e5e4', fontFamily: 'Manrope', fontWeight: 600,
+              fontSize: 15, outline: 'none', boxSizing: 'border-box', marginBottom: 24,
+              transition: 'border-color 200ms ease' }} />
+          <div style={{ padding: '14px 16px', borderRadius: 12, background: `${accent.from}0d`, border: `1px solid ${accent.from}18`,
+            display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: 15, flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1" }}>info</span>
+            <p style={{ fontFamily: 'Inter', fontSize: 12, color: '#6e6e80', lineHeight: 1.55, margin: 0 }}>
+              The PDF contains the step-sequencer grid for all patterns. Hidden rows (pattern mixer) are excluded from the export.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Floating bottom bar ── */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 400,
+        transform: barVisible ? 'translateY(0)' : 'translateY(110%)',
+        transition: 'transform 300ms cubic-bezier(0.4,0,0.2,1)',
+        background: 'rgba(15,15,15,0.94)',
+        backdropFilter: 'blur(28px)',
+        WebkitBackdropFilter: 'blur(28px)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+      }}>
+        {/* Options row */}
+        <div style={{ padding: '14px 16px 10px', display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
+
+          {/* Dark theme chip */}
+          <button onClick={() => update('theme', cfg.theme === 'dark' ? 'light' : 'dark')} className="btn-smooth"
+            style={{ padding: '5px 12px', borderRadius: 8, fontFamily: 'Inter', fontWeight: 700, fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 5,
+              background: cfg.theme === 'dark' ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.04)',
+              color: cfg.theme === 'dark' ? '#e7e5e4' : '#6e6e80',
+              border: cfg.theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.04)',
+              transition: 'all 160ms ease' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 13, fontVariationSettings: cfg.theme === 'dark' ? "'FILL' 1" : "'FILL' 0" }}>dark_mode</span>
+            Dark
           </button>
-        )}
+
+          {/* Layout style */}
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 2, gap: 1 }}>
+            {([['compact', 'Cmp'] as const, ['normal', 'Nor'] as const, ['elegant', 'Ele'] as const]).map(([v, lbl]) => {
+              const active = cfg.style === v;
+              return (
+                <button key={v} onClick={() => update('style', v as DrumExportConfig['style'])} className="btn-smooth"
+                  style={{ padding: '5px 11px', borderRadius: 6, fontFamily: 'Inter', fontWeight: 700, fontSize: 10, letterSpacing: '0.05em',
+                    background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    color: active ? '#e7e5e4' : '#6e6e80',
+                    transition: 'all 160ms ease' }}>
+                  {lbl}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Export button */}
+        <div style={{ padding: '6px 16px', paddingBottom: 'max(20px,env(safe-area-inset-bottom))', display: 'flex', gap: 10, position: 'relative' }}>
+          {saveRes && (
+            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, textAlign: 'center', padding: 6,
+              fontFamily: 'Manrope', fontWeight: 700, fontSize: 12, color: saveRes === 'ok' ? '#34d399' : '#f87171' }}>
+              {saveRes === 'ok' ? 'Saved to Downloads!' : 'Could not save — try Share instead'}
+            </div>
+          )}
+          {isNative ? (
+            <>
+              <button onClick={() => handlePDF('save')} disabled={saving || sharing} className="btn-smooth"
+                style={{ flex: 1, padding: 14, borderRadius: 9999, fontFamily: 'Manrope', fontWeight: 800, fontSize: 14, color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  background: (saving || sharing) ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
+                  boxShadow: (saving || sharing) ? 'none' : `0 4px 20px ${accent.to}40`, transition: 'all 200ms ease' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 17, fontVariationSettings: "'FILL' 1" }}>
+                  {saving ? 'hourglass_empty' : 'save'}
+                </span>
+                {saving ? 'Generating…' : 'Save'}
+              </button>
+              <button onClick={() => handlePDF('share')} disabled={saving || sharing} className="btn-smooth"
+                style={{ flex: 1, padding: 14, borderRadius: 9999, fontFamily: 'Manrope', fontWeight: 800, fontSize: 14,
+                  color: accent.from, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  background: 'rgba(255,255,255,0.06)', transition: 'all 200ms ease' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 17, fontVariationSettings: "'FILL' 1" }}>
+                  {sharing ? 'hourglass_empty' : 'share'}
+                </span>
+                {sharing ? 'Generating…' : 'Share'}
+              </button>
+            </>
+          ) : (
+            <button onClick={() => handlePDF('share')} disabled={sharing} className="btn-smooth"
+              style={{ flex: 1, padding: 15, borderRadius: 9999, fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                background: sharing ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
+                boxShadow: sharing ? 'none' : `0 4px 24px ${accent.to}40`, transition: 'all 200ms ease' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 19, fontVariationSettings: "'FILL' 1" }}>
+                {sharing ? 'hourglass_empty' : 'download'}
+              </span>
+              {sharing ? 'Generating…' : 'Download PDF'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

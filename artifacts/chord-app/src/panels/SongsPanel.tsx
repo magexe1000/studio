@@ -1287,6 +1287,20 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
   const [closing, setClosing] = useState(false);
   const [saveResult, setSaveResult] = useState<'ok' | 'fail' | null>(null);
   const isNative = typeof window !== 'undefined' && !!(window as any).Capacitor?.isNativePlatform?.();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [barVisible, setBarVisible] = useState(true);
+  const lastScrollTop = useRef(0);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const sy = el.scrollTop;
+      setBarVisible(sy <= lastScrollTop.current || sy < 50);
+      lastScrollTop.current = sy;
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
 
   const update = <K extends keyof ExportConfig>(key: K, val: ExportConfig[K]) =>
     setCfg(prev => ({ ...prev, [key]: val }));
@@ -1376,221 +1390,239 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
     </div>
   );
 
+  const totalChordCount = preset.sections?.length
+    ? preset.sections.reduce((n, s) => n + s.chords.length, 0)
+    : preset.chords.length;
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 200,
-      background: 'var(--app-bg)',
+      background: '#0e0e0e',
       display: 'flex', flexDirection: 'column',
       animation: closing
         ? 'sheet-down 320ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both'
         : 'sheet-up 340ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both',
     }}>
-      {/* ── Header bar ── */}
+
+      {/* ── Header ── */}
       <div style={{
-        paddingTop: 'max(16px, env(safe-area-inset-top))',
-        padding: 'max(16px, env(safe-area-inset-top)) 20px 12px',
-        display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0,
+        paddingTop: 'env(safe-area-inset-top)',
+        background: '#191a1a',
+        flexShrink: 0,
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
       }}>
-        <button onClick={handleClose} className="btn-smooth"
-          style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '20px' }}>arrow_back</span>
-        </button>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '18px', color: 'var(--c-text-primary)', lineHeight: 1 }}>{t.songs.exportPdf}</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: '56px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <button onClick={handleClose} className="btn-smooth"
+              style={{ width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', flexShrink: 0 }}>
+              <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: '22px' }}>arrow_back</span>
+            </button>
+            <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#e7e5e4', lineHeight: 1 }}>
+              Export Preview
+            </p>
+          </div>
+          <span style={{ fontFamily: 'Inter', fontSize: '10px', fontWeight: 700, color: '#484848', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(72,72,72,0.3)' }}>
+            PDF
+          </span>
         </div>
       </div>
 
       {/* ── Scrollable body ── */}
-      <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 0' }}>
-
-        {/* Paper preview */}
-        <div style={{ marginBottom: '28px' }}>
-          <PaperPreview preset={preset} cfg={cfg} accent={accent} transposeOffset={transposeOffset} storedCustomChords={storedCustomChords} />
-        </div>
-
-        {/* EXPORT SETTINGS label */}
-        <p style={{
-          fontFamily: 'Manrope', fontWeight: 700, fontSize: '10px', letterSpacing: '0.25em',
-          textTransform: 'uppercase', color: 'var(--c-text-secondary)', marginBottom: '12px',
+      <div
+        ref={scrollRef}
+        className="no-scrollbar"
+        style={{ flex: 1, overflowY: 'auto', paddingBottom: '190px' }}
+      >
+        {/* Paper stage */}
+        <div style={{
+          padding: '32px 24px 28px',
+          background: '#0a0a0a',
+          position: 'relative',
         }}>
-          {t.songs.exportSettings}
-        </p>
-
-        {/* PDF name input */}
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ padding: '14px 16px', background: 'var(--app-surface-high)', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: '14px', color: 'var(--c-text-primary)' }}>File name</p>
-            <input
-              type="text"
-              value={pdfName}
-              onChange={e => setPdfName(e.target.value)}
-              placeholder={preset.name || 'Song'}
-              maxLength={80}
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: '10px',
-                background: 'var(--app-surface)', border: '1px solid rgba(72,72,72,0.15)',
-                color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: '14px',
-                outline: 'none',
-              }}
-            />
+          <div style={{
+            position: 'absolute', inset: 0, opacity: 0.1, pointerEvents: 'none',
+            backgroundImage: 'radial-gradient(#555 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+          }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <PaperPreview preset={preset} cfg={cfg} accent={accent} transposeOffset={transposeOffset} storedCustomChords={storedCustomChords} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginTop: '14px' }}>
+            <span style={{ fontFamily: 'Inter', fontSize: '10px', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#3a3a3a' }}>
+              Page 1 of 1
+            </span>
+            <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#3a3a3a', display: 'inline-block' }} />
+            <span style={{ fontFamily: 'Inter', fontSize: '10px', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#3a3a3a' }}>
+              {totalChordCount} {totalChordCount === 1 ? 'chord' : 'chords'}
+            </span>
           </div>
         </div>
 
-        {/* Settings rows */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-
-          <Row
-            label="Paper Size"
-            sub="A4 or US Letter"
-            right={
-              <Segment
-                options={[{ value: 'a4', label: 'A4' }, { value: 'letter', label: 'Letter' }]}
-                value={cfg.paperSize ?? 'a4'}
-                onChange={v => update('paperSize', v as ExportConfig['paperSize'])}
-              />
-            }
-          />
-
-          <Row
-            label="Orientation"
-            sub="Portrait or landscape"
-            right={
-              <Segment
-                options={[{ value: 'portrait', label: 'Portrait' }, { value: 'landscape', label: 'Landscape' }]}
-                value={cfg.orientation}
-                onChange={v => update('orientation', v)}
-              />
-            }
-          />
-
-          <Row
-            label={t.songs.includeDiagrams}
-            sub={t.songs.includeDiagramsDesc}
-            right={
-              <Toggle
-                on={cfg.chordDisplay !== 'name'}
-                onChange={() => update('chordDisplay', cfg.chordDisplay !== 'name' ? 'name' : 'both')}
-              />
-            }
-          />
-
-          <Row
-            label={t.songs.darkTheme}
-            sub={t.songs.darkThemeDesc}
-            right={
-              <Toggle
-                on={cfg.theme === 'dark'}
-                onChange={() => update('theme', cfg.theme === 'dark' ? 'light' : 'dark')}
-              />
-            }
-          />
-
-          <Row
-            label={t.songs.exportStyleLabel}
-            sub={t.songs.exportStyleDesc}
-            right={
-              <Segment
-                options={[
-                  { value: 'minimal', label: t.songs.styleMinimal },
-                  { value: 'elegant', label: t.songs.styleElegant },
-                  { value: 'compact', label: t.songs.styleCompact },
-                ]}
-                value={cfg.exportStyle ?? 'elegant'}
-                onChange={v => update('exportStyle', v as ExportConfig['exportStyle'])}
-              />
-            }
-          />
-        </div>
-
-        {/* Info card */}
-        <div style={{
-          padding: '14px 16px', borderRadius: '14px',
-          background: `${accent.from}0d`,
-          border: `1px solid ${accent.from}22`,
-          display: 'flex', gap: '10px', alignItems: 'flex-start',
-          marginBottom: '16px',
-        }}>
-          <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: '18px', flexShrink: 0, marginTop: '1px' }}>info</span>
-          <p style={{ fontFamily: 'Inter', fontSize: '12px', color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
-            {t.songs.pdfExportNote}
+        {/* File name + notes */}
+        <div style={{ padding: '28px 20px 8px' }}>
+          <p style={{ fontFamily: 'Inter', fontSize: '10px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#484848', marginBottom: '10px' }}>
+            File Name
           </p>
+          <input
+            type="text"
+            value={pdfName}
+            onChange={e => setPdfName(e.target.value)}
+            placeholder={preset.name || 'Song'}
+            maxLength={80}
+            style={{
+              width: '100%', padding: '13px 16px', borderRadius: '12px',
+              background: '#191a1a',
+              border: '1px solid rgba(72,72,72,0.25)',
+              color: '#e7e5e4', fontFamily: 'Manrope', fontWeight: 600, fontSize: '15px',
+              outline: 'none', boxSizing: 'border-box',
+              transition: 'border-color 200ms ease',
+              marginBottom: '24px',
+            }}
+          />
+
+          <div style={{
+            padding: '14px 16px', borderRadius: '12px',
+            background: `${accent.from}0d`,
+            border: `1px solid ${accent.from}18`,
+            display: 'flex', gap: '10px', alignItems: 'flex-start',
+          }}>
+            <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: '15px', flexShrink: 0, marginTop: '1px', fontVariationSettings: "'FILL' 1" }}>info</span>
+            <p style={{ fontFamily: 'Inter', fontSize: '12px', color: '#6e6e80', lineHeight: 1.55, margin: 0 }}>
+              {t.songs.pdfExportNote}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* ── Bottom actions ── */}
+      {/* ── Floating bottom bar ── */}
       <div style={{
-        padding: '12px 20px',
-        paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
-        display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0,
-        borderTop: '1px solid rgba(72,72,72,0.08)',
-        background: 'var(--app-bg)',
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 300,
+        transform: barVisible ? 'translateY(0)' : 'translateY(110%)',
+        transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+        background: 'rgba(15,15,15,0.94)',
+        backdropFilter: 'blur(28px)',
+        WebkitBackdropFilter: 'blur(28px)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
       }}>
-        {saveResult && (
-          <div style={{
-            textAlign: 'center', fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px', padding: '4px 0',
-            color: saveResult === 'ok' ? '#34d399' : '#f87171',
-          }}>
-            {saveResult === 'ok' ? 'Saved to Downloads!' : 'Could not save — try Share instead'}
+        {/* Options row */}
+        <div style={{ padding: '14px 16px 10px', display: 'flex', gap: '7px', flexWrap: 'wrap', alignItems: 'center' }}>
+
+          {/* Paper size */}
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '2px', gap: '1px' }}>
+            {(['a4', 'letter'] as const).map(v => {
+              const active = (cfg.paperSize ?? 'a4') === v;
+              return (
+                <button key={v} onClick={() => update('paperSize', v)} className="btn-smooth"
+                  style={{ padding: '5px 11px', borderRadius: '6px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase',
+                    background: active ? accent.from : 'transparent',
+                    color: active ? '#fff' : '#6e6e80',
+                    transition: 'all 160ms ease' }}>
+                  {v === 'a4' ? 'A4' : 'US'}
+                </button>
+              );
+            })}
           </div>
-        )}
-        {isNative ? (
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={() => handleExport('save')}
-              disabled={savingPDF || sharingPDF}
-              className="btn-smooth"
-              style={{
-                flex: 1, padding: '16px', borderRadius: '9999px',
-                fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px',
-                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                background: (savingPDF || sharingPDF) ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                boxShadow: (savingPDF || sharingPDF) ? 'none' : `0 6px 24px ${accent.to}50`,
-                transition: 'all 200ms ease',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
-                {savingPDF ? 'hourglass_empty' : 'save'}
-              </span>
-              {savingPDF ? t.songs.generatingPdf : 'Save to Device'}
-            </button>
-            <button
-              onClick={() => handleExport('share')}
-              disabled={savingPDF || sharingPDF}
-              className="btn-smooth"
-              style={{
-                flex: 1, padding: '16px', borderRadius: '9999px',
-                fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px',
-                color: accent.from, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                background: 'var(--app-surface-high)',
-                transition: 'all 200ms ease',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
-                {sharingPDF ? 'hourglass_empty' : 'share'}
-              </span>
-              {sharingPDF ? t.songs.generatingPdf : 'Share'}
-            </button>
+
+          {/* Orientation */}
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '2px', gap: '1px' }}>
+            {([['portrait', 'Port'] as const, ['landscape', 'Land'] as const]).map(([v, lbl]) => {
+              const active = cfg.orientation === v;
+              return (
+                <button key={v} onClick={() => update('orientation', v)} className="btn-smooth"
+                  style={{ padding: '5px 11px', borderRadius: '6px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em',
+                    background: active ? accent.from : 'transparent',
+                    color: active ? '#fff' : '#6e6e80',
+                    transition: 'all 160ms ease' }}>
+                  {lbl}
+                </button>
+              );
+            })}
           </div>
-        ) : (
-          <button
-            onClick={() => handleExport('share')}
-            disabled={sharingPDF}
-            className="btn-smooth"
-            style={{
-              width: '100%', padding: '16px', borderRadius: '9999px',
-              fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px',
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              background: sharingPDF ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-              boxShadow: sharingPDF ? 'none' : `0 6px 24px ${accent.to}50`,
-              transition: 'all 200ms ease',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>
-              {sharingPDF ? 'hourglass_empty' : 'download'}
-            </span>
-            {sharingPDF ? t.songs.generatingPdf : t.songs.downloadPdf}
+
+          {/* Export style */}
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '2px', gap: '1px' }}>
+            {([['minimal', 'Min'] as const, ['elegant', 'Ele'] as const, ['compact', 'Cmp'] as const]).map(([v, lbl]) => {
+              const active = (cfg.exportStyle ?? 'elegant') === v;
+              return (
+                <button key={v} onClick={() => update('exportStyle', v as ExportConfig['exportStyle'])} className="btn-smooth"
+                  style={{ padding: '5px 11px', borderRadius: '6px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em',
+                    background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    color: active ? '#e7e5e4' : '#6e6e80',
+                    transition: 'all 160ms ease' }}>
+                  {lbl}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Dark theme chip */}
+          <button onClick={() => update('theme', cfg.theme === 'dark' ? 'light' : 'dark')} className="btn-smooth"
+            style={{ padding: '5px 12px', borderRadius: '8px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px',
+              background: cfg.theme === 'dark' ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.04)',
+              color: cfg.theme === 'dark' ? '#e7e5e4' : '#6e6e80',
+              border: cfg.theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.04)',
+              transition: 'all 160ms ease' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '13px', fontVariationSettings: cfg.theme === 'dark' ? "'FILL' 1" : "'FILL' 0" }}>dark_mode</span>
+            Dark
           </button>
-        )}
+
+          {/* Diagrams chip */}
+          <button onClick={() => update('chordDisplay', cfg.chordDisplay !== 'name' ? 'name' : 'both')} className="btn-smooth"
+            style={{ padding: '5px 12px', borderRadius: '8px', fontFamily: 'Inter', fontWeight: 700, fontSize: '10px', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px',
+              background: cfg.chordDisplay !== 'name' ? `${accent.from}20` : 'rgba(255,255,255,0.04)',
+              color: cfg.chordDisplay !== 'name' ? accent.from : '#6e6e80',
+              border: cfg.chordDisplay !== 'name' ? `1px solid ${accent.from}2e` : '1px solid rgba(255,255,255,0.04)',
+              transition: 'all 160ms ease' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '13px', fontVariationSettings: cfg.chordDisplay !== 'name' ? "'FILL' 1" : "'FILL' 0" }}>grid_view</span>
+            Diagrams
+          </button>
+        </div>
+
+        {/* Export button */}
+        <div style={{ padding: '6px 16px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))', display: 'flex', gap: '10px', position: 'relative' }}>
+          {saveResult && (
+            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, textAlign: 'center', padding: '6px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px',
+              color: saveResult === 'ok' ? '#34d399' : '#f87171' }}>
+              {saveResult === 'ok' ? 'Saved to Downloads!' : 'Could not save — try Share instead'}
+            </div>
+          )}
+          {isNative ? (
+            <>
+              <button onClick={() => handleExport('save')} disabled={savingPDF || sharingPDF} className="btn-smooth"
+                style={{ flex: 1, padding: '14px', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  background: (savingPDF || sharingPDF) ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
+                  boxShadow: (savingPDF || sharingPDF) ? 'none' : `0 4px 20px ${accent.to}40`,
+                  transition: 'all 200ms ease' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '17px', fontVariationSettings: "'FILL' 1" }}>
+                  {savingPDF ? 'hourglass_empty' : 'save'}
+                </span>
+                {savingPDF ? t.songs.generatingPdf : 'Save'}
+              </button>
+              <button onClick={() => handleExport('share')} disabled={savingPDF || sharingPDF} className="btn-smooth"
+                style={{ flex: 1, padding: '14px', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px',
+                  color: accent.from, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  background: 'rgba(255,255,255,0.06)', transition: 'all 200ms ease' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '17px', fontVariationSettings: "'FILL' 1" }}>
+                  {sharingPDF ? 'hourglass_empty' : 'share'}
+                </span>
+                {sharingPDF ? t.songs.generatingPdf : 'Share'}
+              </button>
+            </>
+          ) : (
+            <button onClick={() => handleExport('share')} disabled={sharingPDF} className="btn-smooth"
+              style={{ flex: 1, padding: '15px', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                background: sharingPDF ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
+                boxShadow: sharingPDF ? 'none' : `0 4px 24px ${accent.to}40`,
+                transition: 'all 200ms ease' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '19px', fontVariationSettings: "'FILL' 1" }}>
+                {sharingPDF ? 'hourglass_empty' : 'download'}
+              </span>
+              {sharingPDF ? t.songs.generatingPdf : t.songs.downloadPdf}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

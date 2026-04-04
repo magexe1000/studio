@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Chord Explorer"
+title = "Chordex"
 version = "1.0.0"
 id = "artifacts/chord-app"
 router = "path"
@@ -12,7 +12,7 @@ version = "1.0.0"
 [[services]]
 name = "web"
 paths = [ "/" ]
-localPort = 3000
+localPort = 5173
 
 [services.development]
 run = "pnpm --filter @workspace/chord-app run dev"
@@ -27,5 +27,5 @@ from = "/*"
 to = "/index.html"
 
 [services.env]
-PORT = "3000"
+PORT = "5173"
 BASE_PATH = "/"
