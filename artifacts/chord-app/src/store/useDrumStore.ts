@@ -229,6 +229,46 @@ function migratePatterns(patterns: DrumPattern[]): DrumPattern[] {
   }));
 }
 
+// ── Drum Preferences ──────────────────────────────────────────────────────────
+export interface DrumPrefs {
+  // Editor Behavior
+  noteVariationsCycle:  boolean;
+  autoExpandPattern:    boolean;
+  snapToGrid:           boolean;
+  dragToFill:           boolean;
+  // Playback
+  autoPlayOnEdit:       boolean;
+  loopPlayback:         boolean;
+  metronome:            boolean;
+  countIn:              boolean;
+  // Interaction
+  quickDeleteMode:      boolean;
+  showNoteVariations:   boolean;
+  highlightActiveInst:  boolean;
+  // Visual
+  gridLinesEmphasis:    boolean;
+  // Performance
+  lowLatencyMode:       boolean;
+  performanceMode:      boolean;
+}
+
+export const DEFAULT_DRUM_PREFS: DrumPrefs = {
+  noteVariationsCycle:  true,
+  autoExpandPattern:    false,
+  snapToGrid:           true,
+  dragToFill:           true,
+  autoPlayOnEdit:       false,
+  loopPlayback:         true,
+  metronome:            false,
+  countIn:              false,
+  quickDeleteMode:      false,
+  showNoteVariations:   true,
+  highlightActiveInst:  true,
+  gridLinesEmphasis:    true,
+  lowLatencyMode:       false,
+  performanceMode:      false,
+};
+
 interface DrumStore {
   patterns:          DrumPattern[];
   activePatternId:   string | null;
@@ -237,6 +277,7 @@ interface DrumStore {
   masterVolume:      number;
   kitType:           KitType | null;
   activeInstruments: DrumInstrument[];
+  drumPrefs:         DrumPrefs;
 
   setSoundForInstrument:   (inst: DrumInstrument, soundId: string) => void;
   setVolumeForInstrument:  (inst: DrumInstrument, vol: number)     => void;
@@ -293,6 +334,8 @@ interface DrumStore {
 
   houseCrashModel: HouseCrashModel;
   setHouseCrashModel: (model: HouseCrashModel) => void;
+
+  updateDrumPrefs: (patch: Partial<DrumPrefs>) => void;
 }
 
 const initial = defaultPattern();
@@ -313,6 +356,7 @@ export const useDrumStore = create<DrumStore>()(
       houseKitMic:          'blend' as HouseMic,
       houseInstVelOverride: {} as Partial<Record<string, string>>,
       houseCrashModel:      'ac18' as HouseCrashModel,
+      drumPrefs:            { ...DEFAULT_DRUM_PREFS },
 
       setSoundForInstrument: (inst, soundId) =>
         set(s => ({ soundMap: { ...s.soundMap, [inst]: soundId } })),
@@ -639,10 +683,13 @@ export const useDrumStore = create<DrumStore>()(
       }),
 
       setHouseCrashModel: (model) => set({ houseCrashModel: model }),
+
+      updateDrumPrefs: (patch) =>
+        set(s => ({ drumPrefs: { ...s.drumPrefs, ...patch } })),
     }),
     {
       name: 'chordex-drums',
-      version: 9,
+      version: 10,
       partialize: (state) => { const { instFX: _fx, ...rest } = state; return rest as typeof state; },
       migrate: (state: unknown, _version: number) => {
         const s = state as {
@@ -666,6 +713,7 @@ export const useDrumStore = create<DrumStore>()(
           patterns: migratedPatterns,
           drumSongs: migratedSongs,
           activeInstruments: filtered.length > 0 ? filtered : KIT_INSTRUMENTS[kitType ?? 'ludwig'],
+          drumPrefs: { ...DEFAULT_DRUM_PREFS, ...(s.drumPrefs as Partial<DrumPrefs> ?? {}) },
         };
       },
     }

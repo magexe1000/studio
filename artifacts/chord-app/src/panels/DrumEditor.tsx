@@ -17,6 +17,7 @@ import {
   type SampleStatus, type HouseInstName,
 } from '../lib/drumAudio';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
+import DrumPrefsPanel from './DrumPrefsPanel';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
 const LABEL_W  = 72;
@@ -1413,6 +1414,8 @@ export default function DrumEditor() {
   const [editingName,      setEditingName]      = useState('');
   const [editingArtist,    setEditingArtist]    = useState('');
   const [activeDrumSongId, setActiveDrumSongId] = useState<string | null>(null);
+  const [showPrefs,          setShowPrefs]          = useState(false);
+  const [humanizeFeedback,   setHumanizeFeedback]   = useState(false);
 
   // ── Row visibility (persisted to localStorage) ───────────────────────────
   const [showExtraRows, setShowExtraRows] = useState<boolean>(() => {
@@ -1851,6 +1854,40 @@ export default function DrumEditor() {
     setEditingSong(null);
   }, [editingSong, editingName, editingArtist, updateDrumSong]);
 
+  // ── Humanize ──────────────────────────────────────────────────────────────
+  // Applies subtle variation to note types across the active pattern,
+  // producing a more human feel without drastically altering the groove.
+  const handleHumanize = useCallback(() => {
+    if (!pattern) return;
+    const HUMANIZE_RULES: Partial<Record<DrumInstrument, { from: NoteVariation; to: NoteVariation; chance: number }[]>> = {
+      snare:          [{ from: 'normal', to: 'ghost',  chance: 0.28 }],
+      kick:           [{ from: 'normal', to: 'accent', chance: 0.18 }],
+      'hihat-closed': [{ from: 'normal', to: 'open',   chance: 0.14 }],
+      ride:           [{ from: 'normal', to: 'bell',   chance: 0.14 }],
+    };
+    const newMeasures: DrumMeasure[] = pattern.measures.map(measure => {
+      const newHits: DrumMeasure['hits'] = {};
+      for (const [instKey, hitList] of Object.entries(measure.hits)) {
+        const inst = instKey as DrumInstrument;
+        const rules = HUMANIZE_RULES[inst];
+        if (!hitList || !rules) { newHits[inst] = hitList; continue; }
+        newHits[inst] = hitList.map(hit => {
+          const variation = hit.variation ?? 'normal';
+          for (const rule of rules) {
+            if (variation === rule.from && Math.random() < rule.chance) {
+              return { ...hit, variation: rule.to };
+            }
+          }
+          return hit;
+        });
+      }
+      return { ...measure, hits: newHits };
+    });
+    updatePattern(pattern.id, { measures: newMeasures });
+    setHumanizeFeedback(true);
+    setTimeout(() => setHumanizeFeedback(false), 900);
+  }, [pattern, updatePattern]);
+
   // ── Convenience: active song ─────────────────────────────────────────────
   const activeSong = activeDrumSongId ? drumSongs.find(s => s.id === activeDrumSongId) ?? null : null;
 
@@ -1860,6 +1897,7 @@ export default function DrumEditor() {
   const menuItemSt: React.CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12.5, fontFamily: 'Manrope', fontWeight: 600, textAlign: 'left', transition: 'background 120ms' };
 
   return (
+    <>
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
 
       {/* ── Safe-area spacer ─────────────────────────────────────────────── */}
@@ -1916,6 +1954,18 @@ export default function DrumEditor() {
           <>
             <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
             <div style={{ flex: 1 }} />
+            <button
+              onClick={() => setShowPrefs(true)}
+              className="btn-smooth"
+              title="Preferences"
+              style={{ height: 30, width: 30, borderRadius: 8, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.12)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)', flexShrink: 0, padding: 0 }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="6" x2="8" y2="3"/><line x1="8" y1="6" x2="8" y2="9"/>
+                <line x1="4" y1="12" x2="20" y2="12"/><line x1="14" y1="12" x2="14" y2="9"/><line x1="14" y1="12" x2="14" y2="15"/>
+                <line x1="4" y1="18" x2="20" y2="18"/><line x1="10" y1="18" x2="10" y2="15"/><line x1="10" y1="18" x2="10" y2="21"/>
+              </svg>
+            </button>
           </>
         )}
       </div>
@@ -2044,6 +2094,50 @@ export default function DrumEditor() {
               </div>
               <button onClick={toggleSub} style={{ height: 28, padding: '0 14px', borderRadius: 8, background: `${accent.from}18`, border: `1px solid ${accent.from}33`, cursor: 'pointer', color: accent.from, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>1/{pattern.subdivision}</button>
             </div>
+            {/* ── Humanize ──────────────────────────────────────────────── */}
+            <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <span style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Humanize</span>
+                <span style={{ display: 'block', color: 'var(--c-text-muted)', fontSize: 11, marginTop: 1 }}>
+                  {humanizeFeedback ? 'Applied!' : 'Add subtle variation to the pattern'}
+                </span>
+              </div>
+              <button
+                onClick={handleHumanize}
+                className="btn-smooth"
+                style={{
+                  height: 28, padding: '0 12px', borderRadius: 8,
+                  background: humanizeFeedback ? `${accent.from}22` : `${accent.from}18`,
+                  border: `1px solid ${humanizeFeedback ? accent.from + '55' : accent.from + '33'}`,
+                  cursor: 'pointer', color: accent.from,
+                  fontSize: 12, fontWeight: 800, flexShrink: 0,
+                  transition: 'all 200ms',
+                  fontFamily: 'Manrope,sans-serif',
+                }}
+              >
+                {humanizeFeedback ? '✓ Done' : 'Apply'}
+              </button>
+            </div>
+
+            {/* ── Preferences ───────────────────────────────────────────── */}
+            <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
+            <button
+              onClick={() => { setShowHamburger(false); setShowPrefs(true); }}
+              className="btn-smooth"
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 4px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 13, fontFamily: 'Manrope,sans-serif', fontWeight: 500, textAlign: 'left' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="6" x2="8" y2="3"/><line x1="8" y1="6" x2="8" y2="9"/>
+                <line x1="4" y1="12" x2="20" y2="12"/><line x1="14" y1="12" x2="14" y2="9"/><line x1="14" y1="12" x2="14" y2="15"/>
+                <line x1="4" y1="18" x2="20" y2="18"/><line x1="10" y1="18" x2="10" y2="15"/><line x1="10" y1="18" x2="10" y2="21"/>
+              </svg>
+              <span>Preferences</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}>
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+
             <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
             <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 8 }}>
               <span style={{ flex: 1, color: 'var(--c-text-secondary)', fontSize: 13, fontWeight: 500 }}>Export</span>
@@ -2943,5 +3037,9 @@ export default function DrumEditor() {
       })()}
 
     </div>
+
+    {/* ── Drum Preferences overlay ──────────────────────────────────────── */}
+    {showPrefs && <DrumPrefsPanel onClose={() => setShowPrefs(false)} />}
+    </>
   );
 }
