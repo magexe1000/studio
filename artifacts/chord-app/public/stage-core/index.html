@@ -87,8 +87,16 @@
 <link rel="stylesheet" href="app.css"/>
 <script src="cloud-stub.js"></script>
 <style>
-/* ── Global body: fast-tap, no double-tap zoom delay ─────────────────────── */
+/* ── Global body: fast-tap + jail position:fixed inside iframe ───────────── */
 body {
+  /*
+   * translateZ(0) creates a new containing block for all position:fixed
+   * descendants. Without it, Chrome Android routes touches on fixed elements
+   * to the PARENT frame (Chordex) instead of this iframe — making every nav
+   * tap, FAB press, and dialog click silently miss.  The transform is a
+   * zero-offset identity so desktop hit-testing is completely unaffected.
+   */
+  transform: translateZ(0);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
