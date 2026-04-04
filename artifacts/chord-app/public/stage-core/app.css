@@ -2774,3 +2774,62 @@ html[data-amoled="1"] .sc-prefs-row { border-bottom-color: rgba(255,255,255,0.05
 /* ── Scrollbars ──────────────────────────────────────────────── */
 html[data-amoled="1"] ::-webkit-scrollbar-track { background: #000 !important; }
 html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important; }
+
+/* ══════════════════════════════════════════════════════════════
+   LANDSCAPE IMMERSIVE MODE  (mobile / small tablet only)
+   When the device rotates to landscape while on the Stage Editor,
+   all chrome collapses and the plot canvas fills the screen.
+   Only visible: plot zone · left vertical toolbar · + FAB button.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Ensure these elements have smooth bidirectional transitions so both
+   entering and leaving landscape are animated. */
+#mobile-nav-bar {
+  transition: opacity 280ms ease, transform 280ms cubic-bezier(0.4,0,0.2,1) !important;
+}
+#bottom-toolbar {
+  transition: opacity 280ms ease !important;
+}
+#canvas-container {
+  transition: top 260ms cubic-bezier(0.4,0,0.2,1) !important;
+}
+#stage-viewport {
+  transition: padding 260ms cubic-bezier(0.4,0,0.2,1) !important;
+}
+
+@media screen and (orientation: landscape) and (max-width: 960px) {
+
+  /* ── Hide bottom nav pill (Stage / Setup / Preferences) ── */
+  #mobile-nav-bar {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    /* Slide it down so it visually exits the screen */
+    transform: translateX(-50%) translateY(24px) !important;
+  }
+
+  /* ── Hide the floating top-of-canvas tools pill ── */
+  #bottom-toolbar {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* ── Canvas fills the full viewport — no tab-bar or toolbar pushing it ── */
+  #canvas-container {
+    left:   0 !important;
+    right:  0 !important;
+    top:    0 !important;   /* portrait = 92px; landscape = flush to top */
+    bottom: 0 !important;
+  }
+
+  /* ── Tighter stage-viewport padding so the canvas uses maximum space ──
+     Right side has a bit more room so the FAB button doesn't overlap. */
+  #stage-viewport {
+    padding: 6px 68px 6px 8px !important;
+  }
+
+  /* ── FAB: nudge slightly up so it sits clear of the viewport edge ── */
+  #sc-fab-wrap {
+    bottom: 14px !important;
+    right:  14px !important;
+  }
+}
