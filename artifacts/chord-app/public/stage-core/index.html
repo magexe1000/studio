@@ -581,58 +581,61 @@ header { display: none !important; }
   border-radius: 16px; overflow: hidden; margin-bottom: 12px;
 }
 
-/* ── Card-style song rows ── */
+/* ── Song row card layout ── */
 .sl-card-table { width: 100%; border-collapse: collapse; }
-.sl-card-table tbody tr {
-  display: flex; align-items: center;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  padding: 2px 14px;
-  cursor: pointer; -webkit-tap-highlight-color: transparent;
-  transition: background 140ms ease, transform 140ms cubic-bezier(0.34,1.2,0.64,1);
-  position: relative;
+@keyframes sl-row-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-.sl-card-table tbody tr:last-child { border-bottom: none; }
-.sl-card-table tbody tr:active {
-  background: rgba(255,255,255,0.06);
-  transform: scaleX(0.985);
+.sl-song-row { border-bottom: 1px solid rgba(255,255,255,0.04); animation: sl-row-in 360ms cubic-bezier(0.22,1,0.36,1) both; }
+.sl-song-row > td { padding: 0 !important; display: block !important; }
+.sl-song-row:last-child { border-bottom: none; }
+.sl-song-row-main {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 14px; cursor: pointer;
+  transition: background 120ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
-/* Col 1: number */
-.sl-card-table tbody td:nth-child(1) {
-  font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700;
-  color: #333; min-width: 28px; padding: 16px 6px 16px 0;
-  transition: color 140ms ease;
+.sl-song-row-main:active { background: rgba(255,255,255,0.05); }
+.sl-song-num {
+  font-family: 'Space Grotesk'; font-size: 11px; font-weight: 800;
+  color: #333; min-width: 22px; flex-shrink: 0;
 }
-.sl-card-table tbody tr:active td:nth-child(1) { color: #666; }
-/* Col 2: title — grows */
-.sl-card-table tbody td:nth-child(2) {
-  flex: 1; min-width: 0; font-family: 'Space Grotesk'; font-size: 14px; font-weight: 700;
-  color: #e0e0e0; padding: 16px 10px 16px 2px; line-height: 1.25;
+.sl-song-info { flex: 1; min-width: 0; }
+.sl-song-title {
+  font-family: 'Space Grotesk'; font-size: 14px; font-weight: 700;
+  color: #e0e0e0; line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-/* Col 3: segment — hide */
-.sl-card-table tbody td:nth-child(3) { display: none; }
-/* Col 4: key — accent */
-.sl-card-table tbody td:nth-child(4) {
-  font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700;
-  color: var(--accent); padding: 16px 4px; white-space: nowrap;
+.sl-song-artist { font-family: 'Space Grotesk'; font-size: 11px; color: #767575; margin-top: 2px; }
+.sl-song-chips { display: flex; gap: 5px; flex-shrink: 0; align-items: center; }
+.sl-chip-key {
+  padding: 3px 7px; border-radius: 5px;
+  background: var(--accent-14, rgba(122,175,255,0.12)); color: var(--accent, #7aafff);
+  font-family: 'Space Grotesk'; font-size: 10px; font-weight: 800;
 }
-/* Col 5: BPM — muted */
-.sl-card-table tbody td:nth-child(5) {
-  font-family: 'Space Grotesk'; font-size: 11px; font-weight: 600;
-  color: #484847; padding: 16px 4px; white-space: nowrap;
+.sl-chip-bpm {
+  padding: 3px 7px; border-radius: 5px;
+  background: rgba(255,255,255,0.06); color: #adaaaa;
+  font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700;
 }
-/* Col 6: duration */
-.sl-card-table tbody td:nth-child(6) {
-  font-family: 'Space Grotesk'; font-size: 12px; font-weight: 600;
-  color: #adaaaa; padding: 16px 0 16px 8px; white-space: nowrap;
+.sl-chip-dur {
+  padding: 3px 7px; border-radius: 5px;
+  background: rgba(255,255,255,0.04); color: #767575;
+  font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600;
 }
-/* Col 7: energy — hide */
-.sl-card-table tbody td:nth-child(7) { display: none; }
-/* Col 8: notes — hide */
-.sl-card-table tbody td:nth-child(8) { display: none; }
-/* Col 9: actions */
-.sl-card-table tbody td:nth-child(9) {
-  padding: 16px 0 16px 8px; display: flex; align-items: center;
+.sl-del-btn {
+  background: none; border: none; cursor: pointer;
+  color: #484847; display: flex; align-items: center; padding: 4px;
+  flex-shrink: 0; transition: color 120ms ease;
 }
+.sl-del-btn:hover { color: #ff716c; }
+/* Notes expandable */
+.sl-notes-exp { overflow: hidden; max-height: 0; opacity: 0; transition: max-height 320ms cubic-bezier(0.4,0,0.2,1), opacity 200ms ease; }
+.sl-notes-exp.open { max-height: 200px; opacity: 1; }
+.sl-notes-inner { padding: 0 14px 13px 40px; }
+.sl-notes-txt { margin: 0; font-family: 'Inter'; font-size: 12px; color: #767575; line-height: 1.55; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 2px solid rgba(255,255,255,0.08); }
+.sl-notes-empty { font-style: italic; color: #484847 !important; }
 
 /* ── "Add New Track" pill button ── */
 .sl-add-btn {

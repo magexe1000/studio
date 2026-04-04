@@ -2992,45 +2992,42 @@ function renderSetlist() {
     const segBadge = seg
       ? `<span style="display:inline-block;padding:2px 7px;background:${seg.color}22;color:${seg.color};font-family:'Space Grotesk';font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;border:1px solid ${seg.color}44;">${seg.name}</span>`
       : `<span style="color:#484847;font-size:11px;">—</span>`;
+    const chipKey = song.key ? `<span class="sl-chip-key">${song.key}</span>` : '';
+    const chipBpm = song.bpm ? `<span class="sl-chip-bpm">${song.bpm} BPM</span>` : '';
+    const chipDur = (song.duration && song.duration !== '—') ? `<span class="sl-chip-dur">${song.duration}</span>` : '';
+    const safeNotes = (song.notes || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const notesHtml = song.notes
+      ? `<p class="sl-notes-txt">${safeNotes}</p>`
+      : `<p class="sl-notes-txt sl-notes-empty">No notes — edit song to add cues</p>`;
     rows += `
-    <tr class="hover:bg-surface-container transition-colors group" style="cursor:default;">
-      <td class="p-4 font-headline font-black text-primary italic" style="font-size:20px;opacity:0.5;">${String(i+1).padStart(2,'0')}</td>
-      <td class="p-4">
-        <div class="font-bold text-on-surface uppercase tracking-tight" style="font-size:14px;">${song.title}</div>
-        ${song.artist ? `<div style="font-size:11px;color:#767575;margin-top:2px;">${song.artist}</div>` : ''}
-      </td>
-      <td class="p-4" style="min-width:110px;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          ${segBadge}
-          <select onchange="assignSongSegment(${song.id},this.value)" style="background:#0e0e0e;border:none;color:#484847;font-size:10px;cursor:pointer;outline:none;max-width:18px;padding:0;" title="Change segment">
-            <option value=""${!song.segmentId?' selected':''}>↓</option>
-            <option value=""${!song.segmentId?' selected':''}>— None —</option>
-            ${segOptions.replace(`value="${song.segmentId}"`,`value="${song.segmentId}" selected`)}
-          </select>
-        </div>
-      </td>
-      <td class="p-4 font-mono text-on-surface-variant" style="font-size:13px;">${song.key || '—'}</td>
-      <td class="p-4 font-mono text-primary font-bold" style="font-size:13px;">${song.bpm || '—'}</td>
-      <td class="p-4 font-mono text-on-surface-variant" style="font-size:13px;">${song.duration || '—'}</td>
-      <td class="p-4" style="min-width:120px;">
-        <div class="flex items-center gap-3">
-          <div style="flex:1;height:4px;background:#262626;position:relative;">
-            <div style="position:absolute;inset-y:0;left:0;background:#7aafff;width:${_derivedEnergy(song)}%;"></div>
+    <tr class="sl-song-row" style="animation-delay:${Math.min(i, 10) * 40}ms">
+      <td colspan="9">
+        <div class="sl-song-row-main" onclick="toggleSongNotes(${song.id})">
+          <span class="sl-song-num">${String(i+1).padStart(2,'0')}</span>
+          <div class="sl-song-info">
+            <div class="sl-song-title">${song.title}</div>
+            ${song.artist ? `<div class="sl-song-artist">${song.artist}</div>` : ''}
           </div>
-          <span class="font-black text-on-surface-variant" style="font-size:10px;">${_derivedEnergy(song)}/100</span>
+          <div class="sl-song-chips">${chipKey}${chipBpm}${chipDur}</div>
+          <button onclick="event.stopPropagation();removeSong(${song.id})" class="sl-del-btn" title="Remove">
+            <i data-lucide="trash-2" style="width:14px;height:14px;stroke-width:2;"></i>
+          </button>
         </div>
-      </td>
-      <td class="p-4 font-mono text-on-surface-variant" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(song.notes||'').replace(/"/g,'&quot;')}">${song.notes || '—'}</td>
-      <td class="p-4">
-        <button onclick="removeSong(${song.id})" style="color:#484847;background:none;border:none;cursor:pointer;display:flex;align-items:center;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'">
-          <i data-lucide="trash-2" style="width:15px;height:15px;stroke-width:2;"></i>
-        </button>
+        <div class="sl-notes-exp" id="sl-notes-${song.id}">
+          <div class="sl-notes-inner">${notesHtml}</div>
+        </div>
       </td>
     </tr>`;
   });
   tbody.innerHTML = rows;
   lcIcons();
   updateStatusBar();
+}
+
+function toggleSongNotes(songId) {
+  const el = document.getElementById('sl-notes-' + songId);
+  if (!el) return;
+  el.classList.toggle('open');
 }
 
 function _renderSegmentsBar() {
