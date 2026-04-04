@@ -3274,7 +3274,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
   </div>
 
   <!-- Full-width scrollable document preview -->
-  <div id="export-preview-scroll" style="flex:1;min-height:0;overflow-y:auto;background:#080808;padding:0 0 148px;">
+  <div id="export-preview-scroll" style="flex:1;min-height:0;overflow-y:auto;background:#080808;padding:0 0 24px;">
     <div id="export-document" style="width:100%;font-family:'Inter',sans-serif;color:#fff;">
 
       <!-- ── COVER ──────────────────────────────────────────── -->
@@ -3465,31 +3465,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
     </div>
   </div>
 
-  <!-- ── Floating bottom bar ────────────────────────────────── -->
-  <div id="export-bottom-bar" style="position:absolute;bottom:0;left:0;right:0;background:rgba(6,6,6,0.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);z-index:200;transition:transform 0.35s cubic-bezier(0.4,0,0.2,1),opacity 0.35s ease;">
-    <!-- Chips row (horizontally scrollable) -->
-    <div style="display:flex;align-items:center;gap:7px;padding:8px 14px 5px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;">
-      <span style="font-family:'Space Grotesk';font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.26em;color:#282828;flex-shrink:0;">Sections</span>
-      <button id="chip-stage"   onclick="toggleExpChip('exp-stage-section','chip-stage')"   class="exp-chip exp-chip--on">Stage Plot</button>
-      <button id="chip-input"   onclick="toggleExpChip('exp-input-section','chip-input')"   class="exp-chip exp-chip--on">Input List</button>
-      <button id="chip-notes"   onclick="toggleExpChip('exp-notes-section','chip-notes')"   class="exp-chip exp-chip--on">Tech Notes</button>
-      <button id="chip-gear"    onclick="toggleExpChip('exp-gear-section','chip-gear')"     class="exp-chip exp-chip--on">Gear</button>
-      <button id="chip-lighting" onclick="toggleExpChip('exp-lighting-section','chip-lighting')" class="exp-chip">Lighting</button>
-    </div>
-    <!-- Action row -->
-    <div style="display:grid;grid-template-columns:auto 1fr;gap:8px;padding:4px 14px 12px;">
-      <button onclick="openShareModal()" style="display:flex;align-items:center;justify-content:center;gap:5px;height:40px;padding:0 16px;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;background:rgba(255,255,255,0.06);color:#767575;border:1px solid rgba(255,255,255,0.1);cursor:pointer;border-radius:5px;white-space:nowrap;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
-        <span class="material-symbols-outlined" style="font-size:14px;">share</span>
-        Share
-      </button>
-      <button id="exp-gen-pdf-btn" onclick="exportPDF()" style="display:flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:0;font-family:'Space Grotesk';font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;background:var(--accent);color:var(--accent-dark,#000);border:none;cursor:pointer;border-radius:5px;transition:opacity 0.15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-        <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
-        Export PDF
-      </button>
-    </div>
-  </div>
-
-  <!-- Hidden compatibility panel -->
+  <!-- Hidden state holders (chip IDs kept for toggleExpChip compatibility) -->
   <div id="export-options-panel" style="display:none;">
     <input type="checkbox" id="chk-stage" checked/>
     <input type="checkbox" id="chk-input" checked/>
@@ -3498,6 +3474,12 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
     <button id="exp-show-lu-toggle" class="toggle-switch on" onclick="toggleShowLastUpdated()"></button>
     <input id="exp-version-input" type="number" min="1" step="1" value="1" oninput="setPlotVersion(this.value)" onchange="setPlotVersion(this.value)"/>
     <span id="exp-element-status"></span>
+    <button id="chip-stage"    class="exp-chip exp-chip--on"></button>
+    <button id="chip-input"    class="exp-chip exp-chip--on"></button>
+    <button id="chip-notes"    class="exp-chip exp-chip--on"></button>
+    <button id="chip-gear"     class="exp-chip exp-chip--on"></button>
+    <button id="chip-lighting" class="exp-chip"></button>
+    <button id="exp-gen-pdf-btn"></button>
   </div>
 
 </div>
