@@ -3169,12 +3169,12 @@ async function handleBatchFile(input) {
       if (!window.pdfjsLib) {
         await new Promise((resolve, reject) => {
           const s = document.createElement('script');
-          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          s.src = '/stage-core/vendor/pdf.min.js';
           s.onload = resolve; s.onerror = reject;
           document.head.appendChild(s);
         });
         window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+          '/stage-core/vendor/pdf.worker.min.js';
       }
       const buf = await file.arrayBuffer();
       const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
@@ -4079,8 +4079,8 @@ function _loadScript(src) {
 async function exportPDF() {
   // Lazy-load heavy PDF libs only when actually needed
   await Promise.all([
-    window.html2canvas ? Promise.resolve() : _loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
-    window.jspdf       ? Promise.resolve() : _loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+    window.html2canvas ? Promise.resolve() : _loadScript('/stage-core/vendor/html2canvas.min.js'),
+    window.jspdf       ? Promise.resolve() : _loadScript('/stage-core/vendor/jspdf.umd.min.js'),
   ]);
 
   // Helper: html2canvas with a hard 12 s timeout so it can never freeze forever

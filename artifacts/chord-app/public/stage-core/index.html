@@ -20,14 +20,14 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
 <link rel="shortcut icon" href="/favicon.svg"/>
 
-<link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"/>
-<link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"/>
+<link rel="preload" as="script" href="vendor/html2canvas.min.js"/>
+<link rel="preload" as="script" href="vendor/jspdf.umd.min.js"/>
 <script>/* Suppress Lucide "icon not found" noise for custom cx-* icons */
 (function(){var w=console.warn;console.warn=function(m){if(typeof m==='string'&&m.includes('icon name was not found'))return;w.apply(console,arguments);};})();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.475.0/dist/umd/lucide.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><link rel="preload" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'"/><noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/></noscript>
-<link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,0&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'"/><noscript><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,0&display=swap" rel="stylesheet"/></noscript>
+<script src="vendor/lucide.min.js"></script>
+<link rel="stylesheet" href="fonts/google-fonts.css"/>
+<link rel="stylesheet" href="fonts/material-symbols.css"/>
 <link rel="stylesheet" href="app.css"/>
 <script src="cloud-stub.js"></script>
 </head>
@@ -2704,8 +2704,10 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="app.js"></script>
+<script src="vendor/qrcode.min.js"></script>
+<script src="vendor/html2canvas.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="app.js"></script>
 <script src="features.js"></script>
 
 <script>
