@@ -303,6 +303,11 @@ select option { background: #1a1a1a; color: #fff; }
     text-transform: uppercase; letter-spacing: 0.1em; color: #484847;
     cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent;
     transition: all 0.15s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    pointer-events: all;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .mob-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 

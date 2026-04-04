@@ -127,6 +127,21 @@ export default function StageCorePanel() {
     catch { return null; }
   }, []);
 
+  // callIframe: tries a direct contentWindow call first; if the function isn't
+  // accessible (Capacitor WebView cross-window restriction), falls back to
+  // postMessage so the iframe's own listener can dispatch the call internally.
+  const callIframe = useCallback((fn: string, arg?: string) => {
+    const win = getWin() as Record<string, unknown> | null;
+    try {
+      const f = win?.[fn];
+      if (typeof f === 'function') {
+        arg !== undefined ? (f as (a: string) => void)(arg) : (f as () => void)();
+        return;
+      }
+    } catch { /* fall through to postMessage */ }
+    iframeRef.current?.contentWindow?.postMessage({ type: 'sc-call', fn, arg }, '*');
+  }, [getWin]);
+
   // Register __onViewChange callback and inject accent vars + theme on iframe load
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -207,7 +222,7 @@ export default function StageCorePanel() {
           transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
         }}>
           <button
-            onClick={() => getWin()?.stageGoBack?.()}
+            onClick={() => callIframe('stageGoBack')}
             className="btn-smooth"
             aria-label="Back"
             style={{
@@ -237,10 +252,10 @@ export default function StageCorePanel() {
             {/* ── Tool pills: MEASURE · ZONES · LENGTH · HISTORY ── */}
             {(
               [
-                { label: 'Measure', icon: 'straighten',  fn: () => getWin()?.scActivateMeasure?.()   },
-                { label: 'Zones',   icon: 'grid_4x4',    fn: () => getWin()?.scToggleZones?.()       },
-                { label: 'Length',  icon: 'cable',        fn: () => getWin()?.scToggleCableLength?.() },
-                { label: 'History', icon: 'history',      fn: () => getWin()?.openTimelinePanel?.()   },
+                { label: 'Measure', icon: 'straighten',  fn: () => callIframe('scActivateMeasure')   },
+                { label: 'Zones',   icon: 'grid_4x4',    fn: () => callIframe('scToggleZones')       },
+                { label: 'Length',  icon: 'cable',        fn: () => callIframe('scToggleCableLength') },
+                { label: 'History', icon: 'history',      fn: () => callIframe('openTimelinePanel')   },
               ] as { label: string; icon: string; fn: () => void }[]
             ).map(({ label, icon, fn }) => (
               <button
@@ -262,7 +277,7 @@ export default function StageCorePanel() {
 
             {/* ── Save preset ── */}
             <button
-              onClick={() => getWin()?.openPresetsPanel?.()}
+              onClick={() => callIframe('openPresetsPanel')}
               title="Presets"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -277,7 +292,7 @@ export default function StageCorePanel() {
 
             {/* ── PDF export ── */}
             <button
-              onClick={() => getWin()?.switchView?.('Export')}
+              onClick={() => callIframe('switchView', 'Export')}
               title="Export to PDF"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

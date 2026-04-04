@@ -1796,8 +1796,8 @@ html[data-theme="light"] .bg-swatch--dark { display: none !important; }
       <button id="sc-vtools-toggle" onclick="toggleSCVTools()" title="Show tools">
         <span class="material-symbols-outlined" style="font-size:15px;">more_vert</span>
       </button>
-      <!-- Tools panel — starts collapsed, opened via toggle button -->
-      <div id="sc-vtools-body" class="vtools-collapsed">
+      <!-- Tools panel — starts expanded -->
+      <div id="sc-vtools-body">
         <!-- Zoom group -->
         <button onclick="zoomIn()" class="sc-vtool-btn" title="Zoom In">
           <span class="material-symbols-outlined" style="font-size:17px;">zoom_in</span>
@@ -3725,12 +3725,20 @@ window.addEventListener('message', function(e) {
       /* Show action bar if starting on the Stage (Editor) view */
       var riderBar = document.getElementById('rider-action-bar');
       if (riderBar) riderBar.style.display = (activeBtn.dataset.view === 'Editor') ? 'flex' : 'none';
+      /* Belt-and-suspenders: ensure FAB + vtools are shown for the initial view.
+         app.js already removes mob-hidden, but we re-confirm here after features.js
+         100ms init has finished (we delay 120ms precisely for that reason). */
+      var isEd = (_curView === 'Editor');
+      var fab   = document.getElementById('sc-fab-wrap');
+      var vt    = document.getElementById('sc-vtools');
+      if (fab) fab.classList.toggle('mob-hidden', !isEd);
+      if (vt)  vt.classList.toggle('mob-hidden',  !isEd);
     } else setTimeout(initPill, 50);
   }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { setTimeout(initPill, 80); });
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(initPill, 120); });
   } else {
-    setTimeout(initPill, 80);
+    setTimeout(initPill, 120);
   }
 
   window.addEventListener('resize', function () {
@@ -3769,6 +3777,21 @@ window.addEventListener('message', function(e) {
       window.stageGoBack();
     }
   }, { passive: true });
+
+  /* ── postMessage bridge — robust for Capacitor WebView ──────────────── *
+   * React parent posts { type:'sc-call', fn:'functionName', arg?:'...' }  *
+   * We look up the function in window and call it.  This works even when   *
+   * contentWindow direct access is restricted by the Android WebView.      */
+  window.addEventListener('message', function (e) {
+    if (!e.data || e.data.type !== 'sc-call') return;
+    var fn  = e.data.fn;
+    var arg = e.data.arg;
+    if (typeof fn !== 'string') return;
+    var target = window[fn];
+    if (typeof target === 'function') {
+      try { arg !== undefined ? target(arg) : target(); } catch (err) { /* ignore */ }
+    }
+  }, false);
 
   /* ── Remove native Stage Core header entirely on load ───────────────── */
   function removeNativeHeader() {
