@@ -1184,14 +1184,14 @@ html[data-theme="light"] .sc-dial-chip {
 
 /* ── FAB "return home" spring animation (class toggled by JS on close) ── */
 @keyframes sc-fab-return {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.18); }
-  65%  { transform: scale(0.94); }
-  85%  { transform: scale(1.06); }
-  100% { transform: scale(1); }
+  0%   { transform: translateY(-10px) scale(0.88); }
+  40%  { transform: translateY(4px)   scale(1.14); }
+  65%  { transform: translateY(-2px)  scale(0.96); }
+  82%  { transform: translateY(1px)   scale(1.04); }
+  100% { transform: translateY(0)     scale(1);    }
 }
 #sc-fab-btn.sc-fab-returning {
-  animation: sc-fab-return 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: sc-fab-return 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 /* ══════════════════════════════════════════
@@ -1326,6 +1326,7 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
 
 /* ── Permanently kill the old mobile cat bar (replaced by FAB+sheet) ── */
 #mobile-cat-bar { display: none !important; }
+#mobile-el-tray  { display: none !important; }
 </style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden select-none" style="height:100vh;">
@@ -1910,33 +1911,7 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
   </div>
 </div>
 
-<!-- Mobile category pill bar (top:128px on mobile, hidden on desktop) -->
-<div id="mobile-cat-bar" style="display:none;">
-  <button class="mob-cat-btn" data-cat="mics" onclick="openMobileCat('mics')">
-    <span class="material-symbols-outlined" style="font-size:13px;">mic</span><span data-i18n="catMics">Mics</span>
-  </button>
-  <button class="mob-cat-btn" data-cat="drums" onclick="openMobileCat('drums')">
-    <span class="material-symbols-outlined" style="font-size:13px;">music_note</span><span data-i18n="catDrums">Drums</span>
-  </button>
-  <button class="mob-cat-btn" data-cat="inst" onclick="openMobileCat('inst')">
-    <span class="material-symbols-outlined" style="font-size:13px;">electric_bolt</span><span data-i18n="catInst">Instruments</span>
-  </button>
-  <button class="mob-cat-btn" data-cat="amps" onclick="openMobileCat('amps')">
-    <span class="material-symbols-outlined" style="font-size:13px;">speaker</span><span data-i18n="catAmps">Amps</span>
-  </button>
-  <button class="mob-cat-btn" data-cat="mon" onclick="openMobileCat('mon')">
-    <span class="material-symbols-outlined" style="font-size:13px;">volume_up</span><span data-i18n="catAudio">Audio</span>
-  </button>
-  <button class="mob-cat-btn" data-cat="util" onclick="openMobileCat('util')">
-    <span class="material-symbols-outlined" style="font-size:13px;">settings_input_component</span><span data-i18n="catUtil">Utilities</span>
-  </button>
-  <button class="mob-cat-btn" data-cat="custom" onclick="openMobileCat('custom')" style="color:var(--accent);">
-    <span class="material-symbols-outlined" style="font-size:13px;">add_circle</span><span>Custom</span>
-  </button>
-  <button class="mob-cat-btn" onclick="scOpenElPresets()" title="Element Presets" style="color:#f0b429;min-width:0;padding:4px 10px;">
-    <span class="material-symbols-outlined" style="font-size:15px;">bookmark</span>
-  </button>
-</div>
+<!-- Mobile category pill bar removed — all categories accessed via FAB speed dial -->
 
 <!-- ══════ FAB SPEED DIAL ══════ -->
 <div id="sc-fab-wrap" class="mob-hidden">
