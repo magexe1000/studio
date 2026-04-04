@@ -494,6 +494,46 @@ header { display: none !important; }
 .sc-table tbody tr:hover  { background: rgba(255,255,255,0.02); }
 
 /* ═══════════════════════════════════════════════════════════════════
+   RIDER REDESIGN — editorial bento-card layout
+   ═══════════════════════════════════════════════════════════════════ */
+/* Entrance animation */
+@keyframes rd-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#view-Rider.active .sc-section-wrap > * {
+  animation: rd-fade-up 360ms cubic-bezier(0.22,1,0.36,1) both;
+}
+#view-Rider.active .sc-section-wrap > *:nth-child(1) { animation-delay: 0ms; }
+#view-Rider.active .sc-section-wrap > *:nth-child(2) { animation-delay: 55ms; }
+#view-Rider.active .sc-section-wrap > *:nth-child(3) { animation-delay: 110ms; }
+#view-Rider.active .sc-section-wrap > *:nth-child(4) { animation-delay: 155ms; }
+#view-Rider.active .sc-section-wrap > *:nth-child(5) { animation-delay: 195ms; }
+/* Header block */
+.rd-header-block { padding-left: 16px; border-left: 2px solid var(--accent, #7aafff); margin-bottom: 20px; }
+.rd-eyebrow { font-family: 'Space Grotesk', sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.22em; color: #484847; margin: 0 0 5px; }
+.rd-header-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 6px; font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #484847; }
+.rd-draft-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 100px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); font-family: 'Space Grotesk', sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent); margin-left: auto; }
+.rd-draft-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: rd-pulse 2.2s ease-in-out infinite; flex-shrink: 0; }
+@keyframes rd-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+/* Stats + actions row */
+.rd-stats-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.rd-stat-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 3px; }
+.rd-stat-label { font-family: 'Space Grotesk', sans-serif; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: #484847; }
+.rd-stat-val { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 900; line-height: 1; }
+.rd-actions { display: flex; gap: 6px; margin-left: auto; }
+.rd-btn { display: inline-flex; align-items: center; gap: 5px; padding: 9px 14px; border-radius: 100px; cursor: pointer; border: none; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; -webkit-tap-highlight-color: transparent; transition: opacity 140ms ease; }
+.rd-btn:active { opacity: 0.72; transform: scale(0.97); }
+.rd-btn--hot { background: var(--hot); color: #fff; }
+.rd-btn--ghost { background: rgba(255,255,255,0.05); color: #adaaaa; border: 1px solid rgba(255,255,255,0.09) !important; }
+/* Bento cards */
+.rd-card { background: #131313; border-radius: 16px; padding: 18px; margin-bottom: 12px; }
+.rd-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.rd-card-icon { font-size: 18px !important; color: var(--accent, #7aafff); }
+.rd-card-title { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 800; color: #e0e0e0; margin: 0; letter-spacing: -0.01em; }
+.rd-card .sc-table-scroll { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; }
+
+/* ═══════════════════════════════════════════════════════════════════
    SETLIST REDESIGN — reference-matched card layout
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -1926,67 +1966,86 @@ header { display: none !important; }
   </button>
   <div class="sc-section-wrap">
 
-    <!-- Header -->
-    <div style="margin-bottom:14px;">
+    <!-- Header — editorial left-accent style -->
+    <div class="rd-header-block">
+      <p class="rd-eyebrow">Technical Rider</p>
       <h1 class="sc-section-title">Rider</h1>
-      <p style="font-family:'Space Grotesk';font-size:11px;color:#484847;margin:3px 0 0;"><span id="rider-rev">Rev 2.4</span>&nbsp;·&nbsp;<span id="rider-date-val"></span></p>
-    </div>
-
-    <!-- Stats 2-col -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Channels</p>
-        <p id="rider-ch-count" class="sc-stat-val" style="color:var(--accent);">0 / 32</p>
-      </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Elements</p>
-        <p id="rider-el-count" class="sc-stat-val" style="color:var(--hot);">0</p>
+      <div class="rd-header-meta">
+        <span id="rider-rev">Rev 2.4</span>
+        <span style="color:#333;">·</span>
+        <span id="rider-date-val"></span>
+        <div class="rd-draft-badge">
+          <span class="rd-draft-dot"></span>
+          <span>Draft Mode</span>
+        </div>
       </div>
     </div>
 
-    <!-- Action buttons -->
-    <div style="display:flex;gap:8px;margin-bottom:18px;">
-      <button onclick="generateInputListFromStage()" class="sc-action-btn sc-action-btn--hot" style="flex:1;" title="Auto-populate from stage elements">
-        <span class="material-symbols-outlined" style="font-size:14px;">bolt</span>From Stage
-      </button>
-      <button onclick="addRiderNeed()" class="sc-action-btn sc-action-btn--ghost" style="flex:1;">
-        <span class="material-symbols-outlined" style="font-size:14px;">add</span>Add Need
-      </button>
+    <!-- Stats + Action buttons row -->
+    <div class="rd-stats-row">
+      <div class="rd-stat-block">
+        <span class="rd-stat-label">Channels</span>
+        <span id="rider-ch-count" class="rd-stat-val" style="color:var(--accent);">0 / 32</span>
+      </div>
+      <div class="rd-stat-block">
+        <span class="rd-stat-label">Elements</span>
+        <span id="rider-el-count" class="rd-stat-val" style="color:var(--hot);">0</span>
+      </div>
+      <div class="rd-actions">
+        <button onclick="generateInputListFromStage()" class="rd-btn rd-btn--hot" title="Auto-populate from stage elements">
+          <span class="material-symbols-outlined" style="font-size:14px;">bolt</span>From Stage
+        </button>
+        <button onclick="addRiderNeed()" class="rd-btn rd-btn--ghost">
+          <span class="material-symbols-outlined" style="font-size:14px;">add</span>Add Need
+        </button>
+      </div>
     </div>
 
-    <!-- Input list table -->
-    <div class="sc-table-scroll" style="margin-bottom:14px;">
-      <table class="sc-table" style="min-width:520px;">
-        <thead>
-          <tr>
-            <th style="width:40px;">CH</th>
-            <th>Name</th>
-            <th style="width:88px;">Type</th>
-            <th style="width:76px;">Input</th>
-            <th style="width:68px;">Output</th>
-            <th style="width:40px;">48V</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody id="rider-table-body">
-          <tr>
-            <td colspan="7" style="padding:28px 16px;text-align:center;color:#3a3a3a;font-family:'Space Grotesk';font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;">
-              No elements yet — tap From Stage to populate
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Input List card -->
+    <div class="rd-card">
+      <div class="rd-card-header">
+        <span class="material-symbols-outlined rd-card-icon">settings_input_component</span>
+        <h3 class="rd-card-title">Input List</h3>
+      </div>
+      <div class="sc-table-scroll">
+        <table class="sc-table" style="min-width:520px;">
+          <thead>
+            <tr>
+              <th style="width:40px;">CH</th>
+              <th>Name</th>
+              <th style="width:88px;">Type</th>
+              <th style="width:76px;">Input</th>
+              <th style="width:68px;">Output</th>
+              <th style="width:40px;">48V</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="rider-table-body">
+            <tr>
+              <td colspan="7" style="padding:28px 16px;text-align:center;color:#3a3a3a;font-family:'Space Grotesk';font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;">
+                No elements yet — tap From Stage to populate
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Technical Requirements card -->
-    <div class="sc-card" style="margin-bottom:10px;">
-      <p class="sc-card-title">Technical Requirements</p>
+    <div class="rd-card">
+      <div class="rd-card-header">
+        <span class="material-symbols-outlined rd-card-icon">checklist</span>
+        <h3 class="rd-card-title">Technical Requirements</h3>
+      </div>
       <div id="rider-needs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
     <!-- Technical Notes card -->
-    <div class="sc-card">
-      <p class="sc-card-title">Technical Notes</p>
+    <div class="rd-card">
+      <div class="rd-card-header">
+        <span class="material-symbols-outlined rd-card-icon">description</span>
+        <h3 class="rd-card-title">Technical Notes</h3>
+      </div>
       <p style="font-family:'Inter';font-size:13px;color:#5a5a59;line-height:1.65;margin:0 0 8px;">
         Artist provides all instruments, IEM transmitters, and playback rack. Venue supplies microphones, stands, and XLR cabling. PA must sustain 105 dB continuous at FOH.
       </p>
