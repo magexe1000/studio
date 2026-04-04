@@ -311,14 +311,92 @@ export default function StageCorePanel() {
       </div>
       </div>{/* end collapsible header wrapper */}
 
-      {/* Stage Core iframe fills remaining space */}
-      <iframe
-        ref={iframeRef}
-        src={iframeSrc}
-        title="Stagex"
-        style={{ flex: 1, width: '100%', border: 'none', display: 'block', backgroundColor: stageBg }}
-        allow="clipboard-write"
-      />
+      {/* Wrapper — iframe + touch-proxy overlays for elements that Chrome Android
+           can't route touches to inside iframes (FAB, nav bar). The overlays sit
+           in the parent frame where touch events work reliably, and forward taps
+           into the iframe via callIframe / direct contentWindow calls. */}
+      <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
+        <iframe
+          ref={iframeRef}
+          src={iframeSrc}
+          title="Stagex"
+          style={{ width: '100%', height: '100%', border: 'none', display: 'block', backgroundColor: stageBg }}
+          allow="clipboard-write"
+        />
+
+        {/* ── FAB touch proxy ── */}
+        {curView === 'Editor' && (
+          <button
+            onPointerDown={(e) => {
+              e.currentTarget.style.transform = 'scale(0.88)';
+            }}
+            onPointerUp={(e) => {
+              e.currentTarget.style.transform = '';
+              callIframe('toggleSCDial');
+            }}
+            onPointerCancel={(e) => {
+              e.currentTarget.style.transform = '';
+            }}
+            aria-label="Add instrument"
+            style={{
+              position: 'absolute',
+              bottom: 80,
+              right: 14,
+              width: 50,
+              height: 50,
+              borderRadius: '50%',
+              background: 'transparent',
+              border: 'none',
+              zIndex: 10,
+              cursor: 'pointer',
+              WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation',
+              transition: 'transform 120ms cubic-bezier(0.34,1.56,0.64,1)',
+              padding: 0,
+            }}
+          />
+        )}
+
+        {/* ── Nav bar touch proxies ── */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 56,
+          display: 'flex',
+          zIndex: 10,
+          pointerEvents: 'none',
+        }}>
+          {[
+            { view: 'Editor', label: 'Stage' },
+            { view: 'Setup', label: 'Setup' },
+            { view: 'Preferences', label: 'Preferences' },
+          ].map(({ view, label }) => (
+            <button
+              key={view}
+              onClick={() => {
+                if (view === 'Setup') {
+                  callIframe('activateSetup');
+                } else {
+                  callIframe('switchView', view);
+                }
+              }}
+              aria-label={label}
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
+                padding: 0,
+              }}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
