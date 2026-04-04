@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
 import { setBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
@@ -7,6 +7,7 @@ type StageWin = Window & {
   stageGoBack?: () => boolean;
   openPresetsPanel?: () => void;
   switchView?: (v: string) => void;
+  __onViewChange?: (view: string) => void;
 };
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -46,32 +47,43 @@ function injectAccentVars(iframe: HTMLIFrameElement, from: string, to: string) {
 export default function StageCorePanel() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { settings } = useChordStore();
+  const [curView, setCurView] = useState<string>('Editor');
 
   const stageVis = settings.perApp?.stage ?? { accentColor: settings.accentColor ?? 'blue' };
   const accent   = ACCENT_COLORS[stageVis.accentColor as keyof typeof ACCENT_COLORS];
+
+  // Show back button for any view that isn't the root Editor canvas
+  const showBack = curView !== 'Editor';
 
   const getWin = useCallback((): StageWin | null => {
     try { return iframeRef.current?.contentWindow as StageWin | null; }
     catch { return null; }
   }, []);
 
+  // Register __onViewChange callback and inject accent vars on iframe load
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
     const handleLoad = () => {
       try { iframe.contentWindow?.postMessage('stage-core-ping', '*'); } catch {}
       injectAccentVars(iframe, accent.from, accent.to);
+      // Register view-change callback so React knows when to show/hide back button
+      try {
+        (iframe.contentWindow as StageWin).__onViewChange = (view: string) => setCurView(view);
+      } catch {}
     };
     iframe.addEventListener('load', handleLoad);
     return () => iframe.removeEventListener('load', handleLoad);
   }, [accent.from, accent.to]);
 
+  // Re-inject accent vars whenever accent changes (after iframe is loaded)
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
     injectAccentVars(iframe, accent.from, accent.to);
   }, [accent.from, accent.to]);
 
+  // Register global back handler (OS back gesture / Android back button)
   useEffect(() => {
     const handler = (): boolean => getWin()?.stageGoBack?.() ?? false;
     setBackHandler(handler);
@@ -81,8 +93,10 @@ export default function StageCorePanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#0a0a0e' }}>
 
+      {/* Safe-area spacer */}
       <div style={{ height: 'env(safe-area-inset-top)', background: '#0a0a0e', flexShrink: 0 }} />
 
+      {/* 52px header bar */}
       <div style={{
         flexShrink: 0,
         height: 52,
@@ -92,10 +106,40 @@ export default function StageCorePanel() {
         background: '#0a0a0e',
         gap: 8,
       }}>
+
+        {/* ── Back button — slides in/out, pushes logo right — identical to Chordex ── */}
+        <div style={{
+          overflow: 'hidden',
+          flexShrink: 0,
+          width: showBack ? '46px' : '0px',
+          opacity: showBack ? 1 : 0,
+          transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
+        }}>
+          <button
+            onClick={() => getWin()?.stageGoBack?.()}
+            className="btn-smooth"
+            aria-label="Back"
+            style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'var(--app-surface-high)',
+              border: '1px solid rgba(128,128,128,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
+              cursor: 'pointer',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 18 }}>
+              arrow_back
+            </span>
+          </button>
+        </div>
+
+        {/* App mode logo — shifts right as back button slides in */}
         <AppModeMenuLogo color="rgba(255,255,255,0.90)" size={13} />
 
         <div style={{ flex: 1 }} />
 
+        {/* SAVE button — accent-coloured like Chordex/Drumex */}
         <button
           onClick={() => getWin()?.openPresetsPanel?.()}
           style={{
@@ -111,6 +155,7 @@ export default function StageCorePanel() {
           Save
         </button>
 
+        {/* PDF / Export button */}
         <button
           onClick={() => getWin()?.switchView?.('Export')}
           title="Export to PDF"
@@ -126,6 +171,7 @@ export default function StageCorePanel() {
         </button>
       </div>
 
+      {/* Stage Core iframe fills remaining space */}
       <iframe
         ref={iframeRef}
         src="/stage-core/index.html"

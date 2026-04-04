@@ -3087,6 +3087,9 @@ window.addEventListener('message', function(e) {
 
     _orig(view);
 
+    /* Notify React parent about the view change so it can show/hide the back button */
+    if (typeof window.__onViewChange === 'function') window.__onViewChange(view);
+
     var isSetup = SETUP_VIEWS.indexOf(view) !== -1;
 
     /* ── Sync main nav: Setup mob-tab active on any setup view ── */
