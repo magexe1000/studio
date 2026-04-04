@@ -414,34 +414,35 @@ select option { background: #1a1a1a; color: #fff; }
     font-size: 8px !important;
   }
 
-  /* Export view: full width on mobile, stacked layout */
+  /* Export view: full-width flex column on mobile */
   #view-Export {
     margin-left: 0 !important;
-    padding-top: 92px !important;
+    padding-top: 56px !important;
     height: 100vh !important;
     overflow: hidden !important;
-  }
-  #view-Export > div {
+    display: flex !important;
     flex-direction: column !important;
-    height: calc(100vh - 92px) !important;
-    overflow: hidden !important;
-    min-height: 0 !important;
-  }
-  #export-options-panel {
-    width: 100% !important; max-width: 100% !important;
-    min-width: 0 !important; border-left: none !important;
-    border-top: 1px solid rgba(72,72,71,0.2) !important;
-    max-height: 40vh !important; overflow-y: auto !important;
+    box-sizing: border-box !important;
   }
   #exp-cover h1 { font-size: 28px !important; }
 
-  /* Hide desktop options panel on mobile — replaced by floating bar */
-  #export-options-panel { display: none !important; }
-
-  /* Export preview: full height minus header, with room for floating bar */
+  /* Scroll area fills remaining space */
   #export-preview-scroll {
-    padding: 16px 14px 90px !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    padding: 16px 14px 88px !important;
   }
+
+  /* Bottom bar stays pinned at the bottom of the view */
+  #export-bottom-bar {
+    position: absolute !important;
+    bottom: 0 !important; left: 0 !important; right: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide hidden compatibility panel */
+  #export-options-panel { display: none !important; }
 
   /* Mobile export floating action bar — same pill style as category bar */
   #mob-export-bar {

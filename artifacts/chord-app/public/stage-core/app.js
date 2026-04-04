@@ -782,7 +782,7 @@ function switchView(view) {
   document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
   const page = document.getElementById('view-' + view);
   if (page) {
-    page.style.display = view === 'Assistant' ? 'flex' : 'block';
+    page.style.display = (view === 'Assistant' || view === 'Export') ? 'flex' : 'block';
     // The Editor view contains position:fixed children (sidebar, cat-bar).
     // Applying opacity to the parent traps those children in its stacking
     // context and causes them to disappear — so Editor snaps in immediately.
@@ -831,7 +831,7 @@ function switchView(view) {
   if (scVtools)  scVtools.classList.toggle('mob-hidden', !isEditor);
   if (fabWrap)   fabWrap.classList.toggle('mob-hidden', !isEditor);
   if (!isEditor) { closeSCDial(); closeItemSheet(false); }
-  if (expBar)    expBar.classList.toggle('mob-hidden', !isExport);
+  if (expBar)    expBar.classList.add('mob-hidden'); // new export-bottom-bar replaces this
   if (expSheet)  { expSheet.style.display = 'none'; }
   if (document.getElementById('mob-exp-set-btn'))
     document.getElementById('mob-exp-set-btn').classList.remove('active');
