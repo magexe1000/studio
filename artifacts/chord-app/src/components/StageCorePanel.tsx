@@ -20,7 +20,8 @@ function hexToRgb(hex: string): [number, number, number] {
 
 function injectAccentVars(iframe: HTMLIFrameElement, from: string, to: string) {
   try {
-    const root = iframe.contentDocument?.documentElement;
+    const doc  = iframe.contentDocument;
+    const root = doc?.documentElement;
     if (!root) return;
     const [r, g, b] = hexToRgb(from);
     const [hr, hg, hb] = hexToRgb(to);
@@ -41,6 +42,10 @@ function injectAccentVars(iframe: HTMLIFrameElement, from: string, to: string) {
     root.style.setProperty('--hot-dark', `rgba(${hr},${hg},${hb},0.25)`);
     root.style.setProperty('--hot-10',   `rgba(${hr},${hg},${hb},0.10)`);
     root.style.setProperty('--hot-20',   `rgba(${hr},${hg},${hb},0.20)`);
+    // Also paint the sliding nav pill directly so it always reflects the live accent
+    // even if CSS variable inheritance is delayed by the browser paint cycle
+    const pill = doc?.getElementById('sc-nav-pill');
+    if (pill) pill.style.background = from;
   } catch { /* cross-origin guard */ }
 }
 
