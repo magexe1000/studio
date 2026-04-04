@@ -154,8 +154,11 @@
 /* 13. Hide the old modal settings panel — content lives in the Preferences view now */
 #settings-panel, #settings-panel-backdrop { display: none !important; }
 
-/* 14. Preferences view — Chordex-style cards */
+/* 14. Preferences view — Chordex-style cards
+   app.css sets padding-top:92px on #view-Assistant for mobile (was for the old native header).
+   Override to zero since the React header lives outside the iframe now. */
 #view-Assistant {
+  padding-top: 0 !important;
   background: #0e0e0e !important;
 }
 .sc-prefs-scroll {
