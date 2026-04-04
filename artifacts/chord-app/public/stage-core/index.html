@@ -9,10 +9,15 @@
   var theme      = parts[0] || 'dark';
   var accentFrom = parts[1] ? decodeURIComponent(parts[1]) : '#679cff';
   var accentHot  = parts[2] ? decodeURIComponent(parts[2]) : '#007aff';
+  var amoled     = parts[3] === '1';
 
   // Apply theme immediately
   if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
   else document.documentElement.removeAttribute('data-theme');
+
+  // Apply AMOLED immediately — before any CSS paints
+  if (amoled) document.documentElement.setAttribute('data-amoled', '1');
+  else document.documentElement.removeAttribute('data-amoled');
 
   // Apply accent CSS vars immediately so no flash on first paint
   var root = document.documentElement;

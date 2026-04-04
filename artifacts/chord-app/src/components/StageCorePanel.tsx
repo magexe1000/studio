@@ -109,12 +109,13 @@ export default function StageCorePanel() {
   const accent    = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
   const isLight   = stageVis.theme === 'light';
 
+  const isAmoled  = stageVis.amoledMode;
+
   // Freeze the initial src with theme + accent colors in the hash.
   // The hash is read by a blocking inline script in index.html <head> before any CSS renders — no flash.
   const iframeSrc = useRef(
-    `/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)}`
+    `/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)},${isAmoled ? '1' : '0'}`
   ).current;
-  const isAmoled  = stageVis.amoledMode;
   const stageBg   = isAmoled ? '#000000' : isLight ? '#f2f1ef' : '#1a1a1a';
   const stageHdr  = isAmoled ? '#000000' : isLight ? '#f2f1ef' : '#1a1a1a';
 
