@@ -113,8 +113,10 @@ export default function App() {
   const [drumSplash,    setDrumSplash]    = useState<SplashPhase>('hidden');
   const [chordexSplash, setChordexSplash] = useState<SplashPhase>('hidden');
   const [stageSplash,   setStageSplash]   = useState<SplashPhase>('hidden');
-  const prevAppMode  = useRef(settings.appMode);
-  const splashTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const prevAppMode      = useRef(settings.appMode);
+  const splashTimers     = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Stage splash uses its own timer ref so the useEffect cleanup can't cancel it
+  const stageSplashTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const fireSplash = (set: (p: SplashPhase) => void) => {
     splashTimers.current.forEach(clearTimeout);
@@ -123,6 +125,15 @@ export default function App() {
     const t1 = setTimeout(() => set('out'),    750);
     const t2 = setTimeout(() => set('hidden'), 1100);
     splashTimers.current = [t1, t2];
+  };
+
+  const fireStageSplash = () => {
+    stageSplashTimers.current.forEach(clearTimeout);
+    stageSplashTimers.current = [];
+    setStageSplash('in');
+    const t1 = setTimeout(() => setStageSplash('out'),    750);
+    const t2 = setTimeout(() => setStageSplash('hidden'), 1100);
+    stageSplashTimers.current = [t1, t2];
   };
 
   useEffect(() => {
@@ -135,10 +146,12 @@ export default function App() {
 
   // Stage splash fires in a layout effect so it appears in the very first paint
   // when entering Stagex — prevents the iframe's white-loading-background from flashing.
+  // Uses its own separate timer ref to avoid being cancelled by the useEffect cleanup above.
   useLayoutEffect(() => {
     if (settings.appMode === 'stage' && prevAppMode.current !== 'stage') {
-      fireSplash(setStageSplash);
+      fireStageSplash();
     }
+    return () => stageSplashTimers.current.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.appMode]);
 
