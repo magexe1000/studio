@@ -138,6 +138,7 @@ body {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
+  touch-action: manipulation !important;
   gap: 3px !important;
   padding: 8px 4px !important;
   border-radius: 999px !important;
@@ -1177,6 +1178,7 @@ html[data-theme="light"] #stage-empty-state  { color: #bbb !important; }
 
 #sc-fab-btn {
   pointer-events: all;
+  touch-action: manipulation;
   width: 50px; height: 50px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), var(--hot));
@@ -3850,14 +3852,9 @@ window.addEventListener('message', function(e) {
 </script>
 
 <script>
-/* ── Explicit touchend handlers for nav bar + FAB ─────────────────────────────
- * On Android Chrome, scroll containers can pre-capture touch gestures and
- * suppress the synthesised click event even when the element has higher z-index.
- * Adding touchend (passive:false) handlers that call the functions directly
- * guarantees response to taps regardless of what the scroll layer does. */
 (function() {
   function bindTouch() {
-    // Nav bar tabs
+    /* ── NAV BAR TABS ────────────────────────────────────────────────────── */
     document.querySelectorAll('.mob-tab').forEach(function(btn) {
       btn.addEventListener('touchend', function(e) {
         e.preventDefault();
@@ -3871,24 +3868,43 @@ window.addEventListener('message', function(e) {
       }, { passive: false });
     });
 
-    // FAB open/close button
+    /* ── FAB BUTTON ──────────────────────────────────────────────────────── */
     var fab = document.getElementById('sc-fab-btn');
     if (fab) {
+      fab.addEventListener('touchstart', function(e) {
+        e.stopPropagation();
+      }, { passive: true });
+
       fab.addEventListener('touchend', function(e) {
         e.preventDefault();
+        e.stopPropagation();
         if (typeof toggleSCDial === 'function') toggleSCDial();
       }, { passive: false });
     }
 
-    // FAB speed-dial chips
-    document.querySelectorAll('.sc-dial-chip').forEach(function(chip) {
-      chip.addEventListener('touchend', function(e) {
+    /* ── FAB DIAL CHIPS (event delegation — chips are created dynamically) ─ */
+    var fabWrap = document.getElementById('sc-fab-wrap');
+    if (fabWrap) {
+      fabWrap.addEventListener('touchend', function(e) {
+        var chip = e.target.closest('.sc-dial-chip');
+        if (!chip) return;
         e.preventDefault();
+        e.stopPropagation();
         var cat = chip.dataset.cat;
         var label = chip.dataset.label || cat;
         if (cat && typeof openItemSheet === 'function') openItemSheet(cat, label);
       }, { passive: false });
-    });
+    }
+
+    /* ── DIAL BACKDROP (close on tap) ────────────────────────────────────── */
+    var backdrop = document.getElementById('sc-dial-backdrop');
+    if (backdrop) {
+      backdrop.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        if (typeof closeSCDial === 'function') closeSCDial();
+        if (typeof closeItemSheet === 'function') closeItemSheet(false);
+      }, { passive: false });
+    }
   }
 
   if (document.readyState === 'loading') {
