@@ -2375,57 +2375,6 @@ header { display: none !important; }
     <!-- ── APPEARANCE ── -->
     <p class="sc-prefs-section-label" style="margin-top:18px;">Appearance</p>
     <div class="sc-prefs-card">
-      <!-- Theme -->
-      <div class="sc-prefs-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
-        <div>
-          <p class="sc-prefs-row-label" data-i18n="settingsTheme">App Theme</p>
-          <p class="sc-prefs-row-hint" data-i18n="settingsThemeHint">Choose the accent colour for the interface.</p>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="theme-swatch-btn t-active" data-theme="electric" onclick="applyTheme('electric')">
-            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#7aafff;"></div>
-              <div class="theme-swatch-h" style="background:#ff7439;"></div>
-            </div></div>
-            <span class="theme-swatch-label" data-i18n="themeElectric">Electric</span>
-          </button>
-          <button class="theme-swatch-btn" data-theme="lime" onclick="applyTheme('lime')">
-            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#a3e635;"></div>
-              <div class="theme-swatch-h" style="background:#ff7439;"></div>
-            </div></div>
-            <span class="theme-swatch-label" data-i18n="themeLime">Lime</span>
-          </button>
-          <button class="theme-swatch-btn" data-theme="cyan" onclick="applyTheme('cyan')">
-            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#22d3ee;"></div>
-              <div class="theme-swatch-h" style="background:#f97316;"></div>
-            </div></div>
-            <span class="theme-swatch-label" data-i18n="themeCyan">Cyan</span>
-          </button>
-          <button class="theme-swatch-btn" data-theme="amber" onclick="applyTheme('amber')">
-            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#fbbf24;"></div>
-              <div class="theme-swatch-h" style="background:#ef4444;"></div>
-            </div></div>
-            <span class="theme-swatch-label" data-i18n="themeAmber">Amber</span>
-          </button>
-          <button class="theme-swatch-btn" data-theme="violet" onclick="applyTheme('violet')">
-            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#c084fc;"></div>
-              <div class="theme-swatch-h" style="background:#fb923c;"></div>
-            </div></div>
-            <span class="theme-swatch-label" data-i18n="themeViolet">Violet</span>
-          </button>
-          <button class="theme-swatch-btn" data-theme="rose" onclick="applyTheme('rose')">
-            <div class="theme-swatch-preview"><div class="theme-swatch-preview-inner">
-              <div class="theme-swatch-a" style="background:#fb7185;"></div>
-              <div class="theme-swatch-h" style="background:#a78bfa;"></div>
-            </div></div>
-            <span class="theme-swatch-label" data-i18n="themeRose">Rose</span>
-          </button>
-        </div>
-      </div>
       <!-- Canvas Background -->
       <div class="sc-prefs-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
         <div>
@@ -2435,32 +2384,28 @@ header { display: none !important; }
         <div style="display:flex;gap:8px;flex-wrap:wrap;" id="settings-canvas-bg">
           <button class="bg-swatch" data-bg="#1a1a1a" onclick="updateCanvasBg('#1a1a1a')">
             <div class="bg-swatch-preview" style="background:#1a1a1a;"></div>
-            <span class="bg-swatch-label">Default</span>
+            <span class="bg-swatch-label">Shadow</span>
           </button>
-          <button class="bg-swatch" data-bg="#111111" onclick="updateCanvasBg('#111111')">
-            <div class="bg-swatch-preview" style="background:#111111;"></div>
-            <span class="bg-swatch-label">Darker</span>
+          <button class="bg-swatch" data-bg="#0d0d0d" onclick="updateCanvasBg('#0d0d0d')">
+            <div class="bg-swatch-preview" style="background:#0d0d0d;"></div>
+            <span class="bg-swatch-label">Void</span>
           </button>
-          <button class="bg-swatch" data-bg="#0f1217" onclick="updateCanvasBg('#0f1217')">
-            <div class="bg-swatch-preview" style="background:#0f1217;"></div>
-            <span class="bg-swatch-label">Navy</span>
+          <button class="bg-swatch" data-bg="#1a1d22" onclick="updateCanvasBg('#1a1d22')">
+            <div class="bg-swatch-preview" style="background:#1a1d22;"></div>
+            <span class="bg-swatch-label">Graphite</span>
           </button>
-          <button class="bg-swatch" data-bg="#1a1510" onclick="updateCanvasBg('#1a1510')">
-            <div class="bg-swatch-preview" style="background:#1a1510;"></div>
-            <span class="bg-swatch-label">Warm</span>
+          <button class="bg-swatch" data-bg="#131a22" onclick="updateCanvasBg('#131a22')">
+            <div class="bg-swatch-preview" style="background:#131a22;"></div>
+            <span class="bg-swatch-label">Slate</span>
           </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── LANGUAGE ── -->
-    <p class="sc-prefs-section-label" data-i18n="settingsLang">Language</p>
-    <div class="sc-prefs-card">
-      <div class="sc-prefs-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
-        <p class="sc-prefs-row-hint" data-i18n="settingsLangHint">Switch the entire app language.</p>
-        <div style="display:flex;gap:0;width:100%;border-radius:10px;overflow:hidden;">
-          <button id="settings-lang-en" onclick="setLang('en')" style="flex:1;padding:10px 0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#7aafff;color:#002e5d;border:none;cursor:pointer;transition:all 0.15s;">EN — English</button>
-          <button id="settings-lang-es" onclick="setLang('es')" style="flex:1;padding:10px 0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#1a1a1e;color:#767575;border:none;cursor:pointer;transition:all 0.15s;">ES — Español</button>
+          <button class="bg-swatch" data-bg="#0e0d18" onclick="updateCanvasBg('#0e0d18')">
+            <div class="bg-swatch-preview" style="background:#0e0d18;"></div>
+            <span class="bg-swatch-label">Midnight</span>
+          </button>
+          <button class="bg-swatch" data-bg="#111a14" onclick="updateCanvasBg('#111a14')">
+            <div class="bg-swatch-preview" style="background:#111a14;"></div>
+            <span class="bg-swatch-label">Forest</span>
+          </button>
         </div>
       </div>
     </div>
