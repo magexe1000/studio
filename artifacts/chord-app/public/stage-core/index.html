@@ -441,14 +441,15 @@ html, body {
 /* Views fill the iframe from top */
 .view-page { top: 0 !important; }
 
-/* Override position:absolute on scrollable-view — inside an iframe, position:absolute can escape
-   the iframe boundary on Chrome Android and overlap the React header bar above.
-   position:absolute is scoped to the iframe viewport and behaves correctly. */
+/* Scrollable views: position:absolute (not fixed) so touches route correctly inside
+   the iframe on Chrome Android. top:0 overrides the desktop 64px header offset.
+   left/right/bottom come from app.css — bottom:32px stops ABOVE the nav bar so
+   the nav bar's touch area is never covered by a scroll container. */
 .scrollable-view {
   position: absolute !important;
-  inset: 0 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
 }
 
 /* Sub-views: React header (52px) is outside the iframe above it.
@@ -3845,6 +3846,56 @@ window.addEventListener('message', function(e) {
     removeNativeHeader();
   }
 
+})();
+</script>
+
+<script>
+/* ── Explicit touchend handlers for nav bar + FAB ─────────────────────────────
+ * On Android Chrome, scroll containers can pre-capture touch gestures and
+ * suppress the synthesised click event even when the element has higher z-index.
+ * Adding touchend (passive:false) handlers that call the functions directly
+ * guarantees response to taps regardless of what the scroll layer does. */
+(function() {
+  function bindTouch() {
+    // Nav bar tabs
+    document.querySelectorAll('.mob-tab').forEach(function(btn) {
+      btn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        var view = btn.dataset.view;
+        if (!view) return;
+        if (view === 'Setup') {
+          if (typeof activateSetup === 'function') activateSetup();
+        } else {
+          if (typeof switchView === 'function') switchView(view);
+        }
+      }, { passive: false });
+    });
+
+    // FAB open/close button
+    var fab = document.getElementById('sc-fab-btn');
+    if (fab) {
+      fab.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        if (typeof toggleSCDial === 'function') toggleSCDial();
+      }, { passive: false });
+    }
+
+    // FAB speed-dial chips
+    document.querySelectorAll('.sc-dial-chip').forEach(function(chip) {
+      chip.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        var cat = chip.dataset.cat;
+        var label = chip.dataset.label || cat;
+        if (cat && typeof openItemSheet === 'function') openItemSheet(cat, label);
+      }, { passive: false });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindTouch);
+  } else {
+    bindTouch();
+  }
 })();
 </script>
 </body>
