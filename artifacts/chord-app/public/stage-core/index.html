@@ -380,9 +380,10 @@ html, body {
   /* Smooth slide when vtools panel opens/closes */
   transition: transform 300ms cubic-bezier(0.34, 1.1, 0.64, 1) !important;
 }
-/* When the vtools panel is expanded, nudge the viewport right so the toolbar doesn't overlap */
+/* When the vtools panel is expanded: shrink slightly + shift right so nothing clips */
 #canvas-container.vtools-open #stage-viewport {
-  transform: translateX(52px) !important;
+  transform: translateX(22px) scale(0.91) !important;
+  transform-origin: center center !important;
 }
 
 /* 12. Hide the native header bar — React header replaces it */
@@ -902,10 +903,12 @@ html[data-theme="light"] #mobile-nav-bar {
   background: rgba(245,245,247,0.97) !important;
   border: 1px solid rgba(0,0,0,0.09) !important;
 }
-html[data-theme="light"] .mob-tab          { color: #888 !important; }
-html[data-theme="light"] .mob-tab .sc-nav-icon { color: #888 !important; }
-html[data-theme="light"] .mob-tab.active   { color: #0e0e0e !important; background: rgba(0,0,0,0.06) !important; }
-html[data-theme="light"] #sc-nav-pill      { background: var(--accent) !important; }
+html[data-theme="light"] .mob-tab                     { color: #888 !important; }
+html[data-theme="light"] .mob-tab .sc-nav-icon        { color: #888 !important; }
+/* Active tab sits ON the accent pill → keep icon + label WHITE in both themes */
+html[data-theme="light"] .mob-tab.active              { color: #fff !important; background: transparent !important; }
+html[data-theme="light"] .mob-tab.active .sc-nav-icon { color: #fff !important; }
+html[data-theme="light"] #sc-nav-pill                 { background: var(--accent) !important; }
 
 /* ── Vertical toolbar ── */
 html[data-theme="light"] #sc-vtools-toggle {
