@@ -812,9 +812,8 @@ function switchView(view) {
   if (view === 'Gear') { renderGear(); lcIcons(); }
   if (view === 'Members') { renderMembersView(); lcIcons(); }
   if (view === 'Export') { if (prevView !== 'Export') state.prevView = prevView || 'Editor'; refreshExport(); }
-  // Hide the app header in Export view for a full-bleed document feel
-  const appHeader = document.querySelector('header');
-  if (appHeader) appHeader.style.display = view === 'Export' ? 'none' : '';
+  // Notify the React wrapper of view changes (shows/hides its back button)
+  try { if (window.__onViewChange) window.__onViewChange(view); } catch(e) {}
   // Desktop: show category top bar only on Editor view
   const deskBar  = document.getElementById('desktop-cat-bar');
   const deskTray = document.getElementById('desktop-el-tray');
@@ -5292,8 +5291,22 @@ function loadSettings() {
 // ══════════════════════════════════════════════════════════
 // ── Export navigation helpers ─────────────────────────────────
 function leaveExport() {
-  switchView(state.prevView || 'Editor');
+  const target = state.prevView || 'Editor';
+  switchView(target);
 }
+
+// Exposed for the React wrapper and Android back button
+window.stageGoBack = function() {
+  if (state.currentView === 'Export') { leaveExport(); return true; }
+  if (state.currentView === 'Rider' || state.currentView === 'Setlist' ||
+      state.currentView === 'Gear' || state.currentView === 'Members') {
+    switchView('SetupHub'); return true;
+  }
+  if (state.currentView === 'SetupHub' || state.currentView === 'Preferences' || state.currentView === 'Assistant') {
+    switchView('Editor'); return true;
+  }
+  return false;
+};
 
 function _initExportSwipeBack() {
   const scroll = document.getElementById('export-preview-scroll');
