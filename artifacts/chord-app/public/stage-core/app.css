@@ -2697,3 +2697,91 @@ body.share-mode::after {
   opacity: 0;
   pointer-events: none;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   AMOLED MODE  — applied when html[data-amoled="1"]
+   Replaces all near-black greys with true #000 to save battery
+   on AMOLED/OLED screens and maximise contrast.
+══════════════════════════════════════════════════════════════ */
+html[data-amoled="1"],
+html[data-amoled="1"] body {
+  background: #000 !important;
+}
+
+/* ── Layout shells ───────────────────────────────────────────── */
+html[data-amoled="1"] header { background: #000 !important; }
+html[data-amoled="1"] .view-page { background: #000 !important; }
+html[data-amoled="1"] .scrollable-view { background: #000 !important; }
+html[data-amoled="1"] #view-Assistant { background: #000 !important; }
+
+/* ── Stage ───────────────────────────────────────────────────── */
+html[data-amoled="1"] #canvas-container { background: #000 !important; }
+html[data-amoled="1"] #stage-viewport { background: #000 !important; }
+
+/* ── Bottom navigation ───────────────────────────────────────── */
+html[data-amoled="1"] #mobile-nav-bar {
+  background: rgba(0,0,0,0.97) !important;
+  border-top-color: rgba(255,255,255,0.06) !important;
+}
+
+/* ── Setup Hub ───────────────────────────────────────────────── */
+html[data-amoled="1"] .sc-hub-card {
+  background: #050505 !important;
+  border-color: rgba(255,255,255,0.06) !important;
+}
+html[data-amoled="1"] .sc-hub-card:hover {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+/* ── Preferences cards ───────────────────────────────────────── */
+html[data-amoled="1"] .sc-prefs-card {
+  background: #050505 !important;
+  border-color: rgba(255,255,255,0.06) !important;
+}
+html[data-amoled="1"] .sc-prefs-section-label {
+  background: #000 !important;
+}
+
+/* ── Sub-views (Rider, Setlist, Gear, Members, Export) ────────── */
+html[data-amoled="1"] #view-SetupHub,
+html[data-amoled="1"] #view-Rider,
+html[data-amoled="1"] #view-Setlist,
+html[data-amoled="1"] #view-Gear,
+html[data-amoled="1"] #view-Members,
+html[data-amoled="1"] #view-Export { background: #000 !important; }
+
+html[data-amoled="1"] #export-preview-scroll { background: #000 !important; }
+html[data-amoled="1"] #export-bottom-bar { background: rgba(0,0,0,0.94) !important; }
+html[data-amoled="1"] .export-section { background: #000 !important; }
+html[data-amoled="1"] #exp-cover { background: #000 !important; }
+html[data-amoled="1"] #exp-footer { background: #000 !important; }
+html[data-amoled="1"] #exp-canvas-wrap { background: #050505 !important; }
+html[data-amoled="1"] #exp-gear-content table thead tr { background: #050505 !important; }
+html[data-amoled="1"] #exp-input-table thead tr { background: #050505 !important; }
+
+/* ── Panels & overlays ───────────────────────────────────────── */
+html[data-amoled="1"] #sc-chain-panel { background: #000 !important; }
+html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
+html[data-amoled="1"] #lib-panel { background: #000 !important; }
+html[data-amoled="1"] #settings-panel { background: #000 !important; }
+html[data-amoled="1"] #sc-vtools { background: rgba(0,0,0,0.96) !important; }
+
+/* ── Modals ──────────────────────────────────────────────────── */
+html[data-amoled="1"] .sc-modal,
+html[data-amoled="1"] .sc-dialog,
+html[data-amoled="1"] .lm-auth-modal,
+html[data-amoled="1"] .sc-share-modal { background: #050505 !important; }
+
+/* ── Inputs & tables ─────────────────────────────────────────── */
+html[data-amoled="1"] .prop-input,
+html[data-amoled="1"] input[type="text"],
+html[data-amoled="1"] input[type="number"],
+html[data-amoled="1"] textarea,
+html[data-amoled="1"] select {
+  background: #050505 !important;
+}
+html[data-amoled="1"] .sc-prefs-row { border-bottom-color: rgba(255,255,255,0.05) !important; }
+
+/* ── Scrollbars ──────────────────────────────────────────────── */
+html[data-amoled="1"] ::-webkit-scrollbar-track { background: #000 !important; }
+html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important; }

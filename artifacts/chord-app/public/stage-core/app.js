@@ -26,6 +26,7 @@ const state = {
   labelsVisible: true,
   connLineStyle: 'solid',
   reducedAnimations: false,
+  amoled: false,
   gigMode: false,
   smartSuggestionsEnabled: false,
   timeline: [],
@@ -5244,6 +5245,7 @@ function saveSettings() {
       labelsVisible: state.labelsVisible,
       connLineStyle: state.connLineStyle,
       reducedAnimations: state.reducedAnimations,
+      amoled: state.amoled,
       gigMode: state.gigMode,
       smartSuggestionsEnabled: state.smartSuggestionsEnabled,
       stageBalanceVisible: state.stageBalanceVisible,
@@ -5269,6 +5271,7 @@ function loadSettings() {
     if (s.labelsVisible !== undefined) state.labelsVisible = s.labelsVisible;
     if (s.connLineStyle) state.connLineStyle = s.connLineStyle;
     if (s.reducedAnimations !== undefined) state.reducedAnimations = s.reducedAnimations;
+    if (s.amoled !== undefined) state.amoled = s.amoled;
     if (s.gigMode !== undefined) state.gigMode = s.gigMode;
     if (s.smartSuggestionsEnabled !== undefined) state.smartSuggestionsEnabled = s.smartSuggestionsEnabled;
     if (s.stageBalanceVisible !== undefined) state.stageBalanceVisible = s.stageBalanceVisible;
@@ -5283,6 +5286,23 @@ function loadSettings() {
 // ══════════════════════════════════════════════════════════
 //  SETTINGS — apply to DOM
 // ══════════════════════════════════════════════════════════
+function _applyAmoled(on) {
+  if (on) {
+    document.documentElement.setAttribute('data-amoled', '1');
+  } else {
+    document.documentElement.removeAttribute('data-amoled');
+  }
+}
+
+function toggleAmoled() {
+  state.amoled = !state.amoled;
+  _applyAmoled(state.amoled);
+  const toggle = document.getElementById('settings-amoled-toggle');
+  if (toggle) toggle.classList.toggle('on', state.amoled);
+  saveSettings();
+  showToast(state.amoled ? 'AMOLED mode on' : 'AMOLED mode off');
+}
+
 function applySettings() {
   // Canvas background is intentionally NOT set here.
   // The CSS rule (#stage-canvas / html[data-theme="light"] #stage-canvas) sets the correct
@@ -5319,6 +5339,11 @@ function applySettings() {
   document.querySelectorAll('.setting-chip[data-ls]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.ls === state.connLineStyle);
   });
+
+  // AMOLED mode
+  _applyAmoled(state.amoled);
+  const amoledToggle = document.getElementById('settings-amoled-toggle');
+  if (amoledToggle) amoledToggle.classList.toggle('on', state.amoled);
 
   // Reduced animations
   document.documentElement.classList.toggle('reduced-motion', state.reducedAnimations);

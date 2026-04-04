@@ -43,6 +43,12 @@
     if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
     else document.documentElement.removeAttribute('data-theme');
   };
+
+  // AMOLED flash prevention — read saved setting before CSS paints
+  try {
+    var sc_s = JSON.parse(localStorage.getItem('stagecoreSettings') || '{}');
+    if (sc_s.amoled) document.documentElement.setAttribute('data-amoled', '1');
+  } catch(e) {}
 })();
 </script>
 <base href="/stage-core/">
@@ -3510,6 +3516,14 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
             <span class="bg-swatch-label">Sky</span>
           </button>
         </div>
+      </div>
+      <!-- AMOLED mode -->
+      <div class="sc-prefs-row">
+        <div>
+          <p class="sc-prefs-row-label">AMOLED Mode</p>
+          <p class="sc-prefs-row-hint">Pure black backgrounds to save battery on OLED screens.</p>
+        </div>
+        <button id="settings-amoled-toggle" class="toggle-switch" onclick="toggleAmoled()" title="Toggle AMOLED mode"></button>
       </div>
     </div>
 
