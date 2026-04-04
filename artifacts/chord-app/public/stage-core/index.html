@@ -258,25 +258,30 @@ header { display: none !important; }
 /* Views fill the iframe from top */
 .view-page { top: 0 !important; }
 
-/* Sub-views: React header (52px) is outside the iframe, only a small inner top pad needed */
-#view-Rider, #view-Setlist, #view-Gear, #view-Members, #view-Assistant {
-  padding-top: 16px !important;
+/* Override position:fixed on scrollable-view — inside an iframe, position:fixed can escape
+   the iframe boundary on Chrome Android and overlap the React header bar above.
+   position:absolute is scoped to the iframe viewport and behaves correctly. */
+.scrollable-view {
+  position: absolute !important;
+  inset: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
-/* Rider-only action bar (SAVE + PDF) — shown via JS when on Rider */
+/* Sub-views: React header (52px) is outside the iframe above it.
+   Inside the iframe, push content down enough to sit below the toolbar row. */
+#view-Rider, #view-Setlist, #view-Gear, #view-Members {
+  padding-top: 20px !important;
+}
+
+/* Rider-only action bar (SAVE + PDF) — hidden inside iframe (React header has these buttons) */
 #rider-action-bar {
-  position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 10px);
-  right: 14px;
-  z-index: 100;
-  display: none;
-  align-items: center;
-  gap: 8px;
+  display: none !important;
 }
 
 /* ── Setup Hub — card list ──────────────────────────────────────────── */
 #view-SetupHub {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -346,7 +351,7 @@ header { display: none !important; }
 /* ── Mobile layout fixes for setup views ───────────────────────────── */
 @media (max-width: 767px) {
   #view-Rider, #view-Setlist, #view-Gear, #view-Members {
-    padding: 16px 16px 110px !important;
+    padding: 20px 16px 110px !important;
   }
   /* Shrink oversized 48-56px headlines on mobile */
   #view-Rider  h1 { font-size: 26px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
