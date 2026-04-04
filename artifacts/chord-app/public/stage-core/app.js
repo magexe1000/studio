@@ -838,6 +838,8 @@ function switchView(view) {
   if (expSheet)  { expSheet.style.display = 'none'; }
   if (document.getElementById('mob-exp-set-btn'))
     document.getElementById('mob-exp-set-btn').classList.remove('active');
+  // Hide the bottom nav pill while in Export view so it doesn't overlap the export top bar
+  if (typeof setScNavHidden === 'function') setScNavHidden(isExport);
 }
 
 // ── Mobile sidebar helpers ──────────────────────────────────
