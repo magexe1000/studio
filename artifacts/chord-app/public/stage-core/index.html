@@ -537,6 +537,23 @@ header { display: none !important; }
 .rd-notes-textarea::placeholder { color: #333; }
 
 /* ═══════════════════════════════════════════════════════════════════
+   ADD SONG BOTTOM SHEET
+   ═══════════════════════════════════════════════════════════════════ */
+.sng-label { display:block; font-family:'Space Grotesk',sans-serif; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:#555; margin-bottom:7px; }
+.sng-input { width:100%; box-sizing:border-box; background:#262626; border:none; border-radius:12px; color:#fff; font-family:'Inter',sans-serif; font-size:15px; padding:13px 14px; outline:none; -webkit-appearance:none; appearance:none; }
+.sng-input::placeholder { color:#444; }
+.sng-input:focus { background:#2e2e2e; }
+.sng-input.sng-error { background:#2e1818; outline:1px solid #ff4646; }
+select.sng-input { cursor:pointer; }
+textarea.sng-input { line-height:1.5; }
+.sng-section-pill { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:100px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); cursor:pointer; font-family:'Space Grotesk',sans-serif; font-size:11px; font-weight:700; color:#666; -webkit-tap-highlight-color:transparent; transition:background 130ms,color 130ms,border-color 130ms; }
+.sng-section-pill.active { background:rgba(255,255,255,0.11); color:#e0e0e0; }
+.sng-btn-cancel { background:rgba(255,255,255,0.07); border:none; border-radius:100px; color:#777; font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:700; padding:16px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.sng-btn-cancel:active { opacity:0.7; }
+.sng-btn-add { background:#e2e2e2; border:none; border-radius:100px; color:#111; font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:800; padding:16px; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:opacity 120ms; }
+.sng-btn-add:active { opacity:0.85; transform:scale(0.98); }
+
+/* ═══════════════════════════════════════════════════════════════════
    DRAG & DROP — setlist reorder
    ═══════════════════════════════════════════════════════════════════ */
 .sl-drag-handle { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; cursor:grab; color:#2a2a2a; flex-shrink:0; -webkit-tap-highlight-color:transparent; touch-action:none; }
@@ -2164,66 +2181,64 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
   </div>
 </div>
 
-<!-- ═══════════════ ADD SONG MODAL ═══════════════ -->
-<div id="song-modal" style="display:none;position:fixed;inset:0;z-index:9000;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
-  <div style="width:520px;max-width:95vw;background:#0e0e0e;border:1px solid var(--accent-30);box-shadow:0 24px 80px rgba(0,0,0,0.6);">
-    <!-- Modal header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a1a1a;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:3px;height:20px;background:var(--accent);"></div>
-        <h2 style="font-family:'Space Grotesk';font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#fff;margin:0;">Add Song</h2>
-      </div>
-      <button onclick="closeSongModal()" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#484847;background:none;border:none;cursor:pointer;font-size:20px;line-height:1;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'">×</button>
+<!-- ═══════════════ ADD SONG BOTTOM SHEET ═══════════════ -->
+<div id="song-modal" style="display:none;position:fixed;inset:0;z-index:9000;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);" onclick="if(event.target===this)closeSongModal()">
+  <div id="song-sheet" style="width:100%;max-width:540px;background:#1c1c1c;border-radius:20px 20px 0 0;box-shadow:0 -12px 60px rgba(0,0,0,0.9);transform:translateY(100%);transition:transform 320ms cubic-bezier(0.32,0.72,0,1);padding-bottom:max(env(safe-area-inset-bottom,0px),16px);">
+    <!-- Drag pill -->
+    <div style="display:flex;justify-content:center;padding:10px 0 2px;">
+      <div style="width:34px;height:4px;border-radius:2px;background:rgba(255,255,255,0.14);"></div>
     </div>
-    <!-- Modal body -->
-    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-      <!-- Title (full width) -->
-      <div style="grid-column:1/-1;">
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Song Title <span style="color:var(--accent);">*</span></label>
-        <input id="sng-title" type="text" placeholder="Enter song title..." oninput="this.style.borderBottomColor='#484847'"
-          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#fff;font-family:'Inter';font-size:14px;font-weight:600;padding:10px 12px;outline:none;box-sizing:border-box;" />
-      </div>
-      <!-- Artist -->
-      <div style="grid-column:1/-1;">
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Artist / Band</label>
-        <input id="sng-artist" type="text" placeholder="e.g. The Rolling Stones"
-          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#fff;font-family:'Inter';font-size:13px;padding:10px 12px;outline:none;box-sizing:border-box;" />
-      </div>
-      <!-- Key -->
+    <!-- Sheet title -->
+    <div style="padding:8px 22px 16px;">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;color:#fff;margin:0;letter-spacing:-0.03em;">New Song</h2>
+    </div>
+    <!-- Form fields -->
+    <div style="padding:0 22px;display:flex;flex-direction:column;gap:14px;max-height:56vh;overflow-y:auto;">
       <div>
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Key</label>
-        <select id="sng-key" style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#e0e0e0;font-family:'Space Grotesk';font-size:13px;font-weight:700;padding:10px 12px;outline:none;cursor:pointer;appearance:none;box-sizing:border-box;">
-          <option>C</option><option>C#</option><option>Db</option><option>D</option><option>D#</option><option>Eb</option>
-          <option>E</option><option>F</option><option>F#</option><option>Gb</option><option>G</option><option>G#</option>
-          <option>Ab</option><option>A</option><option>A#</option><option>Bb</option><option>B</option>
-          <option>Cm</option><option>C#m</option><option>Dm</option><option>D#m</option><option>Ebm</option>
-          <option>Em</option><option>Fm</option><option>F#m</option><option>Gm</option><option>G#m</option>
-          <option>Am</option><option>A#m</option><option>Bbm</option><option>Bm</option>
-        </select>
+        <label class="sng-label">Song Title</label>
+        <input id="sng-title" type="text" placeholder="e.g. Blackbird" class="sng-input"
+          oninput="this.classList.remove('sng-error')" onkeydown="if(event.key==='Enter')saveSong()" />
       </div>
-      <!-- BPM -->
       <div>
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">BPM</label>
-        <input id="sng-bpm" type="number" min="40" max="300" placeholder="120"
-          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:var(--accent);font-family:'Space Grotesk';font-size:14px;font-weight:700;padding:10px 12px;outline:none;box-sizing:border-box;" />
+        <label class="sng-label">Artist</label>
+        <input id="sng-artist" type="text" placeholder="e.g. The Beatles" class="sng-input"
+          onkeydown="if(event.key==='Enter')saveSong()" />
       </div>
-      <!-- Duration -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label class="sng-label">BPM</label>
+          <input id="sng-bpm" type="number" min="40" max="300" placeholder="120" class="sng-input" />
+        </div>
+        <div>
+          <label class="sng-label">Key</label>
+          <select id="sng-key" class="sng-input">
+            <option>C</option><option>C#</option><option>Db</option><option>D</option><option>D#</option><option>Eb</option>
+            <option>E</option><option>F</option><option>F#</option><option>Gb</option><option>G</option><option>G#</option>
+            <option>Ab</option><option>A</option><option>A#</option><option>Bb</option><option>B</option>
+            <option>Cm</option><option>C#m</option><option>Dm</option><option>D#m</option><option>Ebm</option>
+            <option>Em</option><option>Fm</option><option>F#m</option><option>Gm</option><option>G#m</option>
+            <option>Am</option><option>A#m</option><option>Bbm</option><option>Bm</option>
+          </select>
+        </div>
+      </div>
       <div>
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Duration (MM:SS)</label>
-        <input id="sng-duration" type="text" placeholder="04:00" pattern="\d{1,2}:\d{2}"
-          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#e0e0e0;font-family:'Space Grotesk';font-size:13px;padding:10px 12px;outline:none;box-sizing:border-box;" />
+        <label class="sng-label">Duration (MM:SS)</label>
+        <input id="sng-duration" type="text" placeholder="3:45" class="sng-input" />
       </div>
-      <!-- Notes (full width) -->
-      <div style="grid-column:1/-1;">
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Notes / Cues</label>
-        <textarea id="sng-notes" rows="3" placeholder="Key changes, tempo shifts, special cues, transitions..."
-          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#adaaaa;font-family:'Inter';font-size:12px;padding:10px 12px;outline:none;resize:none;box-sizing:border-box;"></textarea>
+      <div>
+        <label class="sng-label">Notes</label>
+        <textarea id="sng-notes" rows="3" placeholder="Capo, strumming pattern…" class="sng-input" style="resize:none;"></textarea>
+      </div>
+      <!-- Section picker — visible only when sections exist -->
+      <div id="sng-section-row" style="display:none;padding-bottom:4px;">
+        <label class="sng-label">Add to Section</label>
+        <div id="sng-section-pills" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;"></div>
       </div>
     </div>
-    <!-- Modal footer -->
-    <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid #1a1a1a;">
-      <button onclick="closeSongModal()" style="padding:10px 24px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#1a1a1a;color:#767575;border:1px solid #262626;cursor:pointer;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#767575'">Cancel</button>
-      <button onclick="saveSong()" style="padding:10px 32px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Add to Setlist</button>
+    <!-- Footer buttons -->
+    <div style="padding:18px 22px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeSongModal()" class="sng-btn-cancel">Cancel</button>
+      <button onclick="saveSong()" class="sng-btn-add">New Song</button>
     </div>
   </div>
 </div>

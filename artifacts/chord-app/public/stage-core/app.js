@@ -3169,38 +3169,109 @@ function _renderSegmentsBar() {
   }).join('');
 }
 
+let _sngSelectedSection = null;
+
 function addSong() {
-  document.getElementById('song-modal').style.display = 'flex';
-  document.getElementById('sng-title').value = '';
-  document.getElementById('sng-artist').value = '';
-  document.getElementById('sng-key').value = 'C';
-  document.getElementById('sng-bpm').value = '120';
+  // Reset fields
+  const titleEl = document.getElementById('sng-title');
+  titleEl.value = '';
+  titleEl.classList.remove('sng-error');
+  document.getElementById('sng-artist').value   = '';
+  document.getElementById('sng-key').value      = 'C';
+  document.getElementById('sng-bpm').value      = '120';
   document.getElementById('sng-duration').value = '';
-  document.getElementById('sng-notes').value = '';
-  setTimeout(() => document.getElementById('sng-title').focus(), 50);
+  document.getElementById('sng-notes').value    = '';
+  _sngSelectedSection = null;
+
+  // Build section pills if any sections exist
+  const sections = state.setlist.filter(item => item.type === 'section');
+  const sectionRow   = document.getElementById('sng-section-row');
+  const pillsWrap    = document.getElementById('sng-section-pills');
+  if (sections.length && sectionRow && pillsWrap) {
+    sectionRow.style.display = 'block';
+    pillsWrap.innerHTML = sections.map(sec => `
+      <button class="sng-section-pill" data-sid="${sec.id}"
+        style="border-color:${sec.color}55;"
+        onclick="_toggleSngSection(this,'${sec.id}','${sec.color}')">
+        <span style="width:7px;height:7px;border-radius:50%;background:${sec.color};flex-shrink:0;box-shadow:0 0 5px ${sec.color}88;"></span>
+        <span>${sec.name}</span>
+      </button>`).join('');
+  } else {
+    if (sectionRow) sectionRow.style.display = 'none';
+  }
+
+  // Animate sheet up
+  const modal = document.getElementById('song-modal');
+  const sheet = document.getElementById('song-sheet');
+  modal.style.display = 'flex';
+  sheet.style.transform = 'translateY(100%)';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    sheet.style.transform = 'translateY(0)';
+  }));
+  setTimeout(() => titleEl.focus(), 360);
+}
+
+function _toggleSngSection(btn, sid, color) {
+  document.querySelectorAll('#sng-section-pills .sng-section-pill').forEach(p => {
+    p.classList.remove('active');
+    p.style.backgroundColor = '';
+  });
+  if (_sngSelectedSection === sid) {
+    _sngSelectedSection = null;
+  } else {
+    _sngSelectedSection = sid;
+    btn.classList.add('active');
+    btn.style.backgroundColor = color + '22';
+  }
 }
 
 function saveSong() {
   const title = document.getElementById('sng-title').value.trim();
-  if (!title) { document.getElementById('sng-title').style.borderBottomColor = '#ff716c'; return; }
-  state.setlist.push({
-    id: Date.now(),
+  if (!title) { document.getElementById('sng-title').classList.add('sng-error'); return; }
+
+  const newSong = {
+    id:        Date.now(),
+    type:      'song',
     title,
-    artist: document.getElementById('sng-artist').value.trim(),
-    key:    document.getElementById('sng-key').value,
-    bpm:    parseInt(document.getElementById('sng-bpm').value) || 120,
-    duration: document.getElementById('sng-duration').value.trim() || '—',
-    notes:  document.getElementById('sng-notes').value.trim(),
+    artist:    document.getElementById('sng-artist').value.trim(),
+    key:       document.getElementById('sng-key').value,
+    bpm:       parseInt(document.getElementById('sng-bpm').value) || 120,
+    duration:  document.getElementById('sng-duration').value.trim() || '—',
+    notes:     document.getElementById('sng-notes').value.trim(),
     segmentId: null,
-  });
-  document.getElementById('song-modal').style.display = 'none';
+  };
+
+  if (_sngSelectedSection) {
+    const secIdx = state.setlist.findIndex(item => String(item.id) === String(_sngSelectedSection));
+    if (secIdx !== -1) {
+      // Insert at the end of this section block (just before the next section header)
+      let insertIdx = state.setlist.length;
+      for (let i = secIdx + 1; i < state.setlist.length; i++) {
+        if (state.setlist[i].type === 'section') { insertIdx = i; break; }
+      }
+      state.setlist.splice(insertIdx, 0, newSong);
+    } else {
+      state.setlist.push(newSong);
+    }
+  } else {
+    state.setlist.push(newSong);
+  }
+
+  _sngSelectedSection = null;
+  closeSongModal();
   renderSetlist();
   pushHistory();
   markAutosaveDirty();
 }
 
 function closeSongModal() {
-  document.getElementById('song-modal').style.display = 'none';
+  const sheet = document.getElementById('song-sheet');
+  if (sheet) {
+    sheet.style.transform = 'translateY(100%)';
+    setTimeout(() => { document.getElementById('song-modal').style.display = 'none'; }, 320);
+  } else {
+    document.getElementById('song-modal').style.display = 'none';
+  }
 }
 
 // ─── BATCH IMPORT ─────────────────────────────────────────────────────────
