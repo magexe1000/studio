@@ -812,6 +812,9 @@ function switchView(view) {
   if (view === 'Gear') { renderGear(); lcIcons(); }
   if (view === 'Members') { renderMembersView(); lcIcons(); }
   if (view === 'Export') refreshExport();
+  // Hide the app header in Export view for a full-bleed document feel
+  const appHeader = document.querySelector('header');
+  if (appHeader) appHeader.style.display = view === 'Export' ? 'none' : '';
   // Desktop: show category top bar only on Editor view
   const deskBar  = document.getElementById('desktop-cat-bar');
   const deskTray = document.getElementById('desktop-el-tray');

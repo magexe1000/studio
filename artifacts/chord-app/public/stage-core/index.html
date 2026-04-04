@@ -3224,15 +3224,15 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 </div>
 
 <!-- ═══════════════════════ EXPORT VIEW ═══════════════════════ -->
-<div id="view-Export" class="view-page" style="margin-left:0;padding-top:64px;height:100vh;display:none;flex-direction:column;overflow:hidden;position:relative;box-sizing:border-box;">
+<div id="view-Export" class="view-page" style="margin-left:0;padding-top:0;height:100vh;display:none;flex-direction:column;overflow:hidden;position:relative;box-sizing:border-box;">
 
     <!-- Full-width Scrollable document preview -->
-    <div id="export-preview-scroll" style="flex:1;min-height:0;overflow-y:auto;background:#131313;padding:32px 40px 80px;">
+    <div id="export-preview-scroll" style="flex:1;min-height:0;overflow-y:auto;background:#000;padding:0 0 150px;">
       <!-- The printable rider document -->
-      <div id="export-document" style="max-width:720px;margin:0 auto;font-family:'Inter',sans-serif;color:#fff;">
+      <div id="export-document" style="width:100%;font-family:'Inter',sans-serif;color:#fff;">
 
         <!-- COVER -->
-        <div id="exp-cover" class="export-section" style="position:relative;background:#0e0e0e;overflow:hidden;margin-bottom:6px;min-height:220px;padding:36px 40px 28px;border-left:5px solid var(--accent);">
+        <div id="exp-cover" class="export-section" style="position:relative;background:#000;overflow:hidden;margin-bottom:0;min-height:220px;padding:36px 20px 32px;border-left:5px solid var(--accent);border-bottom:1px solid rgba(255,255,255,0.06);">
           <!-- Decorative shapes -->
           <div style="position:absolute;right:-30px;top:-30px;width:200px;height:200px;background:linear-gradient(135deg,var(--accent-08),transparent);transform:rotate(15deg);pointer-events:none;"></div>
           <div style="position:absolute;right:40px;top:20px;width:60px;height:60px;background:var(--accent-20);transform:rotate(45deg);pointer-events:none;"></div>
@@ -3269,9 +3269,9 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
         </div>
 
         <!-- 01 // STAGE PLOT -->
-        <div id="exp-stage-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
+        <div id="exp-stage-section" class="export-section" style="background:#000;margin-bottom:0;padding:22px 20px;border-bottom:1px solid rgba(255,255,255,0.05);">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;">
-            <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;color:#fff;margin:0;">
+            <h2 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#fff;margin:0;">
               <span style="color:var(--accent);">01</span> // <span data-i18n="stagePlot">Stage Plot</span>
             </h2>
             <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;" data-i18n="scaleLabel">Scale: 1:50</span>
@@ -3289,20 +3289,20 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
         </div>
 
         <!-- 02 // INPUT LIST -->
-        <div id="exp-input-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
-          <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;color:#fff;margin:0 0 16px;">
+        <div id="exp-input-section" class="export-section" style="background:#000;margin-bottom:0;padding:22px 20px;border-bottom:1px solid rgba(255,255,255,0.05);">
+          <h2 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#fff;margin:0 0 16px;">
             <span style="color:var(--accent);">02</span> // <span data-i18n="inputList">Input List</span>
           </h2>
           <div style="overflow-x:auto;">
             <table id="exp-input-table" style="width:100%;border-collapse:collapse;font-family:'Inter';font-size:13px;">
               <thead>
-                <tr style="background:#1a1a1a;">
-                  <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;white-space:nowrap;" data-i18n="colCh">CH#</th>
-                  <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;" data-i18n="colInstrument">Instrument</th>
-                  <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;" data-i18n="colPerformer">Performer</th>
-                  <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;" data-i18n="colMicDI">Mic / DI</th>
-                  <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;" data-i18n="colSource">Source</th>
-                  <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;" data-i18n="colNotes">Notes</th>
+                <tr style="background:#0a0a0a;border-bottom:1px solid rgba(255,255,255,0.06);">
+                  <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;white-space:nowrap;" data-i18n="colCh">CH#</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;" data-i18n="colInstrument">Instrument</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;" data-i18n="colPerformer">Performer</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;" data-i18n="colMicDI">Mic / DI</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;" data-i18n="colSource">Source</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#767575;" data-i18n="colNotes">Notes</th>
                 </tr>
               </thead>
               <tbody id="exp-input-tbody"></tbody>
@@ -3312,16 +3312,16 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
         </div>
 
         <!-- BAND MEMBERS -->
-        <div id="exp-members-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;display:none;">
-          <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;color:#fff;margin:0 0 16px;">
+        <div id="exp-members-section" class="export-section" style="background:#000;margin-bottom:0;padding:22px 20px;border-bottom:1px solid rgba(255,255,255,0.05);display:none;">
+          <h2 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#fff;margin:0 0 16px;">
             <span style="color:var(--accent);">03</span> // <span data-i18n="bandMembers">Band Members</span>
           </h2>
           <div id="exp-members-body"></div>
         </div>
 
-        <!-- 03 // CONNECTIVITY (full-width, page 1) -->
-        <div id="exp-connectivity-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
-          <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;color:#fff;margin:0 0 16px;">
+        <!-- 04 // CONNECTIVITY -->
+        <div id="exp-connectivity-section" class="export-section" style="background:#000;margin-bottom:0;padding:22px 20px;border-bottom:1px solid rgba(255,255,255,0.05);">
+          <h2 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#fff;margin:0 0 16px;">
             <span style="color:var(--accent);">04</span> // <span data-i18n="connectivity">Connectivity</span>
           </h2>
           <div id="exp-connectivity-body"></div>
@@ -3329,17 +3329,17 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
         <!-- ─── PAGE 2 GROUP ─── -->
 
-        <!-- 04 // SETLIST -->
-        <div id="exp-setlist-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
-          <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;color:#fff;margin:0 0 16px;">
+        <!-- 05 // SETLIST -->
+        <div id="exp-setlist-section" class="export-section" style="background:#000;margin-bottom:0;padding:22px 20px;border-bottom:1px solid rgba(255,255,255,0.05);">
+          <h2 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#fff;margin:0 0 16px;">
             <span style="color:var(--accent);">05</span> // <span data-i18n="setlist">Setlist</span>
           </h2>
           <div id="exp-setlist-items" style="font-family:'Space Grotesk';font-size:13px;"></div>
         </div>
 
         <!-- LIGHTING RIDER (hidden by default, toggled via checkbox) -->
-        <div id="exp-lighting-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;display:none;">
-          <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;color:#fff;margin:0 0 14px;">
+        <div id="exp-lighting-section" class="export-section" style="background:#000;margin-bottom:0;padding:22px 20px;border-bottom:1px solid rgba(255,255,255,0.05);display:none;">
+          <h2 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#fff;margin:0 0 14px;">
             <span style="color:var(--accent);">LR</span> // <span data-i18n="lightingRider">Lighting Rider</span>
           </h2>
           <div style="padding:20px;background:#131313;border-left:2px solid rgba(72,72,71,0.3);">
@@ -3348,10 +3348,10 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
           </div>
         </div>
 
-        <!-- 05 // TECHNICAL NOTES (editable free-text) -->
-        <div id="exp-notes-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
+        <!-- 06 // TECHNICAL NOTES (editable free-text) -->
+        <div id="exp-notes-section" class="export-section" style="background:#000;margin-bottom:0;padding:22px 20px;border-bottom:1px solid rgba(255,255,255,0.05);">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">
-            <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;color:#fff;margin:0;">
+            <h2 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#fff;margin:0;">
               <span style="color:var(--accent);">06</span> // <span data-i18n="techNotes">Technical Notes</span>
             </h2>
             <span style="font-size:9px;color:#484847;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;" data-i18n="clickEdit">Click to edit</span>
@@ -3363,19 +3363,19 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
             placeholder="Enter technical notes...">Artist provides all instruments, IEM transmitters, and playback rack. Venue must provide all microphones, stands, and XLR cabling as per the input list. PA system must be capable of 105dB continuous at FOH without distortion. Front-fills are mandatory for the first 3 rows. All wireless systems must be frequency-coordinated prior to load-in.</div>
         </div>
 
-        <!-- 06 // GEAR LIST -->
-        <div id="exp-gear-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
+        <!-- 07 // GEAR LIST -->
+        <div id="exp-gear-section" class="export-section" style="background:#000;margin-bottom:0;padding:22px 20px;border-bottom:1px solid rgba(255,255,255,0.05);">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;">
-            <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;color:#fff;margin:0;">
-              <span style="color:var(--hot);">07</span> // <span data-i18n="gear">Gear / Load-In Checklist</span>
+            <h2 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#fff;margin:0;">
+              <span style="color:var(--accent);">07</span> // <span data-i18n="gear">Gear / Load-In Checklist</span>
             </h2>
           </div>
           <div id="exp-gear-empty" style="display:none;padding:24px 0;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#333;text-align:center;" data-i18n="noGear">No gear items added — visit the Gear tab to build your list.</div>
           <div id="exp-gear-content">
             <table style="width:100%;border-collapse:collapse;font-family:'Inter',Arial,sans-serif;">
               <thead>
-                <tr style="background:#111;">
-                  <th style="padding:8px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;text-align:left;" data-i18n="colItem">Item</th>
+                <tr style="background:#0a0a0a;border-bottom:1px solid rgba(255,255,255,0.06);">
+                  <th style="padding:8px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;text-align:left;" data-i18n="colItem">Item</th>
                   <th style="padding:8px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;text-align:left;" data-i18n="colCategory">Category</th>
                   <th style="padding:8px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;text-align:center;" data-i18n="colQty">Qty</th>
                   <th style="padding:8px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;text-align:left;" data-i18n="colNotes">Notes</th>
@@ -3388,7 +3388,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
         </div>
 
         <!-- FOOTER -->
-        <div id="exp-footer" style="padding:16px 28px;background:#0a0a0a;display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;">
+        <div id="exp-footer" style="padding:16px 20px;background:#000;display:flex;justify-content:space-between;align-items:center;margin-bottom:0;border-top:1px solid rgba(255,255,255,0.06);">
           <div>
             <p style="font-family:'Space Grotesk';font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#fff;margin:0 0 2px;">Stagex</p>
             <p style="font-size:9px;color:#484847;margin:0;text-transform:uppercase;letter-spacing:0.1em;" data-i18n="footerSub">Professional Stage Plot &amp; Technical Rider Editor</p>
