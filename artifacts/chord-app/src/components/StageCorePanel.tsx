@@ -8,6 +8,10 @@ type StageWin = Window & {
   openPresetsPanel?: () => void;
   switchView?: (v: string) => void;
   __onViewChange?: (view: string) => void;
+  scActivateMeasure?: () => void;
+  scToggleZones?: () => void;
+  scToggleCableLength?: () => void;
+  openTimelinePanel?: () => void;
 };
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -171,8 +175,39 @@ export default function StageCorePanel() {
 
         <div style={{ flex: 1 }} />
 
-        {/* SAVE + PDF buttons — only shown on the Stage canvas */}
+        {/* SAVE + tool buttons — only shown on the Stage canvas */}
         {curView === 'Editor' && <>
+
+          {/* ── Tool pills: MEASURE · ZONES · LENGTH · HISTORY ── */}
+          {(
+            [
+              { label: 'MEASURE', icon: 'straighten',  fn: () => getWin()?.scActivateMeasure?.()   },
+              { label: 'ZONES',   icon: 'grid_4x4',    fn: () => getWin()?.scToggleZones?.()       },
+              { label: 'LENGTH',  icon: 'cable',        fn: () => getWin()?.scToggleCableLength?.() },
+              { label: 'HISTORY', icon: 'history',      fn: () => getWin()?.openTimelinePanel?.()   },
+            ] as { label: string; icon: string; fn: () => void }[]
+          ).map(({ label, icon, fn }) => (
+            <button
+              key={label}
+              onClick={fn}
+              title={label}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)',
+                color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(180,185,200,0.75)',
+                border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
+                borderRadius: 7, padding: '5px 8px',
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 9, fontWeight: 700, letterSpacing: '0.07em',
+                textTransform: 'uppercase', cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 12, lineHeight: 1 }}>{icon}</span>
+              {label}
+            </button>
+          ))}
+
+          {/* ── Save preset ── */}
           <button
             onClick={() => getWin()?.openPresetsPanel?.()}
             style={{
@@ -188,6 +223,7 @@ export default function StageCorePanel() {
             Save
           </button>
 
+          {/* ── PDF export ── */}
           <button
             onClick={() => getWin()?.switchView?.('Export')}
             title="Export to PDF"

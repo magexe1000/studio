@@ -269,7 +269,7 @@
 /* 11. Reposition toolbar — React header bar is ABOVE the iframe now, so toolbar goes to top:0 */
 @media (max-width: 767px) {
   /* Canvas fills from top inside iframe — bottom:0 overrides the original bottom:32px (status bar gone) */
-  #canvas-container { top: 44px !important; bottom: 0 !important; }
+  #canvas-container { top: 0 !important; bottom: 0 !important; }
   /* SAVE + PDF align to the right of the toolbar row */
   #rider-action-bar { top: 8px !important; }
   /* Lift element-category bar above the nav pill */
@@ -1339,53 +1339,8 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
 /* ── Permanently kill the old mobile cat bar (replaced by FAB+sheet) ── */
 #mobile-cat-bar { display: none !important; }
 #mobile-el-tray  { display: none !important; }
-/* ── Hide the left accordion library panel — categories accessed via top bar ── */
+/* ── Hide the left accordion library panel (desktop-only element, not used in mobile iframe) ── */
 #lib-panel { display: none !important; }
-
-/* ══ Stage Top Category Bar ══ */
-#sc-top-cat-bar {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 44px;
-  z-index: 80;
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
-  gap: 2px;
-  background: rgba(12,12,14,0.97);
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-.sc-top-btn {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  color: #7a7a7a;
-  transition: background 120ms ease, color 120ms ease, transform 100ms ease;
-  -webkit-tap-highlight-color: transparent;
-  flex-shrink: 0;
-}
-.sc-top-btn:hover  { background: rgba(255,255,255,0.09); color: #d0d0d0; }
-.sc-top-btn:active { background: rgba(255,255,255,0.15); transform: scale(0.88); }
-.sc-top-btn--accent { color: var(--accent) !important; }
-.sc-top-btn--gold   { color: #f0b429 !important; }
-.sc-top-sep {
-  width: 1px; height: 18px;
-  background: rgba(255,255,255,0.09);
-  flex-shrink: 0; margin: 0 4px;
-}
-/* Light theme */
-html[data-theme="light"] #sc-top-cat-bar {
-  background: rgba(238,237,235,0.97) !important;
-  border-bottom-color: rgba(0,0,0,0.08) !important;
-}
-html[data-theme="light"] .sc-top-btn        { color: #888 !important; }
-html[data-theme="light"] .sc-top-btn:hover  { background: rgba(0,0,0,0.07) !important; color: #222 !important; }
-html[data-theme="light"] .sc-top-sep        { background: rgba(0,0,0,0.1) !important; }
 </style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden select-none" style="height:100vh;">
@@ -2249,35 +2204,6 @@ html[data-theme="light"] .sc-top-sep        { background: rgba(0,0,0,0.1) !impor
 
   <!-- DESKTOP ELEMENT TRAY (horizontal, overlays canvas on hover) -->
   <div id="desktop-el-tray"></div>
-
-  <!-- ═══ STAGE TOP CATEGORY BAR ═══ -->
-  <div id="sc-top-cat-bar">
-    <button class="sc-top-btn" onclick="openItemSheet('mics','Mics')" title="Mics">
-      <span class="material-symbols-outlined" style="font-size:20px;">mic</span>
-    </button>
-    <button class="sc-top-btn" onclick="openItemSheet('drums','Drums')" title="Drums">
-      <span class="material-symbols-outlined" style="font-size:20px;">music_note</span>
-    </button>
-    <button class="sc-top-btn" onclick="openItemSheet('inst','Instruments')" title="Instruments">
-      <span class="material-symbols-outlined" style="font-size:20px;">electric_bolt</span>
-    </button>
-    <button class="sc-top-btn" onclick="openItemSheet('amps','Amps')" title="Amps">
-      <span class="material-symbols-outlined" style="font-size:20px;">speaker</span>
-    </button>
-    <button class="sc-top-btn" onclick="openItemSheet('mon','Audio')" title="Audio">
-      <span class="material-symbols-outlined" style="font-size:20px;">volume_up</span>
-    </button>
-    <button class="sc-top-btn" onclick="openItemSheet('util','Utilities')" title="Utilities">
-      <span class="material-symbols-outlined" style="font-size:20px;">settings_input_component</span>
-    </button>
-    <div class="sc-top-sep"></div>
-    <button class="sc-top-btn sc-top-btn--accent" onclick="openItemSheet('custom','Custom')" title="Custom">
-      <span class="material-symbols-outlined" style="font-size:20px;">add_circle</span>
-    </button>
-    <button class="sc-top-btn sc-top-btn--gold" onclick="scOpenElPresets()" title="Presets">
-      <span class="material-symbols-outlined" style="font-size:20px;">bookmark</span>
-    </button>
-  </div>
 
   <!-- MAIN CANVAS -->
   <main id="canvas-container" class="absolute bg-surface-container-low overflow-hidden" style="left:0;right:0;top:64px;bottom:32px;">
