@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
-import { ChordexLogo, DrumexLogo } from './components/ChordexLogo';
+import { ChordexLogo, DrumexLogo, StageCoreLogoIcon } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
@@ -112,6 +112,7 @@ export default function App() {
   type SplashPhase = 'hidden' | 'in' | 'out';
   const [drumSplash,    setDrumSplash]    = useState<SplashPhase>('hidden');
   const [chordexSplash, setChordexSplash] = useState<SplashPhase>('hidden');
+  const [stageSplash,   setStageSplash]   = useState<SplashPhase>('hidden');
   const prevAppMode  = useRef(settings.appMode);
   const splashTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -127,6 +128,7 @@ export default function App() {
   useEffect(() => {
     if (settings.appMode === 'drums'  && prevAppMode.current !== 'drums')  fireSplash(setDrumSplash);
     if (settings.appMode === 'chords' && prevAppMode.current !== 'chords') fireSplash(setChordexSplash);
+    if (settings.appMode === 'stage'  && prevAppMode.current !== 'stage')  fireSplash(setStageSplash);
     prevAppMode.current = settings.appMode;
     return () => splashTimers.current.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -277,6 +279,28 @@ export default function App() {
         transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
       }}>
         <Suspense fallback={null}><StageCorePanel /></Suspense>
+
+        {/* Stage Core splash — shown when entering from hub/other app */}
+        {stageSplash !== 'hidden' && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 500,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            background: '#0e0e0e',
+            opacity:   stageSplash === 'out' ? 0 : 1,
+            transform: stageSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+            transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+            pointerEvents: 'none',
+          }}>
+            <div style={{ color: '#7aafff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+              <StageCoreLogoIcon size={60} />
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+              <p style={{ color: '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Stage Core</p>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Stage plot & tech rider</p>
+            </div>
+          </div>
+        )}
+
       </div>
     );
   }
