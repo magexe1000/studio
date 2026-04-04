@@ -295,6 +295,7 @@ interface DrumStore {
   setActivePattern: (id: string) => void;
 
   toggleHit:       (patternId: string, measureId: string, instrument: DrumInstrument, step: number) => void;
+  simpleToggleHit: (patternId: string, measureId: string, instrument: DrumInstrument, step: number) => void;
   addMeasure:      (patternId: string) => string;
   deleteMeasure:   (patternId: string, measureId: string) => void;
   clearMeasure:       (patternId: string, measureId: string) => void;
@@ -450,6 +451,27 @@ export const useDrumStore = create<DrumStore>()(
                 }
                 const updated: DrumHit = { ...existing, variation: varList[nextIdx] };
                 return { ...m, hits: { ...m.hits, [instrument]: hits.map(h => h === existing ? updated : h) } };
+              }),
+            };
+          }),
+        }));
+      },
+
+      simpleToggleHit: (patternId, measureId, instrument, step) => {
+        set(s => ({
+          patterns: s.patterns.map(p => {
+            if (p.id !== patternId) return p;
+            return {
+              ...p,
+              measures: p.measures.map(m => {
+                if (m.id !== measureId) return m;
+                const hits = m.hits[instrument] ?? [];
+                const existing = hits.find(h => h.step === step);
+                if (existing) {
+                  return { ...m, hits: { ...m.hits, [instrument]: hits.filter(h => h !== existing) } };
+                }
+                const newHit = { step, length: 1, variation: 'normal' as const };
+                return { ...m, hits: { ...m.hits, [instrument]: [...hits, newHit].sort((a, b) => a.step - b.step) } };
               }),
             };
           }),

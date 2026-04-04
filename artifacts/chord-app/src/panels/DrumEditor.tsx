@@ -14,6 +14,7 @@ import {
   setHouseKitMic, setHouseInstVelOverrides, HOUSE_VEL_CONFIGS, HOUSE_INST_LABELS,
   setHouseCrashModel as audioSetHouseCrashModel,
   KIT_DEFAULTS, getSoundForVariation, setInstFXMap, setInstPluginMap,
+  getAudioCtx,
   type SampleStatus, type HouseInstName,
 } from '../lib/drumAudio';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
@@ -286,10 +287,12 @@ interface RowProps {
   staffColor: string;
   barColor: string;
   altBg: string;
+  showVariations: boolean;
+  gridEmphasis: boolean;
 }
 const InstrumentRow = memo(({
   inst, mStartIdx, rowMeasures, spm, stepsPerBeat, STEP_W, MEASURE_W,
-  hitMap, noteColor, staffColor, barColor, altBg,
+  hitMap, noteColor, staffColor, barColor, altBg, showVariations, gridEmphasis,
 }: RowProps) => {
   const totalW     = rowMeasures.length * MEASURE_W;
   const defaultNoteY = NOTE_YF[inst] * ROW_H;
@@ -308,12 +311,15 @@ const InstrumentRow = memo(({
       {STAFF_YF.map((yf, i) => (
         <line key={i} x1={0} y1={yf * ROW_H} x2={totalW} y2={yf * ROW_H} stroke={staffColor} strokeWidth={0.7} />
       ))}
-      {/* Beat sub-dividers */}
+      {/* Beat sub-dividers (gridEmphasis=true makes beat lines bolder) */}
       {rowMeasures.map((_, mi) =>
         Array.from({ length: spm / stepsPerBeat }, (__, bi) => {
           if (bi === 0) return null;
           const x = (mi * spm + bi * stepsPerBeat) * STEP_W;
-          return <line key={`b-${mi}-${bi}`} x1={x} y1={0} x2={x} y2={ROW_H} stroke={staffColor} strokeWidth={0.4} opacity={0.5} />;
+          return <line key={`b-${mi}-${bi}`} x1={x} y1={0} x2={x} y2={ROW_H}
+            stroke={staffColor}
+            strokeWidth={gridEmphasis ? 0.8 : 0.4}
+            opacity={gridEmphasis ? 0.7 : 0.3} />;
         })
       )}
       {/* Measure bar lines */}
@@ -326,10 +332,12 @@ const InstrumentRow = memo(({
         Array.from({ length: spm }, (__, s) => {
           const globalStep = (mStartIdx + mi) * spm + s;
           if (!hitMap.has(globalStep)) return null;
-          const variation = hitMap.get(globalStep) ?? 'normal';
+          // showVariations=false → all notes look identical (normal)
+          const rawVariation = hitMap.get(globalStep) ?? 'normal';
+          const variation: NoteVariation = showVariations ? rawVariation : 'normal';
 
           // Pedal variation of HH sits at the bottom of the row (foot position)
-          const noteY = (inst === 'hihat-closed' && variation === 'pedal')
+          const noteY = (inst === 'hihat-closed' && rawVariation === 'pedal' && showVariations)
             ? ROW_H * 0.86
             : defaultNoteY;
 
@@ -340,7 +348,7 @@ const InstrumentRow = memo(({
           const stemY2 = stemUp ? cy - NOTE_R * 3.5  : cy + NOTE_R * 3.5;
 
           // Ghost notes: draw a faint parenthesis pair instead of stem
-          const isGhost = variation === 'ghost';
+          const isGhost = showVariations && variation === 'ghost';
 
           return (
             <g key={`${mi}-${s}`} transform={`translate(${cx}, ${cy})`}>
@@ -1366,7 +1374,7 @@ export default function DrumEditor() {
     soundMap, volumeMap, masterVolume,
     kitType, activeInstruments,
     setKitType, toggleInstrument, setMasterVolume, setVolumeForInstrument,
-    toggleHit, addMeasure, deleteMeasure, clearMeasure, duplicateMeasure, updatePattern,
+    toggleHit, simpleToggleHit, addMeasure, deleteMeasure, clearMeasure, duplicateMeasure, updatePattern,
     addBlankPattern, duplicatePattern, deletePattern, renamePattern, setActivePattern,
     drumSongs, saveDrumSong, createBlankDrumSong, loadDrumSong, deleteDrumSong, updateDrumSong,
     restorePatterns, insertMeasureAfter, togglePatternMute, importDrumSong,
@@ -1376,6 +1384,7 @@ export default function DrumEditor() {
     houseKitMic, setHouseKitMic: storeSetHouseKitMic,
     houseInstVelOverride, setHouseInstVelOverride: storeSetInstVelOverride,
     houseCrashModel, setHouseCrashModel: storeSetHouseCrashModel,
+    drumPrefs, updateDrumPrefs,
   } = useDrumStore();
 
   const pattern = useMemo(
@@ -1403,7 +1412,8 @@ export default function DrumEditor() {
   const [inEditor,       setInEditor]       = useState(false);
   const [activeTab,      setActiveTab]      = useState<DrumTab>('songs');
   const [playing, setPlaying]               = useState(false);
-  const [looping, setLooping]               = useState(true);
+  const [looping, setLooping]               = useState(() => drumPrefs.loopPlayback);
+  const [countingIn, setCountingIn]         = useState(false);
   const [sampleStatus, setSampleStatus]     = useState<SampleStatus>('idle');
   const [houseLoaded,  setHouseLoaded]      = useState(false);
   const [houseProgress, setHouseProgress]  = useState({ loaded: 0, total: 0 });
@@ -1572,9 +1582,12 @@ export default function DrumEditor() {
   }, [pattern, spm, visibleInsts]);
 
   // ── Refs ─────────────────────────────────────────────────────────────────
-  const scrollRef    = useRef<HTMLDivElement>(null);
-  const playheadRef  = useRef<HTMLDivElement>(null);
-  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const scrollRef      = useRef<HTMLDivElement>(null);
+  const playheadRef    = useRef<HTMLDivElement>(null);
+  const pointerStart   = useRef<{ x: number; y: number } | null>(null);
+  const isDragging     = useRef(false);
+  const dragFilled     = useRef(new Set<string>());
+  const countInTimers  = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1615,7 +1628,12 @@ export default function DrumEditor() {
 
 
   // ── Playhead ─────────────────────────────────────────────────────────────
-  const endAdvTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endAdvTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drumPrefsRef    = useRef(drumPrefs);
+  useEffect(() => { drumPrefsRef.current = drumPrefs; }, [drumPrefs]);
+  // Wire lowLatencyMode → scheduler
+  useEffect(() => { drumScheduler.setLowLatency(drumPrefs.lowLatencyMode); }, [drumPrefs.lowLatencyMode]);
+
   useEffect(() => {
     drumScheduler.onStep = (gs, mIdx, stepInM) => {
       if (endAdvTimerRef.current) { clearTimeout(endAdvTimerRef.current); endAdvTimerRef.current = null; }
@@ -1626,6 +1644,31 @@ export default function DrumEditor() {
       if (playheadRef.current) { playheadRef.current.style.transform = `translate(${x}px, ${y}px)`; playheadRef.current.style.display = 'block'; }
       const el = scrollRef.current;
       if (el) { const rowBottom = y + RULER_H + allInstsRef.current.length * ROW_H; if (y < el.scrollTop || rowBottom > el.scrollTop + el.clientHeight) el.scrollTop = Math.max(0, y - 40); }
+      // ── Metronome ──────────────────────────────────────────────────────────
+      if (drumPrefsRef.current.metronome) {
+        const spBeat = spmRef.current / 4; // steps per beat (assumes 4/4)
+        if (gs % spBeat === 0) {
+          const isBeat1 = gs % (spBeat * 4) === 0;
+          const ctx = getAudioCtx();
+          if (ctx) {
+            const t = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const env = ctx.createGain();
+            osc.connect(env); env.connect(ctx.destination);
+            osc.frequency.value = isBeat1 ? 1200 : 880;
+            env.gain.setValueAtTime(0, t);
+            env.gain.linearRampToValueAtTime(0.28, t + 0.002);
+            env.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
+            osc.start(t); osc.stop(t + 0.07);
+          }
+        }
+      }
+      // ── Auto-expand ────────────────────────────────────────────────────────
+      if (drumPrefsRef.current.autoExpandPattern && gs === totalStepsRef.current - 1) {
+        const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
+        const curPat = pts.find(p => p.id === actId);
+        if (curPat) useDrumStore.getState().addMeasure(curPat.id);
+      }
       // On the last step, advance the playhead to the end bar line after one step duration
       if (gs === totalStepsRef.current - 1) {
         const endX = LABEL_W + (stepInRow + 1) * sw;
@@ -1688,17 +1731,53 @@ export default function DrumEditor() {
     return () => window.removeEventListener('keydown', handler);
   }, [handleUndo, handleRedo]);
 
+  // ── Metronome click ──────────────────────────────────────────────────────
+  const playMetronomeClick = useCallback((isBeat1: boolean) => {
+    const ctx = getAudioCtx(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const env = ctx.createGain();
+    osc.connect(env); env.connect(ctx.destination);
+    osc.frequency.value = isBeat1 ? 1200 : 880;
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.32, t + 0.002);
+    env.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    osc.start(t); osc.stop(t + 0.08);
+  }, []);
+
   // ── Play/stop ────────────────────────────────────────────────────────────
-  const handlePlay = useCallback(() => {
+  const startPattern = useCallback(() => {
     const sm  = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
     const vol: Partial<Record<DrumInstrument, number>> = {};
     activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
-    if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
-    else {
-      if (kit === 'house') loadHouseKit(houseKitMic); else loadDrumSamples(kit);
-      drumScheduler.start(pattern, sm, vol, masterVolume, looping, kit); setPlaying(true);
-    }
+    if (kit === 'house') loadHouseKit(houseKitMic); else loadDrumSamples(kit);
+    drumScheduler.start(pattern, sm, vol, masterVolume, looping, kit); setPlaying(true);
   }, [pattern, kit, soundMap, volumeMap, activeInstruments, masterVolume, looping, houseKitMic]);
+
+  const handlePlay = useCallback(() => {
+    if (drumScheduler.isPlaying || countingIn) {
+      countInTimers.current.forEach(clearTimeout); countInTimers.current = [];
+      drumScheduler.stop(); setPlaying(false); setCountingIn(false); return;
+    }
+    if (drumPrefs.countIn) {
+      // Resume audio context first
+      const ctx = getAudioCtx();
+      if (ctx && ctx.state !== 'running') ctx.resume();
+      const spBeat = pattern.subdivision / pattern.timeSignature[1];
+      const msPerBeat = (60 / pattern.bpm) * 1000 / spBeat;
+      setCountingIn(true);
+      playMetronomeClick(true);
+      [1, 2, 3].forEach(i => {
+        const id = setTimeout(() => {
+          playMetronomeClick(i === 0);
+          if (i === 3) { setCountingIn(false); startPattern(); }
+        }, i * msPerBeat);
+        countInTimers.current.push(id);
+      });
+    } else {
+      startPattern();
+    }
+  }, [startPattern, countingIn, drumPrefs.countIn, pattern.bpm, pattern.subdivision, pattern.timeSignature, playMetronomeClick]);
 
   // ── Kit ──────────────────────────────────────────────────────────────────
   const handleKitSelect = useCallback((k: KitType) => {
@@ -1759,47 +1838,111 @@ export default function DrumEditor() {
     if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
   }, [pattern.id, updatePattern, pushUndo]);
 
-  // ── Cell tap ─────────────────────────────────────────────────────────────
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (openBarMenu) setOpenBarMenu(null);
-    pointerStart.current = { x: e.clientX, y: e.clientY };
-  };
-  const handlePointerUp   = (e: React.PointerEvent) => {
-    const s = pointerStart.current; if (!s) return; pointerStart.current = null;
-    if (Math.abs(e.clientX - s.x) > 12 || Math.abs(e.clientY - s.y) > 12) return;
-    const el = scrollRef.current; if (!el) return;
+  // ── Cell tap / drag ──────────────────────────────────────────────────────
+  // Resolve which grid cell a pointer event falls on; returns null if outside grid
+  const resolveCell = (clientX: number, clientY: number) => {
+    const el = scrollRef.current; if (!el) return null;
     const rect = el.getBoundingClientRect();
-    const cx   = e.clientX - rect.left - LABEL_W;
-    const cy   = e.clientY - rect.top + el.scrollTop;
-    if (cx < 0) return;
-    const sh       = sysHRef.current;
-    const sysIdx   = Math.floor(cy / sh);
-    const yInSys   = cy % sh - RULER_H;
-    if (yInSys < 0) return;
+    let cx = clientX - rect.left - LABEL_W;
+    const cy   = clientY - rect.top + el.scrollTop;
+    if (cx < 0) return null;
+    const sysIdx   = Math.floor(cy / sysHRef.current);
+    const yInSys   = cy % sysHRef.current - RULER_H;
+    if (yInSys < 0) return null;
     const instIdx      = Math.floor(yInSys / ROW_H);
     const measureInRow = Math.floor(cx / measureWRef.current);
     const mIdx         = sysIdx * mprRef.current + measureInRow;
-    const stepInM      = Math.floor((cx % measureWRef.current) / stepWRef.current);
+    // snapToGrid=false → quantize to beat rather than subdivision step
+    let stepInM = Math.floor((cx % measureWRef.current) / stepWRef.current);
+    if (!drumPrefsRef.current.snapToGrid) {
+      const spBeat = spmRef.current / 4;
+      stepInM = Math.floor(stepInM / spBeat) * spBeat;
+    }
     const vis = allInstsRef.current;
-    if (instIdx < 0 || instIdx >= vis.length) return;
-    if (mIdx < 0 || mIdx >= pattern.measures.length) return;
-    if (stepInM < 0 || stepInM >= spm) return;
-    const inst = vis[instIdx];
-    const m    = pattern.measures[mIdx];
-    if (!m) return;
+    const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
+    const curPat = pts.find(p => p.id === actId);
+    if (!curPat) return null;
+    if (instIdx < 0 || instIdx >= vis.length) return null;
+    if (mIdx < 0 || mIdx >= curPat.measures.length) return null;
+    if (stepInM < 0 || stepInM >= spmRef.current) return null;
+    return { inst: vis[instIdx], m: curPat.measures[mIdx], stepInM, mIdx, instIdx };
+  };
+
+  // Apply a hit to a cell, respecting noteVariationsCycle + quickDeleteMode
+  const applyHitToCell = useCallback((inst: DrumInstrument, m: DrumMeasure, stepInM: number, patternId: string, preview = true) => {
+    const prefs = drumPrefsRef.current;
+    const useSimple = prefs.quickDeleteMode || !prefs.noteVariationsCycle;
+    if (useSimple) {
+      simpleToggleHit(patternId, m.id, inst, stepInM);
+    } else {
+      toggleHit(patternId, m.id, inst, stepInM);
+    }
+    if (preview) {
+      const newPat     = useDrumStore.getState().patterns.find(p => p.id === patternId);
+      const newMeasure = newPat?.measures.find(ms => ms.id === m.id);
+      const newHit     = newMeasure?.hits[inst]?.find(h => h.step === stepInM);
+      const variation  = newHit?.variation ?? 'normal';
+      const kitDefs    = KIT_DEFAULTS[kit].soundMap;
+      const previewId  = getSoundForVariation(inst, variation, soundMap, kitDefs);
+      const previewVol = variation === 'ghost' ? 0.25 : 0.55;
+      drumScheduler.previewSound(previewId, previewVol, kit);
+    }
+    if (drumScheduler.isPlaying) drumScheduler.updatePattern(useDrumStore.getState().patterns.find(p => p.id === patternId)!);
+    // Auto-play on edit
+    if (drumPrefsRef.current.autoPlayOnEdit && !drumScheduler.isPlaying) {
+      const sm  = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
+      const vol: Partial<Record<DrumInstrument, number>> = {};
+      activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
+      const latestPat = useDrumStore.getState().patterns.find(p => p.id === patternId)!;
+      if (kit === 'house') loadHouseKit(houseKitMic); else loadDrumSamples(kit);
+      drumScheduler.start(latestPat, sm, vol, masterVolume, drumPrefsRef.current.loopPlayback, kit);
+      setPlaying(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kit, soundMap, volumeMap, activeInstruments, masterVolume, houseKitMic, toggleHit, simpleToggleHit]);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (openBarMenu) setOpenBarMenu(null);
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+    isDragging.current   = false;
+    dragFilled.current.clear();
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!drumPrefsRef.current.dragToFill) return;
+    if (!pointerStart.current) return;
+    const s = pointerStart.current;
+    const dist = Math.hypot(e.clientX - s.x, e.clientY - s.y);
+    if (dist < 8) return; // minimum drag threshold
+    if (!isDragging.current) { isDragging.current = true; pushUndo(); }
+    const cell = resolveCell(e.clientX, e.clientY);
+    if (!cell) return;
+    const key = `${cell.inst}:${cell.mIdx}:${cell.stepInM}`;
+    if (dragFilled.current.has(key)) return; // already filled in this drag
+    dragFilled.current.add(key);
+    // When dragging, only add notes (don't remove), so use simpleToggleHit-style
+    const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
+    const curPat = pts.find(p => p.id === actId); if (!curPat) return;
+    const existing = cell.m.hits[cell.inst]?.find(h => h.step === cell.stepInM);
+    if (!existing) {
+      simpleToggleHit(curPat.id, cell.m.id, cell.inst, cell.stepInM);
+      if (drumScheduler.isPlaying) drumScheduler.updatePattern(useDrumStore.getState().patterns.find(p => p.id === curPat.id)!);
+    }
+    setFocusedInst(cell.inst);
+  };
+
+  const handlePointerUp   = (e: React.PointerEvent) => {
+    const s = pointerStart.current; if (!s) return; pointerStart.current = null;
+    // If this was a drag-to-fill event, just clean up
+    if (isDragging.current) { isDragging.current = false; dragFilled.current.clear(); return; }
+    if (Math.abs(e.clientX - s.x) > 12 || Math.abs(e.clientY - s.y) > 12) return;
+    const cell = resolveCell(e.clientX, e.clientY);
+    if (!cell) return;
+    const { activePatternId: actId } = useDrumStore.getState();
+    if (!actId) return;
     pushUndo();
-    toggleHit(pattern.id, m.id, inst, stepInM);
-    // Read new state to determine the current variation for correct preview sound
-    const newPat     = useDrumStore.getState().patterns.find(p => p.id === pattern.id);
-    const newMeasure = newPat?.measures.find(ms => ms.id === m.id);
-    const newHit     = newMeasure?.hits[inst]?.find(h => h.step === stepInM);
-    const variation  = newHit?.variation ?? 'normal';
-    const kitDefs    = KIT_DEFAULTS[kit].soundMap;
-    const previewId  = getSoundForVariation(inst, variation, soundMap, kitDefs);
-    const previewVol = variation === 'ghost' ? 0.25 : 0.55;
-    if (drumScheduler.isPlaying) drumScheduler.updatePattern(useDrumStore.getState().patterns.find(p => p.id === pattern.id)!);
-    drumScheduler.previewSound(previewId, previewVol, kit);
-    setFocusedInst(inst);
+    applyHitToCell(cell.inst, cell.m, cell.stepInM, actId);
+    setFocusedInst(cell.inst);
   };
 
   // ── Back ─────────────────────────────────────────────────────────────────
@@ -1929,7 +2072,7 @@ export default function DrumEditor() {
   const menuItemSt: React.CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12.5, fontFamily: 'Manrope', fontWeight: 600, textAlign: 'left', transition: 'background 120ms' };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
+    <div data-perf-mode={drumPrefs.performanceMode ? 'on' : undefined} style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
 
       {/* ── Safe-area spacer ─────────────────────────────────────────────── */}
       <div style={{ height: 'env(safe-area-inset-top)', background: 'var(--app-bg)', flexShrink: 0 }} />
@@ -2101,7 +2244,7 @@ export default function DrumEditor() {
             </>)}
             <div style={{ display: 'flex', alignItems: 'center', padding: '9px 4px', gap: 12 }}>
               <span style={{ flex: 1, color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 500 }}>Loop</span>
-              <button onClick={() => setLooping(l => !l)} style={{ width: 40, height: 22, borderRadius: 11, background: looping ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.18)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 220ms', flexShrink: 0 }}>
+              <button onClick={() => { setLooping(l => { const n = !l; updateDrumPrefs({ loopPlayback: n }); return n; }); }} style={{ width: 40, height: 22, borderRadius: 11, background: looping ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.18)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 220ms', flexShrink: 0 }}>
                 <span style={{ position: 'absolute', top: 3, left: looping ? 20 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)', display: 'block' }} />
               </button>
             </div>
@@ -2298,6 +2441,7 @@ export default function DrumEditor() {
             <div
               ref={scrollRef}
               onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: 8, paddingBottom: 100, position: 'relative' }}
               className="no-scrollbar"
@@ -2417,14 +2561,14 @@ export default function DrumEditor() {
                       const isFoc  = focusedInst === inst;
                       const varList = INST_VARIATIONS[inst];
                       return (
-                        <div key={inst} style={{ display: 'flex', height: ROW_H, borderBottom: instIdx < visibleInsts.length - 1 ? `1px solid ${staffColor}` : `1.5px solid ${barColor}`, background: isFoc ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)') : 'transparent' }}>
+                        <div key={inst} style={{ display: 'flex', height: ROW_H, borderBottom: instIdx < visibleInsts.length - 1 ? `1px solid ${staffColor}` : `1.5px solid ${barColor}`, background: (isFoc && drumPrefs.highlightActiveInst) ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)') : 'transparent' }}>
                           <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 12, paddingRight: 6, borderRight: `1px solid ${barColor}` }}>
-                            <span style={{ fontSize: 8, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: isFoc ? 'var(--c-text-primary)' : 'var(--c-text-muted)', letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>{INST_LABEL[inst]}</span>
+                            <span style={{ fontSize: 8, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: (isFoc && drumPrefs.highlightActiveInst) ? 'var(--c-text-primary)' : 'var(--c-text-muted)', letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>{INST_LABEL[inst]}</span>
                             {varList && varList.length > 1 && (
                               <span style={{ fontSize: 6.5, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-muted)', opacity: 0.55, letterSpacing: '0.02em', whiteSpace: 'normal', lineHeight: 1.35, marginTop: 1, width: '100%', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{varList.join(' · ')}</span>
                             )}
                           </div>
-                          <InstrumentRow inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures} spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W} hitMap={hitMap} noteColor={noteColor} staffColor={staffColor} barColor={barColor} altBg={altBg} />
+                          <InstrumentRow inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures} spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W} hitMap={hitMap} noteColor={noteColor} staffColor={staffColor} barColor={barColor} altBg={altBg} showVariations={drumPrefs.showNoteVariations} gridEmphasis={drumPrefs.gridLinesEmphasis} />
                         </div>
                       );
                     })}

@@ -228,6 +228,7 @@ function soundIdToInst(id: string): DrumInstrument | null {
 
 // ── AudioContext singleton ──────────────────────────────────────────────────
 let _ctx:        AudioContext | null = null;
+export function getAudioCtx(): AudioContext | null { return _ctx; }
 let _compressor: DynamicsCompressorNode | null = null;
 let _limiter:    DynamicsCompressorNode | null = null;
 let _masterGain: GainNode | null = null;
@@ -1577,12 +1578,14 @@ export function playSoundAt(
 }
 
 // ── Playback scheduler ──────────────────────────────────────────────────────
-const LOOKAHEAD_S = 0.15;
+const LOOKAHEAD_S     = 0.15;
+const LOOKAHEAD_S_LOW = 0.05; // low-latency mode: less buffering, more responsive
 const TICK_MS     = 22;
 
 class DrumScheduler {
-  private _playing   = false;
-  private _looping   = true;
+  private _playing     = false;
+  private _looping     = true;
+  private _lowLatency  = false;
   private _pattern:  DrumPattern | null = null;
   private _soundMap: Partial<Record<DrumInstrument, string>> = {};
   private _volMap:   Partial<Record<DrumInstrument, number>> = {};
@@ -1594,6 +1597,8 @@ class DrumScheduler {
   private _totalSteps   = 0;
   private _tickId: ReturnType<typeof setTimeout> | null = null;
   private _scheduled: { step: number; time: number }[] = [];
+
+  setLowLatency(on: boolean) { this._lowLatency = on; }
 
   onStep: ((globalStep: number, measureIdx: number, stepInMeasure: number) => void) | null = null;
 
@@ -1640,7 +1645,7 @@ class DrumScheduler {
     if (!this._playing || !_ctx) return;
     const now = _ctx.currentTime;
 
-    while (this._nextStepTime < now + LOOKAHEAD_S) {
+    while (this._nextStepTime < now + (this._lowLatency ? LOOKAHEAD_S_LOW : LOOKAHEAD_S)) {
       this.scheduleNote(this._currentStep, this._nextStepTime);
       this._nextStepTime += this.secPerStep();
       this._currentStep++;
