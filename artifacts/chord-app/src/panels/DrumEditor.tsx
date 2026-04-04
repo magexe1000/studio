@@ -158,7 +158,8 @@ const KIT_CATEGORIES: { id: string; label: string; kits: KitType[] }[] = [
 ];
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
-type DrumTab = 'songs' | 'patterns';
+type DrumTab = 'songs' | 'patterns' | 'prefs';
+const TAB_ORDER: DrumTab[] = ['songs', 'patterns', 'prefs'];
 
 // ── SVG note heads ─────────────────────────────────────────────────────────
 function CircleHead({ r, color }: { r: number; color: string }) {
@@ -401,16 +402,30 @@ function IconMixer({ active }: { active: boolean }) {
   );
 }
 
-// ── Bottom nav (Songs / Patterns) ───────────────────────────────────────────
+function IconPrefs({ active }: { active: boolean }) {
+  const sw = active ? 2.2 : 1.7;
+  return (
+    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" style={{ display: 'block' }}>
+      <line x1="4" y1="6"  x2="20" y2="6"  stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="8" y1="3"  x2="8"  y2="9"  stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="14" y1="9" x2="14" y2="15" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="10" y1="15" x2="10" y2="21" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// ── Bottom nav (Songs / Patterns / Prefs) ──────────────────────────────────
 const ALL_NAV_TABS: { id: DrumTab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
   { id: 'songs',    label: 'Songs',    Icon: IconDrumSongs },
   { id: 'patterns', label: 'Patterns', Icon: IconPatterns  },
+  { id: 'prefs',    label: 'Prefs',    Icon: IconPrefs     },
 ];
-function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, onPrefs }: {
+function DrumNav({ activeTab, setTab, accent, isLight, isAmoled }: {
   activeTab: DrumTab; setTab: (t: DrumTab) => void;
   accent: { from: string; to: string };
   isLight: boolean; isAmoled: boolean;
-  onPrefs: () => void;
 }) {
   const navRef  = useRef<HTMLElement | null>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -454,7 +469,7 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, onPrefs }: {
     <nav ref={navRef} style={{
       position: 'fixed', left: '50%', transform: 'translateX(-50%)',
       bottom: 'max(10px, env(safe-area-inset-bottom))',
-      width: '72%', maxWidth: 280,
+      width: '88%', maxWidth: 360,
       display: 'flex', justifyContent: 'space-around', alignItems: 'center',
       padding: '6px 8px', borderRadius: '2rem',
       border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
@@ -496,23 +511,6 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, onPrefs }: {
           </button>
         );
       })}
-      {/* Preferences icon — right side, outside the pill tab area */}
-      <button
-        onPointerUp={onPrefs}
-        className="btn-smooth"
-        style={{
-          width: 36, height: 36, borderRadius: '50%', background: 'transparent', border: 'none',
-          cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 3, color: isLight ? 'rgba(0,0,0,0.4)' : '#71717a', position: 'relative', zIndex: 1, flexShrink: 0,
-        }}
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="6" x2="8" y2="3"/><line x1="8" y1="6" x2="8" y2="9"/>
-          <line x1="4" y1="12" x2="20" y2="12"/><line x1="14" y1="12" x2="14" y2="9"/><line x1="14" y1="12" x2="14" y2="15"/>
-          <line x1="4" y1="18" x2="20" y2="18"/><line x1="10" y1="18" x2="10" y2="15"/><line x1="10" y1="18" x2="10" y2="21"/>
-        </svg>
-        <span style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: '9px', letterSpacing: '0.09em', textTransform: 'uppercase', lineHeight: 1 }}>Prefs</span>
-      </button>
     </nav>
   );
 }
@@ -1432,7 +1430,13 @@ export default function DrumEditor() {
   const [editingName,      setEditingName]      = useState('');
   const [editingArtist,    setEditingArtist]    = useState('');
   const [activeDrumSongId, setActiveDrumSongId] = useState<string | null>(null);
-  const [showPrefs,          setShowPrefs]          = useState(false);
+  const [tabAnim, setTabAnim] = useState<'panel-enter-right' | 'panel-enter-left'>('panel-enter-right');
+  const handleSetTab = (newTab: DrumTab) => {
+    const oldIdx = TAB_ORDER.indexOf(activeTab);
+    const newIdx = TAB_ORDER.indexOf(newTab);
+    setTabAnim(newIdx >= oldIdx ? 'panel-enter-right' : 'panel-enter-left');
+    setActiveTab(newTab);
+  };
   const [humanizeFeedback,   setHumanizeFeedback]   = useState(false);
 
   // ── Row visibility (persisted to localStorage) ───────────────────────────
@@ -2128,7 +2132,7 @@ export default function DrumEditor() {
             {/* ── Preferences ───────────────────────────────────────────── */}
             <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '0 4px' }} />
             <button
-              onClick={() => { setShowHamburger(false); setShowPrefs(true); }}
+              onClick={() => { setShowHamburger(false); handleSetTab('prefs'); }}
               className="btn-smooth"
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 4px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 13, fontFamily: 'Manrope,sans-serif', fontWeight: 500, textAlign: 'left' }}
             >
@@ -2164,7 +2168,7 @@ export default function DrumEditor() {
       )}
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div key={activeTab} className={tabAnim} style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
         {/* ═══ SONGS LIST (Songs tab, not in editor) ═══════════════════════ */}
         {activeTab === 'songs' && !inEditor && (
@@ -2668,11 +2672,13 @@ export default function DrumEditor() {
           </div>
         )}
 
+        {/* ── Prefs tab ─────────────────────────────────────────────────── */}
+        {activeTab === 'prefs' && <DrumPrefsPanel />}
 
       </div>
 
       {/* ── Bottom nav ───────────────────────────────────────────────────── */}
-      <DrumNav activeTab={activeTab} setTab={setActiveTab} accent={accent} isLight={isLight} isAmoled={isAmoled} onPrefs={() => setShowPrefs(true)} />
+      <DrumNav activeTab={activeTab} setTab={handleSetTab} accent={accent} isLight={isLight} isAmoled={isAmoled} />
 
       {/* ── Floating buttons (songs list only): import above + add ──────── */}
       {!inEditor && activeTab === 'songs' && (
@@ -3041,8 +3047,6 @@ export default function DrumEditor() {
         );
       })()}
 
-      {/* ── Drum Preferences overlay ─────────────────────────────────────── */}
-      {showPrefs && <DrumPrefsPanel onClose={() => setShowPrefs(false)} />}
     </div>
   );
 }

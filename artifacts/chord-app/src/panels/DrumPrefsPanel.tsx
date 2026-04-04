@@ -3,11 +3,7 @@ import { useDrumStore } from '../store/useDrumStore';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
 
-interface Props {
-  onClose: () => void;
-}
-
-export default function DrumPrefsPanel({ onClose }: Props) {
+export default function DrumPrefsPanel() {
   const { settings } = useChordStore();
   const { drumPrefs, updateDrumPrefs } = useDrumStore();
   const acc = ACCENT_COLORS[settings.accentColor];
@@ -19,11 +15,7 @@ export default function DrumPrefsPanel({ onClose }: Props) {
     overflow: 'hidden',
   };
 
-  function row(
-    key: keyof typeof drumPrefs,
-    label: string,
-    desc: string,
-  ) {
+  function row(key: keyof typeof drumPrefs, label: string, desc: string) {
     return (
       <SettingRow label={label} desc={desc}>
         <Toggle
@@ -37,50 +29,18 @@ export default function DrumPrefsPanel({ onClose }: Props) {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 400,
-      background: 'var(--app-bg)',
-      display: 'flex', flexDirection: 'column',
-    }}>
-      {/* safe-area top */}
-      <div style={{ height: 'env(safe-area-inset-top)', flexShrink: 0 }} />
-
-      {/* header */}
-      <div style={{
-        flexShrink: 0, height: 52, display: 'flex', alignItems: 'center',
-        padding: '10px 14px 0', gap: 8,
-      }}>
-        <button
-          onClick={onClose}
-          className="btn-smooth"
-          style={{
-            height: 30, padding: '0 10px 0 7px', borderRadius: 999,
-            background: 'rgba(128,128,128,0.09)',
-            border: '1px solid rgba(128,128,128,0.12)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2,
-            color: 'var(--c-text-secondary)', flexShrink: 0,
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', lineHeight: 1 }}>Back</span>
-        </button>
-        <div style={{ flex: 1 }} />
-      </div>
-
-      {/* scrollable content */}
+    <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div
         ref={scrollRef}
         className="no-scrollbar"
         style={{
           flex: 1, overflowY: 'auto',
           padding: '0 20px',
-          paddingBottom: 'calc(max(16px, env(safe-area-inset-bottom)) + 80px)',
+          paddingBottom: 'calc(max(16px, env(safe-area-inset-bottom)) + 90px)',
         }}
       >
         {/* page title */}
-        <div style={{ marginTop: 8, marginBottom: 24 }}>
+        <div style={{ marginTop: 12, marginBottom: 24 }}>
           <h2 style={{
             fontFamily: 'Manrope', fontWeight: 900, fontSize: '2.6rem',
             color: 'var(--c-text-primary)', letterSpacing: '-0.04em',
