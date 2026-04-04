@@ -87,6 +87,21 @@
 <link rel="stylesheet" href="app.css"/>
 <script src="cloud-stub.js"></script>
 <style>
+/* ── Chrome Android: contain position:fixed children inside iframe ───────── *
+ * Without this transform, position:fixed elements escape the iframe boundary *
+ * and their touch/pointer targets land on the outer Chordex layer, making    *
+ * everything inside Stagex appear non-interactive ("nothing is clickable").  *
+ * Setting transform on the body makes it the containing block for all fixed  *
+ * descendants — they're positioned relative to body (= iframe viewport).     */
+body {
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  /* Global touch-action: double-tap-zoom disabled, swipes handled by JS */
+  touch-action: manipulation;
+  /* Ensures pointer events reach all elements */
+  pointer-events: auto;
+}
+
 /* ═══════════════ CHORDEX-STYLE BOTTOM NAV ═══════════════════════════════ */
 
 /* 1. Hide the desktop top-nav tabs — bottom nav replaces them for all sizes */
