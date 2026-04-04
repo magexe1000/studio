@@ -19,6 +19,7 @@ import {
 } from '../lib/drumAudio';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import DrumPrefsPanel from './DrumPrefsPanel';
+import { setBackHandler } from '../lib/backStack';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
 const LABEL_W  = 72;
@@ -1975,6 +1976,20 @@ export default function DrumEditor() {
       updateSettings({ appMode: 'chords' });
     }
   };
+
+  useEffect(() => {
+    const handler = (): boolean => {
+      if (inEditor) {
+        if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
+        setShowHamburger(false); setShowBpmPanel(false);
+        setInEditor(false); setActiveTab('songs');
+        return true;
+      }
+      return false;
+    };
+    setBackHandler(handler);
+    return () => setBackHandler(null);
+  }, [inEditor]);
 
   // ── Create Beat ───────────────────────────────────────────────────────────
   const handleCreateBeat = useCallback(() => {

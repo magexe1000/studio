@@ -359,13 +359,13 @@ header { display: none !important; }
   #view-Setlist h1 { font-size: 26px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
   #view-Gear   h1 { font-size: 26px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
   #view-Members h1 { font-size: 26px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
-  /* Hide padding-left accent bar on mobile (compact layout) */
-  #view-Gear section, #view-Members section, #view-Rider section:first-child {
-    padding-left: 0 !important;
-    border-left: none !important;
-  }
   /* Stats grid: 2-column on mobile */
   #gear-stats-row { grid-template-columns: repeat(2,1fr) !important; }
+}
+
+/* Clean dark background for all setup sub-views */
+#view-Rider, #view-Setlist, #view-Gear, #view-Members {
+  background: #0a0a0e !important;
 }
 </style>
 </head>
@@ -896,9 +896,8 @@ header { display: none !important; }
 
     <!-- Section heading -->
     <div style="margin-bottom:28px;padding-top:4px;">
-      <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.22em;color:#484847;margin:0 0 5px;">Stagex</p>
-      <h1 style="font-family:'Space Grotesk';font-size:30px;font-weight:900;color:#f2f2f2;margin:0;letter-spacing:-0.025em;line-height:1.1;">Setup</h1>
-      <p style="font-family:'Space Grotesk';font-size:13px;color:#5a5a59;margin:6px 0 0;font-weight:500;">Manage your show documents</p>
+      <h1 style="font-family:'Space Grotesk';font-size:30px;font-weight:900;color:#f2f2f2;margin:0 0 4px;letter-spacing:-0.025em;line-height:1.1;">Setup</h1>
+      <p style="font-family:'Space Grotesk';font-size:13px;color:#5a5a59;margin:0;font-weight:500;">Your show documents &amp; band info</p>
     </div>
 
     <!-- Cards -->
@@ -906,44 +905,44 @@ header { display: none !important; }
 
       <button class="sc-hub-card" onclick="switchView('Rider')">
         <div class="sc-hub-icon" style="background:rgba(122,175,255,0.11);">
-          <span class="material-symbols-outlined" style="font-size:23px;color:#7aafff;">receipt_long</span>
+          <span class="material-symbols-outlined" style="font-size:23px;color:#7aafff;">cable</span>
         </div>
         <div class="sc-hub-text">
           <p class="sc-hub-title">Rider</p>
-          <p class="sc-hub-sub">Technical input list &amp; PDF export</p>
+          <p class="sc-hub-sub">Channel list, mic inputs &amp; tech requirements</p>
         </div>
         <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Setlist')">
         <div class="sc-hub-icon" style="background:rgba(197,255,201,0.09);">
-          <span class="material-symbols-outlined" style="font-size:23px;color:#c5ffc9;">queue_music</span>
+          <span class="material-symbols-outlined" style="font-size:23px;color:#c5ffc9;">format_list_numbered</span>
         </div>
         <div class="sc-hub-text">
           <p class="sc-hub-title">Setlist</p>
-          <p class="sc-hub-sub">Song order, timing &amp; segments</p>
+          <p class="sc-hub-sub">Song order, timing &amp; performance flow</p>
         </div>
         <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Gear')">
         <div class="sc-hub-icon" style="background:rgba(255,116,57,0.11);">
-          <span class="material-symbols-outlined" style="font-size:23px;color:#ff7439;">inventory_2</span>
+          <span class="material-symbols-outlined" style="font-size:23px;color:#ff7439;">checklist</span>
         </div>
         <div class="sc-hub-text">
           <p class="sc-hub-title">Gear</p>
-          <p class="sc-hub-sub">Equipment, backline &amp; load-in checklist</p>
+          <p class="sc-hub-sub">Instruments, amps &amp; load-in checklist</p>
         </div>
         <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Members')">
         <div class="sc-hub-icon" style="background:rgba(200,162,255,0.10);">
-          <span class="material-symbols-outlined" style="font-size:23px;color:#c8a2ff;">group</span>
+          <span class="material-symbols-outlined" style="font-size:23px;color:#c8a2ff;">badge</span>
         </div>
         <div class="sc-hub-text">
           <p class="sc-hub-title">Members</p>
-          <p class="sc-hub-sub">Band roster &amp; crew contacts</p>
+          <p class="sc-hub-sub">Band roster, roles &amp; contact info</p>
         </div>
         <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
@@ -1603,33 +1602,31 @@ header { display: none !important; }
 </div><!-- /Editor View -->
 
 <!-- ═══════════════════════ RIDER VIEW ═══════════════════════ -->
-<div id="view-Rider" class="view-page scrollable-view technical-grid" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
+<div id="view-Rider" class="view-page scrollable-view" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
     <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
   </button>
-  <div class="max-w-5xl mx-auto space-y-12">
-    <section class="flex flex-col md:flex-row justify-between items-end gap-6" style="border-left:4px solid #7aafff;padding-left:24px;">
-      <div>
-        <h1 class="font-black font-headline tracking-tighter text-on-surface uppercase mb-2" style="font-size:48px;">Technical Rider</h1>
-        <div class="flex gap-4 font-body font-medium uppercase text-on-surface-variant" style="font-size:11px;letter-spacing:0.2em;">
-          <span>Stage Plot &amp; Technical Rider</span>
-          <span style="color:#589fff">//</span>
-          <span id="rider-rev">Rev 2.4</span>
-          <span style="color:#589fff">//</span>
-          <span id="rider-date-val" style="color:#adaaaa;"></span>
+  <div class="max-w-5xl mx-auto space-y-8">
+    <!-- Section header -->
+    <div>
+      <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.22em;color:#484847;margin:0 0 3px;">Technical</p>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <h1 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;color:#f2f2f2;margin:0 0 4px;letter-spacing:-0.02em;">Rider</h1>
+          <p style="font-family:'Space Grotesk';font-size:11px;color:#484847;margin:0;"><span id="rider-rev">Rev 2.4</span>&nbsp;·&nbsp;<span id="rider-date-val"></span></p>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:2px;">
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:8px 14px;text-align:center;">
+            <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#484847;margin:0 0 2px;">Channels</p>
+            <p id="rider-ch-count" style="font-family:'Space Grotesk';font-size:20px;font-weight:900;color:#7aafff;margin:0;line-height:1;">0 / 32</p>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:8px 14px;text-align:center;">
+            <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#484847;margin:0 0 2px;">Elements</p>
+            <p id="rider-el-count" style="font-family:'Space Grotesk';font-size:20px;font-weight:900;color:#ff7439;margin:0;line-height:1;">0</p>
+          </div>
         </div>
       </div>
-      <div class="flex gap-4">
-        <div class="bg-surface-container px-4 py-3 flex flex-col gap-1">
-          <span class="text-on-surface-variant uppercase font-bold tracking-widest" style="font-size:10px;">Active Channels</span>
-          <span class="font-headline font-bold text-primary" style="font-size:24px;" id="rider-ch-count">0 / 32</span>
-        </div>
-        <div class="bg-surface-container px-4 py-3 flex flex-col gap-1">
-          <span class="text-on-surface-variant uppercase font-bold tracking-widest" style="font-size:10px;">Stage Elements</span>
-          <span class="font-headline font-bold" style="font-size:24px;color:#ff7439;" id="rider-el-count">0</span>
-        </div>
-      </div>
-    </section>
+    </div>
 
     <section class="bg-surface-container-low" style="padding:4px;">
       <div class="overflow-x-auto">
@@ -1691,29 +1688,30 @@ header { display: none !important; }
 </div>
 
 <!-- ═══════════════════════ SETLIST VIEW ═══════════════════════ -->
-<div id="view-Setlist" class="view-page scrollable-view technical-grid" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
+<div id="view-Setlist" class="view-page scrollable-view" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
     <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
   </button>
   <div class="max-w-4xl mx-auto">
-    <div class="flex justify-between items-end mb-8">
-      <div>
-        <h1 class="font-headline font-black tracking-tighter uppercase leading-none mb-2" style="font-size:56px;">Setlist <span style="color:#7aafff;">Manager</span></h1>
-        <p class="text-on-surface-variant font-medium tracking-wide" style="font-size:14px;">Plan your performance, track set duration, and organize song order.</p>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button onclick="openTimelinePanel()" class="flex items-center gap-2 px-5 py-3 font-headline font-bold uppercase tracking-widest hover:opacity-90 transition-opacity" style="background:#1a1a1a;color:#c5ffc9;border:1px solid rgba(197,255,201,0.25);font-size:11px;">
-          <span class="material-symbols-outlined" style="font-size:14px;">timeline</span> Timeline
-        </button>
-        <button onclick="openSmartSortModal()" id="btn-smart-sort" class="flex items-center gap-2 px-5 py-3 font-headline font-bold uppercase tracking-widest hover:opacity-90 transition-opacity" style="background:#1a1a1a;color:#c8a2ff;border:1px solid #c8a2ff44;font-size:11px;">
-          <i data-lucide="sparkles" style="width:14px;height:14px;stroke-width:2;"></i> Smart Sort
-        </button>
-        <button onclick="openBatchImport()" class="flex items-center gap-2 px-5 py-3 font-headline font-bold uppercase tracking-widest hover:opacity-90 transition-opacity" style="background:#1a1a1a;color:var(--accent);border:1px solid var(--accent-30);font-size:11px;">
-          <span class="material-symbols-outlined" style="font-size:14px;">playlist_add</span> Import List
-        </button>
-        <button onclick="addSong()" class="flex items-center gap-2 px-6 py-3 font-headline font-bold uppercase tracking-widest hover:opacity-90 transition-opacity" style="background:#ff7439;color:#3f1100;font-size:13px;">
-          <span class="material-symbols-outlined">add</span> Add Song
-        </button>
+    <!-- Section header -->
+    <div style="margin-bottom:24px;">
+      <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.22em;color:#484847;margin:0 0 3px;">Performance</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <h1 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;color:#f2f2f2;margin:0;letter-spacing:-0.02em;">Setlist</h1>
+        <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;">
+          <button onclick="openTimelinePanel()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:rgba(197,255,201,0.07);color:#c5ffc9;border:1px solid rgba(197,255,201,0.15);border-radius:8px;cursor:pointer;">
+            <span class="material-symbols-outlined" style="font-size:13px;">timeline</span>Timeline
+          </button>
+          <button onclick="openSmartSortModal()" id="btn-smart-sort" style="display:flex;align-items:center;gap:5px;padding:7px 12px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:rgba(200,162,255,0.07);color:#c8a2ff;border:1px solid rgba(200,162,255,0.15);border-radius:8px;cursor:pointer;">
+            <span class="material-symbols-outlined" style="font-size:13px;">auto_awesome</span>Sort
+          </button>
+          <button onclick="openBatchImport()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:rgba(122,175,255,0.07);color:#7aafff;border:1px solid rgba(122,175,255,0.15);border-radius:8px;cursor:pointer;">
+            <span class="material-symbols-outlined" style="font-size:13px;">playlist_add</span>Import
+          </button>
+          <button onclick="addSong()" style="display:flex;align-items:center;gap:5px;padding:7px 14px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:#7aafff;color:#002e5d;border:none;border-radius:8px;cursor:pointer;">
+            <span class="material-symbols-outlined" style="font-size:13px;">add</span>Add Song
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1922,23 +1920,22 @@ header { display: none !important; }
 </div>
 
 <!-- ═══════════════════════ GEAR VIEW ═══════════════════════ -->
-<div id="view-Gear" class="view-page scrollable-view technical-grid" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
+<div id="view-Gear" class="view-page scrollable-view" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
     <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
   </button>
   <div class="max-w-5xl mx-auto">
 
-    <!-- Header -->
-    <section style="border-left:4px solid #ff7439;padding-left:24px;margin-bottom:40px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;">
-      <div>
-        <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#ff7439;margin:0 0 8px;">Load-In Checklist</p>
-        <h1 style="font-family:'Space Grotesk';font-size:48px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#fff;margin:0 0 6px;line-height:0.95;">Gear List</h1>
-        <p style="font-size:12px;color:#767575;margin:0;">Track every piece of equipment you need to bring to the gig.</p>
+    <!-- Section header -->
+    <div style="margin-bottom:24px;">
+      <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.22em;color:#484847;margin:0 0 3px;">Load-In</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <h1 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;color:#f2f2f2;margin:0;letter-spacing:-0.02em;">Gear List</h1>
+        <button onclick="openGearModal()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:#ff7439;color:#fff;border:none;border-radius:8px;cursor:pointer;flex-shrink:0;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          <span class="material-symbols-outlined" style="font-size:14px;">add</span>Add Item
+        </button>
       </div>
-      <button onclick="openGearModal()" style="display:flex;align-items:center;gap:8px;padding:12px 24px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#ff7439;color:#fff;border:none;cursor:pointer;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-        <i data-lucide="plus" style="width:15px;height:15px;stroke-width:2.5;flex-shrink:0;"></i> Add Gear Item
-      </button>
-    </section>
+    </div>
 
     <!-- Stats row -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px;" id="gear-stats-row">
@@ -2029,34 +2026,29 @@ header { display: none !important; }
 </div>
 
 <!-- ═══════════════════════ MEMBERS VIEW ═══════════════════════ -->
-<div id="view-Members" class="view-page scrollable-view technical-grid" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
+<div id="view-Members" class="view-page scrollable-view" style="padding-top:32px;padding-left:32px;padding-right:32px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
     <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
   </button>
   <div style="max-width:960px;margin:0 auto;">
 
-    <!-- Header -->
-    <section style="border-left:4px solid #c8a2ff;padding-left:24px;margin-bottom:40px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:20px;">
-      <div>
-        <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#c8a2ff;margin:0 0 8px;">Band Management</p>
-        <h1 style="font-family:'Space Grotesk';font-size:48px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#fff;margin:0 0 6px;line-height:0.95;">Band<br>Members</h1>
-        <p style="font-size:12px;color:#767575;margin:0;">Assign musicians to stage elements for a complete performer map.</p>
-      </div>
-      <!-- Add member form -->
-      <div style="display:flex;flex-direction:column;gap:8px;min-width:260px;">
-        <label style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">Add New Member</label>
-        <div style="display:flex;gap:0;">
-          <input id="member-name-input" type="text" placeholder="Full name..." maxlength="24"
-            style="flex:1;padding:12px 16px;background:#111;border:none;border-bottom:2px solid #484847;color:#fff;font-family:'Inter';font-size:13px;outline:none;transition:border-color 0.15s;min-width:0;"
-            onfocus="this.style.borderColor='#c8a2ff'" onblur="this.style.borderColor='#484847'"
+    <!-- Section header -->
+    <div style="margin-bottom:24px;">
+      <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.22em;color:#484847;margin:0 0 3px;">Band</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <h1 style="font-family:'Space Grotesk';font-size:26px;font-weight:900;color:#f2f2f2;margin:0;letter-spacing:-0.02em;">Members</h1>
+        <div style="display:flex;gap:0;align-items:center;">
+          <input id="member-name-input" type="text" placeholder="Add member..." maxlength="24"
+            style="padding:8px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-right:none;border-radius:8px 0 0 8px;color:#fff;font-family:'Inter';font-size:13px;outline:none;width:150px;transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='#c8a2ff'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
             onkeydown="if(event.key==='Enter'){event.stopPropagation();addMember();}"/>
           <button onclick="addMember()" id="btn-add-member"
-            style="padding:12px 20px;font-family:'Space Grotesk';font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:#c8a2ff;color:#0a0a0a;border:none;cursor:pointer;flex-shrink:0;transition:opacity 0.15s;"
+            style="padding:8px 14px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:#c8a2ff;color:#0a0a0a;border:none;border-radius:0 8px 8px 0;cursor:pointer;flex-shrink:0;"
             onmouseover="this.style.opacity='0.82'" onmouseout="this.style.opacity='1'">+ Add</button>
         </div>
-        <p id="members-max-warn" style="display:none;font-size:10px;color:#ff7439;font-weight:600;">Maximum 8 members reached.</p>
       </div>
-    </section>
+      <p id="members-max-warn" style="display:none;font-size:10px;color:#ff7439;font-weight:600;margin:6px 0 0;">Maximum 8 members reached.</p>
+    </div>
 
     <!-- Stats row -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:32px;">
@@ -3151,6 +3143,35 @@ window.addEventListener('message', function(e) {
     var m = measureBtn(activeBtn);
     if (pill && m) { pill.style.left = m.left + 'px'; pill.style.width = m.width + 'px'; }
   });
+
+  /* ── Swipe-right back gesture for Setup sub-views ───────────────────── */
+  var _swipeX = 0, _swipeY = 0;
+  var SWIPE_BACK = ['Rider', 'Setlist', 'Gear', 'Members'];
+  document.addEventListener('touchstart', function (e) {
+    _swipeX = e.touches[0].clientX;
+    _swipeY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    var dx = e.changedTouches[0].clientX - _swipeX;
+    var dy = e.changedTouches[0].clientY - _swipeY;
+    if (dx > 55 && Math.abs(dy) < 100 && _swipeX < 44) {
+      if (SWIPE_BACK.indexOf(_curView) !== -1) {
+        window.switchView('SetupHub');
+      }
+    }
+  }, { passive: true });
+
+  /* ── Remove native Stage Core header entirely on load ───────────────── */
+  function removeNativeHeader() {
+    var h = document.querySelector('header');
+    if (h) { h.parentNode.removeChild(h); }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', removeNativeHeader);
+  } else {
+    removeNativeHeader();
+  }
+
 })();
 </script>
 </body>
