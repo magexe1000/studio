@@ -124,6 +124,15 @@
   --app-surface-highest: #121212;
 }
 
+:root.light.amoled {
+  --app-bg: #ffffff;
+  --app-surface-lowest: #f0f0f0;
+  --app-surface-low: #f4f4f4;
+  --app-surface: #f7f7f7;
+  --app-surface-high: #fafafa;
+  --app-surface-highest: #ffffff;
+}
+
 /* ===== Light Theme ===== */
 :root.light {
   color-scheme: light;

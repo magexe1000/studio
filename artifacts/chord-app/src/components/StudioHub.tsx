@@ -419,12 +419,10 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
               const isActive = opt.amoled
                 ? hubVis.amoledMode
                 : hubVis.theme === opt.value && !hubVis.amoledMode;
-              const isDisabled = opt.amoled && hubVis.theme === 'light';
               return (
                 <button key={i}
                   onClick={() => {
-                    if (isDisabled) return;
-                    if (opt.amoled) requestChange({ theme: 'dark', amoledMode: true });
+                    if (opt.amoled) requestChange({ amoledMode: true });
                     else requestChange({ theme: opt.value, amoledMode: false });
                   }}
                   className="btn-smooth"
@@ -433,9 +431,8 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
                     background: isActive ? `${accent.from}22` : 'var(--app-surface-high)',
                     border: `1.5px solid ${isActive ? accent.from + '66' : 'transparent'}`,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-                    opacity: isDisabled ? 0.35 : 1,
                     transition: 'background 200ms ease, border-color 200ms ease, opacity 200ms ease',
-                    cursor: isDisabled ? 'default' : 'pointer',
+                    cursor: 'pointer',
                   }}>
                   <span className="material-symbols-outlined" style={{
                     fontSize: '22px',

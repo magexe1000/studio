@@ -177,7 +177,7 @@ export default function App() {
   useEffect(() => {
     const isLight = activeVis.theme === 'light' ||
       (activeVis.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
-    const color = activeVis.amoledMode ? '#000000' : (isLight ? '#f5f5f5' : '#111116');
+    const color = activeVis.amoledMode ? (isLight ? '#ffffff' : '#000000') : (isLight ? '#f5f5f5' : '#111116');
     let tag = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     if (!tag) {
       tag = document.createElement('meta');

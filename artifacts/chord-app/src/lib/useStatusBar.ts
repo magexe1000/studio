@@ -10,7 +10,9 @@ function getThemeColors(theme: string, amoledMode: boolean) {
   const isLight =
     theme === 'light' || (theme === 'system' && systemIsLight);
 
-  if (amoledMode) return { bg: '#000000', style: 'DARK' as const };
+  if (amoledMode) return isLight
+    ? { bg: '#ffffff', style: 'LIGHT' as const }
+    : { bg: '#000000', style: 'DARK'  as const };
   if (isLight)    return { bg: '#f2f1ef', style: 'LIGHT' as const };
   return            { bg: '#0e0e0e',    style: 'DARK' as const };
 }
