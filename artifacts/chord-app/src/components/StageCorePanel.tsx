@@ -58,6 +58,13 @@ export default function StageCorePanel() {
   const accentKey = (settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
   const accent    = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
 
+  // Derive the stage-specific theme so the wrapper background matches the splash
+  const stageVis  = settings.perApp?.stage ?? { theme: 'dark' as const, accentColor: 'blue' as const, amoledMode: false };
+  const isLight   = stageVis.theme === 'light';
+  const isAmoled  = stageVis.amoledMode;
+  const stageBg   = isAmoled ? '#000000' : isLight ? '#f5f5f5' : '#0e0e0e';
+  const stageHdr  = isAmoled ? '#000000' : isLight ? '#f5f5f5' : '#0e0e0e';
+
   // Show back button only inside the four sub-sections of Setup (not on SetupHub or Preferences)
   const showBack = curView === 'Rider' || curView === 'Setlist' || curView === 'Gear' || curView === 'Members';
 
@@ -97,10 +104,10 @@ export default function StageCorePanel() {
   }, [getWin]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#0e0e0e' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: stageBg, transition: 'background 300ms ease' }}>
 
       {/* Safe-area spacer */}
-      <div style={{ height: 'env(safe-area-inset-top)', background: '#0e0e0e', flexShrink: 0 }} />
+      <div style={{ height: 'env(safe-area-inset-top)', background: stageHdr, flexShrink: 0 }} />
 
       {/* 52px header bar */}
       <div style={{
@@ -109,7 +116,7 @@ export default function StageCorePanel() {
         display: 'flex',
         alignItems: 'center',
         padding: '10px 14px 0',
-        background: '#0e0e0e',
+        background: stageHdr,
         gap: 8,
         position: 'relative',
       }}>
