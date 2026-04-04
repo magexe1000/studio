@@ -106,8 +106,8 @@
   top: 4px !important;
   height: calc(100% - 8px) !important;
   border-radius: 999px !important;
-  background: linear-gradient(135deg, #5a9ff5, #7aafff) !important;
-  box-shadow: 0 2px 18px rgba(122,175,255,0.40) !important;
+  background: var(--accent) !important;
+  box-shadow: 0 2px 18px var(--accent-40) !important;
   pointer-events: none !important;
   z-index: 0 !important;
   transition: left 150ms cubic-bezier(0.34,1.56,0.64,1),
@@ -168,7 +168,7 @@
 }
 .sc-prefs-scroll::-webkit-scrollbar { width: 4px; }
 .sc-prefs-scroll::-webkit-scrollbar-track { background: transparent; }
-.sc-prefs-scroll::-webkit-scrollbar-thumb { background: rgba(122,175,255,0.15); border-radius: 2px; }
+.sc-prefs-scroll::-webkit-scrollbar-thumb { background: var(--accent-14); border-radius: 2px; }
 
 .sc-prefs-section-label {
   font-family: 'Space Grotesk', sans-serif;
@@ -223,7 +223,7 @@
   cursor: pointer;
   transition: all 0.13s;
 }
-.sc-prefs-chip.active, .sc-prefs-chip:hover { background: rgba(122,175,255,0.12); border-color: rgba(122,175,255,0.35); color: #7aafff; }
+.sc-prefs-chip.active, .sc-prefs-chip:hover { background: var(--accent-12); border-color: var(--accent-30); color: var(--accent); }
 
 /* 10. With status bar gone the nav pill can sit lower */
 #mobile-nav-bar {
@@ -387,7 +387,7 @@ header { display: none !important; }
   <div id="auth-modal">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a1a1a;">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:3px;height:20px;background:#7aafff;flex-shrink:0;"></div>
+        <div style="width:3px;height:20px;background:var(--accent);flex-shrink:0;"></div>
         <h2 id="auth-modal-title" style="font-family:'Space Grotesk';font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#fff;margin:0;">Sign In</h2>
       </div>
       <button onclick="closeAuthModal()" style="color:#484847;background:none;border:none;cursor:pointer;font-size:22px;line-height:1;padding:0 2px;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'">×</button>
@@ -553,7 +553,7 @@ header { display: none !important; }
   <div id="cloud-modal">
     <div id="cloud-modal-header">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:3px;height:20px;background:#7aafff;flex-shrink:0;"></div>
+        <div style="width:3px;height:20px;background:var(--accent);flex-shrink:0;"></div>
         <div>
           <p style="font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0 0 3px;">Cloud Storage</p>
           <h2 style="font-family:'Space Grotesk';font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em;color:#fff;margin:0;">Saved Projects</h2>
@@ -565,15 +565,15 @@ header { display: none !important; }
     <div style="padding:16px 24px;border-bottom:1px solid #1a1a1a;display:flex;gap:8px;align-items:center;">
       <input id="cloud-save-name" type="text" placeholder="Project name…" maxlength="64"
         style="flex:1;padding:10px 0;background:transparent;border:none;border-bottom:2px solid #333;color:#e0e0e0;font-family:'Inter';font-size:13px;outline:none;transition:border-color 0.15s;min-width:0;"
-        onfocus="this.style.borderBottomColor='#7aafff'" onblur="this.style.borderBottomColor='#333'"
+        onfocus="this.style.borderBottomColor='var(--accent)'" onblur="this.style.borderBottomColor='#333'"
         onkeydown="if(event.key==='Enter')saveToCloud()" />
-      <button onclick="saveToCloud()" style="padding:10px 20px;border:none;cursor:pointer;background:#7aafff;color:#001e4a;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save</button>
+      <button onclick="saveToCloud()" style="padding:10px 20px;border:none;cursor:pointer;background:var(--accent);color:var(--accent-dark);font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save</button>
     </div>
     <!-- Search + Sort -->
     <div style="padding:10px 24px;border-bottom:1px solid #1a1a1a;display:flex;gap:8px;align-items:center;">
       <input id="cp-search" type="text" placeholder="Search projects…" maxlength="48"
         style="flex:1;padding:7px 10px;background:#161616;border:1px solid #2a2a2a;border-radius:4px;color:#e0e0e0;font-family:'Inter';font-size:12px;outline:none;min-width:0;transition:border-color 0.15s;"
-        onfocus="this.style.borderColor='#7aafff'" onblur="this.style.borderColor='#2a2a2a'"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='#2a2a2a'"
         oninput="_renderFilteredProjects()" />
       <select id="cp-sort" onchange="_renderFilteredProjects()"
         style="padding:7px 10px;background:#161616;border:1px solid #2a2a2a;border-radius:4px;color:#888;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;outline:none;cursor:pointer;flex-shrink:0;">
@@ -795,11 +795,11 @@ header { display: none !important; }
   <div class="flex items-center gap-8">
     <!-- Mobile hamburger: opens categories drawer -->
     <button id="mobile-menu-btn" onclick="toggleMobileSidebar()" title="Open Categories"
-      style="display:none;align-items:center;justify-content:center;width:36px;height:36px;background:rgba(122,175,255,0.1);border:none;cursor:pointer;color:#7aafff;flex-shrink:0;"
-      onmouseover="this.style.background='rgba(122,175,255,0.2)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">
+      style="display:none;align-items:center;justify-content:center;width:36px;height:36px;background:var(--accent-10);border:none;cursor:pointer;color:var(--accent);flex-shrink:0;"
+      onmouseover="this.style.background='var(--accent-20)'" onmouseout="this.style.background='var(--accent-10)'">
       <span class="material-symbols-outlined" style="font-size:20px;">menu</span>
     </button>
-    <button id="logo-btn" onclick="toggleLogoMenu(event)" style="position:relative;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:3px;padding:0;font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:900;letter-spacing:-0.02em;color:#7aafff;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+    <button id="logo-btn" onclick="toggleLogoMenu(event)" style="position:relative;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:3px;padding:0;font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:900;letter-spacing:-0.02em;color:var(--accent);transition:opacity 0.15s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
       Stagex
       <span class="material-symbols-outlined" style="font-size:14px;opacity:0.6;margin-top:1px;">expand_more</span>
     </button>
@@ -846,9 +846,9 @@ header { display: none !important; }
       </div>
     </div>
     <button onclick="openPresetsPanel()"
-      style="display:flex;align-items:center;gap:5px;background:rgba(255,116,57,0.14);color:#ff7439;border:1px solid rgba(255,116,57,0.28);border-radius:8px;padding:5px 11px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:background 0.15s,border-color 0.15s;flex-shrink:0;"
-      onmouseover="this.style.background='rgba(255,116,57,0.24)';this.style.borderColor='rgba(255,116,57,0.50)'"
-      onmouseout="this.style.background='rgba(255,116,57,0.14)';this.style.borderColor='rgba(255,116,57,0.28)'">
+      style="display:flex;align-items:center;gap:5px;background:var(--hot-10);color:var(--hot);border:1px solid var(--hot-20);border-radius:8px;padding:5px 11px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:background 0.15s,border-color 0.15s;flex-shrink:0;"
+      onmouseover="this.style.background='var(--hot-20)';this.style.borderColor='var(--hot-dark)'"
+      onmouseout="this.style.background='var(--hot-10)';this.style.borderColor='var(--hot-20)'">
       <i data-lucide="layers" style="width:12px;height:12px;stroke-width:2.5;flex-shrink:0;"></i>
       <span data-i18n="saveBtnMob">Save</span>
     </button>
@@ -864,9 +864,9 @@ header { display: none !important; }
 <!-- Stage action bar: SAVE + PDF, shown only on the Stage (Editor) view -->
 <div id="rider-action-bar">
   <button onclick="openPresetsPanel()"
-    style="display:flex;align-items:center;gap:5px;background:rgba(255,116,57,0.14);color:#ff7439;border:1px solid rgba(255,116,57,0.28);border-radius:8px;padding:5px 11px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:background 0.15s,border-color 0.15s;"
-    onmouseover="this.style.background='rgba(255,116,57,0.24)';this.style.borderColor='rgba(255,116,57,0.50)'"
-    onmouseout="this.style.background='rgba(255,116,57,0.14)';this.style.borderColor='rgba(255,116,57,0.28)'">
+    style="display:flex;align-items:center;gap:5px;background:var(--hot-10);color:var(--hot);border:1px solid var(--hot-20);border-radius:8px;padding:5px 11px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:background 0.15s,border-color 0.15s;"
+    onmouseover="this.style.background='var(--hot-20)';this.style.borderColor='var(--hot-dark)'"
+    onmouseout="this.style.background='var(--hot-10)';this.style.borderColor='var(--hot-20)'">
     <i data-lucide="layers" style="width:12px;height:12px;stroke-width:2.5;flex-shrink:0;"></i>
     <span data-i18n="saveBtnMob">Save</span>
   </button>
@@ -909,8 +909,8 @@ header { display: none !important; }
     <div style="display:flex;flex-direction:column;gap:10px;">
 
       <button class="sc-hub-card" onclick="switchView('Rider')">
-        <div class="sc-hub-icon" style="background:rgba(122,175,255,0.11);">
-          <span class="material-symbols-outlined" style="font-size:23px;color:#7aafff;">cable</span>
+        <div class="sc-hub-icon" style="background:var(--accent-20);">
+          <span class="material-symbols-outlined" style="font-size:23px;color:var(--accent);">cable</span>
         </div>
         <div class="sc-hub-text">
           <p class="sc-hub-title">Rider</p>
@@ -931,8 +931,8 @@ header { display: none !important; }
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Gear')">
-        <div class="sc-hub-icon" style="background:rgba(255,116,57,0.11);">
-          <span class="material-symbols-outlined" style="font-size:23px;color:#ff7439;">checklist</span>
+        <div class="sc-hub-icon" style="background:var(--hot-10);">
+          <span class="material-symbols-outlined" style="font-size:23px;color:var(--hot);">checklist</span>
         </div>
         <div class="sc-hub-text">
           <p class="sc-hub-title">Gear</p>
@@ -976,7 +976,7 @@ header { display: none !important; }
   <button class="mob-cat-btn" data-cat="util" onclick="openMobileCat('util')">
     <span class="material-symbols-outlined" style="font-size:13px;">settings_input_component</span><span data-i18n="catUtil">Utilities</span>
   </button>
-  <button class="mob-cat-btn" data-cat="custom" onclick="openMobileCat('custom')" style="color:#7aafff;">
+  <button class="mob-cat-btn" data-cat="custom" onclick="openMobileCat('custom')" style="color:var(--accent);">
     <span class="material-symbols-outlined" style="font-size:13px;">add_circle</span><span>Custom</span>
   </button>
   <button class="mob-cat-btn" onclick="scOpenElPresets()" title="Element Presets" style="color:#f0b429;min-width:0;padding:4px 10px;">
@@ -995,24 +995,24 @@ header { display: none !important; }
   <div style="width:380px;max-width:92vw;background:#111;border:1px solid #2a2a2a;box-shadow:0 24px 80px rgba(0,0,0,0.9);">
     <div style="padding:28px 28px 0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <i data-lucide="alert-triangle" style="width:18px;height:18px;color:#ff7439;flex-shrink:0;"></i>
-        <span style="font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#ff7439;">Confirm</span>
+        <i data-lucide="alert-triangle" style="width:18px;height:18px;color:var(--hot);flex-shrink:0;"></i>
+        <span style="font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--hot);">Confirm</span>
       </div>
       <p id="confirm-msg" style="font-family:'Inter';font-size:13px;color:#c8c7c4;line-height:1.6;margin:0;"></p>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;padding:20px 28px;">
       <button onclick="doConfirm(false)" style="padding:9px 20px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#1a1a1a;color:#767575;border:1px solid #2a2a2a;cursor:pointer;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#767575'">Cancel</button>
-      <button onclick="doConfirm(true)" style="padding:9px 24px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#ff7439;color:#fff;border:none;cursor:pointer;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Confirm</button>
+      <button onclick="doConfirm(true)" style="padding:9px 24px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--hot);color:#fff;border:none;cursor:pointer;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Confirm</button>
     </div>
   </div>
 </div>
 
 <!-- ═══════════════ PRESETS PANEL ═══════════════ -->
-<div id="presets-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:360px;z-index:8500;background:#0a0a0a;border-left:1px solid rgba(255,116,57,0.2);box-shadow:-24px 0 80px rgba(0,0,0,0.7);flex-direction:column;overflow:hidden;">
+<div id="presets-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:360px;z-index:8500;background:#0a0a0a;border-left:1px solid var(--hot-20);box-shadow:-24px 0 80px rgba(0,0,0,0.7);flex-direction:column;overflow:hidden;">
   <!-- Panel header -->
   <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
     <div style="display:flex;align-items:center;gap:10px;">
-      <div style="width:3px;height:20px;background:#ff7439;"></div>
+      <div style="width:3px;height:20px;background:var(--hot);"></div>
       <div>
         <h2 style="font-family:'Space Grotesk';font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#fff;margin:0;">Stage Presets</h2>
         <div style="font-family:'Space Grotesk';font-size:9px;font-weight:600;color:#484847;text-transform:uppercase;letter-spacing:0.15em;margin-top:2px;">Save &amp; restore full setups</div>
@@ -1028,7 +1028,7 @@ header { display: none !important; }
       <input id="preset-name-input" type="text" placeholder="e.g. Rock Band Setup..."
         style="flex:1;background:#111;border:none;border-bottom:2px solid #333;color:#fff;font-family:'Space Grotesk';font-size:12px;font-weight:600;padding:9px 12px;outline:none;"
         onkeydown="if(event.key==='Enter') savePreset()" />
-      <button onclick="savePreset()" style="padding:9px 16px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:#ff7439;color:#fff;border:none;cursor:pointer;white-space:nowrap;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+      <button onclick="savePreset()" style="padding:9px 16px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--hot);color:#fff;border:none;cursor:pointer;white-space:nowrap;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
         Save
       </button>
     </div>
@@ -1039,15 +1039,15 @@ header { display: none !important; }
   <div style="padding:16px 24px;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
     <div style="font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:#767575;margin-bottom:10px;">Quick Presets</div>
     <div style="display:flex;flex-direction:column;gap:6px;">
-      <button onclick="loadQuickPreset('rock')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111;border:1px solid #222;color:#e0e0e0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='#ff7439';this.style.color='#ff7439'" onmouseout="this.style.borderColor='#222';this.style.color='#e0e0e0'">
+      <button onclick="loadQuickPreset('rock')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111;border:1px solid #222;color:#e0e0e0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all 0.15s;" onmouseover="var c=getComputedStyle(document.documentElement).getPropertyValue('--hot').trim();this.style.borderColor=c;this.style.color=c" onmouseout="this.style.borderColor='#222';this.style.color='#e0e0e0'">
         <span>Rock Band</span>
         <span style="font-size:9px;color:#484847;font-weight:600;">DRUMS · BASS · 2 GUITARS · KEYS · VOCALS</span>
       </button>
-      <button onclick="loadQuickPreset('acoustic')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111;border:1px solid #222;color:#e0e0e0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='#ff7439';this.style.color='#ff7439'" onmouseout="this.style.borderColor='#222';this.style.color='#e0e0e0'">
+      <button onclick="loadQuickPreset('acoustic')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111;border:1px solid #222;color:#e0e0e0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all 0.15s;" onmouseover="var c=getComputedStyle(document.documentElement).getPropertyValue('--hot').trim();this.style.borderColor=c;this.style.color=c" onmouseout="this.style.borderColor='#222';this.style.color='#e0e0e0'">
         <span>Acoustic Set</span>
         <span style="font-size:9px;color:#484847;font-weight:600;">2 GUITARS · CAJON · VOCALS</span>
       </button>
-      <button onclick="loadQuickPreset('fullband')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111;border:1px solid #222;color:#e0e0e0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='#ff7439';this.style.color='#ff7439'" onmouseout="this.style.borderColor='#222';this.style.color='#e0e0e0'">
+      <button onclick="loadQuickPreset('fullband')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111;border:1px solid #222;color:#e0e0e0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all 0.15s;" onmouseover="var c=getComputedStyle(document.documentElement).getPropertyValue('--hot').trim();this.style.borderColor=c;this.style.color=c" onmouseout="this.style.borderColor='#222';this.style.color='#e0e0e0'">
         <span>Full Band</span>
         <span style="font-size:9px;color:#484847;font-weight:600;">DRUMS · BASS · 2 GTR · KEYS</span>
       </button>
@@ -1168,7 +1168,7 @@ header { display: none !important; }
           <div id="custom-empty-state" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px 12px;">
             <span style="font-size:24px;opacity:0.4;">✦</span>
             <p style="font-family:'Inter',sans-serif;font-size:11px;color:#555;text-align:center;margin:0;line-height:1.5;">No custom elements yet. Create one to add it to the stage.</p>
-            <button onclick="openCustomElementModal()" style="padding:6px 14px;background:transparent;color:#7aafff;border:1px dashed rgba(122,175,255,0.4);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;display:flex;align-items:center;gap:5px;" onmouseover="this.style.background='rgba(122,175,255,0.08)'" onmouseout="this.style.background='transparent'">
+            <button onclick="openCustomElementModal()" style="padding:6px 14px;background:transparent;color:var(--accent);border:1px dashed var(--accent-40);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;display:flex;align-items:center;gap:5px;" onmouseover="this.style.background='var(--accent-08)'" onmouseout="this.style.background='transparent'">
               <span class="material-symbols-outlined" style="font-size:12px;">add</span>Create
             </button>
           </div>
@@ -1180,7 +1180,7 @@ header { display: none !important; }
 
     <!-- Create Custom Element button -->
     <div style="flex-shrink:0;padding:6px 10px;border-top:1px solid rgba(72,72,71,0.08);">
-      <button onclick="openCustomElementModal()" style="width:100%;padding:7px 6px;background:transparent;color:#484847;border:1px dashed rgba(72,72,71,0.3);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;display:flex;align-items:center;justify-content:center;gap:5px;transition:color 0.15s,border-color 0.15s;" onmouseover="this.style.color='#7aafff';this.style.borderColor='rgba(122,175,255,0.4)'" onmouseout="this.style.color='#484847';this.style.borderColor='rgba(72,72,71,0.3)'">
+      <button onclick="openCustomElementModal()" style="width:100%;padding:7px 6px;background:transparent;color:#484847;border:1px dashed rgba(72,72,71,0.3);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;display:flex;align-items:center;justify-content:center;gap:5px;transition:color 0.15s,border-color 0.15s;" onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent-40)'" onmouseout="this.style.color='#484847';this.style.borderColor='rgba(72,72,71,0.3)'">
         <span class="material-symbols-outlined" style="font-size:12px;">add</span>
         Create Custom Element
       </button>
@@ -1196,7 +1196,7 @@ header { display: none !important; }
   <!-- DESKTOP ELEMENT FLYOUT — kept in DOM but hidden on desktop by CSS -->
   <div id="lib-flyout" style="display:none;">
     <div style="padding:8px 12px 6px;border-bottom:1px solid rgba(72,72,71,0.12);position:sticky;top:0;background:#0e0e0e;z-index:1;">
-      <p id="flyout-title" style="font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#7aafff;"></p>
+      <p id="flyout-title" style="font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:var(--accent);"></p>
     </div>
     <div id="flyout-grid" class="grid grid-cols-2 gap-1" style="padding:8px;"></div>
   </div>
@@ -1227,7 +1227,7 @@ header { display: none !important; }
       <span class="material-symbols-outlined" style="font-size:14px;">settings_input_component</span><span data-i18n="catUtil">Utilities</span>
     </button>
     <div class="desk-cat-sep"></div>
-    <button class="desk-cat-btn" data-cat="custom" style="color:#7aafff;">
+    <button class="desk-cat-btn" data-cat="custom" style="color:var(--accent);">
       <span class="material-symbols-outlined" style="font-size:14px;">add_circle</span><span>Custom</span>
     </button>
     <div class="desk-cat-sep"></div>
@@ -1244,17 +1244,17 @@ header { display: none !important; }
 
     <!-- Floating toolbar — bottom:6px keeps it below the DOWNSTAGE label (which sits at ~50px from bottom with padding-bottom:80px) -->
     <div id="bottom-toolbar" class="absolute z-30 flex items-center gap-1" style="bottom:44px;transform:translateX(-50%);background:rgba(14,14,14,0.97);border:1px solid rgba(72,72,71,0.25);border-radius:8px;">
-      <button onclick="zoomIn()" style="padding:5px 7px;color:#767575;background:none;border:none;cursor:pointer;display:flex;align-items:center;" onmouseover="this.style.color='#7aafff'" onmouseout="this.style.color='#767575'" title="Zoom In">
+      <button onclick="zoomIn()" style="padding:5px 7px;color:#767575;background:none;border:none;cursor:pointer;display:flex;align-items:center;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='#767575'" title="Zoom In">
         <span class="material-symbols-outlined" style="font-size:18px;">zoom_in</span>
       </button>
-      <button onclick="zoomOut()" style="padding:5px 7px;color:#767575;background:none;border:none;cursor:pointer;display:flex;align-items:center;" onmouseover="this.style.color='#7aafff'" onmouseout="this.style.color='#767575'" title="Zoom Out">
+      <button onclick="zoomOut()" style="padding:5px 7px;color:#767575;background:none;border:none;cursor:pointer;display:flex;align-items:center;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='#767575'" title="Zoom Out">
         <span class="material-symbols-outlined" style="font-size:18px;">zoom_out</span>
       </button>
       <button id="btn-gig-eye" onclick="toggleGigMode()" style="padding:5px 7px;color:#767575;background:none;border:none;cursor:pointer;display:flex;align-items:center;transition:color 0.15s;" title="Focus Mode — hide all editing tools">
         <span id="gig-eye-icon" class="material-symbols-outlined" style="font-size:18px;transition:color 0.15s;">visibility</span>
       </button>
       <div style="width:1px;height:18px;background:rgba(72,72,71,0.4);margin:0 3px;"></div>
-      <button id="btn-grid" onclick="toggleGrid()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:rgba(122,175,255,0.15);color:#7aafff;transition:all 0.15s;" title="Toggle Grid">
+      <button id="btn-grid" onclick="toggleGrid()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent-14);color:var(--accent);transition:all 0.15s;" title="Toggle Grid">
         <span class="material-symbols-outlined" style="font-size:16px;">grid_on</span><span data-i18n="tbGrid">Grid</span>
       </button>
       <button id="btn-snap" onclick="toggleSnap()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:transparent;color:#767575;transition:all 0.15s;" title="Snap to Grid">
@@ -1263,7 +1263,7 @@ header { display: none !important; }
       <button id="btn-connect" onclick="toggleConnect()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:transparent;color:#767575;transition:all 0.15s;" title="Connection Mode">
         <span class="material-symbols-outlined" style="font-size:16px;">hub</span><span data-i18n="tbConnect">Connect</span>
       </button>
-      <button id="btn-connections" onclick="toggleConnectionsVisible()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:rgba(122,175,255,0.15);color:#7aafff;transition:all 0.15s;" title="Show / Hide Connection Lines">
+      <button id="btn-connections" onclick="toggleConnectionsVisible()" style="padding:5px 10px;display:flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent-14);color:var(--accent);transition:all 0.15s;" title="Show / Hide Connection Lines">
         <span class="material-symbols-outlined" style="font-size:16px;">cable</span><span data-i18n="tbLines">Lines</span>
       </button>
       <div style="width:1px;height:18px;background:rgba(72,72,71,0.4);margin:0 3px;"></div>
@@ -1277,7 +1277,7 @@ header { display: none !important; }
           <span class="material-symbols-outlined" style="font-size:16px;">layers</span><span class="desktop-only">Layers</span>
         </button>
         <!-- Layer panel — pops up above the button on hover -->
-        <div id="layer-panel" style="position:absolute;bottom:calc(100% + 10px);right:0;z-index:300;background:#111217;border:1px solid rgba(122,175,255,0.15);border-radius:8px;padding:10px 14px;min-width:190px;box-shadow:0 8px 40px rgba(0,0,0,0.8);opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity 0.2s ease,transform 0.2s ease;">
+        <div id="layer-panel" style="position:absolute;bottom:calc(100% + 10px);right:0;z-index:300;background:#111217;border:1px solid var(--accent-14);border-radius:8px;padding:10px 14px;min-width:190px;box-shadow:0 8px 40px rgba(0,0,0,0.8);opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity 0.2s ease,transform 0.2s ease;">
           <p style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:#484847;margin:0 0 8px;">Layers</p>
           <div id="layer-list" style="display:flex;flex-direction:column;gap:5px;"></div>
         </div>
@@ -1305,13 +1305,13 @@ header { display: none !important; }
         <!-- Stage Balance Visualizer (shown when elements present) -->
         <div id="stage-balance-bar" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:8;pointer-events:none;flex-direction:column-reverse;">
           <div style="display:flex;height:3px;width:100%;">
-            <div id="sbal-seg-l" style="height:100%;background:#ff7439;transition:width 0.4s ease;"></div>
-            <div id="sbal-seg-c" style="height:100%;background:#7aafff;transition:width 0.4s ease;"></div>
+            <div id="sbal-seg-l" style="height:100%;background:var(--hot);transition:width 0.4s ease;"></div>
+            <div id="sbal-seg-c" style="height:100%;background:var(--accent);transition:width 0.4s ease;"></div>
             <div id="sbal-seg-r" style="height:100%;background:#c5ffc9;transition:width 0.4s ease;"></div>
           </div>
           <div style="display:flex;justify-content:space-between;padding:2px 4px;">
-            <span id="sbal-l" style="font-family:'Space Grotesk',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.08em;color:#ff7439;opacity:0.7;">0%</span>
-            <span id="sbal-c" style="font-family:'Space Grotesk',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.08em;color:#7aafff;opacity:0.7;">0%</span>
+            <span id="sbal-l" style="font-family:'Space Grotesk',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.08em;color:var(--hot);opacity:0.7;">0%</span>
+            <span id="sbal-c" style="font-family:'Space Grotesk',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.08em;color:var(--accent);opacity:0.7;">0%</span>
             <span id="sbal-r" style="font-family:'Space Grotesk',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.08em;color:#c5ffc9;opacity:0.7;">0%</span>
           </div>
         </div>
@@ -1344,17 +1344,17 @@ header { display: none !important; }
 
 
   <!-- RIGHT PROPERTIES PANEL (overlay — does not resize canvas) -->
-  <aside id="properties-panel" class="fixed flex flex-col z-[120]" style="top:80px;right:16px;width:230px;max-height:calc(100vh - 128px);background:#111217;border:1px solid rgba(122,175,255,0.1);border-radius:8px;overflow:hidden;">
+  <aside id="properties-panel" class="fixed flex flex-col z-[120]" style="top:80px;right:16px;width:230px;max-height:calc(100vh - 128px);background:#111217;border:1px solid var(--accent-10);border-radius:8px;overflow:hidden;">
 
     <!-- Mobile drag handle (hidden on desktop via CSS) -->
     <div id="prop-handle" style="display:none;align-items:center;justify-content:center;padding:6px 0 2px;flex-shrink:0;">
-      <div style="width:28px;height:3px;background:rgba(122,175,255,0.2);border-radius:999px;"></div>
+      <div style="width:28px;height:3px;background:var(--accent-20);border-radius:999px;"></div>
     </div>
 
     <!-- Compact header: icon · name · type · close -->
     <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;border-bottom:1px solid rgba(72,72,71,0.12);flex-shrink:0;background:#0e0e0e;">
       <div id="prop-icon-preview" style="width:30px;height:30px;background:#1a1a1a;border:1px solid rgba(72,72,71,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <div id="prop-icon-sym" style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:#7aafff;"></div>
+        <div id="prop-icon-sym" style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--accent);"></div>
       </div>
       <div style="flex:1;min-width:0;">
         <div id="prop-name-display" style="font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Properties</div>
@@ -1394,8 +1394,8 @@ header { display: none !important; }
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
             <label class="prop-label" style="margin:0;" data-i18n="propChannel">Channel</label>
             <div style="display:flex;gap:4px;align-items:center;">
-              <button class="color-tag" data-color="#7aafff" style="width:11px;height:11px;border-radius:50%;background:#7aafff;border:2px solid transparent;cursor:pointer;transition:transform 0.1s,border-color 0.1s;" title="Blue"></button>
-              <button class="color-tag" data-color="#ff7439" style="width:11px;height:11px;border-radius:50%;background:#ff7439;border:2px solid transparent;cursor:pointer;transition:transform 0.1s,border-color 0.1s;" title="Orange"></button>
+              <button class="color-tag" data-color="#7aafff" style="width:11px;height:11px;border-radius:50%;background:var(--accent);border:2px solid transparent;cursor:pointer;transition:transform 0.1s,border-color 0.1s;" title="Blue"></button>
+              <button class="color-tag" data-color="var(--hot)" style="width:11px;height:11px;border-radius:50%;background:var(--hot);border:2px solid transparent;cursor:pointer;transition:transform 0.1s,border-color 0.1s;" title="Orange"></button>
               <button class="color-tag" data-color="#c5ffc9" style="width:11px;height:11px;border-radius:50%;background:#c5ffc9;border:2px solid transparent;cursor:pointer;transition:transform 0.1s,border-color 0.1s;" title="Green"></button>
               <button class="color-tag" data-color="#ff716c" style="width:11px;height:11px;border-radius:50%;background:#ff716c;border:2px solid transparent;cursor:pointer;transition:transform 0.1s,border-color 0.1s;" title="Red"></button>
               <button class="color-tag" data-color="#adaaaa" style="width:11px;height:11px;border-radius:50%;background:#adaaaa;border:2px solid transparent;cursor:pointer;transition:transform 0.1s,border-color 0.1s;" title="Grey"></button>
@@ -1484,17 +1484,17 @@ header { display: none !important; }
         <div class="prop-row">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
             <label class="prop-label" style="margin:0;" data-i18n="propRoles">Roles</label>
-            <button id="add-role-btn" onclick="toggleRolePicker()" style="font-family:'Space Grotesk';font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:2px 7px;background:rgba(122,175,255,0.08);border:1px solid rgba(122,175,255,0.18);color:#7aafff;cursor:pointer;">+ Add</button>
+            <button id="add-role-btn" onclick="toggleRolePicker()" style="font-family:'Space Grotesk';font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:2px 7px;background:var(--accent-08);border:1px solid var(--accent-20);color:var(--accent);cursor:pointer;">+ Add</button>
           </div>
           <div id="roles-list" style="min-height:2px;"></div>
           <div id="role-picker" class="hidden" style="background:#0a0a0a;border:1px solid #2a2a2a;padding:6px;margin-top:4px;">
             <div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px;">
-              <button class="role-cat-btn" data-cat="mics" onclick="switchRolePickerCat('mics')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:#7aafff;color:#000;border:none;cursor:pointer;">Mics</button>
-              <button class="role-cat-btn" data-cat="drums" onclick="switchRolePickerCat('drums')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:#1a1a1a;color:#7aafff;border:none;cursor:pointer;">Drums</button>
-              <button class="role-cat-btn" data-cat="inst" onclick="switchRolePickerCat('inst')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:#1a1a1a;color:#7aafff;border:none;cursor:pointer;">Inst</button>
-              <button class="role-cat-btn" data-cat="amps" onclick="switchRolePickerCat('amps')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:#1a1a1a;color:#7aafff;border:none;cursor:pointer;">Amps</button>
-              <button class="role-cat-btn" data-cat="mon" onclick="switchRolePickerCat('mon')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:#1a1a1a;color:#7aafff;border:none;cursor:pointer;">Audio</button>
-              <button class="role-cat-btn" data-cat="util" onclick="switchRolePickerCat('util')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:#1a1a1a;color:#7aafff;border:none;cursor:pointer;">Util</button>
+              <button class="role-cat-btn" data-cat="mics" onclick="switchRolePickerCat('mics')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:var(--accent);color:#000;border:none;cursor:pointer;">Mics</button>
+              <button class="role-cat-btn" data-cat="drums" onclick="switchRolePickerCat('drums')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:#1a1a1a;color:var(--accent);border:none;cursor:pointer;">Drums</button>
+              <button class="role-cat-btn" data-cat="inst" onclick="switchRolePickerCat('inst')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:#1a1a1a;color:var(--accent);border:none;cursor:pointer;">Inst</button>
+              <button class="role-cat-btn" data-cat="amps" onclick="switchRolePickerCat('amps')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:#1a1a1a;color:var(--accent);border:none;cursor:pointer;">Amps</button>
+              <button class="role-cat-btn" data-cat="mon" onclick="switchRolePickerCat('mon')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:#1a1a1a;color:var(--accent);border:none;cursor:pointer;">Audio</button>
+              <button class="role-cat-btn" data-cat="util" onclick="switchRolePickerCat('util')" style="font-size:7px;padding:2px 5px;font-weight:700;text-transform:uppercase;background:#1a1a1a;color:var(--accent);border:none;cursor:pointer;">Util</button>
             </div>
             <div id="role-picker-grid" class="grid grid-cols-3 gap-1" style="max-height:90px;overflow-y:auto;"></div>
           </div>
@@ -1526,7 +1526,7 @@ header { display: none !important; }
               <button onclick="adjustGain(+3)" style="font-family:'Space Grotesk';font-size:9px;font-weight:700;background:rgba(72,72,71,0.25);border:1px solid rgba(72,72,71,0.4);color:#c8c8c8;padding:3px 8px;border-radius:4px;cursor:pointer;line-height:1;">+3</button>
             </div>
             <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-              <span id="gain-type-name" style="font-family:'Space Grotesk';font-size:8px;font-weight:700;color:#7aafff;text-transform:uppercase;letter-spacing:0.08em;"></span>
+              <span id="gain-type-name" style="font-family:'Space Grotesk';font-size:8px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;"></span>
               <span id="gain-range-text" style="font-family:'Inter';font-size:8px;color:#484847;"></span>
             </div>
             <p id="gain-warning-text" style="font-family:'Space Grotesk';font-size:8px;font-weight:700;letter-spacing:0.06em;margin:0 0 4px;display:none;"></p>
@@ -1545,7 +1545,7 @@ header { display: none !important; }
     <!-- LEFT: system status + live plot stats -->
     <div class="flex items-center gap-0">
       <div class="flex items-center gap-2" style="padding-right:12px;margin-right:12px;border-right:1px solid rgba(72,72,71,0.25);">
-        <div class="status-dot rounded-full" style="width:8px;height:8px;background:#7aafff;animation:pulse-blue 2.5s ease-in-out infinite;"></div>
+        <div class="status-dot rounded-full" style="width:8px;height:8px;background:var(--accent);animation:pulse-blue 2.5s ease-in-out infinite;"></div>
         <span class="font-bold text-on-surface-variant uppercase" style="font-size:9px;letter-spacing:0.08em;" data-i18n="sbSystemReady">System Ready</span>
       </div>
       <!-- Plot stats — each updates via updateStatusBar() -->
@@ -1585,7 +1585,7 @@ header { display: none !important; }
       </div>
       <div id="autosave-toggle" onclick="toggleAutosave()" title="Click to toggle autosave"
            style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:4px;transition:background 0.15s;user-select:none;"
-           onmouseover="this.style.background='rgba(122,175,255,0.08)'" onmouseout="this.style.background='transparent'">
+           onmouseover="this.style.background='var(--accent-08)'" onmouseout="this.style.background='transparent'">
         <div id="autosave-dot" style="width:7px;height:7px;border-radius:50%;background:#ff4646;flex-shrink:0;transition:background 0.2s,box-shadow 0.2s;"></div>
         <span id="status-save" class="font-bold uppercase" style="font-size:9px;letter-spacing:0.08em;color:#484847;">AUTOSAVE: OFF</span>
       </div>
@@ -1593,14 +1593,14 @@ header { display: none !important; }
   </footer>
 
   <!-- Autosave name modal -->
-  <div id="autosave-modal" style="display:none;position:fixed;bottom:40px;right:16px;z-index:400;background:#111217;border:1px solid rgba(122,175,255,0.15);border-radius:8px;padding:14px 16px;width:230px;box-shadow:0 8px 40px rgba(0,0,0,0.75);">
-    <p style="font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#7aafff;margin:0 0 10px;">Autosave preset name</p>
+  <div id="autosave-modal" style="display:none;position:fixed;bottom:40px;right:16px;z-index:400;background:#111217;border:1px solid var(--accent-14);border-radius:8px;padding:14px 16px;width:230px;box-shadow:0 8px 40px rgba(0,0,0,0.75);">
+    <p style="font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--accent);margin:0 0 10px;">Autosave preset name</p>
     <input id="autosave-name-input" type="text" placeholder="e.g. My Show" maxlength="40"
            style="width:100%;box-sizing:border-box;background:#0a0a0a;border:none;border-bottom:1px solid #333;color:#fff;font-family:'Space Grotesk';font-size:11px;padding:5px 0;outline:none;margin-bottom:12px;"
            onkeydown="if(event.key==='Enter')confirmAutosaveName();else if(event.key==='Escape')cancelAutosave();" />
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button onclick="cancelAutosave()" style="padding:5px 12px;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;background:transparent;border:1px solid rgba(72,72,71,0.4);color:#767575;cursor:pointer;border-radius:4px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='#7aafff'" onmouseout="this.style.borderColor='rgba(72,72,71,0.4)'">Cancel</button>
-      <button onclick="confirmAutosaveName()" style="padding:5px 14px;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;background:#ff7439;color:#fff;border:none;cursor:pointer;border-radius:4px;">Enable</button>
+      <button onclick="cancelAutosave()" style="padding:5px 12px;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;background:transparent;border:1px solid rgba(72,72,71,0.4);color:#767575;cursor:pointer;border-radius:4px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='rgba(72,72,71,0.4)'">Cancel</button>
+      <button onclick="confirmAutosaveName()" style="padding:5px 14px;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;background:var(--hot);color:#fff;border:none;cursor:pointer;border-radius:4px;">Enable</button>
     </div>
   </div>
 
@@ -1622,11 +1622,11 @@ header { display: none !important; }
         <div style="display:flex;gap:8px;margin-top:2px;">
           <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:8px 14px;text-align:center;">
             <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#484847;margin:0 0 2px;">Channels</p>
-            <p id="rider-ch-count" style="font-family:'Space Grotesk';font-size:20px;font-weight:900;color:#7aafff;margin:0;line-height:1;">0 / 32</p>
+            <p id="rider-ch-count" style="font-family:'Space Grotesk';font-size:20px;font-weight:900;color:var(--accent);margin:0;line-height:1;">0 / 32</p>
           </div>
           <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:8px 14px;text-align:center;">
             <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#484847;margin:0 0 2px;">Elements</p>
-            <p id="rider-el-count" style="font-family:'Space Grotesk';font-size:20px;font-weight:900;color:#ff7439;margin:0;line-height:1;">0</p>
+            <p id="rider-el-count" style="font-family:'Space Grotesk';font-size:20px;font-weight:900;color:var(--hot);margin:0;line-height:1;">0</p>
           </div>
         </div>
       </div>
@@ -1665,11 +1665,11 @@ header { display: none !important; }
           <h3 class="font-headline font-black uppercase tracking-tight" style="font-size:20px;">Technical Requirements</h3>
           <div style="display:flex;gap:8px;">
             <button onclick="generateInputListFromStage()"
-              style="padding:6px 14px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;background:#1e1e1e;color:#ff7439;border:1px solid rgba(255,116,57,0.3);cursor:pointer;" title="Auto-generate input list from stage elements">
+              style="padding:6px 14px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;background:#1e1e1e;color:var(--hot);border:1px solid var(--hot-10);cursor:pointer;" title="Auto-generate input list from stage elements">
               ⚡ From Stage
             </button>
             <button onclick="addRiderNeed()"
-              style="padding:6px 14px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;background:#1e1e1e;color:#7aafff;border:1px solid rgba(122,175,255,0.3);cursor:pointer;">
+              style="padding:6px 14px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;background:#1e1e1e;color:var(--accent);border:1px solid var(--accent-30);cursor:pointer;">
               + Add
             </button>
           </div>
@@ -1708,10 +1708,10 @@ header { display: none !important; }
           <button onclick="openSmartSortModal()" id="btn-smart-sort" style="display:flex;align-items:center;gap:5px;padding:7px 12px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:rgba(200,162,255,0.07);color:#c8a2ff;border:1px solid rgba(200,162,255,0.15);border-radius:8px;cursor:pointer;">
             <span class="material-symbols-outlined" style="font-size:13px;">auto_awesome</span>Sort
           </button>
-          <button onclick="openBatchImport()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:rgba(122,175,255,0.07);color:#7aafff;border:1px solid rgba(122,175,255,0.15);border-radius:8px;cursor:pointer;">
+          <button onclick="openBatchImport()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:var(--accent-20);color:var(--accent);border:1px solid var(--accent-14);border-radius:8px;cursor:pointer;">
             <span class="material-symbols-outlined" style="font-size:13px;">playlist_add</span>Import
           </button>
-          <button onclick="addSong()" style="display:flex;align-items:center;gap:5px;padding:7px 14px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:#7aafff;color:#002e5d;border:none;border-radius:8px;cursor:pointer;">
+          <button onclick="addSong()" style="display:flex;align-items:center;gap:5px;padding:7px 14px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:var(--accent);color:var(--accent-dark);border:none;border-radius:8px;cursor:pointer;">
             <span class="material-symbols-outlined" style="font-size:13px;">add</span>Add Song
           </button>
         </div>
@@ -1749,7 +1749,7 @@ header { display: none !important; }
       <div style="width:1px;height:20px;background:rgba(72,72,71,0.3);"></div>
       <div>
         <span class="font-bold text-on-surface-variant uppercase" style="font-size:9px;letter-spacing:0.2em;">Total Duration</span>
-        <span id="sl-stat-duration" class="font-headline font-black ml-3" style="font-size:18px;color:#ff7439;">0:00</span>
+        <span id="sl-stat-duration" class="font-headline font-black ml-3" style="font-size:18px;color:var(--hot);">0:00</span>
       </div>
       <div style="width:1px;height:20px;background:rgba(72,72,71,0.3);"></div>
       <div>
@@ -1767,11 +1767,11 @@ header { display: none !important; }
 
 <!-- ═══════════════ ADD SONG MODAL ═══════════════ -->
 <div id="song-modal" style="display:none;position:fixed;inset:0;z-index:9000;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
-  <div style="width:520px;max-width:95vw;background:#0e0e0e;border:1px solid rgba(122,175,255,0.25);box-shadow:0 24px 80px rgba(0,0,0,0.6);">
+  <div style="width:520px;max-width:95vw;background:#0e0e0e;border:1px solid var(--accent-30);box-shadow:0 24px 80px rgba(0,0,0,0.6);">
     <!-- Modal header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a1a1a;">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:3px;height:20px;background:#7aafff;"></div>
+        <div style="width:3px;height:20px;background:var(--accent);"></div>
         <h2 style="font-family:'Space Grotesk';font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#fff;margin:0;">Add Song</h2>
       </div>
       <button onclick="closeSongModal()" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#484847;background:none;border:none;cursor:pointer;font-size:20px;line-height:1;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'">×</button>
@@ -1780,7 +1780,7 @@ header { display: none !important; }
     <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <!-- Title (full width) -->
       <div style="grid-column:1/-1;">
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Song Title <span style="color:#7aafff;">*</span></label>
+        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Song Title <span style="color:var(--accent);">*</span></label>
         <input id="sng-title" type="text" placeholder="Enter song title..." oninput="this.style.borderBottomColor='#484847'"
           style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#fff;font-family:'Inter';font-size:14px;font-weight:600;padding:10px 12px;outline:none;box-sizing:border-box;" />
       </div>
@@ -1806,7 +1806,7 @@ header { display: none !important; }
       <div>
         <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">BPM</label>
         <input id="sng-bpm" type="number" min="40" max="300" placeholder="120"
-          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#7aafff;font-family:'Space Grotesk';font-size:14px;font-weight:700;padding:10px 12px;outline:none;box-sizing:border-box;" />
+          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:var(--accent);font-family:'Space Grotesk';font-size:14px;font-weight:700;padding:10px 12px;outline:none;box-sizing:border-box;" />
       </div>
       <!-- Duration -->
       <div>
@@ -1824,7 +1824,7 @@ header { display: none !important; }
     <!-- Modal footer -->
     <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid #1a1a1a;">
       <button onclick="closeSongModal()" style="padding:10px 24px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#1a1a1a;color:#767575;border:1px solid #262626;cursor:pointer;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#767575'">Cancel</button>
-      <button onclick="saveSong()" style="padding:10px 32px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#7aafff;color:#002e5d;border:none;cursor:pointer;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Add to Setlist</button>
+      <button onclick="saveSong()" style="padding:10px 32px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Add to Setlist</button>
     </div>
   </div>
 </div>
@@ -1867,24 +1867,24 @@ header { display: none !important; }
     <!-- Footer -->
     <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid #1a1a1a;flex-shrink:0;">
       <button onclick="closeBatchImport()" style="padding:10px 20px;background:none;border:1px solid #262626;color:#767575;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#767575'">Cancel</button>
-      <button id="batch-import-btn" onclick="executeBatchImport()" style="padding:10px 28px;background:var(--accent);color:#002e5d;border:none;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;opacity:0.4;" disabled>Import 0 Songs</button>
+      <button id="batch-import-btn" onclick="executeBatchImport()" style="padding:10px 28px;background:var(--accent);color:var(--accent-dark);border:none;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;opacity:0.4;" disabled>Import 0 Songs</button>
     </div>
   </div>
 </div>
 
 <!-- ═══════════════ ADD SEGMENT MODAL ═══════════════ -->
 <div id="segment-modal" style="display:none;position:fixed;inset:0;z-index:9100;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
-  <div style="width:420px;max-width:95vw;background:#0e0e0e;border:1px solid rgba(122,175,255,0.25);box-shadow:0 24px 80px rgba(0,0,0,0.6);">
+  <div style="width:420px;max-width:95vw;background:#0e0e0e;border:1px solid var(--accent-30);box-shadow:0 24px 80px rgba(0,0,0,0.6);">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a1a1a;">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:3px;height:20px;background:#7aafff;"></div>
+        <div style="width:3px;height:20px;background:var(--accent);"></div>
         <h2 style="font-family:'Space Grotesk';font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#fff;margin:0;">Add Segment</h2>
       </div>
       <button onclick="closeSegmentModal()" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#484847;background:none;border:none;cursor:pointer;font-size:20px;line-height:1;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'">×</button>
     </div>
     <div style="padding:24px;display:flex;flex-direction:column;gap:20px;">
       <div>
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Segment Name <span style="color:#7aafff;">*</span></label>
+        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Segment Name <span style="color:var(--accent);">*</span></label>
         <input id="seg-name" type="text" placeholder="e.g. Opener, Main Set, Encore..."
           style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#fff;font-family:'Inter';font-size:14px;font-weight:600;padding:10px 12px;outline:none;box-sizing:border-box;" />
       </div>
@@ -1896,7 +1896,7 @@ header { display: none !important; }
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid #1a1a1a;">
       <button onclick="closeSegmentModal()" style="padding:10px 24px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#1a1a1a;color:#767575;border:1px solid #262626;cursor:pointer;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#767575'">Cancel</button>
-      <button onclick="saveSegment()" style="padding:10px 32px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#7aafff;color:#002e5d;border:none;cursor:pointer;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Create Segment</button>
+      <button onclick="saveSegment()" style="padding:10px 32px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Create Segment</button>
     </div>
   </div>
 </div>
@@ -1933,7 +1933,7 @@ header { display: none !important; }
     <div style="margin-bottom:24px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <h1 style="font-family:'Space Grotesk';font-size:2.8rem;font-weight:800;color:#f2f2f2;margin:0;letter-spacing:-0.04em;line-height:1;">Gear</h1>
-        <button onclick="openGearModal()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:#ff7439;color:#fff;border:none;border-radius:8px;cursor:pointer;flex-shrink:0;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+        <button onclick="openGearModal()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--hot);color:#fff;border:none;border-radius:8px;cursor:pointer;flex-shrink:0;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
           <span class="material-symbols-outlined" style="font-size:14px;">add</span>Add Item
         </button>
       </div>
@@ -1951,11 +1951,11 @@ header { display: none !important; }
       </div>
       <div style="background:#0e0e0e;border:1px solid #1a1a1a;padding:16px 20px;">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin-bottom:6px;">Remaining</div>
-        <div id="gear-stat-remaining" style="font-family:'Space Grotesk';font-size:28px;font-weight:900;color:#ff7439;">0</div>
+        <div id="gear-stat-remaining" style="font-family:'Space Grotesk';font-size:28px;font-weight:900;color:var(--hot);">0</div>
       </div>
       <div style="background:#0e0e0e;border:1px solid #1a1a1a;padding:16px 20px;">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin-bottom:6px;">Total Units</div>
-        <div id="gear-stat-units" style="font-family:'Space Grotesk';font-size:28px;font-weight:900;color:#7aafff;">0</div>
+        <div id="gear-stat-units" style="font-family:'Space Grotesk';font-size:28px;font-weight:900;color:var(--accent);">0</div>
       </div>
     </div>
 
@@ -1981,17 +1981,17 @@ header { display: none !important; }
 
 <!-- ═══════════════ ADD GEAR MODAL ═══════════════ -->
 <div id="gear-modal" style="display:none;position:fixed;inset:0;z-index:9000;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
-  <div style="width:480px;max-width:95vw;background:#0e0e0e;border:1px solid rgba(255,116,57,0.25);box-shadow:0 24px 80px rgba(0,0,0,0.6);">
+  <div style="width:480px;max-width:95vw;background:#0e0e0e;border:1px solid var(--hot-10);box-shadow:0 24px 80px rgba(0,0,0,0.6);">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a1a1a;">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:3px;height:20px;background:#ff7439;"></div>
+        <div style="width:3px;height:20px;background:var(--hot);"></div>
         <h2 style="font-family:'Space Grotesk';font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#fff;margin:0;">Add Gear Item</h2>
       </div>
       <button onclick="closeGearModal()" style="color:#484847;background:none;border:none;cursor:pointer;font-size:20px;line-height:1;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'">×</button>
     </div>
     <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <div style="grid-column:1/-1;">
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Item Name <span style="color:#ff7439;">*</span></label>
+        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Item Name <span style="color:var(--hot);">*</span></label>
         <input id="gear-name" type="text" placeholder="e.g. Shure SM58, Guitar, 10m XLR..."
           style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#fff;font-family:'Inter';font-size:14px;font-weight:600;padding:10px 12px;outline:none;box-sizing:border-box;"
           oninput="this.style.borderBottomColor='#484847'" onkeydown="if(event.key==='Enter')saveGearItem()" />
@@ -2012,7 +2012,7 @@ header { display: none !important; }
       <div>
         <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Quantity</label>
         <input id="gear-qty" type="number" min="1" max="999" value="1"
-          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#ff7439;font-family:'Space Grotesk';font-size:14px;font-weight:700;padding:10px 12px;outline:none;box-sizing:border-box;" />
+          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:var(--hot);font-family:'Space Grotesk';font-size:14px;font-weight:700;padding:10px 12px;outline:none;box-sizing:border-box;" />
       </div>
       <div style="grid-column:1/-1;">
         <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Notes</label>
@@ -2022,7 +2022,7 @@ header { display: none !important; }
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid #1a1a1a;">
       <button onclick="closeGearModal()" style="padding:10px 24px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#1a1a1a;color:#767575;border:1px solid #262626;cursor:pointer;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#767575'">Cancel</button>
-      <button onclick="saveGearItem()" style="padding:10px 32px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#ff7439;color:#fff;border:none;cursor:pointer;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Add Item</button>
+      <button onclick="saveGearItem()" style="padding:10px 32px;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--hot);color:#fff;border:none;cursor:pointer;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Add Item</button>
     </div>
   </div>
 </div>
@@ -2048,7 +2048,7 @@ header { display: none !important; }
             onmouseover="this.style.opacity='0.82'" onmouseout="this.style.opacity='1'">+ Add</button>
         </div>
       </div>
-      <p id="members-max-warn" style="display:none;font-size:10px;color:#ff7439;font-weight:600;margin:6px 0 0;">Maximum 8 members reached.</p>
+      <p id="members-max-warn" style="display:none;font-size:10px;color:var(--hot);font-weight:600;margin:6px 0 0;">Maximum 8 members reached.</p>
     </div>
 
     <!-- Stats row -->
@@ -2063,11 +2063,11 @@ header { display: none !important; }
       </div>
       <div style="background:#0e0e0e;border:1px solid #1a1a1a;padding:16px 20px;">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin-bottom:6px;">Stage Elements</div>
-        <div id="members-stat-elements" style="font-family:'Space Grotesk';font-size:28px;font-weight:900;color:#7aafff;">0</div>
+        <div id="members-stat-elements" style="font-family:'Space Grotesk';font-size:28px;font-weight:900;color:var(--accent);">0</div>
       </div>
       <div style="background:#0e0e0e;border:1px solid #1a1a1a;padding:16px 20px;">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin-bottom:6px;">Unassigned</div>
-        <div id="members-stat-unassigned" style="font-family:'Space Grotesk';font-size:28px;font-weight:900;color:#ff7439;">0</div>
+        <div id="members-stat-unassigned" style="font-family:'Space Grotesk';font-size:28px;font-weight:900;color:var(--hot);">0</div>
       </div>
     </div>
 
@@ -2094,12 +2094,12 @@ header { display: none !important; }
       <div id="export-document" style="max-width:720px;margin:0 auto;font-family:'Inter',sans-serif;color:#fff;">
 
         <!-- COVER -->
-        <div id="exp-cover" class="export-section" style="position:relative;background:#0e0e0e;overflow:hidden;margin-bottom:6px;min-height:220px;padding:36px 40px 28px;border-left:5px solid #7aafff;">
+        <div id="exp-cover" class="export-section" style="position:relative;background:#0e0e0e;overflow:hidden;margin-bottom:6px;min-height:220px;padding:36px 40px 28px;border-left:5px solid var(--accent);">
           <!-- Decorative shapes -->
-          <div style="position:absolute;right:-30px;top:-30px;width:200px;height:200px;background:linear-gradient(135deg,rgba(122,175,255,0.08),transparent);transform:rotate(15deg);pointer-events:none;"></div>
-          <div style="position:absolute;right:40px;top:20px;width:60px;height:60px;background:rgba(122,175,255,0.06);transform:rotate(45deg);pointer-events:none;"></div>
+          <div style="position:absolute;right:-30px;top:-30px;width:200px;height:200px;background:linear-gradient(135deg,var(--accent-08),transparent);transform:rotate(15deg);pointer-events:none;"></div>
+          <div style="position:absolute;right:40px;top:20px;width:60px;height:60px;background:var(--accent-20);transform:rotate(45deg);pointer-events:none;"></div>
 
-          <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#7aafff;margin:0 0 12px;"><span data-i18n="coverLabel">Technical Rider Export</span></p>
+          <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:var(--accent);margin:0 0 12px;"><span data-i18n="coverLabel">Technical Rider Export</span></p>
           <h1 id="exp-project-name" contenteditable="true" style="font-family:'Space Grotesk';font-size:52px;font-weight:900;line-height:0.95;text-transform:uppercase;letter-spacing:-0.03em;color:#fff;margin:0 0 10px;outline:none;cursor:text;" title="Click to edit">MAIN STAGE</h1>
           <p id="exp-subtitle" contenteditable="true" style="font-family:'Inter';font-size:13px;color:#adaaaa;margin:0;outline:none;cursor:text;" title="Click to edit">Main Stage · World Tour 2026</p>
 
@@ -2114,7 +2114,7 @@ header { display: none !important; }
             </div>
             <div>
               <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0 0 3px;"><span data-i18n="elements">Elements</span></p>
-              <p style="font-family:'Space Grotesk';font-size:12px;font-weight:700;color:#7aafff;margin:0;" id="exp-el-count">0</p>
+              <p style="font-family:'Space Grotesk';font-size:12px;font-weight:700;color:var(--accent);margin:0;" id="exp-el-count">0</p>
             </div>
             <div id="exp-last-updated-box">
               <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0 0 3px;">Last Updated</p>
@@ -2134,15 +2134,15 @@ header { display: none !important; }
         <div id="exp-stage-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;">
             <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;color:#fff;margin:0;">
-              <span style="color:#7aafff;">01</span> // <span data-i18n="stagePlot">Stage Plot</span>
+              <span style="color:var(--accent);">01</span> // <span data-i18n="stagePlot">Stage Plot</span>
             </h2>
             <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;" data-i18n="scaleLabel">Scale: 1:50</span>
           </div>
           <!-- Mini Stage Canvas -->
           <div id="exp-canvas-wrap" style="position:relative;width:100%;height:180px;background:#131313;border:1px solid rgba(72,72,71,0.2);overflow:hidden;background-image:linear-gradient(rgba(72,72,71,0.1) 1px,transparent 1px),linear-gradient(90deg,rgba(72,72,71,0.1) 1px,transparent 1px);background-size:24px 24px;">
             <div id="exp-canvas-elements" style="position:absolute;inset:0;"></div>
-            <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(122,175,255,0.4);"></div>
-            <div style="position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.35em;color:#7aafff;">Downstage / Audience</div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--accent-40);"></div>
+            <div style="position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.35em;color:var(--accent);">Downstage / Audience</div>
           </div>
           <!-- Empty state -->
           <div id="exp-canvas-empty" style="display:none;text-align:center;padding:32px 0;color:#484847;">
@@ -2153,7 +2153,7 @@ header { display: none !important; }
         <!-- 02 // INPUT LIST -->
         <div id="exp-input-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
           <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;color:#fff;margin:0 0 16px;">
-            <span style="color:#7aafff;">02</span> // <span data-i18n="inputList">Input List</span>
+            <span style="color:var(--accent);">02</span> // <span data-i18n="inputList">Input List</span>
           </h2>
           <div style="overflow-x:auto;">
             <table id="exp-input-table" style="width:100%;border-collapse:collapse;font-family:'Inter';font-size:13px;">
@@ -2176,7 +2176,7 @@ header { display: none !important; }
         <!-- BAND MEMBERS -->
         <div id="exp-members-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;display:none;">
           <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;color:#fff;margin:0 0 16px;">
-            <span style="color:#7aafff;">03</span> // <span data-i18n="bandMembers">Band Members</span>
+            <span style="color:var(--accent);">03</span> // <span data-i18n="bandMembers">Band Members</span>
           </h2>
           <div id="exp-members-body"></div>
         </div>
@@ -2184,7 +2184,7 @@ header { display: none !important; }
         <!-- 03 // CONNECTIVITY (full-width, page 1) -->
         <div id="exp-connectivity-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
           <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;color:#fff;margin:0 0 16px;">
-            <span style="color:#7aafff;">04</span> // <span data-i18n="connectivity">Connectivity</span>
+            <span style="color:var(--accent);">04</span> // <span data-i18n="connectivity">Connectivity</span>
           </h2>
           <div id="exp-connectivity-body"></div>
         </div>
@@ -2194,7 +2194,7 @@ header { display: none !important; }
         <!-- 04 // SETLIST -->
         <div id="exp-setlist-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
           <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;color:#fff;margin:0 0 16px;">
-            <span style="color:#7aafff;">05</span> // <span data-i18n="setlist">Setlist</span>
+            <span style="color:var(--accent);">05</span> // <span data-i18n="setlist">Setlist</span>
           </h2>
           <div id="exp-setlist-items" style="font-family:'Space Grotesk';font-size:13px;"></div>
         </div>
@@ -2202,7 +2202,7 @@ header { display: none !important; }
         <!-- LIGHTING RIDER (hidden by default, toggled via checkbox) -->
         <div id="exp-lighting-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;display:none;">
           <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;color:#fff;margin:0 0 14px;">
-            <span style="color:#7aafff;">LR</span> // <span data-i18n="lightingRider">Lighting Rider</span>
+            <span style="color:var(--accent);">LR</span> // <span data-i18n="lightingRider">Lighting Rider</span>
           </h2>
           <div style="padding:20px;background:#131313;border-left:2px solid rgba(72,72,71,0.3);">
             <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0 0 8px;">Placeholder</p>
@@ -2214,7 +2214,7 @@ header { display: none !important; }
         <div id="exp-notes-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">
             <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;color:#fff;margin:0;">
-              <span style="color:#7aafff;">06</span> // <span data-i18n="techNotes">Technical Notes</span>
+              <span style="color:var(--accent);">06</span> // <span data-i18n="techNotes">Technical Notes</span>
             </h2>
             <span style="font-size:9px;color:#484847;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;" data-i18n="clickEdit">Click to edit</span>
           </div>
@@ -2229,7 +2229,7 @@ header { display: none !important; }
         <div id="exp-gear-section" class="export-section" style="background:#0e0e0e;margin-bottom:6px;padding:24px 28px;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;">
             <h2 style="font-family:'Space Grotesk';font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;color:#fff;margin:0;">
-              <span style="color:#ff7439;">07</span> // <span data-i18n="gear">Gear / Load-In Checklist</span>
+              <span style="color:var(--hot);">07</span> // <span data-i18n="gear">Gear / Load-In Checklist</span>
             </h2>
           </div>
           <div id="exp-gear-empty" style="display:none;padding:24px 0;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#333;text-align:center;" data-i18n="noGear">No gear items added — visit the Gear tab to build your list.</div>
@@ -2276,7 +2276,7 @@ header { display: none !important; }
         <div>
           <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin:0 0 10px;">Document Format</p>
           <div style="display:flex;gap:0;">
-            <button id="fmt-pdf" onclick="setExportFormat('pdf')" style="flex:1;padding:8px 0;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#7aafff;color:#002e5d;border:none;cursor:pointer;transition:opacity 0.15s;">PDF (Print)</button>
+            <button id="fmt-pdf" onclick="setExportFormat('pdf')" style="flex:1;padding:8px 0;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;transition:opacity 0.15s;">PDF (Print)</button>
           </div>
         </div>
 
@@ -2285,19 +2285,19 @@ header { display: none !important; }
           <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin:0 0 12px;">Include Sections</p>
           <div style="display:flex;flex-direction:column;gap:8px;">
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <input type="checkbox" id="chk-stage" checked onchange="toggleExportSection('exp-stage-section',this.checked)" style="accent-color:#7aafff;width:14px;height:14px;"/>
+              <input type="checkbox" id="chk-stage" checked onchange="toggleExportSection('exp-stage-section',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;"/>
               <span style="font-size:11px;font-weight:600;color:#adaaaa;">Full Stage Plot</span>
             </label>
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <input type="checkbox" id="chk-input" checked onchange="toggleExportSection('exp-input-section',this.checked)" style="accent-color:#7aafff;width:14px;height:14px;"/>
+              <input type="checkbox" id="chk-input" checked onchange="toggleExportSection('exp-input-section',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;"/>
               <span style="font-size:11px;font-weight:600;color:#adaaaa;">Input List Table</span>
             </label>
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <input type="checkbox" id="chk-lighting" onchange="toggleExportSection('exp-lighting-section',this.checked)" style="accent-color:#7aafff;width:14px;height:14px;"/>
+              <input type="checkbox" id="chk-lighting" onchange="toggleExportSection('exp-lighting-section',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;"/>
               <span style="font-size:11px;font-weight:600;color:#adaaaa;">Lighting Rider</span>
             </label>
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <input type="checkbox" id="chk-notes" checked onchange="toggleExportSection('exp-notes-section',this.checked)" style="accent-color:#7aafff;width:14px;height:14px;"/>
+              <input type="checkbox" id="chk-notes" checked onchange="toggleExportSection('exp-notes-section',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;"/>
               <span style="font-size:11px;font-weight:600;color:#adaaaa;">Technical Notes</span>
             </label>
           </div>
@@ -2316,10 +2316,10 @@ header { display: none !important; }
           <div style="margin-top:12px;">
             <p style="font-size:11px;font-weight:600;color:#adaaaa;margin:0 0 6px;">Version Number</p>
             <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:13px;font-weight:700;color:#7aafff;font-family:'Space Grotesk';">v</span>
+              <span style="font-size:13px;font-weight:700;color:var(--accent);font-family:'Space Grotesk';">v</span>
               <input id="exp-version-input" type="number" min="1" step="1" value="1"
                 style="flex:1;padding:6px 10px;background:#161616;border:1px solid #2a2a2a;color:#fff;font-family:'Space Grotesk';font-size:13px;font-weight:700;outline:none;transition:border-color 0.15s;-moz-appearance:textfield;"
-                onfocus="this.style.borderColor='#7aafff'" onblur="this.style.borderColor='#2a2a2a'"
+                onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='#2a2a2a'"
                 oninput="setPlotVersion(this.value)"
                 onchange="setPlotVersion(this.value)" />
             </div>
@@ -2329,7 +2329,7 @@ header { display: none !important; }
 
         <!-- Action Buttons -->
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button onclick="exportPDF()" style="width:100%;padding:12px 0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;background:#7aafff;color:#002e5d;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+          <button onclick="exportPDF()" style="width:100%;padding:12px 0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
             <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
             Generate PDF
           </button>
@@ -2342,8 +2342,8 @@ header { display: none !important; }
         <!-- Status -->
         <div style="padding:14px;background:#131313;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-            <div style="width:6px;height:6px;background:#7aafff;border-radius:50%;"></div>
-            <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#7aafff;">Document Ready</span>
+            <div style="width:6px;height:6px;background:var(--accent);border-radius:50%;"></div>
+            <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--accent);">Document Ready</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
             <div style="width:6px;height:6px;background:#c5ffc9;border-radius:50%;"></div>
@@ -2514,8 +2514,8 @@ header { display: none !important; }
 <!-- ══ MOBILE-ONLY GLOBAL OVERLAYS (at body level so position:fixed always works) ══ -->
 
 <!-- Pull-to-refresh indicator -->
-<div id="ptr-indicator" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;height:3px;background:linear-gradient(90deg,#7aafff,#ff7439);transition:opacity 0.3s;"></div>
-<div id="ptr-label" style="display:none;position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(14,14,14,0.92);border:1px solid rgba(122,175,255,0.25);border-radius:8px;padding:8px 16px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#7aafff;white-space:nowrap;">↓ Pull to refresh</div>
+<div id="ptr-indicator" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;height:3px;background:linear-gradient(90deg,var(--accent),var(--hot));transition:opacity 0.3s;"></div>
+<div id="ptr-label" style="display:none;position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(14,14,14,0.92);border:1px solid var(--accent-30);border-radius:8px;padding:8px 16px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--accent);white-space:nowrap;">↓ Pull to refresh</div>
 
 <!-- Export floating action bar -->
 <div id="mob-export-bar" class="mob-hidden" style="position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:500;">
@@ -2540,14 +2540,14 @@ header { display: none !important; }
             width:calc(100vw - 32px);
             max-width:360px;
             background:#111111;
-            border:1px solid rgba(122,175,255,0.2);
+            border:1px solid var(--accent-20);
             border-radius:12px;
             padding:16px;
             box-shadow:0 12px 48px rgba(0,0,0,0.85);">
 
   <!-- Header -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-    <span style="font-family:'Space Grotesk';font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:#7aafff;">Export Settings</span>
+    <span style="font-family:'Space Grotesk';font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:var(--accent);">Export Settings</span>
     <button id="mob-set-close" style="background:transparent;border:none;color:#767575;cursor:pointer;padding:2px;line-height:1;font-size:18px;">✕</button>
   </div>
 
@@ -2555,7 +2555,7 @@ header { display: none !important; }
   <div style="margin-bottom:14px;">
     <p style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0 0 7px;">Format</p>
     <div style="display:flex;gap:6px;">
-      <button id="mob-fmt-pdf" style="flex:1;padding:7px 0;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:#7aafff;color:#002e5d;border:none;cursor:pointer;">PDF</button>
+      <button id="mob-fmt-pdf" style="flex:1;padding:7px 0;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;">PDF</button>
       <button onclick="closeMobExportSettings(); openShareModal();" style="flex:1;padding:7px 0;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(197,255,201,0.1);color:#c5ffc9;border:1px solid rgba(197,255,201,0.25);cursor:pointer;">Share / QR</button>
     </div>
   </div>
@@ -2565,19 +2565,19 @@ header { display: none !important; }
     <p style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0 0 10px;">Sections</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-        <input type="checkbox" id="mob-chk-stage" checked style="accent-color:#7aafff;width:14px;height:14px;flex-shrink:0;"/>
+        <input type="checkbox" id="mob-chk-stage" checked style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;"/>
         <span style="font-family:'Space Grotesk';font-size:10px;font-weight:600;color:#adaaaa;">Stage Plot</span>
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-        <input type="checkbox" id="mob-chk-input" checked style="accent-color:#7aafff;width:14px;height:14px;flex-shrink:0;"/>
+        <input type="checkbox" id="mob-chk-input" checked style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;"/>
         <span style="font-family:'Space Grotesk';font-size:10px;font-weight:600;color:#adaaaa;">Input List</span>
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-        <input type="checkbox" id="mob-chk-notes" checked style="accent-color:#7aafff;width:14px;height:14px;flex-shrink:0;"/>
+        <input type="checkbox" id="mob-chk-notes" checked style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;"/>
         <span style="font-family:'Space Grotesk';font-size:10px;font-weight:600;color:#adaaaa;">Tech Notes</span>
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-        <input type="checkbox" id="mob-chk-lighting" style="accent-color:#7aafff;width:14px;height:14px;flex-shrink:0;"/>
+        <input type="checkbox" id="mob-chk-lighting" style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;"/>
         <span style="font-family:'Space Grotesk';font-size:10px;font-weight:600;color:#adaaaa;">Lighting</span>
       </label>
     </div>
@@ -2639,7 +2639,7 @@ header { display: none !important; }
     </div>
     <div class="fb-footer" id="fb-footer-ready" style="display:none;flex-direction:column;">
       <a id="fb-mailto-link" href="#" onclick="event.preventDefault(); openFeedbackMail();" class="fb-send-btn" style="display:block;text-align:center;text-decoration:none;line-height:1.6;">Open Mail</a>
-      <button class="fb-send-btn" id="fb-copy-btn" onclick="copyFeedbackText()" style="background:rgba(122,175,255,0.12);color:#7aafff;">Copy to Clipboard</button>
+      <button class="fb-send-btn" id="fb-copy-btn" onclick="copyFeedbackText()" style="background:var(--accent-12);color:var(--accent);">Copy to Clipboard</button>
       <p class="fb-hint">Can't open email? Copy the text above and paste it into Gmail or any email app.</p>
       <button onclick="resetFeedbackForm()" style="background:none;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#3a3a3a;padding:4px 0;text-align:center;width:100%;transition:color 0.12s;" onmouseover="this.style.color='#6b7280'" onmouseout="this.style.color='#3a3a3a'">← Edit feedback</button>
     </div>
@@ -2654,13 +2654,13 @@ header { display: none !important; }
     <button onclick="dismissSuggestion()" style="background:none;border:none;cursor:pointer;color:#2a2a2a;font-size:14px;line-height:1;padding:0;flex-shrink:0;transition:color 0.12s;margin-top:-1px;" onmouseover="this.style.color='#555'" onmouseout="this.style.color='#2a2a2a'">×</button>
   </div>
   <p id="smart-suggest-text" style="font-family:'Inter',sans-serif;font-size:11px;color:#555;margin:0 0 7px;line-height:1.5;"></p>
-  <button id="smart-suggest-accept" onclick="acceptSuggestion()" style="padding:4px 10px;background:transparent;color:#484847;border:1px solid rgba(72,72,71,0.3);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;transition:color 0.12s,border-color 0.12s;" onmouseover="this.style.color='#7aafff';this.style.borderColor='rgba(122,175,255,0.4)'" onmouseout="this.style.color='#484847';this.style.borderColor='rgba(72,72,71,0.3)'">Apply to Rider</button>
+  <button id="smart-suggest-accept" onclick="acceptSuggestion()" style="padding:4px 10px;background:transparent;color:#484847;border:1px solid rgba(72,72,71,0.3);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;transition:color 0.12s,border-color 0.12s;" onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent-40)'" onmouseout="this.style.color='#484847';this.style.borderColor='rgba(72,72,71,0.3)'">Apply to Rider</button>
 </div>
 
 
 <!-- ═══════════════════════ CUSTOM ELEMENT MODAL ═══════════════════════ -->
 <div id="custom-el-modal" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
-  <div style="background:#111217;border:1px solid rgba(122,175,255,0.15);width:360px;max-width:calc(100vw - 32px);font-family:'Space Grotesk',sans-serif;">
+  <div style="background:#111217;border:1px solid var(--accent-14);width:360px;max-width:calc(100vw - 32px);font-family:'Space Grotesk',sans-serif;">
     <!-- Modal header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(72,72,71,0.15);">
       <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#e0e0e0;">Create Custom Element</span>
@@ -2672,7 +2672,7 @@ header { display: none !important; }
       <div>
         <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#484847;margin-bottom:6px;">Element Name</label>
         <input id="cust-el-name" type="text" placeholder="e.g. Theremin, Talk Box, Sample Pad…" maxlength="28"
-          style="width:100%;padding:9px 12px;background:#0e0e0e;border:1px solid rgba(72,72,71,0.3);color:#e0e0e0;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;box-sizing:border-box;outline:none;" onfocus="this.style.borderColor='rgba(122,175,255,0.4)'" onblur="this.style.borderColor='rgba(72,72,71,0.3)'"/>
+          style="width:100%;padding:9px 12px;background:#0e0e0e;border:1px solid rgba(72,72,71,0.3);color:#e0e0e0;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;box-sizing:border-box;outline:none;" onfocus="this.style.borderColor='var(--accent-40)'" onblur="this.style.borderColor='rgba(72,72,71,0.3)'"/>
       </div>
       <!-- Icon row: emoji + image upload + color -->
       <div style="display:flex;gap:10px;align-items:flex-end;">
@@ -2680,7 +2680,7 @@ header { display: none !important; }
         <div id="cust-el-emoji-wrap" style="flex:1;">
           <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#484847;margin-bottom:6px;">Emoji Icon</label>
           <input id="cust-el-emoji" type="text" value="🎵" maxlength="4"
-            style="width:100%;padding:9px 10px;background:#0e0e0e;border:1px solid rgba(72,72,71,0.3);color:#e0e0e0;font-family:'Space Grotesk',sans-serif;font-size:20px;text-align:center;box-sizing:border-box;outline:none;" onfocus="this.style.borderColor='rgba(122,175,255,0.4)'" onblur="this.style.borderColor='rgba(72,72,71,0.3)'"/>
+            style="width:100%;padding:9px 10px;background:#0e0e0e;border:1px solid rgba(72,72,71,0.3);color:#e0e0e0;font-family:'Space Grotesk',sans-serif;font-size:20px;text-align:center;box-sizing:border-box;outline:none;" onfocus="this.style.borderColor='var(--accent-40)'" onblur="this.style.borderColor='rgba(72,72,71,0.3)'"/>
         </div>
         <!-- Image upload area -->
         <div style="flex:1;">
@@ -2689,11 +2689,11 @@ header { display: none !important; }
           <!-- Shows upload button when no image, preview when image selected -->
           <div id="cust-el-img-btn" onclick="document.getElementById('cust-el-img-input').click()" title="Upload image icon"
             style="width:100%;height:42px;display:flex;align-items:center;justify-content:center;gap:6px;background:#0e0e0e;border:1px dashed rgba(72,72,71,0.35);cursor:pointer;transition:border-color 0.15s,background 0.15s;"
-            onmouseover="this.style.borderColor='rgba(122,175,255,0.4)';this.style.background='rgba(122,175,255,0.04)'" onmouseout="this.style.borderColor='rgba(72,72,71,0.35)';this.style.background='#0e0e0e'">
+            onmouseover="this.style.borderColor='var(--accent-40)';this.style.background='var(--accent-20)'" onmouseout="this.style.borderColor='rgba(72,72,71,0.35)';this.style.background='#0e0e0e'">
             <span class="material-symbols-outlined" style="font-size:16px;color:#484847;">upload</span>
             <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#484847;">Upload</span>
           </div>
-          <div id="cust-el-img-preview" style="display:none;position:relative;width:100%;height:42px;background:#0e0e0e;border:1px solid rgba(122,175,255,0.25);align-items:center;justify-content:center;">
+          <div id="cust-el-img-preview" style="display:none;position:relative;width:100%;height:42px;background:#0e0e0e;border:1px solid var(--accent-30);align-items:center;justify-content:center;">
             <img id="cust-el-img-thumb" style="max-width:36px;max-height:36px;object-fit:contain;image-rendering:auto;"/>
             <button onclick="clearCustomElImage()" title="Remove image" style="position:absolute;top:2px;right:3px;background:none;border:none;cursor:pointer;color:#444;font-size:13px;line-height:1;padding:0;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#444'">×</button>
           </div>
@@ -2708,7 +2708,7 @@ header { display: none !important; }
       <!-- Library Section -->
       <div>
         <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#484847;margin-bottom:6px;">Library Section</label>
-        <select id="cust-el-category" style="width:100%;padding:9px 12px;background:#0e0e0e;border:1px solid rgba(72,72,71,0.3);color:#e0e0e0;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;box-sizing:border-box;outline:none;cursor:pointer;" onfocus="this.style.borderColor='rgba(122,175,255,0.4)'" onblur="this.style.borderColor='rgba(72,72,71,0.3)'">
+        <select id="cust-el-category" style="width:100%;padding:9px 12px;background:#0e0e0e;border:1px solid rgba(72,72,71,0.3);color:#e0e0e0;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;box-sizing:border-box;outline:none;cursor:pointer;" onfocus="this.style.borderColor='var(--accent-40)'" onblur="this.style.borderColor='rgba(72,72,71,0.3)'">
           <option value="custom">Custom</option>
           <option value="mics">Mics</option>
           <option value="drums">Drums</option>
@@ -2720,7 +2720,7 @@ header { display: none !important; }
       </div>
       <!-- Buttons -->
       <div style="display:flex;gap:8px;padding-top:2px;">
-        <button onclick="saveCustomElement()" style="flex:1;padding:11px;background:#7aafff;color:#001e4a;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Create Element</button>
+        <button onclick="saveCustomElement()" style="flex:1;padding:11px;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Create Element</button>
         <button onclick="closeCustomElementModal()" style="flex:1;padding:11px;background:rgba(255,255,255,0.05);color:#888;border:1px solid rgba(72,72,71,0.2);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">Cancel</button>
       </div>
     </div>
@@ -2747,7 +2747,7 @@ header { display: none !important; }
   <div id="tl-list" style="flex:1;overflow-y:auto;padding:10px 12px;"></div>
   <!-- Footer actions -->
   <div style="flex-shrink:0;padding:12px 16px;border-top:1px solid rgba(255,255,255,0.05);display:flex;flex-wrap:wrap;gap:6px;">
-    <button onclick="addTimelineItem('song')" style="flex:1;min-width:80px;padding:8px 6px;background:rgba(122,175,255,0.1);color:#7aafff;border:1px solid rgba(122,175,255,0.2);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;transition:all 0.15s;" onmouseover="this.style.background='rgba(122,175,255,0.18)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">+ Song</button>
+    <button onclick="addTimelineItem('song')" style="flex:1;min-width:80px;padding:8px 6px;background:var(--accent-10);color:var(--accent);border:1px solid var(--accent-20);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;transition:all 0.15s;" onmouseover="this.style.background='var(--accent-20)'" onmouseout="this.style.background='var(--accent-10)'">+ Song</button>
     <button onclick="addTimelineItem('break')" style="flex:1;min-width:80px;padding:8px 6px;background:rgba(255,180,60,0.08);color:#ffb43c;border:1px solid rgba(255,180,60,0.2);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;transition:all 0.15s;" onmouseover="this.style.background='rgba(255,180,60,0.15)'" onmouseout="this.style.background='rgba(255,180,60,0.08)'">+ Break</button>
     <button onclick="addTimelineItem('transition')" style="flex:1;min-width:80px;padding:8px 6px;background:rgba(255,113,108,0.08);color:#ff716c;border:1px solid rgba(255,113,108,0.2);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;transition:all 0.15s;" onmouseover="this.style.background='rgba(255,113,108,0.15)'" onmouseout="this.style.background='rgba(255,113,108,0.08)'">+ Transition</button>
     <button onclick="syncTimelineFromSetlist()" style="width:100%;padding:8px 6px;background:rgba(197,255,201,0.07);color:#c5ffc9;border:1px solid rgba(197,255,201,0.15);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;transition:all 0.15s;" onmouseover="this.style.background='rgba(197,255,201,0.14)'" onmouseout="this.style.background='rgba(197,255,201,0.07)'">⟳ Sync from Setlist</button>
@@ -2799,13 +2799,13 @@ header { display: none !important; }
 
     <!-- Link area -->
     <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(72,72,71,0.3);padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;">
-      <input id="share-url-input" type="text" readonly style="flex:1;background:none;border:none;color:#7aafff;font-family:'Space Grotesk',sans-serif;font-size:11px;outline:none;word-break:break-all;" placeholder="Click Generate to create link">
-      <button onclick="copyShareLink()" style="flex-shrink:0;padding:6px 12px;background:rgba(122,175,255,0.12);color:#7aafff;border:1px solid rgba(122,175,255,0.25);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;" onmouseover="this.style.background='rgba(122,175,255,0.22)'" onmouseout="this.style.background='rgba(122,175,255,0.12)'">Copy</button>
+      <input id="share-url-input" type="text" readonly style="flex:1;background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;outline:none;word-break:break-all;" placeholder="Click Generate to create link">
+      <button onclick="copyShareLink()" style="flex-shrink:0;padding:6px 12px;background:var(--accent-12);color:var(--accent);border:1px solid var(--accent-30);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;" onmouseover="this.style.background='var(--accent-22)'" onmouseout="this.style.background='var(--accent-12)'">Copy</button>
     </div>
     <!-- Password protection toggle -->
     <div style="margin-bottom:12px;padding:10px 12px;background:rgba(255,255,255,0.02);border:1px solid rgba(72,72,71,0.2);">
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-        <input id="share-pw-toggle" type="checkbox" onchange="scTogglePwField()" style="width:14px;height:14px;accent-color:#7aafff;cursor:pointer;flex-shrink:0;">
+        <input id="share-pw-toggle" type="checkbox" onchange="scTogglePwField()" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;">
         <div>
           <span style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#c4c4c3;">Password Protect</span>
           <span style="font-family:'Inter',sans-serif;font-size:10px;color:#484847;margin-left:6px;">— viewers must enter a password to open</span>
@@ -2815,7 +2815,7 @@ header { display: none !important; }
         <label style="font-family:'Space Grotesk',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#767575;display:block;margin-bottom:5px;">Set Password</label>
         <input id="share-pw-value" type="password" autocomplete="new-password" placeholder="Enter a password for this link"
           style="width:100%;background:#0a0a0c;border:1px solid rgba(72,72,71,0.4);color:#e0e0e0;padding:8px 10px;font-family:'Space Grotesk',sans-serif;font-size:12px;outline:none;box-sizing:border-box;transition:border-color .15s;"
-          onfocus="this.style.borderColor='rgba(122,175,255,0.5)'" onblur="this.style.borderColor='rgba(72,72,71,0.4)'">
+          onfocus="this.style.borderColor='var(--accent-50)'" onblur="this.style.borderColor='rgba(72,72,71,0.4)'">
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:22px;">
@@ -2834,7 +2834,7 @@ header { display: none !important; }
       </div>
       <div style="flex:1;">
         <div style="font-family:'Inter',sans-serif;font-size:12px;color:#555;margin-bottom:14px;">Scan to open the read-only stage plot on any device.</div>
-        <button onclick="generateQRCode()" style="width:100%;padding:9px;background:rgba(122,175,255,0.1);color:#7aafff;border:1px solid rgba(122,175,255,0.25);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;transition:all 0.15s;" onmouseover="this.style.background='rgba(122,175,255,0.18)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">Generate QR</button>
+        <button onclick="generateQRCode()" style="width:100%;padding:9px;background:var(--accent-10);color:var(--accent);border:1px solid var(--accent-30);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;transition:all 0.15s;" onmouseover="this.style.background='var(--accent-20)'" onmouseout="this.style.background='var(--accent-10)'">Generate QR</button>
         <button onclick="downloadQRCode()" id="btn-dl-qr" style="width:100%;padding:9px;background:rgba(255,255,255,0.04);color:#666;border:1px solid rgba(72,72,71,0.2);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;transition:all 0.15s;" disabled>Download PNG</button>
       </div>
     </div>
@@ -2880,22 +2880,22 @@ header { display: none !important; }
 </div>
 
 <!-- CABLE CONTEXT MENU -->
-<div id="cable-context-menu" style="display:none;position:fixed;z-index:6000;min-width:178px;background:#111217;border:1px solid rgba(122,175,255,0.15);box-shadow:0 8px 32px rgba(0,0,0,0.85);font-family:'Space Grotesk',sans-serif;overflow:hidden;">
+<div id="cable-context-menu" style="display:none;position:fixed;z-index:6000;min-width:178px;background:#111217;border:1px solid var(--accent-14);box-shadow:0 8px 32px rgba(0,0,0,0.85);font-family:'Space Grotesk',sans-serif;overflow:hidden;">
   <div style="padding:7px 12px 5px;border-bottom:1px solid rgba(72,72,71,0.2);">
     <p style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0;">Cable Type</p>
   </div>
-  <div class="cable-type-item" data-ctype="xlr" onclick="setCableType('xlr')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:#adaaaa;transition:background 0.1s;" onmouseover="this.style.background='rgba(122,175,255,0.08)'" onmouseout="this.style.background='transparent'">
-    <span class="cable-type-check" style="font-size:9px;width:10px;flex-shrink:0;color:#7aafff;"> </span>
+  <div class="cable-type-item" data-ctype="xlr" onclick="setCableType('xlr')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:#adaaaa;transition:background 0.1s;" onmouseover="this.style.background='var(--accent-08)'" onmouseout="this.style.background='transparent'">
+    <span class="cable-type-check" style="font-size:9px;width:10px;flex-shrink:0;color:var(--accent);"> </span>
     <span style="font-size:11px;font-weight:700;">XLR</span>
     <span style="font-size:9px;color:#484847;margin-left:auto;">Balanced audio</span>
   </div>
-  <div class="cable-type-item" data-ctype="quarter" onclick="setCableType('quarter')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:#adaaaa;transition:background 0.1s;" onmouseover="this.style.background='rgba(122,175,255,0.08)'" onmouseout="this.style.background='transparent'">
-    <span class="cable-type-check" style="font-size:9px;width:10px;flex-shrink:0;color:#7aafff;"> </span>
+  <div class="cable-type-item" data-ctype="quarter" onclick="setCableType('quarter')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:#adaaaa;transition:background 0.1s;" onmouseover="this.style.background='var(--accent-08)'" onmouseout="this.style.background='transparent'">
+    <span class="cable-type-check" style="font-size:9px;width:10px;flex-shrink:0;color:var(--accent);"> </span>
     <span style="font-size:11px;font-weight:700;">1/4&quot;</span>
     <span style="font-size:9px;color:#484847;margin-left:auto;">Instrument</span>
   </div>
   <div class="cable-type-item" data-ctype="power" onclick="setCableType('power')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:#adaaaa;transition:background 0.1s;" onmouseover="this.style.background='rgba(255,179,71,0.08)'" onmouseout="this.style.background='transparent'">
-    <span class="cable-type-check" style="font-size:9px;width:10px;flex-shrink:0;color:#7aafff;"> </span>
+    <span class="cable-type-check" style="font-size:9px;width:10px;flex-shrink:0;color:var(--accent);"> </span>
     <span style="font-size:11px;font-weight:700;">Power</span>
     <span style="font-size:9px;color:#484847;margin-left:auto;">AC mains</span>
   </div>
