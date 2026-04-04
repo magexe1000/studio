@@ -23,7 +23,6 @@ export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
 
   // On first mount: apply startupApp preference
-  const startupHandled = useRef(false);
   useEffect(() => {
     const startApp = settings.startupApp ?? 'hub';
     if (startApp === 'drums') {
@@ -38,7 +37,6 @@ export default function App() {
       const tab = settings.defaultTab ?? 'library';
       if (tab !== 'library') setActivePanel(tab);
     }
-    startupHandled.current = true;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

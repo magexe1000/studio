@@ -2431,7 +2431,7 @@ export default function SongsPanel() {
     addSection, updateSection, deleteSection, addChordToSection, removeChordFromSection, reorderSection, convertToSections,
     deduplicatePresetChords,
   } = useChordStore();
-  const accent      = ACCENT_COLORS[settings.accentColor];
+  const accent      = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
   const preferFlats = settings.preferFlats ?? false;
   const isNative    = typeof window !== 'undefined' && !!(window as any).Capacitor?.isNativePlatform?.();
 

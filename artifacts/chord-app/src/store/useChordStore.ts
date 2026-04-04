@@ -540,13 +540,14 @@ export const useChordStore = create<ChordStore>()(
         if (fromVersion < 2) {
           if (s.settings && typeof s.settings === 'object') {
             const settings = s.settings as Record<string, unknown>;
-            const theme      = (settings.theme       as Theme)       ?? 'dark';
+            const theme       = (settings.theme       as Theme)       ?? 'dark';
             const accentColor = (settings.accentColor as AccentColor) ?? 'blue';
             const amoledMode  = (settings.amoledMode  as boolean)     ?? false;
             settings.perApp = {
               hub:    { theme, accentColor, amoledMode },
               chords: { theme, accentColor, amoledMode },
               drums:  { theme, accentColor, amoledMode },
+              stage:  { theme, accentColor, amoledMode },
             };
           }
         }

@@ -121,10 +121,14 @@ export default function BottomNav() {
     { panel: 'chord',    Icon: IconChords,   label: t.nav.chords   },
     { panel: 'settings', Icon: IconSettings, label: t.nav.settings },
   ];
-  const accent   = ACCENT_COLORS[settings.accentColor];
-  // Derive the active per-app theme the same way App.tsx does (per-app beats global)
-  const appKey   = (settings.appMode ?? 'hub') as AppKey;
-  const activeVis = settings.perApp?.[appKey] ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
+  // Derive the active per-app visuals the same way App.tsx does (per-app beats global)
+  const appKey    = (settings.appMode ?? 'hub') as AppKey;
+  const activeVis = settings.perApp?.[appKey] ?? {
+    theme:       settings.theme       ?? 'dark',
+    accentColor: settings.accentColor ?? 'blue',
+    amoledMode:  settings.amoledMode  ?? false,
+  };
+  const accent    = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
   const isLight  = activeVis.theme === 'light' || (activeVis.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const amoledBg = activeVis.amoledMode
     ? 'rgba(4,4,4,0.88)'

@@ -8,7 +8,7 @@ import { IconSongs, IconLibrary, IconChords, IconSettings } from '../components/
 
 export default function SettingsPanel() {
   const { settings, updateSettings } = useChordStore();
-  const acc = ACCENT_COLORS[settings.accentColor];
+  const acc = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);

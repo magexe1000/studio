@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useScrollHide } from '../lib/navScroll';
 import { getChordById, getRelatedChords, suggestNextChord } from '../data/chords';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
@@ -42,19 +42,31 @@ export default function ChordPanel() {
 
   const chord = selectedChordId ? getChordById(selectedChordId) : null;
   const favorite = chord ? isFavorite(chord.id) : false;
-  const accent = ACCENT_COLORS[settings.accentColor];
+  const accent = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
 
   useEffect(() => {
     if (chord && settings.chordAssistant && settings.assistantLearning) {
       trackChordUsage(chord.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chord?.id]);
 
-  const relatedChords = (chord && settings.chordAssistant && settings.assistantSmartSuggestions)
-    ? getRelatedChords(chord).slice(0, 4) : [];
-  const progressionChords = currentProgressionChords.map(id => getChordById(id)).filter(Boolean);
-  const suggestions = (settings.chordAssistant && settings.assistantProgressionTips)
-    ? suggestNextChord(progressionChords as any).slice(0, 5) : [];
+  const relatedChords = useMemo(
+    () => (chord && settings.chordAssistant && settings.assistantSmartSuggestions)
+      ? getRelatedChords(chord).slice(0, 4) : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chord?.id, settings.chordAssistant, settings.assistantSmartSuggestions],
+  );
+  const progressionChords = useMemo(
+    () => currentProgressionChords.map(id => getChordById(id)).filter(Boolean),
+    [currentProgressionChords],
+  );
+  const suggestions = useMemo(
+    () => (settings.chordAssistant && settings.assistantProgressionTips)
+      ? suggestNextChord(progressionChords as any).slice(0, 5) : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [progressionChords, settings.chordAssistant, settings.assistantProgressionTips],
+  );
 
   const recentList = recentChords
     .map(id => getChordById(id))

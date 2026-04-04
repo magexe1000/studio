@@ -347,7 +347,7 @@ function ChordCard({
 // ── Main panel ────────────────────────────────────────────────
 export default function LibraryPanel() {
   const { selectedChordId, recentChords, favorites, selectChord, settings, activePanel } = useChordStore();
-  const accent = ACCENT_COLORS[settings.accentColor];
+  const accent = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
   const t = useT();
   const isDark = settings.theme === 'dark' ||
     (settings.theme === 'system' && typeof window !== 'undefined' &&

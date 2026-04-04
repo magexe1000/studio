@@ -66,23 +66,7 @@ const KIT_LABEL: Record<KitType, string> = {
   cr78:   'Roland CR-78',         tr808:'Roland TR-808', techno:'Techno Kit', stark:'Stark Industrial',
   rmm:    'Real Music Media OSDK', chrome:'Chrome Acoustic', house: 'House Kit',
 };
-const KIT_DESC: Record<KitType, string> = {
-  ludwig: 'Pearl Master Studio · 10-ply maple shells · CC-BY-3.0',
-  jazz:   'Pearl Master Studio (brush) · snare-03 · jazz room bloom',
-  rock:   'Big punchy kick · fat cracking snare',
-  vintage:'Woodsy warm tones · open resonance',
-  studio: 'Clean compressed bright studio kit',
-  r8:     '1989 electronic-acoustic hybrid',
-  linn:   '1982 sample-based drum machine',
-  funk:   'Tight snappy groove machine',
-  cr78:   'Vintage 1978 analog drum machine',
-  tr808:  'Deep bass hip-hop classic · 1980',
-  techno: 'Hard punching industrial rave',
-  stark:  'Cold metallic machine sounds',
-  rmm:    'Real Music Media Open Source Kit · 20+ velocity layers · public domain',
-  chrome: 'Chrome Web Audio Acoustic · cwilso / Google · Web Audio API demo',
-  house:  'Ultra HD · multi-velocity · round-robin real samples · 4 mic positions',
-};
+
 // ── Per-instrument character presets ─────────────────────────────────────────
 // Each preset applies a curated combination of FX values in one tap.
 // Values use the same range as the sliders (0-1 for knobs, ±12 for EQ dB).
