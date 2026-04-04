@@ -125,7 +125,7 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
             <span style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 18, height: 18, flexShrink: 0,
-              color: 'white',
+              color: isLight ? 'var(--c-text-primary)' : 'white',
             }}>
               <StudioLogo size={16} />
             </span>

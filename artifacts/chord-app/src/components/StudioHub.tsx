@@ -104,6 +104,7 @@ export default function StudioHub() {
   const { settings, updateSettings } = useChordStore();
   const hubAccentKey = settings.perApp?.hub?.accentColor ?? settings.accentColor;
   const accent = ACCENT_COLORS[hubAccentKey];
+  const isHubLight = (settings.perApp?.hub?.theme ?? settings.theme ?? 'dark') === 'light';
 
   const [tab, setTab]     = useState<HubTab>('home');
   const [zooming, setZooming] = useState(false);
@@ -150,7 +151,7 @@ export default function StudioHub() {
               paddingTop: 'clamp(48px, 10vh, 80px)',
               animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
             }}>
-              <div style={{ color: 'white' }}>
+              <div style={{ color: isHubLight ? '#18181b' : 'white' }}>
                 <StudioLogo size={56} />
               </div>
               <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: '10px 0 0', letterSpacing: '-0.03em', lineHeight: 1 }}>
