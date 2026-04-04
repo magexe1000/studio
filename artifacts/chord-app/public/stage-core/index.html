@@ -3218,11 +3218,10 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 </div>
 
 <!-- ═══════════════════════ EXPORT VIEW ═══════════════════════ -->
-<div id="view-Export" class="view-page" style="margin-left:0;padding-top:64px;height:100vh;display:none;overflow:hidden;">
-  <div style="display:flex;height:100%;overflow:hidden;">
+<div id="view-Export" class="view-page" style="margin-left:0;padding-top:64px;height:100vh;display:none;overflow:hidden;position:relative;">
 
-    <!-- LEFT: Scrollable document preview -->
-    <div id="export-preview-scroll" style="flex:1;overflow-y:auto;background:#131313;padding:32px 40px;">
+    <!-- Full-width Scrollable document preview -->
+    <div id="export-preview-scroll" style="height:100%;overflow-y:auto;background:#131313;padding:32px 40px 110px;">
       <!-- The printable rider document -->
       <div id="export-document" style="max-width:720px;margin:0 auto;font-family:'Inter',sans-serif;color:#fff;">
 
@@ -3396,99 +3395,50 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
       </div>
     </div>
 
-    <!-- RIGHT: Export Options Panel -->
-    <div id="export-options-panel" style="width:280px;flex-shrink:0;background:#0e0e0e;border-left:1px solid rgba(72,72,71,0.12);display:flex;flex-direction:column;overflow-y:auto;">
-      <!-- Header -->
-      <div style="padding:20px 20px 14px;border-bottom:1px solid rgba(72,72,71,0.12);">
-        <p style="font-family:'Space Grotesk';font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#fff;margin:0;">Export Options</p>
-      </div>
-
-      <div style="padding:20px;flex:1;display:flex;flex-direction:column;gap:24px;">
-
-        <!-- Document Format -->
-        <div>
-          <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin:0 0 10px;">Document Format</p>
-          <div style="display:flex;gap:0;">
-            <button id="fmt-pdf" onclick="setExportFormat('pdf')" style="flex:1;padding:8px 0;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;transition:opacity 0.15s;">PDF (Print)</button>
-          </div>
-        </div>
-
-        <!-- Include Sections -->
-        <div>
-          <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin:0 0 12px;">Include Sections</p>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <input type="checkbox" id="chk-stage" checked onchange="toggleExportSection('exp-stage-section',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;"/>
-              <span style="font-size:11px;font-weight:600;color:#adaaaa;">Full Stage Plot</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <input type="checkbox" id="chk-input" checked onchange="toggleExportSection('exp-input-section',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;"/>
-              <span style="font-size:11px;font-weight:600;color:#adaaaa;">Input List Table</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <input type="checkbox" id="chk-lighting" onchange="toggleExportSection('exp-lighting-section',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;"/>
-              <span style="font-size:11px;font-weight:600;color:#adaaaa;">Lighting Rider</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <input type="checkbox" id="chk-notes" checked onchange="toggleExportSection('exp-notes-section',this.checked)" style="accent-color:var(--accent);width:14px;height:14px;"/>
-              <span style="font-size:11px;font-weight:600;color:#adaaaa;">Technical Notes</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Last Updated Toggle -->
-        <div>
-          <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin:0 0 10px;">Document Info</p>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-            <div>
-              <p style="font-size:11px;font-weight:600;color:#adaaaa;margin:0 0 2px;">Include Last Updated</p>
-              <p style="font-size:9px;color:#767575;margin:0;">Show timestamp &amp; version in export</p>
-            </div>
-            <button id="exp-show-lu-toggle" class="toggle-switch on" onclick="toggleShowLastUpdated()" title="Toggle last updated in exports"></button>
-          </div>
-          <div style="margin-top:12px;">
-            <p style="font-size:11px;font-weight:600;color:#adaaaa;margin:0 0 6px;">Version Number</p>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:13px;font-weight:700;color:var(--accent);font-family:'Space Grotesk';">v</span>
-              <input id="exp-version-input" type="number" min="1" step="1" value="1"
-                style="flex:1;padding:6px 10px;background:#161616;border:1px solid #2a2a2a;color:#fff;font-family:'Space Grotesk';font-size:13px;font-weight:700;outline:none;transition:border-color 0.15s;-moz-appearance:textfield;"
-                onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='#2a2a2a'"
-                oninput="setPlotVersion(this.value)"
-                onchange="setPlotVersion(this.value)" />
-            </div>
-            <p style="font-size:9px;color:#767575;margin:4px 0 0;">Set manually — won't auto-change</p>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <button onclick="exportPDF()" style="width:100%;padding:12px 0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
-            <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
-            Generate PDF
-          </button>
-          <button onclick="openShareModal()" style="width:100%;padding:10px 0;font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;background:transparent;color:#c5ffc9;border:1px solid rgba(197,255,201,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s;" onmouseover="this.style.borderColor='rgba(197,255,201,0.7)'" onmouseout="this.style.borderColor='rgba(197,255,201,0.3)'">
-            <span class="material-symbols-outlined" style="font-size:16px;">share</span>
-            Share / QR Code
-          </button>
-        </div>
-
-        <!-- Status -->
-        <div style="padding:14px;background:#131313;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-            <div style="width:6px;height:6px;background:var(--accent);border-radius:50%;"></div>
-            <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--accent);">Document Ready</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="width:6px;height:6px;background:#c5ffc9;border-radius:50%;"></div>
-            <span id="exp-element-status" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#c5ffc9;">0 Elements on Stage</span>
-          </div>
-        </div>
-
-
-      </div>
+  <!-- ── Floating bottom bar ───────────────────────────────────── -->
+  <div id="export-bottom-bar" style="
+    position:absolute;bottom:0;left:0;right:0;
+    padding:10px 16px 12px;
+    background:rgba(8,8,8,0.88);
+    backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+    border-top:1px solid rgba(255,255,255,0.07);
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    z-index:200;
+    transition:transform 0.35s cubic-bezier(0.4,0,0.2,1),opacity 0.35s ease;
+  ">
+    <!-- Section chips -->
+    <div style="display:flex;gap:6px;flex:1;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:#484847;margin-right:2px;white-space:nowrap;">Sections</span>
+      <button id="chip-stage" onclick="toggleExpChip('exp-stage-section','chip-stage')" class="exp-chip exp-chip--on">Stage Plot</button>
+      <button id="chip-input" onclick="toggleExpChip('exp-input-section','chip-input')" class="exp-chip exp-chip--on">Input List</button>
+      <button id="chip-notes" onclick="toggleExpChip('exp-notes-section','chip-notes')" class="exp-chip exp-chip--on">Tech Notes</button>
+      <button id="chip-lighting" onclick="toggleExpChip('exp-lighting-section','chip-lighting')" class="exp-chip">Lighting</button>
+      <button id="chip-gear" onclick="toggleExpChip('exp-gear-section','chip-gear')" class="exp-chip exp-chip--on">Gear</button>
     </div>
-
+    <!-- Action buttons -->
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
+      <button onclick="openShareModal()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;background:transparent;color:#c5ffc9;border:1px solid rgba(197,255,201,0.25);cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(197,255,201,0.6)'" onmouseout="this.style.borderColor='rgba(197,255,201,0.25)'">
+        <span class="material-symbols-outlined" style="font-size:15px;">share</span>
+        Share
+      </button>
+      <button id="exp-gen-pdf-btn" onclick="exportPDF()" style="display:flex;align-items:center;gap:7px;padding:9px 20px;font-family:'Space Grotesk';font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.86'" onmouseout="this.style.opacity='1'">
+        <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
+        Export PDF
+      </button>
+    </div>
   </div>
+
+  <!-- Hidden compatibility panel (referenced by exportPDF button selector) -->
+  <div id="export-options-panel" style="display:none;">
+    <input type="checkbox" id="chk-stage" checked/>
+    <input type="checkbox" id="chk-input" checked/>
+    <input type="checkbox" id="chk-lighting"/>
+    <input type="checkbox" id="chk-notes" checked/>
+    <button id="exp-show-lu-toggle" class="toggle-switch on" onclick="toggleShowLastUpdated()"></button>
+    <input id="exp-version-input" type="number" min="1" step="1" value="1" oninput="setPlotVersion(this.value)" onchange="setPlotVersion(this.value)"/>
+    <span id="exp-element-status"></span>
+  </div>
+
 </div>
 
 

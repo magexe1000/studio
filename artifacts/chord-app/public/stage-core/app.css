@@ -2662,3 +2662,37 @@ body.share-mode::after {
   pointer-events: stroke;
   cursor: context-menu;
 }
+
+/* ── Export bottom bar chips ──────────────────────────────── */
+.exp-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  background: rgba(255,255,255,0.05);
+  color: #484847;
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.exp-chip:hover {
+  background: rgba(255,255,255,0.09);
+  color: #adaaaa;
+}
+.exp-chip.exp-chip--on {
+  background: rgba(var(--accent-rgb, 122,175,255), 0.12);
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb, 122,175,255), 0.3);
+}
+
+/* Auto-hide: slide bar down out of view */
+#export-bottom-bar.bar-hidden {
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
+}

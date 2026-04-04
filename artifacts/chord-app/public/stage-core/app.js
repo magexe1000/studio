@@ -4522,8 +4522,8 @@ async function exportPDF() {
     ]);
   }
 
-  // Show loading state on the Generate PDF button inside the Export panel
-  const genBtn = document.querySelector('#export-options-panel button[onclick="exportPDF()"]');
+  // Show loading state on the Generate PDF button
+  const genBtn = document.getElementById('exp-gen-pdf-btn');
   const mobBtn = document.getElementById('mob-exp-pdf-btn');
   const origHTML = genBtn ? genBtn.innerHTML : '';
   const origMob  = mobBtn ? mobBtn.innerHTML : '';
@@ -4676,6 +4676,42 @@ function toggleExportSection(sectionId, visible) {
   if (el) el.style.display = visible ? '' : 'none';
 }
 
+// ── Bottom-bar chip toggle ────────────────────────────────────
+function toggleExpChip(sectionId, chipId) {
+  const chip = document.getElementById(chipId);
+  if (!chip) return;
+  const isOn = chip.classList.toggle('exp-chip--on');
+  const el = document.getElementById(sectionId);
+  if (el) el.style.display = isOn ? '' : 'none';
+}
+
+// ── Export bar scroll-hide wiring ────────────────────────────
+function _initExportBarHide() {
+  const scroller = document.getElementById('export-preview-scroll');
+  const bar      = document.getElementById('export-bottom-bar');
+  if (!scroller || !bar) return;
+  // Remove any previous listener to avoid duplication
+  if (scroller._expScrollHandler) {
+    scroller.removeEventListener('scroll', scroller._expScrollHandler);
+  }
+  let lastY = 0;
+  let hideTimer = null;
+  scroller._expScrollHandler = function() {
+    const y = scroller.scrollTop;
+    if (y > lastY + 4) {
+      bar.classList.add('bar-hidden');
+    } else if (y < lastY - 4) {
+      bar.classList.remove('bar-hidden');
+    }
+    lastY = y;
+    // Always re-show bar after 1.8s of no scrolling
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => bar.classList.remove('bar-hidden'), 1800);
+  };
+  scroller.addEventListener('scroll', scroller._expScrollHandler, { passive: true });
+  bar.classList.remove('bar-hidden');
+}
+
 function shareLink() {
   navigator.clipboard.writeText(window.location.href).catch(() => {});
   showToast(T('linkCopied'));
@@ -4752,6 +4788,7 @@ function refreshExport() {
     notesEl.textContent = state.exportNotes;
   }
   applyTranslations();
+  _initExportBarHide();
 }
 
 function refreshExportCanvas() {
