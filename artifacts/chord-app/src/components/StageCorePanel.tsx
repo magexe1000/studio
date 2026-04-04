@@ -78,8 +78,8 @@ export default function StageCorePanel() {
   // The hash is read by a blocking inline script in index.html <head> — no flash.
   const iframeSrc = useRef(`/stage-core/index.html${isLight ? '#light' : '#dark'}`).current;
   const isAmoled  = stageVis.amoledMode;
-  const stageBg   = isAmoled ? '#000000' : isLight ? '#f5f5f5' : '#0e0e0e';
-  const stageHdr  = isAmoled ? '#000000' : isLight ? '#f5f5f5' : '#0e0e0e';
+  const stageBg   = isAmoled ? '#000000' : isLight ? '#f2f1ef' : '#0e0e0e';
+  const stageHdr  = isAmoled ? '#000000' : isLight ? '#f2f1ef' : '#0e0e0e';
 
   // Show back button only inside the four sub-sections of Setup (not on SetupHub or Preferences)
   const showBack = curView === 'Rider' || curView === 'Setlist' || curView === 'Gear' || curView === 'Members';
