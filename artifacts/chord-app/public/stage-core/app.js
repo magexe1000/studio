@@ -6455,8 +6455,6 @@ function setCloudIndicator(status) {
 
 // Welcome modal suppressed — app runs as embedded iframe
 function maybeShowWelcome() { localStorage.setItem("sc_welcomed","1"); }
-  document.getElementById('welcome-backdrop').classList.add('open');
-}
 // Fallback: if Firebase auth never fires (e.g. blocked), still show welcome after 3s
 setTimeout(() => {
   if (_authFirstCall) { _authFirstCall = false; maybeShowWelcome(); }
