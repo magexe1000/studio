@@ -103,8 +103,8 @@ export default function StageCorePanel() {
     `/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)}`
   ).current;
   const isAmoled  = stageVis.amoledMode;
-  const stageBg   = isAmoled ? '#000000' : isLight ? '#f2f1ef' : '#0e0e0e';
-  const stageHdr  = isAmoled ? '#000000' : isLight ? '#f2f1ef' : '#0e0e0e';
+  const stageBg   = isAmoled ? '#000000' : isLight ? '#f2f1ef' : '#1a1a1a';
+  const stageHdr  = isAmoled ? '#000000' : isLight ? '#f2f1ef' : '#1a1a1a';
 
   // Show back button only inside the four sub-sections of Setup (not on SetupHub or Preferences)
   const showBack = curView === 'Rider' || curView === 'Setlist' || curView === 'Gear' || curView === 'Members';

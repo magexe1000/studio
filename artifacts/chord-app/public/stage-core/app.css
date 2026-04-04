@@ -283,8 +283,8 @@ select option { background: #1a1a1a; color: #fff; }
    MOBILE RESPONSIVE  ( ≤ 767px )
 ──────────────────────────────────────────────────*/
 @media (max-width: 767px) {
-  /* Slimmer header — no backdrop blur so it renders identically to the React host header */
-  header { height: 52px !important; padding-left: 14px !important; padding-right: 14px !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  /* Slimmer header — match dark-mode canvas bg (#1a1a1a), no backdrop blur */
+  header { height: 52px !important; padding-left: 14px !important; padding-right: 14px !important; background: #1a1a1a !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   .nav-link { height: 52px !important; }
 
   /* Hide hamburger — replaced by scrollable category bar */
