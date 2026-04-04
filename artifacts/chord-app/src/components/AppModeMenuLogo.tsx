@@ -2,10 +2,18 @@ import { useState, useRef, useEffect } from 'react';
 import { ChordexLogo, DrumexLogo, StudioLogo, StageCoreLogoIcon } from './ChordexLogo';
 import { useChordStore } from '../store/useChordStore';
 
-export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }: { color?: string; size?: number }) {
+export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: number }) {
   const { settings, updateSettings } = useChordStore();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  // Auto-derive color from per-app theme when no explicit color is supplied
+  const appKey = settings.appMode ?? 'chords';
+  const activeVis = settings.perApp?.[appKey as keyof typeof settings.perApp] ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
+  const isLight = (activeVis as { theme: string }).theme === 'light' ||
+    ((activeVis as { theme: string }).theme === 'system' && typeof window !== 'undefined' &&
+     window.matchMedia('(prefers-color-scheme: light)').matches);
+  const resolvedColor = color ?? (isLight ? '#18181b' : '#d4d4d8');
 
   useEffect(() => {
     if (!open) return;
@@ -46,15 +54,15 @@ export function AppModeMenuLogo({ color = 'var(--c-text-secondary)', size = 14 }
           display: 'flex', alignItems: 'center', gap: '7px',
           background: 'transparent', border: 'none', cursor: 'pointer',
           padding: '4px 8px 4px 0', margin: '-4px 0',
-          color,
+          color: resolvedColor,
         }}
       >
         {currentMode === 'drums' ? <DrumexLogo size={size} /> : currentMode === 'stage' ? <StageCoreLogoIcon size={size} /> : <ChordexLogo size={size} />}
-        <span style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color }}>
+        <span style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color: resolvedColor }}>
           {currentMode === 'drums' ? 'Drumex' : currentMode === 'stage' ? 'Stagex' : 'Chordex'}
         </span>
         <span style={{
-          fontSize: 9, opacity: 0.45, marginLeft: -2, color,
+          fontSize: 9, opacity: 0.45, marginLeft: -2, color: resolvedColor,
           display: 'inline-block',
           transform: open ? 'rotate(-180deg)' : 'rotate(0deg)',
           transition: 'transform 220ms cubic-bezier(0.34,1.56,0.64,1)',

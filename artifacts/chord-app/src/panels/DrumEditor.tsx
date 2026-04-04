@@ -1401,11 +1401,12 @@ export default function DrumEditor() {
   const kit    = kitType ?? 'ludwig';
   const ALL_INSTS = KIT_INSTRUMENTS[kit] ?? KIT_INSTRUMENTS.ludwig;
 
-  // ── Theme ───────────────────────────────────────────────────────────────
-  const isLight = settings.theme === 'light' ||
-    (settings.theme === 'system' && typeof window !== 'undefined' &&
+  // ── Theme — use per-app drums theme, fall back to global ─────────────────
+  const drumsVis = settings.perApp?.drums ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
+  const isLight = drumsVis.theme === 'light' ||
+    (drumsVis.theme === 'system' && typeof window !== 'undefined' &&
      window.matchMedia('(prefers-color-scheme: light)').matches);
-  const isAmoled = !isLight && (settings.amoledMode ?? false);
+  const isAmoled = !isLight && (drumsVis.amoledMode ?? false);
   // SVG/canvas colors — CSS vars can't be used directly in SVG props
   const noteColor  = isLight ? '#111118' : '#f0f0f2';
   const staffColor = isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.18)';
