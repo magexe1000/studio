@@ -1844,24 +1844,8 @@ function smQuickBadge() {
 function _smUpdateNavBadge(count) {
   const aiBtn = document.querySelector('#mobile-nav-bar [data-view="Assistant"]');
   if (!aiBtn) return;
-  aiBtn.style.position = 'relative';
-  let badge = aiBtn.querySelector('.sm-nav-badge');
-  if (count > 0) {
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'sm-nav-badge';
-      Object.assign(badge.style, {
-        position:'absolute', top:'4px', right:'4px',
-        background:'#ff716c', color:'#fff', fontSize:'7px', fontWeight:'700',
-        fontFamily:"'Space Grotesk'", borderRadius:'10px', padding:'1px 5px',
-        pointerEvents:'none', lineHeight:'1.4',
-      });
-      aiBtn.appendChild(badge);
-    }
-    badge.textContent = count > 9 ? '9+' : count;
-  } else if (badge) {
-    badge.remove();
-  }
+  const badge = aiBtn.querySelector('.sm-nav-badge');
+  if (badge) badge.remove();
 }
 
 function _smUpdateIssueBanner(layoutIssues, conflictIssues) {
