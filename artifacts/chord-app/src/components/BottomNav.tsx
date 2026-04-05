@@ -199,9 +199,10 @@ export default function BottomNav() {
   return (
     <nav
       ref={navRef}
-      className="glass-nav fixed left-1/2 -translate-x-1/2 w-[90%] max-w-md flex justify-around items-center px-2 py-1.5"
+      className="glass-nav fixed w-[90%] max-w-md flex justify-around items-center px-2 py-1.5"
       style={{
         bottom: 'max(10px, env(safe-area-inset-bottom))',
+        left: '50%',
         borderRadius: '2rem',
         border: `1px solid ${isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.10)'}`,
         background: amoledBg,
@@ -210,7 +211,9 @@ export default function BottomNav() {
           : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
         zIndex: 50,
         overflow: 'hidden',
-        transform: navHidden ? 'translateY(calc(100% + 32px))' : 'translateY(0)',
+        transform: navHidden
+          ? 'translateX(-50%) translateY(calc(100% + 32px))'
+          : 'translateX(-50%) translateY(0)',
         transition: [
           'transform 420ms cubic-bezier(0.4, 0, 0.2, 1)',
           'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
