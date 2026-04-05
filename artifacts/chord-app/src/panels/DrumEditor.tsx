@@ -2130,7 +2130,7 @@ export default function DrumEditor() {
     const mIdx         = sysIdx * mprRef.current + measureInRow;
     // snapToGrid=false → quantize to beat rather than subdivision step
     let stepInM = Math.floor((cx % measureWRef.current) / stepWRef.current);
-    if (!drumPrefsRef.current.snapToGrid) {
+    if (!useDrumStore.getState().drumPrefs.snapToGrid) {
       const spBeat = spmRef.current / 4;
       stepInM = Math.floor(stepInM / spBeat) * spBeat;
     }
@@ -2144,9 +2144,8 @@ export default function DrumEditor() {
     return { inst: vis[instIdx], m: curPat.measures[mIdx], stepInM, mIdx, instIdx };
   };
 
-  // Apply a hit to a cell, respecting noteVariationsCycle + quickDeleteMode
   const applyHitToCell = useCallback((inst: DrumInstrument, m: DrumMeasure, stepInM: number, patternId: string, preview = true) => {
-    const prefs = drumPrefsRef.current;
+    const prefs = useDrumStore.getState().drumPrefs;
     const useSimple = prefs.quickDeleteMode || !prefs.noteVariationsCycle;
     if (useSimple) {
       simpleToggleHit(patternId, m.id, inst, stepInM);
@@ -2165,13 +2164,14 @@ export default function DrumEditor() {
     }
     if (drumScheduler.isPlaying) drumScheduler.updatePattern(useDrumStore.getState().patterns.find(p => p.id === patternId)!);
     // Auto-play on edit
-    if (drumPrefsRef.current.autoPlayOnEdit && !drumScheduler.isPlaying) {
+    const livePrefs = useDrumStore.getState().drumPrefs;
+    if (livePrefs.autoPlayOnEdit && !drumScheduler.isPlaying) {
       const sm  = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
       const vol: Partial<Record<DrumInstrument, number>> = {};
       activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
       const latestPat = useDrumStore.getState().patterns.find(p => p.id === patternId)!;
       if (kit === 'house') loadHouseKit(houseKitMic); else loadDrumSamples(kit);
-      drumScheduler.start(latestPat, sm, vol, masterVolume, drumPrefsRef.current.loopPlayback, kit);
+      drumScheduler.start(latestPat, sm, vol, masterVolume, livePrefs.loopPlayback, kit);
       setPlaying(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2193,7 +2193,7 @@ export default function DrumEditor() {
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!drumPrefsRef.current.dragToFill) return;
+    if (!useDrumStore.getState().drumPrefs.dragToFill) return;
     if (!pointerStart.current) return;
     const s = pointerStart.current;
     const dist = Math.hypot(e.clientX - s.x, e.clientY - s.y);
