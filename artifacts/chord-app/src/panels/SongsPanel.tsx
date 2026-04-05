@@ -451,8 +451,8 @@ body{
   text-align:center;break-inside:avoid;page-break-inside:avoid;
 }
 .chord-num{
-  position:absolute;top:8px;right:10px;
-  font-size:9px;font-weight:800;color:${numClr};
+  position:absolute;top:6px;right:8px;
+  font-size:11px;font-weight:800;color:${numClr};
   letter-spacing:0.04em;line-height:1;
 }
 .chord-name{
@@ -716,12 +716,12 @@ ${chordContent}
 
         let iy = cy + CARD_PAD_Y;
 
-        // Chord number
+        // Chord number — top-right to match preview
         if (cfg.showNumbering) {
           doc.setFont('helvetica', 'bold');
-          doc.setFontSize(5);
+          doc.setFontSize(compact ? 6.5 : 7.5);
           doc.setTextColor(...hexRgb(C_MUTED));
-          doc.text(String(num), cx + CARD_PAD_X, iy + 2.5);
+          doc.text(String(num), cx + CARD_W - CARD_PAD_X, cy + (compact ? 3.5 : 4), { align: 'right' });
         }
 
         // Chord name
@@ -1255,7 +1255,7 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0, storedCustomCh
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
                   }}>
                     {cfg.showNumbering && (
-                      <span style={{ position: 'absolute', top: '3px', right: '4px', fontSize: '5px', fontWeight: 800, color: elegant ? accentC : muted, lineHeight: 1 }}>
+                      <span style={{ position: 'absolute', top: '4px', right: '6px', fontSize: '9px', fontWeight: 800, color: elegant ? accentC : muted, lineHeight: 1 }}>
                         {i + 1}
                       </span>
                     )}
