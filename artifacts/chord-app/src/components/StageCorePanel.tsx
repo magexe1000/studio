@@ -169,7 +169,10 @@ export default function StageCorePanel() {
         }
       } catch {}
       try {
-        (iframe.contentWindow as StageWin).__onViewChange = (view: string) => setCurView(view);
+        (iframe.contentWindow as StageWin).__onViewChange = (view: string) => {
+          // 'Assistant' is the internal name for the Preferences view
+          setCurView(view === 'Assistant' ? 'Preferences' : view);
+        };
       } catch {}
     };
     iframe.addEventListener('load', handleLoad);

@@ -757,16 +757,22 @@ function redo() {
   renderAll(); renderSetlist(); updateHistoryButtons();
 }
 function updateHistoryButtons() {
-  document.getElementById('btn-undo').style.opacity = state.historyIndex > 0 ? '1' : '0.3';
-  document.getElementById('btn-redo').style.opacity = state.historyIndex < state.history.length - 1 ? '1' : '0.3';
+  const u = document.getElementById('btn-undo');
+  const r = document.getElementById('btn-redo');
+  if (u) u.style.opacity = state.historyIndex > 0 ? '1' : '0.3';
+  if (r) r.style.opacity = state.historyIndex < state.history.length - 1 ? '1' : '0.3';
 }
-document.getElementById('btn-undo').addEventListener('click', undo);
-document.getElementById('btn-redo').addEventListener('click', redo);
+const _undoBtn = document.getElementById('btn-undo');
+const _redoBtn = document.getElementById('btn-redo');
+if (_undoBtn) _undoBtn.addEventListener('click', undo);
+if (_redoBtn) _redoBtn.addEventListener('click', redo);
 
 // ══════════════════════════════════════════════════════════
 //  VIEW SWITCHING
 // ══════════════════════════════════════════════════════════
 function switchView(view) {
+  // Map React-facing view names to internal iframe view names
+  if (view === 'Preferences') view = 'Assistant';
   // Capture real canvas size before the Editor gets hidden
   if (state.currentView === 'Editor') {
     const r = stageCanvas.getBoundingClientRect();
@@ -907,6 +913,11 @@ function syncMobSettings() {
 }
 // Wire up mob-export-settings buttons once DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
+  // Ensure lib-panel starts closed on every load
+  closeMobileSidebar();
+  const panel = document.getElementById('lib-panel');
+  if (panel) panel.style.display = 'none';
+
   const closeBtn = document.getElementById('mob-set-close');
   if (closeBtn) closeBtn.addEventListener('click', closeMobExportSettings);
   const fPdf = document.getElementById('mob-fmt-pdf');
