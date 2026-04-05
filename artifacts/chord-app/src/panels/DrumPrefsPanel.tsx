@@ -4,8 +4,49 @@ import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
 import { useT } from '../lib/useT';
 
+function IconDrumSongs({ active }: { active: boolean }) {
+  const sw = active ? 2 : 1.6; const ao = active ? 0.13 : 0;
+  return (
+    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" style={{ display: 'block' }}>
+      <rect x="4" y="3" width="16" height="18" rx="2.5" stroke="currentColor" strokeWidth={sw} fill="currentColor" fillOpacity={ao} />
+      <line x1="7.5" y1="8"  x2="16.5" y2="8"  stroke="currentColor" strokeWidth={sw - 0.4} strokeLinecap="round" />
+      <line x1="7.5" y1="12" x2="16.5" y2="12" stroke="currentColor" strokeWidth={sw - 0.4} strokeLinecap="round" />
+      <line x1="7.5" y1="16" x2="13"   y2="16" stroke="currentColor" strokeWidth={sw - 0.4} strokeLinecap="round" />
+    </svg>
+  );
+}
+function IconPatterns({ active }: { active: boolean }) {
+  const sw = active ? 2 : 1.6;
+  return (
+    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" style={{ display: 'block' }}>
+      <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth={sw} />
+      <line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" strokeWidth={sw * 0.7} />
+      <line x1="3" y1="15" x2="21" y2="15" stroke="currentColor" strokeWidth={sw * 0.7} />
+      <circle cx="7" cy="6" r="1.2" fill="currentColor" />
+      <circle cx="12" cy="6" r="1.2" fill="currentColor" />
+      <circle cx="17" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="7" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="12" cy="18" r="1.2" fill="currentColor" />
+      <circle cx="17" cy="18" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+function IconPrefs({ active }: { active: boolean }) {
+  const sw = active ? 2.2 : 1.7;
+  return (
+    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" style={{ display: 'block' }}>
+      <line x1="4" y1="6"  x2="20" y2="6"  stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="8" y1="3"  x2="8"  y2="9"  stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="14" y1="9" x2="14" y2="15" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+      <line x1="10" y1="15" x2="10" y2="21" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function DrumPrefsPanel() {
-  const { settings } = useChordStore();
+  const { settings, updateSettings } = useChordStore();
   const { drumPrefs, updateDrumPrefs } = useDrumStore();
   const t = useT();
   const dp = t.drumPrefs;
@@ -90,6 +131,46 @@ export default function DrumPrefsPanel() {
         <div style={cardStyle}>
           {row('lowLatencyMode', dp.lowLatency, dp.lowLatencyDesc)}
           {row('performanceMode', dp.performanceMode, dp.performanceModeDesc)}
+        </div>
+
+        <SectionHeader icon="dashboard" title={dp.startOn} />
+        <div style={cardStyle}>
+          <SettingRow label={dp.startOn} desc={dp.startOnDesc}>
+            {(() => {
+              const cur = settings.defaultDrumTab ?? 'songs';
+              const tabs: { value: 'songs' | 'patterns' | 'prefs'; Icon: React.FC<{ active: boolean }> }[] = [
+                { value: 'songs',    Icon: IconDrumSongs },
+                { value: 'patterns', Icon: IconPatterns  },
+                { value: 'prefs',    Icon: IconPrefs     },
+              ];
+              return (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {tabs.map(({ value, Icon }) => {
+                    const active = cur === value;
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => updateSettings({ defaultDrumTab: value })}
+                        style={{
+                          width: '40px', height: '40px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          borderRadius: '10px',
+                          border: active ? `2px solid ${acc.from}` : '2px solid transparent',
+                          background: active ? `linear-gradient(135deg, ${acc.from}22, ${acc.to}18)` : 'var(--app-surface-low)',
+                          color: active ? acc.from : 'var(--c-text-secondary)',
+                          cursor: 'pointer',
+                          transition: 'all 150ms ease',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Icon active={active} />
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </SettingRow>
         </div>
       </div>
     </div>

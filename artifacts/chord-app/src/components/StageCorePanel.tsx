@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
 import { setBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
+import translations from '../lib/i18n';
 
 type StageWin = Window & {
   stageGoBack?: () => boolean;
@@ -81,6 +82,94 @@ function injectAmoled(iframe: HTMLIFrameElement, amoled: boolean) {
     } else {
       root.removeAttribute('data-amoled');
     }
+  } catch {}
+}
+
+function injectStartOnPicker(iframe: HTMLIFrameElement) {
+  try {
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    const prefsScroll = doc.querySelector('.sc-prefs-scroll');
+    if (!prefsScroll || doc.getElementById('sc-start-on-injected')) return;
+
+    const store = useChordStore.getState();
+    const lang = store.settings.language ?? 'en';
+    const t = translations[lang as keyof typeof translations] ?? translations.en;
+    const sp = t.stagePrefs;
+    const cur = store.settings.defaultStageView ?? 'Editor';
+    const accentKey = (store.settings.perApp?.stage?.accentColor ?? store.settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
+    const accent = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
+
+    const section = doc.createElement('div');
+    section.id = 'sc-start-on-injected';
+
+    const label = doc.createElement('div');
+    label.className = 'sc-prefs-section-label';
+    label.innerHTML = `<span class="material-symbols-outlined sc-sec-icon">dashboard</span><span class="sc-sec-text">${sp.startOn}</span>`;
+    section.appendChild(label);
+
+    const card = doc.createElement('div');
+    card.className = 'sc-prefs-card';
+
+    const row = doc.createElement('div');
+    row.className = 'sc-prefs-row';
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
+
+    const textCol = doc.createElement('div');
+    const rl = doc.createElement('p');
+    rl.className = 'sc-prefs-row-label';
+    rl.textContent = sp.startOn;
+    const rh = doc.createElement('p');
+    rh.className = 'sc-prefs-row-hint';
+    rh.textContent = sp.startOnDesc;
+    textCol.appendChild(rl);
+    textCol.appendChild(rh);
+    row.appendChild(textCol);
+
+    const btnWrap = doc.createElement('div');
+    btnWrap.style.cssText = 'display:flex;gap:6px;flex-shrink:0;';
+
+    const views: { value: string; icon: string }[] = [
+      { value: 'Editor',      icon: 'grid_view' },
+      { value: 'Setup',       icon: 'folder_open' },
+      { value: 'Preferences', icon: 'tune' },
+    ];
+
+    views.forEach(({ value, icon }) => {
+      const btn = doc.createElement('button');
+      const active = cur === value;
+      btn.style.cssText = `
+        width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+        border-radius:10px;cursor:pointer;transition:all 150ms ease;flex-shrink:0;
+        border:${active ? `2px solid ${accent.from}` : '2px solid transparent'};
+        background:${active ? `linear-gradient(135deg, ${accent.from}22, ${accent.to}18)` : 'rgba(255,255,255,0.06)'};
+        color:${active ? accent.from : 'rgba(160,160,180,0.8)'};
+      `;
+      const ic = doc.createElement('span');
+      ic.className = 'material-symbols-outlined';
+      ic.style.fontSize = '20px';
+      ic.textContent = icon;
+      btn.appendChild(ic);
+
+      btn.onclick = () => {
+        useChordStore.getState().updateSettings({ defaultStageView: value as 'Editor' | 'Setup' | 'Preferences' });
+        const updated = useChordStore.getState().settings.defaultStageView ?? 'Editor';
+        const a2 = ACCENT_COLORS[(useChordStore.getState().settings.perApp?.stage?.accentColor ?? useChordStore.getState().settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue;
+        btnWrap.querySelectorAll('button').forEach((b, idx) => {
+          const isActive = views[idx].value === updated;
+          (b as HTMLButtonElement).style.border = isActive ? `2px solid ${a2.from}` : '2px solid transparent';
+          (b as HTMLButtonElement).style.background = isActive ? `linear-gradient(135deg, ${a2.from}22, ${a2.to}18)` : 'rgba(255,255,255,0.06)';
+          (b as HTMLButtonElement).style.color = isActive ? a2.from : 'rgba(160,160,180,0.8)';
+        });
+      };
+
+      btnWrap.appendChild(btn);
+    });
+
+    row.appendChild(btnWrap);
+    card.appendChild(row);
+    section.appendChild(card);
+    prefsScroll.appendChild(section);
   } catch {}
 }
 
@@ -201,10 +290,25 @@ export default function StagexPanel() {
       } catch {}
       try {
         (iframe.contentWindow as StageWin).__onViewChange = (view: string) => {
-          // 'Assistant' is the internal name for the Preferences view
           setCurView(view === 'Assistant' ? 'Preferences' : view);
         };
       } catch {}
+
+      const defView = settings.defaultStageView;
+      if (defView && defView !== 'Editor') {
+        setTimeout(() => {
+          try {
+            const win = iframe.contentWindow as StageWin;
+            if (defView === 'Setup') {
+              win?.switchView?.('SetupHub');
+            } else if (defView === 'Preferences') {
+              win?.switchView?.('Assistant');
+            }
+          } catch {}
+        }, 200);
+      }
+
+      injectStartOnPicker(iframe);
     };
     iframe.addEventListener('load', handleLoad);
     return () => iframe.removeEventListener('load', handleLoad);

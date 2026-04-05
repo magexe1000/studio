@@ -424,6 +424,13 @@ const translations = {
       lowLatencyDesc: 'Improve real-time responsiveness when tapping notes',
       performanceMode: 'Performance Mode',
       performanceModeDesc: 'Reduce heavy processing for a smoother experience',
+      startOn: 'Start on',
+      startOnDesc: 'Which tab opens when you launch the app',
+    },
+
+    stagePrefs: {
+      startOn: 'Start on',
+      startOnDesc: 'Which view opens when you launch Stagex',
     },
 
     /* ── Apply To Sheet ── */
@@ -849,6 +856,13 @@ const translations = {
       lowLatencyDesc: 'Mejor respuesta al tocar notas en tiempo real',
       performanceMode: 'Modo rendimiento',
       performanceModeDesc: 'Reduce procesos pesados para mayor fluidez',
+      startOn: 'Pestaña inicial',
+      startOnDesc: 'Pestaña que se abre al entrar',
+    },
+
+    stagePrefs: {
+      startOn: 'Vista inicial',
+      startOnDesc: 'Vista que se abre al iniciar Stagex',
     },
 
     /* ── Apply To Sheet ── */

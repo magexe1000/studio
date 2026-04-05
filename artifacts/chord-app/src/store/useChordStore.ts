@@ -85,6 +85,8 @@ export interface AppSettings {
   language: Language;
   preferFlats: boolean;
   defaultTab: ActivePanel;
+  defaultDrumTab: 'songs' | 'patterns' | 'prefs';
+  defaultStageView: 'Editor' | 'Setup' | 'Preferences';
   startupApp: 'chords' | 'drums' | 'hub' | 'stage';
   appMode: 'chords' | 'drums' | 'hub' | 'stage';
   hubUserName: string;
@@ -203,6 +205,8 @@ export const useChordStore = create<ChordStore>()(
         language: 'en',
         preferFlats: false,
         defaultTab: 'library',
+        defaultDrumTab: 'songs',
+        defaultStageView: 'Editor',
         startupApp: 'hub',
         appMode: 'hub',
         hubUserName: '',

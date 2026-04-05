@@ -1555,7 +1555,11 @@ export default function DrumEditor() {
 
   // ── State ────────────────────────────────────────────────────────────────
   const [inEditor,       setInEditor]       = useState(false);
-  const [activeTab,      setActiveTab]      = useState<DrumTab>('songs');
+  const [activeTab,      setActiveTab]      = useState<DrumTab>(() => {
+    const s = useChordStore.getState().settings;
+    const dt = s.defaultDrumTab;
+    return (dt === 'songs' || dt === 'patterns' || dt === 'prefs') ? dt : 'songs';
+  });
   const [playing, setPlaying]               = useState(false);
   const [looping, setLooping]               = useState(() => drumPrefs.loopPlayback);
   const [countingIn, setCountingIn]         = useState(false);
