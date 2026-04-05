@@ -1609,8 +1609,11 @@ export default function DrumEditor() {
 
   // ── Layout ───────────────────────────────────────────────────────────────
   const availableW     = containerW - LABEL_W;
+  // rawMpr: how many measures fit per row at the minimum step width.
+  // In landscape the screen is wider so rawMpr is naturally larger →
+  // more measures shown per row without stretching any of them.
   const rawMpr         = Math.max(1, Math.floor(availableW / (spm * MIN_STEP)));
-  const measuresPerRow = isLandscape && pattern.measures.length > 0 ? Math.min(rawMpr, pattern.measures.length) : rawMpr;
+  const measuresPerRow = rawMpr;
   const MEASURE_W      = availableW / measuresPerRow;
   const STEP_W         = MEASURE_W / spm;
   const SYSTEM_H       = RULER_H + visibleInsts.length * ROW_H;
