@@ -145,7 +145,7 @@ export default function StagexPanel() {
       }
     } catch {}
     try {
-      iframe.contentWindow?.postMessage({ type: 'sc-call', fn, arg }, '*');
+      iframe.contentWindow?.postMessage({ type: 'sc-call', fn, arg }, window.location.origin);
     } catch {}
   }, []);
 
@@ -154,7 +154,7 @@ export default function StagexPanel() {
     if (!iframe) return;
     const handleLoad = () => {
       iframeReady.current = true;
-      try { iframe.contentWindow?.postMessage('stage-core-ping', '*'); } catch {}
+      try { iframe.contentWindow?.postMessage('stage-core-ping', window.location.origin); } catch {}
       injectAccentVars(iframe, accent.from, accent.to);
       injectTheme(iframe, stageVis.theme ?? 'dark');
       injectAmoled(iframe, isAmoled);
@@ -176,10 +176,10 @@ export default function StagexPanel() {
               function h(e){
                 var y=e.target.scrollTop;
                 if(typeof y!=='number')return;
-                if(y<30){window.parent.postMessage({type:'sc-scroll-dir',down:false},'*');ly=y;return;}
+                if(y<30){window.parent.postMessage({type:'sc-scroll-dir',down:false},window.location.origin);ly=y;return;}
                 var dy=y-ly;
                 if(Math.abs(dy)<6)return;
-                window.parent.postMessage({type:'sc-scroll-dir',down:dy>0},'*');
+                window.parent.postMessage({type:'sc-scroll-dir',down:dy>0},window.location.origin);
                 ly=y;
               }
               document.addEventListener('scroll',h,{passive:true,capture:true});
@@ -201,6 +201,7 @@ export default function StagexPanel() {
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
       if (e.source !== iframeRef.current?.contentWindow) return;
       if (e.data?.type === 'sc-dial-state') setFabOpen(!!e.data.open);
       if (e.data?.type === 'sc-scroll-dir') setStageNavHidden(!!e.data.down);

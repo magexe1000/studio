@@ -114,6 +114,19 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+## Security Overrides (pnpm)
+
+The root `package.json` includes pnpm overrides to patch transitive dependency vulnerabilities:
+- `path-to-regexp@8.3.0` → `8.4.0`
+- `picomatch@2.3.1` → `2.3.2`, `picomatch@4.0.3` → `4.0.4`
+- `lodash@4.17.23` → `4.18.0`
+- `tar@6.2.1` → `7.5.11`
+- `brace-expansion@2.0.2` → `2.0.3`
+- `esbuild@0.18.20` → `0.25.0`
+- `yaml@2.8.2` → `2.8.3`
+
+postMessage calls between the React parent and stage-core iframe use `window.location.origin` (not `'*'`) and message listeners validate `e.origin` before processing.
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.

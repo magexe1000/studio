@@ -1013,7 +1013,7 @@ function toggleSCDial() {
 function openSCDial() {
   _buildDial();
   _dialOpen = true;
-  try { window.parent.postMessage({ type: 'sc-dial-state', open: true }, '*'); } catch(e) {}
+  try { window.parent.postMessage({ type: 'sc-dial-state', open: true }, window.location.origin); } catch(e) {}
   closeMobileElTray();
   const wrap  = document.getElementById('sc-fab-wrap');
   const chips = wrap ? wrap.querySelectorAll('.sc-dial-chip') : [];
@@ -1032,7 +1032,7 @@ function openSCDial() {
 function closeSCDial() {
   if (!_dialOpen) return;
   _dialOpen = false;
-  try { window.parent.postMessage({ type: 'sc-dial-state', open: false }, '*'); } catch(e) {}
+  try { window.parent.postMessage({ type: 'sc-dial-state', open: false }, window.location.origin); } catch(e) {}
   const wrap  = document.getElementById('sc-fab-wrap');
   const chips = wrap ? wrap.querySelectorAll('.sc-dial-chip') : [];
   const total = chips.length;
@@ -1105,7 +1105,7 @@ function closeItemSheet(goBackToChips) {
   if (goBackToChips) {
     setTimeout(() => openSCDial(), 190);
   } else {
-    try { window.parent.postMessage({ type: 'sc-dial-state', open: false }, '*'); } catch(e) {}
+    try { window.parent.postMessage({ type: 'sc-dial-state', open: false }, window.location.origin); } catch(e) {}
     // Spring "return home" pulse when the FAB lands back in its resting state
     const btn = document.getElementById('sc-fab-btn');
     if (btn) {
