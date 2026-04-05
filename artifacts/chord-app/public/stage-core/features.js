@@ -1891,55 +1891,100 @@ if (typeof _origAddItemToStage === 'function') {
   menu.style.display = 'none';
   document.body.appendChild(menu);
 
-  function _item(ic, label, fn, danger) {
+  function _item(label, fn, danger) {
     const d = document.createElement('div');
     d.className = 'ctx-r' + (danger ? ' ctx-dn' : '');
-    d.innerHTML = DOMPurify.sanitize(`<span class="ctx-ic">${ic}</span><span>${label}</span>`);
+    d.textContent = label;
     d.onclick = () => { _hide(); fn(); };
     return d;
   }
   function _sep() { const d = document.createElement('div'); d.className = 'ctx-sep'; return d; }
-  function _head(t) { const d = document.createElement('div'); d.className = 'ctx-hd'; d.textContent = t; return d; }
 
   function _show(x, y, el) {
-    menu.innerHTML = DOMPurify.sanitize('');
-    if (el) {
-      menu.appendChild(_head(el.label || el.name || 'Element'));
-      menu.appendChild(_item('⧉', 'Duplicate', () => scDuplicateEl(el)));
-      menu.appendChild(_item('+', 'Add Mic Nearby', () => scAddMicNear(el)));
-      menu.appendChild(_item('#', 'Assign Channel…', () => scAssignChannel(el)));
-      menu.appendChild(_sep());
-      menu.appendChild(_item(el.locked ? '<span class="material-symbols-outlined" style="font-size:13px;line-height:1;">lock_open</span>' : '<span class="material-symbols-outlined" style="font-size:13px;line-height:1;">lock</span>', el.locked ? 'Unlock' : 'Lock', () => scToggleLock(el)));
-    } else {
-      return;
-    }
+    menu.innerHTML = '';
+    if (!el) return;
+    menu.appendChild(_item('Duplicate', () => scDuplicateEl(el)));
+    menu.appendChild(_item('Add Mic Nearby', () => scAddMicNear(el)));
+    menu.appendChild(_item('Assign Channel\u2026', () => scAssignChannel(el)));
+    menu.appendChild(_sep());
+    menu.appendChild(_item(el.locked ? 'Unlock' : 'Lock', () => scToggleLock(el)));
     menu.style.display = '';
+    if (typeof _injectCtxExtras === 'function') _injectCtxExtras(el);
     const vw = window.innerWidth, vh = window.innerHeight;
-    const mw = menu.offsetWidth || 200, mh = menu.offsetHeight || 250;
-    menu.style.left = Math.min(x, vw - mw - 6) + 'px';
+    const mw = menu.offsetWidth || 170, mh = menu.offsetHeight || 200;
+    menu.style.left = Math.min(x, vw - mw - 8) + 'px';
     menu.style.top  = (y + mh > vh ? Math.max(0, y - mh) : y) + 'px';
   }
   function _hide() { menu.style.display = 'none'; }
 
+  function _haptic() {
+    if (navigator.vibrate) navigator.vibrate(12);
+  }
+
+  function _findEl(target) {
+    const wrap = target.closest('.stage-element');
+    if (!wrap) return null;
+    const id = wrap.id.replace('elem-', '');
+    return state.elements.find(el => String(el.id) === id) || null;
+  }
+
   setTimeout(() => {
     const canvas = document.getElementById('stage-canvas');
     if (!canvas) return;
+
     canvas.addEventListener('contextmenu', e => {
       e.preventDefault();
-      const wrap = e.target.closest('.stage-element');
-      let stEl = null;
-      if (wrap) {
-        const id = wrap.id.replace('elem-', '');
-        stEl = state.elements.find(el => String(el.id) === id);
-      }
-      _show(e.clientX, e.clientY, stEl);
+      const el = _findEl(e.target);
+      if (el) { _haptic(); _show(e.clientX, e.clientY, el); }
     });
+
+    let _lpTimer = null;
+    let _lpTouch = null;
+    let _lpMoved = false;
+    const LP_DELAY = 420;
+    const LP_MOVE_THRESH = 10;
+
+    canvas.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) return;
+      _lpMoved = false;
+      const t = e.touches[0];
+      _lpTouch = { x: t.clientX, y: t.clientY, target: e.target };
+      _lpTimer = setTimeout(() => {
+        if (_lpMoved) return;
+        const el = _findEl(_lpTouch.target);
+        if (el) {
+          e.preventDefault();
+          _haptic();
+          _show(_lpTouch.x, _lpTouch.y, el);
+        }
+        _lpTimer = null;
+      }, LP_DELAY);
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', e => {
+      if (!_lpTimer || !_lpTouch) return;
+      const t = e.touches[0];
+      if (Math.abs(t.clientX - _lpTouch.x) > LP_MOVE_THRESH || Math.abs(t.clientY - _lpTouch.y) > LP_MOVE_THRESH) {
+        _lpMoved = true;
+        clearTimeout(_lpTimer);
+        _lpTimer = null;
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', () => {
+      if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+      _lpTouch = null;
+    }, { passive: true });
+
+    canvas.addEventListener('touchcancel', () => {
+      if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+      _lpTouch = null;
+    }, { passive: true });
   }, 300);
 
   document.addEventListener('pointerdown', e => { if (!e.target.closest('#sc-ctx')) _hide(); }, true);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') _hide(); });
 
-  // Prevent drag on locked elements (capture phase)
   document.addEventListener('pointerdown', e => {
     const wrap = e.target.closest('.stage-element');
     if (!wrap) return;
@@ -1948,7 +1993,6 @@ if (typeof _origAddItemToStage === 'function') {
     if (el && el.locked) { e.stopPropagation(); e.preventDefault(); }
   }, true);
 
-  // Double-click a locked element to unlock it
   document.addEventListener('dblclick', e => {
     const wrap = e.target.closest('.stage-element');
     if (!wrap) return;
@@ -3574,57 +3618,42 @@ async function _verifyPwShare(storedHash, encodedPayload) {
 
 // ── CONTEXT MENU INJECTION (Pin + Preset + Delete) ───────────────────────────
 // Fires after the original handler (300 ms setup) via listener added at 400 ms
-setTimeout(function() {
-  const canvas = document.getElementById('stage-canvas');
-  if (!canvas) return;
-  canvas.addEventListener('contextmenu', function(e) {
-    setTimeout(function() {
-      const menu = document.getElementById('sc-ctx');
-      if (!menu || menu.style.display === 'none') return;
-      const wrap = e.target.closest('.stage-element');
-      if (!wrap) return;
-      const id = wrap.id.replace('elem-', '');
-      const el = (state.elements || []).find(el => String(el.id) === id);
-      if (!el) return;
+function _injectCtxExtras(el) {
+  const menu = document.getElementById('sc-ctx');
+  if (!menu || menu.style.display === 'none' || !el) return;
+  menu.querySelectorAll('.sc-ctx-injected').forEach(n => n.remove());
+  function _irow(label, fn, danger) {
+    const r = document.createElement('div');
+    r.className = 'ctx-r sc-ctx-injected' + (danger ? ' ctx-dn' : '');
+    r.textContent = label;
+    r.onclick = () => { menu.style.display = 'none'; fn(); };
+    return r;
+  }
+  function _isep() {
+    const s = document.createElement('div');
+    s.className = 'ctx-sep sc-ctx-injected';
+    return s;
+  }
+  menu.appendChild(_isep());
+  menu.appendChild(_irow(el.pinned ? 'Unpin Element' : 'Pin Element', () => scTogglePin(el)));
+  menu.appendChild(_irow('Save as Preset', () => scSaveAsPreset()));
+  menu.appendChild(_isep());
+  menu.appendChild(_irow('Delete', () => {
+    if (typeof scCtxDelete === 'function') scCtxDelete(el);
+    else {
+      if (typeof pushHistory === 'function') pushHistory();
+      state.elements    = state.elements.filter(x => x.id !== el.id);
+      state.connections = (state.connections || []).filter(c => c.from !== el.id && c.to !== el.id);
+      if (typeof renderElements    === 'function') renderElements();
+      if (typeof markAutosaveDirty === 'function') markAutosaveDirty();
+    }
+  }, true));
+  const mRect = menu.getBoundingClientRect();
+  if (mRect.bottom > window.innerHeight - 6)
+    menu.style.top = Math.max(0, window.innerHeight - mRect.height - 10) + 'px';
+}
 
-      // Remove any stale injected items from a previous open
-      menu.querySelectorAll('.sc-ctx-injected').forEach(n => n.remove());
-
-      function _irow(icon, label, fn, danger) {
-        const r = document.createElement('div');
-        r.className = 'ctx-r sc-ctx-injected' + (danger ? ' ctx-dn' : '');
-        r.innerHTML = DOMPurify.sanitize(`<span class="ctx-ic">${icon}</span><span>${label}</span>`);
-        r.onclick = () => { menu.style.display = 'none'; fn(); };
-        return r;
-      }
-      function _isep() {
-        const s = document.createElement('div');
-        s.className = 'ctx-sep sc-ctx-injected';
-        return s;
-      }
-
-      menu.appendChild(_isep());
-      menu.appendChild(_irow('📌', el.pinned ? 'Unpin Element' : 'Pin Element', () => scTogglePin(el)));
-      menu.appendChild(_irow('☆', 'Save as Preset', () => scSaveAsPreset()));
-      menu.appendChild(_isep());
-      menu.appendChild(_irow('🗑', 'Delete', () => {
-        if (typeof scCtxDelete === 'function') scCtxDelete(el);
-        else {
-          if (typeof pushHistory === 'function') pushHistory();
-          state.elements    = state.elements.filter(x => x.id !== el.id);
-          state.connections = (state.connections || []).filter(c => c.from !== el.id && c.to !== el.id);
-          if (typeof renderElements    === 'function') renderElements();
-          if (typeof markAutosaveDirty === 'function') markAutosaveDirty();
-        }
-      }, true));
-
-      // Prevent menu clipping at screen bottom
-      const mRect = menu.getBoundingClientRect();
-      if (mRect.bottom > window.innerHeight - 6)
-        menu.style.top = Math.max(0, window.innerHeight - mRect.height - 10) + 'px';
-    }, 20);
-  }, false);
-}, 400);
+// Extras (Pin, Preset, Delete) are now injected directly from _show() above
 
 // ════════════════════════════════════════════════════
 // INIT
