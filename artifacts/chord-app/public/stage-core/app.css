@@ -2270,6 +2270,10 @@ html[data-amoled="1"] #presets-panel { background: rgba(0,0,0,0.98) !important; 
 
 @media screen and (orientation: landscape) and (max-width: 960px) {
 
+  #canvas-container {
+    background: #0e0e0e !important;
+  }
+
   /* ── Hide bottom nav pill (Stage / Setup / Preferences) ── */
   #mobile-nav-bar {
     opacity: 0 !important;
@@ -2361,5 +2365,14 @@ html[data-amoled="1"] #presets-panel { background: rgba(0,0,0,0.98) !important; 
   #sc-item-sheet {
     bottom:     76px !important;
     max-height: calc(100vh - 90px) !important;
+  }
+}
+
+@media screen and (orientation: landscape) and (max-width: 960px) {
+  html[data-theme="light"] #canvas-container {
+    background: #ffffff !important;
+  }
+  html[data-amoled="1"] #canvas-container {
+    background: #000 !important;
   }
 }
