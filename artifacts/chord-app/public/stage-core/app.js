@@ -3013,11 +3013,11 @@ function refreshRider() {
         <td><span class="rd-ch-num">${ch.channelId || chNum}</span></td>
         <td style="font-weight:500;">${ch.label}</td>
         <td><span class="rd-type-badge">${ch.type || 'Custom'}</span></td>
-        <td style="font-family:'Inter',sans-serif;font-size:11px;color:#acabaa;">${TSource(ch.source)}</td>
+        <td style="color:#acabaa;">${TSource(ch.source)}</td>
         <td style="text-align:center;"><span class="${phantomCls}">${ch.phantom ? 'ON' : 'OFF'}</span></td>
-        <td style="font-size:11px;color:#acabaa;">${ch.output || 'FOH'}</td>
-        <td style="font-size:11px;color:#767575;font-style:italic;">${ch.notes || '—'}</td>
-        <td style="text-align:right;"><button class="rd-del-btn" onclick="removeRiderChannel(${i})"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button></td>
+        <td style="color:#acabaa;">${ch.output || 'FOH'}</td>
+        <td style="color:#767575;font-style:italic;">${ch.notes || '—'}</td>
+        <td><button class="rd-del-btn" onclick="removeRiderChannel(${i})"><span class="material-symbols-outlined" style="font-size:13px;">close</span></button></td>
       </tr>`;
     }).join(''));
   }
@@ -3138,6 +3138,16 @@ function refreshRiderStagePreview() {
   if (!slot) return;
   var src = document.getElementById('stage-canvas');
   if (!src) return;
+  if (!state.canvasW || state.canvasW <= 0) {
+    var edPage = document.getElementById('view-Editor');
+    if (edPage) {
+      var wasHidden = edPage.style.display === 'none';
+      if (wasHidden) { edPage.style.display = 'block'; edPage.style.visibility = 'hidden'; edPage.style.position = 'absolute'; edPage.style.left = '-9999px'; }
+      var r = src.getBoundingClientRect();
+      if (r.width > 0) { state.canvasW = r.width; state.canvasH = r.height; }
+      if (wasHidden) { edPage.style.display = 'none'; edPage.style.visibility = ''; edPage.style.position = ''; edPage.style.left = ''; }
+    }
+  }
   _riderCloneStage(slot, src);
   _riderScalePreview(slot, src);
   if (_riderPreviewObserver) { _riderPreviewObserver.disconnect(); _riderPreviewObserver = null; }
@@ -3160,25 +3170,23 @@ function _riderCloneStage(slot, src) {
   var clone = src.cloneNode(true);
   clone.removeAttribute('id');
   clone.classList.add('rd-stage-clone');
-  clone.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;border:none;transform-origin:top left;overflow:hidden;';
+  clone.style.cssText = 'pointer-events:none;border:none;transform-origin:top left;';
   clone.querySelectorAll('[id]').forEach(function(n) { n.removeAttribute('id'); });
   slot.appendChild(clone);
 }
 function _riderScalePreview(slot, src) {
   var clone = slot.querySelector('.rd-stage-clone');
   if (!clone) return;
-  var srcW = state.canvasW || src.offsetWidth || 650;
-  var srcH = state.canvasH || src.offsetHeight || 420;
-  var slotW = slot.offsetWidth || slot.clientWidth || 350;
-  var slotH = slot.offsetHeight || slot.clientHeight || 200;
-  if (srcW > 0 && slotW > 0) {
-    var scaleX = slotW / srcW;
-    var scaleY = slotH / srcH;
-    var scale = Math.min(scaleX, scaleY);
-    clone.style.transform = 'scale(' + scale + ')';
-    clone.style.width = srcW + 'px';
-    clone.style.height = srcH + 'px';
-  }
+  var srcW = state.canvasW || src.scrollWidth || src.offsetWidth || 650;
+  var srcH = state.canvasH || src.scrollHeight || src.offsetHeight || 420;
+  if (srcW <= 0) srcW = 650;
+  if (srcH <= 0) srcH = 420;
+  var slotW = slot.clientWidth || 350;
+  clone.style.width = srcW + 'px';
+  clone.style.height = srcH + 'px';
+  var scale = slotW / srcW;
+  clone.style.transform = 'scale(' + scale + ')';
+  slot.style.height = Math.ceil(srcH * scale) + 'px';
 }
 
 // ══════════════════════════════════════════════════════════

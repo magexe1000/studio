@@ -877,18 +877,18 @@ header,
 .rd-notes-textarea { font-family: 'Inter', sans-serif; font-size: 13px; color: #5a5a59; line-height: 1.65; background: transparent; border: none; width: 100%; box-sizing: border-box; resize: vertical; min-height: 96px; outline: none; padding: 0; }
 .rd-notes-textarea:focus { color: #8a8a89; }
 .rd-notes-textarea::placeholder { color: #333; }
-.rd-input-table { width: 100%; border-collapse: collapse; font-family: 'Manrope', sans-serif; }
+.rd-input-table { width: 100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 10px; table-layout: fixed; }
 .rd-input-table thead tr { background: rgba(255,255,255,0.025); border-bottom: 1px solid rgba(255,255,255,0.06); }
-.rd-input-table th { padding: 10px 14px; font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: #767575; text-align: left; white-space: nowrap; }
-.rd-input-table td { padding: 12px 14px; font-size: 12px; color: #e7e5e4; border-bottom: 1px solid rgba(255,255,255,0.025); vertical-align: middle; }
+.rd-input-table th { padding: 5px 6px; font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; color: #767575; text-align: left; white-space: nowrap; }
+.rd-input-table td { padding: 5px 6px; font-size: 10px; color: #e7e5e4; border-bottom: 1px solid rgba(255,255,255,0.025); vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rd-input-table tbody tr:last-child td { border-bottom: none; }
 .rd-input-table tbody tr { transition: background 0.12s ease; }
 .rd-input-table tbody tr:hover { background: rgba(255,255,255,0.025); }
-.rd-input-table .rd-ch-num { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--accent); font-size: 14px; }
-.rd-input-table .rd-type-badge { display: inline-block; background: #252626; padding: 3px 10px; border-radius: 4px; font-size: 10px; color: #acabaa; white-space: nowrap; }
-.rd-input-table .rd-phantom-on { font-size: 10px; font-weight: 700; padding: 2px 8px; background: rgba(0,122,255,0.12); color: var(--accent); border-radius: 100px; }
-.rd-input-table .rd-phantom-off { font-size: 10px; font-weight: 700; padding: 2px 8px; background: rgba(255,255,255,0.04); color: #484847; border-radius: 100px; }
-.rd-input-table .rd-del-btn { background: none; border: none; cursor: pointer; color: rgba(238,125,119,0.3); transition: color 0.12s; padding: 4px; }
+.rd-input-table .rd-ch-num { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--accent); font-size: 10px; }
+.rd-input-table .rd-type-badge { display: inline-block; background: #252626; padding: 2px 6px; border-radius: 3px; font-size: 9px; color: #acabaa; white-space: nowrap; }
+.rd-input-table .rd-phantom-on { font-size: 8px; font-weight: 700; padding: 1px 5px; background: rgba(0,122,255,0.12); color: var(--accent); border-radius: 100px; }
+.rd-input-table .rd-phantom-off { font-size: 8px; font-weight: 700; padding: 1px 5px; background: rgba(255,255,255,0.04); color: #484847; border-radius: 100px; }
+.rd-input-table .rd-del-btn { background: none; border: none; cursor: pointer; color: rgba(238,125,119,0.3); transition: color 0.12s; padding: 2px; line-height: 1; }
 .rd-input-table .rd-del-btn:hover { color: #ee7d77; }
 .rd-config-grid { display: flex; flex-direction: column; gap: 12px; }
 .rd-config-label { font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: #767575; margin-bottom: 6px; display: block; }
@@ -913,8 +913,8 @@ header,
 .rd-drop-item:not(.active) span.rd-drop-label { color: #767575; }
 .rd-info-banner { background: rgba(0,122,255,0.04); border: 1px solid rgba(0,122,255,0.08); border-radius: 10px; padding: 12px 14px; margin-top: 8px; }
 .rd-info-banner p { font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin: 0; line-height: 1.5; }
-.rd-stage-preview { position: relative; border-radius: 16px; overflow: hidden; background: #000; border: 1px solid rgba(255,255,255,0.04); margin-bottom: 12px; }
-.rd-stage-preview-inner { width: 100%; aspect-ratio: 16/9; overflow: hidden; position: relative; }
+.rd-stage-preview { position: relative; border-radius: 16px; overflow: hidden; background: #0e0e0e; border: 1px solid rgba(255,255,255,0.04); margin-bottom: 12px; }
+.rd-stage-preview-inner { width: 100%; min-height: 200px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; }
 .rd-stage-preview-badge { position: absolute; bottom: 10px; left: 12px; display: flex; align-items: center; gap: 6px; background: rgba(14,14,14,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 5px 12px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.08); z-index: 5; }
 .rd-stage-preview-badge .rd-live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: rd-pulse 2.2s ease-in-out infinite; }
 .rd-stage-preview-badge span { font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.22em; color: #e7e5e4; }
@@ -2473,7 +2473,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
     <!-- Header -->
     <div style="margin-bottom:24px;">
-      <h1 style="font-family:'Manrope',sans-serif;font-size:2rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;line-height:1;">Technical Rider</h1>
+      <h1 style="font-family:'Manrope',sans-serif;font-size:2rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;line-height:1;">Rider</h1>
     </div>
 
     <!-- Input List section -->
@@ -2492,17 +2492,27 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
       <div style="background:#191a1a;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);">
         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-          <table class="rd-input-table" style="min-width:520px;">
+          <table class="rd-input-table">
+            <colgroup>
+              <col style="width:36px;">
+              <col style="width:22%;">
+              <col style="width:16%;">
+              <col style="width:14%;">
+              <col style="width:32px;">
+              <col style="width:12%;">
+              <col>
+              <col style="width:24px;">
+            </colgroup>
             <thead>
               <tr>
-                <th style="width:50px;">CH#</th>
+                <th>CH#</th>
                 <th>Name</th>
-                <th style="width:100px;">Type</th>
-                <th style="width:88px;">Input</th>
-                <th style="width:44px;text-align:center;">48V</th>
-                <th style="width:76px;">Output</th>
+                <th>Type</th>
+                <th>Input</th>
+                <th style="text-align:center;">48V</th>
+                <th>Output</th>
                 <th>Notes</th>
-                <th style="width:40px;text-align:right;"></th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="rider-table-body">
