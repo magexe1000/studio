@@ -104,13 +104,17 @@ export default function StagexPanel() {
   const [pressedTab, setPressedTab] = useState<string | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
   const [stageNavHidden, setStageNavHidden] = useState(false);
+  const [landscapeNavHidden, setLandscapeNavHidden] = useState(false);
 
   const [isLandscape, setIsLandscape] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches
   );
   useEffect(() => {
     const mql = window.matchMedia('(orientation: landscape) and (max-width: 960px)');
-    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
+    const handler = (e: MediaQueryListEvent) => {
+      setIsLandscape(e.matches);
+      if (!e.matches) setLandscapeNavHidden(false);
+    };
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
   }, []);
@@ -266,7 +270,7 @@ export default function StagexPanel() {
   }, []);
 
   const collapseHeader = curView === 'Export' || (isLandscape && curView === 'Editor');
-  const hideLandscapeNav = isLandscape && curView === 'Editor';
+  const isLandscapeEditor = isLandscape && curView === 'Editor';
 
   const navTabs: { view: string; label: string; icon: string }[] = [
     { view: 'Editor', label: 'STAGE', icon: 'grid_view' },
@@ -482,7 +486,7 @@ export default function StagexPanel() {
             aria-label="Add instrument"
             style={{
               position: 'absolute',
-              bottom: hideLandscapeNav ? 14 : 90,
+              bottom: (isLandscapeEditor && landscapeNavHidden) ? 14 : isLandscapeEditor ? 60 : 90,
               right: 14,
               width: 50,
               height: 50,
@@ -494,7 +498,7 @@ export default function StagexPanel() {
               WebkitTapHighlightColor: 'transparent',
               touchAction: 'manipulation',
               display: 'flex',
-              opacity: (stageNavHidden && !hideLandscapeNav) ? 0 : 1,
+              opacity: (stageNavHidden && !isLandscapeEditor) ? 0 : 1,
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: fabOpen
@@ -509,6 +513,36 @@ export default function StagexPanel() {
           </button>
         )}
 
+        {isLandscapeEditor && landscapeNavHidden && (
+          <button
+            onClick={() => setLandscapeNavHidden(false)}
+            aria-label="Show navigation"
+            title="Show navigation"
+            style={{
+              position: 'absolute',
+              bottom: 'max(4px, env(safe-area-inset-bottom))',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 36,
+              height: 18,
+              borderRadius: '10px 10px 0 0',
+              background: stagePillBg,
+              border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
+              borderBottom: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              zIndex: 10,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14, color: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(160,160,180,0.8)', lineHeight: 1 }}>expand_less</span>
+          </button>
+        )}
+
         {/* ── Glassmorphism bottom nav — matches Chordex BottomNav ── */}
         <div
           ref={stageNavRef}
@@ -516,13 +550,13 @@ export default function StagexPanel() {
             position: 'absolute',
             bottom: 'max(10px, env(safe-area-inset-bottom))',
             left: '50%',
-            transform: `translateX(-50%) translateY(${(stageNavHidden || hideLandscapeNav) ? '140%' : '0'})`,
-            width: '90%',
-            maxWidth: 400,
+            transform: `translateX(-50%) translateY(${(isLandscapeEditor ? landscapeNavHidden : stageNavHidden) ? '140%' : '0'})`,
+            width: isLandscapeEditor ? '70%' : '90%',
+            maxWidth: isLandscapeEditor ? 320 : 400,
             display: 'flex',
             justifyContent: 'space-around',
             alignItems: 'center',
-            padding: '6px 8px',
+            padding: isLandscapeEditor ? '3px 6px' : '6px 8px',
             borderRadius: '2rem',
             border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
             background: stagePillBg,
@@ -536,16 +570,46 @@ export default function StagexPanel() {
             transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1), transform 420ms cubic-bezier(0.4,0,0.2,1)',
           }}
         >
+          {isLandscapeEditor && (
+            <button
+              onClick={() => setLandscapeNavHidden(true)}
+              aria-label="Hide navigation"
+              title="Hide navigation"
+              style={{
+                position: 'absolute',
+                top: -22,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 36,
+                height: 18,
+                borderRadius: '10px 10px 0 0',
+                background: stagePillBg,
+                border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
+                borderBottom: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                zIndex: 11,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14, color: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(160,160,180,0.8)', lineHeight: 1 }}>expand_more</span>
+            </button>
+          )}
+
           {/* Elastic sliding pill */}
           {stagePill.ready && (
             <div
               aria-hidden
               style={{
                 position: 'absolute',
-                top: 4,
+                top: isLandscapeEditor ? 2 : 4,
                 left: stagePill.left,
                 width: stagePill.right - stagePill.left,
-                height: 'calc(100% - 8px)',
+                height: isLandscapeEditor ? 'calc(100% - 4px)' : 'calc(100% - 8px)',
                 borderRadius: 9999,
                 background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
                 boxShadow: `0 2px 18px ${accent.to}60`,
@@ -577,8 +641,8 @@ export default function StagexPanel() {
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 4,
-                  padding: '8px 4px',
+                  gap: isLandscapeEditor ? 1 : 4,
+                  padding: isLandscapeEditor ? '4px 4px' : '8px 4px',
                   borderRadius: 9999,
                   background: 'transparent',
                   border: 'none',
@@ -593,11 +657,11 @@ export default function StagexPanel() {
                   touchAction: 'manipulation',
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 20, lineHeight: 1 }}>{icon}</span>
+                <span className="material-symbols-outlined" style={{ fontSize: isLandscapeEditor ? 16 : 20, lineHeight: 1 }}>{icon}</span>
                 <span style={{
                   fontFamily: 'Manrope, sans-serif',
                   fontWeight: 700,
-                  fontSize: '9.5px',
+                  fontSize: isLandscapeEditor ? '7.5px' : '9.5px',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   lineHeight: 1,
