@@ -1954,6 +1954,7 @@ export default function DrumEditor() {
 
   // ── Play/stop ────────────────────────────────────────────────────────────
   const startPattern = useCallback(() => {
+    setRandomVariations(useDrumStore.getState().drumPrefs.randomVariations);
     const sm  = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
     const vol: Partial<Record<DrumInstrument, number>> = {};
     activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
@@ -2002,7 +2003,9 @@ export default function DrumEditor() {
 
   const handleGroovePreview = useCallback((groove: GrooveEntry) => {
     if (previewingGrooveId === groove.id && drumScheduler.isPlaying) {
-      drumScheduler.stop(); setPlaying(false); setPreviewingGrooveId(null); return;
+      drumScheduler.stop(); setPlaying(false); setPreviewingGrooveId(null);
+      setRandomVariations(useDrumStore.getState().drumPrefs.randomVariations);
+      return;
     }
     if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
     const sm = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
@@ -2021,7 +2024,9 @@ export default function DrumEditor() {
 
   const handleLibPreview = useCallback((lp: LibraryPattern) => {
     if (previewingGrooveId === lp.id && drumScheduler.isPlaying) {
-      drumScheduler.stop(); setPlaying(false); setPreviewingGrooveId(null); return;
+      drumScheduler.stop(); setPlaying(false); setPreviewingGrooveId(null);
+      setRandomVariations(useDrumStore.getState().drumPrefs.randomVariations);
+      return;
     }
     if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
     const libKit: KitType = 'house';
@@ -2029,10 +2034,12 @@ export default function DrumEditor() {
     const vol: Partial<Record<DrumInstrument, number>> = {};
     activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
     const flatMeasures = lp.measures.map(m => {
-      const hits = { ...m.hits };
-      if (hits['hihat-closed']) {
-        hits['hihat-closed'] = hits['hihat-closed'].map(h =>
-          h.variation && h.variation !== 'normal' ? { ...h, variation: 'normal' as const } : h
+      const hits: typeof m.hits = {};
+      for (const [inst, arr] of Object.entries(m.hits)) {
+        hits[inst as DrumInstrument] = (arr as DrumHit[]).map(h =>
+          h.variation && h.variation !== 'normal'
+            ? { ...h, variation: 'normal' as const }
+            : h
         );
       }
       return { ...m, hits };
@@ -2042,6 +2049,7 @@ export default function DrumEditor() {
       timeSignature: [4, 4], subdivision: lp.subdivision,
       measures: flatMeasures,
     };
+    setRandomVariations(false);
     loadHouseKit('blend');
     drumScheduler.start(tempPat, sm, vol, masterVolume, true, libKit);
     setPreviewingGrooveId(lp.id);
@@ -3130,7 +3138,7 @@ export default function DrumEditor() {
                                         {item.label}
                                       </button>
                                     ))}
-                                    <button onClick={() => { deleteGroove(g.id); setGrooveMenuId(null); if (previewingGrooveId === g.id) { drumScheduler.stop(); setPreviewingGrooveId(null); } }} className="btn-smooth"
+                                    <button onClick={() => { deleteGroove(g.id); setGrooveMenuId(null); if (previewingGrooveId === g.id) { drumScheduler.stop(); setPreviewingGrooveId(null); setRandomVariations(useDrumStore.getState().drumPrefs.randomVariations); } }} className="btn-smooth"
                                       style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', borderTop: '1px solid rgba(128,128,128,0.08)', cursor: 'pointer', color: '#f87171', fontSize: 12.5, fontWeight: 600 }}>
                                       <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
                                       Delete
