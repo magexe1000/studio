@@ -95,6 +95,14 @@ export default function StageCorePanel() {
   const { settings } = useChordStore();
   const [curView, setCurView] = useState<string>('Editor');
 
+  /* ── Glassmorphism bottom nav state ─────────────────────── */
+  const stageNavRef    = useRef<HTMLDivElement | null>(null);
+  const stageBtnRefs   = useRef<(HTMLButtonElement | null)[]>([]);
+  const prevTabRef     = useRef(0);
+  const stageStretchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [stagePill, setStagePill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
+  const [pressedTab, setPressedTab] = useState<string | null>(null);
+
   const [isLandscape, setIsLandscape] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches
   );
@@ -217,6 +225,62 @@ export default function StageCorePanel() {
     callIframe('toggleSCDial');
   }, [callIframe]);
 
+  /* ── Glassmorphism pill bg ──────────────────────────────── */
+  const stagePillBg = isAmoled
+    ? 'rgba(4,4,4,0.88)'
+    : isLight
+      ? 'rgba(240,240,242,0.82)'
+      : 'rgba(26,26,30,0.82)';
+
+  /* ── Pill measurement helpers ───────────────────────────── */
+  const measureStageBtn = (idx: number) => {
+    const btn = stageBtnRefs.current[idx];
+    const nav = stageNavRef.current;
+    if (!btn || !nav) return null;
+    const nr = nav.getBoundingClientRect();
+    const br = btn.getBoundingClientRect();
+    return { left: br.left - nr.left, right: br.right - nr.left };
+  };
+
+  /* Init pill on mount */
+  useEffect(() => {
+    const idx = navTabs.findIndex(t => isTabActive(t.view));
+    const m = measureStageBtn(idx >= 0 ? idx : 0);
+    if (m) setStagePill({ left: m.left, right: m.right, ready: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* Animate pill when view changes */
+  useEffect(() => {
+    const newIdx = navTabs.findIndex(t => isTabActive(t.view));
+    if (newIdx < 0) return;
+    const oldIdx = prevTabRef.current;
+    if (newIdx === oldIdx) return;
+    prevTabRef.current = newIdx;
+    const newM = measureStageBtn(newIdx);
+    if (!newM) return;
+    if (stageStretchRef.current) {
+      clearTimeout(stageStretchRef.current);
+      stageStretchRef.current = null;
+      setStagePill(p => ({ ...p, left: newM.left, right: newM.right }));
+      return;
+    }
+    if (newIdx > oldIdx) {
+      setStagePill(p => ({ ...p, right: newM.right }));
+      stageStretchRef.current = setTimeout(() => {
+        setStagePill(p => ({ ...p, left: newM.left }));
+        stageStretchRef.current = null;
+      }, 70);
+    } else {
+      setStagePill(p => ({ ...p, left: newM.left }));
+      stageStretchRef.current = setTimeout(() => {
+        setStagePill(p => ({ ...p, right: newM.right }));
+        stageStretchRef.current = null;
+      }, 70);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [curView]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: stageBg, transition: 'background 180ms ease' }}>
 
@@ -233,7 +297,7 @@ export default function StageCorePanel() {
         height: 52,
         display: 'flex',
         alignItems: 'center',
-        padding: '10px 14px 0',
+        padding: '0 20px',
         background: stageHdr,
         transition: 'background 180ms ease',
         gap: showBack ? 8 : 0,
@@ -348,14 +412,14 @@ export default function StageCorePanel() {
             aria-label="Add instrument"
             style={{
               position: 'absolute',
-              bottom: 80,
+              bottom: 90,
               right: 14,
               width: 50,
               height: 50,
               borderRadius: '50%',
               background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
               border: 'none',
-              zIndex: 10,
+              zIndex: 20,
               cursor: 'pointer',
               WebkitTapHighlightColor: 'transparent',
               touchAction: 'manipulation',
@@ -370,50 +434,103 @@ export default function StageCorePanel() {
           </button>
         )}
 
-        <div style={{
-          position: 'absolute',
-          bottom: 6,
-          left: '3%',
-          right: '3%',
-          maxWidth: 380,
-          height: 52,
-          display: 'flex',
-          zIndex: 10,
-          borderRadius: 999,
-          background: isLight ? 'rgba(230,230,228,0.95)' : 'rgba(38,38,38,0.95)',
-          overflow: 'hidden',
-          margin: '0 auto',
-        }}>
-          {navTabs.map(({ view, label, icon }) => {
-            const active = isTabActive(view);
+        {/* ── Glassmorphism bottom nav — matches Chordex BottomNav ── */}
+        <div
+          ref={stageNavRef}
+          style={{
+            position: 'absolute',
+            bottom: 'max(10px, env(safe-area-inset-bottom))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '90%',
+            maxWidth: 400,
+            display: 'flex',
+            justifyContent: 'space-around',
+            alignItems: 'center',
+            padding: '6px 8px',
+            borderRadius: '2rem',
+            border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
+            background: stagePillBg,
+            boxShadow: isLight
+              ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
+              : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            zIndex: 10,
+            overflow: 'hidden',
+            transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+          }}
+        >
+          {/* Elastic sliding pill */}
+          {stagePill.ready && (
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                top: 4,
+                left: stagePill.left,
+                width: stagePill.right - stagePill.left,
+                height: 'calc(100% - 8px)',
+                borderRadius: 9999,
+                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                boxShadow: `0 2px 18px ${accent.to}60`,
+                pointerEvents: 'none',
+                zIndex: 0,
+                transition: [
+                  'left  150ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  'width 150ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+                ].join(', '),
+              }}
+            />
+          )}
+
+          {/* Nav buttons */}
+          {navTabs.map(({ view, label, icon }, i) => {
+            const active  = isTabActive(view);
+            const pressed = pressedTab === view;
             return (
               <button
                 key={view}
-                onClick={() => handleNavTap(view)}
-                onTouchEnd={(e) => { e.preventDefault(); handleNavTap(view); }}
+                ref={el => { stageBtnRefs.current[i] = el; }}
+                onPointerDown={() => setPressedTab(view)}
+                onPointerUp={() => { setPressedTab(null); handleNavTap(view); }}
+                onPointerLeave={() => setPressedTab(null)}
+                onPointerCancel={() => setPressedTab(null)}
                 style={{
                   flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 3,
-                  background: active
-                    ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
-                    : 'transparent',
+                  gap: 4,
+                  padding: '8px 4px',
+                  borderRadius: 9999,
+                  background: 'transparent',
                   border: 'none',
-                  borderRadius: 999,
                   cursor: 'pointer',
-                  color: active ? '#fff' : (isLight ? '#888' : 'rgba(255,255,255,0.45)'),
+                  color: active ? '#fff' : (isLight ? 'rgba(0,0,0,0.4)' : 'var(--c-text-secondary, rgba(160,160,180,0.8))'),
+                  position: 'relative',
+                  zIndex: 1,
+                  transform: pressed ? 'scale(0.91)' : 'scale(1)',
+                  transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  WebkitFontSmoothing: 'antialiased',
                   WebkitTapHighlightColor: 'transparent',
                   touchAction: 'manipulation',
-                  padding: '8px 4px',
-                  margin: 4,
-                  transition: 'background 200ms ease, color 200ms ease',
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 20, lineHeight: 1 }}>{icon}</span>
-                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.5 }}>{label}</span>
+                <span style={{
+                  fontFamily: 'Manrope, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '9.5px',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap',
+                  WebkitFontSmoothing: 'antialiased',
+                }}>
+                  {label}
+                </span>
               </button>
             );
           })}
