@@ -1452,6 +1452,21 @@ export default function DrumEditor() {
   const barColor   = isLight ? 'rgba(0,0,0,0.50)' : 'rgba(255,255,255,0.45)';
   const altBg      = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)';
 
+  // ── Landscape detection ──────────────────────────────────────────────────
+  const [isLandscape, setIsLandscape] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth > window.innerHeight && window.innerWidth >= 600
+  );
+  useEffect(() => {
+    const check = () => setIsLandscape(window.innerWidth > window.innerHeight && window.innerWidth >= 600);
+    const mql = window.matchMedia('(orientation: landscape)');
+    if (mql.addEventListener) { mql.addEventListener('change', check); } else { mql.addListener(check); }
+    window.addEventListener('resize', check);
+    return () => {
+      if (mql.removeEventListener) { mql.removeEventListener('change', check); } else { mql.removeListener(check); }
+      window.removeEventListener('resize', check);
+    };
+  }, []);
+
   // ── State ────────────────────────────────────────────────────────────────
   const [inEditor,       setInEditor]       = useState(false);
   const [activeTab,      setActiveTab]      = useState<DrumTab>('songs');
@@ -2165,23 +2180,40 @@ export default function DrumEditor() {
     <div data-perf-mode={drumPrefs.performanceMode ? 'on' : undefined} style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
 
       {/* ── Safe-area spacer ─────────────────────────────────────────────── */}
-      <div style={{ height: 'env(safe-area-inset-top)', background: 'var(--app-bg)', flexShrink: 0 }} />
+      {!(isLandscape && inEditor) && (
+        <div style={{ height: 'env(safe-area-inset-top)', background: 'var(--app-bg)', flexShrink: 0 }} />
+      )}
 
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
-      <div style={{ flexShrink: 0, height: 52, display: 'flex', alignItems: 'center', padding: '10px 14px 0', gap: 8, background: 'var(--app-bg)' }}>
+      <div style={{ flexShrink: 0, height: isLandscape && inEditor ? 40 : 52, display: 'flex', alignItems: 'center', padding: isLandscape && inEditor ? '0 10px' : '10px 14px 0', gap: isLandscape && inEditor ? 6 : 8, background: 'var(--app-bg)', borderBottom: isLandscape && inEditor ? '1px solid rgba(128,128,128,0.06)' : 'none' }}>
         {inEditor ? (
           <>
-            <button onClick={handleBack} className="btn-smooth" aria-label="Back" style={{ width: 36, height: 36, borderRadius: '50%', background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.10)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 20 }}>arrow_back</span>
+            <button onClick={handleBack} className="btn-smooth" aria-label="Back" style={{ width: isLandscape ? 30 : 36, height: isLandscape ? 30 : 36, borderRadius: '50%', background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.10)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: isLandscape ? 17 : 20 }}>arrow_back</span>
             </button>
             {activeSong && (
-              <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, minWidth: 0 }}>
+              <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: isLandscape ? 12 : 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, minWidth: 0 }}>
                 {activeSong.name}
               </p>
             )}
             {!activeSong && <div style={{ flex: 1 }} />}
             {/* Editor controls — only on the grid tab */}
             {activeTab === 'songs' && (<>
+              {/* Landscape inline BPM + Play */}
+              {isLandscape && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(128,128,128,0.06)', borderRadius: 8, padding: '0 4px', height: 28 }}>
+                    <button onClick={() => adjustBpm(-1)} className="btn-smooth" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                    <span style={{ fontSize: 11, fontWeight: 800, fontFamily: 'Manrope,sans-serif', color: accent.from, minWidth: 28, textAlign: 'center' }}>{pattern.bpm}</span>
+                    <button onClick={() => adjustBpm(1)} className="btn-smooth" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                  </div>
+                  <div style={{ width: 1, height: 18, background: 'rgba(128,128,128,0.12)' }} />
+                  <button onClick={handlePlay} className="btn-smooth" style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: playing ? 'rgba(128,128,128,0.12)' : `linear-gradient(135deg,${accent.from},${accent.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: playing ? 'var(--c-text-secondary)' : '#fff', transition: 'all 150ms', flexShrink: 0 }}>
+                    {playing ? '⏹' : '▶'}
+                  </button>
+                  <div style={{ width: 1, height: 18, background: 'rgba(128,128,128,0.12)' }} />
+                </>
+              )}
               {/* Undo / Redo */}
               <button onClick={handleUndo} disabled={historyCount === 0} title="Undo (Ctrl+Z)"
                 style={{ height: 30, width: 30, borderRadius: 8, background: historyCount > 0 ? 'rgba(128,128,128,0.08)' : 'transparent', border: `1px solid ${historyCount > 0 ? 'rgba(128,128,128,0.18)' : 'transparent'}`, cursor: historyCount > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: historyCount > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: historyCount > 0 ? 1 : 0.35, flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
@@ -2535,7 +2567,7 @@ export default function DrumEditor() {
               onPointerUp={handlePointerUp}
               onPointerLeave={cancelPointer}
               onPointerCancel={cancelPointer}
-              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: 8, paddingBottom: 100, position: 'relative' }}
+              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: 8, paddingBottom: isLandscape ? 20 : 100, position: 'relative' }}
               className="no-scrollbar"
             >
               {/* Playhead — extends into ruler, draggable handle at top */}
@@ -2675,8 +2707,8 @@ export default function DrumEditor() {
                 </button>
               </div>
             </div>
-            {/* BPM + Play */}
-            <div style={{ position: 'fixed', right: 14, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)', zIndex: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            {/* BPM + Play (hidden in landscape — controls are in the top bar) */}
+            <div style={{ position: 'fixed', right: 14, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)', zIndex: 60, display: isLandscape ? 'none' : 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               {/* Clear button — black bg, red trash icon */}
               <div style={{ position: 'relative' }}>
                 {showClearConfirm && (
@@ -2924,7 +2956,7 @@ export default function DrumEditor() {
       </div>
 
       {/* ── Bottom nav ───────────────────────────────────────────────────── */}
-      <DrumNav activeTab={activeTab} setTab={handleSetTab} accent={accent} isLight={isLight} isAmoled={isAmoled} hidden={drumNavHidden} />
+      <DrumNav activeTab={activeTab} setTab={handleSetTab} accent={accent} isLight={isLight} isAmoled={isAmoled} hidden={drumNavHidden || (isLandscape && inEditor)} />
 
       {/* ── Floating buttons (songs list only): import above + add ──────── */}
       {!inEditor && activeTab === 'songs' && (
