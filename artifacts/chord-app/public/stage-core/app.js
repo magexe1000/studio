@@ -3197,6 +3197,16 @@ function _riderCloneStage(slot, src) {
   clone.classList.add('rd-stage-clone');
   clone.style.cssText = 'pointer-events:none;border-color:rgba(72,72,71,0.12);border-style:solid;border-width:1px;transform-origin:top left;overflow:visible;position:relative;box-sizing:border-box;';
   clone.querySelectorAll('[id]').forEach(function(n) { n.removeAttribute('id'); });
+  var dsLabel = clone.querySelector('[data-i18n="downstageLabel"]');
+  if (dsLabel) {
+    dsLabel.style.fontSize = '7px';
+    dsLabel.style.letterSpacing = '0.3em';
+    dsLabel.style.bottom = '-16px';
+    dsLabel.style.left = '50%';
+    dsLabel.style.transform = 'translateX(-50%)';
+    dsLabel.style.width = '100%';
+    dsLabel.style.textAlign = 'center';
+  }
   slot.appendChild(clone);
 }
 function _riderScalePreview(slot, src) {
@@ -3206,7 +3216,7 @@ function _riderScalePreview(slot, src) {
   var srcH = state.canvasH || src.scrollHeight || src.offsetHeight || 420;
   if (srcW <= 0) srcW = 650;
   if (srcH <= 0) srcH = 420;
-  var extraBottom = 28;
+  var extraBottom = 20;
   var totalH = srcH + extraBottom;
   var slotW = slot.clientWidth || 350;
   var pad = 12;
