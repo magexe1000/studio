@@ -908,9 +908,9 @@ function synthHihat(ctx: AudioContext, t: number, vol: number, dest: AudioNode, 
     'hh-c-tight':   { decay: 0.030, hp: 8000,  lp: 16000, nVol: 0.18, baseF: 42 },
     'hh-c-crisp':   { decay: 0.050, hp: 7000,  lp: 15000, nVol: 0.25, baseF: 40 },
     'hh-c-loose':   { decay: 0.075, hp: 6000,  lp: 13000, nVol: 0.28, baseF: 38 },
-    'hh-o-short':   { decay: 0.230, hp: 5500,  lp: 12000, nVol: 0.38, baseF: 38 },
-    'hh-o-long':    { decay: 0.600, hp: 5000,  lp: 12000, nVol: 0.40, baseF: 38 },
-    'hh-o-wash':    { decay: 1.000, hp: 4400,  lp: 11000, nVol: 0.50, baseF: 36 },
+    'hh-o-short':   { decay: 0.180, hp: 5500,  lp: 12000, nVol: 0.38, baseF: 38 },
+    'hh-o-long':    { decay: 0.350, hp: 5000,  lp: 12000, nVol: 0.40, baseF: 38 },
+    'hh-o-wash':    { decay: 0.500, hp: 4400,  lp: 11000, nVol: 0.50, baseF: 36 },
     'hh-f-std':     { decay: 0.085, hp: 6500,  lp: 11500, nVol: 0.28, baseF: 36 },
     'hh-f-splash':  { decay: 0.160, hp: 5800,  lp: 11000, nVol: 0.35, baseF: 36 },
   };
@@ -1531,7 +1531,7 @@ export function playSoundAt(
       if (buf) { playBuffer(ctx, buf, t, vol, chainInput, undefined, 1.0); return; }
     } else if (inst === 'hihat-open') {
       const buf = cymbalPool.getHHOpen(variation);
-      if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
+      if (buf) { playBuffer(ctx, buf, t, vol, noteDest, Math.min(buf.duration, 0.45), 1.0); return; }
     } else if (inst === 'hihat-foot') {
       const buf = cymbalPool.getHHFoot();
       if (buf) { playBuffer(ctx, buf, t, vol, chainInput, undefined, 1.0); return; }
@@ -1562,7 +1562,9 @@ export function playSoundAt(
     const adjVol   = Math.min(vol * kitGain, 1.6);
 
     if (isHihat) {
-      const dur = inst === 'hihat-foot' ? 0.08 : (soundId === 'hh-c-tight' ? 0.032 : soundId === 'hh-c-crisp' ? 0.052 : 0.075);
+      const dur = inst === 'hihat-open' ? 0.45
+        : inst === 'hihat-foot' ? 0.08
+        : (soundId === 'hh-c-tight' ? 0.032 : soundId === 'hh-c-crisp' ? 0.052 : 0.075);
       playBuffer(ctx, buf, t, adjVol, chainInput, dur, rate);
     } else if (roomMs > 0 && chainInput === dest) {
       playBufferRoomy(ctx, buf, t, adjVol, chainInput, rate, roomMs);
