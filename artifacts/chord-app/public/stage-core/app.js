@@ -1717,14 +1717,8 @@ window.addEventListener('orientationchange', function() {
 });
 try {
   var _landscapeMql = window.matchMedia('(orientation: landscape) and (max-width: 960px)');
-  function _applyLandscapeVtools(isLand) {
-    var vt = document.getElementById('sc-vtools');
-    if (vt && state.currentView === 'Editor') vt.classList.toggle('mob-hidden', isLand);
-  }
-  _applyLandscapeVtools(_landscapeMql.matches);
   _landscapeMql.addEventListener('change', function(e) {
     setPropState('hidden');
-    _applyLandscapeVtools(e.matches);
     setTimeout(_rescaleElementsOnResize, 200);
   });
 } catch(e) {}

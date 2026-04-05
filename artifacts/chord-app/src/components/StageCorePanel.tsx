@@ -172,15 +172,6 @@ export default function StagexPanel() {
             s.textContent = HIDE_IFRAME_UI;
             doc.head.appendChild(s);
           }
-          if (isLandscape) {
-            let ls = doc.getElementById('landscape-overrides');
-            if (!ls) {
-              ls = doc.createElement('style');
-              ls.id = 'landscape-overrides';
-              doc.head.appendChild(ls);
-            }
-            ls.textContent = '#sc-vtools { display: none !important; }';
-          }
           if (!doc.getElementById('sc-scroll-spy')) {
             const scr = doc.createElement('script');
             scr.id = 'sc-scroll-spy';
@@ -242,17 +233,8 @@ export default function StagexPanel() {
     try {
       const doc = iframe.contentDocument;
       if (doc) {
-        let ls = doc.getElementById('landscape-overrides');
-        if (isLandscape) {
-          if (!ls) {
-            ls = doc.createElement('style');
-            ls.id = 'landscape-overrides';
-            doc.head.appendChild(ls);
-          }
-          ls.textContent = '#sc-vtools { display: none !important; }';
-        } else if (ls) {
-          ls.remove();
-        }
+        const ls = doc.getElementById('landscape-overrides');
+        if (ls) ls.remove();
       }
     } catch {}
     try {
@@ -486,7 +468,7 @@ export default function StagexPanel() {
             aria-label="Add instrument"
             style={{
               position: 'absolute',
-              bottom: (isLandscapeEditor && landscapeNavHidden) ? 14 : isLandscapeEditor ? 60 : 90,
+              bottom: (isLandscapeEditor && landscapeNavHidden) ? 14 : isLandscapeEditor ? 50 : 90,
               right: 14,
               width: 50,
               height: 50,
@@ -543,6 +525,37 @@ export default function StagexPanel() {
           </button>
         )}
 
+        {isLandscapeEditor && !landscapeNavHidden && (
+          <button
+            onClick={() => setLandscapeNavHidden(true)}
+            aria-label="Hide navigation"
+            title="Hide navigation"
+            style={{
+              position: 'absolute',
+              bottom: `calc(max(10px, env(safe-area-inset-bottom)) + ${isLandscapeEditor ? 34 : 52}px)`,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 36,
+              height: 18,
+              borderRadius: '10px 10px 0 0',
+              background: stagePillBg,
+              border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
+              borderBottom: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              zIndex: 11,
+              transition: 'opacity 300ms ease',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14, color: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(160,160,180,0.8)', lineHeight: 1 }}>expand_more</span>
+          </button>
+        )}
+
         {/* ── Glassmorphism bottom nav — matches Chordex BottomNav ── */}
         <div
           ref={stageNavRef}
@@ -570,35 +583,6 @@ export default function StagexPanel() {
             transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1), transform 420ms cubic-bezier(0.4,0,0.2,1)',
           }}
         >
-          {isLandscapeEditor && (
-            <button
-              onClick={() => setLandscapeNavHidden(true)}
-              aria-label="Hide navigation"
-              title="Hide navigation"
-              style={{
-                position: 'absolute',
-                top: -22,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 36,
-                height: 18,
-                borderRadius: '10px 10px 0 0',
-                background: stagePillBg,
-                border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
-                borderBottom: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                zIndex: 11,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 14, color: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(160,160,180,0.8)', lineHeight: 1 }}>expand_more</span>
-            </button>
-          )}
 
           {/* Elastic sliding pill */}
           {stagePill.ready && (
