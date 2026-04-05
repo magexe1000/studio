@@ -180,7 +180,9 @@ export default function StagexPanel() {
             scr.textContent = `(function(){
               var ly=0;
               function h(e){
-                var y=e.target.scrollTop;
+                var t=e.target;
+                if(t&&t.closest&&t.closest('#bottom-toolbar,#properties-panel'))return;
+                var y=t.scrollTop;
                 if(typeof y!=='number')return;
                 if(y<30){window.parent.postMessage({type:'sc-scroll-dir',down:false},window.location.origin);ly=y;return;}
                 var dy=y-ly;
