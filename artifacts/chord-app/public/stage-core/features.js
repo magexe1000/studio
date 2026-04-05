@@ -2190,15 +2190,15 @@ function _scToast(msg) {
   let t = document.getElementById('sc-toast');
   if (!t) { t = document.createElement('div'); t.id = 'sc-toast'; document.body.appendChild(t); }
   t.textContent = msg;
-  t.style.transform = 'translateX(-16px)';
+  t.style.transform = 'translateX(-50%) translateY(8px)';
   t.style.opacity = '0';
   void t.offsetWidth;
   t.style.opacity = '1';
-  t.style.transform = 'translateX(0)';
+  t.style.transform = 'translateX(-50%) translateY(0)';
   clearTimeout(t._timer);
   t._timer = setTimeout(() => {
     t.style.opacity = '0';
-    t.style.transform = 'translateX(-8px)';
+    t.style.transform = 'translateX(-50%) translateY(-4px)';
   }, 1600);
 }
 
