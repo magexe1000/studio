@@ -359,33 +359,17 @@ export default function App() {
       } as React.CSSProperties}
     >
 
-      {/* Panel container */}
+      {/* Panel container — only mount visible + exiting panels */}
       <div className="flex-1 overflow-hidden relative">
         {ALL_PANELS.map(panel => {
           const isVisible  = visiblePanel === panel;
           const isExiting  = exitingPanel === panel;
+          if (!isVisible && !isExiting) return null;
           const isEntering = isVisible && exitingPanel !== null;
 
-          // Determine CSS animation class
           let animClass = '';
           if (isEntering) animClass = slideDir === 'right' ? 'panel-enter-right' : 'panel-enter-left';
           else if (isExiting) animClass = slideDir === 'right' ? 'panel-exit-left' : 'panel-exit-right';
-
-          if (!isVisible && !isExiting) {
-            return (
-              <div
-                key={panel}
-                style={{ position: 'absolute', inset: 0, opacity: 0, pointerEvents: 'none' }}
-              >
-                <Suspense fallback={null}>
-                  {panel === 'library'  && <LibraryPanel />}
-                  {panel === 'chord'    && <ChordPanel />}
-                  {panel === 'songs'    && <SongsPanel />}
-                  {panel === 'settings' && <SettingsPanel />}
-                </Suspense>
-              </div>
-            );
-          }
 
           return (
             <div

@@ -222,11 +222,6 @@ html, body { background: var(--app-bg); }
     overscroll-behavior: none;
   }
 
-  /* Keep antialiasing crisp but skip optimizeLegibility — it triggers slower text shaping on every paint */
-  p, span, h1, h2, h3, h4, h5, h6, a, label, button, input, textarea, li, td, th {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
 }
 
 /* ===== Smooth Scrollbar ===== */

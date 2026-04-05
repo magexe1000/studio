@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { type AccentColor } from '../store/useChordStore';
 
 // ── Shared primitives used across SettingsPanel and HubSettings ────────────────
@@ -10,7 +10,7 @@ export interface ToggleProps {
   accentTo: string;
 }
 
-export function Toggle({ value, onChange, accentFrom, accentTo }: ToggleProps) {
+export const Toggle = memo(function Toggle({ value, onChange, accentFrom, accentTo }: ToggleProps) {
   return (
     <button
       role="switch"
@@ -42,16 +42,16 @@ export function Toggle({ value, onChange, accentFrom, accentTo }: ToggleProps) {
       />
     </button>
   );
-}
+});
 
-export function SectionHeader({ icon, title }: { icon: string; title: string }) {
+export const SectionHeader = memo(function SectionHeader({ icon, title }: { icon: string; title: string }) {
   return (
     <div className="flex items-center gap-2 mb-3 mt-6">
       <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--c-text-secondary)' }}>{icon}</span>
       <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>{title}</p>
     </div>
   );
-}
+});
 
 export function SettingRow({ label, desc, children, indent }: { label: string; desc?: string; children: React.ReactNode; indent?: boolean }) {
   return (

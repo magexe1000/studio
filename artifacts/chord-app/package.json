@@ -12,6 +12,7 @@
     "android:sync": "npx cap sync android && node patch-android.cjs"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.2.1",
     "@replit/vite-plugin-cartographer": "catalog:",
     "@replit/vite-plugin-dev-banner": "catalog:",
     "@replit/vite-plugin-runtime-error-modal": "catalog:",
@@ -22,14 +23,12 @@
     "@vitejs/plugin-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "sharp": "^0.34.5",
     "tailwindcss": "catalog:",
     "vite": "catalog:"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",
     "@capacitor/app": "^6.0.3",
-    "@capacitor/cli": "^6.2.1",
     "@capacitor/core": "^6.2.1",
     "@capacitor/filesystem": "^6.0.1",
     "@capacitor/share": "^6.0.1",

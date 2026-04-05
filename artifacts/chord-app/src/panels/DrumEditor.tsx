@@ -148,11 +148,11 @@ const KIT_CATEGORIES: { id: string; kits: KitType[] }[] = [
 type DrumTab = 'songs' | 'patterns' | 'prefs';
 const TAB_ORDER: DrumTab[] = ['songs', 'patterns', 'prefs'];
 
-// ── SVG note heads ─────────────────────────────────────────────────────────
-function CircleHead({ r, color }: { r: number; color: string }) {
+// ── SVG note heads (memoized — rendered hundreds of times in the grid) ─────
+const CircleHead = memo(function CircleHead({ r, color }: { r: number; color: string }) {
   return <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} />;
-}
-function XHead({ r, color, opacity = 1 }: { r: number; color: string; opacity?: number }) {
+});
+const XHead = memo(function XHead({ r, color, opacity = 1 }: { r: number; color: string; opacity?: number }) {
   const d = r * 0.85;
   return (
     <g opacity={opacity}>
@@ -160,13 +160,11 @@ function XHead({ r, color, opacity = 1 }: { r: number; color: string; opacity?: 
       <line x1={d}  y1={-d} x2={-d} y2={d} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
     </g>
   );
-}
-// Ghost: small faded circle
-function GhostHead({ r, color }: { r: number; color: string }) {
+});
+const GhostHead = memo(function GhostHead({ r, color }: { r: number; color: string }) {
   return <ellipse cx={0} cy={0} rx={r * 0.62} ry={r * 0.62 * 0.82} fill={color} opacity={0.40} />;
-}
-// Rimshot: open ellipse with X inside
-function RimshotHead({ r, color }: { r: number; color: string }) {
+});
+const RimshotHead = memo(function RimshotHead({ r, color }: { r: number; color: string }) {
   const d = r * 0.60;
   return (
     <>
@@ -175,9 +173,8 @@ function RimshotHead({ r, color }: { r: number; color: string }) {
       <line x1={d}  y1={-d} x2={-d} y2={d} stroke={color} strokeWidth={1.2} strokeLinecap="round" />
     </>
   );
-}
-// Flam: small grace note above-left + main filled circle
-function FlamHead({ r, color }: { r: number; color: string }) {
+});
+const FlamHead = memo(function FlamHead({ r, color }: { r: number; color: string }) {
   const gr = r * 0.50;
   return (
     <>
@@ -185,9 +182,8 @@ function FlamHead({ r, color }: { r: number; color: string }) {
       <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} />
     </>
   );
-}
-// Accent: caret above + solid circle
-function AccentHead({ r, color }: { r: number; color: string }) {
+});
+const AccentHead = memo(function AccentHead({ r, color }: { r: number; color: string }) {
   const oy = r * 2.1;
   return (
     <>
@@ -198,9 +194,8 @@ function AccentHead({ r, color }: { r: number; color: string }) {
       <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} />
     </>
   );
-}
-// Open HH: circle with X inside (standard open-hihat notation)
-function OpenHHHead({ r, color }: { r: number; color: string }) {
+});
+const OpenHHHead = memo(function OpenHHHead({ r, color }: { r: number; color: string }) {
   const d = r * 0.62;
   return (
     <>
@@ -209,14 +204,12 @@ function OpenHHHead({ r, color }: { r: number; color: string }) {
       <line x1={d}  y1={-d} x2={-d} y2={d} stroke={color} strokeWidth={1.3} strokeLinecap="round" />
     </>
   );
-}
-// Bell (ride): filled diamond
-function BellHead({ r, color }: { r: number; color: string }) {
+});
+const BellHead = memo(function BellHead({ r, color }: { r: number; color: string }) {
   const rx = r * 0.82; const ry = r * 0.95;
   return <polygon points={`0,${-ry} ${rx},0 0,${ry} ${-rx},0`} fill={color} />;
-}
-// Choke (crash): circle around X
-function ChokeHead({ r, color }: { r: number; color: string }) {
+});
+const ChokeHead = memo(function ChokeHead({ r, color }: { r: number; color: string }) {
   const d = r * 0.62;
   return (
     <>
@@ -225,10 +218,9 @@ function ChokeHead({ r, color }: { r: number; color: string }) {
       <line x1={d}  y1={-d} x2={-d} y2={d} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
     </>
   );
-}
+});
 
-// Render the right head for a given instrument + variation
-function NoteHead({ inst, variation, r, color }: {
+const NoteHead = memo(function NoteHead({ inst, variation, r, color }: {
   inst: DrumInstrument; variation: NoteVariation; r: number; color: string;
 }) {
   // HH-family and cymbals that default to X
@@ -256,7 +248,7 @@ function NoteHead({ inst, variation, r, color }: {
   }
   if (variation === 'accent') return <AccentHead r={r} color={color} />;
   return <CircleHead r={r} color={color} />;
-}
+});
 
 // Stable empty map — prevents creating a new reference each render for muted rows
 const EMPTY_HIT_MAP: Map<number, NoteVariation> = new Map();

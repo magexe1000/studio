@@ -274,8 +274,6 @@ export default function BottomNav() {
               /* No scale on active — avoids subpixel blur on non-retina screens */
               transform: isPressed ? 'scale(0.91)' : 'scale(1)',
               transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-              WebkitFontSmoothing: 'antialiased',
-              MozOsxFontSmoothing: 'grayscale',
             }}
           >
             <Icon active={isActive} />
@@ -287,9 +285,6 @@ export default function BottomNav() {
               textTransform: 'uppercase',
               lineHeight: 1,
               whiteSpace: 'nowrap',
-              WebkitFontSmoothing: 'antialiased',
-              MozOsxFontSmoothing: 'grayscale',
-              textRendering: 'optimizeLegibility',
             }}>
               {label}
             </span>

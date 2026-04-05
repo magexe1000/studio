@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { GuitarChordData } from '../data/chords';
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
   fretsMulti?: number[][];
 }
 
-export default function ChordDiagram({ data, accentFrom, fretsMulti }: Props) {
+export default memo(function ChordDiagram({ data, accentFrom, fretsMulti }: Props) {
   const W = 90, H = 80;
   const padL = 13, padR = 6, padT = 18, padB = 8;
   const innerW = W - padL - padR;
@@ -139,4 +140,4 @@ export default function ChordDiagram({ data, accentFrom, fretsMulti }: Props) {
     )}
     </div>
   );
-}
+});
