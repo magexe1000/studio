@@ -112,30 +112,36 @@
 .stage-element.selected .el-label { color: var(--el-color, var(--accent)); }
 /* Resize toolbar shown on selection */
 .el-resize-bar {
-  display: flex; position: absolute; bottom: -34px; left: 50%;
-  transform: translateX(-50%) translateY(4px) scale(0.92);
-  background: #0e0e0e; border: 1px solid var(--accent-30);
-  flex-direction: row; align-items: center; gap: 2px; padding: 2px 4px; z-index: 100; white-space: nowrap;
+  display: flex; position: absolute; top: 50%; left: calc(100% + 6px);
+  transform: translateY(-50%) translateX(4px) scale(0.92);
+  background: rgba(14,14,14,0.92); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  flex-direction: column; align-items: center; gap: 1px; padding: 4px 3px; z-index: 100; white-space: nowrap;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  transition: opacity 0.22s cubic-bezier(0.4,0,0.2,1), transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
 }
 .stage-element.selected .el-resize-bar {
   opacity: 1; pointer-events: auto;
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateY(-50%) translateX(0) scale(1);
 }
 .stage-element.dragging .el-resize-bar {
-  opacity: 0; pointer-events: none;
-  transform: translateX(-50%) translateY(4px) scale(0.92);
+  opacity: 0 !important; pointer-events: none !important;
+  transform: translateY(-50%) translateX(6px) scale(0.88);
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
 .el-resize-bar button {
-  width: 22px; height: 22px; background: #262626; border: none; color: var(--accent);
-  font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-family: 'Manrope', sans-serif; transition: background 0.1s cubic-bezier(0.16,1,0.3,1), transform 0.1s cubic-bezier(0.34,1.56,0.64,1);
+  width: 24px; height: 24px; background: transparent; border: none; color: rgba(255,255,255,0.6);
+  font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  font-family: 'Manrope', sans-serif; transition: background 0.12s ease, color 0.12s ease, transform 0.1s cubic-bezier(0.34,1.56,0.64,1);
 }
-.el-resize-bar button:hover { background: var(--accent-20); transform: scale(1.12); }
-.el-resize-bar button:active { transform: scale(0.92); }
+.el-resize-bar button:hover { background: rgba(255,255,255,0.08); color: var(--accent); }
+.el-resize-bar button:active { transform: scale(0.88); }
 .el-resize-bar .el-scale-display {
-  font-size: 9px; font-family: 'Manrope', sans-serif; font-weight: 700; color: #adaaaa; min-width: 32px; text-align: center;
+  font-size: 8px; font-family: 'Manrope', sans-serif; font-weight: 700; color: rgba(255,255,255,0.35); min-width: 20px; text-align: center;
+  line-height: 1; padding: 1px 0;
 }
 .draggable-item {
   user-select: none;

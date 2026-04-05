@@ -1597,12 +1597,13 @@ function createElementDOM(el) {
       </div>
     </div>
     <div class="el-resize-bar">
-      <button title="Smaller" data-action="smaller">−</button>
+      <button title="Larger" data-action="larger"><span class="material-symbols-outlined" style="font-size:15px;">add</span></button>
       <span class="el-scale-display">${el.scale}%</span>
-      <button title="Larger"  data-action="larger">+</button>
-      <button title="Rotate ↺" data-action="rotate" style="font-size:11px;">↺</button>
-      <button title="Remove" data-action="remove" style="color:#ff716c;border-left:1px solid rgba(255,113,108,0.2);margin-left:2px;padding-left:2px;">
-        <span class="material-symbols-outlined" style="font-size:13px;line-height:1;display:block;">delete</span>
+      <button title="Smaller" data-action="smaller"><span class="material-symbols-outlined" style="font-size:15px;">remove</span></button>
+      <button title="Rotate" data-action="rotate"><span class="material-symbols-outlined" style="font-size:15px;">rotate_left</span></button>
+      <div style="width:16px;height:1px;background:rgba(255,255,255,0.08);margin:2px 0;"></div>
+      <button title="Remove" data-action="remove" style="color:rgba(255,113,108,0.7);">
+        <span class="material-symbols-outlined" style="font-size:15px;">delete</span>
       </button>
     </div>`;
 
