@@ -2028,10 +2028,19 @@ export default function DrumEditor() {
     const sm = { ...KIT_DEFAULTS[libKit].soundMap };
     const vol: Partial<Record<DrumInstrument, number>> = {};
     activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
+    const flatMeasures = lp.measures.map(m => {
+      const hits = { ...m.hits };
+      if (hits['hihat-closed']) {
+        hits['hihat-closed'] = hits['hihat-closed'].map(h =>
+          h.variation && h.variation !== 'normal' ? { ...h, variation: 'normal' as const } : h
+        );
+      }
+      return { ...m, hits };
+    });
     const tempPat: DrumPattern = {
       id: lp.id, name: lp.name, bpm: lp.bpm,
       timeSignature: [4, 4], subdivision: lp.subdivision,
-      measures: lp.measures,
+      measures: flatMeasures,
     };
     loadHouseKit('blend');
     drumScheduler.start(tempPat, sm, vol, masterVolume, true, libKit);
