@@ -570,7 +570,7 @@ export default function LibraryPanel() {
 
       {/* ── Category header (inside a chord type) ── */}
       {mainTab === 'explore' && showType && activeCat && (
-        <div className="flex-none px-6 pb-5 pt-1" style={{ paddingLeft: '68px' }}>
+        <div className="flex-none pb-5 pt-1" style={{ paddingLeft: 20, paddingRight: 24 }}>
           <h2 className="font-extrabold tracking-tighter leading-none" style={{ fontSize: '2rem', color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
             {activeCat.label}
           </h2>
