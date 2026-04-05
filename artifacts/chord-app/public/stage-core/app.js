@@ -1688,7 +1688,11 @@ function setPropState(newState) {
   p.classList.remove('prop-open', 'prop-peek');
   if (newState === 'open') p.classList.add('prop-open');
   else if (newState === 'peek') p.classList.add('prop-peek');
-  // 'hidden' → no classes
+  var _tb = document.getElementById('bottom-toolbar');
+  if (_tb) {
+    if (newState === 'open') _tb.classList.add('tb-dragging');
+    else _tb.classList.remove('tb-dragging');
+  }
 }
 function _getPropState() {
   const p = document.getElementById('properties-panel');
@@ -1745,8 +1749,10 @@ function startDragElement(e, el) {
   // Capture the pointer so we get events even when cursor leaves the window
   try { wrap.setPointerCapture(e.pointerId); } catch(_) {}
   wrap.classList.add('dragging');
-  wrap.style.willChange = 'left, top'; // promote only this element during drag
+  wrap.style.willChange = 'left, top';
   _propPeek(true);
+  var _tb = document.getElementById('bottom-toolbar');
+  if (_tb) _tb.classList.add('tb-dragging');
 
   const commit = () => {
     rafId = null;
@@ -1802,8 +1808,10 @@ function startDragElement(e, el) {
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     try { wrap.releasePointerCapture(e.pointerId); } catch(_) {}
     wrap.classList.remove('dragging');
-    wrap.style.willChange = ''; // release GPU layer once drag is done
+    wrap.style.willChange = '';
     _propPeek(false);
+    var _tb2 = document.getElementById('bottom-toolbar');
+    if (_tb2) _tb2.classList.remove('tb-dragging');
   };
 
   wrap.addEventListener('pointermove', onMove);
@@ -1817,6 +1825,8 @@ function startTouchDragElement(touch, el) {
   const initX = el.x, initY = el.y;
   const rect = stageCanvas.getBoundingClientRect();
   _propPeek(true);
+  var _tb = document.getElementById('bottom-toolbar');
+  if (_tb) _tb.classList.add('tb-dragging');
   let _touchRaf = null;
 
   const onMove = ev => {
@@ -1838,6 +1848,8 @@ function startTouchDragElement(touch, el) {
     window.removeEventListener('touchend', onEnd);
     state.canvasW = rect.width; state.canvasH = rect.height;
     _propPeek(false);
+    var _tb2 = document.getElementById('bottom-toolbar');
+    if (_tb2) _tb2.classList.remove('tb-dragging');
     pushHistory();
   };
   window.addEventListener('touchmove', onMove, { passive: false });

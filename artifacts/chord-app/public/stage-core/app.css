@@ -323,34 +323,56 @@ select option { background: #0e0e0e; color: #fff; }
   /* Toolbar — centered pill below the tab bar, no scroll */
   #bottom-toolbar {
     position: absolute !important;
-    bottom: auto !important; top: 98px !important;
-    left: 50% !important; right: auto !important;
-    width: fit-content !important;
-    transform: translateX(-50%) !important;
+    bottom: auto !important;
+    left: auto !important; right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: auto !important;
     height: auto !important;
-    justify-content: center !important;
-    flex-wrap: nowrap !important;
-    border-radius: 8px !important;
-    border: 1px solid rgba(72,72,71,0.3) !important;
-    background: rgba(14,14,14,0.95) !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
-    padding: 1px 3px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    background: rgba(14,14,14,0.88) !important;
+    backdrop-filter: blur(14px) !important; -webkit-backdrop-filter: blur(14px) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+    padding: 6px 4px !important;
     z-index: 46 !important;
     overflow: visible !important;
+    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.4,0,0.2,1) !important;
+  }
+  #bottom-toolbar.tb-dragging {
+    opacity: 0 !important;
+    transform: translateY(-50%) translateX(12px) !important;
+    pointer-events: none !important;
   }
   #bottom-toolbar .desktop-only { display: none !important; }
 
-  /* Strip text labels, make buttons compact icon-only squares */
   #bottom-toolbar button span[data-i18n] { display: none !important; }
   #bottom-toolbar button {
-    padding: 2px 4px !important;
+    padding: 0 !important;
     gap: 0 !important;
     min-width: 0 !important;
     flex-shrink: 0 !important;
-    height: 26px !important;
+    width: 30px !important; height: 30px !important;
+    border-radius: 10px !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    color: #666 !important;
+    transition: color 0.15s, background 0.15s !important;
   }
-  #bottom-toolbar > div { flex-shrink: 0 !important; }
-  #bottom-toolbar button .material-symbols-outlined { font-size: 14px !important; }
+  #bottom-toolbar button:active {
+    background: rgba(255,255,255,0.08) !important;
+    color: #aaa !important;
+  }
+  #bottom-toolbar > div { flex-shrink: 0 !important; width: 18px !important; height: 1px !important; background: rgba(255,255,255,0.06) !important; margin: 2px 0 !important; }
+  #bottom-toolbar button .material-symbols-outlined { font-size: 16px !important; }
+  #bottom-toolbar #zoom-pct,
+  #bottom-toolbar .zoom-pct,
+  #bottom-toolbar span:not(.material-symbols-outlined):not([class]) { display: none !important; }
 
   /* Category bar → centered floating pill at bottom, clamped to viewport */
   #mobile-cat-bar {
@@ -479,22 +501,21 @@ select option { background: #0e0e0e; color: #fff; }
   #mob-exp-set-btn .material-symbols-outlined { font-size: 14px !important; }
 
 
-  /* Properties panel: compact top-sheet, width of stage plot, sits above canvas */
+  /* Properties panel: right-side drawer, doesn't overlap plot */
   #properties-panel {
     position: absolute !important;
-    top: 0 !important; bottom: auto !important;
-    left: 50% !important; right: auto !important;
-    width: calc(100% - 20px) !important; max-width: none !important;
-    height: auto !important; max-height: 82px !important;
-    border-radius: 0 0 12px 12px !important;
-    border: none !important;
-    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    top: 4px !important; bottom: auto !important;
+    left: auto !important; right: 4px !important;
+    width: 180px !important; max-width: 180px !important;
+    height: auto !important; max-height: calc(100vh - 90px) !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
     z-index: 310 !important;
     overflow-y: auto !important; overflow-x: hidden !important;
     opacity: 0 !important;
-    transform: translateX(-50%) translateY(-100%) !important;
+    transform: translateX(calc(100% + 8px)) !important;
     pointer-events: none !important;
-    transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), opacity 0.18s ease !important;
+    transition: transform 0.26s cubic-bezier(0.34,1.56,0.64,1), opacity 0.18s ease !important;
     padding: 0 !important;
     background: rgba(10,10,12,0.94) !important;
     backdrop-filter: blur(16px) !important; -webkit-backdrop-filter: blur(16px) !important;
@@ -504,12 +525,12 @@ select option { background: #0e0e0e; color: #fff; }
   #properties-panel::-webkit-scrollbar { display: none !important; }
   #properties-panel.prop-open {
     opacity: 1 !important;
-    transform: translateX(-50%) translateY(0) !important;
+    transform: translateX(0) !important;
     pointer-events: auto !important;
   }
   #properties-panel.prop-peek {
     opacity: 0.92 !important;
-    transform: translateX(-50%) translateY(-80%) !important;
+    transform: translateX(80%) !important;
     pointer-events: auto !important;
   }
 
