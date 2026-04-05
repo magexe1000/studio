@@ -1412,6 +1412,41 @@ function DrumImportModal({ accent, onImport, onClose }: {
   );
 }
 
+const LIB_INSTS: DrumInstrument[] = ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'];
+
+const LibMiniGrid = memo(function LibMiniGrid({ lp, isLight }: { lp: LibraryPattern; isLight: boolean }) {
+  const totalSteps = lp.subdivision === 16 ? 16 : 8;
+  const m0 = lp.measures[0];
+  if (!m0) return null;
+  const usedInsts = LIB_INSTS.filter(inst => m0.hits[inst]?.length);
+  return (
+    <div style={{ background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.35)', borderRadius: 10, padding: '8px 6px', overflow: 'hidden' }}>
+      {usedInsts.slice(0, 4).map(inst => {
+        const instHits = m0.hits[inst] ?? [];
+        const color = INSTRUMENT_COLOR[inst] ?? '#888';
+        const hitSet = new Set(instHits.map(h => h.step));
+        const ghostSet = new Set(instHits.filter(h => h.variation === 'ghost').map(h => h.step));
+        return (
+          <div key={inst} style={{ display: 'flex', gap: 2, marginBottom: 2 }}>
+            {Array.from({ length: totalSteps }, (_, s) => {
+              const isHit = hitSet.has(s);
+              const isGhost = ghostSet.has(s);
+              return (
+                <div key={s} style={{
+                  flex: 1, height: isHit ? (isGhost ? 4 : 6) : 3,
+                  borderRadius: 2,
+                  background: isHit ? (isGhost ? `${color}55` : color) : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)'),
+                  opacity: isHit ? (isGhost ? 0.6 : 0.85) : 1,
+                }} />
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+});
+
 // ── DrumEditor ─────────────────────────────────────────────────────────────
 export default function DrumEditor() {
   const { settings, updateSettings } = useChordStore();
@@ -3020,9 +3055,6 @@ export default function DrumEditor() {
                 ) : filteredLibrary.map(lp => {
                   const isPreviewPlaying = previewingGrooveId === lp.id && drumScheduler.isPlaying;
                   const menuOpen = grooveMenuId === lp.id;
-                  const totalSteps = lp.subdivision === 16 ? 16 : 8;
-                  const allInsts: DrumInstrument[] = ['hihat-closed', 'snare', 'kick', 'crash', 'tom-high', 'tom-mid', 'tom-floor'];
-                  const usedInsts = allInsts.filter(inst => lp.measures[0]?.hits[inst]?.length);
                   return (
                     <div key={lp.id} style={{ background: 'var(--app-surface)', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(128,128,128,0.06)' }}>
                       <div style={{ padding: '14px 14px 8px' }}>
@@ -3037,31 +3069,8 @@ export default function DrumEditor() {
                           </button>
                         </div>
                       </div>
-                      {/* Mini Grid Preview */}
                       <div style={{ padding: '0 14px 10px' }}>
-                        <div style={{ background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.35)', borderRadius: 10, padding: '8px 6px', overflow: 'hidden' }}>
-                          {usedInsts.slice(0, 4).map(inst => {
-                            const instHits = lp.measures[0]?.hits[inst] ?? [];
-                            const color = INSTRUMENT_COLOR[inst] ?? accent.from;
-                            return (
-                              <div key={inst} style={{ display: 'flex', gap: 2, marginBottom: 2 }}>
-                                {Array.from({ length: totalSteps }).map((_, s) => {
-                                  const hit = instHits.find(h => h.step === s);
-                                  const isGhost = hit?.variation === 'ghost';
-                                  return (
-                                    <div key={s} style={{
-                                      flex: 1, height: hit ? (isGhost ? 4 : 6) : 3,
-                                      borderRadius: 2,
-                                      background: hit ? (isGhost ? `${color}55` : color) : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)'),
-                                      opacity: hit ? (isGhost ? 0.6 : 0.85) : 1,
-                                      transition: 'all 100ms',
-                                    }} />
-                                  );
-                                })}
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <LibMiniGrid lp={lp} isLight={isLight} />
                       </div>
                       {/* Action buttons */}
                       <div style={{ padding: '0 14px 12px', display: 'flex', gap: 6 }}>
