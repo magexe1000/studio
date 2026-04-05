@@ -898,64 +898,6 @@ select option { background: #1a1a1a; color: #fff; }
 .lm-action-btn.lm-danger:hover { color: #ff716c; }
 .lm-action-btn .lm-icon { font-size: 15px; }
 
-/* ─── Profile / account additions to logo menu ──────────── */
-.lm-profile-card {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px 10px;
-}
-.lm-profile-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.lm-display-name {
-  font-family: 'Space Grotesk'; font-size: 13px; font-weight: 800;
-  color: #e0e0e0; letter-spacing: 0.02em;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.lm-badge {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.1em;
-  padding: 2px 6px; margin-top: 3px;
-}
-.lm-badge.verified   { background: rgba(0,220,100,0.1); color: #00dc64; border: 1px solid rgba(0,220,100,0.25); }
-.lm-badge.unverified { background: rgba(255,180,0,0.1);  color: #ffb400; border: 1px solid rgba(255,180,0,0.25); cursor: pointer; }
-.lm-badge.unverified:hover { background: rgba(255,180,0,0.2); }
-.lm-2fa-badge {
-  font-family: 'Space Grotesk'; font-size: 8px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 6px;
-}
-.lm-2fa-badge.on  { background: rgba(122,175,255,0.1); color: #7aafff; border: 1px solid rgba(122,175,255,0.25); }
-.lm-2fa-badge.off { background: rgba(72,72,71,0.15);   color: #484847; border: 1px solid rgba(72,72,71,0.2); }
-.lm-cloud-status-row {
-  display: flex; align-items: center; gap: 6px;
-  padding: 0 16px 10px;
-  font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.12em; color: #484847;
-  border-bottom: 1px solid rgba(72,72,71,0.18);
-}
-.lm-menu-section { padding: 4px 0; border-bottom: 1px solid rgba(72,72,71,0.18); }
-.lm-danger-zone {
-  padding: 10px 16px 14px;
-}
-.lm-danger-label {
-  font-family: 'Space Grotesk'; font-size: 8px; font-weight: 800;
-  text-transform: uppercase; letter-spacing: 0.22em; color: #ff716c;
-  opacity: 0.6; margin-bottom: 6px;
-}
-.lm-danger-action {
-  width: 100%; display: flex; align-items: center; gap: 10px;
-  padding: 8px 0; background: transparent; border: none; cursor: pointer;
-  color: #767575; font-family: 'Space Grotesk'; font-size: 11px;
-  font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
-  text-align: left; transition: color 0.12s;
-}
-.lm-danger-action:hover { color: #ff716c; }
-.lm-danger-action .lm-icon { font-size: 15px; color: inherit; }
-
-/* ─── Account Settings modal ─────────────────────────────── */
-
-/* ─── TOTP / 2FA enrollment modal ──────────────────────────  */
-  font-family: 'Space Grotesk'; font-size: 10px; font-weight: 600;
-  color: #ff716c; text-transform: uppercase; letter-spacing: 0.08em; min-height: 14px;
-}
 
 /* ─── Settings Panel ─────────────────────────────────────── */
 #settings-panel {
@@ -1037,59 +979,6 @@ select option { background: #1a1a1a; color: #fff; }
 }
 .toggle-switch.on::after { left: 21px; }
 
-/* ─── Feedback Modal ───────────────────────────────────────── */
-#feedback-backdrop {
-  position: absolute; inset: 0; z-index: 9998;
-  background: rgba(0,0,0,0.94);
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
-}
-#feedback-backdrop.open { opacity: 1; pointer-events: auto; }
-#feedback-backdrop.open #feedback-modal { animation: modal-enter 0.3s cubic-bezier(0.16,1,0.3,1) both; }
-#feedback-modal {
-  background: #141414; border: 1px solid rgba(255,255,255,0.08);
-  width: 480px; max-width: calc(100vw - 32px); max-height: calc(100vh - 48px);
-  display: flex; flex-direction: column; overflow: hidden;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.8);
-}
-#feedback-modal .fb-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
-}
-#feedback-modal .fb-body {
-  flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;
-}
-#feedback-modal .fb-footer {
-  padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.06);
-  display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
-}
-.fb-field-label {
-  font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
-  letter-spacing: 0.06em; text-transform: uppercase; color: #6b7280; margin-bottom: 5px;
-}
-.fb-input, .fb-textarea, .fb-select {
-  width: 100%; background: #1c1c1c; border: 1px solid rgba(255,255,255,0.08);
-  color: #e5e5e5; font-family: 'Space Grotesk', sans-serif; font-size: 13px;
-  padding: 9px 12px; outline: none; box-sizing: border-box;
-  transition: border-color 0.15s;
-}
-.fb-input:focus, .fb-textarea:focus, .fb-select:focus {
-  border-color: var(--accent-50);
-}
-.fb-textarea { resize: vertical; min-height: 72px; }
-.fb-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
-.fb-select option { background: #1c1c1c; }
-.fb-hint {
-  font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #4a4a4a;
-  text-align: center; margin: 0;
-}
-.fb-send-btn {
-  background: var(--accent); color: var(--accent-dark); border: none; cursor: pointer;
-  font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 800;
-  letter-spacing: 0.04em; text-transform: uppercase; padding: 11px 20px;
-  transition: opacity 0.15s; width: 100%;
-}
-.fb-send-btn:hover { opacity: 0.88; }
 
 /* ─── Theme swatches (settings panel) ───────────────────────── */
 .theme-swatch-btn {

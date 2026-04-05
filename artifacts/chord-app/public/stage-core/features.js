@@ -1121,12 +1121,6 @@ function toggleAutoWire(on) {
 // 8. OFFLINE MODE + SERVICE WORKER
 // ════════════════════════════════════════════════════
 
-// Register service worker for offline caching
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  });
-}
 
 // ── Offline Mode toggle ──────────────────────────────────────────────────────
 // When enabled: all cloud/AI calls are blocked; app works fully from cache.

@@ -3282,65 +3282,6 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
 
 
-<!-- ─── Feedback Modal ─────────────────────────────────────── -->
-<div id="feedback-backdrop" onclick="handleFeedbackBackdropClick(event)">
-  <div id="feedback-modal" role="dialog" aria-modal="true" aria-label="Send Feedback">
-    <div class="fb-header">
-      <div>
-        <p class="fb-field-label" style="margin-bottom:4px;">Beta v1.0.0</p>
-        <p style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:900;color:#fff;margin:0;letter-spacing:-0.02em;">Send Feedback</p>
-      </div>
-      <button onclick="closeFeedbackModal()" style="width:32px;height:32px;background:rgba(255,255,255,0.06);border:none;cursor:pointer;color:#6b7280;display:flex;align-items:center;justify-content:center;transition:background 0.12s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
-        <span class="material-symbols-outlined" style="font-size:18px;">close</span>
-      </button>
-    </div>
-    <div class="fb-body" id="fb-body-form">
-      <div>
-        <p class="fb-field-label">What were you trying to do?</p>
-        <textarea id="fb-tried" class="fb-textarea" placeholder="Describe the action or workflow you were attempting…"></textarea>
-      </div>
-      <div>
-        <p class="fb-field-label">What went wrong?</p>
-        <textarea id="fb-wrong" class="fb-textarea" placeholder="Describe the issue, error, or unexpected behavior you encountered…"></textarea>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div>
-          <p class="fb-field-label">Severity</p>
-          <select id="fb-severity" class="fb-select">
-            <option value="Minor inconvenience">Minor inconvenience</option>
-            <option value="Bug" selected>Bug</option>
-            <option value="Major issue">Major issue</option>
-          </select>
-        </div>
-        <div>
-          <p class="fb-field-label">Device</p>
-          <select id="fb-device" class="fb-select">
-            <option value="Desktop" selected>Desktop</option>
-            <option value="Mobile">Mobile</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <p class="fb-field-label">Your email <span style="color:#3a3a3a;font-weight:500;text-transform:none;letter-spacing:0;">(optional — for follow-up)</span></p>
-        <input id="fb-email" class="fb-input" type="email" placeholder="you@example.com" />
-      </div>
-    </div>
-    <div id="fb-body-ready" style="display:none;padding:20px 24px 0;">
-      <p class="fb-field-label" style="margin-bottom:8px;">Your feedback is ready</p>
-      <textarea id="fb-preview-text" class="fb-textarea" readonly style="min-height:160px;font-size:12px;color:#9ca3af;cursor:text;"></textarea>
-    </div>
-    <div class="fb-footer" id="fb-footer-form">
-      <button class="fb-send-btn" onclick="prepareFeedback()">Prepare Email</button>
-      <p class="fb-hint">Your email app will open to send this feedback — nothing is sent automatically.</p>
-    </div>
-    <div class="fb-footer" id="fb-footer-ready" style="display:none;flex-direction:column;">
-      <a id="fb-mailto-link" href="#" onclick="event.preventDefault(); openFeedbackMail();" class="fb-send-btn" style="display:block;text-align:center;text-decoration:none;line-height:1.6;">Open Mail</a>
-      <button class="fb-send-btn" id="fb-copy-btn" onclick="copyFeedbackText()" style="background:var(--accent-12);color:var(--accent);">Copy to Clipboard</button>
-      <p class="fb-hint">Can't open email? Copy the text above and paste it into Gmail or any email app.</p>
-      <button onclick="resetFeedbackForm()" style="background:none;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#3a3a3a;padding:4px 0;text-align:center;width:100%;transition:color 0.12s;" onmouseover="this.style.color='#6b7280'" onmouseout="this.style.color='#3a3a3a'">← Edit feedback</button>
-    </div>
-  </div>
-</div>
 
 
 <!-- ═══════════════════════ SMART SUGGESTION CARD ═══════════════════════ -->
@@ -3542,38 +3483,6 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
   </div>
 </div>
 
-<!-- ============================================================
-     DELETE ACCOUNT CONFIRMATION MODAL
-     ============================================================ -->
-<div id="delete-account-modal" style="display:none;position:absolute;inset:0;z-index:10000;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;">
-  <div style="background:#111;border:1px solid rgba(255,113,108,0.35);width:400px;max-width:92vw;padding:28px;position:relative;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      <span class="material-symbols-outlined" style="font-size:20px;color:#ff716c;">delete_forever</span>
-      <span style="font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#ff716c;">Delete Account</span>
-    </div>
-    <p style="font-family:'Inter',sans-serif;font-size:13px;color:#aaa;margin:0 0 20px;line-height:1.55;">
-      This will <strong style="color:#fff;">permanently delete</strong> your account and all saved cloud projects. This action <strong style="color:#fff;">cannot be undone</strong>.
-    </p>
-    <label style="display:block;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#666;margin-bottom:7px;">
-      Type your email address to confirm:
-    </label>
-    <div id="da-email-hint" style="font-family:'Space Grotesk',sans-serif;font-size:11px;color:#555;margin-bottom:8px;font-style:italic;"></div>
-    <input id="da-confirm-input" type="text" autocomplete="off" placeholder="your@email.com"
-      style="width:100%;background:rgba(255,113,108,0.05);border:1px solid rgba(255,113,108,0.25);color:#fff;padding:10px 12px;font-family:'Space Grotesk',sans-serif;font-size:13px;outline:none;margin-bottom:20px;box-sizing:border-box;"
-      oninput="validateDeleteInput()"
-    >
-    <div style="display:flex;gap:8px;">
-      <button id="da-confirm-btn" onclick="confirmDeleteAccount()" disabled
-        style="flex:1;padding:12px;background:#7f1d1d;color:#fca5a5;border:1px solid #ef4444;cursor:not-allowed;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;opacity:0.45;transition:all 0.15s;">
-        Yes, Delete My Account
-      </button>
-      <button onclick="closeDeleteAccountModal()"
-        style="flex:1;padding:12px;background:rgba(255,255,255,0.05);color:#888;border:1px solid rgba(72,72,71,0.2);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;">
-        Cancel
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- CABLE CONTEXT MENU -->
 <div id="cable-context-menu" style="display:none;position:absolute;z-index:6000;min-width:178px;background:#111217;border:1px solid var(--accent-14);box-shadow:0 8px 32px rgba(0,0,0,0.85);font-family:'Space Grotesk',sans-serif;overflow:hidden;">
