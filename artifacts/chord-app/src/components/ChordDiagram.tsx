@@ -33,7 +33,6 @@ export default memo(function ChordDiagram({ data, accentFrom, fretsMulti }: Prop
   const stringWidths = [1.4, 1.1, 0.85, 0.7, 0.6, 0.5];
 
   const fretIndTopPct  = ((padT + cellH / 2) / H) * 100;
-  const fretIndRightPct = (padR / W) * 100;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -109,14 +108,14 @@ export default memo(function ChordDiagram({ data, accentFrom, fretsMulti }: Prop
     {!showNut && (
       <span style={{
         position: 'absolute',
-        right: 0,
-        width: `${fretIndRightPct + 4}%`,
+        left: 0,
+        width: `${(padL / W) * 100}%`,
         top: `${fretIndTopPct}%`,
         transform: 'translateY(-50%)',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-start',
-        paddingLeft: '2px',
+        justifyContent: 'flex-end',
+        paddingRight: '2px',
         fontSize: '9px',
         fontFamily: '"Inter", system-ui, sans-serif',
         fontWeight: 700,

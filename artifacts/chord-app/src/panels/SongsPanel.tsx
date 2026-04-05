@@ -71,7 +71,7 @@ function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679
     s += `<rect x="${pL}" y="${pT - Math.round(5 * scale)}" width="${gridW}" height="${Math.round(4 * scale)}" rx="${Math.round(1.5 * scale)}" fill="${nutFill}"/>`;
   }
   if (!showNut && !noLabel) {
-    s += `<text x="${pL + gridW + Math.round(5 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="start" dominant-baseline="middle">${minF}</text>`;
+    s += `<text x="${pL - Math.round(4 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="end" dominant-baseline="middle">${minF}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
@@ -141,7 +141,7 @@ function buildPrintFretboardSVG(
   if (showNut) {
     s += `<rect x="${pL}" y="${pT - Math.round(5 * scale)}" width="${(numStrings - 1) * strSpacing}" height="${Math.round(4 * scale)}" rx="${Math.round(1.5 * scale)}" fill="${nutFill}"/>`;
   } else if (!noLabel) {
-    s += `<text x="${pL + (numStrings - 1) * strSpacing + Math.round(5 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="start" dominant-baseline="middle">${minF}</text>`;
+    s += `<text x="${pL - Math.round(4 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="end" dominant-baseline="middle">${minF}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
@@ -747,12 +747,12 @@ ${chordContent}
           const imgY = iy;
           doc.addImage(card.png, 'PNG', imgX, imgY, DIAG_W, DIAG_H);
           if (!card.showNut) {
-            const labelX = imgX + DIAG_W * 0.856;
+            const labelX = imgX - 0.5;
             const labelY = imgY + DIAG_H * 0.255;
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(compact ? 5 : 6);
             doc.setTextColor(...hexRgb(dark ? '#aaaaaa' : '#777777'));
-            doc.text(`${card.baseFret}`, labelX, labelY, { align: 'left' });
+            doc.text(`${card.baseFret}`, labelX, labelY, { align: 'right' });
           }
           iy += DIAG_H + 1;
         }
@@ -991,8 +991,8 @@ function PreviewFretboard({ data, dark }: { data: GuitarChordData; dark: boolean
         <rect x={pL} y={pT - 5} width={(numS - 1) * cW} height={4} rx={1.5} fill={nutFill} />
       )}
       {!showNut && (
-        <text x={pL + (numS - 1) * cW + 4} y={pT + cH * 0.5} fontFamily="Arial" fontSize={8} fontWeight="700"
-          fill={dark ? '#aaa' : '#777'} textAnchor="start" dominantBaseline="middle">
+        <text x={pL - 3} y={pT + cH * 0.5} fontFamily="Arial" fontSize={8} fontWeight="700"
+          fill={dark ? '#aaa' : '#777'} textAnchor="end" dominantBaseline="middle">
           {minF}
         </text>
       )}
@@ -1086,8 +1086,8 @@ function PreviewCustomDiagram({ chord, dark }: { chord: CustomChord; dark: boole
         <rect x={pL} y={pT - 5} width={(numS - 1) * cW} height={4} rx={1.5} fill={nutFill} />
       )}
       {!showNut && (
-        <text x={pL + (numS - 1) * cW + 4} y={pT + cH * 0.5} fontFamily="Arial" fontSize={8} fontWeight="700"
-          fill={dark ? '#aaa' : '#777'} textAnchor="start" dominantBaseline="middle">
+        <text x={pL - 3} y={pT + cH * 0.5} fontFamily="Arial" fontSize={8} fontWeight="700"
+          fill={dark ? '#aaa' : '#777'} textAnchor="end" dominantBaseline="middle">
           {minF}
         </text>
       )}
