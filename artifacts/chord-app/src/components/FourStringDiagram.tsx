@@ -100,15 +100,15 @@ const FourStringDiagram = memo(function FourStringDiagram({
         {instrument.toUpperCase()} {fiveString && instrument === 'bass' ? '(5-string)' : '(4-string)'}
       </text>
 
-      {/* Base fret label */}
+      {/* Base fret label — right side */}
       {baseFret > 1 && (
         <text
-          x={startX - 6}
+          x={startX + boardW + 6}
           y={startY + cellH * 0.5}
           fontSize={fontSize}
           fontWeight="bold"
           fill="#acabaa"
-          textAnchor="end"
+          textAnchor="start"
           dominantBaseline="middle"
           fontFamily="Inter, sans-serif"
         >

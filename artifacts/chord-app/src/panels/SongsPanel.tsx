@@ -70,7 +70,7 @@ function buildPrintSVG(data: GuitarChordData, dark = false, accentColor = '#679c
     s += `<rect x="${pL - 1}" y="${pT - Math.round(5 * scale)}" width="${(numS - 1) * cW + 2}" height="${Math.round(5 * scale)}" rx="2" fill="${dotFill}"/>`;
   }
   if (!showNut && !noLabel) {
-    s += `<text x="${pL - Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(11 * scale)}" font-weight="bold" fill="${dark ? '#aaa' : '#555'}" text-anchor="end" dominant-baseline="middle">${baseFret}</text>`;
+    s += `<text x="${pL + (numS - 1) * cW + Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="bold" fill="${dark ? '#aaa' : '#555'}" text-anchor="start" dominant-baseline="middle">${baseFret}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
@@ -136,7 +136,7 @@ function buildPrintFretboardSVG(
   if (showNut) {
     s += `<rect x="${pL - 1}" y="${pT - Math.round(5 * scale)}" width="${(numStrings - 1) * strSpacing + 2}" height="${Math.round(5 * scale)}" rx="2" fill="${dotFill}"/>`;
   } else if (!noLabel) {
-    s += `<text x="${pL - Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(11 * scale)}" font-weight="bold" fill="${dark ? '#aaa' : '#555'}" text-anchor="end" dominant-baseline="middle">${baseFret}</text>`;
+    s += `<text x="${pL + (numStrings - 1) * strSpacing + Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="bold" fill="${dark ? '#aaa' : '#555'}" text-anchor="start" dominant-baseline="middle">${baseFret}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
@@ -738,17 +738,13 @@ ${chordContent}
           const imgX = cx + CARD_PAD_X;
           const imgY = iy;
           doc.addImage(card.png, 'PNG', imgX, imgY, DIAG_W, DIAG_H);
-          // Fret position indicator — drawn as crisp vector PDF text so it's never rasterized
           if (!card.showNut) {
-            // text-anchor="end" at x=(pL-6)/W = 26/160 = 0.1625 in the SVG coordinate space
-            const labelX = imgX + DIAG_W * 0.1625;
-            // Vertically: first fret center = (pT + cH/2) / H ≈ 25.3% from top
-            // (pT=32, cH=(180-32-14)/5=26.8, so 32+13.4=45.4 / 180 = 25.2%)
+            const labelX = imgX + DIAG_W * 0.92;
             const labelY = imgY + DIAG_H * 0.253;
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(compact ? 6 : 7);
+            doc.setFontSize(compact ? 5.5 : 6.5);
             doc.setTextColor(...hexRgb(dark ? '#aaaaaa' : '#555555'));
-            doc.text(`${card.baseFret}`, labelX, labelY, { align: 'right' });
+            doc.text(`${card.baseFret}`, labelX, labelY, { align: 'left' });
           }
           iy += DIAG_H + 1;
         }
@@ -985,8 +981,8 @@ function PreviewFretboard({ data, dark }: { data: GuitarChordData; dark: boolean
         <rect x={pL} y={pT - 5} width={(numS - 1) * cW} height={4} rx={1.5} fill={nutFill} />
       )}
       {!showNut && (
-        <text x={pL - 4} y={pT + cH * 0.6} fontFamily="Arial" fontSize={10} fontWeight="bold"
-          fill={dark ? '#aaa' : '#777'} textAnchor="end" dominantBaseline="middle">
+        <text x={pL + (numS - 1) * cW + 4} y={pT + cH * 0.5} fontFamily="Arial" fontSize={8} fontWeight="700"
+          fill={dark ? '#aaa' : '#777'} textAnchor="start" dominantBaseline="middle">
           {baseFret}
         </text>
       )}
@@ -1066,8 +1062,8 @@ function PreviewCustomDiagram({ chord, dark }: { chord: CustomChord; dark: boole
         <rect x={pL} y={pT - 5} width={(numS - 1) * cW} height={4} rx={1.5} fill={nutFill} />
       )}
       {!showNut && (
-        <text x={pL - 4} y={pT + cH * 0.6} fontFamily="Arial" fontSize={10} fontWeight="bold"
-          fill={dark ? '#aaa' : '#777'} textAnchor="end" dominantBaseline="middle">
+        <text x={pL + (numS - 1) * cW + 4} y={pT + cH * 0.5} fontFamily="Arial" fontSize={8} fontWeight="700"
+          fill={dark ? '#aaa' : '#777'} textAnchor="start" dominantBaseline="middle">
           {baseFret}
         </text>
       )}

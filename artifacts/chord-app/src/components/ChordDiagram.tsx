@@ -36,7 +36,7 @@ export default function ChordDiagram({ data, accentFrom, fretsMulti }: Props) {
 
   // Fret indicator position as % of SVG dimensions (for HTML overlay)
   const fretIndTopPct  = ((padT + cellH / 2) / H) * 100;
-  const fretIndLeftPct = (padL / W) * 100;
+  const fretIndRightPct = (padR / W) * 100;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -115,21 +115,20 @@ export default function ChordDiagram({ data, accentFrom, fretsMulti }: Props) {
         return null;
       })}
     </svg>
-    {/* Fret position indicator — pure HTML so it renders crisply and always above SVG dots */}
     {!showNut && (
       <span style={{
         position: 'absolute',
-        left: 0,
-        width: `${fretIndLeftPct}%`,
+        right: 0,
+        width: `${fretIndRightPct + 4}%`,
         top: `${fretIndTopPct}%`,
         transform: 'translateY(-50%)',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-end',
-        paddingRight: '3px',
-        fontSize: '11px',
+        justifyContent: 'flex-start',
+        paddingLeft: '2px',
+        fontSize: '9px',
         fontFamily: '"Inter", system-ui, sans-serif',
-        fontWeight: 800,
+        fontWeight: 700,
         color: '#8a8a8a',
         lineHeight: 1,
         whiteSpace: 'nowrap',
