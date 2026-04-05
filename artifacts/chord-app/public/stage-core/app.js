@@ -1656,13 +1656,17 @@ function createElementDOM(el) {
 }
 
 let _scaleHistoryTid = 0;
+let _scaleAnimTid = 0;
 function scaleElementBy(el, delta) {
   el.scale = Math.max(30, Math.min(300, (el.scale || 100) + delta));
   const dom = document.getElementById('elem-' + el.id);
   if (dom) {
+    dom.classList.add('scaling');
     dom.style.transform = `translate(-50%,-50%) scale(${el.scale/100})`;
     const disp = dom.querySelector('.el-scale-display');
     if (disp) disp.textContent = el.scale + '%';
+    clearTimeout(_scaleAnimTid);
+    _scaleAnimTid = setTimeout(() => dom.classList.remove('scaling'), 250);
   }
   document.getElementById('input-scale').value = el.scale;
   // Debounce: only push one history snapshot after rapid clicks settle
