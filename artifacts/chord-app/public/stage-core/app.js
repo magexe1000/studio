@@ -1698,6 +1698,9 @@ function setPropState(newState) {
     if (newState === 'open') _tb.classList.add('tb-dragging');
     else _tb.classList.remove('tb-dragging');
   }
+  if ((newState === 'open' || newState === 'peek') && _dialOpen) {
+    closeSCDial();
+  }
   try {
     window.parent.postMessage({ type: 'sc-prop-state', state: newState }, window.location.origin);
   } catch(e) {}

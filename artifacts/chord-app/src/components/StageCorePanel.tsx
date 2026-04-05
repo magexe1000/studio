@@ -279,8 +279,13 @@ export default function StagexPanel() {
   }, [callIframe]);
 
   const handleFabTap = useCallback(() => {
+    if (isLandscapeEditor && propPanelOpen) {
+      callIframe('closePropPanel');
+      callIframe('deselectAll');
+      return;
+    }
     callIframe('toggleSCDial');
-  }, [callIframe]);
+  }, [callIframe, isLandscapeEditor, propPanelOpen]);
 
   /* ── Glassmorphism pill bg ──────────────────────────────── */
   const stagePillBg = isAmoled
