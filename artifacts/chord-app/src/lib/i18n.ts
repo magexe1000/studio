@@ -374,7 +374,7 @@ const translations = {
     /* ── Drum Editor ── */
     drum: {
       songs: 'Songs',
-      patterns: 'Patterns',
+      patterns: 'Library',
       preferences: 'Preferences',
       beats: 'Beats',
       noBeatsYet: 'No beats yet',
@@ -799,7 +799,7 @@ const translations = {
     /* ── Drum Editor ── */
     drum: {
       songs: 'Canciones',
-      patterns: 'Patrones',
+      patterns: 'Biblioteca',
       preferences: 'Ajustes',
       beats: 'Ritmos',
       noBeatsYet: 'Sin ritmos aún',

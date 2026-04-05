@@ -21,6 +21,7 @@ import {
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import DrumPrefsPanel from './DrumPrefsPanel';
 import { setBackHandler } from '../lib/backStack';
+import { DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern } from '../lib/drumLibrary';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
 const LABEL_W  = 72;
@@ -367,13 +368,18 @@ function IconDrumSongs({ active }: { active: boolean }) {
   );
 }
 function IconPatterns({ active }: { active: boolean }) {
-  const sw = active ? 2 : 1.6; const ao = active ? 0.18 : 0;
+  const sw = active ? 2 : 1.6;
   return (
     <svg viewBox="0 0 24 24" width={22} height={22} fill="none" style={{ display: 'block' }}>
-      <rect x="3" y="5" width="6" height="5" rx="1.5" stroke="currentColor" strokeWidth={sw} fill="currentColor" fillOpacity={ao} />
-      <rect x="3" y="14" width="6" height="5" rx="1.5" stroke="currentColor" strokeWidth={sw} fill="currentColor" fillOpacity={ao * 0.5} />
-      <rect x="12" y="5" width="9" height="5" rx="1.5" stroke="currentColor" strokeWidth={sw} fill="currentColor" fillOpacity={ao * 0.7} />
-      <rect x="12" y="14" width="6" height="5" rx="1.5" stroke="currentColor" strokeWidth={sw} fill="currentColor" fillOpacity={ao * 0.3} />
+      <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth={sw} />
+      <line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" strokeWidth={sw * 0.7} />
+      <line x1="3" y1="15" x2="21" y2="15" stroke="currentColor" strokeWidth={sw * 0.7} />
+      <circle cx="7" cy="6" r="1.2" fill="currentColor" />
+      <circle cx="12" cy="6" r="1.2" fill="currentColor" />
+      <circle cx="17" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="7" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="12" cy="18" r="1.2" fill="currentColor" />
+      <circle cx="17" cy="18" r="1.2" fill="currentColor" />
     </svg>
   );
 }
@@ -1554,6 +1560,11 @@ export default function DrumEditor() {
   const [grooveRenameName, setGrooveRenameName] = useState('');
   const [grooveRenameTag,  setGrooveRenameTag]  = useState<GrooveTag>('');
 
+  // ── Built-in Library state ─────────────────────────────────────────────
+  const [libCategory, setLibCategory] = useState<LibraryCategory | 'All' | 'My Grooves'>('All');
+  const [libGenre, setLibGenre] = useState<LibraryGenre | ''>('');
+  const [libSearch, setLibSearch] = useState('');
+
   // ── Container width ──────────────────────────────────────────────────────
   // Use a stable callback ref so the observer re-attaches every time the
   // container div mounts (e.g. first open of the editor, or after a tab switch
@@ -1905,6 +1916,74 @@ export default function DrumEditor() {
     setPreviewingGrooveId(groove.id);
     setPlaying(false);
   }, [previewingGrooveId, kit, soundMap, volumeMap, activeInstruments, masterVolume]);
+
+  const handleLibPreview = useCallback((lp: LibraryPattern) => {
+    if (previewingGrooveId === lp.id && drumScheduler.isPlaying) {
+      drumScheduler.stop(); setPlaying(false); setPreviewingGrooveId(null); return;
+    }
+    if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
+    const sm = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
+    const vol: Partial<Record<DrumInstrument, number>> = {};
+    activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
+    const tempPat: DrumPattern = {
+      id: lp.id, name: lp.name, bpm: lp.bpm,
+      timeSignature: [4, 4], subdivision: lp.subdivision,
+      measures: lp.measures,
+    };
+    loadDrumSamples(kit);
+    drumScheduler.start(tempPat, sm, vol, masterVolume, true, kit);
+    setPreviewingGrooveId(lp.id);
+    setPlaying(false);
+  }, [previewingGrooveId, kit, soundMap, volumeMap, activeInstruments, masterVolume]);
+
+  const handleLibInsert = useCallback((lp: LibraryPattern) => {
+    if (!pattern) return;
+    const newMeasures = lp.measures.map(m => ({
+      ...m,
+      id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      hits: { ...m.hits },
+    }));
+    updatePattern(pattern.id, {
+      measures: [...pattern.measures, ...newMeasures],
+    });
+    setActiveTab('songs');
+    setInEditor(true);
+  }, [pattern, updatePattern]);
+
+  const handleLibReplace = useCallback((lp: LibraryPattern) => {
+    if (!pattern) return;
+    const newMeasures = lp.measures.map(m => ({
+      ...m,
+      id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      hits: { ...m.hits },
+    }));
+    updatePattern(pattern.id, {
+      measures: newMeasures,
+      bpm: lp.bpm,
+      subdivision: lp.subdivision,
+    });
+    setActiveTab('songs');
+    setInEditor(true);
+  }, [pattern, updatePattern]);
+
+  const filteredLibrary = useMemo(() => {
+    let items = DRUM_LIBRARY;
+    if (libCategory !== 'All' && libCategory !== 'My Grooves') {
+      items = items.filter(p => p.category === libCategory);
+    }
+    if (libGenre) {
+      items = items.filter(p => p.genre === libGenre);
+    }
+    if (libSearch.trim()) {
+      const q = libSearch.trim().toLowerCase();
+      items = items.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        p.genre.toLowerCase().includes(q)
+      );
+    }
+    return items;
+  }, [libCategory, libGenre, libSearch]);
 
   // ── BPM ──────────────────────────────────────────────────────────────────
   const adjustBpm = useCallback((d: number) => {
@@ -2764,92 +2843,45 @@ export default function DrumEditor() {
           </div>
         )}
 
-        {/* ═══ PATTERNS TAB ═════════════════════════════════════════════════ */}
+        {/* ═══ LIBRARY TAB ═════════════════════════════════════════════════ */}
         {activeTab === 'patterns' && (
-          <div onScroll={drumScrollHide} style={{ flex: 1, overflowY: 'auto', paddingTop: 20, paddingBottom: 100 }} className="no-scrollbar">
+          <div onScroll={drumScrollHide} style={{ flex: 1, overflowY: 'auto', paddingTop: 12, paddingBottom: 100 }} className="no-scrollbar">
 
-            {/* ── Song Patterns ─────────────────────────────────────────── */}
-            <SectionLabel>This Song's Patterns</SectionLabel>
-            <Card>
-              {patterns.map((p, i) => {
-                const isCurrent = p.id === activePatternId;
-                const isRenaming = patRenameId === p.id;
+            {/* ── Search ──────────────────────────────────────────────── */}
+            <div style={{ padding: '0 16px 12px' }}>
+              <div style={{ position: 'relative' }}>
+                <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: 'var(--c-text-muted)', pointerEvents: 'none' }}>search</span>
+                <input
+                  value={libSearch}
+                  onChange={e => setLibSearch(e.target.value)}
+                  placeholder="Search patterns, genres, or moods..."
+                  style={{ width: '100%', padding: '12px 14px 12px 38px', borderRadius: 12, background: 'var(--app-surface)', border: '1px solid rgba(128,128,128,0.10)', color: 'var(--c-text-primary)', fontSize: 13, fontFamily: 'Manrope,sans-serif', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+
+            {/* ── Category chips ──────────────────────────────────────── */}
+            <div className="no-scrollbar" style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '0 16px 12px' }}>
+              {(['All', ...LIBRARY_CATEGORIES, 'My Grooves'] as (LibraryCategory | 'All' | 'My Grooves')[]).map(cat => {
+                const active = libCategory === cat;
                 return (
-                  <div key={p.id} style={{ borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', background: isCurrent ? `${accent.from}10` : 'transparent' }}>
-                    {isRenaming ? (
-                      <div style={{ padding: '10px 14px', display: 'flex', gap: 6 }}>
-                        <input
-                          autoFocus
-                          value={patRenameName}
-                          onChange={e => setPatRenameName(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') { renamePattern(p.id, patRenameName.trim() || p.name); setPatRenameId(null); } else if (e.key === 'Escape') setPatRenameId(null); }}
-                          style={{ flex: 1, padding: '7px 10px', borderRadius: 8, background: 'var(--app-bg)', border: `1.5px solid ${accent.from}55`, color: 'var(--c-text-primary)', fontSize: 13, fontFamily: 'Manrope,sans-serif', outline: 'none' }}
-                        />
-                        <button onClick={() => setPatRenameId(null)} className="btn-smooth"
-                          style={{ padding: '7px 10px', borderRadius: 8, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--c-text-secondary)' }}>✕</button>
-                        <button onClick={() => { renamePattern(p.id, patRenameName.trim() || p.name); setPatRenameId(null); }} className="btn-smooth"
-                          style={{ padding: '7px 12px', borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#fff' }}>OK</button>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px' }}>
-                        {isCurrent && <div style={{ width: 5, height: 5, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />}
-                        <button
-                          onClick={() => { setActivePattern(p.id); setActiveTab('songs'); setInEditor(true); }}
-                          style={{ flex: 1, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', minWidth: 0 }}>
-                          <div style={{ color: isCurrent ? accent.from : 'var(--c-text-primary)', fontSize: 13.5, fontWeight: isCurrent ? 700 : 500, fontFamily: 'Manrope, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                          <div style={{ color: 'var(--c-text-muted)', fontSize: 11, marginTop: 2 }}>{p.bpm} BPM · {p.timeSignature[0]}/{p.timeSignature[1]} · {p.measures.length} bar{p.measures.length !== 1 ? 's' : ''}</div>
-                        </button>
-                        <button onClick={() => { setPatRenameName(p.name); setPatRenameId(p.id); }} title="Rename" className="btn-smooth"
-                          style={{ width: 30, height: 30, borderRadius: 7, background: 'transparent', border: '1px solid rgba(128,128,128,0.12)', cursor: 'pointer', color: 'var(--c-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
-                        </button>
-                        <button onClick={() => duplicatePattern(p.id)} title="Duplicate" className="btn-smooth"
-                          style={{ width: 30, height: 30, borderRadius: 7, background: 'rgba(128,128,128,0.08)', border: '1px solid rgba(128,128,128,0.12)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⧉</button>
-                        {patterns.length > 1 && (
-                          <button onClick={() => deletePattern(p.id)} title="Delete" className="btn-smooth"
-                            style={{ width: 30, height: 30, borderRadius: 7, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', cursor: 'pointer', color: '#f87171', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <button key={cat} onClick={() => { setLibCategory(cat); if (cat === 'My Grooves') setLibGenre(''); }} className="btn-smooth"
+                    style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', cursor: 'pointer', border: 'none', background: active ? `linear-gradient(135deg,${accent.from},${accent.to})` : (isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'), color: active ? '#fff' : 'var(--c-text-secondary)', transition: 'all 150ms' }}>
+                    {cat}
+                  </button>
                 );
               })}
-            </Card>
-            <div style={{ padding: '0 16px 24px', display: 'flex', gap: 8 }}>
-              <button onClick={() => { addBlankPattern(); }} className="btn-smooth"
-                style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.22)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <span style={{ fontSize: 16 }}>+</span> New Pattern
-              </button>
-              <button onClick={() => duplicatePattern(activePatternId ?? patterns[0].id)} className="btn-smooth" title="Duplicate current"
-                style={{ padding: '11px 14px', borderRadius: 12, background: 'var(--app-surface)', border: '1px solid rgba(128,128,128,0.15)', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⧉</button>
             </div>
 
-            {/* ── Groove Library ────────────────────────────────────────── */}
-            <SectionLabel>Groove Library</SectionLabel>
-
-            {/* Save current pattern as groove */}
-            <div style={{ padding: '0 16px 14px' }}>
-              <button onClick={() => { setSavGrName(pattern.name); setSavGrTag(''); setShowSaveGroove(true); }} className="btn-smooth"
-                style={{ width: '100%', padding: '12px 16px', borderRadius: 14, background: `linear-gradient(135deg,${accent.from}18,${accent.to}12)`, border: `1px solid ${accent.from}30`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 16 }}>bookmark_add</span>
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: accent.from, fontFamily: 'Manrope,sans-serif' }}>Save as Groove</div>
-                  <div style={{ fontSize: 11, color: 'var(--c-text-muted)', marginTop: 1 }}>Store "{pattern.name}" to your library</div>
-                </div>
-              </button>
-            </div>
-
-            {/* Tag filter chips */}
-            {grooves.length > 0 && (
-              <div className="no-scrollbar" style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '0 16px 12px' }}>
-                {(['', ...GROOVE_TAGS] as (GrooveTag | '')[]).map(tag => {
-                  const label = tag === '' ? 'All' : tag;
-                  const active = grooveFilter === tag;
+            {/* ── Genre filter (not shown for My Grooves) ────────────── */}
+            {libCategory !== 'My Grooves' && (
+              <div className="no-scrollbar" style={{ display: 'flex', gap: 5, overflowX: 'auto', padding: '0 16px 16px' }}>
+                {(['', ...LIBRARY_GENRES] as (LibraryGenre | '')[]).map(g => {
+                  const label = g === '' ? 'All Genres' : g;
+                  const active = libGenre === g;
                   return (
-                    <button key={label} onClick={() => setGrooveFilter(tag as GrooveTag)} className="btn-smooth"
-                      style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, fontFamily: 'Manrope,sans-serif', cursor: 'pointer', border: active ? `1.5px solid ${accent.from}` : '1.5px solid rgba(128,128,128,0.18)', background: active ? `${accent.from}18` : 'transparent', color: active ? accent.from : 'var(--c-text-secondary)', transition: 'all 150ms' }}>
+                    <button key={label} onClick={() => setLibGenre(g)} className="btn-smooth"
+                      style={{ flexShrink: 0, padding: '4px 12px', borderRadius: 16, fontSize: 10.5, fontWeight: 700, fontFamily: 'Inter,sans-serif', letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'pointer', border: active ? `1.5px solid ${accent.from}` : '1.5px solid rgba(128,128,128,0.15)', background: active ? `${accent.from}15` : 'transparent', color: active ? accent.from : 'var(--c-text-muted)', transition: 'all 150ms' }}>
                       {label}
                     </button>
                   );
@@ -2857,106 +2889,196 @@ export default function DrumEditor() {
               </div>
             )}
 
-            {/* Groove list */}
-            {grooves.length === 0 ? (
-              <div style={{ margin: '0 16px 24px', padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.18)', textAlign: 'center' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--c-text-muted)', display: 'block', marginBottom: 8 }}>library_music</span>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No grooves saved yet</p>
-                <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--c-text-muted)' }}>Save any pattern above to build your library</p>
-              </div>
-            ) : filteredGrooves.length === 0 ? (
-              <div style={{ margin: '0 16px 24px', padding: '20px', textAlign: 'center', color: 'var(--c-text-muted)', fontSize: 12 }}>
-                No grooves tagged "{grooveFilter}"
-              </div>
-            ) : (
-              <Card>
-                {filteredGrooves.map((g, i) => {
-                  const isPreviewPlaying = previewingGrooveId === g.id && drumScheduler.isPlaying;
-                  const menuOpen = grooveMenuId === g.id;
-                  const isRenaming = grooveRenameId === g.id;
-                  return (
-                    <div key={g.id} style={{ borderTop: i > 0 ? '1px solid rgba(128,128,128,0.07)' : 'none', position: 'relative' }}>
-                      {isRenaming ? (
-                        /* Inline rename form */
-                        <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <input
-                            autoFocus
-                            value={grooveRenameName}
-                            onChange={e => setGrooveRenameName(e.target.value)}
-                            style={{ padding: '8px 10px', borderRadius: 8, background: 'var(--app-bg)', border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-primary)', fontSize: 13, fontFamily: 'Manrope,sans-serif', outline: 'none' }}
-                          />
-                          <div className="no-scrollbar" style={{ display: 'flex', gap: 5, overflowX: 'auto' }}>
-                            {(['', ...GROOVE_TAGS] as (GrooveTag | '')[]).map(tag => {
-                              const label = tag === '' ? 'None' : tag;
-                              const active = grooveRenameTag === tag;
-                              return (
-                                <button key={label} onClick={() => setGrooveRenameTag(tag as GrooveTag)} className="btn-smooth"
-                                  style={{ flexShrink: 0, padding: '4px 10px', borderRadius: 16, fontSize: 10, fontWeight: 700, cursor: 'pointer', border: active ? `1.5px solid ${accent.from}` : '1.5px solid rgba(128,128,128,0.18)', background: active ? `${accent.from}18` : 'transparent', color: active ? accent.from : 'var(--c-text-muted)' }}>
-                                  {label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button onClick={() => setGrooveRenameId(null)} className="btn-smooth"
-                              style={{ flex: 1, padding: '7px', borderRadius: 8, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--c-text-secondary)' }}>Cancel</button>
-                            <button onClick={() => { renameGroove(g.id, grooveRenameName, grooveRenameTag); setGrooveRenameId(null); }} className="btn-smooth"
-                              style={{ flex: 1, padding: '7px', borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#fff' }}>Save</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px' }}>
-                          {/* Play preview button */}
-                          <button onClick={() => handleGroovePreview(g)} className="btn-smooth"
-                            style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isPreviewPlaying ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.12)', color: isPreviewPlaying ? '#fff' : 'var(--c-text-secondary)', transition: 'all 160ms' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{isPreviewPlaying ? 'stop' : 'play_arrow'}</span>
-                          </button>
-                          {/* Groove info */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.name}</span>
-                              {g.tag && <span style={{ fontSize: 9.5, fontWeight: 800, color: accent.from, background: `${accent.from}15`, borderRadius: 5, padding: '2px 6px', flexShrink: 0, letterSpacing: '0.03em' }}>{g.tag}</span>}
-                            </div>
-                            <div style={{ fontSize: 11, color: 'var(--c-text-muted)', marginTop: 1 }}>{g.bpm} BPM · {g.bars} bar{g.bars !== 1 ? 's' : ''} · 1/{g.subdivision}</div>
-                          </div>
-                          {/* 3-dots menu button */}
-                          <button onClick={() => setGrooveMenuId(menuOpen ? null : g.id)} className="btn-smooth"
-                            style={{ width: 36, height: 36, borderRadius: 9, border: menuOpen ? `1px solid ${accent.from}44` : '1px solid rgba(128,128,128,0.15)', background: menuOpen ? `${accent.from}12` : 'rgba(128,128,128,0.06)', cursor: 'pointer', color: menuOpen ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 140ms' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>more_vert</span>
-                          </button>
-                        </div>
-                      )}
+            {/* ── My Grooves section ─────────────────────────────────── */}
+            {libCategory === 'My Grooves' && (
+              <>
+                <div style={{ padding: '0 16px 12px' }}>
+                  <button onClick={() => { setSavGrName(pattern.name); setSavGrTag(''); setShowSaveGroove(true); }} className="btn-smooth"
+                    style={{ width: '100%', padding: '12px 16px', borderRadius: 14, background: `linear-gradient(135deg,${accent.from}18,${accent.to}12)`, border: `1px solid ${accent.from}30`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 16 }}>bookmark_add</span>
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: accent.from, fontFamily: 'Manrope,sans-serif' }}>Save as Groove</div>
+                      <div style={{ fontSize: 11, color: 'var(--c-text-muted)', marginTop: 1 }}>Store "{pattern.name}" to your library</div>
+                    </div>
+                  </button>
+                </div>
 
-                      {/* Context menu */}
-                      {menuOpen && !isRenaming && (
-                        <div style={{ margin: '0 14px 10px', background: isAmoled ? 'rgba(4,4,4,0.98)' : (isLight ? 'rgba(250,250,252,0.98)' : 'rgba(20,20,26,0.98)'), borderRadius: 12, border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.35)', overflow: 'hidden', animation: 'drumHamburgerIn 150ms cubic-bezier(0.22,1,0.36,1)' }}>
-                          {[
-                            { label: 'Use this groove', sublabel: 'Replaces current pattern hits', icon: 'file_download', action: () => { loadGrooveReplace(g.id); setGrooveMenuId(null); setActiveTab('songs'); } },
-                            { label: 'Append to pattern', sublabel: 'Add bars after current end', icon: 'playlist_add', action: () => { loadGrooveAppend(g.id); setGrooveMenuId(null); setActiveTab('songs'); } },
-                            { label: 'Duplicate', sublabel: 'Save a copy to the library', icon: 'content_copy', action: () => { duplicateGroove(g.id); setGrooveMenuId(null); } },
-                            { label: 'Rename / Retag', sublabel: 'Edit name or genre tag', icon: 'edit', action: () => { setGrooveRenameName(g.name); setGrooveRenameTag(g.tag); setGrooveRenameId(g.id); setGrooveMenuId(null); } },
-                          ].map((item, idx) => (
-                            <button key={item.label} onClick={item.action} className="btn-smooth"
-                              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', background: 'transparent', border: 'none', borderTop: idx > 0 ? '1px solid rgba(128,128,128,0.08)' : 'none', cursor: 'pointer', textAlign: 'left' }}>
-                              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0 }}>{item.icon}</span>
-                              <div>
-                                <div style={{ color: 'var(--c-text-primary)', fontSize: 13, fontWeight: 600 }}>{item.label}</div>
-                                <div style={{ color: 'var(--c-text-muted)', fontSize: 10.5, marginTop: 1 }}>{item.sublabel}</div>
+                {grooves.length > 0 && (
+                  <div className="no-scrollbar" style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '0 16px 12px' }}>
+                    {(['', ...GROOVE_TAGS] as (GrooveTag | '')[]).map(tag => {
+                      const label = tag === '' ? 'All' : tag;
+                      const active = grooveFilter === tag;
+                      return (
+                        <button key={label} onClick={() => setGrooveFilter(tag as GrooveTag)} className="btn-smooth"
+                          style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, fontFamily: 'Manrope,sans-serif', cursor: 'pointer', border: active ? `1.5px solid ${accent.from}` : '1.5px solid rgba(128,128,128,0.18)', background: active ? `${accent.from}18` : 'transparent', color: active ? accent.from : 'var(--c-text-secondary)', transition: 'all 150ms' }}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {grooves.length === 0 ? (
+                  <div style={{ margin: '0 16px 24px', padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.18)', textAlign: 'center' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--c-text-muted)', display: 'block', marginBottom: 8 }}>library_music</span>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No grooves saved yet</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--c-text-muted)' }}>Save any pattern to build your personal library</p>
+                  </div>
+                ) : (
+                  <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {filteredGrooves.map(g => {
+                      const isPreviewPlaying = previewingGrooveId === g.id && drumScheduler.isPlaying;
+                      const menuOpen = grooveMenuId === g.id;
+                      const isRenaming = grooveRenameId === g.id;
+                      return (
+                        <div key={g.id} style={{ background: 'var(--app-surface)', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(128,128,128,0.06)' }}>
+                          {isRenaming ? (
+                            <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              <input autoFocus value={grooveRenameName} onChange={e => setGrooveRenameName(e.target.value)}
+                                style={{ padding: '8px 10px', borderRadius: 8, background: 'var(--app-bg)', border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-primary)', fontSize: 13, fontFamily: 'Manrope,sans-serif', outline: 'none' }} />
+                              <div className="no-scrollbar" style={{ display: 'flex', gap: 5, overflowX: 'auto' }}>
+                                {(['', ...GROOVE_TAGS] as (GrooveTag | '')[]).map(tag => {
+                                  const label = tag === '' ? 'None' : tag;
+                                  const act = grooveRenameTag === tag;
+                                  return (
+                                    <button key={label} onClick={() => setGrooveRenameTag(tag as GrooveTag)} className="btn-smooth"
+                                      style={{ flexShrink: 0, padding: '4px 10px', borderRadius: 16, fontSize: 10, fontWeight: 700, cursor: 'pointer', border: act ? `1.5px solid ${accent.from}` : '1.5px solid rgba(128,128,128,0.18)', background: act ? `${accent.from}18` : 'transparent', color: act ? accent.from : 'var(--c-text-muted)' }}>
+                                      {label}
+                                    </button>
+                                  );
+                                })}
                               </div>
-                            </button>
-                          ))}
-                          <div style={{ height: 1, background: 'rgba(128,128,128,0.10)', margin: '0 10px' }} />
-                          <button onClick={() => { deleteGroove(g.id); setGrooveMenuId(null); if (previewingGrooveId === g.id) { drumScheduler.stop(); setPreviewingGrooveId(null); } }} className="btn-smooth"
-                            style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 13, textAlign: 'left' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                            Delete
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button onClick={() => setGrooveRenameId(null)} className="btn-smooth"
+                                  style={{ flex: 1, padding: '7px', borderRadius: 8, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--c-text-secondary)' }}>Cancel</button>
+                                <button onClick={() => { renameGroove(g.id, grooveRenameName, grooveRenameTag); setGrooveRenameId(null); }} className="btn-smooth"
+                                  style={{ flex: 1, padding: '7px', borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#fff' }}>Save</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
+                                <button onClick={() => handleGroovePreview(g)} className="btn-smooth"
+                                  style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isPreviewPlaying ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.12)', color: isPreviewPlaying ? '#fff' : 'var(--c-text-secondary)', transition: 'all 160ms' }}>
+                                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{isPreviewPlaying ? 'stop' : 'play_arrow'}</span>
+                                </button>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.name}</span>
+                                    {g.tag && <span style={{ fontSize: 9.5, fontWeight: 800, color: accent.from, background: `${accent.from}15`, borderRadius: 5, padding: '2px 6px', flexShrink: 0 }}>{g.tag}</span>}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: 'var(--c-text-muted)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'Inter,sans-serif' }}>{g.bpm} BPM · {g.bars} bar{g.bars !== 1 ? 's' : ''}</div>
+                                </div>
+                                <button onClick={() => setGrooveMenuId(menuOpen ? null : g.id)} className="btn-smooth"
+                                  style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: menuOpen ? `${accent.from}12` : 'transparent', cursor: 'pointer', color: menuOpen ? accent.from : 'var(--c-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>more_vert</span>
+                                </button>
+                              </div>
+                              {menuOpen && (
+                                <div style={{ padding: '0 10px 10px' }}>
+                                  <div style={{ background: isAmoled ? 'rgba(4,4,4,0.98)' : (isLight ? 'rgba(250,250,252,0.98)' : 'rgba(20,20,26,0.98)'), borderRadius: 12, border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                                    {[
+                                      { label: 'Use this groove', icon: 'file_download', action: () => { loadGrooveReplace(g.id); setGrooveMenuId(null); setActiveTab('songs'); } },
+                                      { label: 'Append to pattern', icon: 'playlist_add', action: () => { loadGrooveAppend(g.id); setGrooveMenuId(null); setActiveTab('songs'); } },
+                                      { label: 'Rename / Retag', icon: 'edit', action: () => { setGrooveRenameName(g.name); setGrooveRenameTag(g.tag); setGrooveRenameId(g.id); setGrooveMenuId(null); } },
+                                    ].map((item, idx) => (
+                                      <button key={item.label} onClick={item.action} className="btn-smooth"
+                                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', borderTop: idx > 0 ? '1px solid rgba(128,128,128,0.08)' : 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12.5, fontWeight: 600 }}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-secondary)' }}>{item.icon}</span>
+                                        {item.label}
+                                      </button>
+                                    ))}
+                                    <button onClick={() => { deleteGroove(g.id); setGrooveMenuId(null); if (previewingGrooveId === g.id) { drumScheduler.stop(); setPreviewingGrooveId(null); } }} className="btn-smooth"
+                                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', borderTop: '1px solid rgba(128,128,128,0.08)', cursor: 'pointer', color: '#f87171', fontSize: 12.5, fontWeight: 600 }}>
+                                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ── Built-in Library Cards ──────────────────────────────── */}
+            {libCategory !== 'My Grooves' && (
+              <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {filteredLibrary.length === 0 ? (
+                  <div style={{ padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', textAlign: 'center' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 28, color: 'var(--c-text-muted)', display: 'block', marginBottom: 6 }}>search_off</span>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No patterns found</p>
+                  </div>
+                ) : filteredLibrary.map(lp => {
+                  const isPreviewPlaying = previewingGrooveId === lp.id && drumScheduler.isPlaying;
+                  const menuOpen = grooveMenuId === lp.id;
+                  const totalSteps = lp.subdivision === 16 ? 16 : 8;
+                  const allInsts: DrumInstrument[] = ['hihat-closed', 'snare', 'kick', 'crash', 'tom-high', 'tom-mid', 'tom-floor'];
+                  const usedInsts = allInsts.filter(inst => lp.measures[0]?.hits[inst]?.length);
+                  return (
+                    <div key={lp.id} style={{ background: 'var(--app-surface)', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(128,128,128,0.06)' }}>
+                      <div style={{ padding: '14px 14px 8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif' }}>{lp.name}</div>
+                            <div style={{ fontSize: 10.5, color: 'var(--c-text-muted)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}>{lp.category} · {lp.genre} · {lp.bpm} BPM</div>
+                          </div>
+                          <button onClick={() => handleLibPreview(lp)} className="btn-smooth"
+                            style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isPreviewPlaying ? `linear-gradient(135deg,${accent.from},${accent.to})` : `${accent.from}12`, color: isPreviewPlaying ? '#fff' : accent.from, transition: 'all 160ms', boxShadow: isPreviewPlaying ? `0 4px 16px ${accent.from}44` : 'none' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{isPreviewPlaying ? 'stop' : 'play_arrow'}</span>
                           </button>
                         </div>
-                      )}
+                      </div>
+                      {/* Mini Grid Preview */}
+                      <div style={{ padding: '0 14px 10px' }}>
+                        <div style={{ background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.35)', borderRadius: 10, padding: '8px 6px', overflow: 'hidden' }}>
+                          {usedInsts.slice(0, 4).map(inst => {
+                            const instHits = lp.measures[0]?.hits[inst] ?? [];
+                            const color = INSTRUMENT_COLOR[inst] ?? accent.from;
+                            return (
+                              <div key={inst} style={{ display: 'flex', gap: 2, marginBottom: 2 }}>
+                                {Array.from({ length: totalSteps }).map((_, s) => {
+                                  const hit = instHits.find(h => h.step === s);
+                                  const isGhost = hit?.variation === 'ghost';
+                                  return (
+                                    <div key={s} style={{
+                                      flex: 1, height: hit ? (isGhost ? 4 : 6) : 3,
+                                      borderRadius: 2,
+                                      background: hit ? (isGhost ? `${color}55` : color) : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)'),
+                                      opacity: hit ? (isGhost ? 0.6 : 0.85) : 1,
+                                      transition: 'all 100ms',
+                                    }} />
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {/* Action buttons */}
+                      <div style={{ padding: '0 14px 12px', display: 'flex', gap: 6 }}>
+                        <button onClick={() => handleLibReplace(lp)} className="btn-smooth"
+                          style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>file_download</span>
+                          Use
+                        </button>
+                        <button onClick={() => handleLibInsert(lp)} className="btn-smooth"
+                          style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>playlist_add</span>
+                          Append
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
-              </Card>
+              </div>
             )}
           </div>
         )}
