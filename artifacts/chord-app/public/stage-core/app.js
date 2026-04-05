@@ -1698,6 +1698,9 @@ function setPropState(newState) {
     if (newState === 'open') _tb.classList.add('tb-dragging');
     else _tb.classList.remove('tb-dragging');
   }
+  try {
+    window.parent.postMessage({ type: 'sc-prop-state', state: newState }, window.location.origin);
+  } catch(e) {}
 }
 function _getPropState() {
   const p = document.getElementById('properties-panel');

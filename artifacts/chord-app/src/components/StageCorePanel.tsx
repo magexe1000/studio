@@ -105,6 +105,7 @@ export default function StagexPanel() {
   const [fabOpen, setFabOpen] = useState(false);
   const [stageNavHidden, setStageNavHidden] = useState(false);
   const [landscapeNavHidden, setLandscapeNavHidden] = useState(false);
+  const [propPanelOpen, setPropPanelOpen] = useState(false);
 
   const [isLandscape, setIsLandscape] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches
@@ -209,6 +210,7 @@ export default function StagexPanel() {
       if (e.source !== iframeRef.current?.contentWindow) return;
       if (e.data?.type === 'sc-dial-state') setFabOpen(!!e.data.open);
       if (e.data?.type === 'sc-scroll-dir') setStageNavHidden(!!e.data.down);
+      if (e.data?.type === 'sc-prop-state') setPropPanelOpen(e.data.state === 'open' || e.data.state === 'peek');
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
@@ -480,7 +482,8 @@ export default function StagexPanel() {
               WebkitTapHighlightColor: 'transparent',
               touchAction: 'manipulation',
               display: 'flex',
-              opacity: (stageNavHidden && !isLandscapeEditor) ? 0 : 1,
+              opacity: (isLandscapeEditor && propPanelOpen) ? 0 : (stageNavHidden && !isLandscapeEditor) ? 0 : 1,
+              pointerEvents: (isLandscapeEditor && propPanelOpen) ? 'none' as const : 'auto' as const,
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: fabOpen

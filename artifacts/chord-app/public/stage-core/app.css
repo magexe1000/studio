@@ -2289,23 +2289,25 @@ html[data-amoled="1"] #presets-panel { background: rgba(0,0,0,0.98) !important; 
 
   /* ── Properties panel: right-side drawer in landscape ── */
   #properties-panel {
-    top: 6px !important; bottom: auto !important;
-    left: auto !important; right: 6px !important;
-    width: 210px !important; max-width: 210px !important;
-    height: calc(100vh - 86px) !important; max-height: calc(100vh - 86px) !important;
-    border-radius: 10px !important;
-    border: 1px solid rgba(255,255,255,0.06) !important;
-    border-top: 1px solid rgba(255,255,255,0.06) !important;
-    transform: translateX(calc(100% + 12px)) !important;
-    transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), opacity 0.18s ease !important;
+    top: 0 !important; bottom: 0 !important;
+    left: auto !important; right: 0 !important;
+    width: 200px !important; max-width: 200px !important;
+    height: 100vh !important; max-height: 100vh !important;
+    border-radius: 0 !important;
+    border: none !important;
+    border-left: 1px solid rgba(255,255,255,0.08) !important;
+    transform: translateX(100%) !important;
+    transition: transform 0.32s cubic-bezier(0.22,1,0.36,1), opacity 0.22s ease !important;
     overflow-y: auto !important;
     padding-bottom: 8px !important;
   }
   #properties-panel.prop-open {
     transform: translateX(0) !important;
+    opacity: 1 !important;
   }
   #properties-panel.prop-peek {
-    transform: translateX(80%) !important;
+    transform: translateX(60%) !important;
+    opacity: 0.95 !important;
   }
 
   /* ── Canvas fills the full viewport — no tab-bar or toolbar pushing it ── */
