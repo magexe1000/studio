@@ -1447,6 +1447,52 @@ const LibMiniGrid = memo(function LibMiniGrid({ lp, isLight }: { lp: LibraryPatt
   );
 });
 
+interface LibCardProps {
+  lp: LibraryPattern;
+  isPreviewPlaying: boolean;
+  accent: { from: string; to: string };
+  isLight: boolean;
+  onPreview: (lp: LibraryPattern) => void;
+  onReplace: (lp: LibraryPattern) => void;
+  onInsert: (lp: LibraryPattern) => void;
+}
+
+const LibCard = memo(function LibCard({ lp, isPreviewPlaying, accent, isLight, onPreview, onReplace, onInsert }: LibCardProps) {
+  return (
+    <div style={{ background: 'var(--app-surface)', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(128,128,128,0.06)' }}>
+      <div style={{ padding: '14px 14px 8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif' }}>{lp.name}</div>
+            <div style={{ fontSize: 10.5, color: 'var(--c-text-muted)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}>{lp.category} · {lp.genre} · {lp.bpm} BPM</div>
+          </div>
+          <button onClick={() => onPreview(lp)} className="btn-smooth"
+            style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isPreviewPlaying ? `linear-gradient(135deg,${accent.from},${accent.to})` : `${accent.from}12`, color: isPreviewPlaying ? '#fff' : accent.from, transition: 'all 160ms', boxShadow: isPreviewPlaying ? `0 4px 16px ${accent.from}44` : 'none' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{isPreviewPlaying ? 'stop' : 'play_arrow'}</span>
+          </button>
+        </div>
+      </div>
+      <div style={{ padding: '0 14px 10px' }}>
+        <LibMiniGrid lp={lp} isLight={isLight} />
+      </div>
+      <div style={{ padding: '0 14px 12px', display: 'flex', gap: 6 }}>
+        <button onClick={() => onReplace(lp)} className="btn-smooth"
+          style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>file_download</span>
+          Use
+        </button>
+        <button onClick={() => onInsert(lp)} className="btn-smooth"
+          style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>playlist_add</span>
+          Append
+        </button>
+      </div>
+    </div>
+  );
+});
+
+const VISIBLE_BATCH = 20;
+
 // ── DrumEditor ─────────────────────────────────────────────────────────────
 export default function DrumEditor() {
   const { settings, updateSettings } = useChordStore();
@@ -1599,6 +1645,19 @@ export default function DrumEditor() {
   const [libCategory, setLibCategory] = useState<LibraryCategory | 'All' | 'My Grooves'>('All');
   const [libGenre, setLibGenre] = useState<LibraryGenre | ''>('');
   const [libSearch, setLibSearch] = useState('');
+  const [libSearchDebounced, setLibSearchDebounced] = useState('');
+  const [libVisible, setLibVisible] = useState(VISIBLE_BATCH);
+  const libSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleLibSearchChange = useCallback((val: string) => {
+    setLibSearch(val);
+    if (libSearchTimer.current) clearTimeout(libSearchTimer.current);
+    libSearchTimer.current = setTimeout(() => setLibSearchDebounced(val), 180);
+  }, []);
+
+  useEffect(() => {
+    setLibVisible(VISIBLE_BATCH);
+  }, [libCategory, libGenre, libSearchDebounced]);
 
   // ── Container width ──────────────────────────────────────────────────────
   // Use a stable callback ref so the observer re-attaches every time the
@@ -2010,8 +2069,8 @@ export default function DrumEditor() {
     if (libGenre) {
       items = items.filter(p => p.genre === libGenre);
     }
-    if (libSearch.trim()) {
-      const q = libSearch.trim().toLowerCase();
+    if (libSearchDebounced.trim()) {
+      const q = libSearchDebounced.trim().toLowerCase();
       items = items.filter(p =>
         p.name.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q) ||
@@ -2019,7 +2078,7 @@ export default function DrumEditor() {
       );
     }
     return items;
-  }, [libCategory, libGenre, libSearch]);
+  }, [libCategory, libGenre, libSearchDebounced]);
 
   // ── BPM ──────────────────────────────────────────────────────────────────
   const adjustBpm = useCallback((d: number) => {
@@ -2889,7 +2948,7 @@ export default function DrumEditor() {
                 <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: 'var(--c-text-muted)', pointerEvents: 'none' }}>search</span>
                 <input
                   value={libSearch}
-                  onChange={e => setLibSearch(e.target.value)}
+                  onChange={e => handleLibSearchChange(e.target.value)}
                   placeholder="Search patterns, genres, or moods..."
                   style={{ width: '100%', padding: '12px 14px 12px 38px', borderRadius: 12, background: 'var(--app-surface)', border: '1px solid rgba(128,128,128,0.10)', color: 'var(--c-text-primary)', fontSize: 13, fontFamily: 'Manrope,sans-serif', outline: 'none', boxSizing: 'border-box' }}
                 />
@@ -3052,42 +3111,20 @@ export default function DrumEditor() {
                     <span className="material-symbols-outlined" style={{ fontSize: 28, color: 'var(--c-text-muted)', display: 'block', marginBottom: 6 }}>search_off</span>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No patterns found</p>
                   </div>
-                ) : filteredLibrary.map(lp => {
-                  const isPreviewPlaying = previewingGrooveId === lp.id && drumScheduler.isPlaying;
-                  const menuOpen = grooveMenuId === lp.id;
-                  return (
-                    <div key={lp.id} style={{ background: 'var(--app-surface)', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(128,128,128,0.06)' }}>
-                      <div style={{ padding: '14px 14px 8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif' }}>{lp.name}</div>
-                            <div style={{ fontSize: 10.5, color: 'var(--c-text-muted)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}>{lp.category} · {lp.genre} · {lp.bpm} BPM</div>
-                          </div>
-                          <button onClick={() => handleLibPreview(lp)} className="btn-smooth"
-                            style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isPreviewPlaying ? `linear-gradient(135deg,${accent.from},${accent.to})` : `${accent.from}12`, color: isPreviewPlaying ? '#fff' : accent.from, transition: 'all 160ms', boxShadow: isPreviewPlaying ? `0 4px 16px ${accent.from}44` : 'none' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{isPreviewPlaying ? 'stop' : 'play_arrow'}</span>
-                          </button>
-                        </div>
-                      </div>
-                      <div style={{ padding: '0 14px 10px' }}>
-                        <LibMiniGrid lp={lp} isLight={isLight} />
-                      </div>
-                      {/* Action buttons */}
-                      <div style={{ padding: '0 14px 12px', display: 'flex', gap: 6 }}>
-                        <button onClick={() => handleLibReplace(lp)} className="btn-smooth"
-                          style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>file_download</span>
-                          Use
-                        </button>
-                        <button onClick={() => handleLibInsert(lp)} className="btn-smooth"
-                          style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>playlist_add</span>
-                          Append
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                ) : (<>
+                  {filteredLibrary.slice(0, libVisible).map(lp => (
+                    <LibCard key={lp.id} lp={lp}
+                      isPreviewPlaying={previewingGrooveId === lp.id && drumScheduler.isPlaying}
+                      accent={accent} isLight={isLight}
+                      onPreview={handleLibPreview} onReplace={handleLibReplace} onInsert={handleLibInsert} />
+                  ))}
+                  {libVisible < filteredLibrary.length && (
+                    <button onClick={() => setLibVisible(v => v + VISIBLE_BATCH)}
+                      style={{ width: '100%', padding: '14px', borderRadius: 12, background: `${accent.from}12`, border: `1px solid ${accent.from}30`, cursor: 'pointer', color: accent.from, fontSize: 13, fontWeight: 700, fontFamily: 'Manrope,sans-serif', textAlign: 'center' }}>
+                      Show more ({filteredLibrary.length - libVisible} remaining)
+                    </button>
+                  )}
+                </>)}
               </div>
             )}
           </div>
