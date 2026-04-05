@@ -2004,7 +2004,8 @@ html[data-amoled="1"] #sc-chain-panel { background: #000 !important; }
 html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 html[data-amoled="1"] #lib-panel { background: #000 !important; }
 html[data-amoled="1"] #settings-panel { background: #000 !important; }
-html[data-amoled="1"] #sc-vtools { background: rgba(0,0,0,0.96) !important; }
+html[data-amoled="1"] #sc-vtools { background: transparent !important; }
+html[data-amoled="1"] #sc-vtools-toggle { background: rgba(14,14,14,0.94) !important; border: 1px solid rgba(255,255,255,0.09) !important; }
 
 /* ── Modals ──────────────────────────────────────────────────── */
 html[data-amoled="1"] .sc-modal,
