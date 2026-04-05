@@ -1605,7 +1605,7 @@ export default function DrumEditor() {
   // In landscape the screen is wider so rawMpr is naturally larger →
   // more measures shown per row without stretching any of them.
   const rawMpr         = Math.max(1, Math.floor(availableW / (spm * MIN_STEP)));
-  const measuresPerRow = rawMpr;
+  const measuresPerRow = isLandscape ? rawMpr : 1;
   const MEASURE_W      = availableW / measuresPerRow;
   const STEP_W         = MEASURE_W / spm;
   const SYSTEM_H       = RULER_H + visibleInsts.length * ROW_H;
