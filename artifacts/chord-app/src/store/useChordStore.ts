@@ -160,6 +160,7 @@ interface ChordStore {
   reorderSection: (presetId: string, fromIdx: number, toIdx: number) => void;
   convertToSections: (presetId: string) => void;
   deduplicatePresetChords: (presetId: string) => void;
+  deduplicateAllPresets: () => void;
 }
 
 export const ACCENT_COLORS: Record<AccentColor, { from: string; to: string; mid: string }> = {
@@ -507,21 +508,45 @@ export const useChordStore = create<ChordStore>()(
       },
 
       deduplicatePresetChords: (presetId) => {
-        set((state) => ({
-          presets: state.presets.map(p => {
-            if (p.id !== presetId) return p;
-            const uniqueFlat = [...new Set(p.chords)];
-            const uniqueSections = p.sections?.map(s => ({
-              ...s,
-              chords: [...new Set(s.chords)],
-            }));
-            const changed =
-              uniqueFlat.length !== p.chords.length ||
-              (uniqueSections ?? []).some((s, i) => s.chords.length !== (p.sections?.[i]?.chords.length ?? 0));
-            if (!changed) return p;
-            return { ...p, chords: uniqueFlat, sections: uniqueSections, updatedAt: Date.now() };
-          }),
+        const state = get();
+        const preset = state.presets.find(p => p.id === presetId);
+        if (!preset) return;
+        const uniqueFlat = [...new Set(preset.chords)];
+        const uniqueSections = preset.sections?.map(s => ({
+          ...s,
+          chords: [...new Set(s.chords)],
         }));
+        const changed =
+          uniqueFlat.length !== preset.chords.length ||
+          (uniqueSections ?? []).some((s, i) => s.chords.length !== (preset.sections?.[i]?.chords.length ?? 0));
+        if (!changed) return;
+        set({
+          presets: state.presets.map(p =>
+            p.id === presetId
+              ? { ...p, chords: uniqueFlat, sections: uniqueSections, updatedAt: Date.now() }
+              : p
+          ),
+        });
+      },
+
+      deduplicateAllPresets: () => {
+        const state = get();
+        let anyChanged = false;
+        const newPresets = state.presets.map(p => {
+          const uniqueFlat = [...new Set(p.chords)];
+          const uniqueSections = p.sections?.map(s => ({
+            ...s,
+            chords: [...new Set(s.chords)],
+          }));
+          const changed =
+            uniqueFlat.length !== p.chords.length ||
+            (uniqueSections ?? []).some((s, i) => s.chords.length !== (p.sections?.[i]?.chords.length ?? 0));
+          if (!changed) return p;
+          anyChanged = true;
+          return { ...p, chords: uniqueFlat, sections: uniqueSections, updatedAt: Date.now() };
+        });
+        if (!anyChanged) return;
+        set({ presets: newPresets });
       },
     }),
     {

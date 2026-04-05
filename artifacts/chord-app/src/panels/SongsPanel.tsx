@@ -2478,7 +2478,7 @@ export default function SongsPanel() {
     setTranspose, resetTranspose, updateSettings,
     saveCustomChord, updateCustomChord, deleteCustomChord,
     addSection, updateSection, deleteSection, addChordToSection, removeChordFromSection, reorderSection, convertToSections,
-    deduplicatePresetChords,
+    deduplicateAllPresets,
   } = useChordStore();
   const accent      = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
   const preferFlats = settings.preferFlats ?? false;
@@ -2548,9 +2548,8 @@ export default function SongsPanel() {
     return () => setBackHandler(null);
   }, [activePanel]);
 
-  // Deduplicate all preset chords once on mount so diagrams & counts are always accurate.
   useEffect(() => {
-    presets.forEach(p => deduplicatePresetChords(p.id));
+    deduplicateAllPresets();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Drag & drop
