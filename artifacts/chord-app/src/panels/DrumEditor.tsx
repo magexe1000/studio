@@ -1638,6 +1638,16 @@ export default function DrumEditor() {
     return rows;
   }, [pattern.measures, measuresPerRow]);
 
+  // ── Landscape auto-fill: ensure enough empty measures to fill one row ───
+  useEffect(() => {
+    if (!isLandscape || !inEditor) return;
+    const needed = measuresPerRow - pattern.measures.length;
+    if (needed > 0) {
+      const extra = Array.from({ length: needed }, () => emptyMeasure());
+      updatePattern(pattern.id, { measures: [...pattern.measures, ...extra] });
+    }
+  }, [isLandscape, inEditor, measuresPerRow, pattern.measures.length, pattern.id]);
+
   // ── Hit maps (step → variation) ──────────────────────────────────────────
   const allHitMaps = useMemo(() => {
     const map = new Map<DrumInstrument, Map<number, NoteVariation>>();
