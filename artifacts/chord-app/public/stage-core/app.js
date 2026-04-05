@@ -1701,6 +1701,16 @@ function setPropState(newState) {
   if ((newState === 'open' || newState === 'peek') && _dialOpen) {
     closeSCDial();
   }
+  var isLand = window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches;
+  if (isLand) {
+    var fab = document.getElementById('sc-fab-wrap');
+    if (fab) {
+      var hide = (newState === 'open' || newState === 'peek');
+      fab.style.opacity = hide ? '0' : '';
+      fab.style.pointerEvents = hide ? 'none' : '';
+      fab.style.visibility = hide ? 'hidden' : '';
+    }
+  }
   try {
     window.parent.postMessage({ type: 'sc-prop-state', state: newState }, window.location.origin);
   } catch(e) {}
