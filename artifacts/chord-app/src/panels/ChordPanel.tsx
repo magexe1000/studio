@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useScrollHide } from '../lib/navScroll';
 import { getChordById, getRelatedChords, suggestNextChord } from '../data/chords';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
@@ -10,6 +10,44 @@ import ChordDiagram from '../components/ChordDiagram';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import CustomChordBuilder from '../components/CustomChordBuilder';
 import { setBackHandler } from '../lib/backStack';
+import { playChord, stopChordPlayback } from '../lib/guitarAudio';
+import type { GuitarChordData } from '../data/chords';
+
+function RelatedPlayBtn({ guitar, accent }: {
+  guitar: GuitarChordData;
+  accent: { from: string; to: string; mid: string };
+}) {
+  const [playing, setPlaying] = useState(false);
+  const handlePlay = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (playing) { stopChordPlayback(); setPlaying(false); return; }
+    setPlaying(true);
+    playChord(guitar);
+    setTimeout(() => setPlaying(false), 2800);
+  }, [guitar, playing]);
+
+  return (
+    <button
+      aria-label="Play chord"
+      onClick={handlePlay}
+      style={{
+        width: 24, height: 24, borderRadius: '50%',
+        background: playing ? `${accent.from}30` : 'rgba(255,255,255,0.07)',
+        border: 'none', cursor: 'pointer', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', padding: 0,
+        transition: 'background 200ms ease',
+      }}
+    >
+      <span className="material-symbols-outlined" style={{
+        fontSize: '13px',
+        color: playing ? accent.from : 'var(--c-text-secondary)',
+        fontVariationSettings: "'FILL' 1",
+        transition: 'color 200ms ease',
+      }}>{playing ? 'stop' : 'play_arrow'}</span>
+    </button>
+  );
+}
 
 export default function ChordPanel() {
   const {
@@ -31,6 +69,7 @@ export default function ChordPanel() {
   const [saving, setSaving] = useState(false);
   const [progName, setProgName] = useState('');
   const [showFinder, setShowFinder] = useState(false);
+  const [chordPlaying, setChordPlaying] = useState(false);
 
   // Register back handler when Chord panel is active and the finder is open
   useEffect(() => {
@@ -41,6 +80,14 @@ export default function ChordPanel() {
   }, [activePanel, showFinder]);
 
   const chord = selectedChordId ? getChordById(selectedChordId) : null;
+
+  const handlePlayChord = useCallback(() => {
+    if (!chord) return;
+    if (chordPlaying) { stopChordPlayback(); setChordPlaying(false); return; }
+    setChordPlaying(true);
+    playChord(chord.guitar);
+    setTimeout(() => setChordPlaying(false), 2800);
+  }, [chord, chordPlaying]);
   const favorite = chord ? isFavorite(chord.id) : false;
   const accent = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
 
@@ -178,6 +225,20 @@ export default function ChordPanel() {
           {/* Action Buttons */}
           <div className="flex gap-3 mt-6">
             <button
+              onClick={handlePlayChord}
+              className="btn-smooth flex items-center gap-2 px-5 py-3 font-bold"
+              style={{
+                background: chordPlaying ? `${accent.from}25` : 'var(--app-surface-high)',
+                color: chordPlaying ? accent.from : 'var(--c-text-primary)',
+                borderRadius: '9999px',
+                fontFamily: 'Manrope',
+                fontSize: '14px',
+                transition: 'background-color 200ms ease, color 200ms ease, transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>{chordPlaying ? 'stop' : 'play_arrow'}</span>
+            </button>
+            <button
               data-testid="add-to-progression"
               onClick={handleAddToProgression}
               className="btn-smooth flex items-center gap-2 px-6 py-3 font-bold"
@@ -246,24 +307,28 @@ export default function ChordPanel() {
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {relatedChords.slice(0, 2).map(related => (
-              <button
+              <div
                 key={related.id}
-                data-testid={`related-chord-${related.id}`}
-                onClick={() => selectChord(related.id)}
                 className="card-hover text-left p-4"
-                style={{ background: 'var(--app-surface-high)', borderRadius: '0.75rem' }}
+                style={{ background: 'var(--app-surface-high)', borderRadius: '0.75rem', position: 'relative' }}
               >
-                <div className="flex justify-between items-start mb-3">
-                  <span className="font-bold" style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontSize: '13px' }}>{related.name}</span>
-                  <svg viewBox="0 0 16 16" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" style={{ color: 'var(--c-text-secondary)', flexShrink: 0 }}>
-                    <path d="M10 2h4v4M14 2L9 7M6 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3" />
-                  </svg>
+                <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
+                  <RelatedPlayBtn guitar={related.guitar} accent={accent} />
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', padding: '6px 6px 3px', transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)' }}>
-                  <ChordDiagram data={related.guitar} accentFrom={accent.from} />
-                </div>
-                <p className="mt-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>{related.type}</p>
-              </button>
+                <button
+                  data-testid={`related-chord-${related.id}`}
+                  onClick={() => selectChord(related.id)}
+                  style={{ background: 'none', border: 'none', padding: 0, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="font-bold" style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontSize: '13px' }}>{related.name}</span>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', padding: '6px 6px 3px', transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)' }}>
+                    <ChordDiagram data={related.guitar} accentFrom={accent.from} />
+                  </div>
+                  <p className="mt-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>{related.type}</p>
+                </button>
+              </div>
             ))}
           </div>
         </div>

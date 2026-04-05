@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { getAllChords, searchChords, getChordById, type ChordType } from '../data/chords';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { SONGS, GENRE_META, type Genre } from '../data/progressions';
@@ -7,6 +7,7 @@ import ChordDiagram from '../components/ChordDiagram';
 import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { setBackHandler } from '../lib/backStack';
+import { playChord, stopChordPlayback } from '../lib/guitarAudio';
 
 // ── Category definitions ──────────────────────────────────────
 const CATEGORIES: {
@@ -295,6 +296,47 @@ function MiniChordPreview({ frets, baseFret = 1, barres = [], isDark = true }: {
 }
 
 // ── Chord card (2-col grid view) ──────────────────────────────
+function ChordPlayBtn({ chord, accent, size = 26 }: {
+  chord: NonNullable<ReturnType<typeof getChordById>>;
+  accent: { from: string; to: string; mid: string };
+  size?: number;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const handlePlay = useCallback((e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (playing) { stopChordPlayback(); setPlaying(false); return; }
+    setPlaying(true);
+    playChord(chord.guitar);
+    setTimeout(() => setPlaying(false), 2800);
+  }, [chord.guitar, playing]);
+
+  return (
+    <button
+      aria-label="Play chord"
+      onClick={handlePlay}
+      onKeyDown={e => e.key === 'Enter' && handlePlay(e)}
+      style={{
+        width: size, height: size, borderRadius: '50%',
+        background: playing ? `${accent.from}30` : 'rgba(255,255,255,0.07)',
+        border: 'none', cursor: 'pointer', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', padding: 0,
+        transition: 'background 200ms ease, transform 150ms cubic-bezier(0.34,1.56,0.64,1)',
+        flexShrink: 0,
+      }}
+      onPointerDown={e => e.stopPropagation()}
+      onPointerUp={e => e.stopPropagation()}
+    >
+      <span className="material-symbols-outlined" style={{
+        fontSize: `${Math.round(size * 0.54)}px`,
+        color: playing ? accent.from : 'var(--c-text-secondary)',
+        fontVariationSettings: "'FILL' 1",
+        transition: 'color 200ms ease',
+      }}>{playing ? 'stop' : 'play_arrow'}</span>
+    </button>
+  );
+}
+
 function ChordCard({
   chord, isSelected, onClick, accent,
 }: {
@@ -317,15 +359,18 @@ function ChordCard({
         alignItems: 'stretch',
         gap: '8px',
         transition: 'background-color 200ms ease, border-color 200ms ease, transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+        position: 'relative',
       }}>
-      {/* Chord name */}
+      <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
+        <ChordPlayBtn chord={chord} accent={accent} size={26} />
+      </div>
       <p style={{
         color: isSelected ? accent.from : 'var(--c-text-primary)',
         fontFamily: 'Manrope', fontWeight: 800, fontSize: '16px',
         letterSpacing: '-0.02em', lineHeight: 1,
         transition: 'color 200ms ease',
+        paddingRight: 30,
       }}>{chord.name}</p>
-      {/* Fretboard diagram */}
       <div style={{
         background: 'rgba(255,255,255,0.035)',
         borderRadius: '0.625rem',
@@ -334,7 +379,6 @@ function ChordCard({
       }}>
         <ChordDiagram data={chord.guitar} accentFrom={accent.from} />
       </div>
-      {/* Notes */}
       <p style={{
         color: 'var(--c-text-muted)',
         fontFamily: 'Inter', fontSize: '9.5px', letterSpacing: '0.05em',
