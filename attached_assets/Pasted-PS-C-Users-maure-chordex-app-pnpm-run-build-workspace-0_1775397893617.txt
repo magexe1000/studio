@@ -1,0 +1,45 @@
+PS C:\Users\maure\chordex-app> pnpm run build
+
+> workspace@0.0.0 build C:\Users\maure\chordex-app
+> pnpm run typecheck && pnpm -r --if-present run build
+
+
+> workspace@0.0.0 typecheck C:\Users\maure\chordex-app
+> pnpm run typecheck:libs && pnpm -r --filter "./artifacts/**" --filter "./scripts" --if-present run typecheck
+
+
+> workspace@0.0.0 typecheck:libs C:\Users\maure\chordex-app
+> tsc --build
+
+Scope: 4 of 9 workspace projects
+artifacts/api-server typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 1.6s
+artifacts/chord-app typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 6.9s
+artifacts/mockup-sandbox typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 5.4s
+scripts typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 1.2s
+Scope: 8 of 9 workspace projects
+artifacts/chord-app build$ vite build --config vite.config.ts
+│ vite v7.3.1 building client environment for production...
+│ transforming...
+└─ Running...
+artifacts/mockup-sandbox build$ vite build
+│ failed to load config from C:\Users\maure\chordex-app\artifacts\mockup-sandbox\vite.config.ts
+│ error during build:
+│ Error: PORT environment variable is required but was not provided.
+│     at file:///C:/Users/maure/chordex-app/artifacts/mockup-sandbox/node_modules/.vite-temp/vite.config.ts.timestamp…
+│     at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
+│     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:661:26)
+│     at async loadConfigFromBundledFile (file:///C:/Users/maure/chordex-app/node_modules/.pnpm/vite@7.3.1_@types+nod…
+│     at async bundleAndLoadConfigFile (file:///C:/Users/maure/chordex-app/node_modules/.pnpm/vite@7.3.1_@types+node@…
+│     at async loadConfigFromFile (file:///C:/Users/maure/chordex-app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3_…
+│     at async resolveConfig (file:///C:/Users/maure/chordex-app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3_a0de9…
+│     at async createBuilder (file:///C:/Users/maure/chordex-app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3_a0de9…
+│     at async CAC.<anonymous> (file:///C:/Users/maure/chordex-app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3_a0d…
+└─ Failed in 1.3s at C:\Users\maure\chordex-app\artifacts\mockup-sandbox
+C:\Users\maure\chordex-app\artifacts\mockup-sandbox:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/mockup-sandbox@2.0.0 build: `vite build`
+Exit status 1
+ ELIFECYCLE  Command failed with exit code 1.
