@@ -349,7 +349,7 @@ const translations = {
     /* ── Studio Hub ── */
     hub: {
       studio: 'Studio',
-      byChordex: 'by Chordex',
+      byChordex: 'by Mag',
       chordexDesc: 'Chord library & songs',
       drumexDesc: 'Drum sheet editor',
       stagexDesc: 'Stage plot & tech rider',
@@ -774,7 +774,7 @@ const translations = {
     /* ── Studio Hub ── */
     hub: {
       studio: 'Studio',
-      byChordex: 'by Chordex',
+      byChordex: 'by Mag',
       chordexDesc: 'Biblioteca de acordes y canciones',
       drumexDesc: 'Editor de ritmos',
       stagexDesc: 'Diagrama de escenario y rider',
