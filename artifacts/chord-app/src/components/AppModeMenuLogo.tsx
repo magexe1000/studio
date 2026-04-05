@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChordexLogo, DrumexLogo, StudioLogo, StageCoreLogoIcon } from './ChordexLogo';
+import { ChordexLogo, DrumexLogo, StudioLogo, StagexLogoIcon } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 
 export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: number }) {
@@ -44,7 +44,7 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
   }[] = [
     { value: 'chords', Icon: ChordexLogo,       label: 'Chordex', desc: 'Chords & songs'       },
     { value: 'drums',  Icon: DrumexLogo,        label: 'Drumex',  desc: 'Drum sheets'          },
-    { value: 'stage',  Icon: StageCoreLogoIcon, label: 'Stagex',  desc: 'Stage plot & rider'   },
+    { value: 'stage',  Icon: StagexLogoIcon, label: 'Stagex',  desc: 'Stage plot & rider'   },
   ];
 
   const goToHub = () => {
@@ -67,7 +67,7 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
           color: resolvedColor,
         }}
       >
-        {currentMode === 'drums' ? <DrumexLogo size={size} /> : currentMode === 'stage' ? <StageCoreLogoIcon size={size} /> : <ChordexLogo size={size} />}
+        {currentMode === 'drums' ? <DrumexLogo size={size} /> : currentMode === 'stage' ? <StagexLogoIcon size={size} /> : <ChordexLogo size={size} />}
         <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color: resolvedColor }}>
           {currentMode === 'drums' ? 'Drumex' : currentMode === 'stage' ? 'Stagex' : 'Chordex'}
         </span>

@@ -1,4 +1,4 @@
-// StageCore Advanced Features — features.js
+// Stagex Advanced Features — features.js
 // Loaded after app.js to extend functionality without modifying core code.
 
 // ════════════════════════════════════════════════════

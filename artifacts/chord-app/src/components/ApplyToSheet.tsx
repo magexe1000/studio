@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StudioLogo, ChordexLogo, DrumexLogo, StageCoreLogoIcon } from './ChordexLogo';
+import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import type { AppKey } from '../store/useChordStore';
 import { useT } from '../lib/useT';
@@ -14,7 +14,7 @@ const APP_CARDS: AppCard[] = [
   { key: 'hub',    label: 'Studio',  Logo: StudioLogo       },
   { key: 'chords', label: 'Chordex', Logo: ChordexLogo      },
   { key: 'drums',  label: 'Drumex',  Logo: DrumexLogo       },
-  { key: 'stage',  label: 'Stagex',  Logo: StageCoreLogoIcon },
+  { key: 'stage',  label: 'Stagex',  Logo: StagexLogoIcon },
 ];
 
 interface ApplyToSheetProps {

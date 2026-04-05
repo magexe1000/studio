@@ -2,12 +2,12 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
-import { ChordexLogo, DrumexLogo, StageCoreLogoIcon } from './components/ChordexLogo';
+import { ChordexLogo, DrumexLogo, StagexLogoIcon } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 import StudioHub from './components/StudioHub';
-const StageCorePanel = lazy(() => import('./components/StageCorePanel'));
+const StagexPanel = lazy(() => import('./components/StageCorePanel'));
 
 const LibraryPanel  = lazy(() => import('./panels/LibraryPanel'));
 const ChordPanel    = lazy(() => import('./panels/ChordPanel'));
@@ -266,7 +266,7 @@ export default function App() {
     );
   }
 
-  // ── Stage Core mode: full-screen iframe wrapper ─────────────────────────
+  // ── Stagex mode: full-screen iframe wrapper ─────────────────────────
   if (settings.appMode === 'stage') {
     const stageIsAmoled = activeVis.amoledMode;
     const stageIsLight  = activeVis.theme === 'light';
@@ -280,7 +280,7 @@ export default function App() {
         opacity:   exitingToHub ? 0 : undefined,
         transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
       }}>
-        <Suspense fallback={null}><StageCorePanel /></Suspense>
+        <Suspense fallback={null}><StagexPanel /></Suspense>
 
         {/* Stagex splash — shown when entering from hub */}
         {stageSplash !== 'hidden' && (
@@ -294,7 +294,7 @@ export default function App() {
             pointerEvents: 'none',
           }}>
             <div style={{ color: stageIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <StageCoreLogoIcon size={60} />
+              <StagexLogoIcon size={60} />
             </div>
             <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
               <p style={{ color: stageIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Stagex</p>

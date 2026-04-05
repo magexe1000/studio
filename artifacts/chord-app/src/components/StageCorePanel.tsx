@@ -89,7 +89,7 @@ const HIDE_IFRAME_UI = `
   #mobile-nav-bar { opacity: 0 !important; pointer-events: none !important; }
 `;
 
-export default function StageCorePanel() {
+export default function StagexPanel() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const iframeReady = useRef(false);
   const { settings } = useChordStore();

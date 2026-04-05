@@ -7133,6 +7133,6 @@ function downloadQRCode() {
       if (typeof renderRider   === 'function') renderRider();
     });
   } catch(e) {
-    console.warn('[Stage Core] Failed to parse share link:', e);
+    console.warn('[Stagex] Failed to parse share link:', e);
   }
 })();

@@ -42,7 +42,7 @@ export function DrumexLogo({ size = 14 }: { size?: number }) {
   );
 }
 
-export function StageCoreLogoIcon({ size = 14 }: { size?: number }) {
+export function StagexLogoIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none"
       xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', flexShrink: 0 }}>
