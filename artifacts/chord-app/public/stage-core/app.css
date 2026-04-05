@@ -1929,6 +1929,17 @@ html[data-amoled="1"] #view-Assistant { background: #000 !important; }
 /* ── Stage ───────────────────────────────────────────────────── */
 html[data-amoled="1"] #canvas-container { background: #000 !important; }
 html[data-amoled="1"] #stage-viewport { background: #000 !important; }
+html[data-amoled="1"] #stage-canvas { background-color: #000 !important; }
+html[data-amoled="1"] .stage-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.18) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px) !important;
+}
+html[data-amoled="1"] #stage-canvas {
+  border-color: rgba(255,255,255,0.15) !important;
+}
 
 /* ── Bottom navigation ───────────────────────────────────────── */
 html[data-amoled="1"] #mobile-nav-bar {
