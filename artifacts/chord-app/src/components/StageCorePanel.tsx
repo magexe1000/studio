@@ -207,7 +207,7 @@ export default function StageCorePanel() {
 
   const handleNavTap = useCallback((view: string) => {
     if (view === 'Setup') {
-      callIframe('activateSetup');
+      callIframe('switchView', 'SetupHub');
     } else {
       callIframe('switchView', view);
     }
