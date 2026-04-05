@@ -3195,7 +3195,7 @@ function _riderCloneStage(slot, src) {
   var clone = src.cloneNode(true);
   clone.removeAttribute('id');
   clone.classList.add('rd-stage-clone');
-  clone.style.cssText = 'pointer-events:none;border:none;transform-origin:top left;';
+  clone.style.cssText = 'pointer-events:none;border-color:rgba(72,72,71,0.12);border-style:solid;border-width:1px;transform-origin:top left;overflow:visible;position:relative;box-sizing:border-box;';
   clone.querySelectorAll('[id]').forEach(function(n) { n.removeAttribute('id'); });
   slot.appendChild(clone);
 }
@@ -3206,12 +3206,18 @@ function _riderScalePreview(slot, src) {
   var srcH = state.canvasH || src.scrollHeight || src.offsetHeight || 420;
   if (srcW <= 0) srcW = 650;
   if (srcH <= 0) srcH = 420;
+  var extraBottom = 28;
+  var totalH = srcH + extraBottom;
   var slotW = slot.clientWidth || 350;
+  var pad = 12;
+  var usableW = slotW - pad * 2;
+  var scale = usableW / srcW;
   clone.style.width = srcW + 'px';
   clone.style.height = srcH + 'px';
-  var scale = slotW / srcW;
   clone.style.transform = 'scale(' + scale + ')';
-  slot.style.height = Math.ceil(srcH * scale) + 'px';
+  clone.style.marginLeft = pad + 'px';
+  clone.style.marginTop = pad + 'px';
+  slot.style.height = Math.ceil(totalH * scale + pad * 2) + 'px';
 }
 
 // ══════════════════════════════════════════════════════════
