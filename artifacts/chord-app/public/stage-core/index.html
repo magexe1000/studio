@@ -235,7 +235,7 @@ body {
    Override to zero since the React header lives outside the iframe now. */
 #view-Assistant {
   padding-top: 0 !important;
-  background: #1a1a1a !important;
+  background: #0e0e0e !important;
 }
 .sc-prefs-scroll {
   flex: 1;
@@ -429,10 +429,10 @@ body {
 /* Unify the canvas background — body, html and the canvas container all use the same dark
    base so there is no visible seam between the React header above and the iframe content */
 html, body {
-  background: #1a1a1a !important;
+  background: #0e0e0e !important;
 }
 #canvas-container {
-  background: #1a1a1a !important;
+  background: #0e0e0e !important;
 }
 /* stage-viewport no longer needs the 52px top push — the toolbar floats above the canvas rect */
 #stage-viewport {
@@ -476,7 +476,7 @@ html, body {
   bottom: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #1a1a1a;
+  background: #0e0e0e;
 }
 .sc-hub-card {
   width: 100%;
@@ -552,7 +552,7 @@ html, body {
 
 /* Clean dark background for all setup sub-views */
 #view-Rider, #view-Setlist, #view-Gear, #view-Members {
-  background: #1a1a1a !important;
+  background: #0e0e0e !important;
 }
 
 /* Hide the ← Setup back buttons — swipe gesture handles navigation */
@@ -1433,7 +1433,7 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
 
 /* ── Canvas bg: controlled by CSS so data-theme (set before first paint) determines initial color,
       eliminating the flash. JS updateCanvasBg() still overrides via inline style for user swatches. ── */
-#stage-canvas { background-color: #1a1a1a; }
+#stage-canvas { background-color: #0e0e0e; }
 html[data-theme="light"] #stage-canvas { background-color: #ffffff; }
 
 /* ── Light mode: stage canvas uses dark grid lines and a visible border ── */
@@ -1667,7 +1667,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 <div id="view-Editor" class="view-page active">
 
   <!-- LEFT SIDEBAR (desktop fixed; mobile: slide-in drawer) -->
-  <aside id="lib-panel" class="fixed left-0 top-16 flex flex-col z-40" style="width:200px;height:calc(100vh - 64px);background:#0e0e0e;overflow-y:auto;">
+  <aside id="lib-panel" class="fixed left-0 top-16 flex flex-col z-40" style="display:none !important;width:200px;height:calc(100vh - 64px);background:#0e0e0e;overflow-y:auto;">
 
     <nav class="flex-1 overflow-y-auto pt-2 pb-1" id="library-nav">
       <p class="font-bold text-on-surface-variant uppercase px-4 py-2" style="font-size:9px;letter-spacing:0.2em;" data-i18n="sbSectionLabel">Elements</p>

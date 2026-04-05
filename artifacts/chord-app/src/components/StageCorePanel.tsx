@@ -65,7 +65,7 @@ function injectTheme(iframe: HTMLIFrameElement, theme: string) {
     } else {
       root.removeAttribute('data-theme');
       const win = iframe.contentWindow as (Window & { updateCanvasBg?: (c: string) => void }) | null;
-      win?.updateCanvasBg?.('#1a1a1a');
+      win?.updateCanvasBg?.('#0e0e0e');
     }
   } catch {}
 }
@@ -102,6 +102,7 @@ export default function StageCorePanel() {
   const stageStretchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [stagePill, setStagePill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const [pressedTab, setPressedTab] = useState<string | null>(null);
+  const [fabOpen, setFabOpen] = useState(false);
 
   const [isLandscape, setIsLandscape] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches
@@ -122,8 +123,8 @@ export default function StageCorePanel() {
   const iframeSrc = useRef(
     `/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)},${isAmoled ? '1' : '0'}`
   ).current;
-  const stageBg   = isAmoled ? (isLight ? '#ffffff' : '#000000') : isLight ? '#f2f1ef' : '#1a1a1a';
-  const stageHdr  = isAmoled ? (isLight ? '#ffffff' : '#000000') : isLight ? '#f2f1ef' : '#1a1a1a';
+  const stageBg   = isAmoled ? (isLight ? '#ffffff' : '#000000') : isLight ? '#f2f1ef' : '#0e0e0e';
+  const stageHdr  = isAmoled ? (isLight ? '#ffffff' : '#000000') : isLight ? '#f2f1ef' : '#0e0e0e';
 
   const showBack = curView === 'Rider' || curView === 'Setlist' || curView === 'Gear' || curView === 'Members';
 
@@ -178,6 +179,15 @@ export default function StageCorePanel() {
     iframe.addEventListener('load', handleLoad);
     return () => iframe.removeEventListener('load', handleLoad);
   }, [accent.from, accent.to, stageVis.theme, isAmoled]);
+
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.source !== iframeRef.current?.contentWindow) return;
+      if (e.data?.type === 'sc-dial-state') setFabOpen(!!e.data.open);
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -429,11 +439,15 @@ export default function StageCorePanel() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: `0 4px 24px ${accent.from}80, 0 2px 8px rgba(0,0,0,0.3)`,
+              boxShadow: fabOpen
+                ? `0 6px 32px ${accent.from}99, 0 3px 12px rgba(0,0,0,0.4)`
+                : `0 4px 24px ${accent.from}80, 0 2px 8px rgba(0,0,0,0.3)`,
               padding: 0,
+              transform: fabOpen ? 'rotate(45deg) scale(1.08)' : 'rotate(0deg) scale(1)',
+              transition: 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease',
             }}
           >
-            <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 24, lineHeight: 1 }}>add</span>
+            <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 24, lineHeight: 1, transition: 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}>add</span>
           </button>
         )}
 

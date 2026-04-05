@@ -270,7 +270,7 @@ export default function App() {
   if (settings.appMode === 'stage') {
     const stageIsAmoled = activeVis.amoledMode;
     const stageIsLight  = activeVis.theme === 'light';
-    const stageBgColor  = stageIsAmoled ? '#000000' : stageIsLight ? '#f2f1ef' : '#1a1a1a';
+    const stageBgColor  = stageIsAmoled ? '#000000' : stageIsLight ? '#f2f1ef' : '#0e0e0e';
     return (
       <div style={{
         position: 'relative', height: '100dvh', overflow: 'hidden',

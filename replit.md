@@ -56,10 +56,12 @@ Chordex — React/Vite PWA + Capacitor Android app for chord reference, song/pro
 
 - **Stage Mode (Stagex)**: `src/components/StageCorePanel.tsx` — iframe-based stage plot editor.
   - **Architecture**: Pre-built static bundle at `public/stage-core/` served in an iframe. React parent renders header, FAB, and bottom nav bar as real DOM buttons on top of the iframe. Iframe's own FAB/nav bar are hidden via CSS injection + inline `<head>` script (hash-based embed detection).
-  - **Bridge**: `callIframe(fn, arg)` — direct `contentWindow[fn]()` call (same-origin) with `postMessage` fallback; 200ms dedup guard prevents double-fire from touch+click.
+  - **Bridge**: `callIframe(fn, arg)` — direct `contentWindow[fn]()` call (same-origin) with `postMessage` fallback; 200ms dedup guard prevents double-fire from touch+click. Iframe→parent: `postMessage({type:'sc-dial-state', open})` for FAB dial state sync (source-verified listener).
+  - **FAB animation**: React FAB button in StageCorePanel rotates 45° + scale(1.08) on open (spring curve 0.34,1.56,0.64,1). State driven by iframe `sc-dial-state` messages only (authoritative, not optimistic).
   - **Chrome Android iframe rule**: All `position:fixed` replaced with `position:absolute` in `app.css`, `app.js`, `features.js`, `index.html`. Body has `transform: translateZ(0)` to create stacking context.
   - **Offline**: `cloud-stub.js` stubs all Firebase APIs; fonts bundled locally; no external network dependencies.
-  - **CSS overrides** in `index.html`: hide desktop nav, style bottom nav pill, position:absolute for scrollable-view/FAB/backdrop, view padding adjustments.
+  - **CSS overrides** in `index.html`: hide desktop nav, style bottom nav pill, position:absolute for scrollable-view/FAB/backdrop, view padding adjustments. Left `#lib-panel` hidden via inline `display:none !important` + CSS rule (permanently killed, React parent handles navigation).
+  - **Dark mode colors**: Stagex uses `#0e0e0e` (matching Chordex `--app-bg`) for all dark-mode backgrounds (canvas, body, views, header). AMOLED: `#000`. Light: `#f2f1ef`.
 - **State**: `src/store/useChordStore.ts` (Zustand + persist) — chord/song/settings; `src/store/useDrumStore.ts` — fully isolated drum patterns
 - **App Mode**: `settings.appMode: 'chords' | 'drums'` in AppSettings; switching replaces the entire UI instantly with no reload
 - **Panels** (Chordex mode): `LibraryPanel`, `ChordPanel`, `SongsPanel`, `SettingsPanel` + `BottomNav`
