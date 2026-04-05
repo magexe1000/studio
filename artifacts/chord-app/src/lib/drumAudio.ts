@@ -1034,6 +1034,63 @@ function synthCymbal(ctx: AudioContext, t: number, vol: number, dest: AudioNode,
   ns.start(t);
 }
 
+// ── Hi-hat choke group ──────────────────────────────────────────────────────
+// Mimics real hi-hat behaviour: only one hi-hat articulation can ring at a
+// time. When a new hi-hat note is triggered, any previous hi-hat voice is
+// quickly faded out so consecutive open hi-hats don't pile up into a harsh
+// wash, and a closed hi-hat naturally chokes an open one.
+const _hhChoke = {
+  gain: null as GainNode | null,
+  src:  null as AudioBufferSourceNode | null,
+  endTime: 0,
+};
+
+function chokeHihat(ctx: AudioContext, newStartTime: number) {
+  if (!_hhChoke.gain || newStartTime > _hhChoke.endTime) return;
+  try {
+    const now = Math.max(ctx.currentTime, newStartTime - 0.005);
+    _hhChoke.gain.gain.cancelScheduledValues(now);
+    _hhChoke.gain.gain.setValueAtTime(_hhChoke.gain.gain.value, now);
+    _hhChoke.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.018);
+    if (_hhChoke.src) {
+      try { _hhChoke.src.stop(now + 0.025); } catch {}
+    }
+  } catch {}
+}
+
+function playBufferChoked(
+  ctx: AudioContext,
+  buf: AudioBuffer,
+  t: number,
+  vol: number,
+  dest: AudioNode,
+  maxDur: number | undefined,
+  rate: number,
+) {
+  chokeHihat(ctx, t);
+
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = rate;
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(vol, t);
+
+  const dur = maxDur ?? (buf.duration / rate);
+  if (maxDur) {
+    gain.gain.setValueAtTime(vol, t + maxDur * 0.7);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + maxDur);
+  }
+
+  src.connect(gain); gain.connect(dest);
+  src.start(t);
+  if (maxDur) src.stop(t + maxDur + 0.02);
+
+  _hhChoke.gain = gain;
+  _hhChoke.src  = src;
+  _hhChoke.endTime = t + dur;
+}
+
 // ── Play buffer from sample pool ────────────────────────────────────────────
 function playBuffer(
   ctx: AudioContext,
@@ -1526,15 +1583,13 @@ export function playSoundAt(
     // ── Cymbal routing (hi-hat, crash, ride via CymbalPool) ─────────────────
     if (inst === 'hihat-closed') {
       const buf = cymbalPool.getHHClosed(variation);
-      // No artificial gate — the real recorded sample already has the correct
-      // closed articulation and natural decay; gating it makes it sound fake.
-      if (buf) { playBuffer(ctx, buf, t, vol, chainInput, undefined, 1.0); return; }
+      if (buf) { playBufferChoked(ctx, buf, t, vol, chainInput, undefined, 1.0); return; }
     } else if (inst === 'hihat-open') {
       const buf = cymbalPool.getHHOpen(variation);
-      if (buf) { playBuffer(ctx, buf, t, vol, noteDest, Math.min(buf.duration, 0.45), 1.0); return; }
+      if (buf) { playBufferChoked(ctx, buf, t, vol, noteDest, Math.min(buf.duration, 0.45), 1.0); return; }
     } else if (inst === 'hihat-foot') {
       const buf = cymbalPool.getHHFoot();
-      if (buf) { playBuffer(ctx, buf, t, vol, chainInput, undefined, 1.0); return; }
+      if (buf) { playBufferChoked(ctx, buf, t, vol, chainInput, undefined, 1.0); return; }
     } else if (inst === 'crash') {
       const buf = cymbalPool.getCrash(_houseCrashModel, variation);
       if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
@@ -1565,7 +1620,7 @@ export function playSoundAt(
       const dur = inst === 'hihat-open' ? 0.45
         : inst === 'hihat-foot' ? 0.08
         : (soundId === 'hh-c-tight' ? 0.032 : soundId === 'hh-c-crisp' ? 0.052 : 0.075);
-      playBuffer(ctx, buf, t, adjVol, chainInput, dur, rate);
+      playBufferChoked(ctx, buf, t, adjVol, chainInput, dur, rate);
     } else if (roomMs > 0 && chainInput === dest) {
       playBufferRoomy(ctx, buf, t, adjVol, chainInput, rate, roomMs);
     } else {
@@ -1577,7 +1632,7 @@ export function playSoundAt(
   // Synthesis fallback
   if      (soundId.startsWith('kick-'))    synthKick(ctx, t, vol, noteDest, soundId);
   else if (soundId.startsWith('snare-'))   synthSnare(ctx, t, vol, noteDest, soundId);
-  else if (soundId.startsWith('hh-'))      synthHihat(ctx, t, vol, chainInput, soundId);
+  else if (soundId.startsWith('hh-'))      { chokeHihat(ctx, t); synthHihat(ctx, t, vol, chainInput, soundId); }
   else if (soundId.startsWith('tom-'))     synthTom(ctx, t, vol, noteDest, soundId);
   else if (soundId.startsWith('crash-') || soundId.startsWith('ride-')) synthCymbal(ctx, t, vol, noteDest, soundId);
 }
