@@ -1922,7 +1922,8 @@ export default function DrumEditor() {
       drumScheduler.stop(); setPlaying(false); setPreviewingGrooveId(null); return;
     }
     if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
-    const sm = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
+    const libKit: KitType = 'house';
+    const sm = { ...KIT_DEFAULTS[libKit].soundMap };
     const vol: Partial<Record<DrumInstrument, number>> = {};
     activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
     const tempPat: DrumPattern = {
@@ -1930,11 +1931,11 @@ export default function DrumEditor() {
       timeSignature: [4, 4], subdivision: lp.subdivision,
       measures: lp.measures,
     };
-    loadDrumSamples(kit);
-    drumScheduler.start(tempPat, sm, vol, masterVolume, true, kit);
+    loadHouseKit('blend');
+    drumScheduler.start(tempPat, sm, vol, masterVolume, true, libKit);
     setPreviewingGrooveId(lp.id);
     setPlaying(false);
-  }, [previewingGrooveId, kit, soundMap, volumeMap, activeInstruments, masterVolume]);
+  }, [previewingGrooveId, volumeMap, activeInstruments, masterVolume]);
 
   const handleLibInsert = useCallback((lp: LibraryPattern) => {
     if (!pattern) return;
