@@ -21,50 +21,41 @@ export default memo(function ChordDiagram({ data, accentFrom, fretsMulti }: Prop
   const r = 3.8;
   const { barres, baseFret } = data;
 
-  // Resolve per-string fret arrays — support both legacy (number[]) and multi-fret (number[][])
   const perString: number[][] = fretsMulti
     ? fretsMulti
     : data.frets.map(f => [f]);
 
-  // Anchor the window at the lowest positive fret across all strings
   const allPositive = perString.flatMap(arr => arr.filter(f => f > 0));
   const minActive = allPositive.length ? Math.min(...allPositive) : 1;
   const minFret = baseFret > 1 ? baseFret : Math.max(1, minActive);
   const showNut = minFret <= 1;
 
-  // String thickness (low E = thickest)
   const stringWidths = [1.4, 1.1, 0.85, 0.7, 0.6, 0.5];
 
-  // Fret indicator position as % of SVG dimensions (for HTML overlay)
   const fretIndTopPct  = ((padT + cellH / 2) / H) * 100;
   const fretIndRightPct = (padR / W) * 100;
 
   return (
     <div style={{ position: 'relative' }}>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
-      {/* Fretboard warm background */}
       <rect x={padL} y={padT} width={innerW} height={innerH} rx={2.5} fill="rgba(28,18,8,0.45)" />
-      {/* Nut */}
       {showNut && (
         <rect x={padL - 1} y={padT - 3.5} width={innerW + 2} height={3.5} rx={1.5} fill="#888" opacity={0.7} />
       )}
-      {/* Fret lines */}
       {Array.from({ length: numFrets + 1 }).map((_, i) => (
         <line key={i} x1={padL} y1={padT + i * cellH} x2={padL + innerW} y2={padT + i * cellH}
           stroke="rgba(120,90,50,0.52)" strokeWidth={0.75} />
       ))}
-      {/* String lines — thicker for wound strings */}
       {Array.from({ length: numStrings }).map((_, i) => (
         <line key={i} x1={padL + i * cellW} y1={padT} x2={padL + i * cellW} y2={padT + innerH}
           stroke="rgba(200,170,90,0.42)"
           strokeWidth={stringWidths[i]} />
       ))}
-      {/* Barre chords */}
       {barres.map((barre, bi) => {
         const fp = barre.fret - minFret;
         if (fp < 0 || fp >= numFrets) return null;
-        const x1 = padL + (barre.fromString - 1) * cellW;
-        const x2 = padL + (barre.toString - 1) * cellW;
+        const x1 = padL + (numStrings - barre.fromString) * cellW;
+        const x2 = padL + (numStrings - barre.toString) * cellW;
         const cy = padT + fp * cellH + cellH / 2;
         return (
           <rect key={`barre-${bi}`}
@@ -78,16 +69,16 @@ export default memo(function ChordDiagram({ data, accentFrom, fretsMulti }: Prop
           />
         );
       })}
-      {/* Finger dots — one per (string, fret) pair, skip barre-covered positions */}
       {perString.map((arr, si) =>
         arr.map((fret, dotIdx) => {
           if (fret <= 0) return null;
           const fp = fret - minFret;
           if (fp < 0 || fp >= numFrets) return null;
+          const stringNum = numStrings - si;
           const isBarre = barres.some(b =>
             b.fret === fret &&
-            si >= b.fromString - 1 &&
-            si <= b.toString - 1
+            stringNum >= b.toString &&
+            stringNum <= b.fromString
           );
           if (isBarre) return null;
           const cx = padL + si * cellW;
@@ -100,7 +91,6 @@ export default memo(function ChordDiagram({ data, accentFrom, fretsMulti }: Prop
           );
         })
       )}
-      {/* Open / muted indicators — based on the first entry of each string's array */}
       {perString.map((arr, si) => {
         const cx = padL + si * cellW;
         const cy = padT - 9;
@@ -136,7 +126,7 @@ export default memo(function ChordDiagram({ data, accentFrom, fretsMulti }: Prop
         pointerEvents: 'none',
         userSelect: 'none',
         zIndex: 2,
-      }}>{baseFret}</span>
+      }}>{minFret}</span>
     )}
     </div>
   );

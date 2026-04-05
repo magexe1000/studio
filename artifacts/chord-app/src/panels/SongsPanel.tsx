@@ -53,9 +53,11 @@ function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679
   const cW = gridW / (numS - 1);
   const cH = (H - pT - Math.round(16 * scale)) / numF;
   const r  = Math.max(3, Math.round(5.5 * scale));
-  const { frets, baseFret } = data;
-  const minF    = baseFret > 1 ? baseFret : 1;
-  const showNut = baseFret === 1;
+  const { frets, barres, baseFret } = data;
+  const allPositive = frets.filter(f => f > 0);
+  const minActive = allPositive.length ? Math.min(...allPositive) : 1;
+  const minF    = baseFret > 1 ? baseFret : Math.max(1, minActive);
+  const showNut = minF <= 1;
 
   const dotFill    = dark ? '#e8e8e8' : '#191a1a';
   const lineFill   = dark ? 'rgba(200,200,200,0.18)' : 'rgba(25,26,26,0.15)';
@@ -69,7 +71,7 @@ function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679
     s += `<rect x="${pL}" y="${pT - Math.round(5 * scale)}" width="${gridW}" height="${Math.round(4 * scale)}" rx="${Math.round(1.5 * scale)}" fill="${nutFill}"/>`;
   }
   if (!showNut && !noLabel) {
-    s += `<text x="${pL + gridW + Math.round(5 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="start" dominant-baseline="middle">${baseFret}</text>`;
+    s += `<text x="${pL + gridW + Math.round(5 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="start" dominant-baseline="middle">${minF}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
@@ -80,12 +82,12 @@ function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679
     const x = pL + i * cW;
     s += `<line x1="${x}" y1="${pT}" x2="${x}" y2="${pT + numF * cH}" stroke="${lineFill}" stroke-width="1"/>`;
   }
-  if (data.barres) {
-    for (const barre of data.barres) {
+  if (barres) {
+    for (const barre of barres) {
       const fp = barre.fret - minF;
       if (fp >= 0 && fp < numF) {
-        const x1 = pL + (barre.toString - 1) * cW;
-        const x2 = pL + (barre.fromString - 1) * cW;
+        const x1 = pL + (numS - barre.fromString) * cW;
+        const x2 = pL + (numS - barre.toString) * cW;
         const cy = pT + fp * cH + cH / 2;
         s += `<rect x="${Math.min(x1, x2)}" y="${cy - r}" width="${Math.abs(x2 - x1)}" height="${r * 2}" rx="${r}" fill="${dotFill}"/>`;
       }
@@ -94,6 +96,9 @@ function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679
   frets.forEach((f, si) => {
     if (f <= 0) return;
     const fp = f - minF; if (fp < 0 || fp >= numF) return;
+    const stringNum = numS - si;
+    const onBarre = barres && barres.some(b => b.fret === f && stringNum >= b.toString && stringNum <= b.fromString);
+    if (onBarre) return;
     const cx = pL + si * cW, cy = pT + fp * cH + cH / 2;
     s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotFill}"/>`;
   });
@@ -123,8 +128,10 @@ function buildPrintFretboardSVG(
   const strSpacing = numStrings > 1 ? gridW / (numStrings - 1) : 0;
   const cH = (H - pT - Math.round(16 * scale)) / numF;
   const r  = Math.max(3, Math.round(5.5 * scale));
-  const minF    = baseFret > 1 ? baseFret : 1;
-  const showNut = baseFret === 1;
+  const allPos = frets.filter(f => f > 0);
+  const minActive = allPos.length ? Math.min(...allPos) : 1;
+  const minF    = baseFret > 1 ? baseFret : Math.max(1, minActive);
+  const showNut = minF <= 1;
   const dotFill    = dark ? '#e8e8e8' : '#191a1a';
   const lineFill   = dark ? 'rgba(200,200,200,0.18)' : 'rgba(25,26,26,0.15)';
   const nutFill    = dark ? '#ddd'    : '#191a1a';
@@ -134,7 +141,7 @@ function buildPrintFretboardSVG(
   if (showNut) {
     s += `<rect x="${pL}" y="${pT - Math.round(5 * scale)}" width="${(numStrings - 1) * strSpacing}" height="${Math.round(4 * scale)}" rx="${Math.round(1.5 * scale)}" fill="${nutFill}"/>`;
   } else if (!noLabel) {
-    s += `<text x="${pL + (numStrings - 1) * strSpacing + Math.round(5 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="start" dominant-baseline="middle">${baseFret}</text>`;
+    s += `<text x="${pL + (numStrings - 1) * strSpacing + Math.round(5 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="start" dominant-baseline="middle">${minF}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
@@ -148,8 +155,8 @@ function buildPrintFretboardSVG(
   for (const barre of barres) {
     const fp = barre.fret - minF;
     if (fp >= 0 && fp < numF) {
-      const x1 = pL + (barre.toString - 1) * strSpacing;
-      const x2 = pL + (barre.fromString - 1) * strSpacing;
+      const x1 = pL + (numStrings - barre.fromString) * strSpacing;
+      const x2 = pL + (numStrings - barre.toString) * strSpacing;
       const cy = pT + fp * cH + cH / 2;
       s += `<rect x="${Math.min(x1, x2)}" y="${cy - r}" width="${Math.abs(x2 - x1)}" height="${r * 2}" rx="${r}" fill="${dotFill}"/>`;
     }
@@ -157,6 +164,9 @@ function buildPrintFretboardSVG(
   frets.forEach((f, si) => {
     if (f <= 0) return;
     const fp = f - minF; if (fp < 0 || fp >= numF) return;
+    const stringNum = numStrings - si;
+    const onBarre = barres.some(b => b.fret === f && stringNum >= b.toString && stringNum <= b.fromString);
+    if (onBarre) return;
     const cx = pL + si * strSpacing, cy = pT + fp * cH + cH / 2;
     s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotFill}"/>`;
   });
@@ -966,9 +976,11 @@ function PreviewFretboard({ data, dark }: { data: GuitarChordData; dark: boolean
   const cW = (W - pL - pR) / (numS - 1);
   const cH = (H - pT - 10) / numF;
   const r = 4.5;
-  const { frets, baseFret } = data;
-  const minF = baseFret > 1 ? baseFret : 1;
-  const showNut = baseFret === 1;
+  const { frets, barres, baseFret } = data;
+  const allPositive = frets.filter(f => f > 0);
+  const minActive = allPositive.length ? Math.min(...allPositive) : 1;
+  const minF = baseFret > 1 ? baseFret : Math.max(1, minActive);
+  const showNut = minF <= 1;
   const dotFill   = dark ? '#e8e8e8' : '#191a1a';
   const lineFill  = dark ? 'rgba(200,200,200,0.18)' : 'rgba(25,26,26,0.15)';
   const nutFill   = dark ? '#ddd' : '#191a1a';
@@ -981,7 +993,7 @@ function PreviewFretboard({ data, dark }: { data: GuitarChordData; dark: boolean
       {!showNut && (
         <text x={pL + (numS - 1) * cW + 4} y={pT + cH * 0.5} fontFamily="Arial" fontSize={8} fontWeight="700"
           fill={dark ? '#aaa' : '#777'} textAnchor="start" dominantBaseline="middle">
-          {baseFret}
+          {minF}
         </text>
       )}
       {Array.from({ length: numF + 1 }).map((_, i) => (
@@ -992,6 +1004,16 @@ function PreviewFretboard({ data, dark }: { data: GuitarChordData; dark: boolean
         <line key={i} x1={pL + i * cW} y1={pT} x2={pL + i * cW} y2={pT + numF * cH}
           stroke={lineFill} strokeWidth={1} />
       ))}
+      {barres.map((barre, bi) => {
+        const fp = barre.fret - minF;
+        if (fp < 0 || fp >= numF) return null;
+        const x1 = pL + (numS - barre.fromString) * cW;
+        const x2 = pL + (numS - barre.toString) * cW;
+        const cy = pT + fp * cH + cH / 2;
+        return (
+          <rect key={`b-${bi}`} x={Math.min(x1, x2)} y={cy - r} width={Math.abs(x2 - x1)} height={r * 2} rx={r} fill={dotFill} />
+        );
+      })}
       {frets.map((f, si) => {
         if (f === -1) return (
           <text key={si} x={pL + si * cW} y={pT - 9} fontFamily="Arial" fontSize={10}
@@ -1003,6 +1025,9 @@ function PreviewFretboard({ data, dark }: { data: GuitarChordData; dark: boolean
         );
         const fp = f - minF;
         if (fp < 0 || fp >= numF) return null;
+        const stringNum = numS - si;
+        const onBarre = barres.some(b => b.fret === f && stringNum >= b.toString && stringNum <= b.fromString);
+        if (onBarre) return null;
         const cx = pL + si * cW, cy = pT + fp * cH + cH / 2;
         return <circle key={si} cx={cx} cy={cy} r={r} fill={dotFill} />;
       })}
@@ -1043,16 +1068,17 @@ function PreviewCustomDiagram({ chord, dark }: { chord: CustomChord; dark: boole
 
   const numS   = chord.instrument === 'guitar' ? 6 : 4;
   const frets  = chord.frets ?? Array(numS).fill(0);
+  const cBarres = chord.barres ?? [];
   const active = frets.filter(f => f > 0);
-  const baseFret = active.length > 0 ? Math.min(...active) : 1;
+  const minActive = active.length > 0 ? Math.min(...active) : 1;
 
   const W = 86, H = 84, numF = 4;
   const pL = 8, pT = 14, pR = 18;
   const cW = (W - pL - pR) / (numS - 1);
   const cH = (H - pT - 10) / numF;
   const r = 4.5;
-  const minF    = baseFret > 1 ? baseFret : 1;
-  const showNut = baseFret === 1;
+  const minF    = Math.max(1, minActive);
+  const showNut = minF <= 1;
 
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
@@ -1062,7 +1088,7 @@ function PreviewCustomDiagram({ chord, dark }: { chord: CustomChord; dark: boole
       {!showNut && (
         <text x={pL + (numS - 1) * cW + 4} y={pT + cH * 0.5} fontFamily="Arial" fontSize={8} fontWeight="700"
           fill={dark ? '#aaa' : '#777'} textAnchor="start" dominantBaseline="middle">
-          {baseFret}
+          {minF}
         </text>
       )}
       {Array.from({ length: numF + 1 }).map((_, i) => (
@@ -1073,6 +1099,16 @@ function PreviewCustomDiagram({ chord, dark }: { chord: CustomChord; dark: boole
         <line key={i} x1={pL + i * cW} y1={pT} x2={pL + i * cW} y2={pT + numF * cH}
           stroke={lineFill} strokeWidth={1} />
       ))}
+      {cBarres.map((barre: { fret: number; fromString: number; toString: number }, bi: number) => {
+        const fp = barre.fret - minF;
+        if (fp < 0 || fp >= numF) return null;
+        const x1 = pL + (numS - barre.fromString) * cW;
+        const x2 = pL + (numS - barre.toString) * cW;
+        const cy = pT + fp * cH + cH / 2;
+        return (
+          <rect key={`b-${bi}`} x={Math.min(x1, x2)} y={cy - r} width={Math.abs(x2 - x1)} height={r * 2} rx={r} fill={dotFill} />
+        );
+      })}
       {frets.map((f, si) => {
         if (f === -1) return (
           <text key={si} x={pL + si * cW} y={pT - 9} fontFamily="Arial" fontSize={10}
@@ -1084,6 +1120,9 @@ function PreviewCustomDiagram({ chord, dark }: { chord: CustomChord; dark: boole
         );
         const fp = f - minF;
         if (fp < 0 || fp >= numF) return null;
+        const stringNum = numS - si;
+        const onBarre = cBarres.some((b: { fret: number; fromString: number; toString: number }) => b.fret === f && stringNum >= b.toString && stringNum <= b.fromString);
+        if (onBarre) return null;
         const cx = pL + si * cW, cy = pT + fp * cH + cH / 2;
         return <circle key={si} cx={cx} cy={cy} r={r} fill={dotFill} />;
       })}

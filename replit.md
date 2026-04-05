@@ -62,6 +62,7 @@ Chordex — React/Vite PWA + Capacitor Android app for chord reference, song/pro
   - **Offline**: `cloud-stub.js` stubs all Firebase APIs; fonts bundled locally; no external network dependencies.
   - **CSS overrides** in `index.html`: hide desktop nav, style bottom nav pill, position:absolute for scrollable-view/FAB/backdrop, view padding adjustments. Left `#lib-panel` hidden via inline `display:none !important` + CSS rule (permanently killed, React parent handles navigation).
   - **Dark mode colors**: Stagex uses `#0e0e0e` (matching Chordex `--app-bg`) for all dark-mode backgrounds (canvas, body, views, header). AMOLED: `#000`. Light: `#f2f1ef`.
+- **Chord Diagrams**: `src/components/ChordDiagram.tsx` — React SVG renderer. PDF/preview renderers in `SongsPanel.tsx` (`buildPrintSVG`, `buildPrintFretboardSVG`, `PreviewFretboard`, `PreviewCustomDiagram`). String numbering: `frets[]` index 0=low E…5=high E; barre `fromString/toString` use guitar convention 1=high E…6=low E. Barre x-position uses `(numStrings - stringNumber)` mapping. Dot suppression converts array index to string number before range-checking against barre. Fret window auto-calculates `minActive` when `baseFret===1`.
 - **State**: `src/store/useChordStore.ts` (Zustand + persist) — chord/song/settings; `src/store/useDrumStore.ts` — fully isolated drum patterns
 - **App Mode**: `settings.appMode: 'chords' | 'drums'` in AppSettings; switching replaces the entire UI instantly with no reload
 - **Panels** (Chordex mode): `LibraryPanel`, `ChordPanel`, `SongsPanel`, `SettingsPanel` + `BottomNav`
