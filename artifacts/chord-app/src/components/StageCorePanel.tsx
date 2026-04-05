@@ -168,6 +168,15 @@ export default function StagexPanel() {
             s.textContent = HIDE_IFRAME_UI;
             doc.head.appendChild(s);
           }
+          if (isLandscape) {
+            let ls = doc.getElementById('landscape-overrides');
+            if (!ls) {
+              ls = doc.createElement('style');
+              ls.id = 'landscape-overrides';
+              doc.head.appendChild(ls);
+            }
+            ls.textContent = '#sc-vtools { display: none !important; }';
+          }
           if (!doc.getElementById('sc-scroll-spy')) {
             const scr = doc.createElement('script');
             scr.id = 'sc-scroll-spy';
@@ -224,6 +233,30 @@ export default function StagexPanel() {
   }, [isAmoled]);
 
   useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    try {
+      const doc = iframe.contentDocument;
+      if (doc) {
+        let ls = doc.getElementById('landscape-overrides');
+        if (isLandscape) {
+          if (!ls) {
+            ls = doc.createElement('style');
+            ls.id = 'landscape-overrides';
+            doc.head.appendChild(ls);
+          }
+          ls.textContent = '#sc-vtools { display: none !important; }';
+        } else if (ls) {
+          ls.remove();
+        }
+      }
+    } catch {}
+    try {
+      iframe.contentWindow?.postMessage({ type: 'sc-landscape', landscape: isLandscape }, window.location.origin);
+    } catch {}
+  }, [isLandscape]);
+
+  useEffect(() => {
     const handler = (): boolean => {
       try { return (iframeRef.current?.contentWindow as StageWin)?.stageGoBack?.() ?? false; }
       catch { return false; }
@@ -233,6 +266,7 @@ export default function StagexPanel() {
   }, []);
 
   const collapseHeader = curView === 'Export' || (isLandscape && curView === 'Editor');
+  const hideLandscapeNav = isLandscape && curView === 'Editor';
 
   const navTabs: { view: string; label: string; icon: string }[] = [
     { view: 'Editor', label: 'STAGE', icon: 'grid_view' },
@@ -448,7 +482,7 @@ export default function StagexPanel() {
             aria-label="Add instrument"
             style={{
               position: 'absolute',
-              bottom: 90,
+              bottom: hideLandscapeNav ? 14 : 90,
               right: 14,
               width: 50,
               height: 50,
@@ -460,7 +494,7 @@ export default function StagexPanel() {
               WebkitTapHighlightColor: 'transparent',
               touchAction: 'manipulation',
               display: 'flex',
-              opacity: stageNavHidden ? 0 : 1,
+              opacity: (stageNavHidden && !hideLandscapeNav) ? 0 : 1,
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: fabOpen
@@ -482,7 +516,7 @@ export default function StagexPanel() {
             position: 'absolute',
             bottom: 'max(10px, env(safe-area-inset-bottom))',
             left: '50%',
-            transform: `translateX(-50%) translateY(${stageNavHidden ? '140%' : '0'})`,
+            transform: `translateX(-50%) translateY(${(stageNavHidden || hideLandscapeNav) ? '140%' : '0'})`,
             width: '90%',
             maxWidth: 400,
             display: 'flex',

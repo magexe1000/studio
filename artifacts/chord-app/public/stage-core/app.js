@@ -1713,12 +1713,45 @@ function dismissPropPanel() {
 }
 window.addEventListener('orientationchange', function() {
   setPropState('hidden');
+  _rescaleElementsOnResize();
 });
 try {
-  window.matchMedia('(orientation: landscape)').addEventListener('change', function() {
+  var _landscapeMql = window.matchMedia('(orientation: landscape) and (max-width: 960px)');
+  function _applyLandscapeVtools(isLand) {
+    var vt = document.getElementById('sc-vtools');
+    if (vt && state.currentView === 'Editor') vt.classList.toggle('mob-hidden', isLand);
+  }
+  _applyLandscapeVtools(_landscapeMql.matches);
+  _landscapeMql.addEventListener('change', function(e) {
     setPropState('hidden');
+    _applyLandscapeVtools(e.matches);
+    setTimeout(_rescaleElementsOnResize, 200);
   });
 } catch(e) {}
+
+function _rescaleElementsOnResize() {
+  var canvas = document.getElementById('stage-canvas');
+  if (!canvas) return;
+  var rect = canvas.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+  if (!state.canvasW || !state.canvasH) {
+    state.canvasW = rect.width;
+    state.canvasH = rect.height;
+    return;
+  }
+  var oldW = state.canvasW;
+  var oldH = state.canvasH;
+  if (Math.abs(oldW - rect.width) < 2 && Math.abs(oldH - rect.height) < 2) return;
+  var scaleX = rect.width / oldW;
+  var scaleY = rect.height / oldH;
+  state.elements.forEach(function(el) {
+    el.x = Math.max(20, Math.min(rect.width - 20, el.x * scaleX));
+    el.y = Math.max(20, Math.min(rect.height - 20, el.y * scaleY));
+  });
+  state.canvasW = rect.width;
+  state.canvasH = rect.height;
+  renderElements();
+}
 // Drag peek — fully hidden while moving, peek when released (unless dismissed)
 function _propPeek(on) {
   if (on) {

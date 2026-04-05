@@ -3546,6 +3546,11 @@ window.addEventListener('message', function(e) {
   if (e.data === 'stage-core-return-hub') {
     window.parent.dispatchEvent(new CustomEvent('studio-hub-return'));
   }
+  if (e.data && e.data.type === 'sc-landscape') {
+    setTimeout(function() {
+      if (typeof _rescaleElementsOnResize === 'function') _rescaleElementsOnResize();
+    }, 250);
+  }
 });
 
 // Populate Setlist header date (mirrors Rider logic in app.js)
