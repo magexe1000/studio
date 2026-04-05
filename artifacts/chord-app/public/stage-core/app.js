@@ -4206,6 +4206,7 @@ function openGearModal() {
 function closeGearModal() {
   document.getElementById('gear-modal').style.display = 'none';
 }
+var _gearJustAdded = null;
 function saveGearItem() {
   const name = document.getElementById('gear-name').value.trim();
   if (!name) {
@@ -4222,20 +4223,38 @@ function saveGearItem() {
     packed: false,
   };
   state.gear.push(item);
+  _gearJustAdded = item.id;
   closeGearModal();
   renderGear();
   refreshExportGear();
   saveProject();
 }
 function deleteGearItem(id) {
-  state.gear = state.gear.filter(g => g.id !== id);
-  renderGear();
-  refreshExportGear();
-  saveProject();
+  var row = document.querySelector('[data-gear-id="' + id + '"]');
+  if (row) {
+    row.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+    row.style.opacity = '0';
+    row.style.transform = 'translateX(30px)';
+    setTimeout(function() {
+      state.gear = state.gear.filter(g => g.id !== id);
+      renderGear();
+      refreshExportGear();
+      saveProject();
+    }, 250);
+  } else {
+    state.gear = state.gear.filter(g => g.id !== id);
+    renderGear();
+    refreshExportGear();
+    saveProject();
+  }
 }
+var _gearJustToggled = null;
 function toggleGearPacked(id) {
   const item = state.gear.find(g => g.id === id);
-  if (item) item.packed = !item.packed;
+  if (item) {
+    item.packed = !item.packed;
+    _gearJustToggled = { id: id, packed: item.packed };
+  }
   renderGear();
   refreshExportGear();
   saveProject();
@@ -4255,6 +4274,7 @@ function renderGear() {
     g.name.toLowerCase().includes(q) || g.category.toLowerCase().includes(q) || (g.notes && g.notes.toLowerCase().includes(q))
   ) : sorted;
 
+  var isFiltering = q.length > 0;
   if (!filtered.length) {
     container.innerHTML = DOMPurify.sanitize(`<div class="gear-empty">
       <div class="gear-empty-icon"><span class="material-symbols-outlined" style="font-size:40px;">inventory_2</span></div>
@@ -4270,8 +4290,10 @@ function renderGear() {
         const col = GEAR_CAT_COLORS[g.category] || '#484847';
         catHdr = `<div class="gear-cat-header" style="color:${col};">${Tcat(g.category)}</div>`;
       }
-      return catHdr + `<div class="gear-item-row${g.packed ? ' packed' : ''}">
-        <div class="gear-item-check${g.packed ? ' checked' : ''}" onclick="toggleGearPacked(${g.id})">
+      var isNew = _gearJustAdded === g.id;
+      var rowCls = 'gear-item-row' + (g.packed ? ' packed' : '') + (isNew ? ' gear-new' : '') + (isFiltering && !isNew ? ' gear-filter-in' : '');
+      return catHdr + `<div class="${rowCls}" data-gear-id="${g.id}">
+        <div class="gear-item-check${g.packed ? ' checked' : ''}" onclick="toggleGearPacked(${g.id})" data-check-id="${g.id}">
           ${g.packed ? '<span class="material-symbols-outlined" style="font-size:15px;color:#002e00;">check</span>' : ''}
         </div>
         <div class="gear-item-info">
@@ -4283,6 +4305,35 @@ function renderGear() {
         <button class="gear-item-del" onclick="deleteGearItem(${g.id})">×</button>
       </div>`;
     }).join(''));
+  }
+
+  if (_gearJustAdded !== null) {
+    var newRow = container.querySelector('[data-gear-id="' + _gearJustAdded + '"]');
+    if (newRow) newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    _gearJustAdded = null;
+  }
+
+  if (_gearJustToggled !== null) {
+    var checkEl = container.querySelector('[data-check-id="' + _gearJustToggled.id + '"]');
+    if (checkEl) {
+      var animCls = _gearJustToggled.packed ? 'animate-check' : 'animate-uncheck';
+      checkEl.classList.add(animCls);
+      checkEl.addEventListener('animationend', function() { checkEl.classList.remove(animCls); }, { once: true });
+    }
+    var row = container.querySelector('[data-gear-id="' + _gearJustToggled.id + '"]');
+    if (row) {
+      row.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+      if (_gearJustToggled.packed) {
+        row.style.transform = 'scale(0.98)';
+        setTimeout(function() { row.style.transform = ''; }, 350);
+      }
+    }
+    _gearJustToggled = null;
+  }
+
+  if (isFiltering) {
+    var rows = container.querySelectorAll('.gear-filter-in');
+    rows.forEach(function(r, i) { r.style.animationDelay = (i * 30) + 'ms'; });
   }
 
   // Stats
