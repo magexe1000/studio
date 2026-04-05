@@ -3527,6 +3527,14 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 </div>
 
 <script src="vendor/qrcode.min.js"></script>
+<script src="vendor/purify.min.js"></script>
+<script>
+DOMPurify.addHook('uponSanitizeAttribute', function(node, data) {
+  if (/^on(click|change|dragstart|dragend|dragover|dragleave|drop|mouseover|mouseout|touchstart|touchmove|touchend)$/.test(data.attrName)) {
+    data.forceKeepAttr = true;
+  }
+});
+</script>
 <script src="vendor/html2canvas.min.js"></script>
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="app.js"></script>

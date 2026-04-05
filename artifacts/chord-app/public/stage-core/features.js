@@ -465,7 +465,7 @@ function _smFinish() {
 function _smRender() {
   const list = document.getElementById('sm-messages');
   if (!list) return;
-  list.innerHTML = '';
+  list.innerHTML = DOMPurify.sanitize('');
 
   if (smConversation.length === 0) {
     const es = _smLang() === 'es';
@@ -493,11 +493,11 @@ function _smRender() {
         '<button onclick="var el=document.getElementById(\'' + sid + '\');if(el)el.remove();" style="background:none;border:none;cursor:pointer;color:#484847;font-size:15px;line-height:1;padding:2px 5px;flex-shrink:0;transition:color .12s;" onmouseover="this.style.color=\'#9a9a9a\'" onmouseout="this.style.color=\'#484847\'" title="Dismiss">×</button>' +
         '</div>';
     }).join('');
-    list.innerHTML = '<div class="sm-empty-state">' +
+    list.innerHTML = DOMPurify.sanitize('<div class="sm-empty-state">' +
       '<p class="sm-empty-title">' + title + '</p>' +
       '<p class="sm-empty-sub">' + sub + '</p>' +
       '<div class="sm-suggestions">' + btns + '</div>' +
-      '</div>';
+      '</div>');
 
     const inp = document.getElementById('sm-input');
     if (inp) inp.placeholder = es
@@ -511,16 +511,16 @@ function _smRender() {
     div.className = 'sm-msg sm-msg-' + msg.role;
 
     if (msg.role === 'user') {
-      div.innerHTML = `<div class="sm-bubble sm-bubble-user">${_smEscape(msg.content)}</div>`;
+      div.innerHTML = DOMPurify.sanitize(`<div class="sm-bubble sm-bubble-user">${_smEscape(msg.content)}</div>`);
     } else {
       const isStreaming = smStreaming && i === smConversation.length - 1;
       const formatted = _smFormat(msg.content);
-      div.innerHTML = `
+      div.innerHTML = DOMPurify.sanitize(`
         <div class="sm-avatar">SM</div>
         <div class="sm-bubble sm-bubble-ai">
           ${formatted || (isStreaming ? '<span class="sm-cursor">▋</span>' : '')}
           ${isStreaming && formatted ? '<span class="sm-cursor">▋</span>' : ''}
-        </div>`;
+        </div>`);
     }
     list.appendChild(div);
   });
@@ -708,7 +708,7 @@ const PA_COVERAGE_TYPES = new Set(Object.keys(PA_SPEAKER_CONFIGS));
 function renderPACoverage() {
   const overlay = document.getElementById('pa-coverage-overlay');
   if (!overlay) return;
-  overlay.innerHTML = '';
+  overlay.innerHTML = DOMPurify.sanitize('');
   if (typeof state === 'undefined') return;
 
   const canvas = document.getElementById('stage-canvas');
@@ -782,7 +782,7 @@ function _injectSoundCoverageUI() {
   const sec = document.createElement('div');
   sec.id = 'sound-coverage-section';
   sec.style.cssText = 'border-top:1px solid rgba(72,72,71,0.2);padding:6px 0 4px;';
-  sec.innerHTML = `
+  sec.innerHTML = DOMPurify.sanitize(`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
       <span style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);">Sound Coverage</span>
       <button id="sc-toggle-btn" onclick="toggleSoundCoverage()" style="width:32px;height:16px;border-radius:8px;border:none;cursor:pointer;background:${isOn ? 'var(--accent)' : 'rgba(72,72,71,0.35)'};position:relative;transition:background 0.2s;flex-shrink:0;">
@@ -790,7 +790,7 @@ function _injectSoundCoverageUI() {
       </button>
     </div>
     <p style="font-family:'Manrope',sans-serif;font-size:8px;color:#484847;line-height:1.4;margin:0;">Dispersion cone overlay. Rotate to aim.</p>
-  `;
+  `);
   scrollArea.appendChild(sec);
 }
 
@@ -983,14 +983,14 @@ function applyLayers() {
 function renderLayerPanel() {
   const list = document.getElementById('layer-list');
   if (!list) return;
-  list.innerHTML = '';
+  list.innerHTML = DOMPurify.sanitize('');
   Object.entries(LAYERS).forEach(([key, layer]) => {
     const row = document.createElement('label');
     row.className = 'layer-row';
-    row.innerHTML = `
+    row.innerHTML = DOMPurify.sanitize(`
       <input type="checkbox" ${layer.visible ? 'checked' : ''} onchange="setLayer('${key}', this.checked)" />
       <span class="layer-dot" style="background:${layer.color}"></span>
-      <span class="layer-name">${layer.label}</span>`;
+      <span class="layer-name">${layer.label}</span>`);
     list.appendChild(row);
   });
 }
@@ -1642,7 +1642,7 @@ function smRunAnalysis() {
     analyzeBtn.style.opacity = '0.55';
     analyzeBtn.style.pointerEvents = 'none';
     setTimeout(() => {
-      analyzeBtn.innerHTML = '⚡ Analyze Stage';
+      analyzeBtn.innerHTML = DOMPurify.sanitize('⚡ Analyze Stage');
       analyzeBtn.style.opacity = '';
       analyzeBtn.style.pointerEvents = '';
     }, 700);
@@ -1655,7 +1655,7 @@ function smRunAnalysis() {
 
     // ── Empty stage ───────────────────────────────────────────
     if (!els.length) {
-      results.innerHTML = `
+      results.innerHTML = DOMPurify.sanitize(`
         <div style="padding:0 0 12px;">
           <p style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#2a2a2a;margin:0 0 10px;">No elements on stage</p>
           <p style="font-family:'Inter';font-size:11px;color:#484847;line-height:1.6;margin:0 0 10px;">Drag microphones, instruments, and audio gear onto the canvas, then run Analyze Stage again to get a full report.</p>
@@ -1665,7 +1665,7 @@ function smRunAnalysis() {
             ${_smiHintRow('volume_up','Add monitors and PA to complete your rider.')}
           </div>
         </div>
-        <p style="font-family:'Manrope',sans-serif;font-size:9px;color:#2a2a2a;text-align:right;margin-top:12px;letter-spacing:0.05em;">Scanned at ${ts}</p>`;
+        <p style="font-family:'Manrope',sans-serif;font-size:9px;color:#2a2a2a;text-align:right;margin-top:12px;letter-spacing:0.05em;">Scanned at ${ts}</p>`);
       smUpdateBadge(0);
       return;
     }
@@ -1745,7 +1745,7 @@ function smRunAnalysis() {
     // Timestamp
     html += `<p style="font-family:'Manrope',sans-serif;font-size:9px;color:#2a2a2a;text-align:right;margin-top:10px;letter-spacing:0.05em;">Scanned at ${ts}</p>`;
 
-    results.innerHTML = html;
+    results.innerHTML = DOMPurify.sanitize(html);
 
     // Attach action button handlers
     results.querySelectorAll('[data-smi-action]').forEach((btn, idx) => {
@@ -1755,7 +1755,7 @@ function smRunAnalysis() {
 
   } catch(err) {
     console.error('[StageMind]', err);
-    results.innerHTML = `<div style="padding:16px 0;"><p style="font-family:'Inter';font-size:12px;color:#ff716c;margin:0 0 6px;">Analysis error</p><p style="font-family:'Inter';font-size:11px;color:#484847;margin:0;">${err.message}</p></div>`;
+    results.innerHTML = DOMPurify.sanitize(`<div style="padding:16px 0;"><p style="font-family:'Inter';font-size:12px;color:#ff716c;margin:0 0 6px;">Analysis error</p><p style="font-family:'Inter';font-size:11px;color:#484847;margin:0;">${err.message}</p></div>`);
   }
 }
 
@@ -1864,7 +1864,7 @@ function _smUpdateIssueBanner(layoutIssues, conflictIssues) {
   const label = warns.length
     ? `${warns.length} issue${warns.length > 1 ? 's' : ''} detected on stage`
     : `${all.length} suggestion${all.length > 1 ? 's' : ''} available`;
-  banner.innerHTML = `<span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:${warns.length ? '#ff716c' : '#7aafff'};">${icon} ${label}</span><span style="font-family:'Inter';font-size:10px;color:#484847;margin-left:6px;">Tap to review →</span>`;
+  banner.innerHTML = DOMPurify.sanitize(`<span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:${warns.length ? '#ff716c' : '#7aafff'};">${icon} ${label}</span><span style="font-family:'Inter';font-size:10px;color:#484847;margin-left:6px;">Tap to review →</span>`);
 }
 
 // ── Hook: Learn from addItemToStage ──────────────
@@ -1894,7 +1894,7 @@ if (typeof _origAddItemToStage === 'function') {
   function _item(ic, label, fn, danger) {
     const d = document.createElement('div');
     d.className = 'ctx-r' + (danger ? ' ctx-dn' : '');
-    d.innerHTML = `<span class="ctx-ic">${ic}</span><span>${label}</span>`;
+    d.innerHTML = DOMPurify.sanitize(`<span class="ctx-ic">${ic}</span><span>${label}</span>`);
     d.onclick = () => { _hide(); fn(); };
     return d;
   }
@@ -1902,7 +1902,7 @@ if (typeof _origAddItemToStage === 'function') {
   function _head(t) { const d = document.createElement('div'); d.className = 'ctx-hd'; d.textContent = t; return d; }
 
   function _show(x, y, el) {
-    menu.innerHTML = '';
+    menu.innerHTML = DOMPurify.sanitize('');
     if (el) {
       menu.appendChild(_head(el.label || el.name || 'Element'));
       menu.appendChild(_item('⧉', 'Duplicate', () => scDuplicateEl(el)));
@@ -1985,7 +1985,7 @@ function scAddMicNear(el) {
   const dialog = document.createElement('div');
   dialog.className = 'sc-dialog';
 
-  dialog.innerHTML = `
+  dialog.innerHTML = DOMPurify.sanitize(`
     <div class="sc-dialog-hd">
       <div>
         <div class="sc-dialog-title">Add Mic Nearby</div>
@@ -2002,7 +2002,7 @@ function scAddMicNear(el) {
             <span class="sc-mic-opt-type">${m.type}</span>
           </button>`).join('')}
       </div>
-    </div>`;
+    </div>`);
 
   overlay.appendChild(dialog);
   document.body.appendChild(overlay);
@@ -2067,7 +2067,7 @@ function scAssignChannel(el) {
     </div>`;
   }).join('');
 
-  dialog.innerHTML = `
+  dialog.innerHTML = DOMPurify.sanitize(`
     <div class="sc-dialog-hd">
       <div>
         <div class="sc-dialog-title">Assign Channel</div>
@@ -2085,7 +2085,7 @@ function scAssignChannel(el) {
           <button class="sc-btn sc-btn-primary" id="sc-ch-assign" style="white-space:nowrap;">Assign</button>
         </div>
       </div>
-    </div>`;
+    </div>`);
 
   overlay.appendChild(dialog);
   document.body.appendChild(overlay);
@@ -2228,7 +2228,7 @@ function scToggleZones() {
 function _renderZones() {
   const svg = document.getElementById('sc-zones-svg');
   if (!svg) return;
-  if (!scZonesVisible) { svg.innerHTML = ''; return; }
+  if (!scZonesVisible) { svg.innerHTML = DOMPurify.sanitize(''); return; }
 
   // Use real canvas pixel dimensions so SVG text is never distorted
   const canvasEl = document.getElementById('stage-canvas');
@@ -2258,7 +2258,7 @@ function _renderZones() {
   const fs  = Math.round(Math.min(W, H) * 0.055); // font size proportional to canvas
   const ls  = (fs * 0.18).toFixed(1);
 
-  svg.innerHTML = zones.map(z => `
+  svg.innerHTML = DOMPurify.sanitize(zones.map(z => `
     <rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}"
           fill="${z.color}" stroke="${z.stroke}" stroke-width="1"/>
     <text x="${z.x + z.w / 2}" y="${z.y + z.h / 2 + fs * 0.36}"
@@ -2266,7 +2266,7 @@ function _renderZones() {
           font-family="Manrope, sans-serif" font-weight="700"
           font-size="${fs}" fill="rgba(122,175,255,0.22)"
           letter-spacing="${ls}">${z.label}</text>
-  `).join('');
+  `).join(''));
 }
 
 
@@ -2284,8 +2284,8 @@ function scToggleCableLength() {
 function _renderCableLabels() {
   const svg = document.getElementById('sc-cable-svg');
   if (!svg) return;
-  if (!scCableLengthVisible || !state.connections.length) { if (svg.firstChild) svg.innerHTML = ''; return; }
-  svg.innerHTML = '';
+  if (!scCableLengthVisible || !state.connections.length) { if (svg.firstChild) svg.innerHTML = DOMPurify.sanitize(''); return; }
+  svg.innerHTML = DOMPurify.sanitize('');
   const canvasW = state.canvasW || 800;
   const mPerPx = 10 / canvasW;
 
@@ -2330,7 +2330,7 @@ function _scMeasureReset(keepSvg) {
   if (cont) cont.classList.remove('canvas-measure-active');
   if (!keepSvg) {
     const svg = document.getElementById('sc-measure-svg');
-    if (svg) svg.innerHTML = '';
+    if (svg) svg.innerHTML = DOMPurify.sanitize('');
   }
 }
 
@@ -2355,7 +2355,7 @@ function _scMeasureClick(e) {
 
   // If not active but a completed result is showing, any click clears it
   if (!_measure.active) {
-    if (svg && svg.children.length) svg.innerHTML = '';
+    if (svg && svg.children.length) svg.innerHTML = DOMPurify.sanitize('');
     return;
   }
 
@@ -2377,14 +2377,14 @@ function _scMeasureClick(e) {
   if (!_measure.start) {
     // First point
     _measure.start = { x: px, y: py };
-    if (svg) { svg.innerHTML = ''; svg.appendChild(mkDot(px, py)); }
+    if (svg) { svg.innerHTML = DOMPurify.sanitize(''); svg.appendChild(mkDot(px, py)); }
   } else {
     // Second point — draw result
     const s    = _measure.start;
     const dist = Math.sqrt((px - s.x) ** 2 + (py - s.y) ** 2);
     const meters = (dist * 10 / (state.canvasW || 800)).toFixed(2);
     if (svg) {
-      svg.innerHTML = '';
+      svg.innerHTML = DOMPurify.sanitize('');
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       line.setAttribute('x1', s.x); line.setAttribute('y1', s.y);
       line.setAttribute('x2', px);  line.setAttribute('y2', py);
@@ -2431,7 +2431,7 @@ function scShowSignalChain() {
   if (!panel) {
     panel = document.createElement('div');
     panel.id = 'sc-chain-panel';
-    panel.innerHTML = `
+    panel.innerHTML = DOMPurify.sanitize(`
       <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid rgba(72,72,71,0.25);flex-shrink:0;">
         <span style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#e0e0e0;flex:1;">Signal Chain</span>
         <button onclick="scHideSignalChain()" style="background:none;border:none;color:#484847;cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#484847'">×</button>
@@ -2439,7 +2439,7 @@ function scShowSignalChain() {
       <div id="sc-chain-content" style="flex:1;overflow-y:auto;padding:16px 20px;"></div>
       <div style="padding:12px 20px;border-top:1px solid rgba(72,72,71,0.2);flex-shrink:0;">
         <button onclick="scAutoNumberChannels()" style="width:100%;padding:8px;font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;background:rgba(122,175,255,0.1);border:1px solid rgba(122,175,255,0.25);color:#7aafff;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(122,175,255,0.18)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">⚡ Auto-number Channels</button>
-      </div>`;
+      </div>`);
     document.body.appendChild(panel);
   }
   _buildChainView(document.getElementById('sc-chain-content'));
@@ -2455,7 +2455,7 @@ function _buildChainView(container) {
   if (!container) return;
   const els = state.elements, conns = state.connections;
   if (!els.length) {
-    container.innerHTML = `<p style="font-family:'Inter';font-size:12px;color:#484847;text-align:center;padding:24px 0;">Add elements to the stage<br>to visualize signal chains.</p>`;
+    container.innerHTML = DOMPurify.sanitize(`<p style="font-family:'Inter';font-size:12px;color:#484847;text-align:center;padding:24px 0;">Add elements to the stage<br>to visualize signal chains.</p>`);
     return;
   }
 
@@ -2501,7 +2501,7 @@ function _buildChainView(container) {
       unrouted.forEach(e => { html += traceChain(e, 0); });
     }
   }
-  container.innerHTML = html || `<p style="font-family:'Inter';font-size:12px;color:#484847;text-align:center;padding:24px 0;">No signal chains detected.</p>`;
+  container.innerHTML = DOMPurify.sanitize(html || `<p style="font-family:'Inter';font-size:12px;color:#484847;text-align:center;padding:24px 0;">No signal chains detected.</p>`);
 }
 
 // ─── H. PATCHES + INIT ─────────────────────────────
@@ -2592,7 +2592,7 @@ function _initProfessionalTools() {
       const mkFabBtn = (id, ic, label, fn) => {
         const b = document.createElement('button');
         b.id = id; b.className = 'sc-fab-btn';
-        b.innerHTML = `${iconSpan(ic)}${label}`;
+        b.innerHTML = DOMPurify.sanitize(`${iconSpan(ic)}${label}`);
         b.onclick = fn;
         return b;
       };
@@ -2607,7 +2607,7 @@ function _initProfessionalTools() {
       const trigger = document.createElement('button');
       trigger.id = 'sc-tools-trigger';
       trigger.title = 'Canvas Tools';
-      trigger.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">add</span>';
+      trigger.innerHTML = DOMPurify.sanitize('<span class="material-symbols-outlined" style="font-size:16px;">add</span>');
       trigger.addEventListener('click', (e) => {
         e.stopPropagation();
         fab.classList.toggle('open');
@@ -2630,7 +2630,7 @@ function _initProfessionalTools() {
       btn.className = 'sc-tool-btn';
       btn.style.cssText = 'padding:5px 9px;display:flex;align-items:center;gap:4px;border:none;cursor:pointer;font-family:"Manrope",sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;background:transparent;color:#767575;transition:all .15s;';
       if (bStyle) Object.assign(btn.style, bStyle);
-      btn.innerHTML = t;
+      btn.innerHTML = DOMPurify.sanitize(t);
       btn.addEventListener('mouseenter', function() { if (!this.classList.contains('active')) this.style.color='#c5ffc9'; });
       btn.addEventListener('mouseleave', function() { if (!this.classList.contains('active')) this.style.color='#767575'; });
       return btn;
@@ -2659,7 +2659,7 @@ function _initProfessionalTools() {
     const row = document.createElement('div');
     row.id = 'settings-smart-zoom-row';
     row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:12px;';
-    row.innerHTML = `<span class="settings-section-hint" style="margin:0;">Smart Zoom on Select</span><button id="settings-smart-zoom-toggle" class="toggle-switch" onclick="scToggleSmartZoom()" title="Auto-focus selected element"></button>`;
+    row.innerHTML = DOMPurify.sanitize(`<span class="settings-section-hint" style="margin:0;">Smart Zoom on Select</span><button id="settings-smart-zoom-toggle" class="toggle-switch" onclick="scToggleSmartZoom()" title="Auto-focus selected element"></button>`);
     smiSection.appendChild(row);
   }
 }
@@ -2923,12 +2923,12 @@ function _applySafetyHighlights(issues) {
 
       // Inject readiness at top
       const scoreWrap = document.createElement('div');
-      scoreWrap.innerHTML = _buildReadinessHtml(rs);
+      scoreWrap.innerHTML = DOMPurify.sanitize(_buildReadinessHtml(rs));
       results.insertBefore(scoreWrap, results.firstChild);
 
       // Append safety before the final timestamp paragraph
       const safetyWrap = document.createElement('div');
-      safetyWrap.innerHTML = _buildSafetyHtml(safetyIssues);
+      safetyWrap.innerHTML = DOMPurify.sanitize(_buildSafetyHtml(safetyIssues));
       const lastP = results.querySelector('p:last-child');
       if (lastP) results.insertBefore(safetyWrap, lastP);
       else results.appendChild(safetyWrap);
@@ -3113,7 +3113,7 @@ function _refreshPresetsDrop() {
 
 function _renderPresetsDrop(drop) {
   const presets = _getElPresets();
-  drop.innerHTML = `
+  drop.innerHTML = DOMPurify.sanitize(`
     <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(72,72,71,0.2);flex-shrink:0;display:flex;align-items:center;gap:8px;">
       <span class="material-symbols-outlined" style="font-size:14px;color:#f0b429;">bookmark</span>
       <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#e0e0e0;flex:1;">Element Presets</span>
@@ -3135,7 +3135,7 @@ function _renderPresetsDrop(drop) {
             </div>
           </div>`).join('')
       }
-    </div>`;
+    </div>`);
 }
 
 // Initialise hover behaviour once DOM is ready
@@ -3175,7 +3175,7 @@ function _renderElPresetsPanel() {
             onmouseover="this.style.color='#ff5050'" onmouseout="this.style.color='${delColor}'">×</button>
         </div>`).join('');
 
-  panel.innerHTML = `
+  panel.innerHTML = DOMPurify.sanitize(`
     <div style="display:flex;align-items:center;gap:9px;padding:12px 14px 9px;flex-shrink:0;border-bottom:1px solid ${sepColor};">
       <button onclick="scCloseElPresets()"
         style="width:26px;height:26px;border-radius:8px;background:rgba(128,128,128,0.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#888;-webkit-tap-highlight-color:transparent;flex-shrink:0;transition:background 120ms ease;">
@@ -3191,7 +3191,7 @@ function _renderElPresetsPanel() {
         <span class="sc-item-btn-name">Save as Preset</span>
       </button>
       ${presetRows}
-    </div>`;
+    </div>`);
   _refreshPresetsDrop();
 }
 
@@ -3337,7 +3337,7 @@ function _renderHistTimeline() {
       </div>`;
   }).reverse().join('');
 
-  panel.innerHTML = `
+  panel.innerHTML = DOMPurify.sanitize(`
     <div style="display:flex;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(72,72,71,0.22);flex-shrink:0;gap:8px;">
       <span class="material-symbols-outlined" style="font-size:14px;color:#7aafff;">history</span>
       <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#e0e0e0;flex:1;">History</span>
@@ -3351,7 +3351,7 @@ function _renderHistTimeline() {
     <div style="padding:10px 14px;border-top:1px solid rgba(72,72,71,0.15);display:flex;gap:6px;flex-shrink:0;">
       <button onclick="undo();_renderHistTimeline();" style="flex:1;padding:6px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">← Undo</button>
       <button onclick="redo();_renderHistTimeline();" style="flex:1;padding:6px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">Redo →</button>
-    </div>`;
+    </div>`);
 }
 
 function scJumpToHistory(index) {
@@ -3455,7 +3455,7 @@ async function _sha256Hex(str) {
     const warn = document.getElementById('share-size-warn');
     if (warn) warn.style.display = encoded.length > 50000 ? 'block' : 'none';
     const qrOut = document.getElementById('qr-output');
-    if (qrOut) qrOut.innerHTML = '<span style="font-size:11px;color:#aaa;text-align:center;padding:10px;">Click Generate QR</span>';
+    if (qrOut) qrOut.innerHTML = DOMPurify.sanitize('<span style="font-size:11px;color:#aaa;text-align:center;padding:10px;">Click Generate QR</span>');
     const dlBtn = document.getElementById('btn-dl-qr');
     if (dlBtn) dlBtn.disabled = true;
     if (typeof showToast === 'function') showToast('🔒 Password-protected link generated!');
@@ -3494,7 +3494,7 @@ function _showPwGate(storedHash, encodedPayload) {
   const overlay = document.createElement('div');
   overlay.id = 'sc-pw-gate';
   overlay.style.cssText = 'position:absolute;inset:0;z-index:99999;background:#0a0a0c;display:flex;align-items:center;justify-content:center;';
-  overlay.innerHTML = `
+  overlay.innerHTML = DOMPurify.sanitize(`
     <div style="background:#111;border:1px solid rgba(122,175,255,0.25);padding:32px;width:340px;max-width:90vw;position:relative;">
       <button onclick="document.getElementById('sc-pw-gate').remove();history.replaceState(null,'',location.pathname)"
         style="position:absolute;top:12px;right:14px;background:none;border:none;color:#484847;cursor:pointer;font-size:20px;line-height:1;"
@@ -3512,7 +3512,7 @@ function _showPwGate(storedHash, encodedPayload) {
       <button onclick="_verifyPwShare('${storedHash}','${encodedPayload.replace(/'/g, "\\'")}')"
         style="width:100%;padding:11px;font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;background:rgba(122,175,255,0.1);border:1px solid rgba(122,175,255,0.3);color:#7aafff;cursor:pointer;transition:background .15s;"
         onmouseover="this.style.background='rgba(122,175,255,0.18)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">Unlock →</button>
-    </div>`;
+    </div>`);
   document.body.appendChild(overlay);
   const _escHandler = e => {
     if (e.key === 'Escape') {
@@ -3593,7 +3593,7 @@ setTimeout(function() {
       function _irow(icon, label, fn, danger) {
         const r = document.createElement('div');
         r.className = 'ctx-r sc-ctx-injected' + (danger ? ' ctx-dn' : '');
-        r.innerHTML = `<span class="ctx-ic">${icon}</span><span>${label}</span>`;
+        r.innerHTML = DOMPurify.sanitize(`<span class="ctx-ic">${icon}</span><span>${label}</span>`);
         r.onclick = () => { menu.style.display = 'none'; fn(); };
         return r;
       }

@@ -635,7 +635,7 @@ function _applyCustomIcons() {
     svg.style.cssText = el.style.cssText;
     svg.style.width  = w;
     svg.style.height = h;
-    svg.innerHTML = svgContent;
+    svg.innerHTML = DOMPurify.sanitize(svgContent);
     el.replaceWith(svg);
   });
 }
@@ -824,7 +824,7 @@ function switchView(view) {
   const deskBar  = document.getElementById('desktop-cat-bar');
   const deskTray = document.getElementById('desktop-el-tray');
   if (deskBar) deskBar.classList.toggle('desk-bar-visible', view === 'Editor' && window.innerWidth >= 768);
-  if (deskTray) { deskTray.classList.remove('desk-tray-open'); deskTray.innerHTML = ''; }
+  if (deskTray) { deskTray.classList.remove('desk-tray-open'); deskTray.innerHTML = DOMPurify.sanitize(''); }
   document.querySelectorAll('.desk-cat-btn').forEach(b => b.classList.remove('active'));
   // On mobile, close sidebar drawer when switching views
   closeMobileSidebar();
@@ -940,22 +940,22 @@ function openMobileCat(cat) {
     closeMobileElTray(); return;
   }
   btns.forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
-  tray.innerHTML = '';
+  tray.innerHTML = DOMPurify.sanitize('');
   (library[cat] || []).forEach(item => {
     const btn = document.createElement('button');
     btn.className = 'mob-el-btn';
     if (item._isCreate) {
       btn.style.cssText = 'border:1px dashed rgba(122,175,255,0.4);color:#7aafff;';
-      btn.innerHTML = `<span style="font-size:18px;line-height:1;">+</span><span>New</span>`;
+      btn.innerHTML = DOMPurify.sanitize(`<span style="font-size:18px;line-height:1;">+</span><span>New</span>`);
       btn.addEventListener('click', () => { closeMobileElTray(); openCustomElementModal(); });
     } else if (item.isCustom) {
       const iconMob = item.imageData
         ? `<img src="${item.imageData}" style="width:22px;height:22px;object-fit:contain;" draggable="false"/>`
         : `<span style="font-size:18px;line-height:1;">${item.emoji || '🎵'}</span>`;
-      btn.innerHTML = `${iconMob}<span>${item.name}</span>`;
+      btn.innerHTML = DOMPurify.sanitize(`${iconMob}<span>${item.name}</span>`);
       btn.addEventListener('click', () => { addItemToStage(item); });
     } else {
-      btn.innerHTML = `${iconHtml(item.icon,22,'color:#7aafff;')}<span>${item.name}</span>`;
+      btn.innerHTML = DOMPurify.sanitize(`${iconHtml(item.icon,22,'color:#7aafff;')}<span>${item.name}</span>`);
       btn.addEventListener('click', () => { addItemToStage(item); });
     }
     tray.appendChild(btn);
@@ -990,7 +990,7 @@ function _buildDial() {
     const chip = document.createElement('button');
     chip.className = 'sc-dial-chip';
     const iconColor = item.accent ? 'var(--accent)' : item.gold ? '#f0b429' : 'currentColor';
-    chip.innerHTML = `<span class="material-symbols-outlined sc-dial-chip-icon" style="color:${iconColor}">${item.icon}</span><span>${item.label}</span>`;
+    chip.innerHTML = DOMPurify.sanitize(`<span class="material-symbols-outlined sc-dial-chip-icon" style="color:${iconColor}">${item.icon}</span><span>${item.label}</span>`);
     chip.addEventListener('click', () => {
       if (item.action === 'presets') {
         closeSCDial();
@@ -1066,24 +1066,24 @@ function openItemSheet(cat, label) {
   if (!sheet || !listEl) return;
 
   if (titleEl) titleEl.textContent = label;
-  listEl.innerHTML = '';
+  listEl.innerHTML = DOMPurify.sanitize('');
 
   (library[cat] || []).forEach(item => {
     const btn = document.createElement('button');
     if (item._isCreate) {
       btn.className = 'sc-item-btn sc-item-btn--create';
-      btn.innerHTML = `<span class="sc-item-btn-icon"><span class="material-symbols-outlined" style="font-size:15px;">add</span></span><span class="sc-item-btn-name">New Custom</span>`;
+      btn.innerHTML = DOMPurify.sanitize(`<span class="sc-item-btn-icon"><span class="material-symbols-outlined" style="font-size:15px;">add</span></span><span class="sc-item-btn-name">New Custom</span>`);
       btn.addEventListener('click', () => { closeItemSheet(false); openCustomElementModal(); });
     } else if (item.isCustom) {
       btn.className = 'sc-item-btn';
       const ico = item.imageData
         ? `<img src="${item.imageData}" style="width:20px;height:20px;object-fit:contain;" draggable="false"/>`
         : `<span style="font-size:15px;line-height:1;">${item.emoji || '🎵'}</span>`;
-      btn.innerHTML = `<span class="sc-item-btn-icon">${ico}</span><span class="sc-item-btn-name">${item.name}</span>`;
+      btn.innerHTML = DOMPurify.sanitize(`<span class="sc-item-btn-icon">${ico}</span><span class="sc-item-btn-name">${item.name}</span>`);
       btn.addEventListener('click', () => { addItemToStage(item); closeItemSheet(false); });
     } else {
       btn.className = 'sc-item-btn';
-      btn.innerHTML = `<span class="sc-item-btn-icon">${iconHtml(item.icon, 16, 'color:#7aafff;')}</span><span class="sc-item-btn-name">${item.name}</span>`;
+      btn.innerHTML = DOMPurify.sanitize(`<span class="sc-item-btn-icon">${iconHtml(item.icon, 16, 'color:#7aafff;')}</span><span class="sc-item-btn-name">${item.name}</span>`);
       btn.addEventListener('click', () => { addItemToStage(item); closeItemSheet(false); });
     }
     listEl.appendChild(btn);
@@ -1165,9 +1165,9 @@ function buildLibraryItem(item) {
   if (item._isCreate) {
     div.className = 'draggable-item bg-surface-container-highest flex flex-col items-center justify-center hover:bg-surface-bright transition-all';
     div.style.cssText = 'cursor:pointer;border:1px dashed rgba(122,175,255,0.35);padding:4px 4px;width:60px;height:60px;flex-shrink:0;';
-    div.innerHTML = `
+    div.innerHTML = DOMPurify.sanitize(`
       <span style="font-size:22px;line-height:1;margin-bottom:3px;">+</span>
-      <span class="font-bold text-center" style="font-size:8px;text-transform:uppercase;letter-spacing:-0.01em;line-height:1.1;color:#7aafff;">New</span>`;
+      <span class="font-bold text-center" style="font-size:8px;text-transform:uppercase;letter-spacing:-0.01em;line-height:1.1;color:#7aafff;">New</span>`);
     div.addEventListener('click', () => openCustomElementModal());
     return div;
   }
@@ -1184,9 +1184,9 @@ function buildLibraryItem(item) {
   } else {
     iconContent = iconHtml(item.icon, 28, 'margin-bottom:3px;color:#7aafff;');
   }
-  div.innerHTML = `
+  div.innerHTML = DOMPurify.sanitize(`
     ${iconContent}
-    <span class="font-bold text-on-surface-variant text-center" style="font-size:8px;text-transform:uppercase;letter-spacing:-0.01em;line-height:1.1;">${displayName}</span>`;
+    <span class="font-bold text-on-surface-variant text-center" style="font-size:8px;text-transform:uppercase;letter-spacing:-0.01em;line-height:1.1;">${displayName}</span>`);
   div.addEventListener('dragstart', e => {
     if (item.isCustom) {
       const payload = { name: displayName, icon: item.emoji || '🎵', type: item.type || 'Custom', isCustom: true, color: item.color };
@@ -1248,7 +1248,7 @@ function populateAllGrids() {
   Object.keys(library).forEach(cat => {
     const grid = document.getElementById('grid-' + cat);
     if (!grid) return;
-    grid.innerHTML = '';
+    grid.innerHTML = DOMPurify.sanitize('');
     library[cat].forEach(item => grid.appendChild(buildLibraryItem(item)));
   });
   lcIcons();
@@ -1297,7 +1297,7 @@ populateAllGrids();
     // Mark active button
     bar.querySelectorAll('.desk-cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
     // Populate tray with items from the library using mob-el-btn style (compact cards)
-    tray.innerHTML = '';
+    tray.innerHTML = DOMPurify.sanitize('');
     tray.scrollLeft = 0; // always start from the beginning
     (library[cat] || []).forEach(item => {
       const el = buildLibraryItem(item, true); // mob style
@@ -1313,7 +1313,7 @@ populateAllGrids();
       activeCat = null;
       bar.querySelectorAll('.desk-cat-btn').forEach(b => b.classList.remove('active'));
       // Clear content after fade-out transition completes
-      setTimeout(() => { if (!tray.classList.contains('desk-tray-open')) tray.innerHTML = ''; }, 150);
+      setTimeout(() => { if (!tray.classList.contains('desk-tray-open')) tray.innerHTML = DOMPurify.sanitize(''); }, 150);
     }, 900);
   }
 
@@ -1430,7 +1430,7 @@ function updateElementIconDOM(el) {
   const hasRoles = el.roles && el.roles.length > 0;
   elIcon.className = 'el-icon' + (hasRoles ? ' multi-role' : '');
   elIcon.style.color = el.color;
-  elIcon.innerHTML = buildIconsHTML(el);
+  elIcon.innerHTML = DOMPurify.sanitize(buildIconsHTML(el));
   lcIcons();
 }
 
@@ -1439,13 +1439,13 @@ function updatePropIconSym(el) {
   if (!propIconSym) return;
   const roles = el.roles || [];
   if (roles.length === 0) {
-    propIconSym.innerHTML = iconHtml(el.icon, 28);
+    propIconSym.innerHTML = DOMPurify.sanitize(iconHtml(el.icon, 28));
     propIconSym.style.cssText = `width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:${el.color};`;
   } else {
     const all = [el, ...roles];
     const sz = all.length <= 2 ? 22 : 16;
     propIconSym.style.cssText = `width:56px;height:56px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:3px;color:${el.color};`;
-    propIconSym.innerHTML = all.map(r => iconHtml(r.icon, sz)).join('');
+    propIconSym.innerHTML = DOMPurify.sanitize(all.map(r => iconHtml(r.icon, sz)).join(''));
   }
   lcIcons();
 }
@@ -1456,9 +1456,9 @@ function renderRolesList(el) {
   if (!list) return;
   const roles = el.roles || [];
   if (roles.length === 0) {
-    list.innerHTML = `<p style="font-size:10px;color:#484847;font-style:italic;padding:4px 0;">No additional roles assigned.</p>`;
+    list.innerHTML = DOMPurify.sanitize(`<p style="font-size:10px;color:#484847;font-style:italic;padding:4px 0;">No additional roles assigned.</p>`);
   } else {
-    list.innerHTML = roles.map(role => `
+    list.innerHTML = DOMPurify.sanitize(roles.map(role => `
       <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#111;margin-bottom:3px;">
         <div style="color:${el.color};flex-shrink:0;display:flex;align-items:center;">
           ${iconHtml(role.icon,16)}
@@ -1470,7 +1470,7 @@ function renderRolesList(el) {
         <button onclick="removeRole('${el.id}','${role.id}')"
           style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:#ff716c;font-size:15px;font-weight:700;background:none;border:none;cursor:pointer;flex-shrink:0;" title="Remove role">×</button>
       </div>
-    `).join('');
+    `).join(''));
     lcIcons();
   }
   if (addBtn) {
@@ -1503,11 +1503,11 @@ function switchRolePickerCat(cat) {
 function populateRolePickerGrid(cat) {
   const grid = document.getElementById('role-picker-grid');
   if (!grid) return;
-  grid.innerHTML = '';
+  grid.innerHTML = DOMPurify.sanitize('');
   (library[cat] || []).forEach(item => {
     const btn = document.createElement('button');
     btn.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:5px 2px;height:44px;width:100%;background:#0e0e0e;border:1px solid transparent;cursor:pointer;transition:border-color 0.15s;';
-    btn.innerHTML = `${iconHtml(item.icon,16,'color:#7aafff;')}<span style="font-size:6px;font-weight:700;text-transform:uppercase;color:#adaaaa;text-align:center;line-height:1.2;word-break:break-all;">${item.name}</span>`;
+    btn.innerHTML = DOMPurify.sanitize(`${iconHtml(item.icon,16,'color:#7aafff;')}<span style="font-size:6px;font-weight:700;text-transform:uppercase;color:#adaaaa;text-align:center;line-height:1.2;word-break:break-all;">${item.name}</span>`);
     btn.addEventListener('mouseover', () => btn.style.borderColor = 'rgba(122,175,255,0.3)');
     btn.addEventListener('mouseout', () => btn.style.borderColor = 'transparent');
     btn.addEventListener('click', () => addRoleFromPicker(item));
@@ -1570,7 +1570,7 @@ function updateStatusBar() {
 let _spawnId = null; // set before renderElements() when a brand-new element is being added
 function renderElements() {
   const layer = document.getElementById('elements-layer');
-  layer.innerHTML = '';
+  layer.innerHTML = DOMPurify.sanitize('');
   state.elements.forEach(el => createElementDOM(el));
   renderConnections();
   updateStatusBar();
@@ -1585,7 +1585,7 @@ function createElementDOM(el) {
   wrap.id = 'elem-' + el.id;
   wrap.style.cssText = `left:${el.x}px;top:${el.y}px;transform:translate(-50%,-50%) scale(${el.scale/100});--el-color:${el.color};`;
 
-  wrap.innerHTML = `
+  wrap.innerHTML = DOMPurify.sanitize(`
     <div class="el-content">
       <div class="el-box">
         <div class="el-icon-wrap" style="transform:rotate(${el.rotation}deg);display:flex;align-items:center;justify-content:center;">
@@ -1605,7 +1605,7 @@ function createElementDOM(el) {
       <button title="Remove" data-action="remove" style="color:rgba(255,113,108,0.7);">
         <span class="material-symbols-outlined" style="font-size:15px;">delete</span>
       </button>
-    </div>`;
+    </div>`);
 
   // Click to select / drag (pointer events – mouse & trackpad only; touch uses touchstart below)
   wrap.addEventListener('pointerdown', e => {
@@ -2106,7 +2106,7 @@ function renderConnections() {
   _connFP = fp;
 
   const svg = document.getElementById('connections-svg');
-  svg.innerHTML = '';
+  svg.innerHTML = DOMPurify.sanitize('');
   _connHandles = []; // rebuild handle positions each render
 
   if (!state.connectionsVisible) {
@@ -2814,20 +2814,20 @@ function renderMembersList() {
   badge.textContent = state.members.length + '/8';
   badge.style.color = state.members.length >= 8 ? '#ff7439' : '#484847';
   if (addRow) addRow.style.display = state.members.length >= 8 ? 'none' : 'flex';
-  list.innerHTML = state.members.map(m => `
+  list.innerHTML = DOMPurify.sanitize(state.members.map(m => `
     <div style="display:flex;align-items:center;gap:5px;padding:4px 6px;background:#111;border-left:2px solid ${m.color};">
       <div style="width:7px;height:7px;border-radius:50%;background:${m.color};flex-shrink:0;"></div>
       <span style="flex:1;font-size:10px;font-weight:700;color:#e0e0e0;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Manrope',sans-serif;">${m.name}</span>
       <button onclick="removeMember('${m.id}')" title="Remove" style="color:#484847;background:none;border:none;cursor:pointer;font-size:13px;padding:0 2px;line-height:1;flex-shrink:0;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'">×</button>
-    </div>`).join('');
+    </div>`).join(''));
 }
 
 function _repopulateMemberDropdown() {
   const sel = document.getElementById('input-member');
   if (!sel) return;
   const cur = sel.value;
-  sel.innerHTML = '<option value="">— None —</option>' +
-    state.members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+  sel.innerHTML = DOMPurify.sanitize('<option value="">— None —</option>' +
+    state.members.map(m => `<option value="${m.id}">${m.name}</option>`).join(''));
   sel.value = cur;
 }
 
@@ -2862,7 +2862,7 @@ function renderMembersView() {
   const assignedElements = state.elements.filter(el => el.memberId).length;
   const unassigned = totalElements - assignedElements;
 
-  if (statCount) statCount.innerHTML = state.members.length + '<span style="color:#484847;font-size:15px;font-weight:500;">/8</span>';
+  if (statCount) statCount.innerHTML = DOMPurify.sanitize(state.members.length + '<span style="color:#484847;font-size:15px;font-weight:500;">/8</span>');
   if (statAssigned) statAssigned.textContent = assignedMembers;
   if (statElements) statElements.textContent = totalElements;
   if (statUnassigned) statUnassigned.textContent = Math.max(0, unassigned);
@@ -2877,7 +2877,7 @@ function renderMembersView() {
   grid.style.display = 'grid';
   if (empty) empty.style.display = 'none';
 
-  grid.innerHTML = state.members.map(m => {
+  grid.innerHTML = DOMPurify.sanitize(state.members.map(m => {
     const assigned = state.elements.filter(el => el.memberId === m.id);
     const colorIdx = MEMBER_COLORS.indexOf(m.color);
     const nextColor = MEMBER_COLORS[(colorIdx + 1) % MEMBER_COLORS.length];
@@ -2911,7 +2911,7 @@ function renderMembersView() {
         ${itemsHtml}
       </div>
     </div>`;
-  }).join('');
+  }).join(''));
   updateStatusBar();
 }
 
@@ -2944,14 +2944,14 @@ function refreshRider() {
   renderRiderNeeds();
   const tbody = document.getElementById('rider-table-body');
   if (state.elements.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="padding:56px 16px;text-align:center;">
+    tbody.innerHTML = DOMPurify.sanitize(`<tr><td colspan="7" style="padding:56px 16px;text-align:center;">
       <div style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">${T('noElemsRider')}</div>
       <div style="font-size:12px;color:#333;margin-top:8px;font-family:'Inter';">${T('dragToCanvas')}</div>
-    </td></tr>`;
+    </td></tr>`);
     return;
   }
   const sorted = [...state.elements].sort((a, b) => a.channelId.localeCompare(b.channelId));
-  tbody.innerHTML = sorted.map(el => `
+  tbody.innerHTML = DOMPurify.sanitize(sorted.map(el => `
     <tr class="hover:bg-surface-container-high transition-colors">
       <td class="px-4 py-5 font-headline font-bold text-primary" style="font-size:18px;">${el.channelId || '-'}</td>
       <td class="px-4 py-5">
@@ -2969,7 +2969,7 @@ function refreshRider() {
         </span>
       </td>
       <td class="px-4 py-5 text-on-surface-variant italic" style="font-size:12px;">${el.notes || '—'}</td>
-    </tr>`).join('');
+    </tr>`).join(''));
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2979,10 +2979,10 @@ function renderRiderNeeds() {
   const container = document.getElementById('rider-needs-list');
   if (!container) return;
   if (state.riderNeeds.length === 0) {
-    container.innerHTML = '<p style="font-size:12px;color:#484847;font-style:italic;padding:8px 0;">No requirements yet. Click + Add to begin.</p>';
+    container.innerHTML = DOMPurify.sanitize('<p style="font-size:12px;color:#484847;font-style:italic;padding:8px 0;">No requirements yet. Click + Add to begin.</p>');
     return;
   }
-  container.innerHTML = state.riderNeeds.map(need => {
+  container.innerHTML = DOMPurify.sanitize(state.riderNeeds.map(need => {
     const nt = NEED_TYPES[need.type] || NEED_TYPES.custom;
     const isEs = state.lang === 'es';
     const typeOptions = Object.entries(NEED_TYPES).map(([k, v]) => {
@@ -3010,7 +3010,7 @@ function renderRiderNeeds() {
           style="width:100%;resize:none;background:var(--rn-input-bg);color:var(--rn-text);border:1px solid var(--rn-border);padding:7px 10px;font-family:'Inter';font-size:12px;line-height:1.5;box-sizing:border-box;">${need.value}</textarea>
       </div>
     </div>`;
-  }).join('');
+  }).join(''));
 }
 
 function addRiderNeed() {
@@ -3098,14 +3098,14 @@ function setLang(lang) {
 function repopulateAllLibraryGrids() {
   ['mics','drums','inst','amps','mon','util'].forEach(cat => {
     const g = document.getElementById('grid-' + cat);
-    if (g) { g.innerHTML = ''; library[cat].forEach(item => g.appendChild(buildLibraryItem(item))); }
+    if (g) { g.innerHTML = DOMPurify.sanitize(''); library[cat].forEach(item => g.appendChild(buildLibraryItem(item))); }
   });
   // Close any open desktop/mobile tray (user will re-open with updated language)
   const deskTray = document.getElementById('desktop-el-tray');
-  if (deskTray) { deskTray.classList.remove('desk-tray-open'); deskTray.innerHTML = ''; }
+  if (deskTray) { deskTray.classList.remove('desk-tray-open'); deskTray.innerHTML = DOMPurify.sanitize(''); }
   document.querySelectorAll('.desk-cat-btn').forEach(b => b.classList.remove('active'));
   const mobTray = document.getElementById('mobile-el-tray');
-  if (mobTray) { mobTray.classList.remove('mob-tray-open'); mobTray.innerHTML = ''; }
+  if (mobTray) { mobTray.classList.remove('mob-tray-open'); mobTray.innerHTML = DOMPurify.sanitize(''); }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -3156,9 +3156,9 @@ function renderSetlist() {
   _renderSegmentsBar();
 
   if (!state.setlist.length) {
-    tbody.innerHTML = `<div style="padding:56px 0;text-align:center;">
+    tbody.innerHTML = DOMPurify.sanitize(`<div style="padding:56px 0;text-align:center;">
       <div style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">No songs yet — tap ADD NEW TRACK to start your setlist.</div>
-    </div>`;
+    </div>`);
     renderSetlistInsights();
     return;
   }
@@ -3227,7 +3227,7 @@ function renderSetlist() {
       </div>`;
     }
   });
-  tbody.innerHTML = html;
+  tbody.innerHTML = DOMPurify.sanitize(html);
   lcIcons();
   updateStatusBar();
   _slInitTouchDrag();
@@ -3356,7 +3356,7 @@ function _renderSegmentsBar() {
   const segs = state.segments || [];
   if (!segs.length) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
-  bar.innerHTML = segs.map(seg => {
+  bar.innerHTML = DOMPurify.sanitize(segs.map(seg => {
     const count = _onlySongs().filter(s => s.segmentId === seg.id).length;
     return `<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;background:${seg.color}18;border:1px solid ${seg.color}44;">
       <div style="width:8px;height:8px;background:${seg.color};flex-shrink:0;"></div>
@@ -3364,7 +3364,7 @@ function _renderSegmentsBar() {
       <span style="font-size:9px;color:#484847;">(${count})</span>
       <button onclick="removeSegment(${seg.id})" style="background:none;border:none;color:#484847;cursor:pointer;padding:0;margin-left:2px;line-height:1;font-size:13px;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'" title="Remove segment">×</button>
     </div>`;
-  }).join('');
+  }).join(''));
 }
 
 function renderSetlistInsights() {
@@ -3445,13 +3445,13 @@ function addSong() {
   const pillsWrap    = document.getElementById('sng-section-pills');
   if (sections.length && sectionRow && pillsWrap) {
     sectionRow.style.display = 'block';
-    pillsWrap.innerHTML = sections.map(sec => `
+    pillsWrap.innerHTML = DOMPurify.sanitize(sections.map(sec => `
       <button class="sng-section-pill" data-sid="${sec.id}"
         style="border-color:${sec.color}55;"
         onclick="_toggleSngSection(this,'${sec.id}','${sec.color}')">
         <span style="width:7px;height:7px;border-radius:50%;background:${sec.color};flex-shrink:0;box-shadow:0 0 5px ${sec.color}88;"></span>
         <span>${sec.name}</span>
-      </button>`).join('');
+      </button>`).join(''));
   } else {
     if (sectionRow) sectionRow.style.display = 'none';
   }
@@ -3726,10 +3726,10 @@ function openSegmentModal() {
   const usedColors = new Set((state.segments||[]).map(s => s.color));
   const first = SEGMENT_COLORS.find(c => !usedColors.has(c)) || SEGMENT_COLORS[0];
   document.getElementById('seg-color-value').value = first;
-  picker.innerHTML = SEGMENT_COLORS.map(c => `
+  picker.innerHTML = DOMPurify.sanitize(SEGMENT_COLORS.map(c => `
     <div onclick="_pickSegColor('${c}')" id="seg-swatch-${c.replace('#','')}"
       style="width:28px;height:28px;background:${c};cursor:pointer;outline:${c===first?'2px solid #fff':'2px solid transparent'};outline-offset:2px;transition:outline 0.1s;">
-    </div>`).join('');
+    </div>`).join(''));
   setTimeout(() => document.getElementById('seg-name').focus(), 50);
 }
 
@@ -3900,7 +3900,7 @@ function openSmartSortModal() {
       </div>
     </div>`;
   });
-  document.getElementById('smart-sort-preview').innerHTML = previewHtml;
+  document.getElementById('smart-sort-preview').innerHTML = DOMPurify.sanitize(previewHtml);
   document.getElementById('smart-sort-modal').style.display = 'flex';
 }
 
@@ -4049,10 +4049,10 @@ function renderPresetsList() {
   const container = document.getElementById('presets-list');
   const presets = getPresets();
   if (!presets.length) {
-    container.innerHTML = `<div class="presets-empty">No presets yet.<br>Save your current stage setup.</div>`;
+    container.innerHTML = DOMPurify.sanitize(`<div class="presets-empty">No presets yet.<br>Save your current stage setup.</div>`);
     return;
   }
-  container.innerHTML = presets.map(p => `
+  container.innerHTML = DOMPurify.sanitize(presets.map(p => `
     <div class="preset-item">
       <div class="preset-item-info">
         <div class="preset-item-name">${p.name}</div>
@@ -4062,7 +4062,7 @@ function renderPresetsList() {
       <button class="preset-item-del" onclick="deletePreset(${p.id})" title="Delete preset">
         <i data-lucide="trash-2" style="width:13px;height:13px;stroke-width:2;pointer-events:none;"></i>
       </button>
-    </div>`).join('');
+    </div>`).join(''));
   lcIcons();
 }
 
@@ -4197,13 +4197,13 @@ function renderGear() {
   );
 
   if (!sorted.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="padding:64px 0;text-align:center;">
+    tbody.innerHTML = DOMPurify.sanitize(`<tr><td colspan="6" style="padding:64px 0;text-align:center;">
       <div style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#333;">${T('noGearYet')}</div>
       <div style="font-size:12px;color:#484847;margin-top:8px;">${T('addGearHint')}</div>
-    </td></tr>`;
+    </td></tr>`);
   } else {
     let lastCat = null;
-    tbody.innerHTML = sorted.map(g => {
+    tbody.innerHTML = DOMPurify.sanitize(sorted.map(g => {
       let catRow = '';
       if (g.category !== lastCat) {
         lastCat = g.category;
@@ -4226,7 +4226,7 @@ function renderGear() {
           <button onclick="deleteGearItem(${g.id})" style="color:#333;background:none;border:none;cursor:pointer;font-size:18px;line-height:1;transition:color 0.1s;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#333'">×</button>
         </td>
       </tr>`;
-    }).join('');
+    }).join(''));
   }
 
   // Stats
@@ -4262,7 +4262,7 @@ function refreshExportGear() {
   );
 
   let lastCat = null;
-  tbody.innerHTML = sorted.map((g, i) => {
+  tbody.innerHTML = DOMPurify.sanitize(sorted.map((g, i) => {
     let catRow = '';
     if (g.category !== lastCat) {
       lastCat = g.category;
@@ -4280,7 +4280,7 @@ function refreshExportGear() {
         </div>
       </td>
     </tr>`;
-  }).join('');
+  }).join(''));
 }
 
 // ══════════════════════════════════════════════════════════
@@ -4298,20 +4298,20 @@ function setAutosaveUI(mode) {
   if (!dot || !lbl) return;
   if (mode === 'off') {
     dot.className = '';
-    dot.innerHTML = '';
+    dot.innerHTML = DOMPurify.sanitize('');
     dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:#484847;flex-shrink:0;transition:background 0.2s,box-shadow 0.2s;box-shadow:none;';
     lbl.textContent = 'AUTOSAVE: OFF';
     lbl.style.color = '#484847';
   } else if (mode === 'on') {
     dot.className = '';
-    dot.innerHTML = '';
+    dot.innerHTML = DOMPurify.sanitize('');
     dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:#3ddc84;flex-shrink:0;transition:background 0.2s,box-shadow 0.2s;box-shadow:0 0 6px rgba(61,220,132,0.55);';
     lbl.textContent = 'AUTOSAVE: ON';
     lbl.style.color = '#3ddc84';
   } else if (mode === 'saving') {
-    dot.innerHTML = '';
+    dot.innerHTML = DOMPurify.sanitize('');
     dot.style.cssText = 'width:16px;height:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;';
-    dot.innerHTML = '<span class="material-symbols-outlined as-spinning" style="font-size:15px;color:#ff9930;">sync</span>';
+    dot.innerHTML = DOMPurify.sanitize('<span class="material-symbols-outlined as-spinning" style="font-size:15px;color:#ff9930;">sync</span>');
     lbl.textContent = 'AUTOSAVING...';
     lbl.style.color = '#ff9930';
   }
@@ -4544,7 +4544,7 @@ async function exportPDF() {
   const mobBtn = document.getElementById('mob-exp-pdf-btn');
   const origHTML = genBtn ? genBtn.innerHTML : '';
   const origMob  = mobBtn ? mobBtn.innerHTML : '';
-  if (genBtn) { genBtn.disabled = true; genBtn.innerHTML = '<span style="font-size:11px;letter-spacing:0.1em;">GENERATING…</span>'; }
+  if (genBtn) { genBtn.disabled = true; genBtn.innerHTML = DOMPurify.sanitize('<span style="font-size:11px;letter-spacing:0.1em;">GENERATING…</span>'); }
   if (mobBtn) { mobBtn.disabled = true; }
 
   try {
@@ -4703,8 +4703,8 @@ async function exportPDF() {
     console.error('PDF export error:', err);
     showToast(T('pdfFailed'));
   } finally {
-    if (genBtn) { genBtn.disabled = false; genBtn.innerHTML = origHTML; }
-    if (mobBtn) { mobBtn.disabled = false; mobBtn.innerHTML = origMob; }
+    if (genBtn) { genBtn.disabled = false; genBtn.innerHTML = DOMPurify.sanitize(origHTML); }
+    if (mobBtn) { mobBtn.disabled = false; mobBtn.innerHTML = DOMPurify.sanitize(origMob); }
   }
 }
 
@@ -4870,7 +4870,7 @@ function refreshExportCanvas() {
   const empty = document.getElementById('exp-canvas-empty');
   if (!wrap || !layer) return;
 
-  layer.innerHTML = '';
+  layer.innerHTML = DOMPurify.sanitize('');
 
   if (state.elements.length === 0) {
     wrap.style.display = 'none';
@@ -4912,7 +4912,7 @@ function refreshExportCanvas() {
     icoWrap.style.cssText = `display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px;max-width:${exportAll.length > 1 ? '36px' : '30px'};color:${el.color || '#7aafff'};filter:drop-shadow(0 0 4px ${el.color || '#7aafff'}88);`;
     exportAll.forEach(r => {
       const tmp = document.createElement('div');
-      tmp.innerHTML = iconHtml(r.icon, exportSz);
+      tmp.innerHTML = DOMPurify.sanitize(iconHtml(r.icon, exportSz));
       icoWrap.appendChild(tmp.firstChild);
     });
     const ico = icoWrap;
@@ -5000,14 +5000,14 @@ function refreshExportInputList() {
   if (!tbody) return;
 
   if (state.elements.length === 0) {
-    tbody.innerHTML = '';
+    tbody.innerHTML = DOMPurify.sanitize('');
     if (empty) empty.style.display = 'block';
     return;
   }
   if (empty) empty.style.display = 'none';
 
   const sorted = [...state.elements].sort((a, b) => a.channelId.localeCompare(b.channelId));
-  tbody.innerHTML = sorted.map((el, i) => {
+  tbody.innerHTML = DOMPurify.sanitize(sorted.map((el, i) => {
     const micDI = Ttype(el.type || el.name) || '—';
     const source = TSource(el.source) || el.source || '—';
     const rolesCount = (el.roles || []).length;
@@ -5044,7 +5044,7 @@ function refreshExportInputList() {
       </tr>`;
     });
     return rows;
-  }).join('');
+  }).join(''));
 }
 
 function refreshExportMembers() {
@@ -5071,7 +5071,7 @@ function refreshExportMembers() {
         <div style="border-top:1px solid rgba(255,255,255,0.05);padding-top:7px;">${items}</div>
       </div>`;
   }).join('');
-  body.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:10px;">${cards}</div>`;
+  body.innerHTML = DOMPurify.sanitize(`<div style="display:flex;flex-wrap:wrap;gap:10px;">${cards}</div>`);
 }
 
 function refreshExportConnectivity() {
@@ -5084,7 +5084,7 @@ function refreshExportConnectivity() {
   const connCount = state.connections.length;
 
   if (state.elements.length === 0 && state.riderNeeds.length === 0) {
-    body.innerHTML = `<p style="font-size:12px;color:#484847;font-style:italic;margin:0;">${T('noElems')}</p>`;
+    body.innerHTML = DOMPurify.sanitize(`<p style="font-size:12px;color:#484847;font-style:italic;margin:0;">${T('noElems')}</p>`);
     return;
   }
 
@@ -5153,7 +5153,7 @@ function refreshExportConnectivity() {
       </div>`;
   }
 
-  body.innerHTML = signalHtml + reqsHtml;
+  body.innerHTML = DOMPurify.sanitize(signalHtml + reqsHtml);
 }
 
 function saveExportNotes() {
@@ -5184,7 +5184,7 @@ function refreshExportSetlist() {
       <span style="font-size:10px;color:#767575;">${s.duration}</span>
     </div>`;
   });
-  container.innerHTML = html;
+  container.innerHTML = DOMPurify.sanitize(html);
 }
 
 function saveProjectFile() {
@@ -5514,7 +5514,7 @@ function _applyGridSize(size) {
 function renderNav() {
   const nav = document.getElementById('desktop-nav');
   if (!nav) return;
-  nav.innerHTML = '';
+  nav.innerHTML = DOMPurify.sanitize('');
   state.navOrder.forEach(view => {
     const btn = document.createElement('button');
     btn.className = 'nav-link font-headline font-bold tracking-tight uppercase text-sm';
@@ -5532,7 +5532,7 @@ function renderNav() {
 function renderSettingsNavList() {
   const list = document.getElementById('settings-nav-list');
   if (!list) return;
-  list.innerHTML = '';
+  list.innerHTML = DOMPurify.sanitize('');
   let dragSrcView = null;
 
   state.navOrder.forEach(view => {
@@ -5540,7 +5540,7 @@ function renderSettingsNavList() {
     li.className = 'nav-order-item';
     li.draggable = true;
     li.dataset.view = view;
-    li.innerHTML = `<span class="material-symbols-outlined drag-handle">drag_indicator</span><span>${view}</span>`;
+    li.innerHTML = DOMPurify.sanitize(`<span class="material-symbols-outlined drag-handle">drag_indicator</span><span>${view}</span>`);
 
     li.addEventListener('dragstart', e => {
       dragSrcView = view;
@@ -6276,7 +6276,7 @@ function _renderCustomElementsLibraryImpl() {
       library[cat].push(libItem);
       // Refresh that grid immediately
       const g = document.getElementById('grid-' + cat);
-      if (g) { g.innerHTML = ''; library[cat].forEach(i => g.appendChild(buildLibraryItem(i))); lcIcons(); }
+      if (g) { g.innerHTML = DOMPurify.sanitize(''); library[cat].forEach(i => g.appendChild(buildLibraryItem(i))); lcIcons(); }
     } else {
       customItems.push(libItem);
     }
@@ -6288,7 +6288,7 @@ function _renderCustomElementsLibraryImpl() {
     ...customItems,
   ];
 
-  grid.innerHTML = '';
+  grid.innerHTML = DOMPurify.sanitize('');
   items.filter(item => !item.category || item.category === 'custom').forEach(item => {
     const div = document.createElement('div');
     div.className = 'draggable-item bg-surface-container-highest flex flex-col items-center justify-center hover:bg-surface-bright transition-all';
@@ -6297,10 +6297,10 @@ function _renderCustomElementsLibraryImpl() {
     const iconHtmlStr = item.imageData
       ? `<img src="${item.imageData}" style="width:26px;height:26px;object-fit:contain;margin-bottom:3px;" draggable="false"/>`
       : `<span style="font-size:22px;margin-bottom:3px;line-height:1;">${item.emoji}</span>`;
-    div.innerHTML = `
+    div.innerHTML = DOMPurify.sanitize(`
       ${iconHtmlStr}
       <span class="font-bold text-on-surface-variant text-center" style="font-size:8px;text-transform:uppercase;letter-spacing:-0.01em;line-height:1.1;word-break:break-all;">${item.name}</span>
-      <button onclick="event.stopPropagation();deleteCustomElement('${item.id}')" title="Remove" style="position:absolute;top:1px;right:2px;background:none;border:none;cursor:pointer;color:#3a3a3a;font-size:12px;padding:0;line-height:1;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#3a3a3a'">×</button>`;
+      <button onclick="event.stopPropagation();deleteCustomElement('${item.id}')" title="Remove" style="position:absolute;top:1px;right:2px;background:none;border:none;cursor:pointer;color:#3a3a3a;font-size:12px;padding:0;line-height:1;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#3a3a3a'">×</button>`);
     div.addEventListener('dragstart', e => {
       const payload = { name: item.name, icon: item.emoji, type: 'Custom', emoji: item.emoji, color: item.color, isCustom: true };
       if (item.imageData) payload.imageData = item.imageData;
@@ -6765,29 +6765,29 @@ function renderTimeline() {
 
   // Energy curve bars
   const energyColors = ['#333','#7aafff','#c8a2ff','#ffb43c','#ff7439','#ff716c'];
-  curve.innerHTML = items.map((it, i) => {
+  curve.innerHTML = DOMPurify.sanitize(items.map((it, i) => {
     const e = Math.max(1, Math.min(5, it.energy || 3));
     const h = 8 + (e - 1) * 8; // 8px .. 40px
     const col = energyColors[e] || '#7aafff';
     return `<div class="tl-energy-dot" style="flex:1;height:${h}px;background:${col};opacity:0.75;" title="${it.name}: Energy ${e}"></div>`;
-  }).join('');
+  }).join(''));
 
   // Duration bars (proportional width)
-  bars.innerHTML = items.map(it => {
+  bars.innerHTML = DOMPurify.sanitize(items.map(it => {
     const secs = _parseDurationSecs(it.duration || '');
     const w = totalSecs > 0 ? (secs / totalSecs * 100) : (100 / Math.max(1, items.length));
     const type = it.type || 'song';
     const col = type === 'break' ? '#ffb43c' : type === 'transition' ? '#ff716c' : '#7aafff';
     return `<div style="height:100%;background:${col};opacity:0.45;flex:${secs || 1};min-width:4px;" title="${it.name} · ${it.duration || '—'}"></div>`;
-  }).join('');
+  }).join(''));
 
   // Item list
   if (items.length === 0) {
-    list.innerHTML = '<div style="text-align:center;padding:32px 16px;font-family:\'Manrope\',sans-serif,sans-serif;font-size:11px;color:#333;">No items yet.<br><span style="color:#555;">Click + Song or sync from Setlist.</span></div>';
+    list.innerHTML = DOMPurify.sanitize('<div style="text-align:center;padding:32px 16px;font-family:\'Manrope\',sans-serif,sans-serif;font-size:11px;color:#333;">No items yet.<br><span style="color:#555;">Click + Song or sync from Setlist.</span></div>');
     return;
   }
 
-  list.innerHTML = items.map((it, i) => {
+  list.innerHTML = DOMPurify.sanitize(items.map((it, i) => {
     const type   = it.type || 'song';
     const dur    = it.duration || '—';
     const bpm    = it.bpm ? `${it.bpm} BPM` : '';
@@ -6814,7 +6814,7 @@ function renderTimeline() {
         <button class="tl-act-btn del" onclick="deleteTlItem(${i})" title="Delete">✕</button>
       </div>
     </div>`;
-  }).join('');
+  }).join(''));
 }
 
 function _tlDragStart(e, idx) {
@@ -6996,7 +6996,7 @@ function generateShareLink() {
 
   // Reset QR output in case it was for a different URL
   const qrOut = document.getElementById('qr-output');
-  if (qrOut) { qrOut.innerHTML = '<span style="font-size:11px;color:#aaa;text-align:center;padding:10px;">Click Generate QR</span>'; }
+  if (qrOut) { qrOut.innerHTML = DOMPurify.sanitize('<span style="font-size:11px;color:#aaa;text-align:center;padding:10px;">Click Generate QR</span>'); }
   const dlBtn = document.getElementById('btn-dl-qr');
   if (dlBtn) dlBtn.disabled = true;
 
@@ -7021,7 +7021,7 @@ function generateQRCode() {
   if (typeof QRCode === 'undefined') { showToast('QR library not loaded yet — try again.'); return; }
 
   const container = document.getElementById('qr-output');
-  container.innerHTML = '';
+  container.innerHTML = DOMPurify.sanitize('');
   _qrInstance = null;
   try {
     _qrInstance = new QRCode(container, {
@@ -7035,7 +7035,7 @@ function generateQRCode() {
     const dlBtn = document.getElementById('btn-dl-qr');
     if (dlBtn) { dlBtn.disabled = false; dlBtn.style.color = '#7aafff'; dlBtn.style.borderColor = 'rgba(122,175,255,0.3)'; }
   } catch(e) {
-    container.innerHTML = '<span style="color:#ff716c;font-size:11px;padding:10px;">QR generation failed.</span>';
+    container.innerHTML = DOMPurify.sanitize('<span style="color:#ff716c;font-size:11px;padding:10px;">QR generation failed.</span>');
   }
 }
 

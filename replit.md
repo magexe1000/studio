@@ -127,6 +127,8 @@ The root `package.json` includes pnpm overrides to patch transitive dependency v
 
 postMessage calls between the React parent and stage-core iframe use `window.location.origin` (not `'*'`) and message listeners validate `e.origin` before processing.
 
+All `.innerHTML` assignments in `public/stage-core/app.js`, `features.js`, and `index.html` are wrapped with `DOMPurify.sanitize()` (vendor lib at `vendor/purify.min.js`, v3.2.6). A DOMPurify hook in `index.html` preserves the app's developer-controlled inline event attributes (`onclick`, `ondragstart`, etc.) while still sanitizing against injected scripts, iframes, and other XSS vectors.
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
