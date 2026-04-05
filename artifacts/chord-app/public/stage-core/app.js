@@ -778,6 +778,9 @@ function switchView(view) {
     const r = stageCanvas.getBoundingClientRect();
     if (r.width > 0) { state.canvasW = r.width; state.canvasH = r.height; }
   }
+  if (state.currentView === 'Rider' && _riderPreviewObserver) {
+    _riderPreviewObserver.disconnect(); _riderPreviewObserver = null;
+  }
   const prevView = state.currentView;
   state.currentView = view;
   document.querySelectorAll('.view-page').forEach(p => {
@@ -2989,40 +2992,193 @@ function clearStage() {
 //  RIDER VIEW
 // ══════════════════════════════════════════════════════════
 function refreshRider() {
-  const withCh = state.elements.filter(e => e.channelId);
-  document.getElementById('rider-ch-count').textContent = withCh.length + ' / 32';
+  if (!state.riderChannels) state.riderChannels = [];
+  var channels = state.riderChannels;
+  document.getElementById('rider-ch-count').textContent = channels.length + ' / 32';
   document.getElementById('rider-el-count').textContent = state.elements.length;
   const dateEl = document.getElementById('rider-date-val');
   if (dateEl) dateEl.textContent = new Date().toLocaleDateString(state.lang === 'es' ? 'es-MX' : 'en-US', { year:'numeric', month:'short', day:'numeric' });
   renderRiderNeeds();
-  const tbody = document.getElementById('rider-table-body');
-  if (state.elements.length === 0) {
-    tbody.innerHTML = DOMPurify.sanitize(`<tr><td colspan="7" style="padding:56px 16px;text-align:center;">
+  var tbody = document.getElementById('rider-table-body');
+  if (channels.length === 0) {
+    tbody.innerHTML = DOMPurify.sanitize(`<tr><td colspan="8" style="padding:40px 16px;text-align:center;">
       <div style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">${T('noElemsRider')}</div>
-      <div style="font-size:12px;color:#333;margin-top:8px;font-family:'Inter';">${T('dragToCanvas')}</div>
+      <div style="font-size:11px;color:#333;margin-top:6px;font-family:'Inter',sans-serif;">${T('useFromStage') || 'Use "From Stage" to import elements or "Add Channel" for custom entries'}</div>
     </td></tr>`);
+  } else {
+    tbody.innerHTML = DOMPurify.sanitize(channels.map(function(ch, i) {
+      var chNum = String(i + 1).padStart(2, '0');
+      var phantomCls = ch.phantom ? 'rd-phantom-on' : 'rd-phantom-off';
+      return `<tr>
+        <td><span class="rd-ch-num">${ch.channelId || chNum}</span></td>
+        <td style="font-weight:500;">${ch.label}</td>
+        <td><span class="rd-type-badge">${ch.type || 'Custom'}</span></td>
+        <td style="font-family:'Inter',sans-serif;font-size:11px;color:#acabaa;">${TSource(ch.source)}</td>
+        <td style="text-align:center;"><span class="${phantomCls}">${ch.phantom ? 'ON' : 'OFF'}</span></td>
+        <td style="font-size:11px;color:#acabaa;">${ch.output || 'FOH'}</td>
+        <td style="font-size:11px;color:#767575;font-style:italic;">${ch.notes || '—'}</td>
+        <td style="text-align:right;"><button class="rd-del-btn" onclick="removeRiderChannel(${i})"><span class="material-symbols-outlined" style="font-size:16px;">close</span></button></td>
+      </tr>`;
+    }).join(''));
+  }
+  refreshRiderStagePreview();
+}
+
+if (!state.riderChannels) state.riderChannels = [];
+function addRiderChannel() {
+  var label = prompt(T('channelLabel') || 'Channel label:');
+  if (!label || !label.trim()) return;
+  var ch = { id: 'rc-' + Date.now(), label: label.trim(), type: 'Custom', source: '', phantom: false, output: 'FOH', notes: '', channelId: '' };
+  state.riderChannels.push(ch);
+  refreshRider();
+  markAutosaveDirty();
+}
+function addRiderFromStage() {
+  var added = 0;
+  state.elements.forEach(function(el) {
+    if (el._riderExcluded) return;
+    var already = state.riderChannels.some(function(rc) { return rc._stageRef === el.id; });
+    if (!already) {
+      state.riderChannels.push({
+        id: 'rc-' + Date.now() + '-' + Math.random().toString(36).slice(2,6),
+        _stageRef: el.id,
+        label: el.label || el.name || 'Element',
+        type: el.type || el.name || '',
+        source: el.source || '',
+        phantom: !!el.phantom,
+        output: el.output || 'FOH',
+        notes: el.notes || '',
+        channelId: el.channelId || ''
+      });
+      added++;
+    }
+  });
+  if (added === 0) showToast(T('allSynced') || 'All stage elements already in rider');
+  else showToast(added + ' channel(s) added');
+  refreshRider();
+  markAutosaveDirty();
+}
+function removeRiderChannel(idx) {
+  if (idx >= 0 && idx < state.riderChannels.length) {
+    state.riderChannels.splice(idx, 1);
+    refreshRider();
+    markAutosaveDirty();
+  }
+}
+
+if (!state.riderConfig) state.riderConfig = {};
+function updateRiderConfig(key, val) {
+  state.riderConfig[key] = val;
+  markAutosaveDirty();
+}
+
+function toggleRiderCheck(key, rowEl) {
+  var cb = rowEl.querySelector('.rd-config-checkbox');
+  if (!cb) return;
+  var isChecked = cb.classList.toggle('checked');
+  if (isChecked) {
+    cb.innerHTML = '<span class="material-symbols-outlined" style="font-size:10px;color:#0e0e0e;font-weight:bold;">check</span>';
+  } else {
+    cb.innerHTML = '';
+  }
+  if (!state.riderConfig) state.riderConfig = {};
+  state.riderConfig[key] = isChecked;
+  markAutosaveDirty();
+}
+
+if (!state.riderMixes) state.riderMixes = [];
+function addRiderMix(name) {
+  if (state.riderMixes.some(m => m === name)) { showToast(name + ' already added'); return; }
+  state.riderMixes.push(name);
+  renderRiderMixes();
+  markAutosaveDirty();
+}
+function removeRiderMix(idx) {
+  state.riderMixes.splice(idx, 1);
+  renderRiderMixes();
+  markAutosaveDirty();
+}
+function renderRiderMixes() {
+  var container = document.getElementById('rider-mixes-list');
+  if (!container) return;
+  if (state.riderMixes.length === 0) {
+    container.style.display = 'none';
     return;
   }
-  const sorted = [...state.elements].sort((a, b) => a.channelId.localeCompare(b.channelId));
-  tbody.innerHTML = DOMPurify.sanitize(sorted.map(el => `
-    <tr class="hover:bg-surface-container-high transition-colors">
-      <td class="px-4 py-5 font-headline font-bold text-primary" style="font-size:18px;">${el.channelId || '-'}</td>
-      <td class="px-4 py-5">
-        <div class="flex items-center gap-3">
-          <div style="width:10px;height:10px;background:${el.color};flex-shrink:0;"></div>
-          <span class="text-sm font-semibold text-on-surface">${el.label}</span>
-        </div>
-      </td>
-      <td class="px-4 py-5 text-on-surface-variant uppercase tracking-wider" style="font-size:11px;">${el.type || el.name}</td>
-      <td class="px-4 py-5 font-mono" style="font-size:11px;color:#adaaaa;">${inputSourceLabels[el.source] || el.source}</td>
-      <td class="px-4 py-5 font-mono" style="font-size:11px;color:#c5ffc9;">${el.output || 'FOH'}</td>
-      <td class="px-4 py-5">
-        <span style="font-size:11px;font-weight:700;padding:2px 8px;background:${el.phantom ? 'rgba(255,116,57,0.15)' : 'rgba(38,38,38,0.8)'};color:${el.phantom ? '#ff7439' : '#767575'};">
-          ${el.phantom ? 'ON' : 'OFF'}
-        </span>
-      </td>
-      <td class="px-4 py-5 text-on-surface-variant italic" style="font-size:12px;">${el.notes || '—'}</td>
-    </tr>`).join(''));
+  container.style.display = 'block';
+  container.innerHTML = DOMPurify.sanitize(state.riderMixes.map((m, i) =>
+    `<div class="rd-mix-item">
+      <span>#${i + 1} ${m}</span>
+      <button class="rd-mix-del" onclick="removeRiderMix(${i})"><span class="material-symbols-outlined" style="font-size:14px;">close</span></button>
+    </div>`
+  ).join(''));
+}
+
+function toggleRiderDrop(el) {
+  var isActive = el.classList.toggle('active');
+  var icon = el.querySelector('.material-symbols-outlined');
+  if (isActive) {
+    icon.textContent = 'check_circle';
+    icon.style.color = 'var(--accent)';
+    icon.style.fontVariationSettings = "'FILL' 1";
+    el.querySelector('.rd-drop-label').style.color = '#e7e5e4';
+  } else {
+    icon.textContent = 'add_circle';
+    icon.style.color = '#767575';
+    icon.style.fontVariationSettings = "'FILL' 0";
+    el.querySelector('.rd-drop-label').style.color = '#767575';
+  }
+  markAutosaveDirty();
+}
+
+var _riderPreviewRAF = null;
+var _riderPreviewObserver = null;
+function refreshRiderStagePreview() {
+  var slot = document.getElementById('rider-stage-preview-slot');
+  if (!slot) return;
+  var src = document.getElementById('stage-canvas');
+  if (!src) return;
+  _riderCloneStage(slot, src);
+  _riderScalePreview(slot, src);
+  if (_riderPreviewObserver) { _riderPreviewObserver.disconnect(); _riderPreviewObserver = null; }
+  if (state.currentView === 'Rider') {
+    _riderPreviewObserver = new MutationObserver(function() {
+      if (_riderPreviewRAF) return;
+      _riderPreviewRAF = requestAnimationFrame(function() {
+        _riderPreviewRAF = null;
+        var s = document.getElementById('rider-stage-preview-slot');
+        var c = document.getElementById('stage-canvas');
+        if (s && c) { _riderCloneStage(s, c); _riderScalePreview(s, c); }
+      });
+    });
+    _riderPreviewObserver.observe(src, { childList: true, subtree: true, attributes: true, attributeFilter: ['style','class','transform'] });
+  }
+}
+function _riderCloneStage(slot, src) {
+  var existing = slot.querySelector('.rd-stage-clone');
+  if (existing) existing.remove();
+  var clone = src.cloneNode(true);
+  clone.removeAttribute('id');
+  clone.classList.add('rd-stage-clone');
+  clone.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;border:none;transform-origin:top left;overflow:hidden;';
+  clone.querySelectorAll('[id]').forEach(function(n) { n.removeAttribute('id'); });
+  slot.appendChild(clone);
+}
+function _riderScalePreview(slot, src) {
+  var clone = slot.querySelector('.rd-stage-clone');
+  if (!clone) return;
+  var srcW = state.canvasW || src.offsetWidth || 650;
+  var srcH = state.canvasH || src.offsetHeight || 420;
+  var slotW = slot.offsetWidth || slot.clientWidth || 350;
+  var slotH = slot.offsetHeight || slot.clientHeight || 200;
+  if (srcW > 0 && slotW > 0) {
+    var scaleX = slotW / srcW;
+    var scaleY = slotH / srcH;
+    var scale = Math.min(scaleX, scaleY);
+    clone.style.transform = 'scale(' + scale + ')';
+    clone.style.width = srcW + 'px';
+    clone.style.height = srcH + 'px';
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -4510,6 +4666,9 @@ function saveProject() {
       connections: JSON.parse(JSON.stringify(state.connections)),
       members: state.members,
       riderNeeds: state.riderNeeds,
+      riderChannels: state.riderChannels || [],
+      riderConfig: state.riderConfig || {},
+      riderMixes: state.riderMixes || [],
       lang: state.lang,
       segments: state.segments,
       setlist: state.setlist,
@@ -4591,6 +4750,9 @@ function loadSaved() {
         _gearNextId = state.gear.reduce((max, g) => Math.max(max, (g.id || 0) + 1), 1);
       }
     }
+    if (d.riderChannels && Array.isArray(d.riderChannels)) state.riderChannels = d.riderChannels;
+    if (d.riderConfig && typeof d.riderConfig === 'object') state.riderConfig = d.riderConfig;
+    if (d.riderMixes && Array.isArray(d.riderMixes)) state.riderMixes = d.riderMixes;
     // Theme can be saved in any schema version
     if (d.theme && THEMES[d.theme]) {
       state.theme = d.theme;
@@ -5295,7 +5457,7 @@ function refreshExportSetlist() {
 }
 
 function saveProjectFile() {
-  const data = JSON.stringify({ schemaVersion: 5, elements: state.elements, connections: state.connections, setlist: state.setlist, segments: state.segments, gear: state.gear, members: state.members, riderNeeds: state.riderNeeds, lang: state.lang }, null, 2);
+  const data = JSON.stringify({ schemaVersion: 8, elements: state.elements, connections: state.connections, setlist: state.setlist, segments: state.segments, gear: state.gear, members: state.members, riderNeeds: state.riderNeeds, riderChannels: state.riderChannels || [], riderConfig: state.riderConfig || {}, riderMixes: state.riderMixes || [], lang: state.lang }, null, 2);
   const a = document.createElement('a');
   a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
   a.download = 'stage-core-project.json';
@@ -5317,6 +5479,9 @@ function loadProjectFile(e) {
       state.members = (d.schemaVersion >= 3) ? (d.members || []) : state.members;
       if (d.schemaVersion >= 4) {
         if (d.riderNeeds) state.riderNeeds = d.riderNeeds;
+        if (d.riderChannels) state.riderChannels = d.riderChannels;
+        if (d.riderConfig) state.riderConfig = d.riderConfig;
+        if (d.riderMixes) state.riderMixes = d.riderMixes;
         if (d.lang) { state.lang = d.lang; setLang(d.lang); }
       }
       if (d.schemaVersion >= 5) {
@@ -6012,6 +6177,9 @@ function getCloudState() {
     gear:        JSON.parse(JSON.stringify(state.gear)),
     members:     JSON.parse(JSON.stringify(state.members)),
     riderNeeds:  JSON.parse(JSON.stringify(state.riderNeeds)),
+    riderChannels: JSON.parse(JSON.stringify(state.riderChannels || [])),
+    riderConfig: JSON.parse(JSON.stringify(state.riderConfig || {})),
+    riderMixes:  JSON.parse(JSON.stringify(state.riderMixes || [])),
     timeline:    JSON.parse(JSON.stringify(state.timeline)),
     _rnNextId:   state._rnNextId,
     lang:        state.lang,
@@ -6050,6 +6218,9 @@ function _applyCloudData(d) {
   state.members     = d.members     ? JSON.parse(JSON.stringify(d.members))     : [];
   state.timeline    = d.timeline    ? JSON.parse(JSON.stringify(d.timeline))    : [];
   if (d.riderNeeds) state.riderNeeds = JSON.parse(JSON.stringify(d.riderNeeds));
+  if (d.riderChannels) state.riderChannels = JSON.parse(JSON.stringify(d.riderChannels));
+  if (d.riderConfig) state.riderConfig = JSON.parse(JSON.stringify(d.riderConfig));
+  if (d.riderMixes) state.riderMixes = JSON.parse(JSON.stringify(d.riderMixes));
   if (d._rnNextId)  state._rnNextId  = d._rnNextId;
   if (d.lang)       state.lang       = d.lang;
   if (d.canvasBg) {
@@ -7080,6 +7251,9 @@ function generateShareLink() {
     connections: state.connections,
     setlist: state.setlist,
     riderNeeds: state.riderNeeds,
+    riderChannels: state.riderChannels || [],
+    riderConfig: state.riderConfig || {},
+    riderMixes: state.riderMixes || [],
     segments: state.segments,
     canvasBg: state.canvasBg,
   };
@@ -7188,6 +7362,9 @@ function downloadQRCode() {
     if (d.connections) state.connections = d.connections;
     if (d.setlist)     state.setlist     = d.setlist;
     if (d.riderNeeds)  state.riderNeeds  = d.riderNeeds;
+    if (d.riderChannels) state.riderChannels = d.riderChannels;
+    if (d.riderConfig) state.riderConfig = d.riderConfig;
+    if (d.riderMixes)  state.riderMixes  = d.riderMixes;
     if (d.segments)    state.segments    = d.segments;
     if (d.canvasBg) {
       state.canvasBg = d.canvasBg;

@@ -835,9 +835,8 @@ header,
 .sc-table tbody tr:hover  { background: rgba(255,255,255,0.02); }
 
 /* ═══════════════════════════════════════════════════════════════════
-   RIDER REDESIGN — editorial bento-card layout
+   RIDER REDESIGN — editorial bento-card layout (v2)
    ═══════════════════════════════════════════════════════════════════ */
-/* Entrance animation */
 @keyframes rd-fade-up {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -846,10 +845,13 @@ header,
   animation: rd-fade-up 360ms cubic-bezier(0.22,1,0.36,1) both;
 }
 #view-Rider.active .sc-section-wrap > *:nth-child(1) { animation-delay: 0ms; }
-#view-Rider.active .sc-section-wrap > *:nth-child(2) { animation-delay: 55ms; }
-#view-Rider.active .sc-section-wrap > *:nth-child(3) { animation-delay: 110ms; }
-#view-Rider.active .sc-section-wrap > *:nth-child(4) { animation-delay: 155ms; }
-#view-Rider.active .sc-section-wrap > *:nth-child(5) { animation-delay: 195ms; }
+#view-Rider.active .sc-section-wrap > *:nth-child(2) { animation-delay: 40ms; }
+#view-Rider.active .sc-section-wrap > *:nth-child(3) { animation-delay: 80ms; }
+#view-Rider.active .sc-section-wrap > *:nth-child(4) { animation-delay: 115ms; }
+#view-Rider.active .sc-section-wrap > *:nth-child(5) { animation-delay: 145ms; }
+#view-Rider.active .sc-section-wrap > *:nth-child(6) { animation-delay: 175ms; }
+#view-Rider.active .sc-section-wrap > *:nth-child(7) { animation-delay: 200ms; }
+#view-Rider.active .sc-section-wrap > *:nth-child(8) { animation-delay: 220ms; }
 /* Header block */
 .rd-header-block { padding-left: 16px; border-left: 2px solid var(--accent, #7aafff); margin-bottom: 20px; }
 .rd-eyebrow { font-family: 'Manrope', sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.22em; color: #484847; margin: 0 0 5px; }
@@ -857,7 +859,6 @@ header,
 .rd-draft-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 100px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); font-family: 'Manrope', sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent); margin-left: auto; }
 .rd-draft-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: rd-pulse 2.2s ease-in-out infinite; flex-shrink: 0; }
 @keyframes rd-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
-/* Stats + actions row */
 .rd-stats-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
 .rd-stat-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 3px; }
 .rd-stat-label { font-family: 'Manrope', sans-serif; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: #484847; }
@@ -865,17 +866,59 @@ header,
 .rd-actions { display: flex; gap: 6px; margin-left: auto; }
 .rd-btn { display: inline-flex; align-items: center; gap: 5px; padding: 9px 14px; border-radius: 100px; cursor: pointer; border: none; font-family: 'Manrope', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; -webkit-tap-highlight-color: transparent; transition: opacity 140ms ease; }
 .rd-btn:active { opacity: 0.72; transform: scale(0.97); }
+.rd-btn--accent { background: var(--accent); color: #0e0e0e; }
 .rd-btn--hot { background: var(--hot); color: #fff; }
 .rd-btn--ghost { background: rgba(255,255,255,0.05); color: #adaaaa; border: 1px solid rgba(255,255,255,0.09) !important; }
-/* Bento cards */
-.rd-card { background: #131313; border-radius: 16px; padding: 18px; margin-bottom: 12px; }
+.rd-card { background: #191a1a; border-radius: 14px; padding: 20px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.04); }
 .rd-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
 .rd-card-icon { font-size: 18px !important; color: var(--accent, #7aafff); }
-.rd-card-title { font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 800; color: #e0e0e0; margin: 0; letter-spacing: -0.01em; }
+.rd-card-title { font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 800; color: #e7e5e4; margin: 0; text-transform: uppercase; letter-spacing: 0.12em; }
 .rd-card .sc-table-scroll { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; }
 .rd-notes-textarea { font-family: 'Inter', sans-serif; font-size: 13px; color: #5a5a59; line-height: 1.65; background: transparent; border: none; width: 100%; box-sizing: border-box; resize: vertical; min-height: 96px; outline: none; padding: 0; }
 .rd-notes-textarea:focus { color: #8a8a89; }
 .rd-notes-textarea::placeholder { color: #333; }
+.rd-input-table { width: 100%; border-collapse: collapse; font-family: 'Manrope', sans-serif; }
+.rd-input-table thead tr { background: rgba(255,255,255,0.025); border-bottom: 1px solid rgba(255,255,255,0.06); }
+.rd-input-table th { padding: 10px 14px; font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: #767575; text-align: left; white-space: nowrap; }
+.rd-input-table td { padding: 12px 14px; font-size: 12px; color: #e7e5e4; border-bottom: 1px solid rgba(255,255,255,0.025); vertical-align: middle; }
+.rd-input-table tbody tr:last-child td { border-bottom: none; }
+.rd-input-table tbody tr { transition: background 0.12s ease; }
+.rd-input-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+.rd-input-table .rd-ch-num { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--accent); font-size: 14px; }
+.rd-input-table .rd-type-badge { display: inline-block; background: #252626; padding: 3px 10px; border-radius: 4px; font-size: 10px; color: #acabaa; white-space: nowrap; }
+.rd-input-table .rd-phantom-on { font-size: 10px; font-weight: 700; padding: 2px 8px; background: rgba(0,122,255,0.12); color: var(--accent); border-radius: 100px; }
+.rd-input-table .rd-phantom-off { font-size: 10px; font-weight: 700; padding: 2px 8px; background: rgba(255,255,255,0.04); color: #484847; border-radius: 100px; }
+.rd-input-table .rd-del-btn { background: none; border: none; cursor: pointer; color: rgba(238,125,119,0.3); transition: color 0.12s; padding: 4px; }
+.rd-input-table .rd-del-btn:hover { color: #ee7d77; }
+.rd-config-grid { display: flex; flex-direction: column; gap: 12px; }
+.rd-config-label { font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: #767575; margin-bottom: 6px; display: block; }
+.rd-config-select { width: 100%; background: #131313; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 11px 14px; color: #e7e5e4; font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 500; appearance: none; outline: none; cursor: pointer; transition: border-color 0.15s; }
+.rd-config-select:focus { border-color: var(--accent); }
+.rd-config-check-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #1f2020; border-radius: 10px; cursor: pointer; border: 1px solid transparent; transition: border-color 0.15s, background 0.12s; }
+.rd-config-check-row:hover { border-color: rgba(0,122,255,0.2); }
+.rd-config-check-row span { font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 500; color: #e7e5e4; }
+.rd-config-checkbox { width: 16px; height: 16px; border-radius: 4px; border: 2px solid #484848; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+.rd-config-checkbox.checked { border-color: var(--accent); background: var(--accent); }
+.rd-chip { display: inline-flex; align-items: center; gap: 5px; background: #252626; padding: 6px 12px; border-radius: 100px; font-family: 'Manrope', sans-serif; font-size: 10px; font-weight: 700; color: #e7e5e4; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.rd-chip:hover { background: var(--accent); color: #0e0e0e; border-color: var(--accent); }
+.rd-mix-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+.rd-mix-item span { font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 700; color: var(--accent); }
+.rd-mix-del { background: none; border: none; cursor: pointer; color: rgba(238,125,119,0.5); font-size: 14px; transition: color 0.12s; }
+.rd-mix-del:hover { color: #ee7d77; }
+.rd-drop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rd-drop-item { background: #1f2020; padding: 10px 14px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: border-color 0.15s; }
+.rd-drop-item.active { border-color: rgba(0,122,255,0.3); }
+.rd-drop-item span.rd-drop-label { font-family: 'Manrope', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #e7e5e4; }
+.rd-drop-item.active span.rd-drop-label { color: #e7e5e4; }
+.rd-drop-item:not(.active) span.rd-drop-label { color: #767575; }
+.rd-info-banner { background: rgba(0,122,255,0.04); border: 1px solid rgba(0,122,255,0.08); border-radius: 10px; padding: 12px 14px; margin-top: 8px; }
+.rd-info-banner p { font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin: 0; line-height: 1.5; }
+.rd-stage-preview { position: relative; border-radius: 16px; overflow: hidden; background: #000; border: 1px solid rgba(255,255,255,0.04); margin-bottom: 12px; }
+.rd-stage-preview-inner { width: 100%; aspect-ratio: 16/9; overflow: hidden; position: relative; }
+.rd-stage-preview-badge { position: absolute; bottom: 10px; left: 12px; display: flex; align-items: center; gap: 6px; background: rgba(14,14,14,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 5px 12px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.08); z-index: 5; }
+.rd-stage-preview-badge .rd-live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: rd-pulse 2.2s ease-in-out infinite; }
+.rd-stage-preview-badge span { font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.22em; color: #e7e5e4; }
+.rd-stage-preview-grad { position: absolute; inset: 0; background: linear-gradient(to top, rgba(14,14,14,0.6) 0%, transparent 40%); pointer-events: none; z-index: 4; }
 
 /* ═══════════════════════════════════════════════════════════════════
    ADD SONG BOTTOM SHEET
@@ -1227,13 +1270,34 @@ html[data-theme="light"] .rd-draft-badge     { background: rgba(0,0,0,0.04) !imp
 html[data-theme="light"] .rd-stat-block      { background: #ffffff !important; border-color: rgba(0,0,0,0.08) !important; }
 html[data-theme="light"] .rd-stat-label      { color: #999 !important; }
 html[data-theme="light"] .rd-stat-val        { color: #0e0e0e !important; }
-html[data-theme="light"] .rd-card            { background: #ffffff !important; box-shadow: 0 1px 8px rgba(0,0,0,0.07); }
+html[data-theme="light"] .rd-card            { background: #ffffff !important; border-color: rgba(0,0,0,0.07) !important; box-shadow: 0 1px 8px rgba(0,0,0,0.05); }
 html[data-theme="light"] .rd-card-title      { color: #0e0e0e !important; }
 html[data-theme="light"] .rd-card .sc-table-scroll { background: #f5f5f7 !important; border-color: rgba(0,0,0,0.07) !important; }
 html[data-theme="light"] .rd-notes-textarea  { color: #555 !important; }
 html[data-theme="light"] .rd-notes-textarea:focus { color: #0e0e0e !important; }
 html[data-theme="light"] .rd-notes-textarea::placeholder { color: #bbb !important; }
 html[data-theme="light"] .rd-btn--ghost      { background: rgba(0,0,0,0.04) !important; color: #555 !important; border-color: rgba(0,0,0,0.10) !important; }
+html[data-theme="light"] .rd-input-table td  { color: #222 !important; }
+html[data-theme="light"] .rd-input-table th  { color: #999 !important; }
+html[data-theme="light"] .rd-input-table thead tr { background: rgba(0,0,0,0.02) !important; }
+html[data-theme="light"] .rd-input-table tbody tr:hover { background: rgba(0,0,0,0.02) !important; }
+html[data-theme="light"] .rd-input-table .rd-type-badge { background: #f0f0f0 !important; color: #555 !important; }
+html[data-theme="light"] .rd-config-select   { background: #f5f5f7 !important; border-color: rgba(0,0,0,0.10) !important; color: #222 !important; }
+html[data-theme="light"] .rd-config-check-row { background: #f5f5f7 !important; }
+html[data-theme="light"] .rd-config-check-row:hover { border-color: rgba(0,122,255,0.25) !important; }
+html[data-theme="light"] .rd-config-check-row span { color: #222 !important; }
+html[data-theme="light"] .rd-config-checkbox { border-color: #ccc !important; }
+html[data-theme="light"] .rd-config-checkbox.checked { border-color: var(--accent) !important; background: var(--accent) !important; }
+html[data-theme="light"] .rd-chip { background: #f0f0f0 !important; color: #222 !important; border-color: rgba(0,0,0,0.08) !important; }
+html[data-theme="light"] .rd-chip:hover { background: var(--accent) !important; color: #fff !important; }
+html[data-theme="light"] .rd-drop-item { background: #f5f5f7 !important; border-color: rgba(0,0,0,0.08) !important; }
+html[data-theme="light"] .rd-drop-item.active { border-color: rgba(0,122,255,0.3) !important; }
+html[data-theme="light"] .rd-drop-item:not(.active) span.rd-drop-label { color: #999 !important; }
+html[data-theme="light"] .rd-info-banner { background: rgba(0,122,255,0.04) !important; border-color: rgba(0,122,255,0.10) !important; }
+html[data-theme="light"] .rd-stage-preview { background: #f2f1ef !important; border-color: rgba(0,0,0,0.07) !important; }
+html[data-theme="light"] .rd-stage-preview-badge { background: rgba(255,255,255,0.7) !important; border-color: rgba(0,0,0,0.08) !important; }
+html[data-theme="light"] .rd-stage-preview-badge span { color: #222 !important; }
+html[data-theme="light"] .rd-stage-preview-grad { background: linear-gradient(to top, rgba(242,241,239,0.6) 0%, transparent 40%) !important; }
 
 /* ── Rider title ── */
 html[data-theme="light"] .rd-big-title       { color: #0e0e0e !important; }
@@ -2408,55 +2472,167 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
   <div class="sc-section-wrap">
 
     <!-- Header -->
-    <div style="margin-bottom:28px;">
-      <h1 style="font-family:'Manrope',sans-serif;font-size:2.8rem;font-weight:800;color:#f2f2f2;margin:0;letter-spacing:-0.04em;line-height:1;">Rider</h1>
+    <div style="margin-bottom:24px;">
+      <h1 style="font-family:'Manrope',sans-serif;font-size:2rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;line-height:1;">Technical Rider</h1>
     </div>
 
-    <!-- Stats + Action buttons row -->
-    <div class="rd-stats-row">
-      <div class="rd-stat-block">
-        <span class="rd-stat-label">Channels</span>
-        <span id="rider-ch-count" class="rd-stat-val" style="color:var(--accent);">0 / 32</span>
+    <!-- Input List section -->
+    <div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <h2 style="font-family:'Manrope',sans-serif;font-size:1.5rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;">Input List</h2>
+        <div style="display:flex;gap:6px;">
+          <button onclick="addRiderFromStage()" class="rd-btn rd-btn--ghost" title="Auto-populate from stage elements">
+            <span class="material-symbols-outlined" style="font-size:14px;">bolt</span>From Stage
+          </button>
+          <button onclick="addRiderChannel()" class="rd-btn rd-btn--accent">
+            <span class="material-symbols-outlined" style="font-size:14px;">add</span>Add Channel
+          </button>
+        </div>
       </div>
-      <div class="rd-stat-block">
-        <span class="rd-stat-label">Elements</span>
-        <span id="rider-el-count" class="rd-stat-val" style="color:var(--hot);">0</span>
+
+      <div style="background:#191a1a;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table class="rd-input-table" style="min-width:520px;">
+            <thead>
+              <tr>
+                <th style="width:50px;">CH#</th>
+                <th>Name</th>
+                <th style="width:100px;">Type</th>
+                <th style="width:88px;">Input</th>
+                <th style="width:44px;text-align:center;">48V</th>
+                <th style="width:76px;">Output</th>
+                <th>Notes</th>
+                <th style="width:40px;text-align:right;"></th>
+              </tr>
+            </thead>
+            <tbody id="rider-table-body">
+              <tr>
+                <td colspan="8" style="padding:40px 16px;text-align:center;">
+                  <div style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">No elements yet</div>
+                  <div style="font-size:11px;color:#333;margin-top:6px;font-family:'Inter',sans-serif;">Tap From Stage to auto-populate</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div class="rd-actions">
-        <button onclick="generateInputListFromStage()" class="rd-btn rd-btn--hot" title="Auto-populate from stage elements">
-          <span class="material-symbols-outlined" style="font-size:14px;">bolt</span>From Stage
-        </button>
+
+      <!-- Stats row -->
+      <div class="rd-stats-row" style="margin-top:10px;">
+        <div class="rd-stat-block">
+          <span class="rd-stat-label">Channels</span>
+          <span id="rider-ch-count" class="rd-stat-val" style="color:var(--accent);">0 / 32</span>
+        </div>
+        <div class="rd-stat-block">
+          <span class="rd-stat-label">Elements</span>
+          <span id="rider-el-count" class="rd-stat-val" style="color:var(--hot);">0</span>
+        </div>
       </div>
     </div>
 
-    <!-- Input List card -->
-    <div class="rd-card">
-      <div class="rd-card-header">
-        <span class="material-symbols-outlined rd-card-icon">settings_input_component</span>
-        <h3 class="rd-card-title">Input List</h3>
+    <!-- Config cards row -->
+    <div class="rd-config-grid">
+
+      <!-- FOH Protocol card -->
+      <div class="rd-card">
+        <div class="rd-card-header">
+          <span class="material-symbols-outlined rd-card-icon">settings_input_component</span>
+          <h3 class="rd-card-title">FOH Protocol</h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <span class="rd-config-label">System Interface</span>
+            <div style="position:relative;">
+              <select id="rider-foh-system" class="rd-config-select" onchange="updateRiderConfig('fohSystem',this.value)">
+                <option value="dante">Dante Network</option>
+                <option value="analog">Analog Snake</option>
+                <option value="madi">MADI Optical</option>
+                <option value="aes67">AES67</option>
+              </select>
+              <span class="material-symbols-outlined" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;color:#767575;pointer-events:none;">expand_more</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="rd-config-check-row" onclick="toggleRiderCheck('fohRedundant',this)">
+              <span>Redundant Dante (Pri/Sec)</span>
+              <div class="rd-config-checkbox checked" data-key="fohRedundant"><span class="material-symbols-outlined" style="font-size:10px;color:#0e0e0e;font-weight:bold;">check</span></div>
+            </div>
+            <div class="rd-config-check-row" onclick="toggleRiderCheck('foh96k',this)">
+              <span>96kHz Sample Rate</span>
+              <div class="rd-config-checkbox" data-key="foh96k"></div>
+            </div>
+            <div class="rd-config-check-row" onclick="toggleRiderCheck('fohDSP',this)">
+              <span>Custom DSP Template</span>
+              <div class="rd-config-checkbox checked" data-key="fohDSP"><span class="material-symbols-outlined" style="font-size:10px;color:#0e0e0e;font-weight:bold;">check</span></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="sc-table-scroll">
-        <table class="sc-table" style="min-width:520px;">
-          <thead>
-            <tr>
-              <th style="width:40px;">CH</th>
-              <th>Name</th>
-              <th style="width:88px;">Type</th>
-              <th style="width:76px;">Input</th>
-              <th style="width:68px;">Output</th>
-              <th style="width:40px;">48V</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody id="rider-table-body">
-            <tr>
-              <td colspan="7" style="padding:28px 16px;text-align:center;color:#3a3a3a;font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;">
-                No elements yet — tap From Stage to populate
-              </td>
-            </tr>
-          </tbody>
-        </table>
+
+      <!-- Monitor / IEM card -->
+      <div class="rd-card">
+        <div class="rd-card-header">
+          <span class="material-symbols-outlined rd-card-icon">speaker</span>
+          <h3 class="rd-card-title">Monitor / IEM</h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <span class="rd-config-label">Mix Configuration</span>
+            <div style="position:relative;">
+              <select id="rider-mon-config" class="rd-config-select" onchange="updateRiderConfig('monConfig',this.value)">
+                <option value="4s4w">4 Stereo IEM / 4 Mono Wedge</option>
+                <option value="8s">8 Stereo IEM mixes</option>
+                <option value="12w">12 Wedge monitor mixes</option>
+              </select>
+              <span class="material-symbols-outlined" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;color:#767575;pointer-events:none;">expand_more</span>
+            </div>
+          </div>
+          <div>
+            <span class="rd-config-label">Quick Add Mixes</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <span class="rd-chip" onclick="addRiderMix('Drum Submix')">Drum Submix <span class="material-symbols-outlined" style="font-size:12px;">add</span></span>
+              <span class="rd-chip" onclick="addRiderMix('Side Fills')">Side Fills <span class="material-symbols-outlined" style="font-size:12px;">add</span></span>
+              <span class="rd-chip" onclick="addRiderMix('Tech Mix')">Tech Mix <span class="material-symbols-outlined" style="font-size:12px;">add</span></span>
+            </div>
+          </div>
+          <div id="rider-mixes-list" style="background:#000;border-radius:10px;border:1px solid rgba(255,255,255,0.04);padding:10px 14px;display:none;">
+          </div>
+        </div>
       </div>
+
+      <!-- Power Plan card -->
+      <div class="rd-card">
+        <div class="rd-card-header">
+          <span class="material-symbols-outlined rd-card-icon">bolt</span>
+          <h3 class="rd-card-title">Power Plan</h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <span class="rd-config-label">Circuit Specification</span>
+            <div style="position:relative;">
+              <select id="rider-power-spec" class="rd-config-select" onchange="updateRiderConfig('powerSpec',this.value)">
+                <option value="4x20a">4x 20A Isolated Circuits</option>
+                <option value="2x32a">2x 32A CEE Power</option>
+                <option value="8x13a">8x 13A UK Standard</option>
+              </select>
+              <span class="material-symbols-outlined" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;color:#767575;pointer-events:none;">expand_more</span>
+            </div>
+          </div>
+          <div>
+            <span class="rd-config-label">Drop Locations</span>
+            <div class="rd-drop-grid" id="rider-drops-grid">
+              <div class="rd-drop-item active" onclick="toggleRiderDrop(this)" data-drop="drums"><span class="rd-drop-label">DRUMS</span><span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);font-variation-settings:'FILL' 1;">check_circle</span></div>
+              <div class="rd-drop-item" onclick="toggleRiderDrop(this)" data-drop="keyboard"><span class="rd-drop-label">KEYBOARD</span><span class="material-symbols-outlined" style="font-size:16px;color:#767575;">add_circle</span></div>
+              <div class="rd-drop-item active" onclick="toggleRiderDrop(this)" data-drop="stageL"><span class="rd-drop-label">STAGE L</span><span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);font-variation-settings:'FILL' 1;">check_circle</span></div>
+              <div class="rd-drop-item active" onclick="toggleRiderDrop(this)" data-drop="stageR"><span class="rd-drop-label">STAGE R</span><span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);font-variation-settings:'FILL' 1;">check_circle</span></div>
+            </div>
+          </div>
+          <div class="rd-info-banner">
+            <p>Note: All audio power must be shared ground and isolated from lighting circuits.</p>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Technical Requirements card -->
@@ -2483,6 +2659,19 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
       >Artist provides all instruments, IEM transmitters, and playback rack. Venue supplies microphones, stands, and XLR cabling. PA must sustain 105 dB continuous at FOH.
 
 Front-fills mandatory for the first 3 rows. All wireless systems must be frequency-coordinated before load-in.</textarea>
+    </div>
+
+    <!-- Live Stage Plot Preview -->
+    <div style="margin-bottom:6px;">
+      <h3 style="font-family:'Manrope',sans-serif;font-size:1.2rem;font-weight:900;color:#e7e5e4;margin:0 0 12px;letter-spacing:-0.03em;">Stage Plot Visualization</h3>
+    </div>
+    <div class="rd-stage-preview">
+      <div class="rd-stage-preview-inner" id="rider-stage-preview-slot"></div>
+      <div class="rd-stage-preview-grad"></div>
+      <div class="rd-stage-preview-badge">
+        <span class="rd-live-dot"></span>
+        <span>Live Edit Mode</span>
+      </div>
     </div>
 
   </div>
