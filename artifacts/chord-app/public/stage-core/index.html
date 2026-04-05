@@ -194,6 +194,12 @@ body {
 #view-Rider, #view-Setlist, #view-Gear, #view-Members {
   padding-bottom: 160px !important;
 }
+#view-Rider *:not(.material-symbols-outlined):not([data-lucide]),
+#view-Setlist *:not(.material-symbols-outlined):not([data-lucide]),
+#view-Gear *:not(.material-symbols-outlined):not([data-lucide]),
+#view-Members *:not(.material-symbols-outlined):not([data-lucide]) {
+  font-family: 'Manrope', sans-serif !important;
+}
 
 /* 6. View slide animations (replaces the old opacity-only entering) */
 .sc-slide-left  { animation: sc-from-right 240ms cubic-bezier(0.22,1,0.36,1) both !important; }
