@@ -4392,11 +4392,24 @@ function _doAutosave() {
 // ══════════════════════════════════════════════════════════
 function saveProject() {
   try {
-    localStorage.setItem('stagecoreProject', JSON.stringify({ schemaVersion: 7, members: state.members, riderNeeds: state.riderNeeds, lang: state.lang, segments: state.segments, setlist: state.setlist, timeline: state.timeline, gear: state.gear }));
+    localStorage.setItem('stagecoreProject', JSON.stringify({
+      schemaVersion: 8,
+      elements: JSON.parse(JSON.stringify(state.elements)),
+      connections: JSON.parse(JSON.stringify(state.connections)),
+      members: state.members,
+      riderNeeds: state.riderNeeds,
+      lang: state.lang,
+      segments: state.segments,
+      setlist: state.setlist,
+      timeline: state.timeline,
+      gear: state.gear,
+      canvasW: state.canvasW,
+      canvasH: state.canvasH,
+      nextId: state.nextId,
+    }));
   } catch(e) {}
   _sessionSave();
   showToast(T('projectSaved'));
-  // Always push to cloud autosave when signed in, independent of local autosave toggle
   scheduleCloudAutosave();
 }
 
@@ -4412,59 +4425,22 @@ function _sessionSave() {
   } catch(e) {}
 }
 function _sessionRestore() {
-  try {
-    const raw = localStorage.getItem('sc_session');
-    if (!raw) { loadSaved(); return; }
-    const d = JSON.parse(raw);
-    if (d.elements)    state.elements    = JSON.parse(JSON.stringify(d.elements));
-    if (d.connections) state.connections = JSON.parse(JSON.stringify(d.connections));
-    if (d.setlist)     state.setlist     = JSON.parse(JSON.stringify(d.setlist));
-    if (d.segments)    state.segments    = JSON.parse(JSON.stringify(d.segments));
-    if (d.gear)        state.gear        = JSON.parse(JSON.stringify(d.gear));
-    if (d.members)     state.members     = JSON.parse(JSON.stringify(d.members));
-    if (d.timeline)    state.timeline    = JSON.parse(JSON.stringify(d.timeline));
-    if (d.riderNeeds)  state.riderNeeds  = JSON.parse(JSON.stringify(d.riderNeeds));
-    if (d._rnNextId)   state._rnNextId   = d._rnNextId;
-    if (d.lang)        state.lang        = d.lang;
-    if (d.canvasBg) {
-      state.canvasBg = d.canvasBg;
-      // Do NOT set inline style here — CSS rule handles the correct theme-based bg before first paint.
-      // applySettings() runs immediately after _sessionRestore() and will apply the correct bg.
-    }
-    if (d.navOrder)  state.navOrder  = d.navOrder;
-    if (d.gridSize)  state.gridSize  = d.gridSize;
-    if (d.canvasW)   { state.canvasW = d.canvasW; state.canvasH = d.canvasH; }
-    state.nextId = Math.max(state.nextId || 1,
-      (d.elements || []).reduce((m, el) => Math.max(m, (parseInt(el.id.replace('el-','')) || 0) + 1), 1));
-    _memberNextId = (d.members || []).reduce((mx, m) =>
-      Math.max(mx, (parseInt(String(m.id).replace('m','')) || 0) + 1), 1);
-    _segNextId = (d.segments || []).reduce((mx, s) => Math.max(mx, (s.id || 0) + 1), 1);
-    if (d.elements?.length) { renderAll(); }
-    // Recovery: if session has no members but the project backup does, restore them
-    if (!state.members?.length) {
-      try {
-        const backup = JSON.parse(localStorage.getItem('stagecoreProject') || '{}');
-        if (backup.members?.length) {
-          state.members = JSON.parse(JSON.stringify(backup.members));
-          _memberNextId = state.members.reduce((mx, m) =>
-            Math.max(mx, (parseInt(String(m.id).replace('m','')) || 0) + 1), 1);
-        }
-      } catch {}
-    }
-    renderMembersView();
-    renderGear();
-    renderRiderNeeds();
-    renderSetlist();
-  } catch(e) {
-    loadSaved();
-  }
+  localStorage.removeItem('sc_session');
+  loadSaved();
 }
 function loadSaved() {
   try {
     const raw = localStorage.getItem('stagecoreProject');
     if (!raw) return;
     const d = JSON.parse(raw);
-    // Only restore members, riderNeeds, lang — everything else starts fresh each session
+    if (d.elements && Array.isArray(d.elements)) {
+      state.elements = JSON.parse(JSON.stringify(d.elements));
+    }
+    if (d.connections && Array.isArray(d.connections)) {
+      state.connections = JSON.parse(JSON.stringify(d.connections));
+    }
+    if (d.canvasW) { state.canvasW = d.canvasW; state.canvasH = d.canvasH; }
+    if (d.nextId) state.nextId = d.nextId;
     state.members = (d.schemaVersion >= 3) ? (d.members || []) : [];
     _memberNextId = state.members.reduce((max, m) => {
       const n = parseInt(String(m.id).replace('m', '')) || 0;
@@ -4508,6 +4484,7 @@ function loadSaved() {
       state.theme = d.theme;
       applyTheme(d.theme);
     }
+    if (state.elements.length) renderAll();
     renderMembersView();
     renderGear();
     renderRiderNeeds();
