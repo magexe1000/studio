@@ -7,13 +7,23 @@ import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 import StudioHub from './components/StudioHub';
-const StagexPanel = lazy(() => import('./components/StageCorePanel'));
+const stagexImport  = () => import('./components/StageCorePanel');
+const libraryImport = () => import('./panels/LibraryPanel');
+const chordImport   = () => import('./panels/ChordPanel');
+const settingsImport = () => import('./panels/SettingsPanel');
+const songsImport   = () => import('./panels/SongsPanel');
+const drumImport    = () => import('./panels/DrumEditor');
 
-const LibraryPanel  = lazy(() => import('./panels/LibraryPanel'));
-const ChordPanel    = lazy(() => import('./panels/ChordPanel'));
-const SettingsPanel = lazy(() => import('./panels/SettingsPanel'));
-const SongsPanel    = lazy(() => import('./panels/SongsPanel'));
-const DrumEditor    = lazy(() => import('./panels/DrumEditor'));
+const StagexPanel  = lazy(stagexImport);
+const LibraryPanel = lazy(libraryImport);
+const ChordPanel   = lazy(chordImport);
+const SettingsPanel = lazy(settingsImport);
+const SongsPanel   = lazy(songsImport);
+const DrumEditor   = lazy(drumImport);
+
+const preloadAll = () => { chordImport(); libraryImport(); songsImport(); settingsImport(); drumImport(); stagexImport(); };
+if (typeof requestIdleCallback === 'function') requestIdleCallback(preloadAll);
+else setTimeout(preloadAll, 200);
 
 // Ordered left-to-right (matches nav order) — used to compute slide direction
 const NAV_ORDER = ['songs', 'library', 'chord', 'settings'] as const;
