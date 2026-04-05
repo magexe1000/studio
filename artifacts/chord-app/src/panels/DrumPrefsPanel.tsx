@@ -2,10 +2,13 @@ import { useRef } from 'react';
 import { useDrumStore } from '../store/useDrumStore';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
+import { useT } from '../lib/useT';
 
 export default function DrumPrefsPanel() {
   const { settings } = useChordStore();
   const { drumPrefs, updateDrumPrefs } = useDrumStore();
+  const t = useT();
+  const dp = t.drumPrefs;
   const acc = ACCENT_COLORS[(settings.perApp?.drums?.accentColor ?? settings.accentColor) as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue;
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -39,74 +42,54 @@ export default function DrumPrefsPanel() {
           paddingBottom: 'calc(max(16px, env(safe-area-inset-bottom)) + 90px)',
         }}
       >
-        {/* page title */}
         <div style={{ marginTop: 12, marginBottom: 24 }}>
           <h2 style={{
             fontFamily: 'Manrope', fontWeight: 900, fontSize: '2.6rem',
             color: 'var(--c-text-primary)', letterSpacing: '-0.04em',
             lineHeight: 1, margin: 0,
           }}>
-            Preferences
+            {dp.title}
           </h2>
           <p style={{
             color: 'var(--c-text-secondary)', fontFamily: 'Inter',
             fontSize: 13, marginTop: 4,
           }}>
-            Customize how Drumex feels
+            {dp.subtitle}
           </p>
         </div>
 
-        {/* ── EDITOR BEHAVIOR ── */}
-        <SectionHeader icon="edit_note" title="Editor Behavior" />
+        <SectionHeader icon="edit_note" title={dp.editorBehavior} />
         <div style={cardStyle}>
-          {row('noteVariationsCycle', 'Note Variations Cycle',
-            'Tap repeatedly to cycle through note types (rim, ghost, flam…)')}
-          {row('autoExpandPattern', 'Auto-Expand Pattern',
-            'Adds new measures automatically when reaching the end')}
-          {row('snapToGrid', 'Snap to Grid',
-            'Keeps notes aligned to the timing grid')}
-          {row('dragToFill', 'Drag to Fill Notes',
-            'Hold and drag to quickly create repeated notes')}
+          {row('noteVariationsCycle', dp.noteVariations, dp.noteVariationsDesc)}
+          {row('autoExpandPattern', dp.autoExpand, dp.autoExpandDesc)}
+          {row('snapToGrid', dp.snapToGrid, dp.snapToGridDesc)}
+          {row('dragToFill', dp.dragToFill, dp.dragToFillDesc)}
         </div>
 
-        {/* ── PLAYBACK ── */}
-        <SectionHeader icon="play_circle" title="Playback" />
+        <SectionHeader icon="play_circle" title={dp.playback} />
         <div style={cardStyle}>
-          {row('autoPlayOnEdit', 'Auto Play on Edit',
-            'Play sound immediately when placing a note')}
-          {row('loopPlayback', 'Loop Playback',
-            'Loop the pattern continuously during playback')}
-          {row('metronome', 'Metronome',
-            'Enable click track while playing')}
-          {row('countIn', 'Count-In',
-            'Short count before playback starts')}
+          {row('autoPlayOnEdit', dp.autoPlay, dp.autoPlayDesc)}
+          {row('loopPlayback', dp.loopPlayback, dp.loopPlaybackDesc)}
+          {row('metronome', dp.metronome, dp.metronomeDesc)}
+          {row('countIn', dp.countIn, dp.countInDesc)}
         </div>
 
-        {/* ── INTERACTION ── */}
-        <SectionHeader icon="touch_app" title="Interaction" />
+        <SectionHeader icon="touch_app" title={dp.interaction} />
         <div style={cardStyle}>
-          {row('quickDeleteMode', 'Quick Delete Mode',
-            'Tap removes a note instantly instead of cycling variations')}
-          {row('showNoteVariations', 'Show Note Variations',
-            'Visually differentiate ghost, rim, flam and other types')}
-          {row('highlightActiveInst', 'Highlight Active Instrument',
-            'Emphasize the currently selected drum row')}
+          {row('quickDeleteMode', dp.quickDelete, dp.quickDeleteDesc)}
+          {row('showNoteVariations', dp.showVariations, dp.showVariationsDesc)}
+          {row('highlightActiveInst', dp.highlightActive, dp.highlightActiveDesc)}
         </div>
 
-        {/* ── VISUAL ── */}
-        <SectionHeader icon="grid_on" title="Visual" />
+        <SectionHeader icon="grid_on" title={dp.visual} />
         <div style={cardStyle}>
-          {row('gridLinesEmphasis', 'Grid Lines Emphasis',
-            'Highlight main beats (1, 2, 3, 4) for better readability')}
+          {row('gridLinesEmphasis', dp.gridEmphasis, dp.gridEmphasisDesc)}
         </div>
 
-        {/* ── PERFORMANCE ── */}
-        <SectionHeader icon="speed" title="Performance" />
+        <SectionHeader icon="speed" title={dp.performance} />
         <div style={cardStyle}>
-          {row('lowLatencyMode', 'Low Latency Mode',
-            'Improve real-time responsiveness when tapping notes')}
-          {row('performanceMode', 'Performance Mode',
-            'Reduce heavy processing for a smoother experience')}
+          {row('lowLatencyMode', dp.lowLatency, dp.lowLatencyDesc)}
+          {row('performanceMode', dp.performanceMode, dp.performanceModeDesc)}
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import {
   memo, useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
+import { useT } from '../lib/useT';
 import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, INSTRUMENT_NAME, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS,
   stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX, emptyMeasure, DRUM_INSTRUMENTS,
@@ -136,11 +137,11 @@ const KIT_IMAGE: Record<KitType, string> = {
   stark:  `${BASE}/kit-stark.webp`,
   house:  `${BASE}/kit-house.png`,
 };
-const KIT_CATEGORIES: { id: string; label: string; kits: KitType[] }[] = [
-  { id: 'acoustic', label: 'Acoustic Drums', kits: ['ludwig', 'jazz', 'rmm', 'chrome'] },
-  { id: 'studio',   label: 'Studio Drums',   kits: ['studio', 'r8', 'linn', 'funk'] },
-  { id: 'electric', label: 'Electric Drums', kits: ['cr78', 'tr808', 'techno', 'stark'] },
-  { id: 'ultrahd',  label: 'Ultra HD',       kits: ['house'] },
+const KIT_CATEGORIES: { id: string; kits: KitType[] }[] = [
+  { id: 'acoustic', kits: ['ludwig', 'jazz', 'rmm', 'chrome'] },
+  { id: 'studio',   kits: ['studio', 'r8', 'linn', 'funk'] },
+  { id: 'electric', kits: ['cr78', 'tr808', 'techno', 'stark'] },
+  { id: 'ultrahd',  kits: ['house'] },
 ];
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
@@ -413,17 +414,21 @@ function IconPrefs({ active }: { active: boolean }) {
 }
 
 // ── Bottom nav (Songs / Patterns / Prefs) ──────────────────────────────────
-const ALL_NAV_TABS: { id: DrumTab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
-  { id: 'songs',    label: 'Songs',    Icon: IconDrumSongs },
-  { id: 'patterns', label: 'Patterns', Icon: IconPatterns  },
-  { id: 'prefs',    label: 'Preferences', Icon: IconPrefs  },
-];
+function useDrumNavTabs(): { id: DrumTab; label: string; Icon: React.FC<{ active: boolean }> }[] {
+  const t = useT();
+  return [
+    { id: 'songs',    label: t.drum.songs,       Icon: IconDrumSongs },
+    { id: 'patterns', label: t.drum.patterns,     Icon: IconPatterns  },
+    { id: 'prefs',    label: t.drum.preferences,  Icon: IconPrefs     },
+  ];
+}
 function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
   activeTab: DrumTab; setTab: (t: DrumTab) => void;
   accent: { from: string; to: string };
   isLight: boolean; isAmoled: boolean;
   hidden?: boolean;
 }) {
+  const ALL_NAV_TABS = useDrumNavTabs();
   const navRef  = useRef<HTMLElement | null>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [pill, setPill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });

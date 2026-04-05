@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StudioLogo, ChordexLogo, DrumexLogo, StageCoreLogoIcon } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import type { AppKey } from '../store/useChordStore';
+import { useT } from '../lib/useT';
 
 interface AppCard {
   key: AppKey;
@@ -24,6 +25,7 @@ interface ApplyToSheetProps {
 
 export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetProps) {
   const { settings } = useChordStore();
+  const t = useT();
   const appKey = (settings.appMode ?? 'hub') as AppKey;
   const perApp = settings.perApp;
   const vis    = perApp?.[appKey] ?? { accentColor: 'blue' };
@@ -116,13 +118,13 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
           fontSize: 17, fontWeight: 800, color: 'var(--c-text-primary)',
           letterSpacing: '-0.02em', fontFamily: 'Manrope',
         }}>
-          Apply to…
+          {t.applyTo.title}
         </p>
         <p style={{
           textAlign: 'center', margin: '0 0 20px',
           fontSize: 13, color: 'var(--c-text-secondary)', fontFamily: 'Inter',
         }}>
-          Select which apps get this change
+          {t.applyTo.subtitle}
         </p>
 
         {/* App cards */}
@@ -200,7 +202,7 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
             cursor: 'pointer',
           }}
         >
-          Apply
+          {t.applyTo.apply}
         </button>
       </div>
     </div>

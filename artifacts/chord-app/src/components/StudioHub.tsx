@@ -15,6 +15,10 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: 'system', label: 'Auto' },
 ];
 
+type TimeWord = 'morning' | 'afternoon' | 'evening';
+const TIME_WORD_ES: Record<TimeWord, string> = { morning: 'mañana', afternoon: 'tarde', evening: 'noche' };
+const TIME_GREETING_ES: Record<TimeWord, string> = { morning: 'Buenos días', afternoon: 'Buenas tardes', evening: 'Buenas noches' };
+
 // ── Session index — stable within one app open, advances each fresh launch ─────
 // A module-level variable resets to null on every page load (fresh JS context)
 // but stays stable across React re-renders, avoiding sessionStorage/PWA quirks.
@@ -32,7 +36,7 @@ function getSessionIndex(): number {
 // ── Greeting pairs — greeting + subtitle are always shown together ─────────────
 interface GreetingPair { greeting: string; subtitle: string }
 
-const _NAMED_PAIRS: Array<(n: string, t: string) => GreetingPair> = [
+const _NAMED_PAIRS_EN: Array<(n: string, t: string) => GreetingPair> = [
   (n, t) => ({ greeting: `Good ${t}, ${n}.`,              subtitle: 'What are we picking today?'         }),
   (n)    => ({ greeting: `Welcome back, ${n}.`,           subtitle: 'Ready to lay something down?'       }),
   (n)    => ({ greeting: `Good to see you, ${n}.`,        subtitle: "What's on the setlist today?"       }),
@@ -57,7 +61,32 @@ const _NAMED_PAIRS: Array<(n: string, t: string) => GreetingPair> = [
   (n, t) => ({ greeting: `Good ${t}, ${n}.`,              subtitle: 'Capture it before it\'s gone.'      }),
 ];
 
-const _ANON_PAIRS: GreetingPair[] = [
+const _NAMED_PAIRS_ES: Array<(n: string, t: string) => GreetingPair> = [
+  (n, t) => ({ greeting: `${TIME_GREETING_ES[t as TimeWord]}, ${n}.`,  subtitle: '¿Qué tocamos hoy?'                   }),
+  (n)    => ({ greeting: `De vuelta, ${n}.`,             subtitle: '¿Listo para grabar algo?'             }),
+  (n)    => ({ greeting: `Qué bueno verte, ${n}.`,       subtitle: '¿Qué hay en el setlist hoy?'          }),
+  (n)    => ({ greeting: `A crear, ${n}.`,               subtitle: 'Nuevas progresiones te esperan.'      }),
+  (n)    => ({ greeting: `El estudio es tuyo, ${n}.`,    subtitle: 'Elige tu arma.'                       }),
+  (n)    => ({ greeting: `Otra vez aquí, ${n}.`,         subtitle: 'La constancia hace al maestro.'       }),
+  (n)    => ({ greeting: `Hagamos algo, ${n}.`,          subtitle: 'Toda gran canción empieza aquí.'      }),
+  (n)    => ({ greeting: `Sesión nueva, ${n}.`,          subtitle: '¿A dónde te lleva hoy?'               }),
+  (n)    => ({ greeting: `En la zona, ${n}.`,            subtitle: 'Es hora de hacer algo grande.'        }),
+  (n, t) => ({ greeting: `${TIME_GREETING_ES[t as TimeWord]}, ${n}.`,  subtitle: 'Tu próxima idea te espera.'            }),
+  (n)    => ({ greeting: `Listo para el groove, ${n}.`,  subtitle: 'El ritmo ya está en ti.'              }),
+  (n)    => ({ greeting: `Algo se viene, ${n}.`,         subtitle: 'Sigue el sonido.'                     }),
+  (n)    => ({ greeting: `Vamos a crear, ${n}.`,         subtitle: 'Esta sesión es tuya.'                 }),
+  (n)    => ({ greeting: `Que cuente, ${n}.`,            subtitle: 'Dale con todo.'                       }),
+  (n)    => ({ greeting: `Arrancamos, ${n}.`,            subtitle: 'Tu próximo track empieza ahora.'      }),
+  (n)    => ({ greeting: `Retoma donde lo dejaste, ${n}.`, subtitle: 'El estudio recuerda.'               }),
+  (n)    => ({ greeting: `¿Cuál es el plan, ${n}?`,      subtitle: 'El estudio escucha.'                  }),
+  (n)    => ({ greeting: `A tocar, ${n}.`,               subtitle: 'Listo cuando quieras.'                }),
+  (n)    => ({ greeting: `Siente el ritmo, ${n}.`,       subtitle: 'Déjalo fluir.'                        }),
+  (n)    => ({ greeting: `A grabar, ${n}.`,              subtitle: 'Dale con todo.'                       }),
+  (n)    => ({ greeting: `Hey ${n}.`,                    subtitle: 'Algo grande está a un toque.'         }),
+  (n, t) => ({ greeting: `${TIME_GREETING_ES[t as TimeWord]}, ${n}.`,  subtitle: 'Atrápalo antes de que se vaya.'        }),
+];
+
+const _ANON_PAIRS_EN: GreetingPair[] = [
   { greeting: 'Good morning.',                 subtitle: 'What are we picking today?'          },
   { greeting: 'Welcome back.',                 subtitle: 'Ready to lay something down?'        },
   { greeting: 'The studio is open.',           subtitle: 'Choose your weapon.'                 },
@@ -82,18 +111,50 @@ const _ANON_PAIRS: GreetingPair[] = [
   { greeting: "Let's lay it down.",            subtitle: 'Your next track starts now.'         },
 ];
 
-function getGreetingPair(name?: string, idx?: number): GreetingPair {
+const _ANON_PAIRS_ES: GreetingPair[] = [
+  { greeting: 'Buenos días.',                  subtitle: '¿Qué tocamos hoy?'                  },
+  { greeting: 'De vuelta.',                    subtitle: '¿Listo para grabar algo?'            },
+  { greeting: 'El estudio está listo.',        subtitle: 'Elige tu arma.'                      },
+  { greeting: 'A crear.',                      subtitle: 'Nuevas progresiones te esperan.'     },
+  { greeting: 'Qué bueno tenerte aquí.',       subtitle: 'Que la música guíe.'                 },
+  { greeting: 'Hagamos música.',               subtitle: 'Un acorde a la vez.'                 },
+  { greeting: 'Sesión nueva.',                 subtitle: '¿A dónde te lleva hoy?'              },
+  { greeting: 'Listo para el groove.',         subtitle: 'El ritmo ya está en ti.'             },
+  { greeting: 'En la zona.',                   subtitle: 'Es hora de hacer algo grande.'       },
+  { greeting: 'Retoma donde lo dejaste.',      subtitle: 'Tu próxima idea te espera.'          },
+  { greeting: 'Las teclas esperan.',           subtitle: 'Dales algo que tocar.'               },
+  { greeting: 'Algo se siente en el aire.',    subtitle: 'Atrápalo antes de que se vaya.'      },
+  { greeting: 'Vamos a crear.',                subtitle: 'Toda gran canción empieza aquí.'     },
+  { greeting: 'Que cuente.',                   subtitle: 'Esta sesión es tuya.'                },
+  { greeting: 'Arrancamos.',                   subtitle: 'Dale con todo.'                      },
+  { greeting: 'Qué bueno verte.',              subtitle: '¿Qué hay en el setlist?'             },
+  { greeting: '¿Cuál es el plan?',             subtitle: 'El estudio escucha.'                 },
+  { greeting: 'Otra vez aquí.',                subtitle: 'La constancia hace al maestro.'      },
+  { greeting: 'A tocar.',                      subtitle: 'Listo cuando quieras.'               },
+  { greeting: 'Siente el ritmo.',              subtitle: 'Déjalo fluir.'                       },
+  { greeting: 'Algo se viene.',                subtitle: 'Sigue el sonido.'                    },
+  { greeting: 'A grabar.',                     subtitle: 'Tu próximo track empieza ahora.'     },
+];
+
+function getGreetingPair(name?: string, idx?: number, lang: 'en' | 'es' = 'en'): GreetingPair {
   const h = new Date().getHours();
   const timeWord = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
   const i = idx ?? 0;
 
   if (name?.trim()) {
-    const fn = _NAMED_PAIRS[i % _NAMED_PAIRS.length];
+    const pairs = lang === 'es' ? _NAMED_PAIRS_ES : _NAMED_PAIRS_EN;
+    const fn = pairs[i % pairs.length];
     return fn(name.trim(), timeWord);
   }
 
-  const pair = _ANON_PAIRS[i % _ANON_PAIRS.length];
-  // Replace generic "Good morning" with time-aware version
+  const anonPairs = lang === 'es' ? _ANON_PAIRS_ES : _ANON_PAIRS_EN;
+  const pair = anonPairs[i % anonPairs.length];
+  if (lang === 'es') {
+    return {
+      ...pair,
+      greeting: pair.greeting === 'Buenos días.' ? `${TIME_GREETING_ES[timeWord as TimeWord]}.` : pair.greeting,
+    };
+  }
   return {
     ...pair,
     greeting: pair.greeting === 'Good morning.' ? `Good ${timeWord}.` : pair.greeting,
@@ -102,6 +163,8 @@ function getGreetingPair(name?: string, idx?: number): GreetingPair {
 
 export default function StudioHub() {
   const { settings, updateSettings } = useChordStore();
+  const t = useT();
+  const lang = settings.language ?? 'en';
   const hubAccentKey = settings.perApp?.hub?.accentColor ?? settings.accentColor;
   const accent = ACCENT_COLORS[hubAccentKey];
   const isHubLight = (settings.perApp?.hub?.theme ?? settings.theme ?? 'dark') === 'light';
@@ -119,7 +182,7 @@ export default function StudioHub() {
   };
 
   const sessionIdx = getSessionIndex();
-  const { greeting, subtitle } = getGreetingPair(settings.hubUserName, sessionIdx);
+  const { greeting, subtitle } = getGreetingPair(settings.hubUserName, sessionIdx, lang);
 
   return (
     <div style={{
@@ -155,10 +218,10 @@ export default function StudioHub() {
                 <StudioLogo size={56} />
               </div>
               <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: '10px 0 0', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                Studio
+                {t.hub.studio}
               </p>
               <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '5px 0 0', letterSpacing: '0.05em', fontWeight: 500 }}>
-                by Chordex
+                {t.hub.byChordex}
               </p>
             </div>
 
@@ -188,9 +251,9 @@ export default function StudioHub() {
 
               {/* App rows */}
               {([
-                { app: 'chords' as TargetApp, Logo: ChordexLogo,       name: 'Chordex',    desc: 'Chord library & songs'       },
-                { app: 'drums'  as TargetApp, Logo: DrumexLogo,        name: 'Drumex',     desc: 'Drum sheet editor'           },
-                { app: 'stage'  as TargetApp, Logo: StageCoreLogoIcon, name: 'Stagex',     desc: 'Stage plot & tech rider'     },
+                { app: 'chords' as TargetApp, Logo: ChordexLogo,       name: 'Chordex',    desc: t.hub.chordexDesc       },
+                { app: 'drums'  as TargetApp, Logo: DrumexLogo,        name: 'Drumex',     desc: t.hub.drumexDesc        },
+                { app: 'stage'  as TargetApp, Logo: StageCoreLogoIcon, name: 'Stagex',     desc: t.hub.stagexDesc        },
               ]).map(({ app, Logo, name, desc }, i, arr) => (
                 <AppRow
                   key={app}
@@ -279,6 +342,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 function GlobalHint() {
+  const t = useT();
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 5,
@@ -296,7 +360,7 @@ function GlobalHint() {
         fontFamily: 'Inter',
         letterSpacing: '0.01em',
       }}>
-        Applies to all apps
+        {t.hub.appliesToAll}
       </p>
     </div>
   );
@@ -352,38 +416,38 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
 
       {/* Page title */}
       <div style={{ paddingTop: 32, paddingBottom: 8 }}>
-        <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em' }}>Settings</p>
-        <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>Studio preferences</p>
+        <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em' }}>{t.hub.settingsTitle}</p>
+        <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>{t.hub.settingsSubtitle}</p>
       </div>
 
       {/* ── Account ── */}
-      <p style={sectionLabel}>Account</p>
+      <p style={sectionLabel}>{t.hub.account}</p>
       <div style={cardStyle}>
         <div style={rowStyle}>
           <div>
-            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>Login</p>
-            <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>Sync across devices</p>
+            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>{t.hub.login}</p>
+            <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>{t.hub.syncDevices}</p>
           </div>
           <div style={{
             padding: '7px 14px', borderRadius: 9999,
             background: 'rgba(128,128,128,0.1)',
             border: '1px solid rgba(128,128,128,0.15)',
           }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-secondary)', margin: 0, whiteSpace: 'nowrap' }}>Coming soon</p>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-secondary)', margin: 0, whiteSpace: 'nowrap' }}>{t.hub.comingSoon}</p>
           </div>
         </div>
       </div>
 
       {/* ── Profile ── */}
-      <p style={sectionLabel}>Profile</p>
+      <p style={sectionLabel}>{t.hub.profile}</p>
       <div style={cardStyle}>
         <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', margin: '0 0 8px' }}>Your name</p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', margin: '0 0 8px' }}>{t.hub.yourName}</p>
           <input
             value={name}
             onChange={e => setName(e.target.value)}
             onBlur={() => updateSettings({ hubUserName: name })}
-            placeholder="Add your name for a greeting"
+            placeholder={t.hub.namePlaceholder}
             style={{
               width: '100%', boxSizing: 'border-box',
               background: 'rgba(128,128,128,0.08)',
@@ -414,7 +478,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
               { value: 'system', label: t.settings.rows.themeSystem, icon: 'brightness_auto', amoled: false },
               { value: 'light',  label: t.settings.rows.themeLight,  icon: 'light_mode',      amoled: false },
               { value: 'dark',   label: t.settings.rows.themeDark,   icon: 'dark_mode',        amoled: false },
-              { value: 'dark',   label: 'AMOLED',                    icon: 'contrast',          amoled: true  },
+              { value: 'dark',   label: t.hub.amoled,                 icon: 'contrast',          amoled: true  },
             ] as { value: Theme; label: string; icon: string; amoled: boolean }[]).map((opt, i) => {
               const isActive = opt.amoled
                 ? hubVis.amoledMode
@@ -580,10 +644,13 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
 }
 
 // ── Floating bottom nav (matches Chordex/Drumex style) ───────────────────────
-const HUB_NAV_ITEMS: { id: HubTab; icon: string; label: string }[] = [
-  { id: 'home',     icon: 'home',     label: 'Home'     },
-  { id: 'settings', icon: 'settings', label: 'Settings' },
-];
+function useHubNavItems(): { id: HubTab; icon: string; label: string }[] {
+  const t = useT();
+  return [
+    { id: 'home',     icon: 'home',     label: t.hub.home     },
+    { id: 'settings', icon: 'settings', label: t.hub.settings },
+  ];
+}
 
 function HubNav({ tab, setTab, accent }: {
   tab: HubTab;
@@ -591,6 +658,7 @@ function HubNav({ tab, setTab, accent }: {
   accent: { from: string; to: string; mid: string };
 }) {
   const { settings } = useChordStore();
+  const HUB_NAV_ITEMS = useHubNavItems();
   const navRef   = useRef<HTMLElement | null>(null);
   const btnRefs  = useRef<(HTMLButtonElement | null)[]>([]);
   const prevIdx  = useRef(HUB_NAV_ITEMS.findIndex(i => i.id === tab));
