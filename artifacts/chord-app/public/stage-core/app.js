@@ -2040,7 +2040,7 @@ function removeSelected() {
 }
 
 function updateDropHint() {
-  document.getElementById('drop-zone-hint').style.opacity = state.elements.length === 0 ? '0.6' : '0';
+  document.getElementById('drop-zone-hint').style.opacity = '0';
 }
 
 // ══════════════════════════════════════════════════════════
@@ -5841,10 +5841,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) _sess
 // Trigger the view-switch side-effects so desktop cat bar / mobile bars are in the right state
 switchView('Editor');
 
-// Show drop hint if empty on load
-if (state.elements.length === 0) {
-  document.getElementById('drop-zone-hint').style.opacity = '0.6';
-}
+// Drop hint is only shown during active drag-over, not on load
 
 // ── Pull-to-refresh (mobile only, only from top 60px of screen) ──
 (function() {
