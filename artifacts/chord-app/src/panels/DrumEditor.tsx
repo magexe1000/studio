@@ -1609,7 +1609,8 @@ export default function DrumEditor() {
 
   // ── Layout ───────────────────────────────────────────────────────────────
   const availableW     = containerW - LABEL_W;
-  const measuresPerRow = Math.max(1, Math.floor(availableW / (spm * MIN_STEP)));
+  const rawMpr         = Math.max(1, Math.floor(availableW / (spm * MIN_STEP)));
+  const measuresPerRow = isLandscape && pattern.measures.length > 0 ? Math.min(rawMpr, pattern.measures.length) : rawMpr;
   const MEASURE_W      = availableW / measuresPerRow;
   const STEP_W         = MEASURE_W / spm;
   const SYSTEM_H       = RULER_H + visibleInsts.length * ROW_H;
