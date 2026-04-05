@@ -105,13 +105,14 @@ const FourStringDiagram = memo(function FourStringDiagram({
         <text
           x={startX - 6}
           y={startY + cellH * 0.5}
-          fontSize={fontSize - 1}
+          fontSize={fontSize}
+          fontWeight="bold"
           fill="#acabaa"
           textAnchor="end"
           dominantBaseline="middle"
           fontFamily="Inter, sans-serif"
         >
-          {baseFret}fr
+          {baseFret}
         </text>
       )}
 

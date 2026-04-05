@@ -33,7 +33,7 @@ function MiniDotN({ frets, baseFret, accentFrom, numStrings, barres = [] }: {
       {/* Nut / fret label */}
       {nut
         ? <rect x={pL - 1} y={pT - 4} width={(numStrings - 1) * cW + 2} height={4} rx={1.5} fill={accentFrom} />
-        : <text x={pL - 3} y={pT + cH * 0.5} fontFamily="Manrope" fontSize={6.5} fill="#808080" textAnchor="end" dominantBaseline="middle">{baseFret}fr</text>
+        : <text x={pL - 3} y={pT + cH * 0.5} fontFamily="Manrope" fontSize={8} fontWeight="bold" fill="#999" textAnchor="end" dominantBaseline="middle">{baseFret}</text>
       }
       {/* Fret lines */}
       {Array.from({ length: numF + 1 }).map((_, i) => (

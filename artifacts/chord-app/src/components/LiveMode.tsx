@@ -44,8 +44,8 @@ function LiveDiagram({ data, accentFrom, accentTo }: { data: GuitarChordData; ac
       {showNut && <rect x={pL - 1} y={pT - 6} width={(numS - 1) * cW + 2} height={6} rx={2} fill="#e7e5e4" opacity={0.7} />}
       {/* Position number */}
       {!showNut && (
-        <text x={pL - 8} y={pT + cH * 0.5} fontFamily="Manrope" fontSize={11} fill="#acabaa" textAnchor="end" dominantBaseline="middle">
-          {baseFret}fr
+        <text x={pL - 8} y={pT + cH * 0.5} fontFamily="Manrope" fontSize={11} fontWeight="bold" fill="#acabaa" textAnchor="end" dominantBaseline="middle">
+          {baseFret}
         </text>
       )}
       {/* Fret lines */}
