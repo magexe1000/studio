@@ -1,4 +1,4 @@
-import type { DrumInstrument, DrumPattern, InstFX, KitType, HouseMic, HouseCrashModel, NoteVariation } from '../store/useDrumStore';
+import type { DrumInstrument, DrumPattern, InstFX, KitType, HouseMic, HouseCrashModel, CymbalPack, NoteVariation } from '../store/useDrumStore';
 import { DRUM_INSTRUMENTS, stepsPerMeasure } from '../store/useDrumStore';
 import { getPlugin } from './drumPlugins';
 import type { InstPlugin } from './drumPlugins';
@@ -704,24 +704,47 @@ export function loadHouseKit(mic: HouseMic) {
 }
 
 // ── House Kit Cymbal Pool — hi-hat, crash, ride WAV samples ─────────────────
-const CYMBAL_BASE = '/drums/cymbals';
+const CYMBAL_BASE    = '/drums/cymbals';
+const CYMBAL_ZK_BASE = '/drums/cymbals-zildjian';
+
+let _randomVariations = true;
+export function setRandomVariations(on: boolean): void { _randomVariations = on; }
+
+function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 
 class CymbalPool {
   private _buffers  = new Map<string, AudioBuffer>();
-  private _loaded   = false;
-  private _loading  = false;
+  private _defaultLoaded  = false;
+  private _defaultLoading = false;
+  private _zkLoaded  = false;
+  private _zkLoading = false;
   private _rrFoot   = 0;
   private _rrBow    = 0;
   private _rrBell   = 0;
   onStatusChange: ((loaded: number, total: number) => void) | null = null;
 
-  get ready(): boolean { return this._loaded; }
+  get ready(): boolean { return this._defaultLoaded; }
+  get zkReady(): boolean { return this._zkLoaded; }
+
+  private async _loadSet(ctx: AudioContext, base: string, files: string[]) {
+    const total = files.length;
+    let loaded = 0;
+    await Promise.all(files.map(name => (async () => {
+      try {
+        const resp = await fetch(`${base}/${name}.wav`, { cache: 'force-cache' });
+        if (!resp.ok) return;
+        const buf = await ctx.decodeAudioData(await resp.arrayBuffer());
+        this._buffers.set(name, buf);
+      } catch {}
+      loaded++;
+      this.onStatusChange?.(loaded, total);
+    })()));
+  }
 
   async load(ctx: AudioContext) {
-    if (this._loaded || this._loading) return;
-    this._loading = true;
-
-    const files = [
+    if (this._defaultLoaded || this._defaultLoading) return;
+    this._defaultLoading = true;
+    await this._loadSet(ctx, CYMBAL_BASE, [
       'hh-closed-soft', 'hh-closed-hard',
       'hh-halfopen-soft', 'hh-halfopen-hard',
       'hh-mostlyopen-soft', 'hh-mostlyopen-hard',
@@ -732,46 +755,67 @@ class CymbalPool {
       'crash-hhx18-bell', 'crash-hhx18-low', 'crash-hhx18-high', 'crash-hhx18-tip', 'crash-hhx18-choke',
       'crash-zcp19-bell', 'crash-zcp19-low', 'crash-zcp19-high', 'crash-zcp19-tip', 'crash-zcp19-choke',
       'ride-bell-1', 'ride-bell-2', 'ride-bow-1', 'ride-bow-2', 'ride-crash',
-    ];
+    ]);
+    this._defaultLoaded  = true;
+    this._defaultLoading = false;
+  }
 
-    const total = files.length;
-    let loaded = 0;
-
-    await Promise.all(files.map(name => (async () => {
-      try {
-        const resp = await fetch(`${CYMBAL_BASE}/${name}.wav`, { cache: 'force-cache' });
-        if (!resp.ok) return;
-        const buf = await ctx.decodeAudioData(await resp.arrayBuffer());
-        this._buffers.set(name, buf);
-      } catch { /* silently skip */ }
-      loaded++;
-      this.onStatusChange?.(loaded, total);
-    })()));
-
-    this._loaded  = true;
-    this._loading = false;
+  async loadZildjian(ctx: AudioContext) {
+    if (this._zkLoaded || this._zkLoading) return;
+    this._zkLoading = true;
+    await this._loadSet(ctx, CYMBAL_ZK_BASE, [
+      'zk-crash16-hit', 'zk-crash16-choke',
+      'zk-crash18-hit', 'zk-crash18-choke',
+      'zk-splash-hit', 'zk-splash-choke',
+      'zk-ride-edge', 'zk-ride-bow', 'zk-ride-bell',
+      'zk-stack-hit',
+    ]);
+    this._zkLoaded  = true;
+    this._zkLoading = false;
   }
 
   private _get(k: string): AudioBuffer | undefined { return this._buffers.get(k); }
 
   getHHClosed(variation: NoteVariation): AudioBuffer | undefined {
+    if (_randomVariations) {
+      return this._get(Math.random() > 0.5 ? 'hh-closed-hard' : 'hh-closed-soft');
+    }
     const hard = variation === 'accent' || variation === 'open';
     return this._get(hard ? 'hh-closed-hard' : 'hh-closed-soft');
   }
 
   getHHOpen(variation: NoteVariation): AudioBuffer | undefined {
+    if (_randomVariations) {
+      const opts = ['hh-halfopen-soft','hh-halfopen-hard','hh-mostlyopen-soft','hh-mostlyopen-hard','hh-fullopen-hard'];
+      return this._get(pick(opts));
+    }
     if (variation === 'accent') return this._get('hh-fullopen-hard') ?? this._get('hh-mostlyopen-hard');
     if (variation === 'open')   return this._get('hh-mostlyopen-soft') ?? this._get('hh-halfopen-hard');
     return this._get('hh-halfopen-soft');
   }
 
   getHHFoot(): AudioBuffer | undefined {
-    const rr = (this._rrFoot % 4) + 1;
+    const rr = _randomVariations ? (Math.floor(Math.random() * 4) + 1) : ((this._rrFoot % 4) + 1);
     this._rrFoot++;
     return this._get(`hh-foot-${rr}`);
   }
 
-  getCrash(model: HouseCrashModel, variation: NoteVariation): AudioBuffer | undefined {
+  getCrash(model: HouseCrashModel, variation: NoteVariation, pack: CymbalPack): AudioBuffer | undefined {
+    if (pack === 'zildjian-k') {
+      if (variation === 'choke') {
+        if (_randomVariations) return this._get(pick(['zk-crash16-choke','zk-crash18-choke','zk-splash-choke']));
+        return this._get('zk-crash18-choke');
+      }
+      if (_randomVariations) return this._get(pick(['zk-crash16-hit','zk-crash18-hit','zk-splash-hit','zk-stack-hit']));
+      return this._get('zk-crash18-hit');
+    }
+    if (_randomVariations) {
+      const models: HouseCrashModel[] = ['ac18','am17','hhx18','zcp19'];
+      const sfxOpts = variation === 'choke' ? ['choke'] : ['bell','low','high','tip'];
+      const m = pick(models);
+      const s = pick(sfxOpts);
+      return this._get(`crash-${m}-${s}`);
+    }
     const sfx = variation === 'bell'   ? 'bell'  :
                 variation === 'choke'  ? 'choke' :
                 variation === 'accent' ? 'high'  :
@@ -779,14 +823,20 @@ class CymbalPool {
     return this._get(`crash-${model}-${sfx}`);
   }
 
-  getRide(variation: NoteVariation): AudioBuffer | undefined {
+  getRide(variation: NoteVariation, pack: CymbalPack): AudioBuffer | undefined {
+    if (pack === 'zildjian-k') {
+      if (variation === 'bell') return this._get('zk-ride-bell');
+      if (variation === 'choke') return this._get('zk-ride-edge');
+      if (_randomVariations) return this._get(pick(['zk-ride-bow','zk-ride-bell','zk-ride-edge']));
+      return this._get('zk-ride-bow');
+    }
     if (variation === 'bell') {
-      const rr = (this._rrBell % 2) + 1;
+      const rr = _randomVariations ? (Math.floor(Math.random() * 2) + 1) : ((this._rrBell % 2) + 1);
       this._rrBell++;
       return this._get(`ride-bell-${rr}`);
     }
     if (variation === 'choke') return this._get('ride-crash');
-    const rr = (this._rrBow % 2) + 1;
+    const rr = _randomVariations ? (Math.floor(Math.random() * 2) + 1) : ((this._rrBow % 2) + 1);
     this._rrBow++;
     return this._get(`ride-bow-${rr}`);
   }
@@ -797,9 +847,19 @@ export const cymbalPool = new CymbalPool();
 let _houseCrashModel: HouseCrashModel = 'ac18';
 export function setHouseCrashModel(model: HouseCrashModel): void { _houseCrashModel = model; }
 
+let _cymbalPack: CymbalPack = 'default';
+export function setCymbalPackAudio(pack: CymbalPack): void {
+  _cymbalPack = pack;
+  if (pack === 'zildjian-k') {
+    const { ctx } = getCtx();
+    cymbalPool.loadZildjian(ctx);
+  }
+}
+
 export function loadHouseCymbals(): void {
   const { ctx } = getCtx();
   cymbalPool.load(ctx);
+  if (_cymbalPack === 'zildjian-k') cymbalPool.loadZildjian(ctx);
 }
 
 // ── Synthesis: Kick ─────────────────────────────────────────────────────────
@@ -1035,27 +1095,27 @@ function synthCymbal(ctx: AudioContext, t: number, vol: number, dest: AudioNode,
 }
 
 // ── Hi-hat choke group ──────────────────────────────────────────────────────
-// Mimics real hi-hat behaviour: only one hi-hat articulation can ring at a
-// time. When a new hi-hat note is triggered, any previous hi-hat voice is
-// quickly faded out so consecutive open hi-hats don't pile up into a harsh
-// wash, and a closed hi-hat naturally chokes an open one.
-const _hhChoke = {
-  gain: null as GainNode | null,
-  src:  null as AudioBufferSourceNode | null,
-  endTime: 0,
-};
+// Models the physical hi-hat: only one voice rings at a time. A new hit
+// cross-fades out the previous voice with an articulation-aware fade time:
+//   • closed / foot hitting → fast choke (8 ms)  — pedal clamps the cymbal
+//   • open hitting over open → soft crossfade (40 ms) — stick re-strikes
+// The open hi-hat sample plays with a natural exponential decay envelope
+// instead of a hard duration gate, so it breathes like a real cymbal.
+const _hhVoices: { gain: GainNode; src: AudioBufferSourceNode; endTime: number }[] = [];
+const MAX_HH_VOICES = 2;
 
-function chokeHihat(ctx: AudioContext, newStartTime: number) {
-  if (!_hhChoke.gain || newStartTime > _hhChoke.endTime) return;
-  try {
-    const now = Math.max(ctx.currentTime, newStartTime - 0.005);
-    _hhChoke.gain.gain.cancelScheduledValues(now);
-    _hhChoke.gain.gain.setValueAtTime(_hhChoke.gain.gain.value, now);
-    _hhChoke.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.018);
-    if (_hhChoke.src) {
-      try { _hhChoke.src.stop(now + 0.025); } catch {}
-    }
-  } catch {}
+function chokeHihat(ctx: AudioContext, newStartTime: number, chokeMs = 0.040) {
+  while (_hhVoices.length > 0) {
+    const v = _hhVoices.shift()!;
+    if (newStartTime > v.endTime) continue;
+    try {
+      const now = Math.max(ctx.currentTime, newStartTime - 0.002);
+      v.gain.gain.cancelScheduledValues(now);
+      v.gain.gain.setValueAtTime(v.gain.gain.value, now);
+      v.gain.gain.exponentialRampToValueAtTime(0.0001, now + chokeMs);
+      try { v.src.stop(now + chokeMs + 0.01); } catch {}
+    } catch {}
+  }
 }
 
 function playBufferChoked(
@@ -1064,10 +1124,13 @@ function playBufferChoked(
   t: number,
   vol: number,
   dest: AudioNode,
-  maxDur: number | undefined,
+  inst: DrumInstrument,
   rate: number,
 ) {
-  chokeHihat(ctx, t);
+  const isOpen = inst === 'hihat-open';
+  const isClosed = inst === 'hihat-closed' || inst === 'hihat-foot';
+  const chokeTime = isClosed ? 0.008 : 0.040;
+  chokeHihat(ctx, t, chokeTime);
 
   const src = ctx.createBufferSource();
   src.buffer = buf;
@@ -1076,19 +1139,24 @@ function playBufferChoked(
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(vol, t);
 
-  const dur = maxDur ?? (buf.duration / rate);
-  if (maxDur) {
-    gain.gain.setValueAtTime(vol, t + maxDur * 0.7);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + maxDur);
+  const sampleDur = buf.duration / rate;
+
+  if (isOpen) {
+    const decayStart = Math.min(0.12, sampleDur * 0.15);
+    const decayEnd   = Math.min(sampleDur, 0.85);
+    gain.gain.setValueAtTime(vol, t + decayStart);
+    gain.gain.exponentialRampToValueAtTime(Math.max(vol * 0.06, 0.0001), t + decayEnd);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + Math.min(sampleDur, decayEnd + 0.15));
   }
 
   src.connect(gain); gain.connect(dest);
   src.start(t);
-  if (maxDur) src.stop(t + maxDur + 0.02);
 
-  _hhChoke.gain = gain;
-  _hhChoke.src  = src;
-  _hhChoke.endTime = t + dur;
+  const voiceEnd = isOpen ? t + Math.min(sampleDur, 1.0) : t + sampleDur;
+  if (isOpen) src.stop(voiceEnd + 0.02);
+
+  if (_hhVoices.length >= MAX_HH_VOICES) _hhVoices.shift();
+  _hhVoices.push({ gain, src, endTime: voiceEnd });
 }
 
 // ── Play buffer from sample pool ────────────────────────────────────────────
@@ -1583,18 +1651,18 @@ export function playSoundAt(
     // ── Cymbal routing (hi-hat, crash, ride via CymbalPool) ─────────────────
     if (inst === 'hihat-closed') {
       const buf = cymbalPool.getHHClosed(variation);
-      if (buf) { playBufferChoked(ctx, buf, t, vol, chainInput, undefined, 1.0); return; }
+      if (buf) { playBufferChoked(ctx, buf, t, vol, chainInput, 'hihat-closed', 1.0); return; }
     } else if (inst === 'hihat-open') {
       const buf = cymbalPool.getHHOpen(variation);
-      if (buf) { playBufferChoked(ctx, buf, t, vol, noteDest, Math.min(buf.duration, 0.45), 1.0); return; }
+      if (buf) { playBufferChoked(ctx, buf, t, vol, noteDest, 'hihat-open', 1.0); return; }
     } else if (inst === 'hihat-foot') {
       const buf = cymbalPool.getHHFoot();
-      if (buf) { playBufferChoked(ctx, buf, t, vol, chainInput, undefined, 1.0); return; }
+      if (buf) { playBufferChoked(ctx, buf, t, vol, chainInput, 'hihat-foot', 1.0); return; }
     } else if (inst === 'crash') {
-      const buf = cymbalPool.getCrash(_houseCrashModel, variation);
+      const buf = cymbalPool.getCrash(_houseCrashModel, variation, _cymbalPack);
       if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
     } else if (inst === 'ride') {
-      const buf = cymbalPool.getRide(variation);
+      const buf = cymbalPool.getRide(variation, _cymbalPack);
       if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
     }
     // Cymbal pool not yet loaded — play nothing, don't fall back to synthesis
@@ -1617,10 +1685,7 @@ export function playSoundAt(
     const adjVol   = Math.min(vol * kitGain, 1.6);
 
     if (isHihat) {
-      const dur = inst === 'hihat-open' ? 0.45
-        : inst === 'hihat-foot' ? 0.08
-        : (soundId === 'hh-c-tight' ? 0.032 : soundId === 'hh-c-crisp' ? 0.052 : 0.075);
-      playBufferChoked(ctx, buf, t, adjVol, chainInput, dur, rate);
+      playBufferChoked(ctx, buf, t, adjVol, chainInput, inst, rate);
     } else if (roomMs > 0 && chainInput === dest) {
       playBufferRoomy(ctx, buf, t, adjVol, chainInput, rate, roomMs);
     } else {
@@ -1632,7 +1697,7 @@ export function playSoundAt(
   // Synthesis fallback
   if      (soundId.startsWith('kick-'))    synthKick(ctx, t, vol, noteDest, soundId);
   else if (soundId.startsWith('snare-'))   synthSnare(ctx, t, vol, noteDest, soundId);
-  else if (soundId.startsWith('hh-'))      { chokeHihat(ctx, t); synthHihat(ctx, t, vol, chainInput, soundId); }
+  else if (soundId.startsWith('hh-'))      { const isHHClosed = soundId.startsWith('hh-c') || soundId.startsWith('hh-f'); chokeHihat(ctx, t, isHHClosed ? 0.008 : 0.040); synthHihat(ctx, t, vol, chainInput, soundId); }
   else if (soundId.startsWith('tom-'))     synthTom(ctx, t, vol, noteDest, soundId);
   else if (soundId.startsWith('crash-') || soundId.startsWith('ride-')) synthCymbal(ctx, t, vol, noteDest, soundId);
 }

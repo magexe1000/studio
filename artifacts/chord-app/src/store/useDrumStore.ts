@@ -37,6 +37,12 @@ export const HOUSE_CRASH_MODELS: { id: HouseCrashModel; label: string; desc: str
   { id: 'zcp19', label: 'Z-Custom 19"',   desc: 'Z-Custom Projection 19" — loud, full, wide spread'   },
 ];
 
+export type CymbalPack = 'default' | 'zildjian-k';
+export const CYMBAL_PACKS: { id: CymbalPack; label: string; desc: string }[] = [
+  { id: 'default',     label: 'Sabian Pack',         desc: 'Hi-hat, crash, ride — bright, versatile'            },
+  { id: 'zildjian-k',  label: 'Zildjian K Custom',   desc: 'Dark crash, splash, ride — warm, complex overtones' },
+];
+
 export const DRUM_INSTRUMENTS: DrumInstrument[] = [
   'crash', 'ride', 'hihat-open', 'hihat-closed', 'hihat-foot',
   'snare', 'tom-high', 'tom-mid', 'tom-floor', 'kick',
@@ -268,6 +274,8 @@ export interface DrumPrefs {
   // Performance
   lowLatencyMode:       boolean;
   performanceMode:      boolean;
+  // Cymbal
+  randomVariations:     boolean;
 }
 
 export const DEFAULT_DRUM_PREFS: DrumPrefs = {
@@ -285,6 +293,7 @@ export const DEFAULT_DRUM_PREFS: DrumPrefs = {
   gridLinesEmphasis:    true,
   lowLatencyMode:       false,
   performanceMode:      false,
+  randomVariations:     true,
 };
 
 interface DrumStore {
@@ -354,6 +363,9 @@ interface DrumStore {
   houseCrashModel: HouseCrashModel;
   setHouseCrashModel: (model: HouseCrashModel) => void;
 
+  cymbalPack: CymbalPack;
+  setCymbalPack: (pack: CymbalPack) => void;
+
   updateDrumPrefs: (patch: Partial<DrumPrefs>) => void;
 }
 
@@ -375,6 +387,7 @@ export const useDrumStore = create<DrumStore>()(
       houseKitMic:          'blend' as HouseMic,
       houseInstVelOverride: {} as Partial<Record<string, string>>,
       houseCrashModel:      'ac18' as HouseCrashModel,
+      cymbalPack:           'default' as CymbalPack,
       drumPrefs:            { ...DEFAULT_DRUM_PREFS },
 
       setSoundForInstrument: (inst, soundId) =>
@@ -723,13 +736,14 @@ export const useDrumStore = create<DrumStore>()(
       }),
 
       setHouseCrashModel: (model) => set({ houseCrashModel: model }),
+      setCymbalPack: (pack) => set({ cymbalPack: pack }),
 
       updateDrumPrefs: (patch) =>
         set(s => ({ drumPrefs: { ...s.drumPrefs, ...patch } })),
     }),
     {
       name: 'chordex-drums',
-      version: 11,
+      version: 12,
       partialize: (state) => { const { instFX: _fx, ...rest } = state; return rest as typeof state; },
       migrate: (state: unknown, _version: number) => {
         const s = state as {

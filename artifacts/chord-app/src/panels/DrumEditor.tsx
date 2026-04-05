@@ -4,9 +4,9 @@ import {
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { useT } from '../lib/useT';
 import {
-  useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, INSTRUMENT_NAME, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS,
+  useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, INSTRUMENT_NAME, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS, CYMBAL_PACKS,
   stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX, emptyMeasure, DRUM_INSTRUMENTS,
-  type DrumInstrument, type KitType, type HouseMic, type HouseCrashModel, type DrumSong, type DrumMeasure, type NoteVariation,
+  type DrumInstrument, type KitType, type HouseMic, type HouseCrashModel, type CymbalPack, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
   type InstPlugin,
 } from '../store/useDrumStore';
@@ -14,6 +14,7 @@ import {
   drumScheduler, samplePool, loadDrumSamples, loadHouseKit, houseKitPool,
   setHouseKitMic, setHouseInstVelOverrides, HOUSE_VEL_CONFIGS, HOUSE_INST_LABELS,
   setHouseCrashModel as audioSetHouseCrashModel,
+  setCymbalPackAudio, setRandomVariations,
   KIT_DEFAULTS, getSoundForVariation, setInstFXMap, setInstPluginMap,
   getAudioCtx,
   type SampleStatus, type HouseInstName,
@@ -1511,6 +1512,7 @@ export default function DrumEditor() {
     houseKitMic, setHouseKitMic: storeSetHouseKitMic,
     houseInstVelOverride, setHouseInstVelOverride: storeSetInstVelOverride,
     houseCrashModel, setHouseCrashModel: storeSetHouseCrashModel,
+    cymbalPack, setCymbalPack: storeSetCymbalPack,
     drumPrefs, updateDrumPrefs,
   } = useDrumStore();
 
@@ -1621,6 +1623,8 @@ export default function DrumEditor() {
   useEffect(() => { setInstPluginMap(instPlugins); }, [instPlugins]);
   useEffect(() => { setHouseInstVelOverrides(houseInstVelOverride); }, [houseInstVelOverride]);
   useEffect(() => { audioSetHouseCrashModel(houseCrashModel); }, [houseCrashModel]);
+  useEffect(() => { setCymbalPackAudio(cymbalPack); }, [cymbalPack]);
+  useEffect(() => { setRandomVariations(drumPrefs.randomVariations); }, [drumPrefs.randomVariations]);
 
   // ── Quick mixer sheet + export modal + import modal ──────────────────────
   const [showMixerSheet,    setShowMixerSheet]    = useState(false);
@@ -2542,6 +2546,34 @@ export default function DrumEditor() {
                         );
                       })}
                     </div>
+                  </div>
+
+                  {/* ── Cymbal Pack selector ── */}
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1, fontFamily: 'Manrope,sans-serif' }}>Cymbal Pack</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {CYMBAL_PACKS.map(p => {
+                        const active = cymbalPack === p.id;
+                        return (
+                          <button key={p.id} className="btn-smooth"
+                            onClick={() => storeSetCymbalPack(p.id as CymbalPack)}
+                            title={p.desc}
+                            style={{ height: 26, padding: '0 10px', borderRadius: 6, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(128,128,128,0.14)', background: active ? `${accent.from}1a` : 'rgba(128,128,128,0.06)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', transition: 'all 140ms', fontFamily: 'Manrope,sans-serif', whiteSpace: 'nowrap' }}>
+                            {p.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* ── Random Variations toggle ── */}
+                  <div style={{ display: 'flex', alignItems: 'center', marginTop: 10 }}>
+                    <span style={{ flex: 1, fontSize: 11.5, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif' }}>Random Variations</span>
+                    <button onClick={() => updateDrumPrefs({ randomVariations: !drumPrefs.randomVariations })} style={{ width: 36, height: 20, borderRadius: 10, background: drumPrefs.randomVariations ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.18)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 220ms', flexShrink: 0 }}>
+                      <span style={{ position: 'absolute', top: 2.5, left: drumPrefs.randomVariations ? 18 : 2.5, width: 15, height: 15, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)', display: 'block' }} />
+                    </button>
                   </div>
                 </div>}
               </div>
