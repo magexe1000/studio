@@ -402,9 +402,10 @@ export default function StagexPanel() {
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 32, height: 32,
-                background: `${accent.from}22`, color: accent.from,
-                border: `1px solid ${accent.from}44`, borderRadius: '50%',
-                cursor: 'pointer', flexShrink: 0,
+                background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)',
+                color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(180,185,200,0.75)',
+                border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
+                borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>save</span>

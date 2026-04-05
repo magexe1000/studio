@@ -2032,8 +2032,8 @@ html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important
 
 #presets-panel {
   position: absolute;
-  top: 58px;       /* just below the Stagex header bar */
-  right: 14px;
+  top: 8px;
+  right: 8px;
   width: 264px;
   max-height: 420px;
   z-index: 8500;
