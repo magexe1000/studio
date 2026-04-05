@@ -1702,6 +1702,14 @@ function dismissPropPanel() {
   _propUserDismissed = true;
   setPropState('hidden');
 }
+window.addEventListener('orientationchange', function() {
+  setPropState('hidden');
+});
+try {
+  window.matchMedia('(orientation: landscape)').addEventListener('change', function() {
+    setPropState('hidden');
+  });
+} catch(e) {}
 // Drag peek — fully hidden while moving, peek when released (unless dismissed)
 function _propPeek(on) {
   if (on) {
