@@ -1277,31 +1277,7 @@ function toggleAccordion(cat) {
 populateAllGrids();
 // All categories start closed — hover to open on desktop, click to toggle on mobile
 
-// ── Properties panel: hover to open when peeking, mouseleave returns to peek ──
-(function initPropPanelHover() {
-  const p = document.getElementById('properties-panel');
-  if (!p) return;
-  let _hoverOpened = false;
-  let _closeTimer = null;
-  p.addEventListener('mouseenter', () => {
-    // Cancel any pending close first — prevents gap-flicker during CSS transition
-    clearTimeout(_closeTimer);
-    _closeTimer = null;
-    if (_getPropState() === 'peek') {
-      _hoverOpened = true;
-      setPropState('open');
-    }
-  });
-  p.addEventListener('mouseleave', () => {
-    if (_hoverOpened && _getPropState() === 'open') {
-      // Delay close so brief cursor gaps (from the slide transition) don't re-trigger
-      _closeTimer = setTimeout(() => {
-        _hoverOpened = false;
-        if (!_propUserDismissed && state.selectedId) setPropState('peek');
-      }, 250);
-    }
-  });
-})();
+// ── Properties panel: no hover behavior needed for top-slide panel ──
 
 // ── Desktop flyout: hover category → items appear in panel beside sidebar ──
 (function initDesktopCatBar() {
@@ -1729,11 +1705,9 @@ function dismissPropPanel() {
 // Drag peek — fully hidden while moving, peek when released (unless dismissed)
 function _propPeek(on) {
   if (on) {
-    // During drag: fully hide so canvas is completely clear
     if (_getPropState() !== 'hidden') setPropState('hidden');
   } else {
-    // Drag ended: restore to peek tab unless user dismissed it
-    if (!_propUserDismissed && state.selectedId) setPropState('peek');
+    if (!_propUserDismissed && state.selectedId) setPropState('open');
   }
 }
 
@@ -1879,8 +1853,7 @@ function selectElement(id) {
   updateStatusBar(); // refresh SEL stat
   // Selecting a different element always resets the dismissed flag and peeks
   if (differentElement) _propUserDismissed = false;
-  // Show peek tab unless user explicitly dismissed this element's panel
-  if (!_propUserDismissed) setPropState('peek');
+  if (!_propUserDismissed) setPropState('open');
 }
 
 function deselectAll() {
@@ -1892,7 +1865,7 @@ function deselectAll() {
   setPropState('hidden');
 }
 
-// Tap the peeked panel edge to expand it fully
+// Tap anywhere on the panel to ensure it's open
 document.addEventListener('DOMContentLoaded', function() {
   const panel = document.getElementById('properties-panel');
   if (!panel) return;
