@@ -44,15 +44,13 @@ const DEFAULT_EXPORT_CONFIG: ExportConfig = {
 };
 
 /* ──────────────────── PDF EXPORT ──────────────────── */
-function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679cff', scale = 1, noLabel = false): string {
-  const W = Math.round(160 * scale), H = Math.round(160 * scale);
-  const numS = 6, numF = 4;
-  const pL = Math.round(18 * scale), pT = Math.round(28 * scale);
-  const pR = Math.round(18 * scale);
+function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679cff', _scale = 1, noLabel = false): string {
+  const W = 86, H = 84, numS = 6, numF = 4;
+  const pL = 10, pT = 14, pR = 10;
   const gridW = W - pL - pR;
   const cW = gridW / (numS - 1);
-  const cH = (H - pT - Math.round(16 * scale)) / numF;
-  const r  = Math.max(4, Math.round(7 * scale));
+  const cH = (H - pT - 10) / numF;
+  const r  = 4.5;
   const { frets, barres, baseFret } = data;
   const allPositive = frets.filter(f => f > 0);
   const minActive = allPositive.length ? Math.min(...allPositive) : 1;
@@ -60,29 +58,27 @@ function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679
   const showNut = minF <= 1;
 
   const dotFill    = dark ? '#e8e8e8' : '#191a1a';
-  const lineFill   = dark ? 'rgba(200,200,200,0.35)' : 'rgba(25,26,26,0.3)';
+  const lineFill   = dark ? 'rgba(200,200,200,0.18)' : 'rgba(25,26,26,0.15)';
   const nutFill    = dark ? '#ddd'    : '#191a1a';
-  const muteColor  = dark ? '#666'    : '#999';
-  const openStroke = dark ? '#666'    : '#999';
-  const lw = Math.max(1.5, 1.5 * scale);
-  const lwTop = Math.max(2.5, 2.5 * scale);
+  const muteColor  = dark ? '#555'    : '#ccc';
+  const openStroke = dark ? '#555'    : '#bbb';
 
   let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" overflow="visible">`;
 
   if (showNut) {
-    s += `<rect x="${pL}" y="${pT - Math.round(6 * scale)}" width="${gridW}" height="${Math.round(5 * scale)}" rx="${Math.round(1.5 * scale)}" fill="${nutFill}"/>`;
+    s += `<rect x="${pL}" y="${pT - 5}" width="${gridW}" height="4" rx="1.5" fill="${nutFill}"/>`;
   }
   if (!showNut && !noLabel) {
-    s += `<text x="${pL - Math.round(4 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(11 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#555'}" text-anchor="end" dominant-baseline="middle">${minF}</text>`;
+    s += `<text x="${pL - 3}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="8" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="end" dominant-baseline="middle">${minF}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
     const isTopFret = i === 0 && !showNut;
-    s += `<line x1="${pL}" y1="${y}" x2="${pL + gridW}" y2="${y}" stroke="${lineFill}" stroke-width="${isTopFret ? lwTop : lw}"/>`;
+    s += `<line x1="${pL}" y1="${y}" x2="${pL + gridW}" y2="${y}" stroke="${lineFill}" stroke-width="${isTopFret ? 1.5 : 1}"/>`;
   }
   for (let i = 0; i < numS; i++) {
     const x = pL + i * cW;
-    s += `<line x1="${x}" y1="${pT}" x2="${x}" y2="${pT + numF * cH}" stroke="${lineFill}" stroke-width="${lw}"/>`;
+    s += `<line x1="${x}" y1="${pT}" x2="${x}" y2="${pT + numF * cH}" stroke="${lineFill}" stroke-width="1"/>`;
   }
   if (barres) {
     for (const barre of barres) {
@@ -104,11 +100,11 @@ function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679
     const cx = pL + si * cW, cy = pT + fp * cH + cH / 2;
     s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotFill}"/>`;
   });
-  const aboveY = pT - Math.round(12 * scale);
+  const aboveY = pT - 9;
   frets.forEach((f, si) => {
     const cx = pL + si * cW;
-    if (f === -1) s += `<text x="${cx}" y="${aboveY + Math.round(3 * scale)}" font-family="Arial,sans-serif" font-size="${Math.round(13 * scale)}" fill="${muteColor}" text-anchor="middle" dominant-baseline="middle" font-weight="bold">×</text>`;
-    else if (f === 0) s += `<circle cx="${cx}" cy="${aboveY}" r="${Math.round(5 * scale)}" fill="none" stroke="${openStroke}" stroke-width="${Math.max(1.8, 1.8 * scale)}"/>`;
+    if (f === -1) s += `<text x="${cx}" y="${aboveY + 3}" font-family="Arial,sans-serif" font-size="10" fill="${muteColor}" text-anchor="middle" dominant-baseline="middle" font-weight="bold">×</text>`;
+    else if (f === 0) s += `<circle cx="${cx}" cy="${aboveY}" r="3.5" fill="none" stroke="${openStroke}" stroke-width="1.2"/>`;
   });
 
   s += '</svg>';
@@ -120,41 +116,37 @@ function buildPrintFretboardSVG(
   frets: number[], baseFret: number,
   barres: { fret: number; fromString: number; toString: number }[],
   numStrings: number,
-  dark = false, accentColor = '#679cff', scale = 1, noLabel = false,
+  dark = false, _accentColor = '#679cff', _scale = 1, noLabel = false,
 ): string {
-  const W = Math.round(160 * scale), H = Math.round(160 * scale);
-  const numF = 4;
-  const pL = Math.round(18 * scale), pT = Math.round(28 * scale);
-  const pR = Math.round(18 * scale);
+  const W = 86, H = 84, numF = 4;
+  const pL = 10, pT = 14, pR = 10;
   const gridW = W - pL - pR;
   const strSpacing = numStrings > 1 ? gridW / (numStrings - 1) : 0;
-  const cH = (H - pT - Math.round(16 * scale)) / numF;
-  const r  = Math.max(4, Math.round(7 * scale));
+  const cH = (H - pT - 10) / numF;
+  const r  = 4.5;
   const allPos = frets.filter(f => f > 0);
   const minActive = allPos.length ? Math.min(...allPos) : 1;
   const minF    = baseFret > 1 ? baseFret : Math.max(1, minActive);
   const showNut = minF <= 1;
   const dotFill    = dark ? '#e8e8e8' : '#191a1a';
-  const lineFill   = dark ? 'rgba(200,200,200,0.35)' : 'rgba(25,26,26,0.3)';
+  const lineFill   = dark ? 'rgba(200,200,200,0.18)' : 'rgba(25,26,26,0.15)';
   const nutFill    = dark ? '#ddd'    : '#191a1a';
-  const muteColor  = dark ? '#666'    : '#999';
-  const openStroke = dark ? '#666'    : '#999';
-  const lw = Math.max(1.5, 1.5 * scale);
-  const lwTop = Math.max(2.5, 2.5 * scale);
+  const muteColor  = dark ? '#555'    : '#ccc';
+  const openStroke = dark ? '#555'    : '#bbb';
   let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" overflow="visible">`;
   if (showNut) {
-    s += `<rect x="${pL}" y="${pT - Math.round(6 * scale)}" width="${(numStrings - 1) * strSpacing}" height="${Math.round(5 * scale)}" rx="${Math.round(1.5 * scale)}" fill="${nutFill}"/>`;
+    s += `<rect x="${pL}" y="${pT - 5}" width="${(numStrings - 1) * strSpacing}" height="4" rx="1.5" fill="${nutFill}"/>`;
   } else if (!noLabel) {
-    s += `<text x="${pL - Math.round(4 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(11 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#555'}" text-anchor="end" dominant-baseline="middle">${minF}</text>`;
+    s += `<text x="${pL - 3}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="8" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="end" dominant-baseline="middle">${minF}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
     const isTop = i === 0 && !showNut;
-    s += `<line x1="${pL}" y1="${y}" x2="${pL + (numStrings - 1) * strSpacing}" y2="${y}" stroke="${lineFill}" stroke-width="${isTop ? lwTop : lw}"/>`;
+    s += `<line x1="${pL}" y1="${y}" x2="${pL + (numStrings - 1) * strSpacing}" y2="${y}" stroke="${lineFill}" stroke-width="${isTop ? 1.5 : 1}"/>`;
   }
   for (let i = 0; i < numStrings; i++) {
     const x = pL + i * strSpacing;
-    s += `<line x1="${x}" y1="${pT}" x2="${x}" y2="${pT + numF * cH}" stroke="${lineFill}" stroke-width="${lw}"/>`;
+    s += `<line x1="${x}" y1="${pT}" x2="${x}" y2="${pT + numF * cH}" stroke="${lineFill}" stroke-width="1"/>`;
   }
   for (const barre of barres) {
     const fp = barre.fret - minF;
@@ -174,11 +166,11 @@ function buildPrintFretboardSVG(
     const cx = pL + si * strSpacing, cy = pT + fp * cH + cH / 2;
     s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotFill}"/>`;
   });
-  const aboveY = pT - Math.round(12 * scale);
+  const aboveY = pT - 9;
   frets.forEach((f, si) => {
     const cx = pL + si * strSpacing;
-    if (f === -1) s += `<text x="${cx}" y="${aboveY + Math.round(3 * scale)}" font-family="Arial,sans-serif" font-size="${Math.round(13 * scale)}" fill="${muteColor}" text-anchor="middle" dominant-baseline="middle" font-weight="bold">×</text>`;
-    else if (f === 0) s += `<circle cx="${cx}" cy="${aboveY}" r="${Math.round(5 * scale)}" fill="none" stroke="${openStroke}" stroke-width="${Math.max(1.8, 1.8 * scale)}"/>`;
+    if (f === -1) s += `<text x="${cx}" y="${aboveY + 3}" font-family="Arial,sans-serif" font-size="10" fill="${muteColor}" text-anchor="middle" dominant-baseline="middle" font-weight="bold">×</text>`;
+    else if (f === 0) s += `<circle cx="${cx}" cy="${aboveY}" r="3.5" fill="none" stroke="${openStroke}" stroke-width="1.2"/>`;
   });
   s += '</svg>';
   return s;
@@ -609,7 +601,7 @@ ${chordContent}
       const svgToPng = (svgStr: string): Promise<string> =>
         new Promise(resolve => {
           if (!svgStr) { resolve(''); return; }
-          const RES = 2; // render at 2× for quality
+          const RES = 3; // render at 3× for sharp PDF output
           const cv  = document.createElement('canvas');
           cv.width  = diagWpx * RES;
           cv.height = diagHpx * RES;
