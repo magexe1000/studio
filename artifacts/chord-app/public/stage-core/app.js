@@ -2252,7 +2252,7 @@ function renderConnections() {
       const lbTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       lbTxt.setAttribute('x', mbx); lbTxt.setAttribute('y', mby + 2);
       lbTxt.setAttribute('text-anchor', 'middle');
-      lbTxt.setAttribute('font-family', 'Space Grotesk,Inter,sans-serif');
+      lbTxt.setAttribute('font-family', 'Manrope, Inter, sans-serif');
       lbTxt.setAttribute('font-size', '6.5');
       lbTxt.setAttribute('font-weight', '800');
       lbTxt.setAttribute('fill', lineColor);
@@ -2279,7 +2279,7 @@ function renderConnections() {
     const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     txt.setAttribute('x', lx); txt.setAttribute('y', ly + 3);
     txt.setAttribute('text-anchor', 'middle');
-    txt.setAttribute('font-family', 'Space Grotesk,Inter,sans-serif');
+    txt.setAttribute('font-family', 'Manrope, Inter, sans-serif');
     txt.setAttribute('font-size', '7.5');
     txt.setAttribute('font-weight', '700');
     txt.setAttribute('fill', lineColor);
@@ -2343,7 +2343,7 @@ function _drawPowerBadge(svg, x, y, color, glyph, title) {
   const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   txt.setAttribute('x', bx); txt.setAttribute('y', by + 3.5);
   txt.setAttribute('text-anchor', 'middle');
-  txt.setAttribute('font-family', 'Space Grotesk,Inter,sans-serif');
+  txt.setAttribute('font-family', 'Manrope, Inter, sans-serif');
   txt.setAttribute('font-size', '8'); txt.setAttribute('font-weight', '900');
   txt.setAttribute('fill', color);
   txt.textContent = glyph;
@@ -2800,7 +2800,7 @@ function renderMembersList() {
   list.innerHTML = state.members.map(m => `
     <div style="display:flex;align-items:center;gap:5px;padding:4px 6px;background:#111;border-left:2px solid ${m.color};">
       <div style="width:7px;height:7px;border-radius:50%;background:${m.color};flex-shrink:0;"></div>
-      <span style="flex:1;font-size:10px;font-weight:700;color:#e0e0e0;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Space Grotesk';">${m.name}</span>
+      <span style="flex:1;font-size:10px;font-weight:700;color:#e0e0e0;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Manrope',sans-serif;">${m.name}</span>
       <button onclick="removeMember('${m.id}')" title="Remove" style="color:#484847;background:none;border:none;cursor:pointer;font-size:13px;padding:0 2px;line-height:1;flex-shrink:0;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'">×</button>
     </div>`).join('');
 }
@@ -2869,7 +2869,7 @@ function renderMembersView() {
           <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,0.03);">
             <div style="width:8px;height:8px;background:${el.color || m.color};flex-shrink:0;"></div>
             <span style="font-size:11px;color:#d4d4d4;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${el.label || el.name || '—'}</span>
-            ${el.channelId ? `<span style="font-size:9px;font-weight:700;font-family:'Space Grotesk';color:#7aafff;letter-spacing:0.05em;">CH&nbsp;${el.channelId}</span>` : ''}
+            ${el.channelId ? `<span style="font-size:9px;font-weight:700;font-family:'Manrope',sans-serif;color:#7aafff;letter-spacing:0.05em;">CH&nbsp;${el.channelId}</span>` : ''}
           </div>`).join('')
       : `<div style="padding:16px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#2a2a2a;text-align:center;">${T('noStageAssign')}</div>`;
 
@@ -2880,8 +2880,8 @@ function renderMembersView() {
         <button onclick="cycleColor('${m.id}')" title="Change color (current: ${m.color})"
           style="width:20px;height:20px;border-radius:50%;background:${m.color};border:2px solid rgba(255,255,255,0.08);cursor:pointer;flex-shrink:0;transition:transform 0.15s;outline:none;"
           onmouseover="this.style.transform='scale(1.2)';this.title='Next: ${nextColor}'" onmouseout="this.style.transform='scale(1)'"></button>
-        <span style="flex:1;font-family:'Space Grotesk';font-size:14px;font-weight:800;text-transform:uppercase;color:#fff;letter-spacing:0.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name}</span>
-        ${assigned.length > 0 ? `<span style="font-size:9px;font-weight:800;font-family:'Space Grotesk';color:${m.color};background:${m.color}1a;padding:2px 8px;letter-spacing:0.1em;">${assigned.length}&nbsp;elem</span>` : ''}
+        <span style="flex:1;font-family:'Manrope',sans-serif;font-size:14px;font-weight:800;text-transform:uppercase;color:#fff;letter-spacing:0.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name}</span>
+        ${assigned.length > 0 ? `<span style="font-size:9px;font-weight:800;font-family:'Manrope',sans-serif;color:${m.color};background:${m.color}1a;padding:2px 8px;letter-spacing:0.1em;">${assigned.length}&nbsp;elem</span>` : ''}
         <button onclick="removeMember('${m.id}')" title="Remove ${m.name}"
           style="color:#2a2a2a;background:none;border:none;cursor:pointer;font-size:18px;padding:0 2px;line-height:1;flex-shrink:0;transition:color 0.15s;"
           onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#2a2a2a'">×</button>
@@ -2928,7 +2928,7 @@ function refreshRider() {
   const tbody = document.getElementById('rider-table-body');
   if (state.elements.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="padding:56px 16px;text-align:center;">
-      <div style="font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">${T('noElemsRider')}</div>
+      <div style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">${T('noElemsRider')}</div>
       <div style="font-size:12px;color:#333;margin-top:8px;font-family:'Inter';">${T('dragToCanvas')}</div>
     </td></tr>`;
     return;
@@ -2975,13 +2975,13 @@ function renderRiderNeeds() {
     const activePresets = (isEs ? (nt.presetsEs || nt.presets) : nt.presets);
     const presets = activePresets.map(p =>
       `<button onclick="applyNeedPreset('${need.id}',this.textContent)" title="${p}"
-        style="padding:3px 8px;font-size:10px;font-family:'Space Grotesk';background:var(--rn-chip-bg);color:var(--rn-muted);border:1px solid var(--rn-border);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${p}</button>`
+        style="padding:3px 8px;font-size:10px;font-family:'Manrope',sans-serif;background:var(--rn-chip-bg);color:var(--rn-muted);border:1px solid var(--rn-border);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${p}</button>`
     ).join('');
     return `
     <div style="border-left:3px solid ${nt.color};background:var(--rn-card-bg);">
       <div style="display:flex;align-items:center;gap:8px;padding:10px 12px 6px;">
         <select onchange="updateNeedType('${need.id}',this.value)"
-          style="flex:1;padding:5px 8px;font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--rn-input-bg);color:${nt.color};border:1px solid var(--rn-border);cursor:pointer;">
+          style="flex:1;padding:5px 8px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--rn-input-bg);color:${nt.color};border:1px solid var(--rn-border);cursor:pointer;">
           ${typeOptions}
         </select>
         <button onclick="removeRiderNeed('${need.id}')"
@@ -3140,7 +3140,7 @@ function renderSetlist() {
 
   if (!state.setlist.length) {
     tbody.innerHTML = `<div style="padding:56px 0;text-align:center;">
-      <div style="font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">No songs yet — tap ADD NEW TRACK to start your setlist.</div>
+      <div style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">No songs yet — tap ADD NEW TRACK to start your setlist.</div>
     </div>`;
     renderSetlistInsights();
     return;
@@ -3343,7 +3343,7 @@ function _renderSegmentsBar() {
     const count = _onlySongs().filter(s => s.segmentId === seg.id).length;
     return `<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;background:${seg.color}18;border:1px solid ${seg.color}44;">
       <div style="width:8px;height:8px;background:${seg.color};flex-shrink:0;"></div>
-      <span style="font-family:'Space Grotesk';font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:${seg.color};">${seg.name}</span>
+      <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:${seg.color};">${seg.name}</span>
       <span style="font-size:9px;color:#484847;">(${count})</span>
       <button onclick="removeSegment(${seg.id})" style="background:none;border:none;color:#484847;cursor:pointer;padding:0;margin-left:2px;line-height:1;font-size:13px;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'" title="Remove segment">×</button>
     </div>`;
@@ -3860,7 +3860,7 @@ function openSmartSortModal() {
       if (seg) {
         previewHtml += `<div style="display:flex;align-items:center;gap:8px;padding:10px 0 5px;margin-top:${i>0?'8px':'0'};border-top:${i>0?`1px solid ${seg.color}33`:' none'};">
           <div style="width:3px;height:14px;background:${seg.color};flex-shrink:0;"></div>
-          <span style="font-family:'Space Grotesk';font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.25em;color:${seg.color};">${seg.name}</span>
+          <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.25em;color:${seg.color};">${seg.name}</span>
         </div>`;
       }
       lastSegId = curSegId;
@@ -3869,7 +3869,7 @@ function openSmartSortModal() {
     const derived = _derivedEnergy(song);
     const bpmLabel = song.bpm ? `${song.bpm} BPM` : '— BPM';
     previewHtml += `<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:#111;margin-bottom:2px;">
-      <span style="font-family:'Space Grotesk';font-size:11px;font-weight:900;color:#484847;min-width:24px;">${String(i+1).padStart(2,'0')}.</span>
+      <span style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:900;color:#484847;min-width:24px;">${String(i+1).padStart(2,'0')}.</span>
       <div style="flex:1;min-width:0;">
         <div style="font-family:'Inter';font-size:13px;font-weight:700;color:#fff;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${song.title}</div>
         ${song.artist ? `<div style="font-size:10px;color:#484847;margin-top:1px;">${song.artist}</div>` : ''}
@@ -4181,7 +4181,7 @@ function renderGear() {
 
   if (!sorted.length) {
     tbody.innerHTML = `<tr><td colspan="6" style="padding:64px 0;text-align:center;">
-      <div style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#333;">${T('noGearYet')}</div>
+      <div style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#333;">${T('noGearYet')}</div>
       <div style="font-size:12px;color:#484847;margin-top:8px;">${T('addGearHint')}</div>
     </td></tr>`;
   } else {
@@ -4191,7 +4191,7 @@ function renderGear() {
       if (g.category !== lastCat) {
         lastCat = g.category;
         const col = GEAR_CAT_COLORS[g.category] || '#484847';
-        catRow = `<tr><td colspan="6" style="padding:10px 16px 4px;font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:${col};border-top:1px solid #1a1a1a;">${Tcat(g.category)}</td></tr>`;
+        catRow = `<tr><td colspan="6" style="padding:10px 16px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:${col};border-top:1px solid #1a1a1a;">${Tcat(g.category)}</td></tr>`;
       }
       return catRow + `<tr style="border-bottom:1px solid #111;${g.packed ? 'opacity:0.4;' : ''}">
         <td style="padding:12px 16px;width:36px;">
@@ -4201,9 +4201,9 @@ function renderGear() {
         </td>
         <td style="padding:12px 16px;font-family:'Inter';font-size:13px;font-weight:600;color:${g.packed ? '#767575' : '#fff'};${g.packed ? 'text-decoration:line-through;' : ''}">${g.name}</td>
         <td style="padding:12px 16px;">
-          <span style="font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:${GEAR_CAT_COLORS[g.category]||'#484847'};padding:3px 8px;border:1px solid ${GEAR_CAT_COLORS[g.category]||'#484847'}33;">${Tcat(g.category)}</span>
+          <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:${GEAR_CAT_COLORS[g.category]||'#484847'};padding:3px 8px;border:1px solid ${GEAR_CAT_COLORS[g.category]||'#484847'}33;">${Tcat(g.category)}</span>
         </td>
-        <td style="padding:12px 16px;font-family:'Space Grotesk';font-size:16px;font-weight:900;color:#ff7439;">${g.qty}</td>
+        <td style="padding:12px 16px;font-family:'Manrope',sans-serif;font-size:16px;font-weight:900;color:#ff7439;">${g.qty}</td>
         <td style="padding:12px 16px;font-size:11px;color:#767575;font-family:'Inter';">${g.notes || '—'}</td>
         <td style="padding:12px 16px;width:36px;">
           <button onclick="deleteGearItem(${g.id})" style="color:#333;background:none;border:none;cursor:pointer;font-size:18px;line-height:1;transition:color 0.1s;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#333'">×</button>
@@ -5023,7 +5023,7 @@ function refreshExportInputList() {
       : '<span style="color:#484847;font-size:12px;">—</span>';
     let rows = `
     <tr style="background:${i % 2 === 0 ? '#131313' : '#0e0e0e'};">
-      <td style="padding:10px 14px;font-family:'Space Grotesk';font-size:15px;font-weight:700;color:#7aafff;">${el.channelId || '—'}</td>
+      <td style="padding:10px 14px;font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;color:#7aafff;">${el.channelId || '—'}</td>
       <td style="padding:10px 14px;font-weight:600;color:#fff;font-size:13px;">
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="width:10px;height:10px;background:${el.color || '#7aafff'};flex-shrink:0;"></div>
@@ -5032,20 +5032,20 @@ function refreshExportInputList() {
       </td>
       <td style="padding:10px 14px;">${performerCell}</td>
       <td style="padding:10px 14px;color:#adaaaa;font-size:12px;">${micDI}</td>
-      <td style="padding:10px 14px;color:#c5ffc9;font-size:12px;font-family:'Space Grotesk';">${source}</td>
+      <td style="padding:10px 14px;color:#c5ffc9;font-size:12px;font-family:'Manrope',sans-serif;">${source}</td>
       <td style="padding:10px 14px;color:#767575;font-size:12px;font-style:italic;">${el.notes || '—'}</td>
     </tr>`;
     (el.roles || []).forEach(role => {
       const roleSrc = TSource(role.source) || role.source || '—';
       rows += `
       <tr style="background:${i % 2 === 0 ? '#0f0f0f' : '#0a0a0a'};">
-        <td style="padding:6px 14px 6px 26px;font-family:'Space Grotesk';font-size:12px;color:#7aafff;">
+        <td style="padding:6px 14px 6px 26px;font-family:'Manrope',sans-serif;font-size:12px;color:#7aafff;">
           <span style="color:#333;margin-right:4px;">↳</span>${role.channelId || '—'}
         </td>
         <td style="padding:6px 14px 6px 26px;font-weight:500;color:#adaaaa;font-size:11px;">${role.name}</td>
         <td style="padding:6px 14px;color:#484847;font-size:11px;">—</td>
         <td style="padding:6px 14px;color:#adaaaa;font-size:11px;">${Ttype(role.type)}</td>
-        <td style="padding:6px 14px;color:#c5ffc9;font-size:11px;font-family:'Space Grotesk';">${roleSrc}</td>
+        <td style="padding:6px 14px;color:#c5ffc9;font-size:11px;font-family:'Manrope',sans-serif;">${roleSrc}</td>
         <td style="padding:6px 14px;color:#484847;font-size:11px;font-style:italic;">${role.notes || '—'}</td>
       </tr>`;
     });
@@ -5072,7 +5072,7 @@ function refreshExportMembers() {
       <div style="background:#131313;border-left:3px solid ${m.color};padding:14px 16px;flex:1;min-width:140px;max-width:220px;">
         <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
           <div style="width:10px;height:10px;border-radius:50%;background:${m.color};flex-shrink:0;"></div>
-          <span style="font-family:'Space Grotesk';font-size:13px;font-weight:800;color:#fff;text-transform:uppercase;">${m.name}</span>
+          <span style="font-family:'Manrope',sans-serif;font-size:13px;font-weight:800;color:#fff;text-transform:uppercase;">${m.name}</span>
         </div>
         <div style="border-top:1px solid rgba(255,255,255,0.05);padding-top:7px;">${items}</div>
       </div>`;
@@ -6792,7 +6792,7 @@ function renderTimeline() {
 
   // Item list
   if (items.length === 0) {
-    list.innerHTML = '<div style="text-align:center;padding:32px 16px;font-family:\'Space Grotesk\',sans-serif;font-size:11px;color:#333;">No items yet.<br><span style="color:#555;">Click + Song or sync from Setlist.</span></div>';
+    list.innerHTML = '<div style="text-align:center;padding:32px 16px;font-family:\'Manrope\',sans-serif,sans-serif;font-size:11px;color:#333;">No items yet.<br><span style="color:#555;">Click + Song or sync from Setlist.</span></div>';
     return;
   }
 

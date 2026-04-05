@@ -757,7 +757,7 @@ function renderPACoverage() {
     txt.setAttribute('dominant-baseline', 'middle');
     txt.setAttribute('fill', cfg.stroke);
     txt.setAttribute('font-size', '7');
-    txt.setAttribute('font-family', 'Space Grotesk');
+    txt.setAttribute('font-family', 'Manrope, sans-serif');
     txt.setAttribute('font-weight', '700');
     txt.textContent = (el.label || el.name).toUpperCase();
     overlay.appendChild(txt);
@@ -783,7 +783,7 @@ function _injectSoundCoverageUI() {
   sec.style.cssText = 'border-top:1px solid rgba(72,72,71,0.2);padding:12px 16px 10px;';
   sec.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-      <span style="font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#7aafff;">Sound Coverage</span>
+      <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#7aafff;">Sound Coverage</span>
       <button id="sc-toggle-btn" onclick="toggleSoundCoverage()" style="width:36px;height:20px;border-radius:10px;border:none;cursor:pointer;background:${isOn ? '#7aafff' : 'rgba(72,72,71,0.35)'};position:relative;transition:background 0.2s;flex-shrink:0;">
         <div style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;transition:left 0.2s;left:${isOn ? '18px' : '2px'};"></div>
       </button>
@@ -1138,7 +1138,7 @@ function _applyOfflineModeUI() {
       badge.id = 'offline-mode-badge';
       badge.title = 'Offline Mode — AI features disabled';
       badge.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);' +
-        'background:#1a1a1a;border:1px solid #ffaa00;color:#ffaa00;font-family:"Space Grotesk",sans-serif;' +
+        'background:#1a1a1a;border:1px solid #ffaa00;color:#ffaa00;font-family:"Manrope",sans-serif;' +
         'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;' +
         'padding:3px 10px;border-radius:4px;z-index:9999;pointer-events:none;';
       badge.textContent = '⚡ Offline Mode';
@@ -1656,7 +1656,7 @@ function smRunAnalysis() {
     if (!els.length) {
       results.innerHTML = `
         <div style="padding:0 0 12px;">
-          <p style="font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#2a2a2a;margin:0 0 10px;">No elements on stage</p>
+          <p style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#2a2a2a;margin:0 0 10px;">No elements on stage</p>
           <p style="font-family:'Inter';font-size:11px;color:#484847;line-height:1.6;margin:0 0 10px;">Drag microphones, instruments, and audio gear onto the canvas, then run Analyze Stage again to get a full report.</p>
           <div style="display:flex;flex-direction:column;gap:6px;">
             ${_smiHintRow('mic','Start with mics — drag from the MICS category in the sidebar.')}
@@ -1664,7 +1664,7 @@ function smRunAnalysis() {
             ${_smiHintRow('volume_up','Add monitors and PA to complete your rider.')}
           </div>
         </div>
-        <p style="font-family:'Space Grotesk';font-size:9px;color:#2a2a2a;text-align:right;margin-top:12px;letter-spacing:0.05em;">Scanned at ${ts}</p>`;
+        <p style="font-family:'Manrope',sans-serif;font-size:9px;color:#2a2a2a;text-align:right;margin-top:12px;letter-spacing:0.05em;">Scanned at ${ts}</p>`;
       smUpdateBadge(0);
       return;
     }
@@ -1700,8 +1700,8 @@ function smRunAnalysis() {
     // Summary card
     html += `<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(72,72,71,0.18);padding:10px 12px;margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#484847;">Scan complete · ${els.length} element${els.length !== 1 ? 's' : ''}</span>
-        <span style="font-family:'Space Grotesk';font-size:9px;font-weight:700;color:${scoreColor};">${scoreLabel}</span>
+        <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#484847;">Scan complete · ${els.length} element${els.length !== 1 ? 's' : ''}</span>
+        <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;color:${scoreColor};">${scoreLabel}</span>
       </div>
       <p style="font-family:'Inter';font-size:10px;color:#2a2a2a;margin:0;line-height:1.5;">${typeList}</p>
     </div>`;
@@ -1742,7 +1742,7 @@ function smRunAnalysis() {
     }
 
     // Timestamp
-    html += `<p style="font-family:'Space Grotesk';font-size:9px;color:#2a2a2a;text-align:right;margin-top:10px;letter-spacing:0.05em;">Scanned at ${ts}</p>`;
+    html += `<p style="font-family:'Manrope',sans-serif;font-size:9px;color:#2a2a2a;text-align:right;margin-top:10px;letter-spacing:0.05em;">Scanned at ${ts}</p>`;
 
     results.innerHTML = html;
 
@@ -1863,7 +1863,7 @@ function _smUpdateIssueBanner(layoutIssues, conflictIssues) {
   const label = warns.length
     ? `${warns.length} issue${warns.length > 1 ? 's' : ''} detected on stage`
     : `${all.length} suggestion${all.length > 1 ? 's' : ''} available`;
-  banner.innerHTML = `<span style="font-family:'Space Grotesk';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:${warns.length ? '#ff716c' : '#7aafff'};">${icon} ${label}</span><span style="font-family:'Inter';font-size:10px;color:#484847;margin-left:6px;">Tap to review →</span>`;
+  banner.innerHTML = `<span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:${warns.length ? '#ff716c' : '#7aafff'};">${icon} ${label}</span><span style="font-family:'Inter';font-size:10px;color:#484847;margin-left:6px;">Tap to review →</span>`;
 }
 
 // ── Hook: Learn from addItemToStage ──────────────
@@ -2262,7 +2262,7 @@ function _renderZones() {
           fill="${z.color}" stroke="${z.stroke}" stroke-width="1"/>
     <text x="${z.x + z.w / 2}" y="${z.y + z.h / 2 + fs * 0.36}"
           text-anchor="middle" dominant-baseline="auto"
-          font-family="Space Grotesk" font-weight="700"
+          font-family="Manrope, sans-serif" font-weight="700"
           font-size="${fs}" fill="rgba(122,175,255,0.22)"
           letter-spacing="${ls}">${z.label}</text>
   `).join('');
@@ -2307,7 +2307,7 @@ function _renderCableLabels() {
     const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     txt.setAttribute('x', mx); txt.setAttribute('y', my);
     txt.setAttribute('text-anchor', 'middle');
-    txt.setAttribute('font-family', 'Space Grotesk');
+    txt.setAttribute('font-family', 'Manrope, sans-serif');
     txt.setAttribute('font-weight', '700');
     txt.setAttribute('font-size', '7');
     txt.setAttribute('fill', '#7aafff');
@@ -2405,7 +2405,7 @@ function _scMeasureClick(e) {
       const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       txt.setAttribute('x', mx); txt.setAttribute('y', my - 2);
       txt.setAttribute('text-anchor', 'middle');
-      txt.setAttribute('font-family', 'Space Grotesk');
+      txt.setAttribute('font-family', 'Manrope, sans-serif');
       txt.setAttribute('font-weight', '700'); txt.setAttribute('font-size', '8');
       txt.setAttribute('fill', '#ff7439');
       txt.textContent = lbl;
@@ -2432,12 +2432,12 @@ function scShowSignalChain() {
     panel.id = 'sc-chain-panel';
     panel.innerHTML = `
       <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid rgba(72,72,71,0.25);flex-shrink:0;">
-        <span style="font-family:'Space Grotesk';font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#e0e0e0;flex:1;">Signal Chain</span>
+        <span style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#e0e0e0;flex:1;">Signal Chain</span>
         <button onclick="scHideSignalChain()" style="background:none;border:none;color:#484847;cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#484847'">×</button>
       </div>
       <div id="sc-chain-content" style="flex:1;overflow-y:auto;padding:16px 20px;"></div>
       <div style="padding:12px 20px;border-top:1px solid rgba(72,72,71,0.2);flex-shrink:0;">
-        <button onclick="scAutoNumberChannels()" style="width:100%;padding:8px;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;background:rgba(122,175,255,0.1);border:1px solid rgba(122,175,255,0.25);color:#7aafff;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(122,175,255,0.18)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">⚡ Auto-number Channels</button>
+        <button onclick="scAutoNumberChannels()" style="width:100%;padding:8px;font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;background:rgba(122,175,255,0.1);border:1px solid rgba(122,175,255,0.25);color:#7aafff;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(122,175,255,0.18)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">⚡ Auto-number Channels</button>
       </div>`;
     document.body.appendChild(panel);
   }
@@ -2474,7 +2474,7 @@ function _buildChainView(container) {
       <span style="font-size:16px;flex-shrink:0;">${el.icon || '🎵'}</span>
       <div style="flex:1;min-width:0;">
         <div style="font-family:'Inter';font-size:11px;color:#c4c4c3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${el.label || el.name}${chLabel}</div>
-        ${el.type ? `<div style="font-family:'Space Grotesk';font-size:8px;color:#484847;text-transform:uppercase;letter-spacing:.1em;">${el.type}</div>` : ''}
+        ${el.type ? `<div style="font-family:'Manrope',sans-serif;font-size:8px;color:#484847;text-transform:uppercase;letter-spacing:.1em;">${el.type}</div>` : ''}
       </div>
     </div>`;
     if (next.length) {
@@ -2487,16 +2487,16 @@ function _buildChainView(container) {
 
   let html = '';
   if (!conns.length) {
-    html += `<p style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#484847;margin:0 0 12px;">All Elements (No Connections)</p>`;
+    html += `<p style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#484847;margin:0 0 12px;">All Elements (No Connections)</p>`;
     els.forEach(el => { html += traceChain(el, 0); });
   } else {
     if (sources.length) {
-      html += `<p style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#484847;margin:0 0 12px;">Signal Chains</p>`;
+      html += `<p style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#484847;margin:0 0 12px;">Signal Chains</p>`;
       sources.forEach(s => { html += traceChain(s, 0); });
     }
     const unrouted = els.filter(e => !visited.has(e.id));
     if (unrouted.length) {
-      html += `<p style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#484847;margin:14px 0 8px;">Unrouted</p>`;
+      html += `<p style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#484847;margin:14px 0 8px;">Unrouted</p>`;
       unrouted.forEach(e => { html += traceChain(e, 0); });
     }
   }
@@ -2627,7 +2627,7 @@ function _initProfessionalTools() {
     const S = (t, bStyle) => {
       const btn = document.createElement('button');
       btn.className = 'sc-tool-btn';
-      btn.style.cssText = 'padding:5px 9px;display:flex;align-items:center;gap:4px;border:none;cursor:pointer;font-family:"Space Grotesk";font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;background:transparent;color:#767575;transition:all .15s;';
+      btn.style.cssText = 'padding:5px 9px;display:flex;align-items:center;gap:4px;border:none;cursor:pointer;font-family:"Manrope",sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;background:transparent;color:#767575;transition:all .15s;';
       if (bStyle) Object.assign(btn.style, bStyle);
       btn.innerHTML = t;
       btn.addEventListener('mouseenter', function() { if (!this.classList.contains('active')) this.style.color='#c5ffc9'; });
@@ -2767,7 +2767,7 @@ function _buildReadinessHtml(rs) {
   const bdLabels = { layout: 'Layout', inputs: 'Inputs', routing: 'Routing', balance: 'Balance', completeness: 'Setup' };
   return `
   <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(72,72,71,0.22);padding:14px 14px 10px;margin-bottom:14px;">
-    <div style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#767575;margin-bottom:10px;">Show Readiness Score</div>
+    <div style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#767575;margin-bottom:10px;">Show Readiness Score</div>
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
       <div style="position:relative;width:60px;height:60px;flex-shrink:0;">
         <svg width="60" height="60" viewBox="0 0 64 64" style="transform:rotate(-90deg);">
@@ -2776,11 +2776,11 @@ function _buildReadinessHtml(rs) {
             stroke-dasharray="${used} 176" stroke-linecap="round"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-          <span style="font-family:'Space Grotesk';font-size:17px;font-weight:900;color:${color};line-height:1;">${s}</span>
+          <span style="font-family:'Manrope',sans-serif;font-size:17px;font-weight:900;color:${color};line-height:1;">${s}</span>
         </div>
       </div>
       <div>
-        <div style="font-family:'Space Grotesk';font-size:15px;font-weight:900;color:${color};line-height:1.1;">${label}</div>
+        <div style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:900;color:${color};line-height:1.1;">${label}</div>
         <div style="font-family:'Inter';font-size:9px;color:#767575;margin-top:3px;">out of 100 points</div>
       </div>
     </div>
@@ -2788,7 +2788,7 @@ function _buildReadinessHtml(rs) {
       <div style="margin-bottom:5px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
           <span style="font-family:'Inter';font-size:9px;color:#767575;">${bdLabels[k] || k}</span>
-          <span style="font-family:'Space Grotesk';font-size:9px;font-weight:700;color:${v >= 16 ? '#4caf7d' : v >= 10 ? '#ffaa00' : '#ff716c'};">${v}/20</span>
+          <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;color:${v >= 16 ? '#4caf7d' : v >= 10 ? '#ffaa00' : '#ff716c'};">${v}/20</span>
         </div>
         <div style="height:3px;background:rgba(72,72,71,0.3);overflow:hidden;">
           <div style="height:100%;width:${v * 5}%;background:${v >= 16 ? '#4caf7d' : v >= 10 ? '#ffaa00' : '#ff716c'};"></div>
@@ -2881,9 +2881,9 @@ function _buildSafetyHtml(issues) {
     <p class="smi-section-title">Safety Check</p>
     ${issues.map(i => `
       <div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid rgba(72,72,71,0.1);">
-        <span style="font-family:'Space Grotesk';font-size:7px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:${rc[i.risk]};background:${rc[i.risk]}22;padding:2px 5px;flex-shrink:0;margin-top:1px;">${rl[i.risk]}</span>
+        <span style="font-family:'Manrope',sans-serif;font-size:7px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:${rc[i.risk]};background:${rc[i.risk]}22;padding:2px 5px;flex-shrink:0;margin-top:1px;">${rl[i.risk]}</span>
         <div>
-          <p style="font-family:'Space Grotesk';font-size:10px;font-weight:700;color:#c4c4c3;margin:0 0 2px;">${i.title}</p>
+          <p style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;color:#c4c4c3;margin:0 0 2px;">${i.title}</p>
           <p style="font-family:'Inter';font-size:10px;color:#484847;margin:0;line-height:1.4;">${i.desc}</p>
         </div>
       </div>`).join('')}
@@ -2956,21 +2956,21 @@ function _scPrompt(title, defaultVal, onConfirm) {
   box.style.cssText = 'background:#111217;border:1px solid rgba(122,175,255,0.2);border-radius:10px;padding:20px 22px 16px;min-width:270px;box-shadow:0 12px 48px rgba(0,0,0,0.8);display:flex;flex-direction:column;gap:12px;';
   const lbl = document.createElement('p');
   lbl.textContent = title;
-  lbl.style.cssText = 'margin:0;font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#c8c8c6;';
+  lbl.style.cssText = 'margin:0;font-family:"Manrope",sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#c8c8c6;';
   const inp = document.createElement('input');
   inp.type = 'text';
   inp.value = defaultVal || '';
-  inp.style.cssText = 'width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(122,175,255,0.2);border-radius:6px;padding:8px 10px;font-family:"Space Grotesk",sans-serif;font-size:13px;color:#f0f0ee;outline:none;';
+  inp.style.cssText = 'width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(122,175,255,0.2);border-radius:6px;padding:8px 10px;font-family:"Manrope",sans-serif;font-size:13px;color:#f0f0ee;outline:none;';
   inp.addEventListener('focus', () => inp.style.borderColor = 'rgba(122,175,255,0.6)');
   inp.addEventListener('blur',  () => inp.style.borderColor = 'rgba(122,175,255,0.2)');
   const row = document.createElement('div');
   row.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
   const btnCancel = document.createElement('button');
   btnCancel.textContent = 'Cancel';
-  btnCancel.style.cssText = 'padding:7px 14px;font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#888;cursor:pointer;';
+  btnCancel.style.cssText = 'padding:7px 14px;font-family:"Manrope",sans-serif;font-size:11px;font-weight:600;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#888;cursor:pointer;';
   const btnSave = document.createElement('button');
   btnSave.textContent = 'Save';
-  btnSave.style.cssText = 'padding:7px 16px;font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:700;background:#7aafff;border:none;border-radius:6px;color:#0e0e0e;cursor:pointer;';
+  btnSave.style.cssText = 'padding:7px 16px;font-family:"Manrope",sans-serif;font-size:11px;font-weight:700;background:#7aafff;border:none;border-radius:6px;color:#0e0e0e;cursor:pointer;';
   function confirm() {
     const v = inp.value.trim();
     if (!v) { inp.style.borderColor = 'rgba(255,80,80,0.7)'; inp.focus(); return; }
@@ -3115,8 +3115,8 @@ function _renderPresetsDrop(drop) {
   drop.innerHTML = `
     <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(72,72,71,0.2);flex-shrink:0;display:flex;align-items:center;gap:8px;">
       <span class="material-symbols-outlined" style="font-size:14px;color:#f0b429;">bookmark</span>
-      <span style="font-family:'Space Grotesk';font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#e0e0e0;flex:1;">Element Presets</span>
-      <button onclick="scSaveAsPreset()" style="padding:3px 9px;font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:rgba(122,175,255,0.1);border:1px solid rgba(122,175,255,0.25);color:#7aafff;cursor:pointer;border-radius:4px;" onmouseover="this.style.background='rgba(122,175,255,0.2)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">+ Save</button>
+      <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#e0e0e0;flex:1;">Element Presets</span>
+      <button onclick="scSaveAsPreset()" style="padding:3px 9px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:rgba(122,175,255,0.1);border:1px solid rgba(122,175,255,0.25);color:#7aafff;cursor:pointer;border-radius:4px;" onmouseover="this.style.background='rgba(122,175,255,0.2)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">+ Save</button>
     </div>
     <div style="flex:1;overflow-y:auto;padding:8px 10px;">
       ${presets.length === 0
@@ -3124,11 +3124,11 @@ function _renderPresetsDrop(drop) {
         : presets.map(p => `
           <div style="background:#0e0e0e;border:1px solid rgba(72,72,71,0.18);margin-bottom:6px;padding:8px 10px;border-radius:5px;">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-              <span style="font-family:'Space Grotesk';font-size:10px;font-weight:700;color:#e0e0e0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.name}">${p.name}</span>
+              <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;color:#e0e0e0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.name}">${p.name}</span>
               <span style="font-family:'Inter';font-size:8px;color:#484847;">${p.count} elem</span>
             </div>
             <div style="display:flex;gap:5px;">
-              <button onclick="scLoadElPreset(${p.id})" style="flex:1;padding:4px 0;font-family:'Space Grotesk';font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;background:rgba(122,175,255,0.08);border:1px solid rgba(122,175,255,0.2);color:#7aafff;cursor:pointer;border-radius:3px;" onmouseover="this.style.background='rgba(122,175,255,0.18)'" onmouseout="this.style.background='rgba(122,175,255,0.08)'">Load onto Stage</button>
+              <button onclick="scLoadElPreset(${p.id})" style="flex:1;padding:4px 0;font-family:'Manrope',sans-serif;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;background:rgba(122,175,255,0.08);border:1px solid rgba(122,175,255,0.2);color:#7aafff;cursor:pointer;border-radius:3px;" onmouseover="this.style.background='rgba(122,175,255,0.18)'" onmouseout="this.style.background='rgba(122,175,255,0.08)'">Load onto Stage</button>
               <button onclick="_renameElPreset(${p.id})" title="Rename" style="padding:4px 8px;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#484847;cursor:pointer;font-size:11px;border-radius:3px;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#484847'">✎</button>
               <button onclick="_deleteElPreset(${p.id})" title="Delete" style="padding:4px 8px;background:transparent;border:1px solid rgba(180,40,40,0.25);color:#484847;cursor:pointer;font-size:11px;border-radius:3px;" onmouseover="this.style.color='#ff5050'" onmouseout="this.style.color='#484847'">✕</button>
             </div>
@@ -3180,7 +3180,7 @@ function _renderElPresetsPanel() {
         style="width:26px;height:26px;border-radius:8px;background:rgba(128,128,128,0.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#888;-webkit-tap-highlight-color:transparent;flex-shrink:0;transition:background 120ms ease;">
         <span class="material-symbols-outlined" style="font-size:15px;">arrow_back_ios_new</span>
       </button>
-      <span style="font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#888;flex:1;">Presets</span>
+      <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#888;flex:1;">Presets</span>
     </div>
     <div style="overflow-y:auto;overflow-x:hidden;padding:6px;display:flex;flex-direction:column;gap:1px;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-height:340px;">
       <button class="sc-item-btn sc-item-btn--create" onclick="scSaveAsPreset()">
@@ -3339,7 +3339,7 @@ function _renderHistTimeline() {
   panel.innerHTML = `
     <div style="display:flex;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(72,72,71,0.22);flex-shrink:0;gap:8px;">
       <span class="material-symbols-outlined" style="font-size:14px;color:#7aafff;">history</span>
-      <span style="font-family:'Space Grotesk';font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#e0e0e0;flex:1;">History</span>
+      <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#e0e0e0;flex:1;">History</span>
       <button onclick="closeTimelinePanel()" style="background:none;border:none;color:#484847;cursor:pointer;font-size:18px;line-height:1;padding:0 2px;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#484847'">×</button>
     </div>
     <div style="flex:1;overflow-y:auto;padding:6px 0;scrollbar-width:thin;scrollbar-color:rgba(72,72,71,0.4) transparent;">
@@ -3348,8 +3348,8 @@ function _renderHistTimeline() {
         : rows}
     </div>
     <div style="padding:10px 14px;border-top:1px solid rgba(72,72,71,0.15);display:flex;gap:6px;flex-shrink:0;">
-      <button onclick="undo();_renderHistTimeline();" style="flex:1;padding:6px 4px;font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">← Undo</button>
-      <button onclick="redo();_renderHistTimeline();" style="flex:1;padding:6px 4px;font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">Redo →</button>
+      <button onclick="undo();_renderHistTimeline();" style="flex:1;padding:6px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">← Undo</button>
+      <button onclick="redo();_renderHistTimeline();" style="flex:1;padding:6px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">Redo →</button>
     </div>`;
 }
 
@@ -3500,16 +3500,16 @@ function _showPwGate(storedHash, encodedPayload) {
         title="Dismiss" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#484847'">×</button>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <span class="material-symbols-outlined" style="font-size:18px;color:#7aafff;">lock</span>
-        <span style="font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#7aafff;">Protected Stage Plot</span>
+        <span style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#7aafff;">Protected Stage Plot</span>
       </div>
       <p style="font-family:'Inter';font-size:12px;color:#484847;margin:0 0 20px;line-height:1.5;">This share link is password-protected. Enter the password to view.</p>
-      <label style="font-family:'Space Grotesk';font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#767575;display:block;margin-bottom:6px;">Password</label>
+      <label style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#767575;display:block;margin-bottom:6px;">Password</label>
       <input id="sc-pw-input" type="password" autocomplete="current-password"
-        style="width:100%;background:#0a0a0c;border:1px solid rgba(72,72,71,0.4);color:#e0e0e0;padding:10px 12px;font-family:'Space Grotesk';font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px;transition:border-color .15s;"
+        style="width:100%;background:#0a0a0c;border:1px solid rgba(72,72,71,0.4);color:#e0e0e0;padding:10px 12px;font-family:'Manrope',sans-serif;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px;transition:border-color .15s;"
         placeholder="Enter password" />
       <div id="sc-pw-err" style="font-family:'Inter';font-size:11px;color:#ff716c;margin-bottom:10px;display:none;">Incorrect password. Please try again.</div>
       <button onclick="_verifyPwShare('${storedHash}','${encodedPayload.replace(/'/g, "\\'")}')"
-        style="width:100%;padding:11px;font-family:'Space Grotesk';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;background:rgba(122,175,255,0.1);border:1px solid rgba(122,175,255,0.3);color:#7aafff;cursor:pointer;transition:background .15s;"
+        style="width:100%;padding:11px;font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;background:rgba(122,175,255,0.1);border:1px solid rgba(122,175,255,0.3);color:#7aafff;cursor:pointer;transition:background .15s;"
         onmouseover="this.style.background='rgba(122,175,255,0.18)'" onmouseout="this.style.background='rgba(122,175,255,0.1)'">Unlock →</button>
     </div>`;
   document.body.appendChild(overlay);
