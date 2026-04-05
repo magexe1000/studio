@@ -280,13 +280,8 @@ export default function StagexPanel() {
   }, [callIframe]);
 
   const handleFabTap = useCallback(() => {
-    if (isLandscapeEditor && propPanelOpen) {
-      callIframe('closePropPanel');
-      callIframe('deselectAll');
-      return;
-    }
     callIframe('toggleSCDial');
-  }, [callIframe, isLandscapeEditor, propPanelOpen]);
+  }, [callIframe]);
 
   /* ── Glassmorphism pill bg ──────────────────────────────── */
   const stagePillBg = isAmoled
@@ -488,9 +483,9 @@ export default function StagexPanel() {
               WebkitTapHighlightColor: 'transparent',
               touchAction: 'manipulation',
               display: 'flex',
-              opacity: (isLandscapeEditor && (propPanelOpen || fabOpen)) ? 0 : (stageNavHidden && !isLandscapeEditor) ? 0 : 1,
-              pointerEvents: (isLandscapeEditor && (propPanelOpen || fabOpen)) ? 'none' as const : 'auto' as const,
-              visibility: (isLandscapeEditor && (propPanelOpen || fabOpen)) ? 'hidden' as const : 'visible' as const,
+              opacity: (isLandscapeEditor && propPanelOpen) ? 0 : (stageNavHidden && !isLandscapeEditor) ? 0 : 1,
+              pointerEvents: (isLandscapeEditor && propPanelOpen) ? 'none' as const : 'auto' as const,
+              visibility: (isLandscapeEditor && propPanelOpen) ? 'hidden' as const : 'visible' as const,
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: fabOpen

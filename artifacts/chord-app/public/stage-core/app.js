@@ -1013,11 +1013,6 @@ function toggleSCDial() {
 function openSCDial() {
   _buildDial();
   _dialOpen = true;
-  var isLand = window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches;
-  if (isLand) {
-    deselectAll();
-    setPropState('hidden');
-  }
   try { window.parent.postMessage({ type: 'sc-dial-state', open: true }, window.location.origin); } catch(e) {}
   closeMobileElTray();
   const wrap  = document.getElementById('sc-fab-wrap');
@@ -1693,6 +1688,8 @@ function renderAll() {
 let _propUserDismissed = false; // true after user manually closes via X
 
 function setPropState(newState) {
+  var isLand = _isLandscapeMobile();
+  if (isLand && newState === 'peek') newState = 'open';
   const p = document.getElementById('properties-panel');
   if (!p) return;
   p.classList.remove('prop-open', 'prop-peek');
@@ -1706,7 +1703,6 @@ function setPropState(newState) {
   if ((newState === 'open' || newState === 'peek') && _dialOpen) {
     closeSCDial();
   }
-  var isLand = window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches;
   if (isLand) {
     var fab = document.getElementById('sc-fab-wrap');
     if (fab) {
@@ -1774,6 +1770,9 @@ function _propPeek(on) {
   } else {
     if (!_propUserDismissed && state.selectedId) setPropState('open');
   }
+}
+function _isLandscapeMobile() {
+  try { return window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches; } catch(e) { return false; }
 }
 
 function startDragElement(e, el) {
@@ -1943,11 +1942,17 @@ document.addEventListener('DOMContentLoaded', function() {
   const panel = document.getElementById('properties-panel');
   if (!panel) return;
   panel.addEventListener('click', function(e) {
+    e.stopPropagation();
     if (_getPropState() === 'peek') {
-      e.stopPropagation();
       setPropState('open');
     }
   });
+  panel.addEventListener('touchstart', function(e) {
+    e.stopPropagation();
+  }, { passive: true });
+  panel.addEventListener('touchend', function(e) {
+    e.stopPropagation();
+  }, { passive: true });
 });
 
 
