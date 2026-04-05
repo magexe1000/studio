@@ -3000,25 +3000,51 @@ function refreshRider() {
   renderRiderNeeds();
   var tbody = document.getElementById('rider-table-body');
   if (elems.length === 0) {
-    tbody.innerHTML = DOMPurify.sanitize(`<tr><td colspan="7" style="padding:32px 16px;text-align:center;white-space:normal;">
-      <div style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:#484847;">${T('noElemsRider')}</div>
-      <div style="font-size:10px;color:#333;margin-top:5px;font-family:'Inter',sans-serif;">Add elements to the stage — they appear here automatically</div>
-    </td></tr>`);
+    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+    var emptyRow = document.createElement('tr');
+    var emptyTd = document.createElement('td');
+    emptyTd.colSpan = 7;
+    emptyTd.style.cssText = 'padding:32px 16px;text-align:center;white-space:normal;';
+    emptyTd.innerHTML = '<div style="font-family:Manrope,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:#484847;">' + (T('noElemsRider') || 'No stage elements yet') + '</div><div style="font-size:10px;color:#333;margin-top:5px;font-family:Inter,sans-serif;">Add elements to the stage — they appear here automatically</div>';
+    emptyRow.appendChild(emptyTd);
+    tbody.appendChild(emptyRow);
   } else {
     var sorted = [...elems].sort(function(a, b) { return (a.channelId || '').localeCompare(b.channelId || ''); });
-    tbody.innerHTML = DOMPurify.sanitize(sorted.map(function(el, i) {
+    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+    sorted.forEach(function(el, i) {
       var chNum = 'CH-' + String(i + 1).padStart(2, '0');
-      var phantomCls = el.phantom ? 'rd-phantom-on' : 'rd-phantom-off';
-      return `<tr>
-        <td><span class="rd-ch-num">${el.channelId || chNum}</span></td>
-        <td style="font-weight:600;">${el.label || el.name || '—'}</td>
-        <td><span class="rd-type-badge">${el.type || el.name || '—'}</span></td>
-        <td style="color:#acabaa;">${TSource(el.source)}</td>
-        <td style="color:#e7e5e4;font-weight:600;">${el.output || 'FOH'}</td>
-        <td style="text-align:center;"><span class="${phantomCls}">${el.phantom ? 'ON' : 'OFF'}</span></td>
-        <td style="color:#767575;font-style:italic;">${el.notes || '—'}</td>
-      </tr>`;
-    }).join(''));
+      var tr = document.createElement('tr');
+      var td1 = document.createElement('td');
+      td1.innerHTML = '<span class="rd-ch-num">' + (el.channelId || chNum) + '</span>';
+      var td2 = document.createElement('td');
+      td2.style.fontWeight = '600';
+      td2.textContent = el.label || el.name || '—';
+      var td3 = document.createElement('td');
+      td3.innerHTML = '<span class="rd-type-badge">' + (el.type || el.name || '—') + '</span>';
+      var td4 = document.createElement('td');
+      td4.style.color = '#acabaa';
+      td4.textContent = TSource(el.source);
+      var td5 = document.createElement('td');
+      td5.style.cssText = 'color:#e7e5e4;font-weight:600;';
+      td5.textContent = el.output || 'FOH';
+      var td6 = document.createElement('td');
+      td6.style.textAlign = 'center';
+      var phSpan = document.createElement('span');
+      phSpan.className = el.phantom ? 'rd-phantom-on' : 'rd-phantom-off';
+      phSpan.textContent = el.phantom ? 'ON' : 'OFF';
+      td6.appendChild(phSpan);
+      var td7 = document.createElement('td');
+      td7.style.cssText = 'color:#767575;font-style:italic;';
+      td7.textContent = el.notes || '—';
+      tr.appendChild(td1);
+      tr.appendChild(td2);
+      tr.appendChild(td3);
+      tr.appendChild(td4);
+      tr.appendChild(td5);
+      tr.appendChild(td6);
+      tr.appendChild(td7);
+      tbody.appendChild(tr);
+    });
   }
   refreshRiderStagePreview();
 }
