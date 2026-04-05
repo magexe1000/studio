@@ -501,15 +501,15 @@ select option { background: #0e0e0e; color: #fff; }
   #mob-exp-set-btn .material-symbols-outlined { font-size: 14px !important; }
 
 
-  /* Properties panel: top drawer in portrait, matches plot width */
+  /* Properties panel: compact top drawer in portrait, matches plot width */
   #properties-panel {
     position: absolute !important;
     top: 0 !important; bottom: auto !important;
     left: 50% !important; right: auto !important;
     width: min(1080px, calc(100vw - 32px), calc((100vh - 40px) * 16 / 9)) !important;
     max-width: min(1080px, calc(100vw - 32px), calc((100vh - 40px) * 16 / 9)) !important;
-    height: auto !important; max-height: 45vh !important;
-    border-radius: 0 0 14px 14px !important;
+    height: auto !important; max-height: 28vh !important;
+    border-radius: 0 0 10px 10px !important;
     border: 1px solid rgba(255,255,255,0.06) !important;
     border-top: none !important;
     z-index: 310 !important;
@@ -536,19 +536,27 @@ select option { background: #0e0e0e; color: #fff; }
     pointer-events: auto !important;
   }
 
-  #properties-panel #prop-empty { padding: 8px 12px !important; }
-  #properties-panel #prop-empty .material-symbols-outlined { font-size: 16px !important; }
-  #properties-panel #prop-empty p { font-size: 9px !important; margin-top: 2px !important; }
+  #properties-panel #prop-header { padding: 2px 6px !important; gap: 4px !important; }
+  #properties-panel #prop-icon-preview { width: 14px !important; height: 14px !important; border-radius: 4px !important; }
+  #properties-panel #prop-icon-sym { width: 10px !important; height: 10px !important; }
+  #properties-panel #prop-name-display { font-size: 9px !important; }
+  #properties-panel #prop-type-display { font-size: 6px !important; }
 
-  #properties-panel .prop-row { margin-bottom: 4px !important; }
-  #properties-panel .prop-label { font-size: 8px !important; margin-bottom: 1px !important; }
-  #properties-panel .prop-input { padding: 4px 8px !important; font-size: 11px !important; height: 28px !important; }
-  #properties-panel .prop-divider { margin: 4px 0 !important; }
+  #properties-panel #prop-empty { padding: 4px 6px !important; }
+  #properties-panel #prop-empty .material-symbols-outlined { font-size: 14px !important; }
+  #properties-panel #prop-empty p { font-size: 7px !important; margin-top: 2px !important; }
+
+  #properties-panel .prop-row { margin-bottom: 2px !important; }
+  #properties-panel .prop-label { font-size: 6px !important; margin-bottom: 0px !important; }
+  #properties-panel .prop-input { padding: 2px 5px !important; font-size: 9px !important; height: 20px !important; }
+  #properties-panel .prop-divider { margin: 2px 0 !important; }
   #properties-panel textarea.prop-input,
   #properties-panel textarea { height: auto !important; }
+  #properties-panel #prop-controls > div:first-child { border-top: none !important; }
+  #properties-panel #prop-controls > div > div { padding: 1px 6px 2px !important; }
 
   #prop-rot-scale-row { grid-template-columns: 1fr 1fr !important; gap: 3px !important; }
-  #prop-controls > div:last-child { padding: 2px 8px 4px !important; }
+  #prop-controls > div:last-child { padding: 1px 6px 2px !important; }
   #prop-controls > div:first-child { border-top: none !important; }
 
   /* Scrollable views: full width, below view-tab bar */
