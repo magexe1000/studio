@@ -2878,9 +2878,8 @@ export default function SongsPanel() {
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
               {/* Live Mode pill */}
               {(() => {
-                const hasChords = activePreset.sections
-                  ? activePreset.sections.some(s => s.chords.length > 0)
-                  : activePreset.chords.length > 0;
+                const hasChords = activePreset.chords.length > 0
+                  || (activePreset.sections ?? []).some(s => s.chords.length > 0);
                 return hasChords ? (
                   <button onClick={() => setShowLive(true)} data-testid="enter-live-mode" className="btn-smooth"
                     style={{ height: '34px', padding: '0 11px 0 9px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, boxShadow: `0 2px 12px ${accent.to}55`, display: 'flex', alignItems: 'center', gap: '4px' }}>

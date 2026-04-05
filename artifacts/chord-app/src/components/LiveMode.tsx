@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { getChordById, type GuitarChordData } from '../data/chords';
 import { useChordStore, ACCENT_COLORS, type SongPreset } from '../store/useChordStore';
 import { setNavHidden } from '../lib/navScroll';
@@ -22,8 +22,10 @@ function LiveDiagram({ data, accentFrom, accentTo }: { data: GuitarChordData; ac
   const cH = (H - pT - pB) / numF;
   const r = 10;
   const { frets, baseFret, barres } = data;
-  const minF = baseFret > 1 ? baseFret : 1;
-  const showNut = baseFret === 1;
+  const allPositive = frets.filter(f => f > 0);
+  const minActive = allPositive.length ? Math.min(...allPositive) : 1;
+  const minF = baseFret > 1 ? baseFret : Math.max(1, minActive);
+  const showNut = minF <= 1;
 
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
@@ -45,7 +47,7 @@ function LiveDiagram({ data, accentFrom, accentTo }: { data: GuitarChordData; ac
       {/* Position number */}
       {!showNut && (
         <text x={pL - 8} y={pT + cH * 0.5} fontFamily="Manrope" fontSize={11} fontWeight="bold" fill="#acabaa" textAnchor="end" dominantBaseline="middle">
-          {baseFret}
+          {minF}
         </text>
       )}
       {/* Fret lines */}
@@ -62,8 +64,8 @@ function LiveDiagram({ data, accentFrom, accentTo }: { data: GuitarChordData; ac
       {barres && barres.map((barre, bi) => {
         const fp = barre.fret - minF;
         if (fp < 0 || fp >= numF) return null;
-        const x1 = pL + (barre.fromString - 1) * cW;
-        const x2 = pL + (barre.toString - 1) * cW;
+        const x1 = pL + (numS - barre.fromString) * cW;
+        const x2 = pL + (numS - barre.toString) * cW;
         const cy = pT + fp * cH + cH / 2;
         return (
           <rect key={bi}
@@ -77,6 +79,9 @@ function LiveDiagram({ data, accentFrom, accentTo }: { data: GuitarChordData; ac
         if (f <= 0) return null;
         const fp = f - minF;
         if (fp < 0 || fp >= numF) return null;
+        const stringNum = numS - si;
+        const onBarre = barres && barres.some(b => b.fret === f && stringNum >= b.toString && stringNum <= b.fromString);
+        if (onBarre) return null;
         const cx = pL + si * cW;
         const cy = pT + fp * cH + cH / 2;
         return (
@@ -107,9 +112,11 @@ function MiniLiveDiagram({ data, accentFrom }: { data: GuitarChordData; accentFr
   const cW = (W - pL - pR) / (numS - 1);
   const cH = (H - pT - pB) / numF;
   const r = 3.5;
-  const { frets, baseFret } = data;
-  const minF = baseFret > 1 ? baseFret : 1;
-  const showNut = baseFret === 1;
+  const { frets, baseFret, barres } = data;
+  const allPos = frets.filter(f => f > 0);
+  const minAct = allPos.length ? Math.min(...allPos) : 1;
+  const minF = baseFret > 1 ? baseFret : Math.max(1, minAct);
+  const showNut = minF <= 1;
 
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
@@ -122,10 +129,21 @@ function MiniLiveDiagram({ data, accentFrom }: { data: GuitarChordData; accentFr
         <line key={i} x1={pL + i * cW} y1={pT} x2={pL + i * cW} y2={pT + numF * cH}
           stroke="rgba(255,255,255,0.1)" strokeWidth={0.6} />
       ))}
+      {barres && barres.map((barre, bi) => {
+        const fp = barre.fret - minF;
+        if (fp < 0 || fp >= numF) return null;
+        const x1 = pL + (numS - barre.fromString) * cW;
+        const x2 = pL + (numS - barre.toString) * cW;
+        const cy = pT + fp * cH + cH / 2;
+        return <rect key={`b-${bi}`} x={Math.min(x1, x2)} y={cy - r} width={Math.abs(x2 - x1)} height={r * 2} rx={r} fill={accentFrom} opacity={0.9} />;
+      })}
       {frets.map((f, si) => {
         if (f <= 0) return null;
         const fp = f - minF;
         if (fp < 0 || fp >= numF) return null;
+        const stringNum = numS - si;
+        const onBarre = barres && barres.some(b => b.fret === f && stringNum >= b.toString && stringNum <= b.fromString);
+        if (onBarre) return null;
         const cx = pL + si * cW;
         const cy = pT + fp * cH + cH / 2;
         return <circle key={si} cx={cx} cy={cy} r={r} fill={accentFrom} />;
@@ -171,9 +189,16 @@ export default function LiveMode({ preset, onClose, transposeOffset = 0 }: LiveM
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const chords = transposeOffset !== 0
-    ? preset.chords.map(id => transposeChordId(id, transposeOffset))
-    : preset.chords;
+  const { chords, sectionLabels } = useMemo(() => {
+    const ids: string[] = [];
+    const labels: (string | null)[] = [];
+    preset.chords.forEach(id => { ids.push(id); labels.push(null); });
+    (preset.sections ?? []).forEach(sec => {
+      sec.chords.forEach(id => { ids.push(id); labels.push(sec.name); });
+    });
+    const finalIds = transposeOffset !== 0 ? ids.map(id => transposeChordId(id, transposeOffset)) : ids;
+    return { chords: finalIds, sectionLabels: labels };
+  }, [preset.chords, preset.sections, transposeOffset]);
   const total  = chords.length;
 
   const currentChord = chords[currentIdx] ? getChordById(chords[currentIdx]) : null;
@@ -356,6 +381,17 @@ export default function LiveMode({ preset, onClose, transposeOffset = 0 }: LiveM
 
         {/* ── Active chord ── */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', willChange: 'transform, opacity, filter', ...chordStyle }}>
+
+          {/* Section label */}
+          {sectionLabels[shownIdx] && (
+            <p style={{
+              color: accent.from, fontFamily: 'Manrope', fontWeight: 700,
+              fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.15em',
+              opacity: 0.7, marginBottom: '-2px',
+            }}>
+              {sectionLabels[shownIdx]}
+            </p>
+          )}
 
           {/* Full diagram */}
           {(visualStyle === 'diagram' || visualStyle === 'both') && shownChord?.guitar && (
