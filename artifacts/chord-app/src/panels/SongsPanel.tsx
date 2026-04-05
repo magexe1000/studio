@@ -963,8 +963,8 @@ const PICKER_CATS: { type: ChordType | 'all'; label: string }[] = [
 
 /* ──────────────────── Preview Fretboard (inside paper card) ──────────────────── */
 function PreviewFretboard({ data, dark }: { data: GuitarChordData; dark: boolean }) {
-  const W = 76, H = 84, numS = 6, numF = 4;
-  const pL = 8, pT = 14, pR = 8;
+  const W = 86, H = 84, numS = 6, numF = 4;
+  const pL = 8, pT = 14, pR = 18;
   const cW = (W - pL - pR) / (numS - 1);
   const cH = (H - pT - 10) / numF;
   const r = 4.5;
@@ -1048,8 +1048,8 @@ function PreviewCustomDiagram({ chord, dark }: { chord: CustomChord; dark: boole
   const active = frets.filter(f => f > 0);
   const baseFret = active.length > 0 ? Math.min(...active) : 1;
 
-  const W = 76, H = 84, numF = 4;
-  const pL = 8, pT = 14, pR = 8;
+  const W = 86, H = 84, numF = 4;
+  const pL = 8, pT = 14, pR = 18;
   const cW = (W - pL - pR) / (numS - 1);
   const cH = (H - pT - 10) / numF;
   const r = 4.5;
