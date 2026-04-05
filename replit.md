@@ -54,6 +54,12 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 Chordex — React/Vite PWA + Capacitor Android app for chord reference, song/progression building, and drum tab editing.
 
+- **Stage Mode (Stagex)**: `src/components/StageCorePanel.tsx` — iframe-based stage plot editor.
+  - **Architecture**: Pre-built static bundle at `public/stage-core/` served in an iframe. React parent renders header, FAB, and bottom nav bar as real DOM buttons on top of the iframe. Iframe's own FAB/nav bar are hidden via CSS injection + inline `<head>` script (hash-based embed detection).
+  - **Bridge**: `callIframe(fn, arg)` — direct `contentWindow[fn]()` call (same-origin) with `postMessage` fallback; 200ms dedup guard prevents double-fire from touch+click.
+  - **Chrome Android iframe rule**: All `position:fixed` replaced with `position:absolute` in `app.css`, `app.js`, `features.js`, `index.html`. Body has `transform: translateZ(0)` to create stacking context.
+  - **Offline**: `cloud-stub.js` stubs all Firebase APIs; fonts bundled locally; no external network dependencies.
+  - **CSS overrides** in `index.html`: hide desktop nav, style bottom nav pill, position:absolute for scrollable-view/FAB/backdrop, view padding adjustments.
 - **State**: `src/store/useChordStore.ts` (Zustand + persist) — chord/song/settings; `src/store/useDrumStore.ts` — fully isolated drum patterns
 - **App Mode**: `settings.appMode: 'chords' | 'drums'` in AppSettings; switching replaces the entire UI instantly with no reload
 - **Panels** (Chordex mode): `LibraryPanel`, `ChordPanel`, `SongsPanel`, `SettingsPanel` + `BottomNav`

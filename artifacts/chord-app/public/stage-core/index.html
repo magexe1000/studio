@@ -86,6 +86,14 @@
 <link rel="stylesheet" href="stage-core.css"/>
 <link rel="stylesheet" href="app.css"/>
 <script src="cloud-stub.js"></script>
+<script>
+if (location.hash && !location.hash.startsWith('#share=')) {
+  var s = document.createElement('style');
+  s.id = 'embedded-hide';
+  s.textContent = '#sc-fab-btn{opacity:0!important;pointer-events:none!important}#mobile-nav-bar{opacity:0!important;pointer-events:none!important}';
+  document.head.appendChild(s);
+}
+</script>
 <style>
 /* ── Global body ────────────────────────────────────────────────────────── */
 html, body {
@@ -3848,70 +3856,6 @@ window.addEventListener('message', function(e) {
     removeNativeHeader();
   }
 
-})();
-</script>
-
-<script>
-(function() {
-  function bindTouch() {
-    /* ── NAV BAR TABS ────────────────────────────────────────────────────── */
-    document.querySelectorAll('.mob-tab').forEach(function(btn) {
-      btn.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        var view = btn.dataset.view;
-        if (!view) return;
-        if (view === 'Setup') {
-          if (typeof activateSetup === 'function') activateSetup();
-        } else {
-          if (typeof switchView === 'function') switchView(view);
-        }
-      }, { passive: false });
-    });
-
-    /* ── FAB BUTTON ──────────────────────────────────────────────────────── */
-    var fab = document.getElementById('sc-fab-btn');
-    if (fab) {
-      fab.addEventListener('touchstart', function(e) {
-        e.stopPropagation();
-      }, { passive: true });
-
-      fab.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (typeof toggleSCDial === 'function') toggleSCDial();
-      }, { passive: false });
-    }
-
-    /* ── FAB DIAL CHIPS (event delegation — chips are created dynamically) ─ */
-    var fabWrap = document.getElementById('sc-fab-wrap');
-    if (fabWrap) {
-      fabWrap.addEventListener('touchend', function(e) {
-        var chip = e.target.closest('.sc-dial-chip');
-        if (!chip) return;
-        e.preventDefault();
-        e.stopPropagation();
-        var cat = chip.dataset.cat;
-        var label = chip.dataset.label || cat;
-        if (cat && typeof openItemSheet === 'function') openItemSheet(cat, label);
-      }, { passive: false });
-    }
-
-    /* ── DIAL BACKDROP (close on tap) ────────────────────────────────────── */
-    var backdrop = document.getElementById('sc-dial-backdrop');
-    if (backdrop) {
-      backdrop.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        if (typeof closeSCDial === 'function') closeSCDial();
-        if (typeof closeItemSheet === 'function') closeItemSheet(false);
-      }, { passive: false });
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindTouch);
-  } else {
-    bindTouch();
-  }
 })();
 </script>
 </body>
