@@ -350,7 +350,7 @@ export default function StagexPanel() {
       <div style={{
         flexShrink: 0,
         overflow: collapseHeader ? 'hidden' : 'visible',
-        height: collapseHeader ? 0 : 'calc(env(safe-area-inset-top) + 52px)',
+        height: collapseHeader ? 0 : 'calc(env(safe-area-inset-top) + 68px)',
         transition: 'height 260ms cubic-bezier(0.4,0,0.2,1)',
       }}>
       <div style={{ height: 'env(safe-area-inset-top)', background: 'transparent', flexShrink: 0 }} />
