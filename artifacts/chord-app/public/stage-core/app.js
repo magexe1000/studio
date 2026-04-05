@@ -2992,32 +2992,31 @@ function clearStage() {
 //  RIDER VIEW
 // ══════════════════════════════════════════════════════════
 function refreshRider() {
-  if (!state.riderChannels) state.riderChannels = [];
-  var channels = state.riderChannels;
-  document.getElementById('rider-ch-count').textContent = channels.length + ' / 32';
-  document.getElementById('rider-el-count').textContent = state.elements.length;
+  var elems = state.elements;
+  document.getElementById('rider-ch-count').textContent = elems.length + ' / 32';
+  document.getElementById('rider-el-count').textContent = elems.length;
   const dateEl = document.getElementById('rider-date-val');
   if (dateEl) dateEl.textContent = new Date().toLocaleDateString(state.lang === 'es' ? 'es-MX' : 'en-US', { year:'numeric', month:'short', day:'numeric' });
   renderRiderNeeds();
   var tbody = document.getElementById('rider-table-body');
-  if (channels.length === 0) {
-    tbody.innerHTML = DOMPurify.sanitize(`<tr><td colspan="8" style="padding:40px 16px;text-align:center;">
-      <div style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">${T('noElemsRider')}</div>
-      <div style="font-size:11px;color:#333;margin-top:6px;font-family:'Inter',sans-serif;">${T('useFromStage') || 'Use "From Stage" to import elements or "Add Channel" for custom entries'}</div>
+  if (elems.length === 0) {
+    tbody.innerHTML = DOMPurify.sanitize(`<tr><td colspan="7" style="padding:32px 16px;text-align:center;white-space:normal;">
+      <div style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:#484847;">${T('noElemsRider')}</div>
+      <div style="font-size:10px;color:#333;margin-top:5px;font-family:'Inter',sans-serif;">Add elements to the stage — they appear here automatically</div>
     </td></tr>`);
   } else {
-    tbody.innerHTML = DOMPurify.sanitize(channels.map(function(ch, i) {
-      var chNum = String(i + 1).padStart(2, '0');
-      var phantomCls = ch.phantom ? 'rd-phantom-on' : 'rd-phantom-off';
+    var sorted = [...elems].sort(function(a, b) { return (a.channelId || '').localeCompare(b.channelId || ''); });
+    tbody.innerHTML = DOMPurify.sanitize(sorted.map(function(el, i) {
+      var chNum = 'CH-' + String(i + 1).padStart(2, '0');
+      var phantomCls = el.phantom ? 'rd-phantom-on' : 'rd-phantom-off';
       return `<tr>
-        <td><span class="rd-ch-num">${ch.channelId || chNum}</span></td>
-        <td style="font-weight:500;">${ch.label}</td>
-        <td><span class="rd-type-badge">${ch.type || 'Custom'}</span></td>
-        <td style="color:#acabaa;">${TSource(ch.source)}</td>
-        <td style="text-align:center;"><span class="${phantomCls}">${ch.phantom ? 'ON' : 'OFF'}</span></td>
-        <td style="color:#acabaa;">${ch.output || 'FOH'}</td>
-        <td style="color:#767575;font-style:italic;">${ch.notes || '—'}</td>
-        <td><button class="rd-del-btn" onclick="removeRiderChannel(${i})"><span class="material-symbols-outlined" style="font-size:13px;">close</span></button></td>
+        <td><span class="rd-ch-num">${el.channelId || chNum}</span></td>
+        <td style="font-weight:600;">${el.label || el.name || '—'}</td>
+        <td><span class="rd-type-badge">${el.type || el.name || '—'}</span></td>
+        <td style="color:#acabaa;">${TSource(el.source)}</td>
+        <td style="color:#e7e5e4;font-weight:600;">${el.output || 'FOH'}</td>
+        <td style="text-align:center;"><span class="${phantomCls}">${el.phantom ? 'ON' : 'OFF'}</span></td>
+        <td style="color:#767575;font-style:italic;">${el.notes || '—'}</td>
       </tr>`;
     }).join(''));
   }

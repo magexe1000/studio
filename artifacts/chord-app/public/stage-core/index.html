@@ -877,17 +877,17 @@ header,
 .rd-notes-textarea { font-family: 'Inter', sans-serif; font-size: 13px; color: #5a5a59; line-height: 1.65; background: transparent; border: none; width: 100%; box-sizing: border-box; resize: vertical; min-height: 96px; outline: none; padding: 0; }
 .rd-notes-textarea:focus { color: #8a8a89; }
 .rd-notes-textarea::placeholder { color: #333; }
-.rd-input-table { width: 100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 10px; table-layout: fixed; }
-.rd-input-table thead tr { background: rgba(255,255,255,0.025); border-bottom: 1px solid rgba(255,255,255,0.06); }
-.rd-input-table th { padding: 5px 6px; font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; color: #767575; text-align: left; white-space: nowrap; }
-.rd-input-table td { padding: 5px 6px; font-size: 10px; color: #e7e5e4; border-bottom: 1px solid rgba(255,255,255,0.025); vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-input-table { border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px; min-width: 600px; width: 100%; }
+.rd-input-table thead tr { background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.06); }
+.rd-input-table th { padding: 8px 10px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: #767575; text-align: left; white-space: nowrap; }
+.rd-input-table td { padding: 9px 10px; font-size: 11px; color: #e7e5e4; border-bottom: 1px solid rgba(255,255,255,0.025); vertical-align: middle; white-space: nowrap; }
 .rd-input-table tbody tr:last-child td { border-bottom: none; }
 .rd-input-table tbody tr { transition: background 0.12s ease; }
 .rd-input-table tbody tr:hover { background: rgba(255,255,255,0.025); }
-.rd-input-table .rd-ch-num { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--accent); font-size: 10px; }
-.rd-input-table .rd-type-badge { display: inline-block; background: #252626; padding: 2px 6px; border-radius: 3px; font-size: 9px; color: #acabaa; white-space: nowrap; }
-.rd-input-table .rd-phantom-on { font-size: 8px; font-weight: 700; padding: 1px 5px; background: rgba(0,122,255,0.12); color: var(--accent); border-radius: 100px; }
-.rd-input-table .rd-phantom-off { font-size: 8px; font-weight: 700; padding: 1px 5px; background: rgba(255,255,255,0.04); color: #484847; border-radius: 100px; }
+.rd-input-table .rd-ch-num { font-weight: 700; color: var(--accent); font-size: 11px; }
+.rd-input-table .rd-type-badge { display: inline-block; background: #252626; padding: 2px 8px; border-radius: 4px; font-size: 10px; color: #acabaa; white-space: nowrap; text-transform: uppercase; }
+.rd-input-table .rd-phantom-on { font-size: 9px; font-weight: 700; padding: 2px 7px; background: rgba(0,122,255,0.12); color: var(--accent); border-radius: 100px; }
+.rd-input-table .rd-phantom-off { font-size: 9px; font-weight: 700; padding: 2px 7px; background: rgba(255,255,255,0.04); color: #484847; border-radius: 100px; }
 .rd-input-table .rd-del-btn { background: none; border: none; cursor: pointer; color: rgba(238,125,119,0.3); transition: color 0.12s; padding: 2px; line-height: 1; }
 .rd-input-table .rd-del-btn:hover { color: #ee7d77; }
 .rd-config-grid { display: flex; flex-direction: column; gap: 12px; }
@@ -2480,48 +2480,26 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     <div style="margin-bottom:20px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <h2 style="font-family:'Manrope',sans-serif;font-size:1.5rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;">Input List</h2>
-        <div style="display:flex;gap:6px;">
-          <button onclick="addRiderFromStage()" class="rd-btn rd-btn--ghost" title="Auto-populate from stage elements">
-            <span class="material-symbols-outlined" style="font-size:14px;">bolt</span>From Stage
-          </button>
-          <button onclick="addRiderChannel()" class="rd-btn rd-btn--accent">
-            <span class="material-symbols-outlined" style="font-size:14px;">add</span>Add Channel
-          </button>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-family:'Inter',sans-serif;font-size:9px;color:#484847;text-transform:uppercase;letter-spacing:0.1em;">Auto-synced from stage</span>
         </div>
       </div>
 
       <div style="background:#191a1a;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);">
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-height:320px;overflow-y:auto;">
           <table class="rd-input-table">
-            <colgroup>
-              <col style="width:36px;">
-              <col style="width:22%;">
-              <col style="width:16%;">
-              <col style="width:14%;">
-              <col style="width:32px;">
-              <col style="width:12%;">
-              <col>
-              <col style="width:24px;">
-            </colgroup>
             <thead>
               <tr>
-                <th>CH#</th>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Input</th>
-                <th style="text-align:center;">48V</th>
-                <th>Output</th>
-                <th>Notes</th>
-                <th></th>
+                <th style="min-width:50px;">CH#</th>
+                <th style="min-width:100px;">Source Name</th>
+                <th style="min-width:90px;">Type</th>
+                <th style="min-width:100px;">Input Source</th>
+                <th style="min-width:56px;">Output</th>
+                <th style="min-width:44px;text-align:center;">+48V</th>
+                <th style="min-width:60px;">Notes</th>
               </tr>
             </thead>
             <tbody id="rider-table-body">
-              <tr>
-                <td colspan="8" style="padding:40px 16px;text-align:center;">
-                  <div style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;">No elements yet</div>
-                  <div style="font-size:11px;color:#333;margin-top:6px;font-family:'Inter',sans-serif;">Tap From Stage to auto-populate</div>
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>
