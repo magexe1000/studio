@@ -776,21 +776,22 @@ function _injectSoundCoverageUI() {
 
   const controls = document.getElementById('prop-controls');
   if (!controls) return;
+  var scrollArea = controls.querySelector('[style*="overflow-y"]') || controls;
 
   const isOn = el.soundCoverage !== false;
   const sec = document.createElement('div');
   sec.id = 'sound-coverage-section';
-  sec.style.cssText = 'border-top:1px solid rgba(72,72,71,0.2);padding:12px 16px 10px;';
+  sec.style.cssText = 'border-top:1px solid rgba(72,72,71,0.2);padding:6px 0 4px;';
   sec.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-      <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#7aafff;">Sound Coverage</span>
-      <button id="sc-toggle-btn" onclick="toggleSoundCoverage()" style="width:36px;height:20px;border-radius:10px;border:none;cursor:pointer;background:${isOn ? '#7aafff' : 'rgba(72,72,71,0.35)'};position:relative;transition:background 0.2s;flex-shrink:0;">
-        <div style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;transition:left 0.2s;left:${isOn ? '18px' : '2px'};"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <span style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);">Sound Coverage</span>
+      <button id="sc-toggle-btn" onclick="toggleSoundCoverage()" style="width:32px;height:16px;border-radius:8px;border:none;cursor:pointer;background:${isOn ? 'var(--accent)' : 'rgba(72,72,71,0.35)'};position:relative;transition:background 0.2s;flex-shrink:0;">
+        <div style="width:12px;height:12px;border-radius:50%;background:#fff;position:absolute;top:2px;transition:left 0.2s;left:${isOn ? '18px' : '2px'};"></div>
       </button>
     </div>
-    <p style="font-family:'Inter';font-size:10px;color:#484847;line-height:1.45;margin:0;">Shows a dispersion cone for this element. Use the rotation field to aim the coverage direction.</p>
+    <p style="font-family:'Manrope',sans-serif;font-size:8px;color:#484847;line-height:1.4;margin:0;">Dispersion cone overlay. Rotate to aim.</p>
   `;
-  controls.appendChild(sec);
+  scrollArea.appendChild(sec);
 }
 
 function toggleSoundCoverage() {
