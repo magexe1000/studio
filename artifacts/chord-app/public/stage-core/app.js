@@ -1013,6 +1013,11 @@ function toggleSCDial() {
 function openSCDial() {
   _buildDial();
   _dialOpen = true;
+  var isLand = window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches;
+  if (isLand) {
+    deselectAll();
+    setPropState('hidden');
+  }
   try { window.parent.postMessage({ type: 'sc-dial-state', open: true }, window.location.origin); } catch(e) {}
   closeMobileElTray();
   const wrap  = document.getElementById('sc-fab-wrap');

@@ -86,6 +86,7 @@ function injectAmoled(iframe: HTMLIFrameElement, amoled: boolean) {
 
 const HIDE_IFRAME_UI = `
   #sc-fab-btn { opacity: 0 !important; pointer-events: none !important; }
+  #sc-fab-wrap { bottom: 14px !important; right: 14px !important; }
   #mobile-nav-bar { opacity: 0 !important; pointer-events: none !important; }
 `;
 
@@ -487,9 +488,9 @@ export default function StagexPanel() {
               WebkitTapHighlightColor: 'transparent',
               touchAction: 'manipulation',
               display: 'flex',
-              opacity: (isLandscapeEditor && propPanelOpen) ? 0 : (stageNavHidden && !isLandscapeEditor) ? 0 : 1,
-              pointerEvents: (isLandscapeEditor && propPanelOpen) ? 'none' as const : 'auto' as const,
-              visibility: (isLandscapeEditor && propPanelOpen) ? 'hidden' as const : 'visible' as const,
+              opacity: (isLandscapeEditor && (propPanelOpen || fabOpen)) ? 0 : (stageNavHidden && !isLandscapeEditor) ? 0 : 1,
+              pointerEvents: (isLandscapeEditor && (propPanelOpen || fabOpen)) ? 'none' as const : 'auto' as const,
+              visibility: (isLandscapeEditor && (propPanelOpen || fabOpen)) ? 'hidden' as const : 'visible' as const,
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: fabOpen
