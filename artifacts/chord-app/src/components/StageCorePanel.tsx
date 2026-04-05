@@ -85,9 +85,12 @@ function injectAmoled(iframe: HTMLIFrameElement, amoled: boolean) {
 }
 
 const HIDE_IFRAME_UI = `
-  #sc-fab-btn { opacity: 0 !important; pointer-events: none !important; }
-  #sc-fab-wrap { bottom: 14px !important; right: 14px !important; }
+  #sc-fab-btn { display: none !important; }
+  #sc-fab-wrap { bottom: 146px !important; right: 14px !important; }
   #mobile-nav-bar { opacity: 0 !important; pointer-events: none !important; }
+  @media screen and (orientation: landscape) and (max-width: 960px) {
+    #sc-fab-wrap { bottom: 70px !important; }
+  }
 `;
 
 export default function StagexPanel() {
