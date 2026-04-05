@@ -103,6 +103,7 @@ export default function StageCorePanel() {
   const [stagePill, setStagePill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const [pressedTab, setPressedTab] = useState<string | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
+  const [stageNavHidden, setStageNavHidden] = useState(false);
 
   const [isLandscape, setIsLandscape] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches
@@ -167,6 +168,24 @@ export default function StageCorePanel() {
             s.textContent = HIDE_IFRAME_UI;
             doc.head.appendChild(s);
           }
+          if (!doc.getElementById('sc-scroll-spy')) {
+            const scr = doc.createElement('script');
+            scr.id = 'sc-scroll-spy';
+            scr.textContent = `(function(){
+              var ly=0;
+              function h(e){
+                var y=e.target.scrollTop;
+                if(typeof y!=='number')return;
+                if(y<30){window.parent.postMessage({type:'sc-scroll-dir',down:false},'*');ly=y;return;}
+                var dy=y-ly;
+                if(Math.abs(dy)<6)return;
+                window.parent.postMessage({type:'sc-scroll-dir',down:dy>0},'*');
+                ly=y;
+              }
+              document.addEventListener('scroll',h,{passive:true,capture:true});
+            })();`;
+            doc.body.appendChild(scr);
+          }
         }
       } catch {}
       try {
@@ -184,6 +203,7 @@ export default function StageCorePanel() {
     const onMsg = (e: MessageEvent) => {
       if (e.source !== iframeRef.current?.contentWindow) return;
       if (e.data?.type === 'sc-dial-state') setFabOpen(!!e.data.open);
+      if (e.data?.type === 'sc-scroll-dir') setStageNavHidden(!!e.data.down);
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
@@ -227,6 +247,7 @@ export default function StageCorePanel() {
   };
 
   const handleNavTap = useCallback((view: string) => {
+    setStageNavHidden(false);
     if (view === 'Setup') {
       callIframe('switchView', 'SetupHub');
     } else {
@@ -437,6 +458,7 @@ export default function StageCorePanel() {
               WebkitTapHighlightColor: 'transparent',
               touchAction: 'manipulation',
               display: 'flex',
+              opacity: stageNavHidden ? 0 : 1,
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: fabOpen
@@ -444,7 +466,7 @@ export default function StageCorePanel() {
                 : `0 4px 24px ${accent.from}80, 0 2px 8px rgba(0,0,0,0.3)`,
               padding: 0,
               transform: fabOpen ? 'rotate(45deg) scale(1.08)' : 'rotate(0deg) scale(1)',
-              transition: 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease',
+              transition: 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease, opacity 420ms cubic-bezier(0.4,0,0.2,1)',
             }}
           >
             <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 24, lineHeight: 1, transition: 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}>add</span>
@@ -458,7 +480,7 @@ export default function StageCorePanel() {
             position: 'absolute',
             bottom: 'max(10px, env(safe-area-inset-bottom))',
             left: '50%',
-            transform: 'translateX(-50%)',
+            transform: `translateX(-50%) translateY(${stageNavHidden ? '140%' : '0'})`,
             width: '90%',
             maxWidth: 400,
             display: 'flex',
@@ -475,7 +497,7 @@ export default function StageCorePanel() {
             WebkitBackdropFilter: 'blur(20px)',
             zIndex: 10,
             overflow: 'hidden',
-            transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+            transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1), transform 420ms cubic-bezier(0.4,0,0.2,1)',
           }}
         >
           {/* Elastic sliding pill */}

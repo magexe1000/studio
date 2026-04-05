@@ -418,10 +418,11 @@ const ALL_NAV_TABS: { id: DrumTab; label: string; Icon: React.FC<{ active: boole
   { id: 'patterns', label: 'Patterns', Icon: IconPatterns  },
   { id: 'prefs',    label: 'Preferences', Icon: IconPrefs  },
 ];
-function DrumNav({ activeTab, setTab, accent, isLight, isAmoled }: {
+function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
   activeTab: DrumTab; setTab: (t: DrumTab) => void;
   accent: { from: string; to: string };
   isLight: boolean; isAmoled: boolean;
+  hidden?: boolean;
 }) {
   const navRef  = useRef<HTMLElement | null>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -463,7 +464,8 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled }: {
 
   return (
     <nav ref={navRef} style={{
-      position: 'fixed', left: '50%', transform: 'translateX(-50%)',
+      position: 'fixed', left: '50%',
+      transform: `translateX(-50%) translateY(${hidden ? '140%' : '0'})`,
       bottom: 'max(10px, env(safe-area-inset-bottom))',
       width: '88%', maxWidth: 360,
       display: 'flex', justifyContent: 'space-around', alignItems: 'center',
@@ -475,7 +477,7 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled }: {
         : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
       zIndex: 50, overflow: 'hidden',
       backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-      transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+      transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1), transform 420ms cubic-bezier(0.4,0,0.2,1)',
     }}>
       {pill.ready && (
         <div aria-hidden style={{
@@ -1488,6 +1490,8 @@ export default function DrumEditor() {
     const newIdx = TAB_ORDER.indexOf(newTab);
     setTabAnim(newIdx >= oldIdx ? 'panel-enter-right' : 'panel-enter-left');
     setActiveTab(newTab);
+    setDrumNavHidden(false);
+    drumNavLastY.current = 0;
   };
   const [humanizeFeedback,   setHumanizeFeedback]   = useState(false);
 
@@ -1623,6 +1627,10 @@ export default function DrumEditor() {
     return map;
   }, [pattern, spm, visibleInsts]);
 
+  // ── Scroll-hide for bottom nav ────────────────────────────────────────────
+  const [drumNavHidden, setDrumNavHidden] = useState(false);
+  const drumNavLastY = useRef(0);
+
   // ── Refs ─────────────────────────────────────────────────────────────────
   const scrollRef      = useRef<HTMLDivElement>(null);
   const playheadRef    = useRef<HTMLDivElement>(null);
@@ -1661,6 +1669,16 @@ export default function DrumEditor() {
   }, [kit, houseKitMic]);
 
   useEffect(() => { if (playing) drumScheduler.updatePattern(pattern); }, [pattern, playing]);
+
+  // ── Scroll-hide: attach to grid scroll container ──────────────────────────
+  const drumScrollHide = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const y = e.currentTarget.scrollTop;
+    if (y < 30) { setDrumNavHidden(false); drumNavLastY.current = y; return; }
+    const dy = y - drumNavLastY.current;
+    if (Math.abs(dy) < 6) return;
+    setDrumNavHidden(dy > 0);
+    drumNavLastY.current = y;
+  }, []);
 
   // ── Auto-save: persist patterns/kit into the loaded song whenever they change
   useEffect(() => {
@@ -2396,7 +2414,7 @@ export default function DrumEditor() {
 
         {/* ═══ SONGS LIST (Songs tab, not in editor) ═══════════════════════ */}
         {activeTab === 'songs' && !inEditor && (
-          <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }} className="no-scrollbar panel-enter-left">
+          <div onScroll={drumScrollHide} style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }} className="no-scrollbar panel-enter-left">
             <div style={{ padding: '0 20px', marginTop: 12, marginBottom: 24 }}>
               <h2 style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '2.6rem', color: 'var(--c-text-primary)', letterSpacing: '-0.04em', lineHeight: 1, margin: 0 }}>Beats</h2>
               <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 13, marginTop: 4, margin: '4px 0 0' }}>Your drum songs</p>
@@ -2511,6 +2529,7 @@ export default function DrumEditor() {
             )}
             <div
               ref={scrollRef}
+              onScroll={drumScrollHide}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
@@ -2704,7 +2723,7 @@ export default function DrumEditor() {
 
         {/* ═══ PATTERNS TAB ═════════════════════════════════════════════════ */}
         {activeTab === 'patterns' && (
-          <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20, paddingBottom: 100 }} className="no-scrollbar">
+          <div onScroll={drumScrollHide} style={{ flex: 1, overflowY: 'auto', paddingTop: 20, paddingBottom: 100 }} className="no-scrollbar">
 
             {/* ── Song Patterns ─────────────────────────────────────────── */}
             <SectionLabel>This Song's Patterns</SectionLabel>
@@ -2905,7 +2924,7 @@ export default function DrumEditor() {
       </div>
 
       {/* ── Bottom nav ───────────────────────────────────────────────────── */}
-      <DrumNav activeTab={activeTab} setTab={handleSetTab} accent={accent} isLight={isLight} isAmoled={isAmoled} />
+      <DrumNav activeTab={activeTab} setTab={handleSetTab} accent={accent} isLight={isLight} isAmoled={isAmoled} hidden={drumNavHidden} />
 
       {/* ── Floating buttons (songs list only): import above + add ──────── */}
       {!inEditor && activeTab === 'songs' && (
