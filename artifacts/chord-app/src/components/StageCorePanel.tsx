@@ -357,10 +357,9 @@ export default function StagexPanel() {
 
       <div style={{
         flexShrink: 0,
-        height: 52,
         display: 'flex',
         alignItems: 'center',
-        padding: '0 20px',
+        padding: '24px 20px 12px',
         background: stageHdr,
         transition: 'background 180ms ease',
         gap: showBack ? 8 : 0,
