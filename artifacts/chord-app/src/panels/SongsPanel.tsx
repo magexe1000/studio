@@ -44,42 +44,41 @@ const DEFAULT_EXPORT_CONFIG: ExportConfig = {
 };
 
 /* ──────────────────── PDF EXPORT ──────────────────── */
-function buildPrintSVG(data: GuitarChordData, dark = false, accentColor = '#679cff', scale = 1, noLabel = false): string {
-  const W = Math.round(160 * scale), H = Math.round(180 * scale);
-  const numS = 6, numF = 5;
-  const pL = Math.round(32 * scale), pT = Math.round(32 * scale);
-  const pR = Math.round(12 * scale);
-  const cW = (W - pL - pR) / (numS - 1);
-  const cH = (H - pT - Math.round(14 * scale)) / numF;
-  const r  = Math.max(4, Math.round(9 * scale));
+function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679cff', scale = 1, noLabel = false): string {
+  const W = Math.round(160 * scale), H = Math.round(160 * scale);
+  const numS = 6, numF = 4;
+  const pL = Math.round(14 * scale), pT = Math.round(28 * scale);
+  const pR = Math.round(28 * scale);
+  const gridW = W - pL - pR;
+  const cW = gridW / (numS - 1);
+  const cH = (H - pT - Math.round(16 * scale)) / numF;
+  const r  = Math.max(3, Math.round(5.5 * scale));
   const { frets, baseFret } = data;
   const minF    = baseFret > 1 ? baseFret : 1;
   const showNut = baseFret === 1;
 
-  const dotFill    = dark ? '#e0e0e0' : '#191a1a';
-  const fretStroke = dark ? '#3a3a3a' : '#e0e0e0';
-  const fret0Stroke= dark ? '#555'    : '#c0c0c0';
-  const strStroke  = dark ? '#444'    : '#d0d0d0';
-  const textColor  = dark ? '#777'    : '#999';
-  const muteColor  = dark ? '#555'    : '#bbb';
-  const openStroke = dark ? '#555'    : '#aaaaaa';
+  const dotFill    = dark ? '#e8e8e8' : '#191a1a';
+  const lineFill   = dark ? 'rgba(200,200,200,0.18)' : 'rgba(25,26,26,0.15)';
+  const nutFill    = dark ? '#ddd'    : '#191a1a';
+  const muteColor  = dark ? '#555'    : '#ccc';
+  const openStroke = dark ? '#555'    : '#bbb';
 
   let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" overflow="visible">`;
 
   if (showNut) {
-    s += `<rect x="${pL - 1}" y="${pT - Math.round(5 * scale)}" width="${(numS - 1) * cW + 2}" height="${Math.round(5 * scale)}" rx="2" fill="${dotFill}"/>`;
+    s += `<rect x="${pL}" y="${pT - Math.round(5 * scale)}" width="${gridW}" height="${Math.round(4 * scale)}" rx="${Math.round(1.5 * scale)}" fill="${nutFill}"/>`;
   }
   if (!showNut && !noLabel) {
-    s += `<text x="${pL + (numS - 1) * cW + Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="bold" fill="${dark ? '#aaa' : '#555'}" text-anchor="start" dominant-baseline="middle">${baseFret}</text>`;
+    s += `<text x="${pL + gridW + Math.round(5 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="start" dominant-baseline="middle">${baseFret}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
     const isTopFret = i === 0 && !showNut;
-    s += `<line x1="${pL}" y1="${y}" x2="${pL + (numS - 1) * cW}" y2="${y}" stroke="${isTopFret ? fret0Stroke : fretStroke}" stroke-width="${isTopFret ? 1.5 : 0.8}"/>`;
+    s += `<line x1="${pL}" y1="${y}" x2="${pL + gridW}" y2="${y}" stroke="${lineFill}" stroke-width="${isTopFret ? 1.5 : 1}"/>`;
   }
   for (let i = 0; i < numS; i++) {
     const x = pL + i * cW;
-    s += `<line x1="${x}" y1="${pT}" x2="${x}" y2="${pT + numF * cH}" stroke="${strStroke}" stroke-width="0.8"/>`;
+    s += `<line x1="${x}" y1="${pT}" x2="${x}" y2="${pT + numF * cH}" stroke="${lineFill}" stroke-width="1"/>`;
   }
   if (data.barres) {
     for (const barre of data.barres) {
@@ -98,11 +97,11 @@ function buildPrintSVG(data: GuitarChordData, dark = false, accentColor = '#679c
     const cx = pL + si * cW, cy = pT + fp * cH + cH / 2;
     s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotFill}"/>`;
   });
-  const aboveY = pT - Math.round(13 * scale);
+  const aboveY = pT - Math.round(12 * scale);
   frets.forEach((f, si) => {
     const cx = pL + si * cW;
-    if (f === -1) s += `<text x="${cx}" y="${aboveY + Math.round(3 * scale)}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(12 * scale)}" fill="${muteColor}" text-anchor="middle" dominant-baseline="middle" font-weight="bold">×</text>`;
-    else if (f === 0) s += `<circle cx="${cx}" cy="${aboveY}" r="${Math.round(5 * scale)}" fill="none" stroke="${openStroke}" stroke-width="1.5"/>`;
+    if (f === -1) s += `<text x="${cx}" y="${aboveY + Math.round(3 * scale)}" font-family="Arial,sans-serif" font-size="${Math.round(12 * scale)}" fill="${muteColor}" text-anchor="middle" dominant-baseline="middle" font-weight="bold">×</text>`;
+    else if (f === 0) s += `<circle cx="${cx}" cy="${aboveY}" r="${Math.round(4 * scale)}" fill="none" stroke="${openStroke}" stroke-width="1.2"/>`;
   });
 
   s += '</svg>';
@@ -116,36 +115,35 @@ function buildPrintFretboardSVG(
   numStrings: number,
   dark = false, accentColor = '#679cff', scale = 1, noLabel = false,
 ): string {
-  const W = Math.round(160 * scale), H = Math.round(180 * scale);
-  const numF = 5;
-  const pL = Math.round(32 * scale), pT = Math.round(32 * scale);
-  const pR = Math.round(12 * scale);
-  const strSpacing = numStrings > 1 ? (W - pL - pR) / (numStrings - 1) : 0;
-  const cH = (H - pT - Math.round(14 * scale)) / numF;
-  const r  = Math.max(4, Math.round(9 * scale));
+  const W = Math.round(160 * scale), H = Math.round(160 * scale);
+  const numF = 4;
+  const pL = Math.round(14 * scale), pT = Math.round(28 * scale);
+  const pR = Math.round(28 * scale);
+  const gridW = W - pL - pR;
+  const strSpacing = numStrings > 1 ? gridW / (numStrings - 1) : 0;
+  const cH = (H - pT - Math.round(16 * scale)) / numF;
+  const r  = Math.max(3, Math.round(5.5 * scale));
   const minF    = baseFret > 1 ? baseFret : 1;
   const showNut = baseFret === 1;
-  const dotFill    = dark ? '#e0e0e0' : '#191a1a';
-  const fretStroke = dark ? '#3a3a3a' : '#e0e0e0';
-  const fret0Stroke= dark ? '#555'    : '#c0c0c0';
-  const strStroke  = dark ? '#444'    : '#d0d0d0';
-  const textColor  = dark ? '#777'    : '#999';
-  const muteColor  = dark ? '#555'    : '#bbb';
-  const openStroke = dark ? '#555'    : '#aaaaaa';
+  const dotFill    = dark ? '#e8e8e8' : '#191a1a';
+  const lineFill   = dark ? 'rgba(200,200,200,0.18)' : 'rgba(25,26,26,0.15)';
+  const nutFill    = dark ? '#ddd'    : '#191a1a';
+  const muteColor  = dark ? '#555'    : '#ccc';
+  const openStroke = dark ? '#555'    : '#bbb';
   let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" overflow="visible">`;
   if (showNut) {
-    s += `<rect x="${pL - 1}" y="${pT - Math.round(5 * scale)}" width="${(numStrings - 1) * strSpacing + 2}" height="${Math.round(5 * scale)}" rx="2" fill="${dotFill}"/>`;
+    s += `<rect x="${pL}" y="${pT - Math.round(5 * scale)}" width="${(numStrings - 1) * strSpacing}" height="${Math.round(4 * scale)}" rx="${Math.round(1.5 * scale)}" fill="${nutFill}"/>`;
   } else if (!noLabel) {
-    s += `<text x="${pL + (numStrings - 1) * strSpacing + Math.round(6 * scale)}" y="${pT + cH * 0.5}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="bold" fill="${dark ? '#aaa' : '#555'}" text-anchor="start" dominant-baseline="middle">${baseFret}</text>`;
+    s += `<text x="${pL + (numStrings - 1) * strSpacing + Math.round(5 * scale)}" y="${pT + cH * 0.5}" font-family="Arial,sans-serif" font-size="${Math.round(10 * scale)}" font-weight="700" fill="${dark ? '#aaa' : '#777'}" text-anchor="start" dominant-baseline="middle">${baseFret}</text>`;
   }
   for (let i = 0; i <= numF; i++) {
     const y = pT + i * cH;
     const isTop = i === 0 && !showNut;
-    s += `<line x1="${pL}" y1="${y}" x2="${pL + (numStrings - 1) * strSpacing}" y2="${y}" stroke="${isTop ? fret0Stroke : fretStroke}" stroke-width="${isTop ? 1.5 : 0.8}"/>`;
+    s += `<line x1="${pL}" y1="${y}" x2="${pL + (numStrings - 1) * strSpacing}" y2="${y}" stroke="${lineFill}" stroke-width="${isTop ? 1.5 : 1}"/>`;
   }
   for (let i = 0; i < numStrings; i++) {
     const x = pL + i * strSpacing;
-    s += `<line x1="${x}" y1="${pT}" x2="${x}" y2="${pT + numF * cH}" stroke="${strStroke}" stroke-width="0.8"/>`;
+    s += `<line x1="${x}" y1="${pT}" x2="${x}" y2="${pT + numF * cH}" stroke="${lineFill}" stroke-width="1"/>`;
   }
   for (const barre of barres) {
     const fp = barre.fret - minF;
@@ -162,11 +160,11 @@ function buildPrintFretboardSVG(
     const cx = pL + si * strSpacing, cy = pT + fp * cH + cH / 2;
     s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotFill}"/>`;
   });
-  const aboveY = pT - Math.round(13 * scale);
+  const aboveY = pT - Math.round(12 * scale);
   frets.forEach((f, si) => {
     const cx = pL + si * strSpacing;
-    if (f === -1) s += `<text x="${cx}" y="${aboveY + Math.round(3 * scale)}" font-family="'Helvetica Neue',Arial,sans-serif" font-size="${Math.round(12 * scale)}" fill="${muteColor}" text-anchor="middle" dominant-baseline="middle" font-weight="bold">×</text>`;
-    else if (f === 0) s += `<circle cx="${cx}" cy="${aboveY}" r="${Math.round(5 * scale)}" fill="none" stroke="${openStroke}" stroke-width="1.5"/>`;
+    if (f === -1) s += `<text x="${cx}" y="${aboveY + Math.round(3 * scale)}" font-family="Arial,sans-serif" font-size="${Math.round(12 * scale)}" fill="${muteColor}" text-anchor="middle" dominant-baseline="middle" font-weight="bold">×</text>`;
+    else if (f === 0) s += `<circle cx="${cx}" cy="${aboveY}" r="${Math.round(4 * scale)}" fill="none" stroke="${openStroke}" stroke-width="1.2"/>`;
   });
   s += '</svg>';
   return s;
@@ -573,7 +571,7 @@ ${chordContent}
       for (let c = 3; c <= 6; c++) {
         const cardW = (CW - (c - 1) * CARD_GAP) / c;
         const diagW = cardW - 2 * CARD_PAD_X;
-        const diagH = hasDiag ? diagW * (180 / 160) : 0;
+        const diagH = hasDiag ? diagW * (160 / 160) : 0;
         const cardH = 2 * CARD_PAD_Y + NAME_H + diagH + (compact ? 1.5 : 2);
         const rows  = Math.ceil(entries.length / c);
         const total = rows * cardH + (rows - 1) * CARD_GAP;
@@ -584,7 +582,7 @@ ${chordContent}
       const COLS   = bestCols;
       const CARD_W = (CW - (COLS - 1) * CARD_GAP) / COLS;
       const DIAG_W = CARD_W - 2 * CARD_PAD_X;
-      const DIAG_H = hasDiag ? DIAG_W * (180 / 160) : 0;
+      const DIAG_H = hasDiag ? DIAG_W * (160 / 160) : 0;
       const CARD_H = 2 * CARD_PAD_Y + NAME_H + DIAG_H + (compact ? 1.5 : 2);
 
       /* ── Pre-render SVG diagrams → PNG data URLs ───────────── */
@@ -739,11 +737,11 @@ ${chordContent}
           const imgY = iy;
           doc.addImage(card.png, 'PNG', imgX, imgY, DIAG_W, DIAG_H);
           if (!card.showNut) {
-            const labelX = imgX + DIAG_W * 0.92;
-            const labelY = imgY + DIAG_H * 0.253;
+            const labelX = imgX + DIAG_W * 0.856;
+            const labelY = imgY + DIAG_H * 0.255;
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(compact ? 5.5 : 6.5);
-            doc.setTextColor(...hexRgb(dark ? '#aaaaaa' : '#555555'));
+            doc.setFontSize(compact ? 5 : 6);
+            doc.setTextColor(...hexRgb(dark ? '#aaaaaa' : '#777777'));
             doc.text(`${card.baseFret}`, labelX, labelY, { align: 'left' });
           }
           iy += DIAG_H + 1;
