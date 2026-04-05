@@ -552,9 +552,138 @@ html, body {
   #view-Setlist h1 { font-size: 26px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
   #view-Gear   h1 { font-size: 26px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
   #view-Members h1 { font-size: 26px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
-  /* Stats grid: 2-column on mobile */
   #gear-stats-row { grid-template-columns: repeat(2,1fr) !important; }
 }
+
+/* ═══════════ GEAR BENTO REDESIGN ═══════════ */
+.gear-bento-stat {
+  background: #1f2020;
+  border-radius: 14px;
+  padding: 16px 18px;
+  border: 1px solid rgba(72,72,72,0.15);
+  transition: background 0.15s;
+}
+.gear-bento-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.18em; color: #acabaa; margin: 0 0 10px;
+}
+.gear-bento-val {
+  font-family: 'Manrope', sans-serif;
+  font-size: 32px; font-weight: 900; color: #e7e5e4;
+  line-height: 1; letter-spacing: -0.04em;
+}
+.gear-item-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  transition: background 0.12s;
+  cursor: default;
+}
+.gear-item-row:not(:last-child) {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.gear-item-row:hover { background: rgba(255,255,255,0.025); }
+.gear-item-row.packed { opacity: 0.38; }
+.gear-item-check {
+  width: 22px; height: 22px; border-radius: 7px;
+  border: 2px solid #484847; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: all 0.12s;
+}
+.gear-item-check.checked {
+  border-color: #c5ffc9; background: #c5ffc9;
+}
+.gear-item-info { flex: 1; min-width: 0; }
+.gear-item-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px; font-weight: 600; color: #e7e5e4;
+  margin: 0; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gear-item-name.struck { text-decoration: line-through; color: #767575; }
+.gear-item-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px; color: #767575; margin: 2px 0 0; line-height: 1.2;
+}
+.gear-cat-badge {
+  font-family: 'Manrope', sans-serif;
+  font-size: 8px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.15em; padding: 4px 10px;
+  border-radius: 6px; flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+}
+.gear-item-qty {
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px; font-weight: 800; color: #e7e5e4;
+  min-width: 24px; text-align: center; flex-shrink: 0;
+}
+.gear-item-notes {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; color: #767575; font-style: italic;
+  flex-shrink: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 120px; text-align: right;
+}
+.gear-item-del {
+  color: #333; background: none; border: none; cursor: pointer;
+  font-size: 18px; line-height: 1; transition: color 0.1s;
+  flex-shrink: 0; padding: 4px;
+}
+.gear-item-del:hover { color: #ff716c; }
+.gear-cat-header {
+  padding: 12px 16px 6px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+.gear-cat-header:not(:first-child) {
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.gear-empty {
+  padding: 56px 24px; text-align: center;
+}
+.gear-empty-icon {
+  font-size: 40px; color: #333; margin-bottom: 12px;
+}
+.gear-empty-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.2em; color: #484847;
+}
+.gear-empty-sub {
+  font-size: 12px; color: #333; margin-top: 8px;
+}
+
+#view-Gear.active .sc-section-wrap > * {
+  animation: rd-fade-up 0.35s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+#view-Gear.active .sc-section-wrap > *:nth-child(1) { animation-delay: 0ms; }
+#view-Gear.active .sc-section-wrap > *:nth-child(2) { animation-delay: 55ms; }
+#view-Gear.active .sc-section-wrap > *:nth-child(3) { animation-delay: 110ms; }
+#view-Gear.active .sc-section-wrap > *:nth-child(4) { animation-delay: 155ms; }
+#view-Gear.active .sc-section-wrap > *:nth-child(5) { animation-delay: 195ms; }
+
+html[data-theme="light"] .gear-bento-stat { background: #f5f5f7 !important; border-color: rgba(0,0,0,0.07) !important; }
+html[data-theme="light"] .gear-bento-label { color: #888 !important; }
+html[data-theme="light"] .gear-bento-val { color: #222 !important; }
+html[data-theme="light"] .gear-item-name { color: #222 !important; }
+html[data-theme="light"] .gear-item-name.struck { color: #999 !important; }
+html[data-theme="light"] .gear-item-row:hover { background: rgba(0,0,0,0.03) !important; }
+html[data-theme="light"] .gear-item-check { border-color: #ccc !important; }
+html[data-theme="light"] .gear-item-check.checked { border-color: #34c759 !important; background: #34c759 !important; }
+html[data-theme="light"] #gear-list-container { background: #f5f5f7 !important; border-color: rgba(0,0,0,0.07) !important; }
+html[data-theme="light"] .gear-cat-badge { background: rgba(0,0,0,0.06) !important; }
+html[data-theme="light"] .gear-cat-header { border-top-color: rgba(0,0,0,0.07) !important; }
+html[data-theme="light"] #gear-search { background: rgba(0,0,0,0.04) !important; border-color: rgba(0,0,0,0.10) !important; color: #222 !important; }
+html[data-theme="light"] #gear-search::placeholder { color: #999 !important; }
+html[data-theme="light"] #gear-search-wrap .material-symbols-outlined { color: #999 !important; }
+html[data-theme="light"] .gear-item-qty { color: #222 !important; }
+html[data-theme="light"] .gear-item-sub { color: #888 !important; }
+html[data-theme="light"] .gear-item-del { color: #ccc !important; }
+html[data-theme="light"] .gear-item-del:hover { color: #ff4444 !important; }
+html[data-theme="light"] .gear-empty-icon { color: #ccc !important; }
+html[data-theme="light"] .gear-empty-title { color: #999 !important; }
+html[data-theme="light"] .gear-empty-sub { color: #bbb !important; }
 
 /* Clean dark background for all setup sub-views */
 #view-Rider, #view-Setlist, #view-Gear, #view-Members {
@@ -2623,74 +2752,78 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
   </button>
   <div class="sc-section-wrap">
 
-    <!-- Header + add button inline -->
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;">
       <h1 class="sc-section-title" style="margin:0;">Gear</h1>
-      <button onclick="openGearModal()" class="sc-action-btn sc-action-btn--hot" style="flex-shrink:0;">
-        <span class="material-symbols-outlined" style="font-size:14px;">add</span>Add Item
+      <button onclick="openGearModal()" style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:10px 20px;font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;border-radius:100px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--hot));color:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.3);-webkit-tap-highlight-color:transparent;transition:transform 0.12s,box-shadow 0.2s;" onpointerdown="this.style.transform='scale(0.95)'" onpointerup="this.style.transform='scale(1)'">
+        <span class="material-symbols-outlined" style="font-size:16px;">add</span>Add Item
       </button>
     </div>
 
-    <!-- Stats 2×2 -->
-    <div id="gear-stats-row" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Total Items</p>
-        <p id="gear-stat-total" class="sc-stat-val" style="color:#fff;">0</p>
+    <div id="gear-stats-row" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px;">
+      <div class="gear-bento-stat">
+        <p class="gear-bento-label">Total Items</p>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+          <span id="gear-stat-total" class="gear-bento-val">0</span>
+          <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">inventory_2</span>
+        </div>
       </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Packed</p>
-        <p id="gear-stat-packed" class="sc-stat-val" style="color:#c5ffc9;">0</p>
+      <div class="gear-bento-stat">
+        <p class="gear-bento-label">Packed</p>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+          <span id="gear-stat-packed" class="gear-bento-val" style="color:#c5ffc9;">0</span>
+          <span class="material-symbols-outlined" style="font-size:22px;color:#c5ffc9;margin-bottom:2px;">done_all</span>
+        </div>
       </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Remaining</p>
-        <p id="gear-stat-remaining" class="sc-stat-val" style="color:var(--hot);">0</p>
+      <div class="gear-bento-stat">
+        <p class="gear-bento-label">Remaining</p>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+          <span id="gear-stat-remaining" class="gear-bento-val" style="color:var(--hot);">0</span>
+          <span class="material-symbols-outlined" style="font-size:22px;color:var(--hot);margin-bottom:2px;">pending_actions</span>
+        </div>
       </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Total Units</p>
-        <p id="gear-stat-units" class="sc-stat-val" style="color:var(--accent);">0</p>
+      <div class="gear-bento-stat">
+        <p class="gear-bento-label">Total Units</p>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+          <span id="gear-stat-units" class="gear-bento-val" style="color:var(--accent);">0</span>
+          <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">layers</span>
+        </div>
       </div>
     </div>
 
-    <!-- Gear checklist table -->
-    <div class="sc-table-scroll">
-      <table class="sc-table" id="gear-table" style="min-width:420px;">
-        <thead>
-          <tr>
-            <th style="width:36px;">✓</th>
-            <th>Item</th>
-            <th style="width:96px;">Category</th>
-            <th style="width:44px;">Qty</th>
-            <th>Notes</th>
-            <th style="width:36px;"></th>
-          </tr>
-        </thead>
-        <tbody id="gear-body"></tbody>
-      </table>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <p style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;color:#e7e5e4;margin:0;letter-spacing:-0.01em;">Active Inventory</p>
+      <div id="gear-search-wrap" style="position:relative;">
+        <span class="material-symbols-outlined" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#484847;">search</span>
+        <input id="gear-search" type="text" placeholder="Search gear..." oninput="renderGear()"
+          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 12px 8px 32px;font-family:'Inter',sans-serif;font-size:12px;color:#e7e5e4;outline:none;width:140px;transition:border-color 0.15s,width 0.2s;"
+          onfocus="this.style.borderColor='rgba(103,156,255,0.4)';this.style.width='180px'" onblur="this.style.borderColor='rgba(255,255,255,0.08)';this.style.width='140px'" />
+      </div>
+    </div>
+
+    <div id="gear-list-container" style="background:rgba(255,255,255,0.025);border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
+      <div id="gear-body"></div>
     </div>
 
   </div>
 </div>
 
 <!-- ═══════════════ ADD GEAR MODAL ═══════════════ -->
-<div id="gear-modal" style="display:none;position:absolute;inset:0;z-index:9000;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);">
-  <div style="width:480px;max-width:95vw;background:#0e0e0e;border:1px solid var(--hot-10);box-shadow:0 24px 80px rgba(0,0,0,0.6);">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a1a1a;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:3px;height:20px;background:var(--hot);"></div>
-        <h2 style="font-family:'Manrope',sans-serif;font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#fff;margin:0;">Add Gear Item</h2>
-      </div>
-      <button onclick="closeGearModal()" style="color:#484847;background:none;border:none;cursor:pointer;font-size:20px;line-height:1;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#484847'">×</button>
+<div id="gear-modal" style="display:none;position:absolute;inset:0;z-index:9000;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);">
+  <div style="width:480px;max-width:92vw;background:rgba(30,32,32,0.95);backdrop-filter:blur(20px);border:1px solid rgba(72,72,72,0.15);border-radius:20px;box-shadow:0 24px 80px rgba(0,0,0,0.6);overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 24px 18px;">
+      <h2 style="font-family:'Manrope',sans-serif;font-size:17px;font-weight:800;color:#e7e5e4;margin:0;letter-spacing:-0.02em;">Add Gear Item</h2>
+      <button onclick="closeGearModal()" style="color:#484847;background:none;border:none;cursor:pointer;font-size:22px;line-height:1;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all 0.12s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#ff716c'" onmouseout="this.style.background='none';this.style.color='#484847'">×</button>
     </div>
-    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div style="padding:0 24px 24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <div style="grid-column:1/-1;">
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Item Name <span style="color:var(--hot);">*</span></label>
+        <label style="display:block;font-family:'Inter',sans-serif;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#acabaa;margin-bottom:8px;">Item Name <span style="color:var(--hot);">*</span></label>
         <input id="gear-name" type="text" placeholder="e.g. Shure SM58, Guitar, 10m XLR..."
-          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#fff;font-family:'Inter';font-size:14px;font-weight:600;padding:10px 12px;outline:none;box-sizing:border-box;"
-          oninput="this.style.borderBottomColor='#484847'" onkeydown="if(event.key==='Enter')saveGearItem()" />
+          style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e7e5e4;font-family:'Inter';font-size:14px;font-weight:600;padding:12px 14px;outline:none;box-sizing:border-box;transition:border-color 0.15s;"
+          oninput="this.style.borderColor='rgba(255,255,255,0.08)'" onfocus="this.style.borderColor='rgba(103,156,255,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'" onkeydown="if(event.key==='Enter')saveGearItem()" />
       </div>
       <div>
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Category</label>
-        <select id="gear-cat" style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#e0e0e0;font-family:'Manrope',sans-serif;font-size:12px;font-weight:700;padding:10px 12px;outline:none;cursor:pointer;appearance:none;box-sizing:border-box;">
+        <label style="display:block;font-family:'Inter',sans-serif;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#acabaa;margin-bottom:8px;">Category</label>
+        <select id="gear-cat" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e7e5e4;font-family:'Manrope',sans-serif;font-size:12px;font-weight:700;padding:12px 14px;outline:none;cursor:pointer;appearance:none;box-sizing:border-box;">
           <option value="Instruments">Instruments</option>
           <option value="Microphones">Microphones</option>
           <option value="Audio">Audio</option>
@@ -2702,19 +2835,20 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
         </select>
       </div>
       <div>
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Quantity</label>
+        <label style="display:block;font-family:'Inter',sans-serif;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#acabaa;margin-bottom:8px;">Quantity</label>
         <input id="gear-qty" type="number" min="1" max="999" value="1"
-          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:var(--hot);font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;padding:10px 12px;outline:none;box-sizing:border-box;" />
+          style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:var(--accent);font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;padding:12px 14px;outline:none;box-sizing:border-box;" />
       </div>
       <div style="grid-column:1/-1;">
-        <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#767575;margin-bottom:6px;">Notes</label>
+        <label style="display:block;font-family:'Inter',sans-serif;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#acabaa;margin-bottom:8px;">Notes</label>
         <input id="gear-notes" type="text" placeholder="Serial, bag, owner, location..."
-          style="width:100%;background:#000;border:none;border-bottom:2px solid #484847;color:#adaaaa;font-family:'Inter';font-size:12px;padding:10px 12px;outline:none;box-sizing:border-box;" />
+          style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#acabaa;font-family:'Inter';font-size:12px;padding:12px 14px;outline:none;box-sizing:border-box;transition:border-color 0.15s;"
+          onfocus="this.style.borderColor='rgba(103,156,255,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'" />
       </div>
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid #1a1a1a;">
-      <button onclick="closeGearModal()" style="padding:10px 24px;font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#1a1a1a;color:#767575;border:1px solid #262626;cursor:pointer;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#767575'">Cancel</button>
-      <button onclick="saveGearItem()" style="padding:10px 32px;font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--hot);color:#fff;border:none;cursor:pointer;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Add Item</button>
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px 24px 22px;border-top:1px solid rgba(255,255,255,0.06);">
+      <button onclick="closeGearModal()" style="padding:11px 24px;font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;background:rgba(255,255,255,0.05);color:#acabaa;border:1px solid rgba(255,255,255,0.08);border-radius:100px;cursor:pointer;transition:all 0.12s;" onmouseover="this.style.color='#e7e5e4'" onmouseout="this.style.color='#acabaa'">Cancel</button>
+      <button onclick="saveGearItem()" style="padding:11px 28px;font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;background:linear-gradient(135deg,var(--accent),var(--hot));color:#fff;border:none;border-radius:100px;cursor:pointer;transition:transform 0.12s;" onpointerdown="this.style.transform='scale(0.96)'" onpointerup="this.style.transform='scale(1)'">Add Item</button>
     </div>
   </div>
 </div>

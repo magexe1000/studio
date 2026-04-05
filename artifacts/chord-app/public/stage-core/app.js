@@ -4209,7 +4209,7 @@ function closeGearModal() {
 function saveGearItem() {
   const name = document.getElementById('gear-name').value.trim();
   if (!name) {
-    document.getElementById('gear-name').style.borderBottomColor = '#ff716c';
+    document.getElementById('gear-name').style.borderColor = '#ff716c';
     document.getElementById('gear-name').focus();
     return;
   }
@@ -4241,44 +4241,47 @@ function toggleGearPacked(id) {
   saveProject();
 }
 function renderGear() {
-  const tbody = document.getElementById('gear-body');
-  if (!tbody) return;
+  const container = document.getElementById('gear-body');
+  if (!container) return;
 
-  // Sort by category then name
+  const searchEl = document.getElementById('gear-search');
+  const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
+
   const sorted = [...state.gear].sort((a, b) =>
     GEAR_CATS.indexOf(a.category) - GEAR_CATS.indexOf(b.category) || a.name.localeCompare(b.name)
   );
 
-  if (!sorted.length) {
-    tbody.innerHTML = DOMPurify.sanitize(`<tr><td colspan="6" style="padding:64px 0;text-align:center;">
-      <div style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#333;">${T('noGearYet')}</div>
-      <div style="font-size:12px;color:#484847;margin-top:8px;">${T('addGearHint')}</div>
-    </td></tr>`);
+  const filtered = q ? sorted.filter(g =>
+    g.name.toLowerCase().includes(q) || g.category.toLowerCase().includes(q) || (g.notes && g.notes.toLowerCase().includes(q))
+  ) : sorted;
+
+  if (!filtered.length) {
+    container.innerHTML = DOMPurify.sanitize(`<div class="gear-empty">
+      <div class="gear-empty-icon"><span class="material-symbols-outlined" style="font-size:40px;">inventory_2</span></div>
+      <div class="gear-empty-title">${T('noGearYet')}</div>
+      <div class="gear-empty-sub">${T('addGearHint')}</div>
+    </div>`);
   } else {
     let lastCat = null;
-    tbody.innerHTML = DOMPurify.sanitize(sorted.map(g => {
-      let catRow = '';
+    container.innerHTML = DOMPurify.sanitize(filtered.map(g => {
+      let catHdr = '';
       if (g.category !== lastCat) {
         lastCat = g.category;
         const col = GEAR_CAT_COLORS[g.category] || '#484847';
-        catRow = `<tr><td colspan="6" style="padding:10px 16px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:${col};border-top:1px solid #1a1a1a;">${Tcat(g.category)}</td></tr>`;
+        catHdr = `<div class="gear-cat-header" style="color:${col};">${Tcat(g.category)}</div>`;
       }
-      return catRow + `<tr style="border-bottom:1px solid #111;${g.packed ? 'opacity:0.4;' : ''}">
-        <td style="padding:12px 16px;width:36px;">
-          <div onclick="toggleGearPacked(${g.id})" style="width:20px;height:20px;border:2px solid ${g.packed ? '#c5ffc9' : '#484847'};background:${g.packed ? '#c5ffc9' : 'transparent'};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.1s;flex-shrink:0;">
-            ${g.packed ? '<span style="font-size:13px;color:#002e00;line-height:1;">✓</span>' : ''}
-          </div>
-        </td>
-        <td style="padding:12px 16px;font-family:'Inter';font-size:13px;font-weight:600;color:${g.packed ? '#767575' : '#fff'};${g.packed ? 'text-decoration:line-through;' : ''}">${g.name}</td>
-        <td style="padding:12px 16px;">
-          <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:${GEAR_CAT_COLORS[g.category]||'#484847'};padding:3px 8px;border:1px solid ${GEAR_CAT_COLORS[g.category]||'#484847'}33;">${Tcat(g.category)}</span>
-        </td>
-        <td style="padding:12px 16px;font-family:'Manrope',sans-serif;font-size:16px;font-weight:900;color:#ff7439;">${g.qty}</td>
-        <td style="padding:12px 16px;font-size:11px;color:#767575;font-family:'Inter';">${g.notes || '—'}</td>
-        <td style="padding:12px 16px;width:36px;">
-          <button onclick="deleteGearItem(${g.id})" style="color:#333;background:none;border:none;cursor:pointer;font-size:18px;line-height:1;transition:color 0.1s;" onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#333'">×</button>
-        </td>
-      </tr>`;
+      return catHdr + `<div class="gear-item-row${g.packed ? ' packed' : ''}">
+        <div class="gear-item-check${g.packed ? ' checked' : ''}" onclick="toggleGearPacked(${g.id})">
+          ${g.packed ? '<span class="material-symbols-outlined" style="font-size:15px;color:#002e00;">check</span>' : ''}
+        </div>
+        <div class="gear-item-info">
+          <p class="gear-item-name${g.packed ? ' struck' : ''}">${escapeHtml(g.name)}</p>
+          ${g.notes ? `<p class="gear-item-sub">${escapeHtml(g.notes)}</p>` : ''}
+        </div>
+        <span class="gear-cat-badge" style="color:${GEAR_CAT_COLORS[g.category]||'#484847'};">${Tcat(g.category)}</span>
+        <span class="gear-item-qty">${String(g.qty).padStart(2,'0')}</span>
+        <button class="gear-item-del" onclick="deleteGearItem(${g.id})">×</button>
+      </div>`;
     }).join(''));
   }
 
@@ -4323,10 +4326,10 @@ function refreshExportGear() {
     }
     const bg = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
     return catRow + `<tr style="background:${bg};">
-      <td style="padding:7px 12px;font-size:12px;font-weight:600;color:#fff;">${g.name}</td>
+      <td style="padding:7px 12px;font-size:12px;font-weight:600;color:#fff;">${escapeHtml(g.name)}</td>
       <td style="padding:7px 12px;font-size:10px;color:#767575;">${Tcat(g.category)}</td>
       <td style="padding:7px 12px;font-size:12px;font-weight:700;color:#ff7439;text-align:center;">${g.qty}</td>
-      <td style="padding:7px 12px;font-size:10px;color:#767575;">${g.notes || '—'}</td>
+      <td style="padding:7px 12px;font-size:10px;color:#767575;">${g.notes ? escapeHtml(g.notes) : '—'}</td>
       <td style="padding:7px 12px;text-align:center;">
         <div style="width:14px;height:14px;border:1.5px solid ${g.packed ? '#c5ffc9' : '#484847'};background:${g.packed ? '#c5ffc9' : 'transparent'};margin:0 auto;display:flex;align-items:center;justify-content:center;">
           ${g.packed ? '<span style="font-size:9px;color:#002e00;line-height:1;">✓</span>' : ''}
