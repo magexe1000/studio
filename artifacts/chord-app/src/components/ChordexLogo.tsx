@@ -63,6 +63,21 @@ export function StagexLogoIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+export function GroovexLogo({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none"
+      xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', flexShrink: 0 }}>
+      <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="8" cy="8" r="1" fill="currentColor" />
+      <line x1="8" y1="1" x2="8" y2="5" stroke="currentColor" strokeWidth="0.8" strokeOpacity="0.5" />
+      <line x1="8" y1="11" x2="8" y2="15" stroke="currentColor" strokeWidth="0.8" strokeOpacity="0.5" />
+      <line x1="1" y1="8" x2="5" y2="8" stroke="currentColor" strokeWidth="0.8" strokeOpacity="0.5" />
+      <line x1="11" y1="8" x2="15" y2="8" stroke="currentColor" strokeWidth="0.8" strokeOpacity="0.5" />
+    </svg>
+  );
+}
+
 export function ChordexLogo({ size = 14 }: { size?: number }) {
   const h = Math.round(size * 17 / 13);
   return (

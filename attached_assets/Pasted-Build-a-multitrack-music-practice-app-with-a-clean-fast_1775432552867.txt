@@ -1,0 +1,133 @@
+Build a multitrack music practice app with a clean, fast, and optimized architecture.
+
+IMPORTANT:
+- Focus on performance and smooth audio playback
+- Keep UI minimal and responsive
+- App must work locally (no dependency on internet)
+
+----------------------------------
+1. CORE CONCEPT
+----------------------------------
+
+The app allows users to:
+
+- Select a song
+- Control individual audio tracks (multitrack stems)
+- Adjust volumes to practice specific parts
+
+----------------------------------
+2. MAIN SECTIONS
+----------------------------------
+
+Implement two main sections:
+
+1. Songs (Library)
+2. Preferences
+
+----------------------------------
+3. SONGS SECTION
+----------------------------------
+
+- Display a list of available songs
+- Each song contains multiple audio tracks (stems)
+
+When opening a song:
+
+- Load all tracks
+- Allow playback of all tracks simultaneously
+
+----------------------------------
+4. TRACK CONTROL SYSTEM
+----------------------------------
+
+Each track must have:
+
+- Volume control (independent slider)
+- Mute toggle
+- Solo toggle
+
+Behavior:
+
+- Mute → silences track
+- Solo → isolates track (mutes others)
+- Volume changes must be real-time (no delay)
+
+----------------------------------
+5. AUDIO ENGINE (CRITICAL)
+----------------------------------
+
+- All tracks must be perfectly synchronized
+- Use shared timing reference
+- No drifting between tracks
+
+- Optimize audio:
+  - preload efficiently
+  - reuse buffers
+  - avoid reloading files
+
+----------------------------------
+6. PERFORMANCE
+----------------------------------
+
+- Smooth playback with multiple tracks
+- No lag when adjusting volume
+- Efficient memory usage
+
+----------------------------------
+7. FILE HANDLING
+----------------------------------
+
+- Each song has its own folder:
+  - contains multiple audio files (stems)
+
+Example:
+song_name/
+  drums.wav
+  bass.wav
+  guitar.wav
+  vocals.wav
+
+----------------------------------
+8. PREFERENCES SECTION
+----------------------------------
+
+Include:
+
+- Default volume behavior
+- Loop playback option
+- Basic playback settings
+
+----------------------------------
+9. UI BEHAVIOR
+----------------------------------
+
+- Instant response to user input
+- No delays when interacting
+- Clean and minimal
+
+----------------------------------
+10. FUTURE READY
+----------------------------------
+
+Structure the app to allow:
+
+- Adding more songs easily
+- Supporting more tracks per song
+- Importing custom multitracks later
+
+----------------------------------
+11. FINAL RESULT
+----------------------------------
+
+The app must:
+
+- Play all tracks in sync
+- Allow real-time mixing
+- Be smooth and stable
+- Feel like a professional practice tool
+
+----------------------------------
+GOAL
+----------------------------------
+
+Create a fast, reliable, and high-quality multitrack practice app where users can control individual instruments to practice music effectively.

@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
-import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon } from './ChordexLogo';
+import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo } from './ChordexLogo';
 import { useNavHidden, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import ApplyToSheet from './ApplyToSheet';
 
 type HubTab = 'home' | 'settings';
-type TargetApp = 'chords' | 'drums' | 'stage';
+type TargetApp = 'chords' | 'drums' | 'stage' | 'groovex';
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: 'dark',   label: 'Dark' },
@@ -174,7 +174,7 @@ export default function StudioHub() {
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
 
-  const launchApp = (appMode: 'chords' | 'drums' | 'stage') => {
+  const launchApp = (appMode: 'chords' | 'drums' | 'stage' | 'groovex') => {
     setZooming(true);
     setTimeout(() => {
       updateSettings({ appMode });
@@ -254,6 +254,7 @@ export default function StudioHub() {
                 { app: 'chords' as TargetApp, Logo: ChordexLogo,       name: 'Chordex',    desc: t.hub.chordexDesc       },
                 { app: 'drums'  as TargetApp, Logo: DrumexLogo,        name: 'Drumex',     desc: t.hub.drumexDesc        },
                 { app: 'stage'  as TargetApp, Logo: StagexLogoIcon, name: 'Stagex',     desc: t.hub.stagexDesc        },
+                { app: 'groovex' as TargetApp, Logo: GroovexLogo,     name: 'Groovex',    desc: t.hub.groovexDesc       },
               ]).map(({ app, Logo, name, desc }, i, arr) => (
                 <AppRow
                   key={app}

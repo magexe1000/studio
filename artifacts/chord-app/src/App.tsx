@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
-import { ChordexLogo, DrumexLogo, StagexLogoIcon } from './components/ChordexLogo';
+import { ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
@@ -21,7 +21,10 @@ const SettingsPanel = lazy(settingsImport);
 const SongsPanel   = lazy(songsImport);
 const DrumEditor   = lazy(drumImport);
 
-const preloadAll = () => { chordImport(); libraryImport(); songsImport(); settingsImport(); drumImport(); stagexImport(); };
+const groovexImport = () => import('./groovex/GroovexApp');
+const GroovexApp = lazy(groovexImport);
+
+const preloadAll = () => { chordImport(); libraryImport(); songsImport(); settingsImport(); drumImport(); stagexImport(); groovexImport(); };
 if (typeof requestIdleCallback === 'function') requestIdleCallback(preloadAll);
 else setTimeout(preloadAll, 200);
 
@@ -41,6 +44,12 @@ export default function App() {
     } else if (startApp === 'hub') {
       prevAppMode.current = 'hub';
       updateSettings({ appMode: 'hub' });
+    } else if (startApp === 'groovex') {
+      prevAppMode.current = 'groovex';
+      updateSettings({ appMode: 'groovex' });
+    } else if (startApp === 'stage') {
+      prevAppMode.current = 'stage';
+      updateSettings({ appMode: 'stage' });
     } else {
       prevAppMode.current = 'chords';
       updateSettings({ appMode: 'chords' });
@@ -121,6 +130,7 @@ export default function App() {
   const [drumSplash,    setDrumSplash]    = useState<SplashPhase>('hidden');
   const [chordexSplash, setChordexSplash] = useState<SplashPhase>('hidden');
   const [stageSplash,   setStageSplash]   = useState<SplashPhase>('hidden');
+  const [groovexSplash, setGroovexSplash] = useState<SplashPhase>('hidden');
   const prevAppMode      = useRef(settings.appMode);
   const splashTimers     = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -134,9 +144,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (settings.appMode === 'drums'  && prevAppMode.current !== 'drums')  fireSplash(setDrumSplash);
-    if (settings.appMode === 'chords' && prevAppMode.current !== 'chords') fireSplash(setChordexSplash);
-    if (settings.appMode === 'stage'  && prevAppMode.current !== 'stage')  fireSplash(setStageSplash);
+    if (settings.appMode === 'drums'   && prevAppMode.current !== 'drums')   fireSplash(setDrumSplash);
+    if (settings.appMode === 'chords'  && prevAppMode.current !== 'chords')  fireSplash(setChordexSplash);
+    if (settings.appMode === 'stage'   && prevAppMode.current !== 'stage')   fireSplash(setStageSplash);
+    if (settings.appMode === 'groovex' && prevAppMode.current !== 'groovex') fireSplash(setGroovexSplash);
     prevAppMode.current = settings.appMode;
     return () => splashTimers.current.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -272,6 +283,45 @@ export default function App() {
     return (
       <div style={{ animation: 'hub-return-enter 380ms cubic-bezier(0.0, 0.0, 0.2, 1) both' }}>
         <StudioHub />
+      </div>
+    );
+  }
+
+  // ── Groovex mode: multitrack practice mixer ─────────────────────────
+  if (settings.appMode === 'groovex') {
+    const groovexIsAmoled = activeVis.amoledMode;
+    const groovexIsLight  = activeVis.theme === 'light';
+    const groovexBgColor  = groovexIsAmoled ? '#000000' : groovexIsLight ? '#f2f1ef' : '#0e0e0e';
+    return (
+      <div style={{
+        position: 'relative', height: '100dvh', overflow: 'hidden',
+        background: groovexBgColor,
+        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
+        transform: exitingToHub ? 'scale(1.10)' : undefined,
+        opacity:   exitingToHub ? 0 : undefined,
+        transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
+      }}>
+        <Suspense fallback={null}><GroovexApp /></Suspense>
+
+        {groovexSplash !== 'hidden' && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 500,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            background: groovexBgColor,
+            opacity:   groovexSplash === 'out' ? 0 : 1,
+            transform: groovexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+            transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+            pointerEvents: 'none',
+          }}>
+            <div style={{ color: groovexIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+              <GroovexLogo size={60} />
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+              <p style={{ color: groovexIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Groovex</p>
+              <p style={{ color: groovexIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Multitrack practice mixer</p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

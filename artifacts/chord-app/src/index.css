@@ -564,6 +564,52 @@ html, body { background: var(--app-bg); }
   --density-card-gap: 10px;
 }
 
+/* ===== Groovex design tokens ===== */
+:root {
+  --gx-bg: var(--app-bg);
+  --gx-surface: var(--app-surface);
+  --gx-surface-low: var(--app-surface-low);
+  --gx-surface-high: var(--app-surface-high);
+  --gx-surface-lowest: var(--app-surface-lowest);
+  --gx-accent: #679cff;
+  --gx-accent-container: #007aff;
+  --gx-accent-dim: rgba(103,156,255,0.18);
+}
+
+.gx-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--gx-surface-high);
+  outline: none;
+  cursor: pointer;
+}
+.gx-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--gx-accent);
+  border: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+.gx-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--gx-accent);
+  border: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+.gx-slider:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* ===== Performance mode — strips GPU-heavy effects ===== */
 [data-perf-mode="on"] * {
   backdrop-filter: none !important;
