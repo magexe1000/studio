@@ -173,10 +173,81 @@ function stopSources(engine: AudioEngine): void {
 
 export function seek(engine: AudioEngine, time: number): void {
   const wasPlaying = engine.isPlaying;
+  if (engine._rampTimer) { clearTimeout(engine._rampTimer); engine._rampTimer = null; }
   if (wasPlaying) stopSources(engine);
   engine.pauseOffset = Math.max(0, Math.min(time, engine.duration));
   engine.isPlaying = false;
-  if (wasPlaying) play(engine);
+  if (wasPlaying) {
+    const ctx = engine.ctx;
+    if (ctx.state === 'suspended') ctx.resume();
+    const offset = engine.pauseOffset;
+    engine.startTime = ctx.currentTime - offset;
+    engine.isPlaying = true;
+    engine.tracks.forEach(track => {
+      if (!track.buffer || !track.gainNode) return;
+      const source = ctx.createBufferSource();
+      source.buffer = track.buffer;
+      source.loop = engine.looping;
+      source.connect(track.gainNode);
+      source.start(0, offset);
+      track.source = source;
+      if (!engine.looping) {
+        source.onended = () => {
+          if (engine.isPlaying) {
+            const elapsed = ctx.currentTime - engine.startTime;
+            if (elapsed >= engine.duration - 0.1) { stop(engine); }
+          }
+        };
+      }
+    });
+    applyMutesSolos(engine);
+  }
+}
+
+export function setScrubRate(engine: AudioEngine, rate: number): void {
+  const clampedRate = Math.max(0.05, Math.min(rate, 4.0));
+  engine.tracks.forEach(track => {
+    if (track.source) {
+      try {
+        track.source.playbackRate.cancelScheduledValues(engine.ctx.currentTime);
+        track.source.playbackRate.setValueAtTime(clampedRate, engine.ctx.currentTime);
+      } catch {}
+    }
+  });
+}
+
+export function endScrub(engine: AudioEngine, targetTime: number): void {
+  if (engine._rampTimer) { clearTimeout(engine._rampTimer); engine._rampTimer = null; }
+  const wasPlaying = engine.isPlaying;
+  stopSources(engine);
+  engine.pauseOffset = Math.max(0, Math.min(targetTime, engine.duration));
+  engine.isPlaying = false;
+  if (wasPlaying) {
+    const ctx = engine.ctx;
+    if (ctx.state === 'suspended') ctx.resume();
+    const offset = engine.pauseOffset;
+    engine.startTime = ctx.currentTime - offset;
+    engine.isPlaying = true;
+    engine.tracks.forEach(track => {
+      if (!track.buffer || !track.gainNode) return;
+      const source = ctx.createBufferSource();
+      source.buffer = track.buffer;
+      source.loop = engine.looping;
+      source.connect(track.gainNode);
+      source.playbackRate.setValueAtTime(1.0, ctx.currentTime);
+      source.start(0, offset);
+      track.source = source;
+      if (!engine.looping) {
+        source.onended = () => {
+          if (engine.isPlaying) {
+            const elapsed = ctx.currentTime - engine.startTime;
+            if (elapsed >= engine.duration - 0.1) { stop(engine); }
+          }
+        };
+      }
+    });
+    applyMutesSolos(engine);
+  }
 }
 
 export function setTrackVolume(engine: AudioEngine, trackIndex: number, volume: number): void {
