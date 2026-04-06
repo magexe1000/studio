@@ -77,8 +77,11 @@ export async function isStemCached(songId: string, stemName: string): Promise<bo
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
-      const req = store.getKey(stemKey(songId, stemName));
-      req.onsuccess = () => resolve(req.result !== undefined);
+      const req = store.get(stemKey(songId, stemName));
+      req.onsuccess = () => {
+        const result = req.result as CachedStem | undefined;
+        resolve(result !== undefined && result.size >= 1000);
+      };
       req.onerror = () => reject(req.error);
     });
   } catch {
@@ -159,15 +162,22 @@ async function fetchStemOnce(
   songId: string,
   stemName: string,
   onProgress?: (p: DownloadProgress) => void,
+  bustCache = false,
 ): Promise<ArrayBuffer> {
   const baseUrl = import.meta.env.BASE_URL ?? '/';
-  const url = `${baseUrl}api/stems/${songId}/${stemName}.ogg`;
+  let url = `${baseUrl}api/stems/${songId}/${stemName}.ogg`;
+  if (bustCache) {
+    url += `?v=${Date.now()}`;
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120_000);
 
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, {
+      signal: controller.signal,
+      cache: bustCache ? 'no-store' : 'default',
+    });
     if (!response.ok) {
       throw new Error(`Failed to download stem: ${response.status} ${response.statusText}`);
     }
@@ -217,11 +227,15 @@ export async function downloadStem(
   onProgress?: (p: DownloadProgress) => void,
   skipCache = false,
 ): Promise<ArrayBuffer> {
+  let needsBust = skipCache;
   if (!skipCache) {
     const cached = await getCachedStem(songId, stemName);
     if (cached && cached.byteLength >= 1000) {
       onProgress?.({ stemName, loaded: cached.byteLength, total: cached.byteLength, percent: 100 });
       return cached;
+    }
+    if (cached && cached.byteLength < 1000) {
+      needsBust = true;
     }
   }
 
@@ -232,7 +246,7 @@ export async function downloadStem(
       if (attempt > 0) {
         await new Promise(r => setTimeout(r, 1000 * attempt));
       }
-      const buffer = await fetchStemOnce(songId, stemName, onProgress);
+      const buffer = await fetchStemOnce(songId, stemName, onProgress, needsBust || attempt > 0);
       if (buffer.byteLength < 1000) {
         throw new Error(`Stem ${stemName} is too small (${buffer.byteLength} bytes), likely corrupted`);
       }
