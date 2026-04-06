@@ -35,6 +35,7 @@ export interface AudioEngine {
   pauseOffset: number;
   duration: number;
   looping: boolean;
+  _rampTimer: ReturnType<typeof setTimeout> | null;
 }
 
 export function createEngine(): AudioEngine {
@@ -50,6 +51,7 @@ export function createEngine(): AudioEngine {
     pauseOffset: 0,
     duration: 0,
     looping: false,
+    _rampTimer: null,
   };
 }
 
@@ -94,6 +96,7 @@ export function setTrackBuffer(engine: AudioEngine, trackIndex: number, buffer: 
 
 export function play(engine: AudioEngine): void {
   if (engine.isPlaying) return;
+  if (engine._rampTimer) { clearTimeout(engine._rampTimer); engine._rampTimer = null; }
   const ctx = engine.ctx;
   if (ctx.state === 'suspended') ctx.resume();
 
@@ -107,6 +110,8 @@ export function play(engine: AudioEngine): void {
     source.buffer = track.buffer;
     source.loop = engine.looping;
     source.connect(track.gainNode);
+    source.playbackRate.setValueAtTime(0.25, ctx.currentTime);
+    source.playbackRate.exponentialRampToValueAtTime(1.0, ctx.currentTime + 0.35);
     source.start(0, offset);
     track.source = source;
 
@@ -127,12 +132,30 @@ export function play(engine: AudioEngine): void {
 
 export function pause(engine: AudioEngine): void {
   if (!engine.isPlaying) return;
-  engine.pauseOffset = engine.ctx.currentTime - engine.startTime;
-  stopSources(engine);
+  const ctx = engine.ctx;
+  const rampDuration = 0.4;
+  engine.pauseOffset = ctx.currentTime - engine.startTime;
   engine.isPlaying = false;
+
+  engine.tracks.forEach(track => {
+    if (track.source) {
+      try {
+        track.source.playbackRate.cancelScheduledValues(ctx.currentTime);
+        track.source.playbackRate.setValueAtTime(track.source.playbackRate.value || 1.0, ctx.currentTime);
+        track.source.playbackRate.exponentialRampToValueAtTime(0.01, ctx.currentTime + rampDuration);
+      } catch {}
+    }
+  });
+
+  if (engine._rampTimer) clearTimeout(engine._rampTimer);
+  engine._rampTimer = setTimeout(() => {
+    stopSources(engine);
+    engine._rampTimer = null;
+  }, rampDuration * 1000 + 50);
 }
 
 export function stop(engine: AudioEngine): void {
+  if (engine._rampTimer) { clearTimeout(engine._rampTimer); engine._rampTimer = null; }
   stopSources(engine);
   engine.isPlaying = false;
   engine.pauseOffset = 0;

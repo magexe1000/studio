@@ -304,85 +304,62 @@ export default function GroovexPlayer() {
     <div style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ padding: '0 24px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 40px)' }}>
 
-        <section className="gx-hero-enter" style={{ paddingTop: 12, marginBottom: 40, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ position: 'relative', width: 220, height: 220, marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <section className="gx-hero-enter" style={{ paddingTop: 12, marginBottom: 36, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ position: 'relative', width: '100%', height: 140, marginBottom: 24, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
             <div style={{
-              position: 'absolute', inset: -40,
-              background: 'radial-gradient(circle, rgba(0,122,255,0.18) 0%, transparent 70%)',
-              borderRadius: '50%',
+              position: 'absolute', inset: 0,
+              background: 'radial-gradient(ellipse 80% 90% at 50% 100%, rgba(0,122,255,0.12) 0%, transparent 70%)',
               animation: 'gx-glow-pulse 4s ease-in-out infinite',
+              pointerEvents: 'none',
             }} />
-
             <div style={{
-              position: 'relative', width: 200, height: 200, borderRadius: 20,
-              overflow: 'hidden', zIndex: 10,
-              background: '#000',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+              position: 'relative', width: '100%', height: '100%',
+              display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 2,
+              padding: '0 8px',
             }}>
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(135deg, rgba(103,156,255,0.08) 0%, rgba(0,0,0,0.95) 50%, rgba(0,122,255,0.06) 100%)',
-              }} />
-              <div style={{
-                position: 'absolute', top: '30%', left: '10%', right: '10%', height: '40%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2,
-                opacity: 0.4,
-              }}>
-                {Array.from({ length: 24 }).map((_, i) => (
-                  <div key={i} style={{
-                    width: 2, borderRadius: 1,
-                    background: 'var(--gx-accent)',
-                    height: `${20 + Math.sin(i * 0.7) * 60}%`,
-                    opacity: 0.3 + Math.sin(i * 0.5) * 0.5,
-                  }} />
-                ))}
-              </div>
-
-              <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%',
-                background: 'linear-gradient(to top, #000 0%, transparent 100%)',
-              }} />
-
-              <div style={{
-                position: 'absolute', bottom: 16, left: 0, right: 0,
-                display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 3, zIndex: 2,
-              }}>
-                {[0.5, 0.75, 0.4, 0.9, 0.65, 1, 0.75, 0.5].map((h, i) => (
+              {Array.from({ length: 40 }).map((_, i) => {
+                const center = 20;
+                const dist = Math.abs(i - center) / center;
+                const baseH = (1 - dist * 0.6) * 0.5 + Math.sin(i * 0.9 + 1.2) * 0.25 + 0.25;
+                return (
                   <div
                     key={i}
                     className="gx-visualizer-bar"
                     style={{
-                      width: 3, borderRadius: 2,
-                      background: 'var(--gx-accent)',
-                      height: h * 28,
+                      flex: 1,
+                      maxWidth: 6,
+                      minWidth: 2,
+                      borderRadius: 3,
+                      height: `${baseH * 100}%`,
+                      background: `linear-gradient(to top, var(--gx-accent), rgba(103,156,255,${0.3 + (1 - dist) * 0.7}))`,
                       transformOrigin: 'bottom',
-                      animationDelay: `${i * 0.15}s`,
-                      opacity: isPlaying ? 1 : 0.5,
-                      transition: 'opacity 300ms ease',
+                      animationDelay: `${i * 0.08}s`,
+                      opacity: isPlaying ? 0.6 + (1 - dist) * 0.4 : 0.15 + (1 - dist) * 0.15,
+                      transition: 'opacity 400ms ease',
                       animationPlayState: isPlaying ? 'running' : 'paused',
                     }}
                   />
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
 
-          <div className="gx-fade-up-1" style={{ textAlign: 'center', marginBottom: 4 }}>
+          <div className="gx-fade-up-1" style={{ textAlign: 'center', marginBottom: 4, width: '100%' }}>
             <h2 style={{
-              fontSize: 30, fontWeight: 800, letterSpacing: '-0.03em',
-              margin: '0 0 6px', color: 'var(--c-text-primary)',
-              fontFamily: 'Manrope, sans-serif',
+              fontSize: 38, fontWeight: 900, letterSpacing: '-0.04em',
+              margin: '0 0 8px', color: 'var(--c-text-primary)',
+              fontFamily: 'Manrope, sans-serif', lineHeight: 1.1,
             }}>{song.title}</h2>
             <p style={{
-              fontSize: 16, fontWeight: 500, color: 'var(--c-text-secondary)',
+              fontSize: 20, fontWeight: 500, color: 'var(--c-text-secondary)',
               margin: 0, fontFamily: 'Manrope, sans-serif',
             }}>{song.artist}</p>
           </div>
 
           {phase === 'ready' && (
             <div className="gx-fade-up-1" style={{
-              display: 'flex', alignItems: 'center', gap: 8, marginTop: 4,
-              fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'var(--c-text-secondary)',
+              display: 'flex', alignItems: 'center', gap: 8, marginTop: 8,
+              fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--c-text-secondary)',
             }}>
               <span>{song.bpm} BPM</span>
               <span style={{ opacity: 0.3 }}>|</span>
