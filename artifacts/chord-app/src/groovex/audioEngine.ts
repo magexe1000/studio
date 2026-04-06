@@ -56,36 +56,42 @@ function timeStretchBuffer(ctx: AudioContext, buffer: AudioBuffer, factor: numbe
   const outputLen = Math.ceil(inputLen * factor);
   const result = ctx.createBuffer(numChannels, outputLen, sampleRate);
 
-  const grainSize = 4096;
-  const hopAnalysis = 1024;
-  const hopSynthesis = Math.round(hopAnalysis * factor);
+  const G = 8192;
+  const Ha = 2048;
+  const Hs = Math.max(1, Math.round(Ha * factor));
 
-  const win = new Float32Array(grainSize);
-  for (let i = 0; i < grainSize; i++) {
-    win[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (grainSize - 1)));
+  const win = new Float32Array(G);
+  for (let i = 0; i < G; i++) {
+    win[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (G - 1)));
+  }
+
+  const nOver = Math.ceil(G / Hs);
+  const normInv = new Float32Array(Hs);
+  for (let j = 0; j < Hs; j++) {
+    let s = 0;
+    for (let k = 0; k < nOver; k++) {
+      const wi = j + k * Hs;
+      if (wi < G) s += win[wi];
+    }
+    normInv[j] = s > 0.01 ? 1.0 / s : 1.0;
   }
 
   for (let ch = 0; ch < numChannels; ch++) {
-    const input = buffer.getChannelData(ch);
-    const output = result.getChannelData(ch);
-    const norm = new Float32Array(outputLen);
+    const inp = buffer.getChannelData(ch);
+    const out = result.getChannelData(ch);
 
     let aPos = 0;
     let sPos = 0;
-
-    while (aPos + grainSize <= inputLen && sPos + grainSize <= outputLen) {
-      for (let i = 0; i < grainSize; i++) {
-        output[sPos + i] += input[aPos + i] * win[i];
-        norm[sPos + i] += win[i];
+    while (aPos + G <= inputLen && sPos + G <= outputLen) {
+      for (let i = 0; i < G; i++) {
+        out[sPos + i] += inp[aPos + i] * win[i];
       }
-      aPos += hopAnalysis;
-      sPos += hopSynthesis;
+      aPos += Ha;
+      sPos += Hs;
     }
 
     for (let i = 0; i < outputLen; i++) {
-      if (norm[i] > 0.01) {
-        output[i] /= norm[i];
-      }
+      out[i] *= normInv[i % Hs];
     }
   }
 
@@ -359,23 +365,35 @@ export function setPitch(engine: AudioEngine, semitones: number): void {
 
   if (prevSemitones === semitones) return;
 
-  const ratio = semitones !== 0 ? getPitchRatio(semitones) : 1.0;
+  const deltaCents = (semitones - prevSemitones) * 100;
+  engine.tracks.forEach(track => {
+    if (track.source) {
+      try { track.source.detune.setValueAtTime(deltaCents, engine.ctx.currentTime); } catch {}
+    }
+  });
+
+  const detuneAppliedAt = engine.ctx.currentTime;
+  const prevRatio = prevSemitones !== 0 ? getPitchRatio(prevSemitones) : 1.0;
+  const newRatio = semitones !== 0 ? getPitchRatio(semitones) : 1.0;
 
   engine.tracks.forEach(track => {
     if (!track.originalBuffer) return;
     if (semitones === 0) {
       track.buffer = track.originalBuffer;
     } else {
-      track.buffer = timeStretchBuffer(engine.ctx, track.originalBuffer, ratio);
+      track.buffer = timeStretchBuffer(engine.ctx, track.originalBuffer, newRatio);
     }
   });
 
   if (engine.isPlaying) {
-    const currentTime = getCurrentTime(engine);
+    const elapsedSinceDetune = engine.ctx.currentTime - detuneAppliedAt;
+    const posAtDetune = engine.pauseOffset + (detuneAppliedAt - engine.startTime);
+    const songAdvance = elapsedSinceDetune * (newRatio / prevRatio);
+    const currentPos = Math.max(0, Math.min(posAtDetune + songAdvance, engine.duration));
     stopSources(engine);
-    engine.pauseOffset = currentTime;
-    engine.startTime = engine.ctx.currentTime - currentTime;
-    startSourcesAtOffset(engine, currentTime);
+    engine.pauseOffset = currentPos;
+    engine.startTime = engine.ctx.currentTime - currentPos;
+    startSourcesAtOffset(engine, currentPos);
   }
 }
 
