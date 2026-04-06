@@ -156,7 +156,7 @@ export default function GroovexPlayer() {
         const data = await downloadStem(song.id, stem.name, (p: DownloadProgress) => {
           if (sessionIdRef.current !== sid) return;
           setOverallProgress(((fi + p.percent / 100) / toRetry.length) * 100);
-        });
+        }, true);
         if (sessionIdRef.current !== sid) return;
         const buffer = await loadAudioBuffer(data);
         if (sessionIdRef.current !== sid) return;

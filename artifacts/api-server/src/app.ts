@@ -31,8 +31,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/stems", express.static(path.join(__dirname, "..", "public", "stems"), {
-  maxAge: "30d",
-  immutable: true,
+  maxAge: "1d",
+  etag: true,
+  lastModified: true,
   setHeaders(res, filePath) {
     if (filePath.endsWith('.ogg')) {
       res.setHeader('Content-Type', 'audio/ogg');

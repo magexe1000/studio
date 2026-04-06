@@ -219,7 +219,7 @@ export async function downloadStem(
 ): Promise<ArrayBuffer> {
   if (!skipCache) {
     const cached = await getCachedStem(songId, stemName);
-    if (cached) {
+    if (cached && cached.byteLength >= 1000) {
       onProgress?.({ stemName, loaded: cached.byteLength, total: cached.byteLength, percent: 100 });
       return cached;
     }
@@ -233,6 +233,9 @@ export async function downloadStem(
         await new Promise(r => setTimeout(r, 1000 * attempt));
       }
       const buffer = await fetchStemOnce(songId, stemName, onProgress);
+      if (buffer.byteLength < 1000) {
+        throw new Error(`Stem ${stemName} is too small (${buffer.byteLength} bytes), likely corrupted`);
+      }
       await cacheStem(songId, stemName, buffer);
       onProgress?.({ stemName, loaded: buffer.byteLength, total: buffer.byteLength, percent: 100 });
       return buffer;
