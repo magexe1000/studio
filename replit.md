@@ -1,22 +1,27 @@
-# Workspace
+# Overview
 
-## Overview
+This project is a pnpm workspace monorepo utilizing TypeScript, designed to build a suite of music-related applications. It includes an API server, a React-based Progressive Web App (PWA) for chord reference and music creation, and shared libraries. The core vision is to provide comprehensive tools for musicians, from practice aids to stage management.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+**Key Capabilities:**
 
-## Stack
+*   **Chordex (Chord App):** A React/Vite PWA for guitar chord diagrams, song/progression building, drum tab editing, and multi-track practice mixer (Groovex).
+*   **API Server:** An Express 5 API handling data persistence via PostgreSQL and Drizzle ORM.
+*   **Shared Libraries:** Centralized OpenAPI specifications, generated API clients (React Query hooks), and Zod schemas for validation.
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+# User Preferences
 
-## Structure
+I prefer concise and clear communication.
+I value an iterative development approach, with regular updates and opportunities for feedback.
+Before implementing major architectural changes or introducing new dependencies, please discuss them with me.
+I appreciate detailed explanations for complex technical decisions.
+Do not make changes to the `lib/api-spec` directory without prior approval.
+Do not modify the core `tsconfig.base.json` without explicit instruction.
+
+# System Architecture
+
+## Monorepo Structure
+
+The project is structured as a pnpm workspace monorepo, organizing code into `artifacts/` (deployable applications) and `lib/` (shared libraries).
 
 ```text
 artifacts-monorepo/
@@ -28,117 +33,59 @@ artifacts-monorepo/
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   └── db/                 # Drizzle ORM schema + DB connection
 ├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+├── pnpm-workspace.yaml
+├── tsconfig.base.json
+├── tsconfig.json
+└── package.json
 ```
 
-## TypeScript & Composite Projects
+## Technology Stack
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+*   **Monorepo Tool:** pnpm workspaces
+*   **Node.js:** v24
+*   **TypeScript:** v5.9
+*   **API Framework:** Express 5
+*   **Database:** PostgreSQL with Drizzle ORM
+*   **Validation:** Zod (`zod/v4`), `drizzle-zod`
+*   **API Codegen:** Orval (from OpenAPI spec)
+*   **Build Tool:** esbuild (CJS bundle)
+*   **Frontend Framework:** React with Vite (for Chordex)
+*   **State Management:** Zustand (for Chordex/Groovex)
+*   **Mobile App Development:** Capacitor (for Android builds)
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+## TypeScript Configuration
 
-## Root Scripts
+The monorepo uses TypeScript composite projects. Every package extends `tsconfig.base.json` with `composite: true`, and the root `tsconfig.json` lists all packages as project references. This setup enforces type-checking from the root and utilizes `emitDeclarationOnly` for `.d.ts` generation, with `esbuild` handling JavaScript bundling.
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+## UI/UX and Feature Specifications
 
-## Packages
+### Chordex (Chord App)
 
-### `artifacts/chord-app` (`@workspace/chord-app`)
+*   **App Modes:** Supports `chords`, `drums`, `stage`, and `groovex` modes, allowing instant UI switching.
+*   **Stage Mode (Stagex):** An iframe-based stage plot editor with a React parent for header and navigation. Features a `postMessage` bridge for communication and specific CSS overrides for mobile compatibility.
+*   **Guitar Audio:** Implements Karplus-Strong physical string synthesis for realistic acoustic guitar chord playback, entirely via Web Audio API.
+*   **Chord Diagrams:** React SVG renderer for chord diagrams, including PDF/preview rendering.
+*   **Groovex Mode:** A multitrack music practice mixer for Rock Band song stems. Features a Web Audio API engine for synchronized playback, Zustand for state management, and a comprehensive song catalog.
+*   **DrumEditor:** A vertical drum tab editor with 10 instruments, pattern management, humanization features, and a dedicated Drum Library with search, filters, and audio previews.
+*   **Drum Audio FX:** Per-instrument FX chain with 4-band EQ, compressor, gate, asymmetric tanh saturation, and Freeverb reverb, all configurable.
+*   **Localization:** Full EN/ES (LATAM) localization system (`i18n.ts`) across all application sections.
 
-Chordex — React/Vite PWA + Capacitor Android app for chord reference, song/progression building, and drum tab editing.
+### API Server
 
-- **Stage Mode (Stagex)**: `src/components/StageCorePanel.tsx` — iframe-based stage plot editor.
-  - **Architecture**: Pre-built static bundle at `public/stage-core/` served in an iframe. React parent renders header, FAB, and bottom nav bar as real DOM buttons on top of the iframe. Iframe's own FAB/nav bar are hidden via CSS injection + inline `<head>` script (hash-based embed detection).
-  - **Bridge**: `callIframe(fn, arg)` — direct `contentWindow[fn]()` call (same-origin) with `postMessage` fallback; 200ms dedup guard prevents double-fire from touch+click. Iframe→parent: `postMessage({type:'sc-dial-state', open})` for FAB dial state sync (source-verified listener).
-  - **FAB animation**: React FAB button in StageCorePanel rotates 45° + scale(1.08) on open (spring curve 0.34,1.56,0.64,1). State driven by iframe `sc-dial-state` messages only (authoritative, not optimistic).
-  - **Chrome Android iframe rule**: All `position:fixed` replaced with `position:absolute` in `app.css`, `app.js`, `features.js`, `index.html`. Body has `transform: translateZ(0)` to create stacking context.
-  - **Offline**: `cloud-stub.js` stubs all Firebase APIs; fonts bundled locally; no external network dependencies.
-  - **CSS overrides** in `index.html`: hide desktop nav, style bottom nav pill, position:absolute for scrollable-view/FAB/backdrop, view padding adjustments. Left `#lib-panel` hidden via inline `display:none !important` + CSS rule (permanently killed, React parent handles navigation).
-  - **Rider view**: Revamped bento-card layout (`#view-Rider`) with Input List table, FOH Protocol, Monitor/IEM, Power Plan, Tech Requirements, Tech Notes, and live Stage Plot Visualization preview. Rider channels stored in `state.riderChannels[]` (separate from `state.elements`). `addRiderFromStage()` imports stage elements as rider channels. `addRiderChannel()` adds custom manual entries. MutationObserver on `#stage-canvas` provides real-time preview updates while on Rider view. `state.riderConfig`, `state.riderMixes` persisted alongside riderChannels in save/load/undo/redo/export/import/share pipelines.
-  - **Dark mode colors**: Stagex uses `#0e0e0e` (matching Chordex `--app-bg`) for all dark-mode backgrounds (canvas, body, views, header). AMOLED: `#000`. Light: `#f2f1ef`.
-- **Guitar Audio** (`src/lib/guitarAudio.ts`): Karplus-Strong physical string synthesis for realistic acoustic guitar chord playback. Per-string modeling with gauge-dependent brightness/damping, allpass tuning, wound-string buzz, guitar body resonance EQ (240/420/2800 Hz peaks + air shelf), dynamics compressor. `playChord(data)` strums all non-muted strings with 20-30ms strum timing and velocity variation. Play buttons on chord cards (LibraryPanel `ChordPlayBtn`, top-right), chord detail view (ChordPanel action row), and related chord mini-cards (ChordPanel `RelatedPlayBtn`). Zero audio files — all synthesis is computed at runtime via Web Audio API.
-- **Chord Diagrams**: `src/components/ChordDiagram.tsx` — React SVG renderer. PDF/preview renderers in `SongsPanel.tsx` (`buildPrintSVG`, `buildPrintFretboardSVG`, `PreviewFretboard`, `PreviewCustomDiagram`). String numbering: `frets[]` index 0=low E…5=high E; barre `fromString/toString` use guitar convention 1=high E…6=low E. Barre x-position uses `(numStrings - stringNumber)` mapping. Dot suppression converts array index to string number before range-checking against barre. Fret window auto-calculates `minActive` when `baseFret===1`.
-- **Groovex Mode** (`src/groovex/`): Multitrack music practice mixer — load Rock Band song stems and control per-track volume/mute/solo.
-  - **Song Catalog** (`songCatalog.ts`): 120+ Rock Band songs from 25+ artists (AC/DC, Bon Jovi, Boston, Daft Punk, Foo Fighters, Foreigner, Franz Ferdinand, Guns N' Roses, Huey Lewis, Journey, Juanes, Kenny Loggins, Maná, Megadeth, Men at Work, Metallica, Player, QOTSA, RHCP, R.E.M., Starship, Tears for Fears, The Police, Toto, Van Halen). Each song has metadata (BPM, key, duration, genre) and stem definitions (drums/bass/guitar/vocals + optional keys/backing).
-  - **Audio Engine** (`audioEngine.ts`): Web Audio API engine for synchronized multitrack playback. Zero-latency `AudioContext` + `AudioBufferSourceNode` per stem, `GainNode` per track + master, play/pause/stop/seek/loop, mute/solo with automatic gain routing. User loads audio files from local disk via file picker.
-  - **Store** (`useGroovexStore.ts`): Zustand + persist (`groovex-storage-v1`). Manages view state, song selection, search/filter/sort, recent songs, preferences (master volume, loop, auto-play, count-in, default stem volume), per-song stem volumes/mutes.
-  - **Views**: `GroovexApp.tsx` (shell with header + bottom nav), `GroovexLibrary.tsx` (search/filter/sort + grouped song list), `GroovexPlayer.tsx` (transport controls + mixer with per-stem load/volume/mute/solo), `GroovexPreferences.tsx` (audio engine settings).
-  - **Design tokens**: CSS vars `--gx-surface`, `--gx-surface-low`, `--gx-surface-high`, `--gx-surface-lowest`, `--gx-accent` (#679cff), `--gx-accent-container` (#007aff), `--gx-accent-dim`. Custom `.gx-slider` range input styling.
-- **State**: `src/store/useChordStore.ts` (Zustand + persist) — chord/song/settings; `src/store/useDrumStore.ts` — fully isolated drum patterns
-- **App Mode**: `settings.appMode: 'chords' | 'drums' | 'stage' | 'groovex'` in AppSettings; switching replaces the entire UI instantly with no reload
-- **Start on**: Per-app default tab/view: `defaultTab` (Chordex), `defaultDrumTab` (Drumex), `defaultStageView` (Stagex) — all persisted in AppSettings. Drumex applies via useState initializer. Stagex applies via switchView on iframe load + injected picker in Preferences view.
-- **Panels** (Chordex mode): `LibraryPanel`, `ChordPanel`, `SongsPanel`, `SettingsPanel` + `BottomNav`
-- **DrumEditor** (`src/panels/DrumEditor.tsx`): vertical drum tab editor — measures stack top→bottom; 10 instruments (kick, snare, hi-hats, toms, crash, ride); click to toggle hits, drag to extend; auto-adds new empty measure when last measure gets its first hit; pattern tabs, BPM, time signature, subdivision (8th/16th) controls; completely isolated from chord data. Hamburger menu includes Humanize (applies subtle variation to note types: ghost snare, accented kick, open hihat, bell ride — probabilistic rules) and Preferences link.
-- **Drum Library** (`src/lib/drumLibrary.ts` + Library tab in `DrumEditor.tsx`): replaces old "Patterns" tab with full Library UI. 45+ built-in patterns across 3 categories (Grooves, Fills, Basic Beats) and 8 genres (Rock, Pop, Funk, Jazz, Latin, Electronic, Hip Hop, Metal). Card-based UI with search, category/genre filters, mini grid preview visualization, instant audio preview (play button), and Use/Append actions. "My Grooves" section preserves user-saved groove library with save/rename/retag/delete workflow. Library data uses step-dedup `measure()` builder to prevent duplicate hits per instrument per step.
-- **DrumPrefsPanel** (`src/panels/DrumPrefsPanel.tsx`): full-screen preferences panel matching Chordex card/toggle style. 14 settings across 6 sections: Editor Behavior (noteVariationsCycle, autoExpandPattern, snapToGrid, dragToFill), Playback (autoPlayOnEdit, loopPlayback, metronome, countIn), Interaction (quickDeleteMode, showNoteVariations, highlightActiveInst), Visual (gridLinesEmphasis), Performance (lowLatencyMode, performanceMode), Start on (defaultDrumTab — songs/patterns/prefs icon picker). Accessible via sliders button in songs list top bar OR hamburger → Preferences.
-- **DrumPrefs** in `useDrumStore.ts`: `DrumPrefs` interface + `DEFAULT_DRUM_PREFS`, stored as `drumPrefs` in persist (store version 10), `updateDrumPrefs(patch)` action. Migration v10 seeds `drumPrefs` from defaults for existing users.
-- **Drum FX** (`src/lib/drumAudio.ts`): per-instrument FX chain with 4-band EQ (80 Hz / 350 Hz / 2 kHz / 10 kHz), dynamics compressor (safe -6 to -24 dB threshold, 2:1–8:1 ratio), gate (GainNode hold+release envelope, min 50ms release — never clicks), asymmetric tanh saturation (tape oxide emulation with even-order harmonics), Freeverb reverb (Jezar at Dreampoint public domain — 8 Schroeder comb filters + 4 all-pass filters, JS IR generation + ConvolverNode). Per-instrument character presets: Snare (Tight/Fat/Crack/Brush), Kick (Sub/Punch/Click/Tight), HH (Bright/Dark/Crisp), etc. Persist version 8. `InstFX` interface: compress, attack, eqLow, eqLowMid, eqMid, eqHigh, reverb, gate, saturate.
-- **Capacitor**: Android build via `npx cap sync android` then `node patch-android.cjs`; ExternalStorage permissions for file export to public Downloads folder
-- **i18n**: `src/lib/i18n.ts` — full EN/ES (LATAM) localization system. `useT()` hook from `src/lib/useT.ts`. Covers all sections: `nav`, `library`, `chord`, `songs`, `settings`, `customBuilder`, `chordFinder`, `liveMode`, `hub` (Studio Hub + `groovexDesc`), `drum` (Drumex), `drumPrefs` (Drum preferences), `applyTo` (apply-to-sheet). StudioHub greetings have 22 pairs in both EN and ES with time-of-day awareness. Stagex uses its own `TRANSLATIONS` object in `public/stage-core/app.js` with `T(key)` function.
+*   **Entry Point:** `src/index.ts`
+*   **App Setup:** `src/app.ts` handles CORS, JSON parsing, and mounts routes at `/api`.
+*   **Routes:** Organized under `src/routes/`, utilizing `@workspace/api-zod` for validation and `@workspace/db` for persistence. Exposes a `GET /health` endpoint.
 
-### `artifacts/api-server` (`@workspace/api-server`)
+## Security
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+pnpm overrides are used to patch transitive dependency vulnerabilities. `postMessage` calls between the React parent and stage-core iframe validate `e.origin`. All `.innerHTML` assignments are sanitized using `DOMPurify.sanitize()` to prevent XSS.
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+# External Dependencies
 
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-## Security Overrides (pnpm)
-
-The root `package.json` includes pnpm overrides to patch transitive dependency vulnerabilities:
-- `path-to-regexp@8.3.0` → `8.4.0`
-- `picomatch@2.3.1` → `2.3.2`, `picomatch@4.0.3` → `4.0.4`
-- `lodash@4.17.23` → `4.18.0`
-- `tar@6.2.1` → `7.5.11`
-- `brace-expansion@2.0.2` → `2.0.3`
-- `esbuild@0.18.20` → `0.25.0`
-- `yaml@2.8.2` → `2.8.3`
-
-postMessage calls between the React parent and stage-core iframe use `window.location.origin` (not `'*'`) and message listeners validate `e.origin` before processing.
-
-All `.innerHTML` assignments in `public/stage-core/app.js`, `features.js`, and `index.html` are wrapped with `DOMPurify.sanitize()` (vendor lib at `vendor/purify.min.js`, v3.2.6). A DOMPurify hook in `index.html` preserves the app's developer-controlled inline event attributes (`onclick`, `ondragstart`, etc.) while still sanitizing against injected scripts, iframes, and other XSS vectors.
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+*   **Database:** PostgreSQL
+*   **API Codegen:** Orval
+*   **Frontend State Management:** Zustand
+*   **Mobile App Framework:** Capacitor
+*   **Web Audio API:** For guitar synthesis and multitrack mixing
+*   **Firebase APIs:** Stubbed in offline mode for Chordex
+*   **DOMPurify:** For HTML sanitization
