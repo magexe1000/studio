@@ -203,6 +203,7 @@ function createSourceForTrack(
 export function play(engine: AudioEngine): void {
   if (engine.isPlaying) return;
   if (engine._rampTimer) { clearTimeout(engine._rampTimer); engine._rampTimer = null; }
+  stopSources(engine);
   const ctx = engine.ctx;
   if (ctx.state === 'suspended') ctx.resume();
 
@@ -331,14 +332,18 @@ export function startScrub(engine: AudioEngine): void {
   engine.scrubGain.gain.linearRampToValueAtTime(0.35, ct + 0.08);
 }
 
-export function scrubSeek(engine: AudioEngine, time: number): void {
+export function scrubSeek(engine: AudioEngine, delta: number): void {
   if (!engine.isPlaying) return;
-  const ct = engine.ctx.currentTime;
-  stopSources(engine);
-  const clamped = Math.max(0, Math.min(time, engine.duration));
-  engine.pauseOffset = clamped;
-  engine.startTime = ct - clamped;
-  startSourcesAtOffset(engine, clamped);
+  const baseRate = getSourceRate(engine);
+  let mult: number;
+  if (delta > 0.003) mult = 2.5;
+  else if (delta < -0.003) mult = 0.2;
+  else mult = 0.7;
+  engine.tracks.forEach(track => {
+    if (track.source) {
+      try { track.source.playbackRate.setValueAtTime(baseRate * mult, engine.ctx.currentTime); } catch {}
+    }
+  });
 }
 
 export function endScrub(engine: AudioEngine, targetTime: number): void {

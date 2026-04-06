@@ -221,8 +221,10 @@ export default function GroovexPlayer() {
   const updateTime = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return;
-    const t = getCurrentTime(engine);
-    setCurrentTime(t);
+    if (!engine.isScrubbing) {
+      const t = getCurrentTime(engine);
+      setCurrentTime(t);
+    }
     setDuration(engine.duration);
     if (engine.isPlaying) {
       rafRef.current = requestAnimationFrame(updateTime);
@@ -272,12 +274,11 @@ export default function GroovexPlayer() {
     startScrub(engine);
   }
 
-  function handleScrubSeek(pct: number) {
+  function handleScrubSeek(pct: number, delta: number) {
     const engine = engineRef.current;
     if (!engine || !isPlaying) return;
-    const t = pct * engine.duration;
-    scrubSeek(engine, t);
-    setCurrentTime(t);
+    scrubSeek(engine, delta);
+    setCurrentTime(pct * engine.duration);
   }
 
   function handleScrubEnd(pct: number) {
@@ -727,7 +728,7 @@ function ProgressBar({ pct, isPlaying, onSeek, onScrubStart, onScrubSeek, onScru
   pct: number; isPlaying: boolean; duration: number;
   onSeek: (v: number) => void;
   onScrubStart: () => void;
-  onScrubSeek: (pct: number) => void;
+  onScrubSeek: (pct: number, delta: number) => void;
   onScrubEnd: (pct: number) => void;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -755,7 +756,7 @@ function ProgressBar({ pct, isPlaying, onSeek, onScrubStart, onScrubSeek, onScru
     setVisualPct(p * 100);
     if (isPlaying) {
       onScrubStart();
-      onScrubSeek(p);
+      onScrubSeek(p, 0);
     } else {
       onSeek(p);
     }
@@ -764,6 +765,7 @@ function ProgressBar({ pct, isPlaying, onSeek, onScrubStart, onScrubSeek, onScru
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragging.current) return;
     const p = calcPct(e.clientX);
+    const prevP = scrubPct.current;
     scrubPct.current = p;
     setVisualPct(p * 100);
 
@@ -774,7 +776,7 @@ function ProgressBar({ pct, isPlaying, onSeek, onScrubStart, onScrubSeek, onScru
 
     const now = performance.now();
     if (now - lastSeekTime.current > 60) {
-      onScrubSeek(p);
+      onScrubSeek(p, p - prevP);
       lastSeekTime.current = now;
     }
   }, [calcPct, onSeek, onScrubSeek, isPlaying]);
