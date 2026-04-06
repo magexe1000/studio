@@ -3,7 +3,7 @@ import { SONG_CATALOG } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
 import {
   createEngine, initTracks, loadAudioFile, loadAudioBuffer, setTrackBuffer,
-  play, pause, stop, seek, startScrub, setScrubRate, endScrub, setTrackVolume, toggleMute, toggleSolo,
+  play, pause, stop, seek, startScrub, scrubSeek, endScrub, setTrackVolume, toggleMute, toggleSolo,
   setMasterVolume, setPitch, getCurrentTime, destroyEngine, resumeAudioContext,
   type AudioEngine,
 } from './audioEngine';
@@ -272,10 +272,12 @@ export default function GroovexPlayer() {
     startScrub(engine);
   }
 
-  function handleScrubRate(rate: number) {
+  function handleScrubSeek(pct: number) {
     const engine = engineRef.current;
     if (!engine || !isPlaying) return;
-    setScrubRate(engine, rate);
+    const t = pct * engine.duration;
+    scrubSeek(engine, t);
+    setCurrentTime(t);
   }
 
   function handleScrubEnd(pct: number) {
@@ -489,7 +491,7 @@ export default function GroovexPlayer() {
         {phase === 'ready' && (
           <>
             <section className="gx-fade-up-2" style={{ marginBottom: 20 }}>
-              <ProgressBar pct={pct} isPlaying={isPlaying} onSeek={handleSeek} onScrubStart={handleScrubStart} onScrubRate={handleScrubRate} onScrubEnd={handleScrubEnd} duration={duration} />
+              <ProgressBar pct={pct} isPlaying={isPlaying} onSeek={handleSeek} onScrubStart={handleScrubStart} onScrubSeek={handleScrubSeek} onScrubEnd={handleScrubEnd} duration={duration} />
               <div style={{ marginBottom: 28 }} />
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
@@ -721,17 +723,17 @@ export default function GroovexPlayer() {
   );
 }
 
-function ProgressBar({ pct, isPlaying, onSeek, onScrubStart, onScrubRate, onScrubEnd, duration }: {
+function ProgressBar({ pct, isPlaying, onSeek, onScrubStart, onScrubSeek, onScrubEnd, duration }: {
   pct: number; isPlaying: boolean; duration: number;
   onSeek: (v: number) => void;
   onScrubStart: () => void;
-  onScrubRate: (rate: number) => void;
+  onScrubSeek: (pct: number) => void;
   onScrubEnd: (pct: number) => void;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const scrubPct = useRef(0);
-  const lastScrub = useRef({ pct: 0, time: 0 });
+  const lastSeekTime = useRef(0);
   const [isDragging, setIsDragging] = useState(false);
   const [visualPct, setVisualPct] = useState(0);
 
@@ -748,15 +750,16 @@ function ProgressBar({ pct, isPlaying, onSeek, onScrubStart, onScrubRate, onScru
     dragging.current = true;
     const p = calcPct(e.clientX);
     scrubPct.current = p;
-    lastScrub.current = { pct: p, time: performance.now() };
+    lastSeekTime.current = performance.now();
     setIsDragging(true);
     setVisualPct(p * 100);
     if (isPlaying) {
       onScrubStart();
+      onScrubSeek(p);
     } else {
       onSeek(p);
     }
-  }, [calcPct, onSeek, onScrubStart, isPlaying]);
+  }, [calcPct, onSeek, onScrubStart, onScrubSeek, isPlaying]);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragging.current) return;
@@ -770,16 +773,11 @@ function ProgressBar({ pct, isPlaying, onSeek, onScrubStart, onScrubRate, onScru
     }
 
     const now = performance.now();
-    const dt = (now - lastScrub.current.time) / 1000;
-    if (dt > 0.03) {
-      const dp = p - lastScrub.current.pct;
-      const secondsMoved = dp * duration;
-      const velocity = dt > 0 ? secondsMoved / dt : 0.5;
-      const rate = Math.max(0.15, Math.min(Math.abs(velocity) * 0.5, 1.8));
-      onScrubRate(rate);
-      lastScrub.current = { pct: p, time: now };
+    if (now - lastSeekTime.current > 60) {
+      onScrubSeek(p);
+      lastSeekTime.current = now;
     }
-  }, [calcPct, onSeek, onScrubRate, isPlaying, duration]);
+  }, [calcPct, onSeek, onScrubSeek, isPlaying]);
 
   const onPointerUp = useCallback(() => {
     if (!dragging.current) return;

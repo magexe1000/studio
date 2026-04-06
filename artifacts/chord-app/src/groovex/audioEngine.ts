@@ -325,32 +325,18 @@ export function startScrub(engine: AudioEngine): void {
   engine.scrubGain.gain.linearRampToValueAtTime(0.35, ct + 0.08);
 }
 
-export function setScrubRate(engine: AudioEngine, rate: number): void {
-  const baseRate = getSourceRate(engine);
-  const clampedRate = Math.max(0.15, Math.min(rate, 1.8));
-  const effectiveRate = clampedRate * baseRate;
+export function scrubSeek(engine: AudioEngine, time: number): void {
+  if (!engine.isPlaying) return;
   const ct = engine.ctx.currentTime;
-  const filterFreq = 300 + clampedRate * 400;
-  engine.scrubFilter.frequency.cancelScheduledValues(ct);
-  engine.scrubFilter.frequency.setValueAtTime(engine.scrubFilter.frequency.value, ct);
-  engine.scrubFilter.frequency.exponentialRampToValueAtTime(filterFreq, ct + 0.04);
-  engine.tracks.forEach(track => {
-    if (track.source) {
-      try {
-        track.source.playbackRate.cancelScheduledValues(ct);
-        track.source.playbackRate.setValueAtTime(
-          Math.max(0.15, track.source.playbackRate.value),
-          ct
-        );
-        track.source.playbackRate.exponentialRampToValueAtTime(effectiveRate, ct + 0.04);
-      } catch {}
-    }
-  });
+  stopSources(engine);
+  const clamped = Math.max(0, Math.min(time, engine.duration));
+  engine.pauseOffset = clamped;
+  engine.startTime = ct - clamped;
+  startSourcesAtOffset(engine, clamped);
 }
 
 export function endScrub(engine: AudioEngine, targetTime: number): void {
   engine.isScrubbing = false;
-  if (engine._rampTimer) { clearTimeout(engine._rampTimer); engine._rampTimer = null; }
   const ct = engine.ctx.currentTime;
   engine.scrubFilter.frequency.cancelScheduledValues(ct);
   engine.scrubFilter.frequency.setValueAtTime(engine.scrubFilter.frequency.value, ct);
@@ -358,16 +344,12 @@ export function endScrub(engine: AudioEngine, targetTime: number): void {
   engine.scrubGain.gain.cancelScheduledValues(ct);
   engine.scrubGain.gain.setValueAtTime(engine.scrubGain.gain.value, ct);
   engine.scrubGain.gain.linearRampToValueAtTime(1.0, ct + 0.15);
-  const wasPlaying = engine.isPlaying;
-  stopSources(engine);
-  engine.pauseOffset = Math.max(0, Math.min(targetTime, engine.duration));
-  engine.isPlaying = false;
-  if (wasPlaying) {
-    const ctx = engine.ctx;
-    if (ctx.state === 'suspended') ctx.resume();
-    engine.startTime = ctx.currentTime - engine.pauseOffset;
-    engine.isPlaying = true;
-    startSourcesAtOffset(engine, engine.pauseOffset);
+  if (engine.isPlaying) {
+    const clamped = Math.max(0, Math.min(targetTime, engine.duration));
+    stopSources(engine);
+    engine.pauseOffset = clamped;
+    engine.startTime = ct - clamped;
+    startSourcesAtOffset(engine, clamped);
   }
 }
 
