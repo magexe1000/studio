@@ -29,7 +29,7 @@ export default function GroovexApp() {
 
       <header style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px', height: 56, flexShrink: 0,
+        padding: '24px 24px 4px', flexShrink: 0,
         background: 'var(--gx-bg)',
       }}>
         {view === 'player' ? (

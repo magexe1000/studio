@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChordexLogo, DrumexLogo, StudioLogo, StagexLogoIcon } from './ChordexLogo';
+import { ChordexLogo, DrumexLogo, StudioLogo, StagexLogoIcon, GroovexLogo } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 
 export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: number }) {
@@ -37,14 +37,15 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
   const currentMode = settings.appMode ?? 'chords';
 
   const OPTIONS: {
-    value: 'chords' | 'drums' | 'stage';
+    value: 'chords' | 'drums' | 'stage' | 'groovex';
     Icon: React.FC<{ size?: number }>;
     label: string;
     desc: string;
   }[] = [
-    { value: 'chords', Icon: ChordexLogo,       label: 'Chordex', desc: 'Chords & songs'       },
-    { value: 'drums',  Icon: DrumexLogo,        label: 'Drumex',  desc: 'Drum sheets'          },
-    { value: 'stage',  Icon: StagexLogoIcon, label: 'Stagex',  desc: 'Stage plot & rider'   },
+    { value: 'chords',  Icon: ChordexLogo,    label: 'Chordex', desc: 'Chords & songs'       },
+    { value: 'drums',   Icon: DrumexLogo,     label: 'Drumex',  desc: 'Drum sheets'          },
+    { value: 'stage',   Icon: StagexLogoIcon, label: 'Stagex',  desc: 'Stage plot & rider'   },
+    { value: 'groovex', Icon: GroovexLogo,    label: 'Groovex', desc: 'Multitrack mixer'     },
   ];
 
   const goToHub = () => {
@@ -67,9 +68,9 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
           color: resolvedColor,
         }}
       >
-        {currentMode === 'drums' ? <DrumexLogo size={size} /> : currentMode === 'stage' ? <StagexLogoIcon size={size} /> : <ChordexLogo size={size} />}
+        {currentMode === 'drums' ? <DrumexLogo size={size} /> : currentMode === 'stage' ? <StagexLogoIcon size={size} /> : currentMode === 'groovex' ? <GroovexLogo size={size} /> : <ChordexLogo size={size} />}
         <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color: resolvedColor }}>
-          {currentMode === 'drums' ? 'Drumex' : currentMode === 'stage' ? 'Stagex' : 'Chordex'}
+          {currentMode === 'drums' ? 'Drumex' : currentMode === 'stage' ? 'Stagex' : currentMode === 'groovex' ? 'Groovex' : 'Chordex'}
         </span>
         <span style={{
           fontSize: 9, opacity: 0.4, marginLeft: -3, color: resolvedColor,
