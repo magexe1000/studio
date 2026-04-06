@@ -712,18 +712,31 @@ function MixerRow({
         </div>
       </div>
 
-      <div style={{ position: 'relative', height: 6, cursor: 'pointer' }}>
+      <div style={{ position: 'relative', height: 28, display: 'flex', alignItems: 'center' }}>
         <div style={{
-          position: 'absolute', inset: 0,
+          position: 'absolute', left: 0, right: 0, height: 6,
           background: 'var(--gx-surface-lowest)',
           borderRadius: 9999,
         }} />
         <div style={{
-          position: 'absolute', top: 0, left: 0, height: '100%',
+          position: 'absolute', left: 0, height: 6,
           width: `${volPct}%`,
           background: 'linear-gradient(90deg, var(--gx-accent-container), var(--gx-accent))',
           borderRadius: 9999,
           transition: 'width 80ms linear',
+        }} />
+        <div style={{
+          position: 'absolute',
+          left: `${volPct}%`,
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 18,
+          height: 18,
+          borderRadius: 9999,
+          background: 'var(--gx-accent)',
+          boxShadow: '0 0 8px rgba(0,122,255,0.4), 0 2px 4px rgba(0,0,0,0.3)',
+          transition: 'left 80ms linear, transform 120ms ease',
+          pointerEvents: 'none',
         }} />
         <input
           type="range"
@@ -733,9 +746,10 @@ function MixerRow({
           value={track.volume}
           onChange={e => onVolumeChange(parseFloat(e.target.value))}
           disabled={!track.loaded}
+          className="gx-vol-slider"
           style={{
-            position: 'absolute', inset: 0,
-            width: '100%', height: '100%',
+            position: 'absolute', left: -4, right: -4,
+            width: 'calc(100% + 8px)', height: '100%',
             opacity: 0, cursor: track.loaded ? 'pointer' : 'not-allowed',
             margin: 0,
           }}
