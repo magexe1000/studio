@@ -65,7 +65,7 @@ The monorepo uses TypeScript composite projects. Every package extends `tsconfig
 *   **Stage Mode (Stagex):** An iframe-based stage plot editor with a React parent for header and navigation. Features a `postMessage` bridge for communication and specific CSS overrides for mobile compatibility.
 *   **Guitar Audio:** Implements Karplus-Strong physical string synthesis for realistic acoustic guitar chord playback, entirely via Web Audio API.
 *   **Chord Diagrams:** React SVG renderer for chord diagrams, including PDF/preview rendering.
-*   **Groovex Mode:** A multitrack music practice mixer for Rock Band song stems. Features a Web Audio API engine for synchronized playback, Zustand for state management, and a comprehensive song catalog.
+*   **Groovex Mode:** A multitrack music practice mixer for Rock Band song stems. Features a Web Audio API engine for synchronized playback, Zustand for state management, IndexedDB stem caching, and a comprehensive song catalog with 50 songs having server-hosted stems (OGG format at `api-server/public/stems/{songId}/`). Stem configurations vary per song (kick/snare/cymbals vs drums, backing, crowd, keys).
 *   **DrumEditor:** A vertical drum tab editor with 10 instruments, pattern management, humanization features, and a dedicated Drum Library with search, filters, and audio previews.
 *   **Drum Audio FX:** Per-instrument FX chain with 4-band EQ, compressor, gate, asymmetric tanh saturation, and Freeverb reverb, all configurable.
 *   **Localization:** Full EN/ES (LATAM) localization system (`i18n.ts`) across all application sections.
