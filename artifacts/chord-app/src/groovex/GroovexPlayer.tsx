@@ -433,24 +433,8 @@ export default function GroovexPlayer() {
         {phase === 'ready' && (
           <>
             <section className="gx-fade-up-2" style={{ marginBottom: 20 }}>
-              <div
-                style={{
-                  position: 'relative', height: 4,
-                  background: 'var(--gx-surface-high)', borderRadius: 9999,
-                  overflow: 'hidden', cursor: 'pointer', marginBottom: 28,
-                }}
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  handleSeek((e.clientX - rect.left) / rect.width);
-                }}
-              >
-                <div style={{
-                  position: 'absolute', top: 0, left: 0, height: '100%',
-                  width: `${pct}%`,
-                  background: 'linear-gradient(90deg, var(--gx-accent-container), var(--gx-accent))',
-                  borderRadius: 9999, transition: 'width 50ms linear',
-                }} />
-              </div>
+              <ProgressBar pct={pct} isPlaying={isPlaying} onSeek={handleSeek} />
+              <div style={{ marginBottom: 28 }} />
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
                 <TransportBtn icon="skip_previous" onClick={handleStop} />
@@ -601,6 +585,144 @@ export default function GroovexPlayer() {
   );
 }
 
+function ProgressBar({ pct, isPlaying, onSeek }: { pct: number; isPlaying: boolean; onSeek: (v: number) => void }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  const calcPct = useCallback((clientX: number) => {
+    const el = trackRef.current;
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  }, []);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragging.current = true;
+    onSeek(calcPct(e.clientX));
+  }, [calcPct, onSeek]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    onSeek(calcPct(e.clientX));
+  }, [calcPct, onSeek]);
+
+  const onPointerUp = useCallback(() => {
+    dragging.current = false;
+  }, []);
+
+  return (
+    <div
+      ref={trackRef}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      style={{
+        position: 'relative', height: 28, display: 'flex', alignItems: 'center',
+        cursor: 'pointer', touchAction: 'none',
+      }}
+    >
+      <div style={{
+        position: 'absolute', left: 0, right: 0, height: 6,
+        background: 'var(--gx-surface-high)', borderRadius: 9999, overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: 0, left: 0, height: '100%',
+          width: `${pct}%`,
+          background: 'linear-gradient(90deg, var(--gx-accent-container), var(--gx-accent))',
+          borderRadius: 9999,
+        }} />
+        {isPlaying && (
+          <div className="gx-progress-wave" style={{
+            position: 'absolute', top: 0, left: 0, height: '100%',
+            width: `${pct}%`,
+            borderRadius: 9999,
+            opacity: 0.5,
+          }} />
+        )}
+      </div>
+      <div style={{
+        position: 'absolute',
+        left: `${pct}%`,
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 16, height: 16, borderRadius: 9999,
+        background: '#fff',
+        boxShadow: '0 0 10px rgba(0,122,255,0.5), 0 2px 6px rgba(0,0,0,0.4)',
+        pointerEvents: 'none',
+      }} />
+    </div>
+  );
+}
+
+function DragSlider({ value, disabled, onChange }: { value: number; disabled?: boolean; onChange: (v: number) => void }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  const calcValue = useCallback((clientX: number) => {
+    const el = trackRef.current;
+    if (!el) return value;
+    const rect = el.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  }, [value]);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    if (disabled) return;
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragging.current = true;
+    onChange(calcValue(e.clientX));
+  }, [disabled, calcValue, onChange]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    onChange(calcValue(e.clientX));
+  }, [calcValue, onChange]);
+
+  const onPointerUp = useCallback(() => {
+    dragging.current = false;
+  }, []);
+
+  const pct = Math.round(value * 100);
+
+  return (
+    <div
+      ref={trackRef}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      style={{
+        position: 'relative', height: 28, display: 'flex', alignItems: 'center',
+        cursor: disabled ? 'not-allowed' : 'pointer', touchAction: 'none',
+      }}
+    >
+      <div style={{
+        position: 'absolute', left: 0, right: 0, height: 6,
+        background: 'var(--gx-surface-lowest)', borderRadius: 9999,
+      }} />
+      <div style={{
+        position: 'absolute', left: 0, height: 6,
+        width: `${pct}%`,
+        background: 'linear-gradient(90deg, var(--gx-accent-container), var(--gx-accent))',
+        borderRadius: 9999,
+      }} />
+      <div style={{
+        position: 'absolute',
+        left: `${pct}%`,
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 18, height: 18, borderRadius: 9999,
+        background: 'var(--gx-accent)',
+        boxShadow: '0 0 8px rgba(0,122,255,0.4), 0 2px 4px rgba(0,0,0,0.3)',
+        pointerEvents: 'none',
+      }} />
+    </div>
+  );
+}
+
 function TransportBtn({ icon, onClick }: { icon: string; onClick: () => void }) {
   return (
     <button
@@ -689,49 +811,7 @@ function MixerRow({
         </div>
       </div>
 
-      <div style={{ position: 'relative', height: 28, display: 'flex', alignItems: 'center' }}>
-        <div style={{
-          position: 'absolute', left: 0, right: 0, height: 6,
-          background: 'var(--gx-surface-lowest)',
-          borderRadius: 9999,
-        }} />
-        <div style={{
-          position: 'absolute', left: 0, height: 6,
-          width: `${volPct}%`,
-          background: 'linear-gradient(90deg, var(--gx-accent-container), var(--gx-accent))',
-          borderRadius: 9999,
-          transition: 'width 80ms linear',
-        }} />
-        <div style={{
-          position: 'absolute',
-          left: `${volPct}%`,
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 18,
-          height: 18,
-          borderRadius: 9999,
-          background: 'var(--gx-accent)',
-          boxShadow: '0 0 8px rgba(0,122,255,0.4), 0 2px 4px rgba(0,0,0,0.3)',
-          transition: 'left 80ms linear, transform 120ms ease',
-          pointerEvents: 'none',
-        }} />
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={track.volume}
-          onChange={e => onVolumeChange(parseFloat(e.target.value))}
-          disabled={!track.loaded}
-          className="gx-vol-slider"
-          style={{
-            position: 'absolute', left: -4, right: -4,
-            width: 'calc(100% + 8px)', height: '100%',
-            opacity: 0, cursor: track.loaded ? 'pointer' : 'not-allowed',
-            margin: 0,
-          }}
-        />
-      </div>
+      <DragSlider value={track.volume} disabled={!track.loaded} onChange={onVolumeChange} />
     </div>
   );
 }

@@ -640,6 +640,23 @@ html, body { background: var(--app-bg); }
   animation: gx-pulse-bar 1.2s ease-in-out infinite;
 }
 
+@keyframes gx-wave-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.gx-progress-wave {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.35) 25%,
+    rgba(255,255,255,0.5) 50%,
+    rgba(255,255,255,0.35) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: gx-wave-shimmer 2s ease-in-out infinite;
+}
+
 .gx-hero-enter   { animation: gx-scale-in 500ms cubic-bezier(0.34,1.56,0.64,1) both; }
 .gx-fade-up-1    { animation: gx-fade-up 400ms 80ms cubic-bezier(0.0,0.0,0.2,1) both; }
 .gx-fade-up-2    { animation: gx-fade-up 400ms 160ms cubic-bezier(0.0,0.0,0.2,1) both; }
