@@ -14,6 +14,7 @@ export interface SongMeta {
   duration: string;
   stems: StemInfo[];
   genre: string;
+  hasStems?: boolean;
 }
 
 const STANDARD_STEMS: StemInfo[] = [

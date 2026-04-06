@@ -1,4 +1,5 @@
 import express, { type Express } from "express";
+import path from "path";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
@@ -28,6 +29,16 @@ app.use(
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use("/api/stems", express.static(path.join(__dirname, "..", "public", "stems"), {
+  maxAge: "30d",
+  immutable: true,
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.ogg')) {
+      res.setHeader('Content-Type', 'audio/ogg');
+    }
+  },
+}));
 
 app.use("/api", router);
 

@@ -1,7 +1,26 @@
+import { useState, useEffect } from 'react';
 import { useGroovexStore } from './useGroovexStore';
+import { getCacheSize, clearAllCache } from './stemCache';
 
 export default function GroovexPreferences() {
   const { preferences, updatePreferences } = useGroovexStore();
+  const [cacheInfo, setCacheInfo] = useState({ totalBytes: 0, songCount: 0, stemCount: 0 });
+
+  useEffect(() => {
+    getCacheSize().then(setCacheInfo);
+  }, []);
+
+  function formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  async function handleClearCache() {
+    await clearAllCache();
+    setCacheInfo({ totalBytes: 0, songCount: 0, stemCount: 0 });
+  }
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
@@ -47,6 +66,37 @@ export default function GroovexPreferences() {
               value={preferences.countIn}
               onChange={(v) => updatePreferences({ countIn: v })}
             />
+          </PrefCard>
+
+          <PrefCard title="Downloaded Stems Cache" icon="cloud_done">
+            <div style={{ padding: '4px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div>
+                  <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '0 0 4px', fontFamily: 'Inter' }}>
+                    {cacheInfo.stemCount} stems from {cacheInfo.songCount} songs
+                  </p>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>
+                    {formatBytes(cacheInfo.totalBytes)}
+                  </p>
+                </div>
+                {cacheInfo.stemCount > 0 && (
+                  <button
+                    onClick={handleClearCache}
+                    style={{
+                      padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                      background: 'rgba(238,125,119,0.15)', color: '#ee7d77',
+                      fontSize: 12, fontWeight: 700, fontFamily: 'Inter',
+                      alignSelf: 'center',
+                    }}
+                  >
+                    Clear Cache
+                  </button>
+                )}
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, fontFamily: 'Inter', opacity: 0.7, lineHeight: 1.4 }}>
+                Downloaded stems are cached in your browser. Clearing the cache will require re-downloading stems when you open songs.
+              </p>
+            </div>
           </PrefCard>
 
           <PrefCard title="About Groovex" icon="info">

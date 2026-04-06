@@ -610,6 +610,11 @@ html, body { background: var(--app-bg); }
   cursor: not-allowed;
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ===== Performance mode — strips GPU-heavy effects ===== */
 [data-perf-mode="on"] * {
   backdrop-filter: none !important;

@@ -59,6 +59,11 @@ export async function loadAudioFile(file: File): Promise<AudioBuffer> {
   return ctx.decodeAudioData(arrayBuffer);
 }
 
+export async function loadAudioBuffer(data: ArrayBuffer): Promise<AudioBuffer> {
+  const ctx = getAudioContext();
+  return ctx.decodeAudioData(data.slice(0));
+}
+
 export function initTracks(
   engine: AudioEngine,
   stems: { name: string; label: string; icon: string }[]

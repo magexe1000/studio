@@ -2,11 +2,14 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { SONG_CATALOG } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
 import {
-  createEngine, initTracks, loadAudioFile, setTrackBuffer,
+  createEngine, initTracks, loadAudioFile, loadAudioBuffer, setTrackBuffer,
   play, pause, stop, seek, setTrackVolume, toggleMute, toggleSolo,
   setMasterVolume, getCurrentTime, destroyEngine, resumeAudioContext,
   type AudioEngine,
 } from './audioEngine';
+import { downloadStem, getSongCacheStatus, type DownloadProgress } from './stemCache';
+
+type StemStatus = 'none' | 'available' | 'downloading' | 'loaded';
 
 export default function GroovexPlayer() {
   const { activeSongId, setView, preferences } = useGroovexStore();
@@ -20,9 +23,11 @@ export default function GroovexPlayer() {
   const [duration, setDuration] = useState(0);
   const [tracks, setTracks] = useState<{
     name: string; label: string; icon: string;
-    volume: number; muted: boolean; solo: boolean; loaded: boolean;
+    volume: number; muted: boolean; solo: boolean;
+    status: StemStatus;
+    downloadProgress: number;
   }[]>([]);
-  const [loadingTrack, setLoadingTrack] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   useEffect(() => {
     if (!song) return;
@@ -33,10 +38,22 @@ export default function GroovexPlayer() {
     setMasterVolume(engine, preferences.masterVolume);
     setTracks(trackStates.map(t => ({
       name: t.name, label: t.label, icon: t.icon,
-      volume: t.volume, muted: t.muted, solo: t.solo, loaded: false,
+      volume: t.volume, muted: t.muted, solo: t.solo,
+      status: 'none' as StemStatus,
+      downloadProgress: 0,
     })));
     setCurrentTime(0);
     setDuration(0);
+
+    if (song.hasStems) {
+      getSongCacheStatus(song.id, song.stems.map(s => s.name)).then(cacheStatus => {
+        setTracks(prev => prev.map(t => ({
+          ...t,
+          status: cacheStatus[t.name] ? 'available' : 'none',
+        })));
+      });
+    }
+
     return () => {
       cancelAnimationFrame(rafRef.current);
       destroyEngine(engine);
@@ -126,7 +143,49 @@ export default function GroovexPlayer() {
     setTracks(prev => prev.map((t, i) => i === idx ? { ...t, solo: track.solo } : t));
   }
 
-  async function handleLoadStem(idx: number) {
+  async function handleDownloadStem(idx: number) {
+    const engine = engineRef.current;
+    if (!engine || !song) return;
+
+    setTracks(prev => prev.map((t, i) =>
+      i === idx ? { ...t, status: 'downloading', downloadProgress: 0 } : t
+    ));
+
+    try {
+      resumeAudioContext();
+      const data = await downloadStem(song.id, tracks[idx].name, (p: DownloadProgress) => {
+        setTracks(prev => prev.map((t, i) =>
+          i === idx ? { ...t, downloadProgress: p.percent } : t
+        ));
+      });
+      const buffer = await loadAudioBuffer(data);
+      setTrackBuffer(engine, idx, buffer);
+      setTracks(prev => prev.map((t, i) =>
+        i === idx ? { ...t, status: 'loaded', downloadProgress: 100 } : t
+      ));
+      setDuration(engine.duration);
+    } catch (e) {
+      console.error('Failed to download stem:', e);
+      setTracks(prev => prev.map((t, i) =>
+        i === idx ? { ...t, status: 'none', downloadProgress: 0 } : t
+      ));
+    }
+  }
+
+  async function handleDownloadAll() {
+    const engine = engineRef.current;
+    if (!engine || !song) return;
+    setDownloadingAll(true);
+
+    for (let idx = 0; idx < tracks.length; idx++) {
+      if (tracks[idx].status === 'loaded') continue;
+      await handleDownloadStem(idx);
+    }
+
+    setDownloadingAll(false);
+  }
+
+  async function handleLoadFromFile(idx: number) {
     const engine = engineRef.current;
     if (!engine) return;
     const input = document.createElement('input');
@@ -135,17 +194,22 @@ export default function GroovexPlayer() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
-      setLoadingTrack(tracks[idx].name);
+      setTracks(prev => prev.map((t, i) =>
+        i === idx ? { ...t, status: 'downloading', downloadProgress: 50 } : t
+      ));
       try {
         resumeAudioContext();
         const buffer = await loadAudioFile(file);
         setTrackBuffer(engine, idx, buffer);
-        setTracks(prev => prev.map((t, i) => i === idx ? { ...t, loaded: true } : t));
+        setTracks(prev => prev.map((t, i) =>
+          i === idx ? { ...t, status: 'loaded', downloadProgress: 100 } : t
+        ));
         setDuration(engine.duration);
       } catch (e) {
         console.error('Failed to load audio:', e);
-      } finally {
-        setLoadingTrack(null);
+        setTracks(prev => prev.map((t, i) =>
+          i === idx ? { ...t, status: 'none', downloadProgress: 0 } : t
+        ));
       }
     };
     input.click();
@@ -166,7 +230,9 @@ export default function GroovexPlayer() {
   }
 
   const pct = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const anyLoaded = tracks.some(t => t.loaded);
+  const anyLoaded = tracks.some(t => t.status === 'loaded');
+  const allLoaded = tracks.every(t => t.status === 'loaded');
+  const anyDownloading = tracks.some(t => t.status === 'downloading');
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
@@ -230,7 +296,35 @@ export default function GroovexPlayer() {
           </div>
         </section>
 
-        {!anyLoaded && (
+        {song.hasStems && !allLoaded && (
+          <div style={{
+            background: 'var(--gx-surface-low)', borderRadius: 14, padding: '14px 18px',
+            marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            border: '1px solid rgba(103,156,255,0.15)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--gx-accent)' }}>cloud_download</span>
+              <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: 0, fontFamily: 'Inter', lineHeight: 1.4 }}>
+                Stems available on server
+              </p>
+            </div>
+            <button
+              onClick={handleDownloadAll}
+              disabled={downloadingAll || anyDownloading}
+              style={{
+                padding: '7px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg, var(--gx-accent), var(--gx-accent-container))',
+                color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: 'Inter',
+                letterSpacing: '0.03em',
+                opacity: downloadingAll || anyDownloading ? 0.6 : 1,
+              }}
+            >
+              {downloadingAll || anyDownloading ? 'Downloading...' : 'Download All'}
+            </button>
+          </div>
+        )}
+
+        {!song.hasStems && !anyLoaded && (
           <div style={{
             background: 'var(--gx-surface-low)', borderRadius: 14, padding: '16px 18px',
             marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12,
@@ -238,7 +332,7 @@ export default function GroovexPlayer() {
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--gx-accent)' }}>info</span>
             <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: 0, fontFamily: 'Inter', lineHeight: 1.4 }}>
-              Load audio stems for each track below. All tracks play in perfect sync.
+              Load audio stems from your device for each track below.
             </p>
           </div>
         )}
@@ -251,8 +345,9 @@ export default function GroovexPlayer() {
             <TrackCard
               key={track.name}
               track={track}
-              loading={loadingTrack === track.name}
-              onLoadStem={() => handleLoadStem(idx)}
+              hasServerStems={!!song.hasStems}
+              onDownload={() => handleDownloadStem(idx)}
+              onLoadFromFile={() => handleLoadFromFile(idx)}
               onVolumeChange={(v) => handleVolumeChange(idx, v)}
               onMute={() => handleMute(idx)}
               onSolo={() => handleSolo(idx)}
@@ -279,15 +374,25 @@ function ControlBtn({ icon, onClick }: { icon: string; onClick: () => void }) {
 }
 
 function TrackCard({
-  track, loading, onLoadStem, onVolumeChange, onMute, onSolo,
+  track, hasServerStems, onDownload, onLoadFromFile, onVolumeChange, onMute, onSolo,
 }: {
-  track: { name: string; label: string; icon: string; volume: number; muted: boolean; solo: boolean; loaded: boolean };
-  loading: boolean;
-  onLoadStem: () => void;
+  track: {
+    name: string; label: string; icon: string;
+    volume: number; muted: boolean; solo: boolean;
+    status: StemStatus;
+    downloadProgress: number;
+  };
+  hasServerStems: boolean;
+  onDownload: () => void;
+  onLoadFromFile: () => void;
   onVolumeChange: (v: number) => void;
   onMute: () => void;
   onSolo: () => void;
 }) {
+  const isDownloading = track.status === 'downloading';
+  const isLoaded = track.status === 'loaded';
+  const isCached = track.status === 'available';
+
   return (
     <div style={{
       background: 'var(--gx-surface-high)', padding: '16px 18px', borderRadius: 14,
@@ -295,7 +400,18 @@ function TrackCard({
       display: 'flex', flexDirection: 'column', gap: 14,
       opacity: track.muted ? 0.5 : 1,
       transition: 'opacity 150ms ease, background 100ms ease',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+      {isDownloading && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, height: 3,
+          width: `${track.downloadProgress}%`,
+          background: 'linear-gradient(90deg, var(--gx-accent), var(--gx-accent-container))',
+          transition: 'width 200ms ease',
+        }} />
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
@@ -308,24 +424,53 @@ function TrackCard({
           <div>
             <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>{track.label}</p>
             <p style={{ fontSize: 10, color: 'var(--c-text-secondary)', margin: '1px 0 0', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              {track.loaded ? 'Loaded' : 'No file'}
+              {isLoaded ? 'Ready' : isDownloading ? `${track.downloadProgress}%` : isCached ? 'Cached' : 'No file'}
             </p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {!track.loaded && (
-            <button
-              onClick={onLoadStem}
-              disabled={loading}
-              style={{
-                padding: '5px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: 'var(--gx-accent-dim)', color: '#fff',
-                fontSize: 10, fontWeight: 700, fontFamily: 'Inter',
-                letterSpacing: '0.05em', textTransform: 'uppercase',
-              }}
-            >
-              {loading ? 'Loading...' : 'Load'}
-            </button>
+          {!isLoaded && !isDownloading && (
+            <>
+              {hasServerStems && (
+                <button
+                  onClick={onDownload}
+                  style={{
+                    padding: '5px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    background: isCached ? 'rgba(103,156,255,0.15)' : 'var(--gx-accent-dim)',
+                    color: isCached ? 'var(--gx-accent)' : '#fff',
+                    fontSize: 10, fontWeight: 700, fontFamily: 'Inter',
+                    letterSpacing: '0.05em', textTransform: 'uppercase',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                    {isCached ? 'play_arrow' : 'cloud_download'}
+                  </span>
+                  {isCached ? 'Load' : 'Get'}
+                </button>
+              )}
+              <button
+                onClick={onLoadFromFile}
+                title="Load from device"
+                style={{
+                  padding: '5px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  background: 'var(--gx-surface-low)',
+                  color: 'var(--c-text-secondary)',
+                  fontSize: 10, fontWeight: 700, fontFamily: 'Inter',
+                  display: 'flex', alignItems: 'center', gap: 3,
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>folder_open</span>
+              </button>
+            </>
+          )}
+          {isDownloading && (
+            <div style={{
+              width: 28, height: 28, borderRadius: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--gx-accent)', animation: 'spin 1s linear infinite' }}>progress_activity</span>
+            </div>
           )}
           <button
             onClick={onMute}
@@ -359,7 +504,7 @@ function TrackCard({
           step="0.01"
           value={track.volume}
           onChange={e => onVolumeChange(parseFloat(e.target.value))}
-          disabled={!track.loaded}
+          disabled={!isLoaded}
           className="gx-slider"
           style={{ flex: 1 }}
         />

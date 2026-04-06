@@ -203,8 +203,16 @@ function SongRow({ song, onOpen }: { song: SongMeta; onOpen: () => void }) {
           width: 42, height: 42, borderRadius: 10, flexShrink: 0,
           background: 'var(--gx-surface-lowest)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'relative',
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--gx-accent)', opacity: 0.7 }}>album</span>
+          {song.hasStems && (
+            <span className="material-symbols-outlined" style={{
+              position: 'absolute', bottom: -2, right: -2,
+              fontSize: 12, color: '#4ade80',
+              background: 'var(--gx-surface-low)', borderRadius: 9999, padding: 1,
+            }}>cloud_done</span>
+          )}
         </div>
         <div style={{ minWidth: 0 }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
