@@ -155,61 +155,93 @@ export type DownloadProgress = {
   percent: number;
 };
 
-export async function downloadStem(
+async function fetchStemOnce(
   songId: string,
   stemName: string,
   onProgress?: (p: DownloadProgress) => void,
 ): Promise<ArrayBuffer> {
-  const cached = await getCachedStem(songId, stemName);
-  if (cached) {
-    onProgress?.({ stemName, loaded: cached.byteLength, total: cached.byteLength, percent: 100 });
-    return cached;
-  }
-
   const baseUrl = import.meta.env.BASE_URL ?? '/';
   const url = `${baseUrl}api/stems/${songId}/${stemName}.ogg`;
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to download stem: ${response.status} ${response.statusText}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`Failed to download stem: ${response.status} ${response.statusText}`);
+    }
+
+    const contentLength = response.headers.get('content-length');
+    const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+    if (!response.body) {
+      const data = await response.arrayBuffer();
+      onProgress?.({ stemName, loaded: data.byteLength, total: data.byteLength, percent: 100 });
+      return data;
+    }
+
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let loaded = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      loaded += value.length;
+      onProgress?.({
+        stemName,
+        loaded,
+        total: total || loaded,
+        percent: total ? Math.round((loaded / total) * 100) : 0,
+      });
+    }
+
+    const data = new Uint8Array(loaded);
+    let offset = 0;
+    for (const chunk of chunks) {
+      data.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return data.buffer;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function downloadStem(
+  songId: string,
+  stemName: string,
+  onProgress?: (p: DownloadProgress) => void,
+  skipCache = false,
+): Promise<ArrayBuffer> {
+  if (!skipCache) {
+    const cached = await getCachedStem(songId, stemName);
+    if (cached) {
+      onProgress?.({ stemName, loaded: cached.byteLength, total: cached.byteLength, percent: 100 });
+      return cached;
+    }
   }
 
-  const contentLength = response.headers.get('content-length');
-  const total = contentLength ? parseInt(contentLength, 10) : 0;
-
-  if (!response.body) {
-    const data = await response.arrayBuffer();
-    await cacheStem(songId, stemName, data);
-    onProgress?.({ stemName, loaded: data.byteLength, total: data.byteLength, percent: 100 });
-    return data;
+  const maxRetries = 2;
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+      }
+      const buffer = await fetchStemOnce(songId, stemName, onProgress);
+      await cacheStem(songId, stemName, buffer);
+      onProgress?.({ stemName, loaded: buffer.byteLength, total: buffer.byteLength, percent: 100 });
+      return buffer;
+    } catch (e) {
+      lastError = e;
+      if (attempt < maxRetries) {
+        onProgress?.({ stemName, loaded: 0, total: 0, percent: 0 });
+      }
+    }
   }
-
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let loaded = 0;
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    loaded += value.length;
-    onProgress?.({
-      stemName,
-      loaded,
-      total: total || loaded,
-      percent: total ? Math.round((loaded / total) * 100) : 0,
-    });
-  }
-
-  const data = new Uint8Array(loaded);
-  let offset = 0;
-  for (const chunk of chunks) {
-    data.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  const buffer = data.buffer;
-  await cacheStem(songId, stemName, buffer);
-  onProgress?.({ stemName, loaded, total: loaded, percent: 100 });
-  return buffer;
+  throw lastError;
 }

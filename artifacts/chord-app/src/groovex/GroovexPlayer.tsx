@@ -7,7 +7,7 @@ import {
   setMasterVolume, getCurrentTime, destroyEngine, resumeAudioContext,
   type AudioEngine,
 } from './audioEngine';
-import { downloadStem, getSongCacheStatus, type DownloadProgress } from './stemCache';
+import { downloadStem, getSongCacheStatus, clearSongCache, type DownloadProgress } from './stemCache';
 
 type PlayerPhase = 'idle' | 'downloading' | 'ready';
 
@@ -122,6 +122,19 @@ export default function GroovexPlayer() {
     const engine = engineRef.current;
     if (!engine || !song) return;
     await loadAllStems(engine, song, sessionIdRef.current);
+  }
+
+  async function handleRedownload() {
+    const engine = engineRef.current;
+    if (!engine || !song) return;
+    const sid = ++sessionIdRef.current;
+    stop(engine);
+    setIsPlaying(false);
+    cancelAnimationFrame(rafRef.current);
+    setCurrentTime(0);
+    setTracks(prev => prev.map(t => ({ ...t, loaded: false })));
+    await clearSongCache(song.id);
+    await loadAllStems(engine, song, sid);
   }
 
   async function handleRetryFailed() {
@@ -349,6 +362,24 @@ export default function GroovexPlayer() {
                   <ControlBtn icon="skip_next" onClick={() => handleSkip(duration)} />
                 </div>
               </>
+            )}
+
+            {phase === 'ready' && song.hasStems && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={handleRedownload}
+                  style={{
+                    padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    background: 'var(--gx-surface-high)', color: 'var(--c-text-secondary)',
+                    fontSize: 11, fontWeight: 700, fontFamily: 'Inter',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    letterSpacing: '0.03em',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>refresh</span>
+                  Re-download Stems
+                </button>
+              </div>
             )}
           </div>
         </section>
