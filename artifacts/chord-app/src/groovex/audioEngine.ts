@@ -29,8 +29,11 @@ export function resumeAudioContext(): void {
 export interface AudioEngine {
   ctx: AudioContext;
   masterGain: GainNode;
+  scrubFilter: BiquadFilterNode;
+  scrubGain: GainNode;
   tracks: TrackState[];
   isPlaying: boolean;
+  isScrubbing: boolean;
   startTime: number;
   pauseOffset: number;
   duration: number;
@@ -42,12 +45,23 @@ export interface AudioEngine {
 export function createEngine(): AudioEngine {
   const ctx = getAudioContext();
   const masterGain = ctx.createGain();
-  masterGain.connect(ctx.destination);
+  const scrubFilter = ctx.createBiquadFilter();
+  scrubFilter.type = 'lowpass';
+  scrubFilter.frequency.setValueAtTime(20000, ctx.currentTime);
+  scrubFilter.Q.setValueAtTime(0.7, ctx.currentTime);
+  const scrubGain = ctx.createGain();
+  scrubGain.gain.setValueAtTime(1.0, ctx.currentTime);
+  masterGain.connect(scrubFilter);
+  scrubFilter.connect(scrubGain);
+  scrubGain.connect(ctx.destination);
   return {
     ctx,
     masterGain,
+    scrubFilter,
+    scrubGain,
     tracks: [],
     isPlaying: false,
+    isScrubbing: false,
     startTime: 0,
     pauseOffset: 0,
     duration: 0,
@@ -212,20 +226,49 @@ export function seek(engine: AudioEngine, time: number): void {
   }
 }
 
+export function startScrub(engine: AudioEngine): void {
+  if (engine.isScrubbing) return;
+  engine.isScrubbing = true;
+  const ct = engine.ctx.currentTime;
+  engine.scrubFilter.frequency.cancelScheduledValues(ct);
+  engine.scrubFilter.frequency.setValueAtTime(engine.scrubFilter.frequency.value, ct);
+  engine.scrubFilter.frequency.exponentialRampToValueAtTime(600, ct + 0.08);
+  engine.scrubGain.gain.cancelScheduledValues(ct);
+  engine.scrubGain.gain.setValueAtTime(engine.scrubGain.gain.value, ct);
+  engine.scrubGain.gain.linearRampToValueAtTime(0.35, ct + 0.08);
+}
+
 export function setScrubRate(engine: AudioEngine, rate: number): void {
-  const clampedRate = Math.max(0.05, Math.min(rate, 4.0));
+  const clampedRate = Math.max(0.15, Math.min(rate, 1.8));
+  const ct = engine.ctx.currentTime;
+  const filterFreq = 300 + clampedRate * 400;
+  engine.scrubFilter.frequency.cancelScheduledValues(ct);
+  engine.scrubFilter.frequency.setValueAtTime(engine.scrubFilter.frequency.value, ct);
+  engine.scrubFilter.frequency.exponentialRampToValueAtTime(filterFreq, ct + 0.04);
   engine.tracks.forEach(track => {
     if (track.source) {
       try {
-        track.source.playbackRate.cancelScheduledValues(engine.ctx.currentTime);
-        track.source.playbackRate.setValueAtTime(clampedRate, engine.ctx.currentTime);
+        track.source.playbackRate.cancelScheduledValues(ct);
+        track.source.playbackRate.setValueAtTime(
+          Math.max(0.15, track.source.playbackRate.value),
+          ct
+        );
+        track.source.playbackRate.exponentialRampToValueAtTime(clampedRate, ct + 0.04);
       } catch {}
     }
   });
 }
 
 export function endScrub(engine: AudioEngine, targetTime: number): void {
+  engine.isScrubbing = false;
   if (engine._rampTimer) { clearTimeout(engine._rampTimer); engine._rampTimer = null; }
+  const ct = engine.ctx.currentTime;
+  engine.scrubFilter.frequency.cancelScheduledValues(ct);
+  engine.scrubFilter.frequency.setValueAtTime(engine.scrubFilter.frequency.value, ct);
+  engine.scrubFilter.frequency.exponentialRampToValueAtTime(20000, ct + 0.15);
+  engine.scrubGain.gain.cancelScheduledValues(ct);
+  engine.scrubGain.gain.setValueAtTime(engine.scrubGain.gain.value, ct);
+  engine.scrubGain.gain.linearRampToValueAtTime(1.0, ct + 0.15);
   const wasPlaying = engine.isPlaying;
   stopSources(engine);
   engine.pauseOffset = Math.max(0, Math.min(targetTime, engine.duration));
@@ -324,4 +367,6 @@ export function destroyEngine(engine: AudioEngine): void {
     if (t.gainNode) t.gainNode.disconnect();
   });
   engine.masterGain.disconnect();
+  engine.scrubFilter.disconnect();
+  engine.scrubGain.disconnect();
 }
