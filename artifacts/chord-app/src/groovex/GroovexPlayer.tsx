@@ -4,12 +4,27 @@ import { useGroovexStore } from './useGroovexStore';
 import {
   createEngine, initTracks, loadAudioFile, loadAudioBuffer, setTrackBuffer,
   play, pause, stop, seek, setScrubRate, endScrub, setTrackVolume, toggleMute, toggleSolo,
-  setMasterVolume, getCurrentTime, destroyEngine, resumeAudioContext,
+  setMasterVolume, setPitch, getCurrentTime, destroyEngine, resumeAudioContext,
   type AudioEngine,
 } from './audioEngine';
 import { downloadStem, getSongCacheStatus, clearSongCache, type DownloadProgress } from './stemCache';
 
 type PlayerPhase = 'idle' | 'downloading' | 'ready';
+
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const FLAT_MAP: Record<string, string> = { 'Db': 'C#', 'Eb': 'D#', 'Fb': 'E', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#', 'Cb': 'B' };
+
+function transposeKey(key: string, semitones: number): string {
+  if (!key || semitones === 0) return key;
+  const match = key.match(/^([A-G][b#]?)(.*)/);
+  if (!match) return key;
+  let [, root, suffix] = match;
+  const normalized = FLAT_MAP[root] || root;
+  const idx = NOTE_NAMES.indexOf(normalized);
+  if (idx < 0) return key;
+  const newIdx = ((idx + semitones) % 12 + 12) % 12;
+  return NOTE_NAMES[newIdx] + suffix;
+}
 
 export default function GroovexPlayer() {
   const { activeSongId, setView, preferences } = useGroovexStore();
@@ -26,6 +41,7 @@ export default function GroovexPlayer() {
   const [overallProgress, setOverallProgress] = useState(0);
   const [currentStemLabel, setCurrentStemLabel] = useState('');
   const [failedStems, setFailedStems] = useState<number[]>([]);
+  const [pitchShift, setPitchShift] = useState(0);
   const [tracks, setTracks] = useState<{
     name: string; label: string; icon: string;
     volume: number; muted: boolean; solo: boolean; loaded: boolean;
@@ -50,6 +66,7 @@ export default function GroovexPlayer() {
     setOverallProgress(0);
     setCurrentStemLabel('');
     setFailedStems([]);
+    setPitchShift(0);
     cancelAnimationFrame(rafRef.current);
 
     if (song.hasStems) {
@@ -270,6 +287,15 @@ export default function GroovexPlayer() {
     }
   }
 
+  function handlePitchChange(delta: number) {
+    const newPitch = Math.max(-6, Math.min(6, pitchShift + delta));
+    setPitchShift(newPitch);
+    const engine = engineRef.current;
+    if (engine) {
+      setPitch(engine, newPitch);
+    }
+  }
+
   function handleSkip(delta: number) {
     const engine = engineRef.current;
     if (!engine) return;
@@ -384,7 +410,10 @@ export default function GroovexPlayer() {
             }}>
               <span>{song.bpm} BPM</span>
               <span style={{ opacity: 0.3 }}>|</span>
-              <span>{song.key}</span>
+              <span style={{ color: pitchShift !== 0 ? 'var(--gx-accent)' : undefined, fontWeight: pitchShift !== 0 ? 600 : undefined }}>
+                {transposeKey(song.key, pitchShift)}
+                {pitchShift !== 0 && <span style={{ fontSize: 10, opacity: 0.7 }}> ({pitchShift > 0 ? '+' : ''}{pitchShift})</span>}
+              </span>
               <span style={{ opacity: 0.3 }}>|</span>
               <span style={{ color: 'var(--c-text-primary)', fontWeight: 600 }}>{formatTime(currentTime)}</span>
               <span style={{ opacity: 0.4 }}>/</span>
@@ -486,6 +515,86 @@ export default function GroovexPlayer() {
 
                 <TransportBtn icon="forward_10" onClick={() => handleSkip(10)} />
                 <TransportBtn icon="skip_next" onClick={() => handleSkip(duration)} />
+              </div>
+
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                marginTop: 18,
+              }}>
+                <button
+                  onClick={() => handlePitchChange(-1)}
+                  disabled={pitchShift <= -6}
+                  style={{
+                    width: 36, height: 36, borderRadius: 10, border: 'none', cursor: pitchShift <= -6 ? 'not-allowed' : 'pointer',
+                    background: 'var(--gx-surface)', color: pitchShift <= -6 ? 'var(--c-text-secondary)' : 'var(--c-text-primary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: pitchShift <= -6 ? 0.4 : 1,
+                    transition: 'transform 150ms ease, opacity 150ms ease',
+                  }}
+                  onPointerDown={e => { if (pitchShift > -6) e.currentTarget.style.transform = 'scale(0.9)'; }}
+                  onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                  onPointerLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>remove</span>
+                </button>
+
+                <div style={{
+                  minWidth: 110, textAlign: 'center', padding: '6px 12px',
+                  borderRadius: 10, background: pitchShift !== 0 ? 'rgba(0,122,255,0.08)' : 'var(--gx-surface)',
+                  transition: 'background 200ms ease',
+                }}>
+                  <div style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                    color: 'var(--c-text-secondary)', fontFamily: 'Inter, sans-serif', marginBottom: 2,
+                  }}>Key</div>
+                  <div style={{
+                    fontSize: 15, fontWeight: 800, fontFamily: 'Manrope, sans-serif',
+                    color: pitchShift !== 0 ? 'var(--gx-accent)' : 'var(--c-text-primary)',
+                    transition: 'color 200ms ease',
+                  }}>
+                    {transposeKey(song.key, pitchShift)}
+                    {pitchShift !== 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.7, marginLeft: 4 }}>
+                        {pitchShift > 0 ? '+' : ''}{pitchShift}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handlePitchChange(1)}
+                  disabled={pitchShift >= 6}
+                  style={{
+                    width: 36, height: 36, borderRadius: 10, border: 'none', cursor: pitchShift >= 6 ? 'not-allowed' : 'pointer',
+                    background: 'var(--gx-surface)', color: pitchShift >= 6 ? 'var(--c-text-secondary)' : 'var(--c-text-primary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: pitchShift >= 6 ? 0.4 : 1,
+                    transition: 'transform 150ms ease, opacity 150ms ease',
+                  }}
+                  onPointerDown={e => { if (pitchShift < 6) e.currentTarget.style.transform = 'scale(0.9)'; }}
+                  onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                  onPointerLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+                </button>
+
+                {pitchShift !== 0 && (
+                  <button
+                    onClick={() => { setPitchShift(0); const engine = engineRef.current; if (engine) setPitch(engine, 0); }}
+                    style={{
+                      marginLeft: 4, width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer',
+                      background: 'rgba(238,125,119,0.08)', color: '#ee7d77',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'transform 150ms ease',
+                    }}
+                    onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.9)')}
+                    onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                    onPointerLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                    title="Reset to original key"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>restart_alt</span>
+                  </button>
+                )}
               </div>
             </section>
 

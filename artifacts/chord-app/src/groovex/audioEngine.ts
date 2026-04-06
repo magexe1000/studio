@@ -36,6 +36,7 @@ export interface AudioEngine {
   duration: number;
   looping: boolean;
   _rampTimer: ReturnType<typeof setTimeout> | null;
+  pitchSemitones: number;
 }
 
 export function createEngine(): AudioEngine {
@@ -52,6 +53,7 @@ export function createEngine(): AudioEngine {
     duration: 0,
     looping: false,
     _rampTimer: null,
+    pitchSemitones: 0,
   };
 }
 
@@ -112,6 +114,9 @@ export function play(engine: AudioEngine): void {
     source.connect(track.gainNode);
     source.playbackRate.setValueAtTime(0.15, ctx.currentTime);
     source.playbackRate.exponentialRampToValueAtTime(1.0, ctx.currentTime + 0.7);
+    if (engine.pitchSemitones !== 0) {
+      source.detune.setValueAtTime(engine.pitchSemitones * 100, ctx.currentTime);
+    }
     source.start(0, offset);
     track.source = source;
 
@@ -189,6 +194,9 @@ export function seek(engine: AudioEngine, time: number): void {
       source.buffer = track.buffer;
       source.loop = engine.looping;
       source.connect(track.gainNode);
+      if (engine.pitchSemitones !== 0) {
+        source.detune.setValueAtTime(engine.pitchSemitones * 100, ctx.currentTime);
+      }
       source.start(0, offset);
       track.source = source;
       if (!engine.looping) {
@@ -235,6 +243,9 @@ export function endScrub(engine: AudioEngine, targetTime: number): void {
       source.loop = engine.looping;
       source.connect(track.gainNode);
       source.playbackRate.setValueAtTime(1.0, ctx.currentTime);
+      if (engine.pitchSemitones !== 0) {
+        source.detune.setValueAtTime(engine.pitchSemitones * 100, ctx.currentTime);
+      }
       source.start(0, offset);
       track.source = source;
       if (!engine.looping) {
@@ -248,6 +259,18 @@ export function endScrub(engine: AudioEngine, targetTime: number): void {
     });
     applyMutesSolos(engine);
   }
+}
+
+export function setPitch(engine: AudioEngine, semitones: number): void {
+  engine.pitchSemitones = semitones;
+  const cents = semitones * 100;
+  engine.tracks.forEach(track => {
+    if (track.source) {
+      try {
+        track.source.detune.setValueAtTime(cents, engine.ctx.currentTime);
+      } catch {}
+    }
+  });
 }
 
 export function setTrackVolume(engine: AudioEngine, trackIndex: number, volume: number): void {
