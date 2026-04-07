@@ -1,36 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useGroovexStore } from './useGroovexStore';
 import { getCacheSize, clearAllCache } from './stemCache';
-import { useChordStore, ACCENT_COLORS, type PerAppVisuals, type Theme, type AppKey } from '../store/useChordStore';
-import { COLOR_OPTIONS } from '../components/SettingControls';
-import { useT } from '../lib/useT';
-import ApplyToSheet from '../components/ApplyToSheet';
 
 export default function GroovexPreferences() {
   const { preferences, updatePreferences } = useGroovexStore();
-  const { settings, updatePerApp } = useChordStore();
-  const t = useT();
   const [cacheInfo, setCacheInfo] = useState({ totalBytes: 0, songCount: 0, stemCount: 0 });
-
-  const groovexVis: PerAppVisuals = settings.perApp?.groovex ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
-  const accent = ACCENT_COLORS[groovexVis.accentColor] ?? ACCENT_COLORS.blue;
-
-  const [pending, setPending] = useState<Partial<PerAppVisuals> | null>(null);
-  const [showSheet, setShowSheet] = useState(false);
-
-  function requestChange(patch: Partial<PerAppVisuals>) {
-    setPending(patch);
-    setShowSheet(true);
-  }
-  function handleApply(apps: AppKey[]) {
-    if (pending) updatePerApp(apps, pending);
-    setPending(null);
-    setShowSheet(false);
-  }
-  function handleClose() {
-    setPending(null);
-    setShowSheet(false);
-  }
 
   useEffect(() => {
     getCacheSize().then(setCacheInfo);
@@ -48,147 +22,53 @@ export default function GroovexPreferences() {
     setCacheInfo({ totalBytes: 0, songCount: 0, stemCount: 0 });
   }
 
-  const themeOptions: { value: Theme; label: string; icon: string; amoled: boolean }[] = [
-    { value: 'system', label: t.settings.rows.themeSystem, icon: 'brightness_auto', amoled: false },
-    { value: 'light',  label: t.settings.rows.themeLight,  icon: 'light_mode',      amoled: false },
-    { value: 'dark',   label: t.settings.rows.themeDark,   icon: 'dark_mode',        amoled: false },
-    { value: 'dark',   label: t.hub.amoled,                icon: 'contrast',          amoled: true  },
-  ];
-
   return (
     <div style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
 
-        <section style={{ paddingTop: 32, marginBottom: 28 }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}>
-            {t.settings.title}
-          </h2>
+        <section style={{ paddingTop: 32, marginBottom: 32 }}>
+          <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}>Audio Engine</h2>
           <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: 0 }}>
-            Customize look, audio engine & playback.
+            Fine-tune the output behavior and default playback states.
           </p>
         </section>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          <PrefCard title={t.settings.sections.appearance} icon="palette" accent={accent.from}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-              {themeOptions.map((opt, i) => {
-                const isActive = opt.amoled
-                  ? groovexVis.amoledMode
-                  : groovexVis.theme === opt.value && !groovexVis.amoledMode;
-                return (
-                  <button key={i}
-                    onClick={() => {
-                      if (opt.amoled) requestChange({ theme: 'dark', amoledMode: true });
-                      else requestChange({ theme: opt.value, amoledMode: false });
-                    }}
-                    style={{
-                      padding: '14px 8px', borderRadius: 14,
-                      background: isActive ? `${accent.from}20` : 'var(--gx-surface-high)',
-                      border: `1.5px solid ${isActive ? accent.from + '60' : 'rgba(128,128,128,0.10)'}`,
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
-                      transition: 'background 200ms ease, border-color 200ms ease',
-                      cursor: 'pointer',
-                    }}>
-                    <span className="material-symbols-outlined" style={{
-                      fontSize: 22,
-                      color: isActive ? accent.from : 'var(--c-text-secondary)',
-                      fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
-                      transition: 'color 200ms ease',
-                    }}>{opt.icon}</span>
-                    <p style={{
-                      margin: 0, fontSize: 11, fontWeight: 700, fontFamily: 'Manrope',
-                      color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
-                      transition: 'color 200ms ease',
-                    }}>{opt.label}</p>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ height: 1, background: 'rgba(128,128,128,0.10)', margin: '6px 0' }} />
-
-            <div>
-              <p style={{
-                fontSize: 10, fontWeight: 700, color: 'var(--c-text-secondary)',
-                letterSpacing: '0.14em', textTransform: 'uppercase',
-                margin: '0 0 10px', fontFamily: 'Manrope',
-              }}>Accent Color</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
-                {COLOR_OPTIONS.map(c => {
-                  const isActive = groovexVis.accentColor === c.id;
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => requestChange({ accentColor: c.id as PerAppVisuals['accentColor'] })}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '10px 12px', borderRadius: 12,
-                        background: isActive ? `${c.to}20` : 'var(--gx-surface-high)',
-                        border: `1.5px solid ${isActive ? c.to + '60' : 'rgba(128,128,128,0.10)'}`,
-                        transition: 'background 200ms ease, border-color 200ms ease',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span style={{
-                        width: 14, height: 14, borderRadius: '50%',
-                        background: `linear-gradient(135deg, ${c.from}, ${c.to})`,
-                        flexShrink: 0,
-                        boxShadow: isActive ? `0 0 8px ${c.to}55` : 'none',
-                        transition: 'box-shadow 200ms ease',
-                        display: 'block',
-                      }} />
-                      <span style={{
-                        color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
-                        fontFamily: 'Manrope', fontWeight: 700, fontSize: 11,
-                        transition: 'color 200ms ease',
-                      }}>{t.settings.colors[c.id]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </PrefCard>
-
-          <PrefCard title="Default Volume Levels" icon="equalizer" accent={accent.from}>
+          <PrefCard title="Default Volume Levels" icon="equalizer">
             <SliderRow
               label="Master Gain"
               value={preferences.masterVolume}
               onChange={(v) => updatePreferences({ masterVolume: v })}
               displayValue={`${Math.round((preferences.masterVolume - 1) * 20)} dB`}
-              accent={accent.from}
             />
             <SliderRow
               label="Default Stem Volume"
               value={preferences.defaultStemVolume}
               onChange={(v) => updatePreferences({ defaultStemVolume: v })}
               displayValue={`${Math.round(preferences.defaultStemVolume * 100)}%`}
-              accent={accent.from}
             />
           </PrefCard>
 
-          <PrefCard title="Playback" icon="play_circle" accent={accent.from}>
+          <PrefCard title="Playback" icon="play_circle">
             <ToggleRow
               label="Auto-play on Load"
               value={preferences.autoPlay}
               onChange={(v) => updatePreferences({ autoPlay: v })}
-              accent={accent.from}
             />
             <ToggleRow
               label="Infinite Loop"
               value={preferences.loopPlayback}
               onChange={(v) => updatePreferences({ loopPlayback: v })}
-              accent={accent.from}
             />
             <ToggleRow
               label="Pre-roll Count-in"
               value={preferences.countIn}
               onChange={(v) => updatePreferences({ countIn: v })}
-              accent={accent.from}
             />
           </PrefCard>
 
-          <PrefCard title="Downloaded Stems Cache" icon="cloud_done" accent={accent.from}>
+          <PrefCard title="Downloaded Stems Cache" icon="cloud_done">
             <div style={{ padding: '4px 0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div>
@@ -219,7 +99,7 @@ export default function GroovexPreferences() {
             </div>
           </PrefCard>
 
-          <PrefCard title="About Groovex" icon="info" accent={accent.from}>
+          <PrefCard title="About Groovex" icon="info">
             <div style={{ padding: '4px 0' }}>
               <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '0 0 8px', fontFamily: 'Inter', lineHeight: 1.5 }}>
                 Groovex is a multitrack music practice tool. Load audio stems for any song
@@ -264,20 +144,18 @@ export default function GroovexPreferences() {
           </div>
         </div>
       </div>
-
-      <ApplyToSheet show={showSheet} onApply={handleApply} onClose={handleClose} />
     </div>
   );
 }
 
-function PrefCard({ title, icon, accent, children }: { title: string; icon: string; accent: string; children: React.ReactNode }) {
+function PrefCard({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
   return (
     <div style={{
       background: 'var(--gx-surface)', borderRadius: 16, padding: 20,
       transition: 'background 150ms ease',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent }}>{icon}</span>
+        <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--gx-accent)' }}>{icon}</span>
         <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>{title}</h3>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -287,8 +165,8 @@ function PrefCard({ title, icon, accent, children }: { title: string; icon: stri
   );
 }
 
-function SliderRow({ label, value, onChange, displayValue, accent }: {
-  label: string; value: number; onChange: (v: number) => void; displayValue: string; accent: string;
+function SliderRow({ label, value, onChange, displayValue }: {
+  label: string; value: number; onChange: (v: number) => void; displayValue: string;
 }) {
   return (
     <div>
@@ -296,7 +174,7 @@ function SliderRow({ label, value, onChange, displayValue, accent }: {
         <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
           {label}
         </label>
-        <span style={{ fontSize: 13, color: accent, fontWeight: 700 }}>{displayValue}</span>
+        <span style={{ fontSize: 13, color: 'var(--gx-accent)', fontWeight: 700 }}>{displayValue}</span>
       </div>
       <input
         type="range" min="0" max="1" step="0.01" value={value}
@@ -308,8 +186,8 @@ function SliderRow({ label, value, onChange, displayValue, accent }: {
   );
 }
 
-function ToggleRow({ label, value, onChange, accent }: {
-  label: string; value: boolean; onChange: (v: boolean) => void; accent: string;
+function ToggleRow({ label, value, onChange }: {
+  label: string; value: boolean; onChange: (v: boolean) => void;
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -318,13 +196,13 @@ function ToggleRow({ label, value, onChange, accent }: {
         onClick={() => onChange(!value)}
         style={{
           width: 44, height: 24, borderRadius: 9999, border: 'none', cursor: 'pointer',
-          background: value ? `${accent}30` : 'var(--gx-surface-high)',
+          background: value ? 'rgba(103,156,255,0.25)' : 'var(--gx-surface-high)',
           position: 'relative', padding: 2, transition: 'background 150ms ease',
         }}
       >
         <div style={{
           width: 18, height: 18, borderRadius: 9999,
-          background: value ? accent : 'var(--c-text-secondary)',
+          background: value ? 'var(--gx-accent)' : 'var(--c-text-secondary)',
           position: 'absolute', top: 3,
           left: value ? 23 : 3,
           transition: 'left 150ms ease, background 150ms ease',
