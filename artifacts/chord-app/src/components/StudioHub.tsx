@@ -387,6 +387,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
     if (pending) updatePerApp(apps, pending);
     setPending(null);
     setShowSheet(false);
+    setTimeout(() => window.location.reload(), 350);
   }
   function handleClose() {
     setPending(null);
