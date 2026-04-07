@@ -77,6 +77,12 @@ function GroovexNav({ view, setView, hasActiveSong }: {
   setView: (v: GroovexView) => void;
   hasActiveSong: boolean;
 }) {
+  const { settings } = useChordStore();
+  const groovexVis = settings.perApp?.groovex ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
+  const isLight = groovexVis.theme === 'light' ||
+    (groovexVis.theme === 'system' && typeof window !== 'undefined' &&
+     window.matchMedia('(prefers-color-scheme: light)').matches);
+
   const items: { id: GroovexView; icon: string; label: string }[] = [
     { id: 'library', icon: 'library_music', label: 'Library' },
     { id: 'preferences', icon: 'tune', label: 'Preferences' },
@@ -156,9 +162,11 @@ function GroovexNav({ view, setView, hasActiveSong }: {
         alignItems: 'center',
         padding: '4px 8px',
         borderRadius: '2rem',
-        border: '1px solid rgba(255,255,255,0.10)',
-        background: 'rgba(26,26,30,0.82)',
-        boxShadow: '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
+        border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.10)',
+        background: isLight ? 'rgba(255,255,255,0.85)' : 'rgba(26,26,30,0.82)',
+        boxShadow: isLight
+          ? '0 8px 32px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.6) inset'
+          : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         zIndex: 50,
@@ -209,7 +217,7 @@ function GroovexNav({ view, setView, hasActiveSong }: {
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              color: active ? '#fff' : 'var(--c-text-secondary)',
+              color: active ? (isLight ? '#1a1a1a' : '#fff') : 'var(--c-text-secondary)',
               position: 'relative',
               zIndex: 1,
               transform: pressed ? 'scale(0.91)' : 'scale(1)',
@@ -243,8 +251,12 @@ function GroovexAppMenuLogo() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const accentKey = (settings.perApp?.groovex?.accentColor ?? settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
+  const groovexVis = settings.perApp?.groovex ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
+  const accentKey = (groovexVis.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
   const accent = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
+  const isLight = groovexVis.theme === 'light' ||
+    (groovexVis.theme === 'system' && typeof window !== 'undefined' &&
+     window.matchMedia('(prefers-color-scheme: light)').matches);
 
   useEffect(() => {
     if (!open) return;
@@ -282,7 +294,16 @@ function GroovexAppMenuLogo() {
     updateSettings({ appMode: mode as 'chords' | 'drums' | 'stage' });
   };
 
-  const resolvedColor = '#d4d4d8';
+  const resolvedColor = isLight ? '#18181b' : '#d4d4d8';
+  const borderColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+  const bgColor     = isLight ? 'rgba(252,252,253,0.98)' : 'rgba(18,18,22,0.98)';
+  const divider     = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+  const iconBg      = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)';
+  const iconBorder  = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+  const labelColor  = isLight ? '#18181b' : '#e4e4e7';
+  const descColor   = isLight ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.35)';
+  const inactiveIcon = isLight ? 'rgba(0,0,0,0.55)' : 'rgba(200,200,210,0.8)';
+  const sectionLabel = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.30)';
 
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
@@ -310,10 +331,12 @@ function GroovexAppMenuLogo() {
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 10px)', left: 0,
-          background: 'rgba(18,18,22,0.98)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: bgColor,
+          border: `1px solid ${borderColor}`,
           borderRadius: 16,
-          boxShadow: '0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)',
+          boxShadow: isLight
+            ? '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)'
+            : '0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
           zIndex: 9999, minWidth: 200, overflow: 'hidden',
           transformOrigin: 'top left',
@@ -323,7 +346,7 @@ function GroovexAppMenuLogo() {
             <span style={{
               fontSize: 9, fontWeight: 800, fontFamily: 'Manrope',
               letterSpacing: '0.14em', textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.30)',
+              color: sectionLabel,
             }}>
               Switch App
             </span>
@@ -339,8 +362,12 @@ function GroovexAppMenuLogo() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     width: '100%', padding: '9px 10px',
-                    background: isActive ? `${accent.from}18` : 'transparent',
-                    border: isActive ? `1px solid ${accent.from}30` : '1px solid transparent',
+                    background: isActive
+                      ? (isLight ? `${accent.from}14` : `${accent.from}18`)
+                      : 'transparent',
+                    border: isActive
+                      ? `1px solid ${accent.from}30`
+                      : '1px solid transparent',
                     borderRadius: 10,
                     cursor: 'pointer', textAlign: 'left',
                     transition: 'background 120ms',
@@ -349,21 +376,21 @@ function GroovexAppMenuLogo() {
                   <span style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-                    background: isActive ? `${accent.from}22` : 'rgba(255,255,255,0.07)',
-                    color: isActive ? accent.from : 'rgba(200,200,210,0.8)',
-                    border: `1px solid ${isActive ? accent.from + '30' : 'rgba(255,255,255,0.08)'}`,
+                    background: isActive ? `${accent.from}22` : iconBg,
+                    color: isActive ? accent.from : inactiveIcon,
+                    border: `1px solid ${isActive ? accent.from + '30' : iconBorder}`,
                     transition: 'background 120ms',
                   }}>
                     <opt.Icon size={15} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
-                      color: isActive ? accent.from : '#e4e4e7',
+                      color: isActive ? accent.from : labelColor,
                       fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0,
                       letterSpacing: '-0.01em',
                     }}>{opt.label}</p>
                     <p style={{
-                      color: 'rgba(255,255,255,0.35)',
+                      color: descColor,
                       fontFamily: 'Inter', fontSize: 10, margin: '1px 0 0',
                     }}>{opt.desc}</p>
                   </div>
@@ -375,7 +402,7 @@ function GroovexAppMenuLogo() {
             })}
           </div>
 
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 8px' }} />
+          <div style={{ height: 1, background: divider, margin: '0 8px' }} />
 
           <div style={{ padding: 8 }}>
             <button
@@ -391,20 +418,20 @@ function GroovexAppMenuLogo() {
               <span style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-                background: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: 'white',
+                background: iconBg,
+                border: `1px solid ${iconBorder}`,
+                color: isLight ? '#18181b' : 'white',
               }}>
                 <StudioLogo size={14} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{
-                  color: '#e4e4e7',
+                  color: labelColor,
                   fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0,
                   letterSpacing: '-0.01em',
                 }}>Studio Hub</p>
                 <p style={{
-                  color: 'rgba(255,255,255,0.35)',
+                  color: descColor,
                   fontFamily: 'Inter', fontSize: 10, margin: '1px 0 0',
                 }}>Home screen</p>
               </div>
