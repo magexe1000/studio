@@ -22,7 +22,7 @@ function centsToNeedleRotation(cents: number): number {
   return Math.max(-50, Math.min(50, cents)) * 1.6;
 }
 
-export default function PitchPanel() {
+export default function PitchPanel({ active: panelActive = true }: { active?: boolean }) {
   const [listening, setListening] = useState(false);
   const [result, setResult] = useState<PitchResult | null>(null);
   const [history, setHistory] = useState<PitchResult[]>([]);
@@ -80,6 +80,7 @@ export default function PitchPanel() {
   }, []);
 
   const startListening = useCallback(async () => {
+    if (audioCtxRef.current) return;
     try {
       setPermError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -103,6 +104,7 @@ export default function PitchPanel() {
 
   const stopListening = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = 0;
     streamRef.current?.getTracks().forEach(t => t.stop());
     audioCtxRef.current?.close();
     audioCtxRef.current = null;
@@ -111,6 +113,14 @@ export default function PitchPanel() {
     setListening(false);
     setResult(null);
   }, []);
+
+  useEffect(() => {
+    if (panelActive) {
+      startListening();
+    } else {
+      stopListening();
+    }
+  }, [panelActive, startListening, stopListening]);
 
   useEffect(() => {
     return () => {
@@ -147,7 +157,6 @@ export default function PitchPanel() {
         alignItems: 'center', justifyContent: 'center',
         marginBottom: 24,
       }}>
-        {/* Background glow */}
         <div style={{
           position: 'absolute', inset: 0,
           background: 'radial-gradient(circle, rgba(0,122,255,0.05) 0%, transparent 70%)',
@@ -156,7 +165,6 @@ export default function PitchPanel() {
           pointerEvents: 'none',
         }} />
 
-        {/* Circular gauge SVG */}
         <svg viewBox="0 0 100 100"
           style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%',
@@ -170,7 +178,6 @@ export default function PitchPanel() {
             fill="none" stroke="#007aff" strokeWidth="4" strokeLinecap="round" />
         </svg>
 
-        {/* Tuning needle */}
         <div style={{
           position: 'absolute', top: 0, left: '50%',
           transform: `translateX(-50%) rotate(${needleRot}deg)`,
@@ -191,7 +198,6 @@ export default function PitchPanel() {
           }} />
         </div>
 
-        {/* Left indicator bar */}
         <div style={{
           position: 'absolute',
           left: 'calc(50% - 100px)',
@@ -207,7 +213,6 @@ export default function PitchPanel() {
           zIndex: 2,
         }} />
 
-        {/* Center content */}
         <div style={{ textAlign: 'center', zIndex: 1, position: 'relative' }}>
           <p style={{
             fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 500,
@@ -242,7 +247,6 @@ export default function PitchPanel() {
         display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
         width: '100%', maxWidth: 360,
       }}>
-        {/* Frequency */}
         <div style={{
           background: '#191a1a', borderRadius: 12, padding: '16px 18px',
           borderLeft: '2px solid #007aff',
@@ -262,7 +266,6 @@ export default function PitchPanel() {
           </p>
         </div>
 
-        {/* Precision */}
         <div style={{
           background: '#191a1a', borderRadius: 12, padding: '16px 18px',
         }}>
@@ -281,7 +284,6 @@ export default function PitchPanel() {
           </p>
         </div>
 
-        {/* Waveform / History bars */}
         <div style={{
           gridColumn: '1 / -1',
           background: '#1f2020', borderRadius: 12, padding: 16,
@@ -323,7 +325,7 @@ export default function PitchPanel() {
         </div>
       </div>
 
-      {/* ── Action Buttons ── */}
+      {/* ── Reset Button ── */}
       <div style={{
         display: 'flex', gap: 12, width: '100%', maxWidth: 360, marginTop: 20,
       }}>
@@ -332,7 +334,7 @@ export default function PitchPanel() {
           style={{
             flex: 1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            height: 56, borderRadius: 12,
+            height: 48, borderRadius: 12,
             background: '#454747', border: 'none',
             color: '#d0d0d0',
             fontSize: 14, fontWeight: 700,
@@ -344,29 +346,6 @@ export default function PitchPanel() {
             <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
           </svg>
           Reset
-        </button>
-        <button
-          onClick={listening ? stopListening : startListening}
-          style={{
-            flex: 2,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            height: 56, borderRadius: 9999,
-            background: listening ? '#ef4444' : '#007aff',
-            border: 'none',
-            color: '#ffffff',
-            fontSize: 14, fontWeight: 700,
-            fontFamily: 'Inter, sans-serif',
-            cursor: 'pointer',
-            boxShadow: listening
-              ? '0 4px 20px rgba(239,68,68,0.2)'
-              : '0 4px 20px rgba(0,122,255,0.2)',
-          }}
-        >
-          <div style={{
-            width: 10, height: 10, borderRadius: '50%',
-            background: '#fff',
-          }} />
-          {listening ? 'Stop' : 'Capture Take'}
         </button>
       </div>
 
