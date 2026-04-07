@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
 import { VocalexLogo } from '../components/ChordexLogo';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
+
+const PitchPanelLazy = lazy(() => import('./PitchPanel'));
 
 type VocalexPanel = 'practice' | 'pitch' | 'vocalLab' | 'takes';
 
@@ -81,20 +83,6 @@ function PracticePanel() {
   );
 }
 
-function PitchPanel() {
-  return (
-    <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
-      <div style={{ width: '100%', maxWidth: 340, height: 180, borderRadius: 16, background: 'var(--c-surface)', border: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
-        <IconPitch active={false} />
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--c-text-secondary)' }}>Pitch monitor</span>
-      </div>
-      <div style={{ textAlign: 'center' }}>
-        <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 22, margin: '0 0 6px', color: 'var(--c-text-primary)' }}>Pitch</h2>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.5, maxWidth: 280 }}>Real-time pitch detection and accuracy feedback for your singing.</p>
-      </div>
-    </div>
-  );
-}
 
 function VocalLabPanel() {
   return (
@@ -252,7 +240,7 @@ export default function VocalexApp() {
               paddingBottom: 100,
             }}>
               {panel === 'practice' && <PracticePanel />}
-              {panel === 'pitch' && <PitchPanel />}
+              {panel === 'pitch' && <Suspense fallback={null}><PitchPanelLazy /></Suspense>}
               {panel === 'vocalLab' && <VocalLabPanel />}
               {panel === 'takes' && <TakesPanel />}
             </div>
