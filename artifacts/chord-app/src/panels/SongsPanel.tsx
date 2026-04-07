@@ -2465,7 +2465,7 @@ export default function SongsPanel() {
     addChordToPreset, removeChordFromPreset, reorderPresetChords, duplicateChordInPreset,
     setTranspose, resetTranspose, updateSettings,
     saveCustomChord, updateCustomChord, deleteCustomChord,
-    addSection, updateSection, deleteSection, addChordToSection, removeChordFromSection, reorderSection, convertToSections,
+    addSection, updateSection, deleteSection, addChordToSection, removeChordFromSection, reorderSectionChords, duplicateChordInSection, reorderSection, convertToSections,
     deduplicateAllPresets,
   } = useChordStore();
   const accent      = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
@@ -2505,6 +2505,91 @@ export default function SongsPanel() {
   const secRefs         = useRef<(HTMLElement | null)[]>([]);
   const [localSections, setLocalSections]             = useState<SongSection[]>([]);
   const secInstanceKeys = useRef<string[]>([]);
+
+  const SEC_CHORD_H = 62;
+  const [secChordDragKey, setSecChordDragKey]           = useState<string | null>(null);
+  const [secChordDragIdx, setSecChordDragIdx]           = useState<number | null>(null);
+  const [secChordDragDeltaY, setSecChordDragDeltaY]     = useState(0);
+  const secChordDragStartY    = useRef(0);
+  const secChordDragStartIdx  = useRef(0);
+  const secChordDragNodeRef   = useRef<HTMLDivElement | null>(null);
+  const secChordDragDeltaRef  = useRef(0);
+  const secChordDragCountRef  = useRef(0);
+  const secChordPointerId     = useRef<number | null>(null);
+  const secChordSectionId     = useRef<string>('');
+  const secChordPresetRef     = useRef<SongPreset | null>(null);
+  const secChordLocalRef      = useRef<SongSection[]>([]);
+
+  const onSecChordDragStart = useCallback((e: React.PointerEvent, sectionId: string, index: number, count: number, preset: SongPreset) => {
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    secChordPresetRef.current   = preset;
+    secChordLocalRef.current    = localSections;
+    secChordPointerId.current   = e.pointerId;
+    secChordDragStartY.current  = e.clientY;
+    secChordDragStartIdx.current = index;
+    secChordDragDeltaRef.current = 0;
+    secChordDragCountRef.current = count;
+    secChordSectionId.current    = sectionId;
+    setSecChordDragKey(sectionId);
+    setSecChordDragIdx(index);
+    setSecChordDragDeltaY(0);
+  }, [localSections]);
+
+  const onSecChordDragMove = useCallback((e: React.PointerEvent) => {
+    if (secChordPointerId.current === null || e.pointerId !== secChordPointerId.current) return;
+    if (!secChordDragNodeRef.current) return;
+    const slot = secChordDragStartIdx.current;
+    const clientY = e.clientY;
+    const raw = clientY - secChordDragStartY.current;
+    const maxD = (secChordDragCountRef.current - 1 - slot) * SEC_CHORD_H;
+    const minD = -slot * SEC_CHORD_H;
+    const clamped = Math.max(minD, Math.min(maxD, raw));
+    secChordDragDeltaRef.current = clamped;
+    secChordDragNodeRef.current.style.top = `${slot * SEC_CHORD_H + clamped}px`;
+    const rawTarget = Math.round((slot * SEC_CHORD_H + clamped) / SEC_CHORD_H);
+    const target = Math.max(0, Math.min(secChordDragCountRef.current - 1, rawTarget));
+    if (target !== slot) {
+      const sId = secChordSectionId.current;
+      setLocalSections(prev => {
+        const next = prev.map(s => {
+          if (s.id !== sId) return s;
+          const chords = [...s.chords];
+          const [moved] = chords.splice(slot, 1);
+          chords.splice(target, 0, moved);
+          return { ...s, chords };
+        });
+        secChordLocalRef.current = next;
+        return next;
+      });
+      secChordDragStartY.current += (target - slot) * SEC_CHORD_H;
+      secChordDragDeltaRef.current = clientY - secChordDragStartY.current;
+      secChordDragStartIdx.current = target;
+      setSecChordDragIdx(target);
+      setSecChordDragDeltaY(secChordDragDeltaRef.current);
+    }
+  }, []);
+
+  const onSecChordDragEnd = useCallback((e: React.PointerEvent) => {
+    if (secChordPointerId.current === null || e.pointerId !== secChordPointerId.current) return;
+    const sId = secChordSectionId.current;
+    secChordDragNodeRef.current = null;
+    secChordDragDeltaRef.current = 0;
+    secChordPointerId.current = null;
+    setSecChordDragKey(null);
+    setSecChordDragIdx(null);
+    setSecChordDragDeltaY(0);
+    const preset = secChordPresetRef.current;
+    if (preset && sId) {
+      const localSection = secChordLocalRef.current.find(s => s.id === sId);
+      if (localSection) {
+        updatePreset(preset.id, {
+          sections: (preset.sections ?? []).map(s =>
+            s.id === sId ? { ...s, chords: localSection.chords } : s
+          ),
+        });
+      }
+    }
+  }, [updatePreset]);
 
   // ── Android back gesture / predictive back ──────────────────────────────
   // Returns true if it handled something, false if we're at the root (should minimize).
@@ -3006,27 +3091,75 @@ export default function SongsPanel() {
                     {section.chords.length === 0 && (
                       <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Inter', fontSize: '12px', padding: '4px 12px 8px' }}>{t.songs.noSectionChords}</p>
                     )}
-                    {section.chords.map((chordId, idx) => {
-                      const isCustom = chordId.startsWith('custom-');
-                      const customChord = isCustom ? customChords.find(c => c.id === chordId) ?? null : null;
-                      const displayId = (!isCustom && transposeOffset !== 0) ? transposeChordId(chordId, transposeOffset) : chordId;
-                      const chord = isCustom ? null : (getChordById(displayId) ?? getChordById(chordId));
-                      if (!chord && !customChord) return null;
+                    {(() => {
+                      const sChords = (secChordDragKey === section.id ? (localSections.find(s => s.id === section.id)?.chords ?? section.chords) : section.chords);
+                      const isDragSec = secChordDragKey === section.id;
                       return (
-                        <div key={chordId + idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', background: 'var(--app-surface)', borderRadius: '1rem', border: '1px solid rgba(72,72,72,0.06)', marginBottom: '6px' }}>
-                          <div style={{ background: 'var(--app-surface-lowest)', borderRadius: '8px', padding: '3px 3px 1px', width: '52px', flexShrink: 0 }}>
-                            {isCustom && customChord ? <CustomMiniDiagram chord={customChord} accentFrom={accent.from} /> : <ChordDiagram data={chord!.guitar} accentFrom={accent.from} />}
-                          </div>
-                          <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px' }}>
-                            {isCustom ? (customChord?.name || t.songs.customChord) : chord!.name.replace(/\s/g, '')}
-                          </p>
-                          <button onClick={() => removeChordFromSection(activePreset.id, section.id, idx)} className="btn-smooth"
-                            style={{ width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(238,125,119,0.1)', flexShrink: 0 }}>
-                            <span className="material-symbols-outlined" style={{ color: '#ee7d77', fontSize: '15px' }}>close</span>
-                          </button>
+                        <div
+                          onPointerMove={isDragSec ? onSecChordDragMove : undefined}
+                          onPointerUp={isDragSec ? onSecChordDragEnd : undefined}
+                          onPointerCancel={isDragSec ? onSecChordDragEnd : undefined}
+                          style={{
+                            position: 'relative',
+                            height: isDragSec ? `${sChords.length * SEC_CHORD_H}px` : 'auto',
+                          }}>
+                          {sChords.map((chordId, idx) => {
+                            const isCustom = chordId.startsWith('custom-');
+                            const customChord = isCustom ? customChords.find(c => c.id === chordId) ?? null : null;
+                            const displayId = (!isCustom && transposeOffset !== 0) ? transposeChordId(chordId, transposeOffset) : chordId;
+                            const chord = isCustom ? null : (getChordById(displayId) ?? getChordById(chordId));
+                            if (!chord && !customChord) return null;
+                            const isActive = isDragSec && secChordDragIdx === idx;
+                            return (
+                              <div key={chordId + '-' + idx}
+                                ref={isActive ? (el) => { secChordDragNodeRef.current = el; } : undefined}
+                                style={{
+                                  position: isDragSec ? 'absolute' : 'relative',
+                                  left: isDragSec ? 0 : undefined,
+                                  right: isDragSec ? 0 : undefined,
+                                  top: isDragSec ? `${idx * SEC_CHORD_H + (isActive ? secChordDragDeltaY : 0)}px` : undefined,
+                                  height: `${SEC_CHORD_H - 6}px`,
+                                  marginBottom: isDragSec ? 0 : '6px',
+                                  display: 'flex', alignItems: 'center', gap: '8px',
+                                  padding: '8px 10px',
+                                  background: isActive ? `${accent.to}18` : 'var(--app-surface)',
+                                  borderRadius: '1rem',
+                                  border: isActive ? `1.5px solid ${accent.to}44` : '1px solid rgba(72,72,72,0.06)',
+                                  boxShadow: isActive ? '0 12px 36px rgba(0,0,0,0.4)' : 'none',
+                                  zIndex: isActive ? 10 : 1,
+                                  transform: isActive ? 'scale(1.03)' : 'scale(1)',
+                                  transition: isDragSec && !isActive
+                                    ? 'top 180ms cubic-bezier(0.34,1.3,0.64,1), box-shadow 150ms ease, transform 200ms ease'
+                                    : isActive
+                                    ? 'box-shadow 120ms ease, transform 200ms cubic-bezier(0.34,1.56,0.64,1)'
+                                    : 'transform 200ms ease',
+                                  willChange: isDragSec ? 'top, transform' : 'auto',
+                                }}>
+                                <div
+                                  onPointerDown={e => onSecChordDragStart(e, section.id, idx, sChords.length, activePreset)}
+                                  style={{ cursor: isActive ? 'grabbing' : 'grab', touchAction: 'none', padding: '4px 4px', color: 'var(--c-text-muted)', userSelect: 'none', flexShrink: 0 }}>
+                                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>drag_indicator</span>
+                                </div>
+                                <div style={{ background: 'var(--app-surface-lowest)', borderRadius: '8px', padding: '3px 3px 1px', width: '52px', flexShrink: 0 }}>
+                                  {isCustom && customChord ? <CustomMiniDiagram chord={customChord} accentFrom={accent.from} /> : <ChordDiagram data={chord!.guitar} accentFrom={accent.from} />}
+                                </div>
+                                <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px' }}>
+                                  {isCustom ? (customChord?.name || t.songs.customChord) : chord!.name.replace(/\s/g, '')}
+                                </p>
+                                <button onClick={() => duplicateChordInSection(activePreset.id, section.id, idx)} className="btn-smooth"
+                                  style={{ width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', flexShrink: 0 }}>
+                                  <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '15px' }}>content_copy</span>
+                                </button>
+                                <button onClick={() => removeChordFromSection(activePreset.id, section.id, idx)} className="btn-smooth"
+                                  style={{ width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(238,125,119,0.1)', flexShrink: 0 }}>
+                                  <span className="material-symbols-outlined" style={{ color: '#ee7d77', fontSize: '15px' }}>close</span>
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       );
-                    })}
+                    })()}
                   </div>
                 );
               })}

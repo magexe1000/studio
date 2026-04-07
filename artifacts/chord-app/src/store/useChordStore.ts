@@ -159,6 +159,8 @@ interface ChordStore {
   deleteSection: (presetId: string, sectionId: string) => void;
   addChordToSection: (presetId: string, sectionId: string, chordId: string) => void;
   removeChordFromSection: (presetId: string, sectionId: string, index: number) => void;
+  reorderSectionChords: (presetId: string, sectionId: string, from: number, to: number) => void;
+  duplicateChordInSection: (presetId: string, sectionId: string, index: number) => void;
   reorderSection: (presetId: string, fromIdx: number, toIdx: number) => void;
   convertToSections: (presetId: string) => void;
   deduplicatePresetChords: (presetId: string) => void;
@@ -479,6 +481,42 @@ export const useChordStore = create<ChordStore>()(
                 if (s.id !== sectionId) return s;
                 const chords = [...s.chords];
                 chords.splice(index, 1);
+                return { ...s, chords };
+              }),
+            };
+          }),
+        }));
+      },
+
+      reorderSectionChords: (presetId, sectionId, from, to) => {
+        if (from === to) return;
+        set((state) => ({
+          presets: state.presets.map(p => {
+            if (p.id !== presetId) return p;
+            return {
+              ...p, updatedAt: Date.now(),
+              sections: (p.sections ?? []).map(s => {
+                if (s.id !== sectionId) return s;
+                const chords = [...s.chords];
+                const [moved] = chords.splice(from, 1);
+                chords.splice(to, 0, moved);
+                return { ...s, chords };
+              }),
+            };
+          }),
+        }));
+      },
+
+      duplicateChordInSection: (presetId, sectionId, index) => {
+        set((state) => ({
+          presets: state.presets.map(p => {
+            if (p.id !== presetId) return p;
+            return {
+              ...p, updatedAt: Date.now(),
+              sections: (p.sections ?? []).map(s => {
+                if (s.id !== sectionId) return s;
+                const chords = [...s.chords];
+                chords.splice(index + 1, 0, chords[index]);
                 return { ...s, chords };
               }),
             };
