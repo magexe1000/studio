@@ -39,6 +39,7 @@ export interface AudioEngine {
   scrubFilter: BiquadFilterNode;
   scrubGain: GainNode;
   stNode: SoundTouchNode | null;
+  stNodeDrums: SoundTouchNode | null;
   tracks: TrackState[];
   isPlaying: boolean;
   isScrubbing: boolean;
@@ -71,6 +72,7 @@ export function createEngine(): AudioEngine {
     scrubFilter,
     scrubGain,
     stNode: null,
+    stNodeDrums: null,
     tracks: [],
     isPlaying: false,
     isScrubbing: false,
@@ -97,6 +99,12 @@ export async function initSoundTouch(engine: AudioEngine): Promise<void> {
   engine.masterGain.connect(stNode);
   stNode.connect(engine.scrubFilter);
   engine.stNode = stNode;
+
+  const stNodeDrums = new SoundTouchNode(ctx);
+  engine.drumBus.disconnect(engine.scrubFilter);
+  engine.drumBus.connect(stNodeDrums);
+  stNodeDrums.connect(engine.scrubFilter);
+  engine.stNodeDrums = stNodeDrums;
 }
 
 export async function loadAudioFile(file: File): Promise<AudioBuffer> {
@@ -364,6 +372,10 @@ export function destroyEngine(engine: AudioEngine): void {
   if (engine.stNode) {
     engine.stNode.disconnect();
     engine.stNode = null;
+  }
+  if (engine.stNodeDrums) {
+    engine.stNodeDrums.disconnect();
+    engine.stNodeDrums = null;
   }
   engine.scrubFilter.disconnect();
   engine.scrubGain.disconnect();
