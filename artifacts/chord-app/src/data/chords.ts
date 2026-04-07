@@ -36,9 +36,6 @@ const NOTE_DISPLAY: Record<string, string> = {
   'C#': 'C#/Db', 'D#': 'D#/Eb', 'F#': 'F#/Gb', 'G#': 'G#/Ab', 'A#': 'A#/Bb'
 };
 
-export function getNoteName(note: string): string {
-  return NOTE_DISPLAY[note] || note;
-}
 
 const chordDatabase: Chord[] = [
   // C MAJOR
@@ -747,13 +744,6 @@ export function searchChords(query: string): Chord[] {
   );
 }
 
-export function getChordsByType(type: ChordType): Chord[] {
-  return chordDatabase.filter(c => c.type === type);
-}
-
-export function getChordsByRoot(root: string): Chord[] {
-  return chordDatabase.filter(c => c.root === root || c.name.startsWith(root));
-}
 
 export function getRelatedChords(chord: Chord): Chord[] {
   if (!chord.relatedChords) return [];

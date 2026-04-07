@@ -250,6 +250,3 @@ export function getGenres(): string[] {
   return [...set].sort();
 }
 
-export function getSongsByArtist(artist: string): SongMeta[] {
-  return SONG_CATALOG.filter(s => s.artist.toLowerCase() === artist.toLowerCase());
-}

@@ -8,7 +8,6 @@ export interface TrackState {
   muted: boolean;
   solo: boolean;
   buffer: AudioBuffer | null;
-  originalBuffer: AudioBuffer | null;
   source: AudioBufferSourceNode | null;
   gainNode: GainNode | null;
 }
@@ -117,7 +116,6 @@ export function initTracks(
     muted: false,
     solo: false,
     buffer: null,
-    originalBuffer: null,
     source: null,
     gainNode: engine.ctx.createGain(),
   }));
@@ -128,7 +126,6 @@ export function initTracks(
 export function setTrackBuffer(engine: AudioEngine, trackIndex: number, buffer: AudioBuffer): void {
   const track = engine.tracks[trackIndex];
   if (!track) return;
-  track.originalBuffer = buffer;
   track.buffer = buffer;
   if (buffer.duration > engine.duration) {
     engine.duration = buffer.duration;

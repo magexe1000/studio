@@ -25,7 +25,7 @@ export function getSoundForVariation(
 }
 
 /** Volume multiplier for a variation (applied on top of per-instrument vol). */
-export function getVolMultForVariation(variation: NoteVariation): number {
+function getVolMultForVariation(variation: NoteVariation): number {
   if (variation === 'ghost')  return 0.28;
   if (variation === 'accent') return 1.32;
   return 1.0;
@@ -126,11 +126,8 @@ export const SOUND_VARIANTS: Record<DrumInstrument, SoundVariant[]> = {
   ride:           [{ id: 'ride-std',     label: 'Standard'      }, { id: 'ride-bell',  label: 'Bell'      }, { id: 'ride-wash',  label: 'Wash'   }],
 };
 
-export function defaultSoundId(inst: DrumInstrument): string {
+function defaultSoundId(inst: DrumInstrument): string {
   return SOUND_VARIANTS[inst][0].id;
-}
-export function soundVariantLabel(inst: DrumInstrument, id: string): string {
-  return SOUND_VARIANTS[inst].find(v => v.id === id)?.label ?? id;
 }
 
 // ── Per-kit acoustic character config ────────────────────────────────────────
@@ -856,11 +853,6 @@ export function setCymbalPackAudio(pack: CymbalPack): void {
   }
 }
 
-export function loadHouseCymbals(): void {
-  const { ctx } = getCtx();
-  cymbalPool.load(ctx);
-  if (_cymbalPack === 'zildjian-k') cymbalPool.loadZildjian(ctx);
-}
 
 // ── Synthesis: Kick ─────────────────────────────────────────────────────────
 function synthKick(ctx: AudioContext, t: number, vol: number, dest: AudioNode, id: string) {
@@ -1559,7 +1551,7 @@ function isFXDefault(fx: InstFX): boolean {
 }
 
 // ── Main sound dispatcher ────────────────────────────────────────────────────
-export function playSoundAt(
+function playSoundAt(
   soundId:   string,
   time:      number,
   vol:       number,

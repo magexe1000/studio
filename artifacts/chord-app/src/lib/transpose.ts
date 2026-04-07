@@ -39,14 +39,14 @@ export function transposeChordId(id: string, semitones: number): string {
  * Return a display-friendly root name for a chromatic index.
  * Respects the user's flat/sharp preference.
  */
-export function idxToRoot(idx: number, preferFlats: boolean): string {
+function idxToRoot(idx: number, preferFlats: boolean): string {
   return preferFlats ? CHROMATIC_FLATS[idx] : CHROMATIC[idx];
 }
 
 /**
  * Transpose a root string (e.g. "C#") by `semitones` and return for display.
  */
-export function transposeRoot(root: string, semitones: number, preferFlats: boolean): string {
+function transposeRoot(root: string, semitones: number, preferFlats: boolean): string {
   const idx = ROOT_TO_IDX[root];
   if (idx === undefined) return root;
   const newIdx = ((idx + semitones) % 12 + 12) % 12;
@@ -58,7 +58,7 @@ export function transposeRoot(root: string, semitones: number, preferFlats: bool
  * like "C Major", "Am", "F#", "Bb Minor".
  * Returns [root, rest] or null if no note found.
  */
-export function parseKeyRoot(key: string): [string, string] | null {
+function parseKeyRoot(key: string): [string, string] | null {
   const trimmed = key.trim();
   // Try 2-char roots first (C#, Db, D#, Eb, F#, Gb, G#, Ab, A#, Bb)
   const two = trimmed.slice(0, 2);

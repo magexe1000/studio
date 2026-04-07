@@ -208,9 +208,6 @@ function defaultPattern(): DrumPattern {
 export function stepsPerMeasure(p: DrumPattern): number {
   return p.timeSignature[0] * (p.subdivision / p.timeSignature[1]);
 }
-export function measureHasHits(m: DrumMeasure): boolean {
-  return Object.values(m.hits).some(arr => arr && arr.length > 0);
-}
 
 // Migrate patterns: fold hihat-open/hihat-foot into hihat-closed, and ride into crash (as variations)
 function migratePatterns(patterns: DrumPattern[]): DrumPattern[] {

@@ -427,8 +427,3 @@ export function getPlugin(id: string): DrumPlugin | undefined {
   return PLUGIN_REGISTRY.find(p => p.id === id);
 }
 
-export function defaultParamsFor(id: string): Record<string, number> {
-  const plugin = getPlugin(id);
-  if (!plugin) return {};
-  return Object.fromEntries(plugin.params.map(p => [p.key, p.default]));
-}

@@ -189,6 +189,3 @@ export function playChord(data: GuitarChordData, volume: number = 0.65) {
   playbackTimeout = setTimeout(() => { activeSources = []; }, (duration + 0.5) * 1000);
 }
 
-export function isSupported(): boolean {
-  return AudioCtxClass !== null;
-}

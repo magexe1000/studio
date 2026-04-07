@@ -1640,11 +1640,3 @@ export const SONGS: SongProgression[] = [
   },
 ];
 
-export function getSongsByGenre(genre: Genre | null): SongProgression[] {
-  if (!genre) return SONGS;
-  return SONGS.filter(s => s.genre === genre);
-}
-
-export function getAllGenres(): Genre[] {
-  return Object.keys(GENRE_META) as Genre[];
-}
