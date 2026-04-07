@@ -126,45 +126,25 @@ function getSourceRate(engine: AudioEngine): number {
 function timeStretchBuffer(ctx: AudioContext, buffer: AudioBuffer, stretchFactor: number): AudioBuffer {
   if (Math.abs(stretchFactor - 1.0) < 0.005) return buffer;
   const numCh = buffer.numberOfChannels;
-  const sr = buffer.sampleRate;
   const inLen = buffer.length;
   const outLen = Math.round(inLen * stretchFactor);
-  const result = ctx.createBuffer(numCh, outLen, sr);
-  const W = 4096;
+  const result = ctx.createBuffer(numCh, outLen, buffer.sampleRate);
+  const W = 2048;
   const Ha = W >> 2;
   const Hs = Math.max(1, Math.round(Ha * stretchFactor));
   const win = new Float32Array(W);
   for (let i = 0; i < W; i++) win[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (W - 1)));
-  const tol = 256;
   for (let ch = 0; ch < numCh; ch++) {
     const inp = buffer.getChannelData(ch);
     const out = result.getChannelData(ch);
     const ws = new Float32Array(outLen);
     let aPos = 0;
     let sPos = 0;
-    let prevBest = 0;
     while (aPos + W <= inLen && sPos + W <= outLen) {
-      let best = aPos;
-      if (sPos > 0) {
-        let bestCorr = -Infinity;
-        const lo = Math.max(0, aPos - tol);
-        const hi = Math.min(inLen - W, aPos + tol);
-        const refEnd = prevBest + W;
-        const cmpLen = Math.min(Ha, refEnd > 0 ? W : Ha);
-        for (let t = lo; t <= hi; t += 2) {
-          let c = 0;
-          for (let i = 0; i < cmpLen; i += 4) {
-            const ri = prevBest + W - cmpLen + i;
-            if (ri >= 0 && ri < inLen) c += inp[ri] * inp[t + i];
-          }
-          if (c > bestCorr) { bestCorr = c; best = t; }
-        }
-      }
       for (let i = 0; i < W; i++) {
-        out[sPos + i] += inp[best + i] * win[i];
+        out[sPos + i] += inp[aPos + i] * win[i];
         ws[sPos + i] += win[i];
       }
-      prevBest = best;
       aPos += Ha;
       sPos += Hs;
     }
