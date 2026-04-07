@@ -35,6 +35,7 @@
     "@capacitor/status-bar": "^6.0.1",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",
+    "@soundtouchjs/audio-worklet": "^1.0.9",
     "jspdf": "^4.2.1",
     "material-symbols": "^0.43.0",
     "zustand": "^5.0.12"

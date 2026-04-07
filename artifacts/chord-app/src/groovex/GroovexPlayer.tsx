@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { SONG_CATALOG } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
 import {
-  createEngine, initTracks, loadAudioFile, loadAudioBuffer, setTrackBuffer,
+  createEngine, initSoundTouch, initTracks, loadAudioFile, loadAudioBuffer, setTrackBuffer,
   play, pause, stop, seek, startScrub, scrubSeek, endScrub, setTrackVolume, toggleMute, toggleSolo,
   setMasterVolume, setPitch, getCurrentTime, destroyEngine, resumeAudioContext,
   type AudioEngine,
@@ -55,6 +55,7 @@ export default function GroovexPlayer() {
     const trackStates = initTracks(engine, song.stems);
     engineRef.current = engine;
     setMasterVolume(engine, preferences.masterVolume);
+    initSoundTouch(engine).catch(() => {});
     setTracks(trackStates.map(t => ({
       name: t.name, label: t.label, icon: t.icon,
       volume: t.volume, muted: t.muted, solo: t.solo, loaded: false,
