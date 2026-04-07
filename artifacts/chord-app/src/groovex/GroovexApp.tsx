@@ -280,8 +280,6 @@ function GroovexAppMenuLogo() {
     setOpen(false);
     if (mode === 'groovex') return;
     updateSettings({ appMode: mode as 'chords' | 'drums' | 'stage' });
-    window.dispatchEvent(new Event('studio-hub-return'));
-    setTimeout(() => updateSettings({ appMode: mode as 'chords' | 'drums' | 'stage' }), 50);
   };
 
   const resolvedColor = '#d4d4d8';
