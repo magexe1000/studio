@@ -130,7 +130,7 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
         </p>
 
         {/* App cards */}
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
           {APP_CARDS.map(({ key, label, Logo }) => {
             const active = selected.has(key);
             return (
@@ -139,7 +139,7 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
                 onClick={() => toggle(key)}
                 className="btn-smooth"
                 style={{
-                  flex: 1,
+                  width: 'calc(33.333% - 8px)',
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',
                   gap: 10, padding: '18px 8px',
