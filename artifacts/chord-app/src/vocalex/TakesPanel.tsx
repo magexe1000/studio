@@ -76,14 +76,10 @@ export default function TakesPanel() {
   return (
     <div style={{ padding: '24px 20px', minHeight: '100%' }}>
       <div style={{ marginBottom: 28 }}>
-        <span style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 600,
-          color: '#007aff', letterSpacing: '0.12em', textTransform: 'uppercase',
-        }}>Library</span>
         <h2 style={{
           fontFamily: 'Manrope, sans-serif', fontWeight: 800,
           fontSize: 34, letterSpacing: '-0.03em',
-          color: '#e7e5e4', margin: '4px 0 8px', lineHeight: 1,
+          color: '#e7e5e4', margin: '0 0 8px', lineHeight: 1,
         }}>Takes</h2>
         <p style={{
           fontFamily: 'Inter, sans-serif', fontSize: 13,
@@ -132,43 +128,92 @@ export default function TakesPanel() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {takes.map(take => (
-            <button
+            <TakeListItem
               key={take.id}
-              onClick={() => setView({ mode: 'detail', takeId: take.id })}
-              style={{
-                background: '#1f2020', borderRadius: 14,
-                padding: '14px 16px',
-                display: 'flex', alignItems: 'center', gap: 12,
-                border: 'none', cursor: 'pointer', width: '100%',
-                textAlign: 'left',
-              }}
-            >
-              <div style={{
-                width: 40, height: 40, borderRadius: '50%',
-                background: '#191a1a', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#e7e5e4' }}>play_arrow</span>
-              </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <h4 style={{
-                  fontFamily: 'Manrope, sans-serif', fontWeight: 600,
-                  fontSize: 14, color: '#e7e5e4', margin: 0,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>{take.name}</h4>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 6, marginTop: 3,
-                  fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#acabaa',
-                }}>
-                  <span>{formatDate(take.createdAt)}</span>
-                  <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#484848' }} />
-                  <span>{formatDuration(take.durationMs)}</span>
-                </div>
-              </div>
-              <MiniWaveform peaks={take.waveformPeaks} />
-            </button>
+              take={take}
+              onOpen={() => setView({ mode: 'detail', takeId: take.id })}
+              onDelete={() => handleDelete(take.id)}
+            />
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+function TakeListItem({ take, onOpen, onDelete }: { take: TakeRecord; onOpen: () => void; onDelete: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+
+  return (
+    <div style={{
+      background: '#1f2020', borderRadius: 14,
+      padding: '14px 16px',
+      display: 'flex', alignItems: 'center', gap: 12,
+    }}>
+      <div
+        onClick={onOpen}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 12, flex: 1,
+          minWidth: 0, cursor: 'pointer',
+        }}
+      >
+        <div style={{
+          width: 40, height: 40, borderRadius: '50%',
+          background: '#191a1a', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#e7e5e4' }}>play_arrow</span>
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h4 style={{
+            fontFamily: 'Manrope, sans-serif', fontWeight: 600,
+            fontSize: 14, color: '#e7e5e4', margin: 0,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{take.name}</h4>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6, marginTop: 3,
+            fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#acabaa',
+          }}>
+            <span>{formatDate(take.createdAt)}</span>
+            <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#484848' }} />
+            <span>{formatDuration(take.durationMs)}</span>
+          </div>
+        </div>
+        <MiniWaveform peaks={take.waveformPeaks} />
+      </div>
+
+      {confirming ? (
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          <button
+            onClick={() => { onDelete(); setConfirming(false); }}
+            style={{
+              background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+              borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600,
+              color: '#ef4444',
+            }}
+          >Delete</button>
+          <button
+            onClick={() => setConfirming(false)}
+            style={{
+              background: '#252626', border: 'none',
+              borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600,
+              color: '#acabaa',
+            }}
+          >Cancel</button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setConfirming(true)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: 6, flexShrink: 0, color: '#484848',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+        </button>
       )}
     </div>
   );
