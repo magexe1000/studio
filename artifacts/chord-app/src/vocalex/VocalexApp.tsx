@@ -5,6 +5,7 @@ import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 const PracticePanelLazy = lazy(() => import('./PracticePanel'));
 const PitchPanelLazy = lazy(() => import('./PitchPanel'));
 const TakesPanelLazy = lazy(() => import('./TakesPanel'));
+const LabPanelLazy = lazy(() => import('./LabPanel'));
 
 type VocalexPanel = 'practice' | 'pitch' | 'vocalLab' | 'takes';
 
@@ -56,20 +57,6 @@ function IconTakes({ active }: { active: boolean }) {
 
 
 
-function VocalLabPanel() {
-  return (
-    <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
-      <div style={{ width: '100%', maxWidth: 340, height: 180, borderRadius: 16, background: 'var(--c-surface)', border: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
-        <IconLab active={false} />
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--c-text-secondary)' }}>Vocal Lab</span>
-      </div>
-      <div style={{ textAlign: 'center' }}>
-        <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 22, margin: '0 0 6px', color: 'var(--c-text-primary)' }}>Vocal Lab</h2>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.5, maxWidth: 280 }}>Effects, processing, and tone shaping tools for your voice.</p>
-      </div>
-    </div>
-  );
-}
 
 
 export default function VocalexApp() {
@@ -199,7 +186,7 @@ export default function VocalexApp() {
             }}>
               {panel === 'practice' && <Suspense fallback={null}><PracticePanelLazy /></Suspense>}
               {panel === 'pitch' && <Suspense fallback={null}><PitchPanelLazy active={activeTab === 'pitch'} /></Suspense>}
-              {panel === 'vocalLab' && <VocalLabPanel />}
+              {panel === 'vocalLab' && <Suspense fallback={null}><LabPanelLazy /></Suspense>}
               {panel === 'takes' && <Suspense fallback={null}><TakesPanelLazy /></Suspense>}
             </div>
           );
