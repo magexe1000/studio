@@ -185,10 +185,14 @@ function MiniWaveform({ peaks }: { peaks: number[] }) {
   );
 }
 
+const VIZ_BARS = 48;
+const SMOOTHING_FACTOR = 0.35;
+
 function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord) => void; onCancel: () => void }) {
-  const [state, setState] = useState<'idle' | 'recording' | 'processing'>('idle');
+  const [state, setState] = useState<'idle' | 'countdown' | 'recording' | 'processing'>('idle');
   const [elapsed, setElapsed] = useState(0);
-  const [amplitude, setAmplitude] = useState(0);
+  const [countdownNum, setCountdownNum] = useState(3);
+  const [freqBars, setFreqBars] = useState<number[]>(() => new Array(VIZ_BARS).fill(0));
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -200,68 +204,107 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
   const ctxRef = useRef<AudioContext | null>(null);
   const rafRef = useRef<number>(0);
   const startTimeRef = useRef(0);
+  const smoothedBarsRef = useRef<number[]>(new Array(VIZ_BARS).fill(0));
+  const nameRef = useRef('');
 
-  const monitorAmplitude = useCallback(() => {
+  useEffect(() => { nameRef.current = name; }, [name]);
+
+  const monitorFrequency = useCallback(() => {
     const analyser = analyserRef.current;
     if (!analyser) return;
-    const buf = new Uint8Array(analyser.frequencyBinCount);
-    analyser.getByteTimeDomainData(buf);
-    let sum = 0;
-    for (let i = 0; i < buf.length; i++) {
-      const v = (buf[i] - 128) / 128;
-      sum += v * v;
+    const freqData = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(freqData);
+
+    const bucketSize = Math.floor(freqData.length / VIZ_BARS);
+    const newBars: number[] = [];
+    for (let i = 0; i < VIZ_BARS; i++) {
+      let sum = 0;
+      const start = i * bucketSize;
+      for (let j = start; j < start + bucketSize && j < freqData.length; j++) {
+        sum += freqData[j];
+      }
+      const raw = (sum / bucketSize) / 255;
+      const prev = smoothedBarsRef.current[i] ?? 0;
+      const smoothed = prev * SMOOTHING_FACTOR + raw * (1 - SMOOTHING_FACTOR);
+      newBars.push(smoothed);
     }
-    setAmplitude(Math.sqrt(sum / buf.length));
-    rafRef.current = requestAnimationFrame(monitorAmplitude);
+    smoothedBarsRef.current = newBars;
+    setFreqBars([...newBars]);
+    rafRef.current = requestAnimationFrame(monitorFrequency);
   }, []);
 
-  const startRecording = useCallback(async () => {
+  const acquireMic = useCallback(async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        sampleRate: { ideal: 48000 },
+        channelCount: { ideal: 1 },
+      },
+    });
+    streamRef.current = stream;
+
+    const ctx = new AudioContext();
+    ctxRef.current = ctx;
+    const src = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.6;
+    src.connect(analyser);
+    analyserRef.current = analyser;
+
+    rafRef.current = requestAnimationFrame(monitorFrequency);
+    return { stream, ctx, analyser };
+  }, [monitorFrequency]);
+
+  const beginRecording = useCallback(() => {
+    const stream = streamRef.current;
+    if (!stream) return;
+
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : 'audio/webm';
+
+    const recorder = new MediaRecorder(stream, { mimeType });
+    recorderRef.current = recorder;
+    chunksRef.current = [];
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    recorder.start(200);
+    startTimeRef.current = Date.now();
+    setState('recording');
+
+    timerRef.current = setInterval(() => {
+      setElapsed(Date.now() - startTimeRef.current);
+    }, 50);
+  }, []);
+
+  const handleStart = useCallback(async () => {
     try {
       setError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          sampleRate: { ideal: 48000 },
-          channelCount: { ideal: 1 },
-        },
-      });
-      streamRef.current = stream;
+      await acquireMic();
 
-      const ctx = new AudioContext();
-      ctxRef.current = ctx;
-      const src = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 512;
-      src.connect(analyser);
-      analyserRef.current = analyser;
+      setState('countdown');
+      setCountdownNum(3);
 
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
-
-      const recorder = new MediaRecorder(stream, { mimeType });
-      recorderRef.current = recorder;
-      chunksRef.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      recorder.start(200);
-      startTimeRef.current = Date.now();
-      setState('recording');
-
-      timerRef.current = setInterval(() => {
-        setElapsed(Date.now() - startTimeRef.current);
-      }, 100);
-
-      rafRef.current = requestAnimationFrame(monitorAmplitude);
+      let count = 3;
+      const cdInterval = setInterval(() => {
+        count--;
+        if (count <= 0) {
+          clearInterval(cdInterval);
+          beginRecording();
+        } else {
+          setCountdownNum(count);
+        }
+      }, 1000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Microphone access denied');
     }
-  }, [monitorAmplitude]);
+  }, [acquireMic, beginRecording]);
 
   const stopRecording = useCallback(async () => {
     setState('processing');
@@ -292,7 +335,8 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
     } catch { /* fallback */ }
 
     const id = `take-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const takeName = name.trim() || `Take_${new Date().toLocaleDateString('en', { month: 'short', day: 'numeric' })}_${new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '')}`;
+    const currentName = nameRef.current;
+    const takeName = currentName.trim() || `Take_${new Date().toLocaleDateString('en', { month: 'short', day: 'numeric' })}_${new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '')}`;
 
     const take: TakeRecord = {
       id,
@@ -305,7 +349,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
     };
 
     onComplete(take);
-  }, [name, onComplete]);
+  }, [onComplete]);
 
   useEffect(() => {
     return () => {
@@ -319,15 +363,29 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
     };
   }, []);
 
-  const ringScale = 1 + amplitude * 1.5;
-  const pulseOpacity = 0.15 + amplitude * 0.6;
+  const isActive = state === 'recording' || state === 'countdown';
+  const centerR = 56;
+  const vizR = 100;
 
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', minHeight: '100%', padding: '24px 20px',
-      gap: 32,
+      gap: 24, position: 'relative',
     }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes countPop {
+          0% { transform: scale(0.3); opacity: 0; }
+          50% { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes recPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
+
       {state === 'processing' && (
         <div style={{ textAlign: 'center' }}>
           <div style={{
@@ -336,61 +394,121 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
             animation: 'spin 0.8s linear infinite', margin: '0 auto 16px',
           }} />
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#acabaa' }}>Processing recording…</p>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
 
       {state !== 'processing' && (
         <>
-          {/* Back button */}
           <button onClick={onCancel} style={{
-            position: 'absolute', top: 20, left: 20,
+            position: 'absolute', top: 16, left: 16,
             background: 'none', border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 4,
-            color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13,
+            color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13, zIndex: 10,
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
             Cancel
           </button>
 
-          {/* Animated ring */}
+          {/* Circular visualizer + button */}
           <div style={{
-            width: 200, height: 200, position: 'relative',
+            width: vizR * 2 + 40, height: vizR * 2 + 40,
+            position: 'relative',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <div style={{
-              position: 'absolute', inset: 0, borderRadius: '50%',
-              background: `radial-gradient(circle, rgba(0,122,255,${pulseOpacity}) 0%, transparent 70%)`,
-              transform: `scale(${ringScale})`,
-              transition: 'transform 100ms ease, background 100ms ease',
-            }} />
-            <div style={{
-              width: 120, height: 120, borderRadius: '50%',
-              background: state === 'recording'
-                ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-                : 'linear-gradient(135deg, #007aff, #0066d6)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: state === 'recording'
-                ? '0 8px 40px rgba(239,68,68,0.3)'
-                : '0 8px 40px rgba(0,122,255,0.3)',
-              cursor: 'pointer',
-              transition: 'background 200ms ease, box-shadow 200ms ease',
-            }}
-              onClick={state === 'recording' ? stopRecording : startRecording}
+            {/* Frequency bars radiating from center */}
+            <svg
+              viewBox={`0 0 ${(vizR + 20) * 2} ${(vizR + 20) * 2}`}
+              style={{
+                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                pointerEvents: 'none',
+              }}
             >
-              {state === 'recording' ? (
-                <div style={{ width: 32, height: 32, borderRadius: 6, background: '#fff' }} />
+              {freqBars.map((val, i) => {
+                const angle = (i / VIZ_BARS) * Math.PI * 2 - Math.PI / 2;
+                const innerR = centerR + 8;
+                const barLen = Math.max(2, val * (vizR - centerR - 4));
+                const cx = vizR + 20;
+                const cy = vizR + 20;
+                const x1 = cx + Math.cos(angle) * innerR;
+                const y1 = cy + Math.sin(angle) * innerR;
+                const x2 = cx + Math.cos(angle) * (innerR + barLen);
+                const y2 = cy + Math.sin(angle) * (innerR + barLen);
+
+                const hue = 210 + val * 30;
+                const alpha = 0.3 + val * 0.7;
+
+                return (
+                  <line
+                    key={i}
+                    x1={x1} y1={y1} x2={x2} y2={y2}
+                    stroke={`hsla(${hue}, 100%, 60%, ${alpha})`}
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+
+              {isActive && (
+                <circle
+                  cx={vizR + 20} cy={vizR + 20} r={centerR + 6}
+                  fill="none" stroke="rgba(0,122,255,0.15)" strokeWidth="1"
+                />
+              )}
+            </svg>
+
+            {/* Center button */}
+            <div
+              onClick={state === 'idle' ? handleStart : state === 'recording' ? stopRecording : undefined}
+              style={{
+                width: centerR * 2, height: centerR * 2, borderRadius: '50%',
+                background: state === 'recording'
+                  ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                  : 'linear-gradient(135deg, #007aff, #0066d6)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: state === 'recording'
+                  ? '0 0 60px rgba(239,68,68,0.25), 0 0 120px rgba(239,68,68,0.1)'
+                  : '0 0 60px rgba(0,122,255,0.2), 0 0 120px rgba(0,122,255,0.08)',
+                cursor: state === 'countdown' ? 'default' : 'pointer',
+                position: 'relative', zIndex: 2,
+                transition: 'background 300ms ease, box-shadow 300ms ease',
+              }}
+            >
+              {state === 'countdown' ? (
+                <span
+                  key={countdownNum}
+                  style={{
+                    fontFamily: 'Manrope, sans-serif', fontSize: 64, fontWeight: 800,
+                    color: '#fff', animation: 'countPop 0.6s ease-out forwards',
+                  }}
+                >{countdownNum}</span>
+              ) : state === 'recording' ? (
+                <div style={{
+                  width: 28, height: 28, borderRadius: 6, background: '#fff',
+                  transition: 'border-radius 200ms ease',
+                }} />
               ) : (
                 <span className="material-symbols-outlined" style={{
-                  fontSize: 48, color: '#fff',
+                  fontSize: 44, color: '#fff',
                   fontVariationSettings: "'FILL' 1",
                 }}>mic</span>
               )}
             </div>
           </div>
 
-          {/* Timer */}
+          {/* Timer / status */}
           <div style={{ textAlign: 'center' }}>
+            {state === 'recording' && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%', background: '#ef4444',
+                  animation: 'recPulse 1.2s ease-in-out infinite',
+                }} />
+                <span style={{
+                  fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 600,
+                  color: '#ef4444', letterSpacing: '0.1em', textTransform: 'uppercase',
+                }}>REC</span>
+              </div>
+            )}
             <p style={{
               fontFamily: 'Manrope, sans-serif', fontSize: 48, fontWeight: 800,
               color: '#e7e5e4', margin: 0, letterSpacing: '-0.02em',
@@ -402,26 +520,30 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
               fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa',
               margin: '8px 0 0',
             }}>
-              {state === 'recording' ? 'Recording…' : 'Tap to start recording'}
+              {state === 'countdown' ? 'Get ready…' :
+               state === 'recording' ? 'Tap the button to stop' :
+               'Tap to start recording'}
             </p>
           </div>
 
           {/* Name input */}
-          <input
-            type="text"
-            placeholder="Take name (optional)"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            style={{
-              width: '100%', maxWidth: 300,
-              padding: '12px 16px', borderRadius: 12,
-              background: '#191a1a', border: '1px solid #484848',
-              color: '#e7e5e4', fontFamily: 'Inter, sans-serif',
-              fontSize: 14, outline: 'none',
-            }}
-            onFocus={e => { e.target.style.borderColor = '#007aff'; }}
-            onBlur={e => { e.target.style.borderColor = '#484848'; }}
-          />
+          {(state === 'idle' || state === 'recording') && (
+            <input
+              type="text"
+              placeholder="Take name (optional)"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              style={{
+                width: '100%', maxWidth: 300,
+                padding: '12px 16px', borderRadius: 12,
+                background: '#191a1a', border: '1px solid #484848',
+                color: '#e7e5e4', fontFamily: 'Inter, sans-serif',
+                fontSize: 14, outline: 'none',
+              }}
+              onFocus={e => { e.target.style.borderColor = '#007aff'; }}
+              onBlur={e => { e.target.style.borderColor = '#484848'; }}
+            />
+          )}
 
           {error && (
             <div style={{
