@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChordexLogo, DrumexLogo, StudioLogo, StagexLogoIcon, GroovexLogo } from './ChordexLogo';
+import { ChordexLogo, DrumexLogo, StudioLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 
 export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: number }) {
@@ -37,7 +37,7 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
   const currentMode = settings.appMode ?? 'chords';
 
   const OPTIONS: {
-    value: 'chords' | 'drums' | 'stage' | 'groovex';
+    value: 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
     Icon: React.FC<{ size?: number }>;
     label: string;
     desc: string;
@@ -46,6 +46,7 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
     { value: 'drums',   Icon: DrumexLogo,     label: 'Drumex',  desc: 'Drum sheets'          },
     { value: 'stage',   Icon: StagexLogoIcon, label: 'Stagex',  desc: 'Stage plot & rider'   },
     { value: 'groovex', Icon: GroovexLogo,    label: 'Groovex', desc: 'Multitrack mixer'     },
+    { value: 'vocalex', Icon: VocalexLogo,    label: 'Vocalex', desc: 'Vocal tools & training' },
   ];
 
   const goToHub = () => {
@@ -68,9 +69,9 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
           color: resolvedColor,
         }}
       >
-        {currentMode === 'drums' ? <DrumexLogo size={size} /> : currentMode === 'stage' ? <StagexLogoIcon size={size} /> : currentMode === 'groovex' ? <GroovexLogo size={size} /> : <ChordexLogo size={size} />}
+        {currentMode === 'drums' ? <DrumexLogo size={size} /> : currentMode === 'stage' ? <StagexLogoIcon size={size} /> : currentMode === 'groovex' ? <GroovexLogo size={size} /> : currentMode === 'vocalex' ? <VocalexLogo size={size} /> : <ChordexLogo size={size} />}
         <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color: resolvedColor }}>
-          {currentMode === 'drums' ? 'Drumex' : currentMode === 'stage' ? 'Stagex' : currentMode === 'groovex' ? 'Groovex' : 'Chordex'}
+          {currentMode === 'drums' ? 'Drumex' : currentMode === 'stage' ? 'Stagex' : currentMode === 'groovex' ? 'Groovex' : currentMode === 'vocalex' ? 'Vocalex' : 'Chordex'}
         </span>
         <span style={{
           fontSize: 9, opacity: 0.4, marginLeft: -3, color: resolvedColor,

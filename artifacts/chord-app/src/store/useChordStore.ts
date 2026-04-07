@@ -5,7 +5,7 @@ import type { Chord, Instrument } from '../data/chords';
 export type Theme = 'dark' | 'light' | 'system';
 export type ActivePanel = 'library' | 'chord' | 'settings' | 'songs';
 export type AccentColor = 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'teal';
-export type AppKey = 'hub' | 'chords' | 'drums' | 'stage' | 'groovex';
+export type AppKey = 'hub' | 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
 
 export interface PerAppVisuals {
   theme: Theme;
@@ -87,8 +87,8 @@ export interface AppSettings {
   defaultTab: ActivePanel;
   defaultDrumTab: 'songs' | 'patterns' | 'prefs';
   defaultStageView: 'Editor' | 'Setup' | 'Preferences';
-  startupApp: 'chords' | 'drums' | 'hub' | 'stage' | 'groovex';
-  appMode: 'chords' | 'drums' | 'hub' | 'stage' | 'groovex';
+  startupApp: 'chords' | 'drums' | 'hub' | 'stage' | 'groovex' | 'vocalex';
+  appMode: 'chords' | 'drums' | 'hub' | 'stage' | 'groovex' | 'vocalex';
   hubUserName: string;
   chordAssistant: boolean;
   assistantSmartSuggestions: boolean;
@@ -222,6 +222,7 @@ export const useChordStore = create<ChordStore>()(
           chords: { theme: 'dark', accentColor: 'blue', amoledMode: false },
           drums:  { theme: 'dark', accentColor: 'blue', amoledMode: false },
           stage:   { theme: 'dark', accentColor: 'blue', amoledMode: false },
+          vocalex: { theme: 'dark', accentColor: 'blue', amoledMode: false },
           groovex: { theme: 'dark', accentColor: 'blue', amoledMode: false },
         },
       },
@@ -594,7 +595,7 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
-      version: 3,
+      version: 4,
       migrate: (stored: unknown, fromVersion: number) => {
         const s = stored as Record<string, unknown>;
         if (fromVersion < 1) {
@@ -626,6 +627,16 @@ export const useChordStore = create<ChordStore>()(
             if (perApp && !perApp.groovex) {
               const hubVis = perApp.hub as PerAppVisuals | undefined;
               perApp.groovex = hubVis ? { ...hubVis } : { theme: 'dark', accentColor: 'blue', amoledMode: false };
+            }
+          }
+        }
+        if (fromVersion < 4) {
+          if (s.settings && typeof s.settings === 'object') {
+            const settings = s.settings as Record<string, unknown>;
+            const perApp = settings.perApp as Record<string, unknown> | undefined;
+            if (perApp && !perApp.vocalex) {
+              const hubVis = perApp.hub as PerAppVisuals | undefined;
+              perApp.vocalex = hubVis ? { ...hubVis } : { theme: 'dark', accentColor: 'blue', amoledMode: false };
             }
           }
         }

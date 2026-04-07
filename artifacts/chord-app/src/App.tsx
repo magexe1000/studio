@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
-import { ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo } from './components/ChordexLogo';
+import { ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
@@ -24,7 +24,10 @@ const DrumEditor   = lazy(drumImport);
 const groovexImport = () => import('./groovex/GroovexApp');
 const GroovexApp = lazy(groovexImport);
 
-const preloadAll = () => { chordImport(); libraryImport(); songsImport(); settingsImport(); drumImport(); stagexImport(); groovexImport(); };
+const vocalexImport = () => import('./vocalex/VocalexApp');
+const VocalexApp = lazy(vocalexImport);
+
+const preloadAll = () => { chordImport(); libraryImport(); songsImport(); settingsImport(); drumImport(); stagexImport(); groovexImport(); vocalexImport(); };
 if (typeof requestIdleCallback === 'function') requestIdleCallback(preloadAll);
 else setTimeout(preloadAll, 200);
 
@@ -50,6 +53,9 @@ export default function App() {
     } else if (startApp === 'stage') {
       prevAppMode.current = 'stage';
       updateSettings({ appMode: 'stage' });
+    } else if (startApp === 'vocalex') {
+      prevAppMode.current = 'vocalex';
+      updateSettings({ appMode: 'vocalex' });
     } else {
       prevAppMode.current = 'chords';
       updateSettings({ appMode: 'chords' });
@@ -131,6 +137,7 @@ export default function App() {
   const [chordexSplash, setChordexSplash] = useState<SplashPhase>('hidden');
   const [stageSplash,   setStageSplash]   = useState<SplashPhase>('hidden');
   const [groovexSplash, setGroovexSplash] = useState<SplashPhase>('hidden');
+  const [vocalexSplash, setVocalexSplash] = useState<SplashPhase>('hidden');
   const prevAppMode      = useRef(settings.appMode);
   const splashTimers     = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -148,6 +155,7 @@ export default function App() {
     if (settings.appMode === 'chords'  && prevAppMode.current !== 'chords')  fireSplash(setChordexSplash);
     if (settings.appMode === 'stage'   && prevAppMode.current !== 'stage')   fireSplash(setStageSplash);
     if (settings.appMode === 'groovex' && prevAppMode.current !== 'groovex') fireSplash(setGroovexSplash);
+    if (settings.appMode === 'vocalex' && prevAppMode.current !== 'vocalex') fireSplash(setVocalexSplash);
     prevAppMode.current = settings.appMode;
     return () => splashTimers.current.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -319,6 +327,45 @@ export default function App() {
             <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
               <p style={{ color: groovexIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Groovex</p>
               <p style={{ color: groovexIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Multitrack practice mixer</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Vocalex mode: vocal tools & training ─────────────────────────
+  if (settings.appMode === 'vocalex') {
+    const vocalexIsAmoled = activeVis.amoledMode;
+    const vocalexIsLight  = activeVis.theme === 'light';
+    const vocalexBgColor  = vocalexIsAmoled ? '#000000' : vocalexIsLight ? '#f2f1ef' : '#0e0e0e';
+    return (
+      <div style={{
+        position: 'relative', height: '100dvh', overflow: 'hidden',
+        background: vocalexBgColor,
+        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
+        transform: exitingToHub ? 'scale(1.10)' : undefined,
+        opacity:   exitingToHub ? 0 : undefined,
+        transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
+      }}>
+        <Suspense fallback={null}><VocalexApp /></Suspense>
+
+        {vocalexSplash !== 'hidden' && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 500,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            background: vocalexBgColor,
+            opacity:   vocalexSplash === 'out' ? 0 : 1,
+            transform: vocalexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+            transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+            pointerEvents: 'none',
+          }}>
+            <div style={{ color: vocalexIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+              <VocalexLogo size={60} />
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+              <p style={{ color: vocalexIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Vocalex</p>
+              <p style={{ color: vocalexIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Vocal tools & training</p>
             </div>
           </div>
         )}
