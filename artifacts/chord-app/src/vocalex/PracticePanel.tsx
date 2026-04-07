@@ -1,140 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-
-type ExerciseId = string;
-
-interface ExerciseStep {
-  instruction: string;
-  durationSec: number;
-  targetNote?: string;
-  syllable?: string;
-  visualType: 'breathBar' | 'pitchLadder' | 'sustainHold' | 'vowelShape' | 'trillWave' | 'sirene';
-}
-
-interface Exercise {
-  id: ExerciseId;
-  name: string;
-  subtitle: string;
-  icon: string;
-  durationMin: string;
-  level: string;
-  color: string;
-  description: string;
-  steps: ExerciseStep[];
-}
-
-const EXERCISES: Exercise[] = [
-  {
-    id: 'diaphragm-breath',
-    name: 'Diaphragmatic Breathing',
-    subtitle: 'Foundation & Support',
-    icon: 'air',
-    durationMin: '4:00',
-    level: 'Beginner',
-    color: '#34d399',
-    description: 'Build breath support with timed inhale-hold-exhale cycles. Focus on expanding your belly, not your chest.',
-    steps: [
-      { instruction: 'Breathe in slowly through your nose (belly expands)', durationSec: 4, visualType: 'breathBar' },
-      { instruction: 'Hold your breath gently', durationSec: 4, visualType: 'sustainHold' },
-      { instruction: 'Exhale slowly on "sss" (controlled hiss)', durationSec: 8, syllable: 'sss', visualType: 'breathBar' },
-      { instruction: 'Breathe in again, deeper this time', durationSec: 4, visualType: 'breathBar' },
-      { instruction: 'Hold', durationSec: 4, visualType: 'sustainHold' },
-      { instruction: 'Exhale on "zzz" (feel the buzz)', durationSec: 8, syllable: 'zzz', visualType: 'breathBar' },
-    ],
-  },
-  {
-    id: 'lip-trills',
-    name: 'Lip Trills',
-    subtitle: 'Tension Release',
-    icon: 'waves',
-    durationMin: '3:00',
-    level: 'Beginner',
-    color: '#60a5fa',
-    description: 'Relax your lips and blow air to create a "brrr" vibration. Slide up and down gently — this releases jaw and throat tension.',
-    steps: [
-      { instruction: 'Lip trill on a comfortable low note', durationSec: 6, targetNote: 'C3', syllable: 'brrr', visualType: 'trillWave' },
-      { instruction: 'Trill sliding up a 5th', durationSec: 6, targetNote: 'C3→G3', syllable: 'brrr↑', visualType: 'sirene' },
-      { instruction: 'Trill sliding back down', durationSec: 6, targetNote: 'G3→C3', syllable: 'brrr↓', visualType: 'sirene' },
-      { instruction: 'Trill up an octave slowly', durationSec: 8, targetNote: 'C3→C4', syllable: 'brrr↑↑', visualType: 'sirene' },
-      { instruction: 'Trill back down the octave', durationSec: 8, targetNote: 'C4→C3', syllable: 'brrr↓↓', visualType: 'sirene' },
-    ],
-  },
-  {
-    id: 'major-scale',
-    name: 'Major Scale Warm-up',
-    subtitle: 'Pitch Accuracy',
-    icon: 'music_note',
-    durationMin: '5:00',
-    level: 'Intermediate',
-    color: '#007aff',
-    description: 'Sing each note of the major scale on "la". Match each pitch precisely, using the visual guide to stay centered.',
-    steps: [
-      { instruction: 'Sing Do (root)', durationSec: 4, targetNote: 'C4', syllable: 'la', visualType: 'pitchLadder' },
-      { instruction: 'Sing Re', durationSec: 4, targetNote: 'D4', syllable: 'la', visualType: 'pitchLadder' },
-      { instruction: 'Sing Mi', durationSec: 4, targetNote: 'E4', syllable: 'la', visualType: 'pitchLadder' },
-      { instruction: 'Sing Fa', durationSec: 4, targetNote: 'F4', syllable: 'la', visualType: 'pitchLadder' },
-      { instruction: 'Sing Sol', durationSec: 4, targetNote: 'G4', syllable: 'la', visualType: 'pitchLadder' },
-      { instruction: 'Sing La', durationSec: 4, targetNote: 'A4', syllable: 'la', visualType: 'pitchLadder' },
-      { instruction: 'Sing Ti', durationSec: 4, targetNote: 'B4', syllable: 'la', visualType: 'pitchLadder' },
-      { instruction: 'Sing Do (octave)', durationSec: 4, targetNote: 'C5', syllable: 'la', visualType: 'pitchLadder' },
-    ],
-  },
-  {
-    id: 'vowel-placement',
-    name: 'Vowel Resonance',
-    subtitle: 'Placement & Clarity',
-    icon: 'record_voice_over',
-    durationMin: '4:00',
-    level: 'Beginner',
-    color: '#a78bfa',
-    description: 'Sustain each pure vowel on a comfortable pitch. Feel where each vowel resonates — front, middle, or back of your mouth.',
-    steps: [
-      { instruction: 'Sustain "EE" — feel it in your mask/forehead', durationSec: 6, syllable: 'EE', targetNote: 'A3', visualType: 'vowelShape' },
-      { instruction: 'Sustain "EH" — slightly more open', durationSec: 6, syllable: 'EH', targetNote: 'A3', visualType: 'vowelShape' },
-      { instruction: 'Sustain "AH" — wide open, resonant', durationSec: 6, syllable: 'AH', targetNote: 'A3', visualType: 'vowelShape' },
-      { instruction: 'Sustain "OH" — round your lips', durationSec: 6, syllable: 'OH', targetNote: 'A3', visualType: 'vowelShape' },
-      { instruction: 'Sustain "OO" — small opening, feel the chest', durationSec: 6, syllable: 'OO', targetNote: 'A3', visualType: 'vowelShape' },
-    ],
-  },
-  {
-    id: 'sirene-slides',
-    name: 'Sirene Slides',
-    subtitle: 'Range & Registers',
-    icon: 'trending_up',
-    durationMin: '3:00',
-    level: 'Intermediate',
-    color: '#f59e0b',
-    description: 'Glide smoothly from your lowest to highest comfortable note on "oo". This connects your chest and head voice seamlessly.',
-    steps: [
-      { instruction: 'Gentle slide from low to mid range', durationSec: 8, syllable: 'oo↑', targetNote: 'low→mid', visualType: 'sirene' },
-      { instruction: 'Continue from mid to high', durationSec: 8, syllable: 'oo↑↑', targetNote: 'mid→high', visualType: 'sirene' },
-      { instruction: 'Slide from high all the way down', durationSec: 10, syllable: 'oo↓↓', targetNote: 'high→low', visualType: 'sirene' },
-      { instruction: 'Full range sirene — bottom to top', durationSec: 12, syllable: 'oo↑↓', targetNote: 'low→high→low', visualType: 'sirene' },
-    ],
-  },
-  {
-    id: 'staccato-control',
-    name: 'Staccato Agility',
-    subtitle: 'Precision & Speed',
-    icon: 'electric_bolt',
-    durationMin: '3:00',
-    level: 'Advanced',
-    color: '#ef4444',
-    description: 'Short, sharp notes on "ha" — one per beat. This trains diaphragm control and vocal cord closure for clean onsets.',
-    steps: [
-      { instruction: 'Staccato on C4 — short "ha" bursts', durationSec: 8, syllable: 'ha ha ha ha', targetNote: 'C4', visualType: 'pitchLadder' },
-      { instruction: 'Move up to E4', durationSec: 8, syllable: 'ha ha ha ha', targetNote: 'E4', visualType: 'pitchLadder' },
-      { instruction: 'Move up to G4', durationSec: 8, syllable: 'ha ha ha ha', targetNote: 'G4', visualType: 'pitchLadder' },
-      { instruction: 'Descend: G4, E4, C4 pattern', durationSec: 8, syllable: 'ha ha ha', targetNote: 'G4→E4→C4', visualType: 'pitchLadder' },
-    ],
-  },
-];
-
-const NOTE_FREQ: Record<string, number> = {
-  'C3': 130.81, 'D3': 146.83, 'E3': 164.81, 'F3': 174.61, 'G3': 196.00,
-  'A3': 220.00, 'B3': 246.94,
-  'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00,
-  'A4': 440.00, 'B4': 493.88, 'C5': 523.25,
-};
+import { CATEGORIES, EXERCISES, NOTE_FREQ, type Exercise, type ExerciseStep } from './exerciseData';
+import { PracticeDetector, type DetectorState, type StepScore, statusColor, centsToAccuracy } from './practiceDetector';
 
 let sharedToneCtx: AudioContext | null = null;
 let activeOsc: OscillatorNode | null = null;
@@ -149,77 +15,133 @@ function stopActiveTone() {
   activeGain = null;
 }
 
-function cleanupToneCtx() {
-  stopActiveTone();
-  if (sharedToneCtx) { sharedToneCtx.close().catch(() => {}); sharedToneCtx = null; }
-}
-
-function playTone(freq: number, durationMs: number, type: OscillatorType = 'sine') {
+function playTone(freq: number, durationMs: number) {
   try {
     stopActiveTone();
-    if (!sharedToneCtx || sharedToneCtx.state === 'closed') {
-      sharedToneCtx = new AudioContext();
-    }
+    if (!sharedToneCtx || sharedToneCtx.state === 'closed') sharedToneCtx = new AudioContext();
     const ctx = sharedToneCtx;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = type;
+    osc.type = 'sine';
     osc.frequency.value = freq;
+    const dur = durationMs / 1000;
     gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
-    gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + (durationMs / 1000) - 0.1);
-    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + (durationMs / 1000));
+    gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.05);
+    gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + dur - 0.1);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + dur);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
-    osc.stop(ctx.currentTime + durationMs / 1000);
+    osc.stop(ctx.currentTime + dur);
     activeOsc = osc;
     activeGain = gain;
     osc.onended = () => { activeOsc = null; activeGain = null; };
   } catch { /* audio not available */ }
 }
 
-function BreathBarVisual({ progress, phase }: { progress: number; phase: string }) {
-  const isInhale = phase.toLowerCase().includes('breathe in') || phase.toLowerCase().includes('inhale');
-  const fillHeight = isInhale ? progress * 100 : (1 - progress) * 100;
+function playNoteForStep(step: ExerciseStep) {
+  if (!step.targetNote) return;
+  const note = step.targetNote.split('→')[0].split(',')[0].trim();
+  const freq = NOTE_FREQ[note];
+  if (freq) playTone(freq, Math.min(2000, step.durationSec * 500));
+}
+
+function AccuracyRing({ state, size = 56 }: { state: DetectorState; size?: number }) {
+  const r = (size - 6) / 2;
+  const C = 2 * Math.PI * r;
+  const fill = state.status !== 'silent' ? state.accuracy * C : 0;
+  const color = statusColor(state.status);
   return (
-    <div style={{
-      width: '100%', height: 80, borderRadius: 12,
-      background: '#191a1a', position: 'relative', overflow: 'hidden',
-    }}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#252626" strokeWidth="4" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="4"
+        strokeDasharray={`${fill} ${C - fill}`} strokeLinecap="round"
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: 'stroke-dasharray 150ms ease, stroke 150ms ease' }}
+      />
+      <text x={size / 2} y={size / 2 + 1} textAnchor="middle" dominantBaseline="middle"
+        fill={color} fontSize="11" fontWeight="800" fontFamily="Manrope"
+        style={{ transition: 'fill 150ms ease' }}
+      >
+        {state.status === 'silent' ? '—' :
+         state.status === 'good' ? '✓' :
+         `${Math.abs(Math.round(state.centsOff))}¢`}
+      </text>
+    </svg>
+  );
+}
+
+function ScoreDisplay({ scores, exerciseColor }: { scores: StepScore[]; exerciseColor: string }) {
+  const totalAccuracy = scores.length > 0
+    ? scores.filter(s => s.totalSamples > 0).reduce((sum, s) => sum + s.accuracy, 0) / Math.max(1, scores.filter(s => s.totalSamples > 0).length)
+    : 0;
+  const pct = Math.round(totalAccuracy * 100);
+
+  const grade = pct >= 90 ? 'Excellent' : pct >= 75 ? 'Good' : pct >= 55 ? 'Fair' : 'Keep Practicing';
+  const gradeColor = pct >= 90 ? '#34d399' : pct >= 75 ? '#007aff' : pct >= 55 ? '#eab308' : '#ef4444';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+      <div style={{
+        width: 80, height: 80, borderRadius: '50%',
+        background: `${gradeColor}1a`, display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 28, fontWeight: 800, color: gradeColor }}>{pct}%</span>
+      </div>
+      <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 16, fontWeight: 700, color: gradeColor }}>{grade}</span>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {scores.map((s, i) => {
+          const stepPct = Math.round(s.accuracy * 100);
+          const c = stepPct >= 80 ? '#34d399' : stepPct >= 55 ? '#eab308' : s.totalSamples === 0 ? '#484848' : '#ef4444';
+          return (
+            <div key={i} style={{
+              width: 28, height: 28, borderRadius: 6, background: `${c}22`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: `1px solid ${c}44`,
+            }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: c, fontFamily: 'Inter, sans-serif' }}>
+                {s.totalSamples === 0 ? '—' : `${stepPct}`}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BreathBarVisual({ progress, phase }: { progress: number; phase: string }) {
+  const isIn = phase.toLowerCase().includes('breathe in') || phase.toLowerCase().includes('inhale');
+  const fillH = isIn ? progress * 100 : (1 - progress) * 100;
+  return (
+    <div style={{ width: '100%', height: 64, borderRadius: 12, background: '#191a1a', position: 'relative', overflow: 'hidden' }}>
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
-        height: `${Math.max(4, fillHeight)}%`,
+        height: `${Math.max(4, fillH)}%`,
         background: 'linear-gradient(to top, rgba(52,211,153,0.4), rgba(52,211,153,0.1))',
-        borderRadius: '0 0 12px 12px',
         transition: 'height 200ms ease',
       }} />
       <div style={{
-        position: 'absolute', inset: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'Manrope, sans-serif', fontSize: 14, fontWeight: 700,
-        color: '#34d399', opacity: 0.8,
+        position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'Manrope, sans-serif', fontSize: 13, fontWeight: 700, color: '#34d399', opacity: 0.8,
       }}>
-        {isInhale ? '↑ IN' : phase.toLowerCase().includes('hold') ? '· HOLD' : '↓ OUT'}
+        {isIn ? '↑ IN' : phase.toLowerCase().includes('hold') ? '· HOLD' : '↓ OUT'}
       </div>
     </div>
   );
 }
 
 function SustainHoldVisual({ progress }: { progress: number }) {
-  const ringProgress = progress * 283;
+  const ringP = progress * 283;
   return (
-    <div style={{ width: '100%', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <svg viewBox="0 0 100 100" width={64} height={64}>
+    <div style={{ width: '100%', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <svg viewBox="0 0 100 100" width={56} height={56}>
         <circle cx="50" cy="50" r="45" fill="none" stroke="#252626" strokeWidth="4" />
         <circle cx="50" cy="50" r="45" fill="none" stroke="#34d399" strokeWidth="4"
-          strokeDasharray="283" strokeDashoffset={283 - ringProgress}
-          strokeLinecap="round" transform="rotate(-90 50 50)"
-          style={{ transition: 'stroke-dashoffset 200ms ease' }}
-        />
-        <text x="50" y="54" textAnchor="middle" fill="#e7e5e4" fontSize="14" fontWeight="700" fontFamily="Manrope">
-          HOLD
-        </text>
+          strokeDasharray="283" strokeDashoffset={283 - ringP} strokeLinecap="round"
+          transform="rotate(-90 50 50)" style={{ transition: 'stroke-dashoffset 200ms ease' }} />
+        <text x="50" y="54" textAnchor="middle" fill="#e7e5e4" fontSize="14" fontWeight="700" fontFamily="Manrope">HOLD</text>
       </svg>
     </div>
   );
@@ -227,13 +149,10 @@ function SustainHoldVisual({ progress }: { progress: number }) {
 
 function PitchLadderVisual({ targetNote, allNotes }: { targetNote?: string; allNotes: string[] }) {
   return (
-    <div style={{
-      width: '100%', height: 80, display: 'flex', alignItems: 'flex-end',
-      gap: 3, padding: '0 4px',
-    }}>
+    <div style={{ width: '100%', height: 64, display: 'flex', alignItems: 'flex-end', gap: 3, padding: '0 4px' }}>
       {allNotes.map((note, i) => {
         const isActive = targetNote?.includes(note);
-        const h = 20 + ((i / (allNotes.length - 1)) * 60);
+        const h = 20 + ((i / Math.max(1, allNotes.length - 1)) * 60);
         return (
           <div key={note} style={{
             flex: 1, height: `${h}%`, borderRadius: 4,
@@ -242,10 +161,9 @@ function PitchLadderVisual({ targetNote, allNotes }: { targetNote?: string; allN
             transition: 'background 200ms ease, opacity 200ms ease',
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 2,
           }}>
-            <span style={{
-              fontSize: 8, fontFamily: 'Inter, sans-serif', fontWeight: 600,
-              color: isActive ? '#fff' : '#767575',
-            }}>{note.replace(/\d/, '')}</span>
+            <span style={{ fontSize: 7, fontFamily: 'Inter, sans-serif', fontWeight: 600, color: isActive ? '#fff' : '#767575' }}>
+              {note.replace(/\d/, '')}
+            </span>
           </div>
         );
       })}
@@ -254,91 +172,84 @@ function PitchLadderVisual({ targetNote, allNotes }: { targetNote?: string; allN
 }
 
 function VowelShapeVisual({ syllable }: { syllable?: string }) {
-  const vowelSizes: Record<string, number> = { 'EE': 20, 'EH': 30, 'AH': 48, 'OH': 38, 'OO': 22 };
-  const size = vowelSizes[syllable ?? ''] ?? 30;
+  const sizes: Record<string, number> = { 'EE': 18, 'EH': 26, 'AH': 40, 'OH': 34, 'OO': 20, 'UH': 28 };
+  const s = sizes[syllable?.split('→')[0] ?? ''] ?? 28;
   return (
-    <div style={{
-      width: '100%', height: 80, display: 'flex', alignItems: 'center',
-      justifyContent: 'center', gap: 16,
-    }}>
+    <div style={{ width: '100%', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{
-        width: size, height: size * 1.2, borderRadius: '50%',
-        border: '3px solid #a78bfa', opacity: 0.8,
-        transition: 'all 300ms ease',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: s, height: s * 1.2, borderRadius: '50%', border: '3px solid #a78bfa', opacity: 0.8,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 300ms ease',
       }}>
-        <span style={{
-          fontFamily: 'Manrope, sans-serif', fontSize: 12, fontWeight: 800,
-          color: '#a78bfa',
-        }}>{syllable}</span>
-      </div>
-      <div style={{
-        display: 'flex', flexDirection: 'column', gap: 2,
-      }}>
-        {['Mask', 'Mouth', 'Chest'].map((zone, i) => (
-          <div key={zone} style={{
-            height: 6, width: 48, borderRadius: 3,
-            background: (syllable === 'EE' && i === 0) || (syllable === 'AH' && i === 1) || (syllable === 'OO' && i === 2) || (syllable === 'EH' && i === 0) || (syllable === 'OH' && i === 2)
-              ? '#a78bfa' : '#252626',
-            opacity: (syllable === 'EE' && i === 0) || (syllable === 'AH' && i === 1) || (syllable === 'OO' && i === 2) || (syllable === 'EH' && i === 0) || (syllable === 'OH' && i === 2)
-              ? 0.8 : 0.3,
-            transition: 'all 200ms ease',
-          }}>
-            <span style={{ fontSize: 7, color: '#767575', marginLeft: 52, fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>{zone}</span>
-          </div>
-        ))}
+        <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 11, fontWeight: 800, color: '#a78bfa' }}>
+          {syllable?.split('→')[0] ?? syllable}
+        </span>
       </div>
     </div>
   );
 }
 
-function TrillWaveVisual({ progress }: { progress: number }) {
-  const points = Array.from({ length: 40 }, (_, i) => {
+function WaveVisual({ progress, color }: { progress: number; color: string }) {
+  const pts = Array.from({ length: 40 }, (_, i) => {
     const x = (i / 39) * 100;
-    const wave = Math.sin((i * 0.6) + (progress * Math.PI * 8)) * 15;
-    const y = 40 + wave * (0.3 + Math.sin(progress * Math.PI) * 0.7);
+    const y = 32 + Math.sin((i * 0.6) + (progress * Math.PI * 8)) * 15 * (0.3 + Math.sin(progress * Math.PI) * 0.7);
     return `${x},${y}`;
   }).join(' ');
-
   return (
-    <div style={{ width: '100%', height: 80, borderRadius: 12, background: '#191a1a', overflow: 'hidden' }}>
-      <svg viewBox="0 0 100 80" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-        <polyline points={points} fill="none" stroke="#60a5fa" strokeWidth="2" opacity="0.7" />
+    <div style={{ width: '100%', height: 64, borderRadius: 12, background: '#191a1a', overflow: 'hidden' }}>
+      <svg viewBox="0 0 100 64" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+        <polyline points={pts} fill="none" stroke={color} strokeWidth="2" opacity="0.7" />
       </svg>
     </div>
   );
 }
 
 function SireneVisual({ progress }: { progress: number }) {
-  const y = 70 - Math.sin(progress * Math.PI) * 55;
-  const trailPoints = Array.from({ length: 30 }, (_, i) => {
-    const t = Math.max(0, progress - (30 - i) * 0.01);
-    const px = (i / 29) * 100;
-    const py = 70 - Math.sin(t * Math.PI) * 55;
-    return `${px},${py}`;
-  }).join(' ');
-
+  const y = 56 - Math.sin(progress * Math.PI) * 44;
   return (
-    <div style={{ width: '100%', height: 80, borderRadius: 12, background: '#191a1a', overflow: 'hidden' }}>
-      <svg viewBox="0 0 100 80" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-        <polyline points={trailPoints} fill="none" stroke="#f59e0b" strokeWidth="1.5" opacity="0.3" />
+    <div style={{ width: '100%', height: 64, borderRadius: 12, background: '#191a1a', overflow: 'hidden' }}>
+      <svg viewBox="0 0 100 64" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
         <circle cx={progress * 100} cy={y} r="4" fill="#f59e0b" opacity="0.9" />
       </svg>
     </div>
   );
 }
 
+function DynamicBarVisual({ progress }: { progress: number }) {
+  const intensity = Math.sin(progress * Math.PI);
+  return (
+    <div style={{ width: '100%', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+      {Array.from({ length: 16 }, (_, i) => {
+        const d = Math.abs(i - 7.5) / 7.5;
+        const h = Math.max(8, (1 - d) * intensity * 56);
+        return <div key={i} style={{ width: 4, height: h, borderRadius: 2, background: '#a78bfa', opacity: 0.5 + intensity * 0.5, transition: 'height 100ms ease' }} />;
+      })}
+    </div>
+  );
+}
+
+function IntervalJumpVisual({ targetNote }: { targetNote?: string }) {
+  return (
+    <div style={{ width: '100%', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{
+        padding: '8px 20px', borderRadius: 12, background: '#007aff1a', border: '1px solid #007aff33',
+      }}>
+        <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 18, fontWeight: 800, color: '#007aff' }}>{targetNote ?? '—'}</span>
+      </div>
+    </div>
+  );
+}
+
 function StepVisual({ step, progress }: { step: ExerciseStep; progress: number }) {
+  const scaleNotes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
   switch (step.visualType) {
     case 'breathBar': return <BreathBarVisual progress={progress} phase={step.instruction} />;
     case 'sustainHold': return <SustainHoldVisual progress={progress} />;
-    case 'pitchLadder': {
-      const scaleNotes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
-      return <PitchLadderVisual targetNote={step.targetNote} allNotes={scaleNotes} />;
-    }
+    case 'pitchLadder': return <PitchLadderVisual targetNote={step.targetNote} allNotes={scaleNotes} />;
     case 'vowelShape': return <VowelShapeVisual syllable={step.syllable} />;
-    case 'trillWave': return <TrillWaveVisual progress={progress} />;
+    case 'trillWave': return <WaveVisual progress={progress} color="#60a5fa" />;
     case 'sirene': return <SireneVisual progress={progress} />;
+    case 'intervalJump': return <IntervalJumpVisual targetNote={step.targetNote} />;
+    case 'dynamicBar': return <DynamicBarVisual progress={progress} />;
     default: return null;
   }
 }
@@ -347,10 +258,16 @@ function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: ()
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [running, setRunning] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [complete, setComplete] = useState(false);
+  const [detectorState, setDetectorState] = useState<DetectorState>({ listening: false, currentPitch: null, accuracy: 0, centsOff: 0, status: 'silent' });
+  const [stepScores, setStepScores] = useState<StepScore[]>([]);
   const rafRef = useRef(0);
   const startRef = useRef(0);
   const tonePlayedRef = useRef(false);
+  const detectorRef = useRef<PracticeDetector | null>(null);
+  const mountedRef = useRef(true);
+  const hasPitchSteps = exercise.steps.some(s => s.listenForPitch);
 
   const step = exercise.steps[currentStep];
   const totalSteps = exercise.steps.length;
@@ -361,6 +278,14 @@ function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: ()
     const p = Math.min(1, elapsed / step.durationSec);
     setProgress(p);
     if (p >= 1) {
+      const detector = detectorRef.current;
+      if (detector && step.listenForPitch) {
+        const score = detector.getStepScore();
+        setStepScores(prev => { const n = [...prev]; n[currentStep] = score; return n; });
+        detector.resetStepScore();
+      } else {
+        setStepScores(prev => { const n = [...prev]; n[currentStep] = { avgCentsOff: 0, accuracy: 0, samplesDetected: 0, totalSamples: 0 }; return n; });
+      }
       if (currentStep < totalSteps - 1) {
         setCurrentStep(prev => prev + 1);
         startRef.current = Date.now();
@@ -368,11 +293,10 @@ function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: ()
       } else {
         setRunning(false);
         setComplete(true);
+        detectorRef.current?.stop();
       }
     }
-    if (p < 1) {
-      rafRef.current = requestAnimationFrame(tick);
-    }
+    if (p < 1) rafRef.current = requestAnimationFrame(tick);
   }, [step, currentStep, totalSteps]);
 
   useEffect(() => {
@@ -386,224 +310,162 @@ function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: ()
   useEffect(() => {
     if (running && step?.targetNote && !tonePlayedRef.current) {
       tonePlayedRef.current = true;
-      const note = step.targetNote.split('→')[0].split(',')[0].trim();
-      const freq = NOTE_FREQ[note];
-      if (freq) playTone(freq, Math.min(2000, step.durationSec * 600));
+      playNoteForStep(step);
+      if (step.listenForPitch) detectorRef.current?.setTarget(step.targetNote);
+    }
+    if (running && step && !step.listenForPitch) {
+      detectorRef.current?.setTarget(undefined);
     }
   }, [running, currentStep, step]);
 
   useEffect(() => {
-    return () => { stopActiveTone(); };
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; stopActiveTone(); detectorRef.current?.stop(); };
   }, []);
 
-  const handleStart = () => {
-    setRunning(true);
+  const handleStart = async () => {
+    if (starting || running) return;
+    setStarting(true);
     setComplete(false);
     setCurrentStep(0);
     setProgress(0);
+    setStepScores([]);
+    detectorRef.current?.stop();
+    if (hasPitchSteps) {
+      const det = new PracticeDetector();
+      detectorRef.current = det;
+      await det.start(setDetectorState);
+      if (!mountedRef.current) { det.stop(); return; }
+    }
+    setStarting(false);
+    setRunning(true);
   };
 
   const timeLeft = step ? Math.max(0, Math.ceil(step.durationSec * (1 - progress))) : 0;
 
   return (
-    <div style={{
-      padding: '16px 20px', minHeight: '100%',
-      display: 'flex', flexDirection: 'column',
-    }}>
-      <button onClick={onClose} style={{
+    <div style={{ padding: '16px 20px', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+      <button onClick={() => { detectorRef.current?.stop(); stopActiveTone(); onClose(); }} style={{
         background: 'none', border: 'none', cursor: 'pointer',
         display: 'flex', alignItems: 'center', gap: 4,
-        color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13,
-        marginBottom: 20, padding: 0,
+        color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13, marginBottom: 16, padding: 0,
       }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-        Back
+        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span> Back
       </button>
 
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 20 }}>
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          background: `${exercise.color}1a`, padding: '4px 10px', borderRadius: 6,
-          marginBottom: 8,
+          background: `${exercise.color}1a`, padding: '4px 10px', borderRadius: 6, marginBottom: 8,
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: 14, color: exercise.color }}>{exercise.icon}</span>
           <span style={{ fontSize: 10, fontWeight: 700, color: exercise.color, fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{exercise.level}</span>
         </div>
-        <h2 style={{
-          fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 28,
-          color: '#e7e5e4', margin: '0 0 6px', letterSpacing: '-0.02em',
-        }}>{exercise.name}</h2>
-        <p style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa',
-          margin: 0, lineHeight: 1.5,
-        }}>{exercise.description}</p>
+        <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 24, color: '#e7e5e4', margin: '0 0 4px', letterSpacing: '-0.02em' }}>{exercise.name}</h2>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#acabaa', margin: 0, lineHeight: 1.5 }}>{exercise.description}</p>
       </div>
 
       {complete ? (
-        <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', gap: 20,
-        }}>
-          <div style={{
-            width: 72, height: 72, borderRadius: '50%',
-            background: `${exercise.color}1a`, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span className="material-symbols-outlined" style={{
-              fontSize: 36, color: exercise.color,
-              fontVariationSettings: "'FILL' 1",
-            }}>check_circle</span>
-          </div>
-          <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 22, color: '#e7e5e4', margin: 0 }}>Complete!</h3>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', textAlign: 'center', maxWidth: 260 }}>
-            Great work. Consistent practice builds lasting vocal strength.
-          </p>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 36, color: exercise.color, fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+          <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 20, color: '#e7e5e4', margin: 0 }}>Complete!</h3>
+          {hasPitchSteps && <ScoreDisplay scores={stepScores} exerciseColor={exercise.color} />}
+          {!hasPitchSteps && <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', textAlign: 'center' }}>Great work. Consistent practice builds lasting strength.</p>}
           <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={handleStart} style={{
-              padding: '10px 20px', borderRadius: 9999, background: '#1f2020',
-              border: 'none', color: '#e7e5e4', fontFamily: 'Manrope, sans-serif',
-              fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            }}>Repeat</button>
-            <button onClick={onClose} style={{
-              padding: '10px 20px', borderRadius: 9999, background: exercise.color,
-              border: 'none', color: '#fff', fontFamily: 'Manrope, sans-serif',
-              fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            }}>Done</button>
+            <button onClick={handleStart} style={{ padding: '10px 20px', borderRadius: 9999, background: '#1f2020', border: 'none', color: '#e7e5e4', fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Repeat</button>
+            <button onClick={() => { detectorRef.current?.stop(); onClose(); }} style={{ padding: '10px 20px', borderRadius: 9999, background: exercise.color, border: 'none', color: '#fff', fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Done</button>
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{
-            display: 'flex', gap: 3, marginBottom: 4,
-          }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', gap: 2 }}>
             {exercise.steps.map((_, i) => (
-              <div key={i} style={{
-                flex: 1, height: 3, borderRadius: 2,
-                background: i < currentStep ? exercise.color : i === currentStep ? `${exercise.color}80` : '#252626',
-                transition: 'background 200ms ease',
-              }} />
+              <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < currentStep ? exercise.color : i === currentStep ? `${exercise.color}80` : '#252626', transition: 'background 200ms ease' }} />
             ))}
           </div>
 
           {running && step && (
-            <>
-              <div style={{
-                background: '#1f2020', borderRadius: 16, padding: 20,
-                display: 'flex', flexDirection: 'column', gap: 16,
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{
-                    fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600,
-                    color: '#acabaa', textTransform: 'uppercase', letterSpacing: '0.08em',
-                  }}>Step {currentStep + 1} of {totalSteps}</span>
-                  <span style={{
-                    fontFamily: 'Manrope, sans-serif', fontSize: 20, fontWeight: 800,
-                    color: exercise.color, fontVariantNumeric: 'tabular-nums',
-                  }}>{timeLeft}s</span>
-                </div>
-
-                <p style={{
-                  fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 16,
-                  color: '#e7e5e4', margin: 0, lineHeight: 1.4,
-                }}>{step.instruction}</p>
-
-                {step.syllable && (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                  }}>
-                    <span style={{
-                      fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600,
-                      color: '#767575', textTransform: 'uppercase',
-                    }}>Sing:</span>
-                    <span style={{
-                      fontFamily: 'Manrope, sans-serif', fontSize: 18, fontWeight: 800,
-                      color: exercise.color,
-                    }}>"{step.syllable}"</span>
-                  </div>
-                )}
-
-                {step.targetNote && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#767575' }}>music_note</span>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#acabaa' }}>{step.targetNote}</span>
-                    <button onClick={() => {
-                      const note = step.targetNote!.split('→')[0].split(',')[0].trim();
-                      const freq = NOTE_FREQ[note];
-                      if (freq) playTone(freq, 1500);
-                    }} style={{
-                      background: 'none', border: 'none', cursor: 'pointer', padding: 2,
-                      color: exercise.color, display: 'flex',
-                    }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>volume_up</span>
-                    </button>
-                  </div>
-                )}
-
-                <StepVisual step={step} progress={progress} />
-
-                <div style={{
-                  width: '100%', height: 3, borderRadius: 2, background: '#252626', overflow: 'hidden',
-                }}>
-                  <div style={{
-                    height: '100%', width: `${progress * 100}%`, background: exercise.color,
-                    borderRadius: 2, transition: 'width 100ms linear',
-                  }} />
+            <div style={{ background: '#1f2020', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: '#acabaa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Step {currentStep + 1}/{totalSteps}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {step.listenForPitch && <AccuracyRing state={detectorState} size={40} />}
+                  <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 18, fontWeight: 800, color: exercise.color, fontVariantNumeric: 'tabular-nums' }}>{timeLeft}s</span>
                 </div>
               </div>
-            </>
+
+              <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 15, color: '#e7e5e4', margin: 0, lineHeight: 1.4 }}>{step.instruction}</p>
+
+              {step.syllable && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 600, color: '#767575', textTransform: 'uppercase' }}>Sing:</span>
+                  <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 16, fontWeight: 800, color: exercise.color }}>"{step.syllable}"</span>
+                </div>
+              )}
+
+              {step.targetNote && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#767575' }}>music_note</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#acabaa' }}>{step.targetNote}</span>
+                  <button onClick={() => playNoteForStep(step)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: exercise.color, display: 'flex' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>volume_up</span>
+                  </button>
+                  {step.listenForPitch && detectorState.currentPitch && detectorState.status !== 'silent' && (
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600,
+                      color: statusColor(detectorState.status),
+                      marginLeft: 'auto',
+                    }}>
+                      {detectorState.currentPitch.noteName}{detectorState.currentPitch.octave}
+                      {' '}({detectorState.centsOff > 0 ? '+' : ''}{Math.round(detectorState.centsOff)}¢)
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <StepVisual step={step} progress={progress} />
+
+              <div style={{ width: '100%', height: 3, borderRadius: 2, background: '#252626', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${progress * 100}%`, background: exercise.color, borderRadius: 2, transition: 'width 100ms linear' }} />
+              </div>
+            </div>
           )}
 
           {!running && (
-            <div style={{
-              background: '#1f2020', borderRadius: 16, padding: 24,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
-            }}>
-              <div style={{
-                display: 'flex', flexDirection: 'column', gap: 8, width: '100%',
-              }}>
-                {exercise.steps.slice(0, 4).map((s, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '8px 0', borderBottom: i < 3 ? '1px solid #252626' : 'none',
-                  }}>
-                    <span style={{
-                      width: 20, height: 20, borderRadius: '50%', background: '#252626',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#767575',
-                      flexShrink: 0,
-                    }}>{i + 1}</span>
-                    <span style={{
-                      fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#acabaa',
-                      flex: 1,
-                    }}>{s.instruction}</span>
-                    <span style={{
-                      fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#484848',
-                      flexShrink: 0,
-                    }}>{s.durationSec}s</span>
+            <div style={{ background: '#1f2020', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+                {exercise.steps.slice(0, 5).map((s, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: i < Math.min(4, exercise.steps.length - 1) ? '1px solid #252626' : 'none' }}>
+                    <span style={{ width: 18, height: 18, borderRadius: '50%', background: '#252626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#767575', flexShrink: 0 }}>{i + 1}</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#acabaa', flex: 1 }}>{s.instruction}</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#484848', flexShrink: 0 }}>{s.durationSec}s</span>
+                    {s.listenForPitch && <span className="material-symbols-outlined" style={{ fontSize: 12, color: '#007aff', flexShrink: 0 }}>mic</span>}
                   </div>
                 ))}
-                {exercise.steps.length > 4 && (
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#484848', textAlign: 'center' }}>
-                    +{exercise.steps.length - 4} more steps
-                  </span>
+                {exercise.steps.length > 5 && (
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#484848', textAlign: 'center' }}>+{exercise.steps.length - 5} more steps</span>
                 )}
               </div>
 
-              <button onClick={handleStart} style={{
-                width: 64, height: 64, borderRadius: '50%',
+              {hasPitchSteps && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: '#007aff0d', border: '1px solid #007aff22' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#007aff' }}>mic</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#007aff' }}>Mic will listen to check your pitch</span>
+                </div>
+              )}
+
+              <button onClick={handleStart} disabled={starting} style={{
+                width: 56, height: 56, borderRadius: '50%',
                 background: `linear-gradient(135deg, ${exercise.color}, ${exercise.color}cc)`,
-                border: 'none', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', cursor: starting ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: `0 8px 32px ${exercise.color}40`,
+                opacity: starting ? 0.5 : 1, transition: 'opacity 150ms ease',
               }}>
-                <span className="material-symbols-outlined" style={{
-                  fontSize: 32, color: '#fff',
-                  fontVariationSettings: "'FILL' 1",
-                }}>play_arrow</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 28, color: '#fff', fontVariationSettings: "'FILL' 1" }}>{starting ? 'mic' : 'play_arrow'}</span>
               </button>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#767575' }}>
-                Tap to begin
-              </span>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#767575' }}>{starting ? 'Requesting mic access…' : 'Tap to begin'}</span>
             </div>
           )}
         </div>
@@ -615,108 +477,61 @@ function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: ()
 function PitchGraphic() {
   const heights = [20, 40, 60, 75, 90, 75, 50, 30, 15, 55, 100, 65, 45];
   return (
-    <div style={{
-      height: 64, width: '100%', background: '#0e0e0e',
-      borderRadius: 12, padding: '8px 12px',
-      display: 'flex', alignItems: 'flex-end', gap: 3,
-      position: 'relative', overflow: 'hidden',
-    }}>
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(90deg, rgba(0,122,255,0.05) 0%, rgba(0,122,255,0.15) 100%)',
-        opacity: 0.4,
-      }} />
-      {heights.map((h, i) => (
-        <div key={i} style={{
-          flex: 1, height: `${h}%`, borderRadius: 999,
-          background: `rgba(0,122,255,${0.2 + (h / 100) * 0.6})`,
-          transition: 'height 300ms ease',
-        }} />
-      ))}
+    <div style={{ height: 48, width: '100%', background: '#0e0e0e', borderRadius: 10, padding: '6px 10px', display: 'flex', alignItems: 'flex-end', gap: 3, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(0,122,255,0.05), rgba(0,122,255,0.15))', opacity: 0.4 }} />
+      {heights.map((h, i) => <div key={i} style={{ flex: 1, height: `${h}%`, borderRadius: 999, background: `rgba(0,122,255,${0.2 + (h / 100) * 0.6})` }} />)}
     </div>
   );
 }
 
 export default function PracticePanel() {
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
-
-  const recommended = EXERCISES[2];
-  const focusExercise = EXERCISES[0];
-  const library = EXERCISES.filter(e => e.id !== recommended.id && e.id !== focusExercise.id);
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
 
   if (activeExercise) {
     return <ExerciseRunner exercise={activeExercise} onClose={() => setActiveExercise(null)} />;
   }
 
+  const recommended = EXERCISES.find(e => e.id === 'major-scale')!;
+  const exercisesByCategory = CATEGORIES.map(cat => ({
+    ...cat,
+    exercises: EXERCISES.filter(e => e.category === cat.id),
+  }));
+
   return (
     <div style={{ padding: '20px 20px 40px', minHeight: '100%' }}>
       {/* Hero */}
-      <section style={{ marginBottom: 32 }}>
-        <span style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
-          color: '#007aff', letterSpacing: '0.14em', textTransform: 'uppercase',
-          marginBottom: 6, display: 'block',
-        }}>Personalized Training</span>
-        <h2 style={{
-          fontFamily: 'Manrope, sans-serif', fontWeight: 800,
-          fontSize: 36, letterSpacing: '-0.03em',
-          color: '#e7e5e4', margin: '0 0 10px', lineHeight: 1,
-        }}>Practice</h2>
-        <p style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 13,
-          color: '#acabaa', margin: 0, lineHeight: 1.5, maxWidth: 320,
-        }}>Precision exercises to expand your range, master resonance, and refine your vocal technique.</p>
+      <section style={{ marginBottom: 28 }}>
+        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#007aff', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Personalized Training</span>
+        <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em', color: '#e7e5e4', margin: '0 0 8px', lineHeight: 1 }}>Practice</h2>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0, lineHeight: 1.5, maxWidth: 320 }}>
+          {EXERCISES.length} exercises across {CATEGORIES.length} categories. Real-time pitch detection checks your accuracy.
+        </p>
       </section>
 
-      {/* Recommended Card */}
-      <section style={{ marginBottom: 16 }}>
-        <div
-          onClick={() => setActiveExercise(recommended)}
-          style={{
-            background: '#1f2020', borderRadius: 20, padding: 24,
-            position: 'relative', overflow: 'hidden', cursor: 'pointer',
-          }}
-        >
-          <div style={{
-            position: 'absolute', right: -40, bottom: -40,
-            width: 180, height: 180, borderRadius: '50%',
-            background: 'rgba(0,122,255,0.04)', filter: 'blur(60px)',
-          }} />
+      {/* Recommended */}
+      <section style={{ marginBottom: 20 }}>
+        <div onClick={() => setActiveExercise(recommended)} style={{ background: '#1f2020', borderRadius: 18, padding: 20, position: 'relative', overflow: 'hidden', cursor: 'pointer' }}>
+          <div style={{ position: 'absolute', right: -40, bottom: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(0,122,255,0.04)', filter: 'blur(60px)' }} />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
               <div>
-                <span style={{
-                  display: 'inline-block', background: 'rgba(0,122,255,0.1)',
-                  color: '#007aff', fontSize: 9, fontWeight: 700, fontFamily: 'Inter, sans-serif',
-                  padding: '3px 8px', borderRadius: 4, textTransform: 'uppercase',
-                  letterSpacing: '0.06em', marginBottom: 10,
-                }}>Recommended</span>
-                <h3 style={{
-                  fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 22,
-                  color: '#e7e5e4', margin: '0 0 8px', letterSpacing: '-0.01em',
-                }}>{recommended.name}</h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 12 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>schedule</span>
-                    {recommended.durationMin}
+                <span style={{ display: 'inline-block', background: 'rgba(0,122,255,0.1)', color: '#007aff', fontSize: 9, fontWeight: 700, fontFamily: 'Inter, sans-serif', padding: '3px 8px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Recommended</span>
+                <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 20, color: '#e7e5e4', margin: '0 0 6px' }}>{recommended.name}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 11 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>schedule</span>{recommended.durationMin}
                   </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>bar_chart</span>
-                    {recommended.level}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>bar_chart</span>{recommended.level}
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>mic</span>Pitch check
                   </span>
                 </div>
               </div>
-              <div style={{
-                width: 48, height: 48, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #007aff, #0066d6)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 20px rgba(0,122,255,0.25)',
-                flexShrink: 0,
-              }}>
-                <span className="material-symbols-outlined" style={{
-                  fontSize: 24, color: '#fff',
-                  fontVariationSettings: "'FILL' 1",
-                }}>play_arrow</span>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, #007aff, #0066d6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,122,255,0.25)', flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#fff', fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
               </div>
             </div>
             <PitchGraphic />
@@ -724,93 +539,61 @@ export default function PracticePanel() {
         </div>
       </section>
 
-      {/* Focus Card */}
-      <section style={{ marginBottom: 24 }}>
-        <div
-          onClick={() => setActiveExercise(focusExercise)}
-          style={{
-            background: '#1f2020', borderRadius: 20, padding: 20,
-            border: '1px solid rgba(72,72,72,0.08)', cursor: 'pointer',
-          }}
-        >
-          <div style={{
-            width: 36, height: 36, borderRadius: 8,
-            background: '#252626', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', marginBottom: 14,
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: focusExercise.color }}>{focusExercise.icon}</span>
-          </div>
-          <h3 style={{
-            fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 17,
-            color: '#e7e5e4', margin: '0 0 4px',
-          }}>{focusExercise.name}</h3>
-          <p style={{
-            fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#acabaa',
-            margin: '0 0 16px', lineHeight: 1.4,
-          }}>{focusExercise.description.slice(0, 70)}…</p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: '#767575' }}>{focusExercise.durationMin}</span>
-            <span style={{
-              fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700,
-              color: focusExercise.color, display: 'flex', alignItems: 'center', gap: 2,
-            }}>
-              START <span className="material-symbols-outlined" style={{ fontSize: 14 }}>chevron_right</span>
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* Library */}
-      <section>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <h4 style={{
-            fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 16,
-            color: '#e7e5e4', margin: 0,
-          }}>Exercise Library</h4>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {library.map(ex => (
-            <div
-              key={ex.id}
-              onClick={() => setActiveExercise(ex)}
-              style={{
-                background: '#191a1a', borderRadius: 14, padding: '14px 16px',
-                display: 'flex', alignItems: 'center', gap: 12,
-                border: '1px solid rgba(72,72,72,0.08)', cursor: 'pointer',
-              }}
-            >
-              <div style={{
-                width: 40, height: 40, borderRadius: 10,
-                background: '#0e0e0e', display: 'flex',
-                alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#acabaa' }}>{ex.icon}</span>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{
-                  fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14,
-                  color: '#e7e5e4', margin: 0,
-                }}>{ex.name}</p>
-                <p style={{
-                  fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600,
-                  color: '#767575', margin: '2px 0 0', textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                }}>{ex.subtitle}</p>
-              </div>
-              <div style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0,
-              }}>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#767575', fontWeight: 600 }}>{ex.durationMin}</span>
-                <span style={{
-                  fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700,
-                  color: ex.color, textTransform: 'uppercase',
-                }}>{ex.level}</span>
-              </div>
+      {/* Category sections */}
+      {exercisesByCategory.map(cat => (
+        <section key={cat.id} style={{ marginBottom: 16 }}>
+          <button
+            onClick={() => setExpandedCat(expandedCat === cat.id ? null : cat.id)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+            }}
+          >
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${cat.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16, color: cat.color }}>{cat.icon}</span>
             </div>
-          ))}
-        </div>
-      </section>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, color: '#e7e5e4', margin: 0 }}>{cat.name}</p>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', margin: '1px 0 0' }}>{cat.exercises.length} exercises</p>
+            </div>
+            <span className="material-symbols-outlined" style={{
+              fontSize: 18, color: '#484848', transition: 'transform 200ms ease',
+              transform: expandedCat === cat.id ? 'rotate(180deg)' : 'rotate(0deg)',
+            }}>expand_more</span>
+          </button>
+
+          {expandedCat === cat.id && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 8 }}>
+              {cat.exercises.map(ex => (
+                <div
+                  key={ex.id}
+                  onClick={() => setActiveExercise(ex)}
+                  style={{
+                    background: '#191a1a', borderRadius: 12, padding: '12px 14px',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    border: '1px solid rgba(72,72,72,0.08)', cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: '#0e0e0e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#acabaa' }}>{ex.icon}</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: '#e7e5e4', margin: 0 }}>{ex.name}</p>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 600, color: '#767575', margin: '2px 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{ex.subtitle}</p>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', fontWeight: 600 }}>{ex.durationMin}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: ex.color, textTransform: 'uppercase' }}>{ex.level}</span>
+                      {ex.steps.some(s => s.listenForPitch) && <span className="material-symbols-outlined" style={{ fontSize: 10, color: '#007aff' }}>mic</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
     </div>
   );
 }
