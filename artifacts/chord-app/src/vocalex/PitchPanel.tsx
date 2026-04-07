@@ -168,14 +168,58 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
         <svg viewBox="0 0 100 100"
           style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%',
-            transform: 'rotate(-90deg)',
           }}>
           <circle cx="50" cy="50" r="45" fill="none"
-            stroke="rgba(72,72,72,0.3)" strokeWidth="0.5" />
-          <path d="M 50 5 A 45 45 0 0 1 54.7 5.2"
-            fill="none" stroke="#007aff" strokeWidth="4" strokeLinecap="round" />
-          <path d="M 50 5 A 45 45 0 0 0 45.3 5.2"
-            fill="none" stroke="#007aff" strokeWidth="4" strokeLinecap="round" />
+            stroke="rgba(72,72,72,0.15)" strokeWidth="0.5" />
+
+          {(() => {
+            const r = 45;
+            const C = 2 * Math.PI * r;
+            const greenDeg = 14;
+            const yellowDeg = 12;
+            const redDeg = 20;
+            const greenLen = (greenDeg / 360) * C;
+            const yellowLen = (yellowDeg / 360) * C;
+            const redLen = (redDeg / 360) * C;
+
+            const greenStart = -greenDeg / 2;
+            const yellowLeftStart = -(greenDeg / 2 + yellowDeg);
+            const yellowRightStart = greenDeg / 2;
+            const redLeftStart = -(greenDeg / 2 + yellowDeg + redDeg);
+            const redRightStart = greenDeg / 2 + yellowDeg;
+
+            return (
+              <>
+                <circle cx="50" cy="50" r={r} fill="none"
+                  stroke="#ef4444" strokeWidth="3" opacity="0.45"
+                  strokeDasharray={`${(redDeg / 360) * C} ${C - (redDeg / 360) * C}`}
+                  strokeLinecap="round"
+                  transform={`rotate(${-90 + redLeftStart} 50 50)`} />
+                <circle cx="50" cy="50" r={r} fill="none"
+                  stroke="#ef4444" strokeWidth="3" opacity="0.45"
+                  strokeDasharray={`${redLen} ${C - redLen}`}
+                  strokeLinecap="round"
+                  transform={`rotate(${-90 + redRightStart} 50 50)`} />
+
+                <circle cx="50" cy="50" r={r} fill="none"
+                  stroke="#eab308" strokeWidth="3" opacity="0.55"
+                  strokeDasharray={`${yellowLen} ${C - yellowLen}`}
+                  strokeLinecap="round"
+                  transform={`rotate(${-90 + yellowLeftStart} 50 50)`} />
+                <circle cx="50" cy="50" r={r} fill="none"
+                  stroke="#eab308" strokeWidth="3" opacity="0.55"
+                  strokeDasharray={`${yellowLen} ${C - yellowLen}`}
+                  strokeLinecap="round"
+                  transform={`rotate(${-90 + yellowRightStart} 50 50)`} />
+
+                <circle cx="50" cy="50" r={r} fill="none"
+                  stroke="#34d399" strokeWidth="4" opacity="0.8"
+                  strokeDasharray={`${greenLen} ${C - greenLen}`}
+                  strokeLinecap="round"
+                  transform={`rotate(${-90 + greenStart} 50 50)`} />
+              </>
+            );
+          })()}
         </svg>
 
         <div style={{
@@ -189,29 +233,16 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
         }}>
           <div style={{
             width: 6, height: 6, borderRadius: '50%',
-            background: '#007aff',
-            boxShadow: '0 0 8px rgba(0,122,255,0.6)',
+            background: statusColor,
+            boxShadow: `0 0 8px ${statusColor}99`,
+            transition: 'background 150ms ease, box-shadow 150ms ease',
           }} />
           <div style={{
             width: 2, flex: 1,
-            background: 'linear-gradient(to bottom, #007aff, transparent)',
+            background: `linear-gradient(to bottom, ${statusColor}, transparent)`,
+            transition: 'background 150ms ease',
           }} />
         </div>
-
-        <div style={{
-          position: 'absolute',
-          left: 'calc(50% - 100px)',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: 6,
-          height: active ? Math.max(16, 50 - Math.abs(result!.cents)) : 16,
-          borderRadius: 3,
-          background: '#007aff',
-          boxShadow: active ? '0 0 10px rgba(0,122,255,0.4)' : 'none',
-          opacity: active ? 1 : 0.15,
-          transition: 'height 120ms ease, opacity 200ms ease',
-          zIndex: 2,
-        }} />
 
         <div style={{ textAlign: 'center', zIndex: 1, position: 'relative' }}>
           <p style={{
