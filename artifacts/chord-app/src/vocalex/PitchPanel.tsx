@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { yinDetect, type PitchResult } from './pitchYin';
+import { detectPitch, type PitchResult } from './pitchYin';
 
-const HISTORY_LEN = 20;
-const SMOOTHING = 0.35;
+const HISTORY_LEN = 16;
+const SMOOTHING = 0.3;
 
 function centsToColor(cents: number): string {
   const abs = Math.abs(cents);
-  if (abs <= 5) return '#22c55e';
+  if (abs <= 5) return '#6366f1';
   if (abs <= 15) return '#eab308';
   return '#ef4444';
 }
@@ -18,32 +18,25 @@ function centsToLabel(cents: number): string {
   return 'OFF KEY';
 }
 
-function centsToAngle(cents: number): number {
-  return Math.max(-50, Math.min(50, cents)) * 1.8;
+function centsToNeedleAngle(cents: number): number {
+  return Math.max(-50, Math.min(50, cents)) * 1.6;
 }
 
 interface GaugeProps {
   noteName: string;
   octave: number;
   cents: number;
-  frequency: number;
-  confidence: number;
   active: boolean;
 }
 
-function PitchGauge({ noteName, octave, cents, frequency, confidence, active }: GaugeProps) {
-  const size = 260;
+function PitchGauge({ noteName, octave, cents, active }: GaugeProps) {
+  const size = 280;
   const cx = size / 2;
-  const cy = size / 2;
-  const r = 108;
-  const needleAngle = centsToAngle(cents);
-  const color = active ? centsToColor(cents) : 'rgba(255,255,255,0.15)';
-  const label = active ? centsToLabel(cents) : '—';
-
-  const startAngle = -90;
-  const totalArc = 180;
-  const greenZone = 5 * 1.8;
-  const yellowZone = 15 * 1.8;
+  const cy = size / 2 + 10;
+  const r = 115;
+  const needleAngle = centsToNeedleAngle(cents);
+  const color = active ? centsToColor(cents) : 'rgba(255,255,255,0.08)';
+  const label = active ? centsToLabel(cents) : '';
 
   const arcPath = (startDeg: number, endDeg: number, radius: number) => {
     const s = (startDeg - 90) * Math.PI / 180;
@@ -56,31 +49,28 @@ function PitchGauge({ noteName, octave, cents, frequency, confidence, active }: 
     return `M ${x1} ${y1} A ${radius} ${radius} 0 ${large} 1 ${x2} ${y2}`;
   };
 
+  const tickAngles = [-80, -60, -40, -20, 0, 20, 40, 60, 80];
+
+  const leftBarH = active ? Math.max(8, Math.min(40, 40 - Math.abs(cents) * 0.6)) : 8;
+  const rightBarH = leftBarH;
+
   return (
-    <div style={{ position: 'relative', width: size, height: size * 0.85 }}>
-      <svg width={size} height={size * 0.85} viewBox={`0 0 ${size} ${size * 0.85}`}>
-        <path d={arcPath(startAngle, startAngle + totalArc, r)}
-          fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={6} strokeLinecap="round" />
+    <div style={{
+      position: 'relative', width: size, height: size * 0.72,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <svg width={size} height={size * 0.72} viewBox={`0 0 ${size} ${size * 0.72}`}>
+        <path d={arcPath(-90, 90, r)}
+          fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={3} strokeLinecap="round" />
 
-        <path d={arcPath(startAngle, startAngle + totalArc / 2 - yellowZone, r)}
-          fill="none" stroke="rgba(239,68,68,0.25)" strokeWidth={6} strokeLinecap="round" />
-        <path d={arcPath(startAngle + totalArc / 2 - yellowZone, startAngle + totalArc / 2 - greenZone, r)}
-          fill="none" stroke="rgba(234,179,8,0.25)" strokeWidth={6} strokeLinecap="round" />
-        <path d={arcPath(startAngle + totalArc / 2 - greenZone, startAngle + totalArc / 2 + greenZone, r)}
-          fill="none" stroke="rgba(34,197,94,0.35)" strokeWidth={6} strokeLinecap="round" />
-        <path d={arcPath(startAngle + totalArc / 2 + greenZone, startAngle + totalArc / 2 + yellowZone, r)}
-          fill="none" stroke="rgba(234,179,8,0.25)" strokeWidth={6} strokeLinecap="round" />
-        <path d={arcPath(startAngle + totalArc / 2 + yellowZone, startAngle + totalArc, r)}
-          fill="none" stroke="rgba(239,68,68,0.25)" strokeWidth={6} strokeLinecap="round" />
-
-        {[-50, -25, 0, 25, 50].map(c => {
-          const a = (c * 1.8 - 90) * Math.PI / 180;
-          const x1 = cx + (r - 12) * Math.cos(a);
-          const y1 = cy + (r - 12) * Math.sin(a);
-          const x2 = cx + (r - 6) * Math.cos(a);
-          const y2 = cy + (r - 6) * Math.sin(a);
-          return <line key={c} x1={x1} y1={y1} x2={x2} y2={y2}
-            stroke="rgba(255,255,255,0.2)" strokeWidth={1.5} strokeLinecap="round" />;
+        {tickAngles.map(deg => {
+          const a = (deg - 90) * Math.PI / 180;
+          const inner = r - 8;
+          const outer = r;
+          return <line key={deg}
+            x1={cx + inner * Math.cos(a)} y1={cy + inner * Math.sin(a)}
+            x2={cx + outer * Math.cos(a)} y2={cy + outer * Math.sin(a)}
+            stroke="rgba(255,255,255,0.12)" strokeWidth={1.2} strokeLinecap="round" />;
         })}
 
         <g style={{
@@ -88,87 +78,110 @@ function PitchGauge({ noteName, octave, cents, frequency, confidence, active }: 
           transformOrigin: `${cx}px ${cy}px`,
           transition: 'transform 80ms cubic-bezier(0.4,0,0.2,1)',
         }}>
-          <line x1={cx} y1={cy - r + 18} x2={cx} y2={cy - r + 40}
-            stroke={color} strokeWidth={3} strokeLinecap="round"
-            style={{ filter: active ? `drop-shadow(0 0 6px ${color})` : 'none' }} />
-          <circle cx={cx} cy={cy - r + 16} r={3} fill={color}
-            style={{ filter: active ? `drop-shadow(0 0 4px ${color})` : 'none' }} />
+          <line x1={cx} y1={cy - r + 2} x2={cx} y2={cy - r + 22}
+            stroke={active ? '#6366f1' : 'rgba(255,255,255,0.1)'} strokeWidth={2.5} strokeLinecap="round"
+            style={{ filter: active ? 'drop-shadow(0 0 6px rgba(99,102,241,0.5))' : 'none' }} />
+          <circle cx={cx} cy={cy - r} r={2.5}
+            fill={active ? '#6366f1' : 'rgba(255,255,255,0.1)'}
+            style={{ filter: active ? 'drop-shadow(0 0 4px rgba(99,102,241,0.5))' : 'none' }} />
         </g>
       </svg>
 
       <div style={{
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -30%)',
+        top: '50%', left: '50%',
+        transform: 'translate(-50%, -20%)',
         textAlign: 'center',
         pointerEvents: 'none',
+        width: '100%',
       }}>
         <div style={{
           fontFamily: 'Inter, sans-serif',
           fontSize: 9,
           fontWeight: 600,
-          letterSpacing: '0.18em',
+          letterSpacing: '0.2em',
           textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.35)',
-          marginBottom: 4,
+          color: 'rgba(255,255,255,0.3)',
+          marginBottom: 6,
         }}>CURRENT NOTE</div>
-        <div style={{
-          fontFamily: 'Manrope, sans-serif',
-          fontSize: active ? 56 : 40,
-          fontWeight: 800,
-          color: active ? 'var(--c-text-primary)' : 'rgba(255,255,255,0.15)',
-          lineHeight: 1,
-          letterSpacing: '-0.02em',
-          transition: 'font-size 200ms ease, color 200ms ease',
-        }}>
-          {active ? `${noteName}${octave}` : '—'}
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+          <div style={{
+            width: 6, borderRadius: 3,
+            height: leftBarH,
+            background: active ? '#6366f1' : 'rgba(255,255,255,0.06)',
+            transition: 'height 120ms ease, background 120ms ease',
+            boxShadow: active ? '0 0 8px rgba(99,102,241,0.4)' : 'none',
+          }} />
+
+          <div style={{
+            fontFamily: 'Manrope, sans-serif',
+            fontSize: 64,
+            fontWeight: 800,
+            color: active ? '#ffffff' : 'rgba(255,255,255,0.08)',
+            lineHeight: 1,
+            letterSpacing: '-0.03em',
+            transition: 'color 200ms ease',
+            minWidth: 120,
+          }}>
+            {active ? `${noteName}${octave}` : '—'}
+          </div>
+
+          <div style={{
+            width: 6, borderRadius: 3,
+            height: rightBarH,
+            background: active ? '#6366f1' : 'rgba(255,255,255,0.06)',
+            transition: 'height 120ms ease, background 120ms ease',
+            boxShadow: active ? '0 0 8px rgba(99,102,241,0.4)' : 'none',
+          }} />
         </div>
-        <div style={{
-          marginTop: 8,
-          display: 'inline-block',
-          padding: '3px 12px',
-          borderRadius: 20,
-          fontSize: 10,
-          fontWeight: 700,
-          fontFamily: 'Inter, sans-serif',
-          letterSpacing: '0.08em',
-          background: active ? `${color}22` : 'rgba(255,255,255,0.04)',
-          color: active ? color : 'rgba(255,255,255,0.15)',
-          border: `1px solid ${active ? `${color}33` : 'rgba(255,255,255,0.06)'}`,
-          transition: 'all 200ms ease',
-        }}>
-          {label}
-        </div>
+
+        {label && (
+          <div style={{
+            marginTop: 8,
+            display: 'inline-block',
+            padding: '4px 14px',
+            borderRadius: 20,
+            fontSize: 10,
+            fontWeight: 700,
+            fontFamily: 'Inter, sans-serif',
+            letterSpacing: '0.1em',
+            background: `${color}18`,
+            color: color,
+            border: `1px solid ${color}30`,
+            transition: 'all 200ms ease',
+          }}>
+            {label}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function HistoryBars({ history }: { history: PitchResult[] }) {
-  const maxBars = HISTORY_LEN;
   return (
     <div style={{
-      display: 'flex', alignItems: 'flex-end', gap: 3,
-      height: 50, width: '100%', maxWidth: 320,
-      padding: '0 4px',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 4,
+      height: 44, width: '100%', maxWidth: 300,
+      padding: '0 8px',
     }}>
-      {Array.from({ length: maxBars }, (_, i) => {
-        const entry = history[history.length - maxBars + i];
+      {Array.from({ length: HISTORY_LEN }, (_, i) => {
+        const entry = history[history.length - HISTORY_LEN + i];
         if (!entry) {
           return <div key={i} style={{
-            flex: 1, height: 6, borderRadius: 3,
+            flex: 1, maxWidth: 16, height: 5, borderRadius: 2.5,
             background: 'rgba(255,255,255,0.04)',
           }} />;
         }
         const absCents = Math.abs(entry.cents);
-        const h = Math.max(6, Math.min(50, (1 - absCents / 50) * 50));
+        const h = Math.max(5, Math.min(44, (1 - absCents / 50) * 44));
         const color = centsToColor(entry.cents);
         return <div key={i} style={{
-          flex: 1, height: h, borderRadius: 3,
+          flex: 1, maxWidth: 16, height: h, borderRadius: 2.5,
           background: color,
-          opacity: 0.7 + 0.3 * entry.confidence,
-          transition: 'height 120ms ease, background 120ms ease',
+          opacity: 0.65 + 0.35 * entry.confidence,
+          transition: 'height 100ms ease',
         }} />;
       })}
     </div>
@@ -207,7 +220,7 @@ export default function PitchPanel() {
       return;
     }
 
-    const raw = yinDetect(buf, ctx.sampleRate, 0.15);
+    const raw = detectPitch(buf, ctx.sampleRate, 0.80);
     if (raw) {
       if (smoothedFreqRef.current === 0) {
         smoothedFreqRef.current = raw.frequency;
@@ -249,7 +262,7 @@ export default function PitchPanel() {
       audioCtxRef.current = ctx;
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 4096;
+      analyser.fftSize = 2048;
       source.connect(analyser);
       analyserRef.current = analyser;
       setListening(true);
@@ -289,136 +302,141 @@ export default function PitchPanel() {
 
   return (
     <div style={{
-      padding: '12px 20px 20px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: 16,
+      gap: 14,
+      padding: '8px 20px 24px',
       minHeight: '100%',
     }}>
-      <PitchGauge
-        noteName={result?.noteName ?? '—'}
-        octave={result?.octave ?? 0}
-        cents={result?.cents ?? 0}
-        frequency={result?.frequency ?? 0}
-        confidence={result?.confidence ?? 0}
-        active={active}
-      />
+      <div style={{
+        width: '100%',
+        maxWidth: 340,
+        background: 'rgba(18,18,24,0.85)',
+        borderRadius: 24,
+        padding: '20px 16px 24px',
+        border: '1px solid rgba(255,255,255,0.06)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}>
+        <PitchGauge
+          noteName={result?.noteName ?? '—'}
+          octave={result?.octave ?? 0}
+          cents={result?.cents ?? 0}
+          active={active}
+        />
+      </div>
 
       <div style={{
-        display: 'flex', gap: 12, width: '100%', maxWidth: 320,
+        display: 'flex', gap: 10, width: '100%', maxWidth: 340,
       }}>
         <div style={{
           flex: 1,
-          background: 'var(--c-surface)',
-          borderRadius: 14,
-          padding: '12px 16px',
-          border: '1px solid var(--c-border)',
+          background: 'rgba(18,18,24,0.85)',
+          borderRadius: 16,
+          padding: '14px 16px',
+          border: '1px solid rgba(255,255,255,0.06)',
         }}>
           <div style={{
-            fontSize: 9, fontWeight: 600, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: 'var(--c-text-secondary)',
-            fontFamily: 'Inter, sans-serif', marginBottom: 4,
+            fontSize: 9, fontWeight: 600, letterSpacing: '0.14em',
+            textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
+            fontFamily: 'Inter, sans-serif', marginBottom: 6,
           }}>FREQUENCY</div>
           <div style={{
-            fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif',
-            color: active ? 'var(--c-text-primary)' : 'rgba(255,255,255,0.15)',
+            fontSize: 24, fontWeight: 800, fontFamily: 'Manrope, sans-serif',
+            color: active ? '#ffffff' : 'rgba(255,255,255,0.1)',
             transition: 'color 200ms ease',
           }}>
             {active ? result!.frequency.toFixed(2) : '—'}
-            <span style={{ fontSize: 12, fontWeight: 500, marginLeft: 3, opacity: 0.5 }}>Hz</span>
+            {active && <span style={{ fontSize: 13, fontWeight: 500, marginLeft: 4, color: 'rgba(255,255,255,0.35)' }}>Hz</span>}
           </div>
         </div>
         <div style={{
           flex: 1,
-          background: 'var(--c-surface)',
-          borderRadius: 14,
-          padding: '12px 16px',
-          border: '1px solid var(--c-border)',
+          background: 'rgba(18,18,24,0.85)',
+          borderRadius: 16,
+          padding: '14px 16px',
+          border: '1px solid rgba(255,255,255,0.06)',
         }}>
           <div style={{
-            fontSize: 9, fontWeight: 600, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: 'var(--c-text-secondary)',
-            fontFamily: 'Inter, sans-serif', marginBottom: 4,
+            fontSize: 9, fontWeight: 600, letterSpacing: '0.14em',
+            textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
+            fontFamily: 'Inter, sans-serif', marginBottom: 6,
           }}>PRECISION</div>
           <div style={{
-            fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif',
-            color: active ? centsToColor(result!.cents) : 'rgba(255,255,255,0.15)',
+            fontSize: 24, fontWeight: 800, fontFamily: 'Manrope, sans-serif',
+            color: active ? centsToColor(result!.cents) : 'rgba(255,255,255,0.1)',
             transition: 'color 200ms ease',
           }}>
             {active ? (result!.cents >= 0 ? '+' : '') + result!.cents.toFixed(1) : '—'}
-            <span style={{ fontSize: 12, fontWeight: 500, marginLeft: 3, opacity: 0.5 }}>cents</span>
+            {active && <span style={{ fontSize: 13, fontWeight: 500, marginLeft: 4, color: 'rgba(255,255,255,0.35)' }}>cents</span>}
           </div>
         </div>
       </div>
 
-      <HistoryBars history={history} />
+      <div style={{
+        width: '100%', maxWidth: 340,
+        background: 'rgba(18,18,24,0.85)',
+        borderRadius: 16,
+        padding: '14px 16px',
+        border: '1px solid rgba(255,255,255,0.06)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <HistoryBars history={history} />
+      </div>
 
       <div style={{
-        display: 'flex', gap: 12, width: '100%', maxWidth: 320,
+        display: 'flex', gap: 10, width: '100%', maxWidth: 340,
       }}>
-        {listening && (
-          <button
-            onClick={handleReset}
-            style={{
-              flex: 0,
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '12px 20px',
-              borderRadius: 28,
-              border: '1px solid var(--c-border)',
-              background: 'var(--c-surface)',
-              color: 'var(--c-text-primary)',
-              fontSize: 13, fontWeight: 600,
-              fontFamily: 'Inter, sans-serif',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-            </svg>
-            Reset
-          </button>
-        )}
+        <button
+          onClick={handleReset}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            padding: '14px 22px',
+            borderRadius: 28,
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(18,18,24,0.85)',
+            color: '#ffffff',
+            fontSize: 13, fontWeight: 600,
+            fontFamily: 'Inter, sans-serif',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+          </svg>
+          Reset
+        </button>
         <button
           onClick={listening ? stopListening : startListening}
           style={{
             flex: 1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            padding: '12px 20px',
+            padding: '14px 20px',
             borderRadius: 28,
             border: 'none',
             background: listening
               ? 'rgba(239,68,68,0.85)'
-              : 'linear-gradient(135deg, var(--accent-from), var(--accent-to))',
+              : '#6366f1',
             color: '#fff',
             fontSize: 14, fontWeight: 700,
             fontFamily: 'Inter, sans-serif',
             cursor: 'pointer',
             boxShadow: listening
-              ? '0 4px 20px rgba(239,68,68,0.3)'
-              : '0 4px 20px rgba(99,102,241,0.3)',
-            transition: 'background 200ms ease, box-shadow 200ms ease',
+              ? '0 4px 20px rgba(239,68,68,0.25)'
+              : '0 4px 20px rgba(99,102,241,0.25)',
           }}
         >
-          {listening ? (
-            <>
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="4" width="4" height="16" rx="1" />
-                <rect x="14" y="4" width="4" height="16" rx="1" />
-              </svg>
-              Stop
-            </>
-          ) : (
-            <>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="2" width="6" height="11" rx="3" />
-                <path d="M5 10a7 7 0 0 0 14 0" />
-                <line x1="12" y1="17" x2="12" y2="21" />
-              </svg>
-              Start Listening
-            </>
-          )}
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: '#fff',
+            boxShadow: '0 0 6px rgba(255,255,255,0.5)',
+          }} />
+          {listening ? 'Stop' : 'Capture Take'}
         </button>
       </div>
 
@@ -432,7 +450,7 @@ export default function PitchPanel() {
           fontSize: 12,
           fontFamily: 'Inter, sans-serif',
           textAlign: 'center',
-          maxWidth: 320,
+          maxWidth: 340,
         }}>
           {permError}
         </div>

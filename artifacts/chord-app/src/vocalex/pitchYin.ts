@@ -1,3 +1,5 @@
+import { PitchDetector } from 'pitchy';
+
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 export interface PitchResult {
@@ -10,66 +12,20 @@ export interface PitchResult {
   midiNote: number;
 }
 
-export function yinDetect(
+let detector: PitchDetector<Float32Array> | null = null;
+
+export function detectPitch(
   buffer: Float32Array,
   sampleRate: number,
-  threshold = 0.15,
+  clarityThreshold = 0.80,
 ): PitchResult | null {
-  const halfLen = Math.floor(buffer.length / 2);
-  const diff = new Float32Array(halfLen);
-
-  for (let tau = 0; tau < halfLen; tau++) {
-    let sum = 0;
-    for (let i = 0; i < halfLen; i++) {
-      const d = buffer[i] - buffer[i + tau];
-      sum += d * d;
-    }
-    diff[tau] = sum;
+  if (!detector || detector.inputLength !== buffer.length) {
+    detector = PitchDetector.forFloat32Array(buffer.length);
   }
 
-  const cmnd = new Float32Array(halfLen);
-  cmnd[0] = 1;
-  let runningSum = 0;
-  for (let tau = 1; tau < halfLen; tau++) {
-    runningSum += diff[tau];
-    cmnd[tau] = diff[tau] * tau / runningSum;
-  }
+  const [frequency, clarity] = detector.findPitch(buffer, sampleRate);
 
-  let tauEstimate = -1;
-  for (let tau = 2; tau < halfLen; tau++) {
-    if (cmnd[tau] < threshold) {
-      while (tau + 1 < halfLen && cmnd[tau + 1] < cmnd[tau]) {
-        tau++;
-      }
-      tauEstimate = tau;
-      break;
-    }
-  }
-
-  if (tauEstimate === -1) return null;
-
-  let betterTau: number;
-  const x0 = tauEstimate < 1 ? tauEstimate : tauEstimate - 1;
-  const x2 = tauEstimate + 1 < halfLen ? tauEstimate + 1 : tauEstimate;
-
-  if (x0 === tauEstimate) {
-    betterTau = cmnd[tauEstimate] <= cmnd[x2] ? tauEstimate : x2;
-  } else if (x2 === tauEstimate) {
-    betterTau = cmnd[tauEstimate] <= cmnd[x0] ? tauEstimate : x0;
-  } else {
-    const s0 = cmnd[x0];
-    const s1 = cmnd[tauEstimate];
-    const s2 = cmnd[x2];
-    const denom = 2 * s1 - s2 - s0;
-    betterTau = denom !== 0
-      ? tauEstimate + (s2 - s0) / (2 * denom)
-      : tauEstimate;
-  }
-
-  const frequency = sampleRate / betterTau;
-  const confidence = 1 - (cmnd[tauEstimate] ?? 0);
-
-  if (frequency < 50 || frequency > 2000 || confidence < 0.7) return null;
+  if (clarity < clarityThreshold || frequency < 50 || frequency > 2000) return null;
 
   const midiNote = 12 * Math.log2(frequency / 440) + 69;
   const roundedMidi = Math.round(midiNote);
@@ -80,7 +36,7 @@ export function yinDetect(
 
   return {
     frequency,
-    confidence,
+    confidence: clarity,
     noteName: NOTE_NAMES[noteIdx],
     octave,
     cents,
