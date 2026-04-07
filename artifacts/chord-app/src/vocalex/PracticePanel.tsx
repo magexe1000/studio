@@ -60,12 +60,12 @@ function AccuracyRing({ state, size = 56 }: { state: DetectorState; size?: numbe
         style={{ transition: 'stroke-dasharray 150ms ease, stroke 150ms ease' }}
       />
       <text x={size / 2} y={size / 2 + 1} textAnchor="middle" dominantBaseline="middle"
-        fill={color} fontSize="11" fontWeight="800" fontFamily="Manrope"
+        fill={color} fontSize={state.status === 'good' ? 14 : 10} fontWeight="800" fontFamily="Manrope"
         style={{ transition: 'fill 150ms ease' }}
       >
         {state.status === 'silent' ? '—' :
          state.status === 'good' ? '✓' :
-         `${Math.abs(Math.round(state.centsOff))}¢`}
+         state.centsOff > 0 ? '↑' : '↓'}
       </text>
     </svg>
   );
@@ -100,8 +100,8 @@ function ScoreDisplay({ scores, exerciseColor }: { scores: StepScore[]; exercise
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               border: `1px solid ${c}44`,
             }}>
-              <span style={{ fontSize: 9, fontWeight: 700, color: c, fontFamily: 'Inter, sans-serif' }}>
-                {s.totalSamples === 0 ? '—' : `${stepPct}`}
+              <span style={{ fontSize: 11, fontWeight: 700, color: c, fontFamily: 'Inter, sans-serif' }}>
+                {s.totalSamples === 0 ? '—' : stepPct >= 80 ? '✓' : stepPct >= 55 ? '~' : '✗'}
               </span>
             </div>
           );
@@ -417,9 +417,16 @@ function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: ()
                       fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600,
                       color: statusColor(detectorState.status),
                       marginLeft: 'auto',
+                      display: 'flex', alignItems: 'center', gap: 4,
                     }}>
                       {detectorState.currentPitch.noteName}{detectorState.currentPitch.octave}
-                      {' '}({detectorState.centsOff > 0 ? '+' : ''}{Math.round(detectorState.centsOff)}¢)
+                      {detectorState.status === 'good' ? (
+                        <span style={{ fontSize: 10 }}>On pitch ✓</span>
+                      ) : detectorState.centsOff > 0 ? (
+                        <span style={{ fontSize: 10 }}>Too high ↑</span>
+                      ) : (
+                        <span style={{ fontSize: 10 }}>Too low ↓</span>
+                      )}
                     </span>
                   )}
                 </div>
