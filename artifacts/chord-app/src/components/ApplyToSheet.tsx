@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon } from './ChordexLogo';
+import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import type { AppKey } from '../store/useChordStore';
 import { useT } from '../lib/useT';
@@ -11,10 +11,11 @@ interface AppCard {
 }
 
 const APP_CARDS: AppCard[] = [
-  { key: 'hub',    label: 'Studio',  Logo: StudioLogo       },
-  { key: 'chords', label: 'Chordex', Logo: ChordexLogo      },
-  { key: 'drums',  label: 'Drumex',  Logo: DrumexLogo       },
-  { key: 'stage',  label: 'Stagex',  Logo: StagexLogoIcon },
+  { key: 'hub',     label: 'Studio',  Logo: StudioLogo       },
+  { key: 'chords',  label: 'Chordex', Logo: ChordexLogo      },
+  { key: 'drums',   label: 'Drumex',  Logo: DrumexLogo       },
+  { key: 'stage',   label: 'Stagex',  Logo: StagexLogoIcon   },
+  { key: 'groovex', label: 'Groovex', Logo: GroovexLogo      },
 ];
 
 interface ApplyToSheetProps {
@@ -31,7 +32,7 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
   const vis    = perApp?.[appKey] ?? { accentColor: 'blue' };
   const accent = ACCENT_COLORS[vis.accentColor as keyof typeof ACCENT_COLORS];
 
-  const [selected, setSelected] = useState<Set<AppKey>>(new Set(['hub', 'chords', 'drums']));
+  const [selected, setSelected] = useState<Set<AppKey>>(new Set(['hub', 'chords', 'drums', 'stage', 'groovex']));
   // `mounted`  — whether the DOM node exists (lags behind `show` on close)
   // `open`     — drives CSS "visible" state; set after mount, cleared before unmount
   const [mounted, setMounted] = useState(false);
@@ -42,7 +43,7 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
     if (show) {
       // Cancel any pending unmount
       if (unmountTimer.current) { clearTimeout(unmountTimer.current); unmountTimer.current = null; }
-      setSelected(new Set(['hub', 'chords', 'drums', 'stage']));
+      setSelected(new Set(['hub', 'chords', 'drums', 'stage', 'groovex']));
       setMounted(true);
       // One rAF so the browser paints the mounted state before we trigger the transition
       requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)));
