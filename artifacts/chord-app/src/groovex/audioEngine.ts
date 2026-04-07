@@ -116,12 +116,72 @@ export function setTrackBuffer(engine: AudioEngine, trackIndex: number, buffer: 
   if (buffer.duration > engine.duration) {
     engine.duration = buffer.duration;
   }
+  if (engine.pitchSemitones !== 0) applyPitchToTrack(engine, track);
 }
 
 function getSourceRate(engine: AudioEngine): number {
   return engine.pitchSemitones !== 0 ? getPitchRatio(engine.pitchSemitones) : 1.0;
 }
 
+function timeStretchBuffer(ctx: AudioContext, buffer: AudioBuffer, stretchFactor: number): AudioBuffer {
+  if (Math.abs(stretchFactor - 1.0) < 0.005) return buffer;
+  const numCh = buffer.numberOfChannels;
+  const sr = buffer.sampleRate;
+  const inLen = buffer.length;
+  const outLen = Math.round(inLen * stretchFactor);
+  const result = ctx.createBuffer(numCh, outLen, sr);
+  const W = 4096;
+  const Ha = W >> 2;
+  const Hs = Math.max(1, Math.round(Ha * stretchFactor));
+  const win = new Float32Array(W);
+  for (let i = 0; i < W; i++) win[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (W - 1)));
+  const tol = 256;
+  for (let ch = 0; ch < numCh; ch++) {
+    const inp = buffer.getChannelData(ch);
+    const out = result.getChannelData(ch);
+    const ws = new Float32Array(outLen);
+    let aPos = 0;
+    let sPos = 0;
+    let prevBest = 0;
+    while (aPos + W <= inLen && sPos + W <= outLen) {
+      let best = aPos;
+      if (sPos > 0) {
+        let bestCorr = -Infinity;
+        const lo = Math.max(0, aPos - tol);
+        const hi = Math.min(inLen - W, aPos + tol);
+        const refEnd = prevBest + W;
+        const cmpLen = Math.min(Ha, refEnd > 0 ? W : Ha);
+        for (let t = lo; t <= hi; t += 2) {
+          let c = 0;
+          for (let i = 0; i < cmpLen; i += 4) {
+            const ri = prevBest + W - cmpLen + i;
+            if (ri >= 0 && ri < inLen) c += inp[ri] * inp[t + i];
+          }
+          if (c > bestCorr) { bestCorr = c; best = t; }
+        }
+      }
+      for (let i = 0; i < W; i++) {
+        out[sPos + i] += inp[best + i] * win[i];
+        ws[sPos + i] += win[i];
+      }
+      prevBest = best;
+      aPos += Ha;
+      sPos += Hs;
+    }
+    for (let i = 0; i < outLen; i++) {
+      if (ws[i] > 0.01) out[i] /= ws[i];
+    }
+  }
+  return result;
+}
+
+function applyPitchToTrack(engine: AudioEngine, track: TrackState): void {
+  if (!track.originalBuffer) return;
+  const ratio = getSourceRate(engine);
+  track.buffer = Math.abs(ratio - 1.0) < 0.005
+    ? track.originalBuffer
+    : timeStretchBuffer(engine.ctx, track.originalBuffer, ratio);
+}
 
 export function play(engine: AudioEngine): void {
   if (engine.isPlaying) return;
@@ -131,8 +191,8 @@ export function play(engine: AudioEngine): void {
   if (ctx.state === 'suspended') ctx.resume();
 
   const offset = engine.pauseOffset;
-  const baseRate = getSourceRate(engine);
-  engine.startTime = ctx.currentTime - (offset / baseRate);
+  const rate = getSourceRate(engine);
+  engine.startTime = ctx.currentTime - offset;
   engine.isPlaying = true;
 
   engine.tracks.forEach(track => {
@@ -142,8 +202,8 @@ export function play(engine: AudioEngine): void {
     source.loop = engine.looping;
     source.connect(track.gainNode);
     source.playbackRate.setValueAtTime(0.15, ctx.currentTime);
-    source.playbackRate.exponentialRampToValueAtTime(baseRate, ctx.currentTime + 0.7);
-    source.start(0, offset);
+    source.playbackRate.exponentialRampToValueAtTime(rate, ctx.currentTime + 0.7);
+    source.start(0, offset * rate);
     track.source = source;
 
     if (!engine.looping) {
@@ -212,7 +272,7 @@ function startSourcesAtOffset(engine: AudioEngine, offset: number): void {
     source.loop = engine.looping;
     source.connect(track.gainNode);
     source.playbackRate.setValueAtTime(rate, ctx.currentTime);
-    source.start(0, offset);
+    source.start(0, offset * rate);
     track.source = source;
     if (!engine.looping) {
       source.onended = () => {
@@ -235,8 +295,7 @@ export function seek(engine: AudioEngine, time: number): void {
   if (wasPlaying) {
     const ctx = engine.ctx;
     if (ctx.state === 'suspended') ctx.resume();
-    const rate = getSourceRate(engine);
-    engine.startTime = ctx.currentTime - (engine.pauseOffset / rate);
+    engine.startTime = ctx.currentTime - engine.pauseOffset;
     engine.isPlaying = true;
     startSourcesAtOffset(engine, engine.pauseOffset);
   }
@@ -279,10 +338,9 @@ export function endScrub(engine: AudioEngine, targetTime: number): void {
   engine.scrubGain.gain.linearRampToValueAtTime(1.0, ct + 0.15);
   if (engine.isPlaying) {
     const clamped = Math.max(0, Math.min(targetTime, engine.duration));
-    const rate = getSourceRate(engine);
     stopSources(engine);
     engine.pauseOffset = clamped;
-    engine.startTime = ct - (clamped / rate);
+    engine.startTime = ct - clamped;
     startSourcesAtOffset(engine, clamped);
   }
 }
@@ -291,22 +349,18 @@ export function setPitch(engine: AudioEngine, semitones: number): void {
   if (engine.pitchSemitones === semitones) return;
 
   const currentPos = getCurrentTime(engine);
+  const wasPlaying = engine.isPlaying;
+  if (wasPlaying) stopSources(engine);
+
   engine.pitchSemitones = semitones;
-  const newRate = getSourceRate(engine);
+  engine.tracks.forEach(track => applyPitchToTrack(engine, track));
 
-  engine.tracks.forEach(track => {
-    if (track.source) {
-      try {
-        track.source.playbackRate.cancelScheduledValues(engine.ctx.currentTime);
-        track.source.playbackRate.setValueAtTime(newRate, engine.ctx.currentTime);
-      } catch {}
-    }
-  });
-
-  if (engine.isPlaying) {
-    engine.startTime = engine.ctx.currentTime - (currentPos / newRate);
-  }
   engine.pauseOffset = currentPos;
+  if (wasPlaying) {
+    engine.startTime = engine.ctx.currentTime - currentPos;
+    engine.isPlaying = true;
+    startSourcesAtOffset(engine, currentPos);
+  }
 }
 
 export function setTrackVolume(engine: AudioEngine, trackIndex: number, volume: number): void {
@@ -347,8 +401,7 @@ function applyMutesSolos(engine: AudioEngine): void {
 
 export function getCurrentTime(engine: AudioEngine): number {
   if (!engine.isPlaying) return engine.pauseOffset;
-  const rate = getSourceRate(engine);
-  const songPos = (engine.ctx.currentTime - engine.startTime) * rate;
+  const songPos = engine.ctx.currentTime - engine.startTime;
   if (engine.looping && engine.duration > 0) {
     return songPos % engine.duration;
   }
