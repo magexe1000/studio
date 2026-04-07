@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
-import { VocalexLogo } from '../components/ChordexLogo';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 
+const PracticePanelLazy = lazy(() => import('./PracticePanel'));
 const PitchPanelLazy = lazy(() => import('./PitchPanel'));
 const TakesPanelLazy = lazy(() => import('./TakesPanel'));
 
@@ -54,35 +54,6 @@ function IconTakes({ active }: { active: boolean }) {
   );
 }
 
-function PracticePanel() {
-  return (
-    <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
-      <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-from), var(--accent-to))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.25)' }}>
-        <VocalexLogo size={40} />
-      </div>
-      <div style={{ textAlign: 'center' }}>
-        <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 22, margin: '0 0 6px', color: 'var(--c-text-primary)' }}>Practice</h2>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.5, maxWidth: 280 }}>Warm-ups, breathing exercises, and vocal drills to train your voice.</p>
-      </div>
-      <div style={{ width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {['Breath Control', 'Lip Trills', 'Scale Runs', 'Vowel Matching'].map(name => (
-          <div key={name} style={{
-            background: 'var(--c-surface)',
-            borderRadius: 14,
-            padding: '16px 18px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            border: '1px solid var(--c-border)',
-          }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 600, color: 'var(--c-text-primary)' }}>{name}</span>
-            <span style={{ fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter, sans-serif' }}>Coming soon</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 
 function VocalLabPanel() {
@@ -226,7 +197,7 @@ export default function VocalexApp() {
               WebkitOverflowScrolling: 'touch',
               paddingBottom: 100,
             }}>
-              {panel === 'practice' && <PracticePanel />}
+              {panel === 'practice' && <Suspense fallback={null}><PracticePanelLazy /></Suspense>}
               {panel === 'pitch' && <Suspense fallback={null}><PitchPanelLazy active={activeTab === 'pitch'} /></Suspense>}
               {panel === 'vocalLab' && <VocalLabPanel />}
               {panel === 'takes' && <Suspense fallback={null}><TakesPanelLazy /></Suspense>}
