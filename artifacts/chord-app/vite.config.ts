@@ -57,6 +57,14 @@ export default defineConfig({
     port,
     host: "0.0.0.0",
     allowedHosts: true,
+    hmr: {
+      timeout: 60000,
+      overlay: false,
+    },
+    watch: {
+      usePolling: false,
+      ignored: ["**/node_modules/**", "**/dist/**", "**/.git/**"],
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],
