@@ -60,9 +60,8 @@ export default defineConfig({
     hmr: {
       timeout: 120000,
       overlay: false,
-      clientPort: 443,
     },
-    strictPort: false,
+    strictPort: true,
     watch: {
       usePolling: false,
       ignored: ["**/node_modules/**", "**/dist/**", "**/.git/**"],
