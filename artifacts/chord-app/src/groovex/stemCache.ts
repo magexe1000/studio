@@ -120,6 +120,47 @@ export async function getCacheSize(): Promise<{ totalBytes: number; songCount: n
   }
 }
 
+export interface SongCacheInfo {
+  songId: string;
+  stemCount: number;
+  totalBytes: number;
+  cachedAt: number;
+}
+
+export async function getPerSongCacheInfo(): Promise<SongCacheInfo[]> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const entries = req.result as CachedStem[];
+        const map = new Map<string, SongCacheInfo>();
+        for (const e of entries) {
+          const existing = map.get(e.songId);
+          if (existing) {
+            existing.stemCount++;
+            existing.totalBytes += e.size;
+            if (e.cachedAt > existing.cachedAt) existing.cachedAt = e.cachedAt;
+          } else {
+            map.set(e.songId, {
+              songId: e.songId,
+              stemCount: 1,
+              totalBytes: e.size,
+              cachedAt: e.cachedAt,
+            });
+          }
+        }
+        resolve(Array.from(map.values()).sort((a, b) => b.cachedAt - a.cachedAt));
+      };
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return [];
+  }
+}
+
 export async function clearSongCache(songId: string): Promise<void> {
   try {
     const db = await openDB();

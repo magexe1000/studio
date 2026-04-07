@@ -1,14 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useGroovexStore } from './useGroovexStore';
-import { getCacheSize, clearAllCache } from './stemCache';
+import { getCacheSize, clearAllCache, clearSongCache, getPerSongCacheInfo, type SongCacheInfo } from './stemCache';
+import { SONG_CATALOG } from './songCatalog';
 
 export default function GroovexPreferences() {
   const { preferences, updatePreferences } = useGroovexStore();
   const [cacheInfo, setCacheInfo] = useState({ totalBytes: 0, songCount: 0, stemCount: 0 });
+  const [songCaches, setSongCaches] = useState<SongCacheInfo[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+
+  const refreshCache = useCallback(() => {
+    getCacheSize().then(setCacheInfo);
+    getPerSongCacheInfo().then(setSongCaches);
+  }, []);
 
   useEffect(() => {
-    getCacheSize().then(setCacheInfo);
-  }, []);
+    refreshCache();
+  }, [refreshCache]);
 
   function formatBytes(bytes: number): string {
     if (bytes === 0) return '0 B';
@@ -17,9 +26,24 @@ export default function GroovexPreferences() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  async function handleClearCache() {
+  async function handleDeleteSong(songId: string) {
+    setDeletingId(songId);
+    setConfirmDeleteAll(false);
+    await clearSongCache(songId);
+    await Promise.all([getCacheSize().then(setCacheInfo), getPerSongCacheInfo().then(setSongCaches)]);
+    setDeletingId(null);
+  }
+
+  async function handleClearAll() {
+    setConfirmDeleteAll(false);
+    setDeletingId('__all__');
     await clearAllCache();
-    setCacheInfo({ totalBytes: 0, songCount: 0, stemCount: 0 });
+    await Promise.all([getCacheSize().then(setCacheInfo), getPerSongCacheInfo().then(setSongCaches)]);
+    setDeletingId(null);
+  }
+
+  function songMeta(songId: string) {
+    return SONG_CATALOG.find(s => s.id === songId);
   }
 
   return (
@@ -68,33 +92,127 @@ export default function GroovexPreferences() {
             />
           </PrefCard>
 
-          <PrefCard title="Downloaded Stems Cache" icon="cloud_done">
+          <PrefCard title="Downloaded Songs" icon="cloud_done">
             <div style={{ padding: '4px 0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <div>
                   <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '0 0 4px', fontFamily: 'Inter' }}>
-                    {cacheInfo.stemCount} stems from {cacheInfo.songCount} songs
+                    {cacheInfo.songCount} {cacheInfo.songCount === 1 ? 'song' : 'songs'} • {cacheInfo.stemCount} stems
                   </p>
                   <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>
                     {formatBytes(cacheInfo.totalBytes)}
                   </p>
                 </div>
-                {cacheInfo.stemCount > 0 && (
-                  <button
-                    onClick={handleClearCache}
-                    style={{
-                      padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                      background: 'rgba(238,125,119,0.15)', color: '#ee7d77',
-                      fontSize: 12, fontWeight: 700, fontFamily: 'Inter',
-                      alignSelf: 'center',
-                    }}
-                  >
-                    Clear Cache
-                  </button>
+                {cacheInfo.songCount > 0 && (
+                  confirmDeleteAll ? (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        onClick={handleClearAll}
+                        disabled={deletingId !== null}
+                        style={{
+                          padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                          background: '#ee7d77', color: '#fff',
+                          fontSize: 12, fontWeight: 700, fontFamily: 'Inter',
+                          opacity: deletingId ? 0.5 : 1,
+                        }}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteAll(false)}
+                        style={{
+                          padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                          background: 'var(--gx-surface-high)', color: 'var(--c-text-primary)',
+                          fontSize: 12, fontWeight: 700, fontFamily: 'Inter',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDeleteAll(true)}
+                      disabled={deletingId !== null}
+                      style={{
+                        padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                        background: 'rgba(238,125,119,0.15)', color: '#ee7d77',
+                        fontSize: 12, fontWeight: 700, fontFamily: 'Inter',
+                        opacity: deletingId ? 0.5 : 1,
+                      }}
+                    >
+                      Delete All
+                    </button>
+                  )
                 )}
               </div>
+
+              {songCaches.length > 0 && (
+                <div style={{
+                  display: 'flex', flexDirection: 'column', gap: 2,
+                  marginTop: 4, marginBottom: 10,
+                  maxHeight: 280, overflowY: 'auto',
+                  borderRadius: 12,
+                }}>
+                  {songCaches.map(sc => {
+                    const meta = songMeta(sc.songId);
+                    const isDeleting = deletingId === sc.songId || deletingId === '__all__';
+                    return (
+                      <div
+                        key={sc.songId}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '10px 12px',
+                          background: 'var(--gx-surface-high)',
+                          borderRadius: 10,
+                          opacity: isDeleting ? 0.4 : 1,
+                          transition: 'opacity 200ms ease',
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{
+                          fontSize: 28, color: 'var(--gx-accent)', flexShrink: 0,
+                          fontVariationSettings: "'FILL' 1",
+                        }}>album</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{
+                            fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)',
+                            margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {meta?.title ?? sc.songId}
+                          </p>
+                          <p style={{
+                            fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0',
+                            fontFamily: 'Inter',
+                          }}>
+                            {meta?.artist ?? 'Unknown'} • {sc.stemCount} stems • {formatBytes(sc.totalBytes)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteSong(sc.songId)}
+                          disabled={deletingId !== null}
+                          style={{
+                            width: 32, height: 32, borderRadius: 8, border: 'none',
+                            cursor: deletingId ? 'default' : 'pointer',
+                            background: 'rgba(238,125,119,0.12)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                            opacity: deletingId && !isDeleting ? 0.3 : 1,
+                            transition: 'opacity 150ms',
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#ee7d77' }}>
+                            {isDeleting ? 'hourglass_empty' : 'delete'}
+                          </span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, fontFamily: 'Inter', opacity: 0.7, lineHeight: 1.4 }}>
-                Downloaded stems are cached in your browser. Clearing the cache will require re-downloading stems when you open songs.
+                {songCaches.length === 0
+                  ? 'No songs downloaded yet. Songs are cached automatically when you play them.'
+                  : 'Downloaded songs stay available offline. Remove individual songs or clear all to free up space.'}
               </p>
             </div>
           </PrefCard>
