@@ -154,8 +154,8 @@ const GuitarDiagram = memo(function GuitarDiagram({
       {barres.map((barre, bi) => {
         const fretPos = barre.fret - minFret;
         if (fretPos < 0 || fretPos >= numFrets) return null;
-        const x1 = startX + (barre.fromString - 1) * cellW;
-        const x2 = startX + (barre.toString - 1) * cellW;
+        const x1 = startX + (numStrings - barre.fromString) * cellW;
+        const x2 = startX + (numStrings - barre.toString) * cellW;
         const cy = startY + fretPos * cellH + cellH / 2;
         return (
           <rect
@@ -180,10 +180,11 @@ const GuitarDiagram = memo(function GuitarDiagram({
         const cy = startY + fretPos * cellH + cellH / 2;
         const label = getNoteLabel(stringIdx);
 
+        const stringNum = numStrings - stringIdx;
         const isBarre = barres.some(b =>
           b.fret === fret &&
-          stringIdx >= b.fromString - 1 &&
-          stringIdx <= b.toString - 1
+          stringNum >= b.toString &&
+          stringNum <= b.fromString
         );
 
         return (

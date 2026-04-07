@@ -165,8 +165,8 @@ const FourStringDiagram = memo(function FourStringDiagram({
       {/* Barre chords */}
       {barres.map((barre, bi) => {
         const fretPos = barre.fret - minFret;
-        const x1 = startX + (barre.fromString - 1) * cellW;
-        const x2 = startX + (Math.min(barre.toString, numStrings) - 1) * cellW;
+        const x1 = startX + (numStrings - barre.fromString) * cellW;
+        const x2 = startX + (numStrings - Math.min(barre.toString, numStrings)) * cellW;
         const cy = startY + fretPos * cellH + cellH / 2;
         return (
           <rect key={`barre-${bi}`}
@@ -184,7 +184,8 @@ const FourStringDiagram = memo(function FourStringDiagram({
         const cx = startX + stringIdx * cellW;
         const cy = startY + fretPos * cellH + cellH / 2;
         const label = getNoteLabel(stringIdx);
-        const isBarre = barres.some(b => b.fret === fret && stringIdx >= b.fromString - 1 && stringIdx <= b.toString - 1);
+        const stringNum = numStrings - stringIdx;
+        const isBarre = barres.some(b => b.fret === fret && stringNum >= b.toString && stringNum <= b.fromString);
 
         return (
           <g key={`dot-${stringIdx}`}>
