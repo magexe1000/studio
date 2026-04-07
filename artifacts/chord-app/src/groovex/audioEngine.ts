@@ -30,9 +30,12 @@ export function resumeAudioContext(): void {
   }
 }
 
+const DRUM_STEM_NAMES = new Set(['kick', 'snare', 'cymbals', 'drums', 'snare_cymbals']);
+
 export interface AudioEngine {
   ctx: AudioContext;
   masterGain: GainNode;
+  drumBus: GainNode;
   scrubFilter: BiquadFilterNode;
   scrubGain: GainNode;
   stNode: SoundTouchNode | null;
@@ -50,6 +53,7 @@ export interface AudioEngine {
 export function createEngine(): AudioEngine {
   const ctx = getAudioContext();
   const masterGain = ctx.createGain();
+  const drumBus = ctx.createGain();
   const scrubFilter = ctx.createBiquadFilter();
   scrubFilter.type = 'lowpass';
   scrubFilter.frequency.setValueAtTime(20000, ctx.currentTime);
@@ -57,11 +61,13 @@ export function createEngine(): AudioEngine {
   const scrubGain = ctx.createGain();
   scrubGain.gain.setValueAtTime(1.0, ctx.currentTime);
   masterGain.connect(scrubFilter);
+  drumBus.connect(scrubFilter);
   scrubFilter.connect(scrubGain);
   scrubGain.connect(ctx.destination);
   return {
     ctx,
     masterGain,
+    drumBus,
     scrubFilter,
     scrubGain,
     stNode: null,
@@ -119,7 +125,10 @@ export function initTracks(
     source: null,
     gainNode: engine.ctx.createGain(),
   }));
-  engine.tracks.forEach(t => t.gainNode!.connect(engine.masterGain));
+  engine.tracks.forEach(t => {
+    const bus = DRUM_STEM_NAMES.has(t.name) ? engine.drumBus : engine.masterGain;
+    t.gainNode!.connect(bus);
+  });
   return engine.tracks;
 }
 
@@ -320,7 +329,9 @@ export function toggleSolo(engine: AudioEngine, trackIndex: number): void {
 }
 
 export function setMasterVolume(engine: AudioEngine, volume: number): void {
-  engine.masterGain.gain.setValueAtTime(volume, engine.ctx.currentTime);
+  const ct = engine.ctx.currentTime;
+  engine.masterGain.gain.setValueAtTime(volume, ct);
+  engine.drumBus.gain.setValueAtTime(volume, ct);
 }
 
 function applyMutesSolos(engine: AudioEngine): void {
@@ -349,6 +360,7 @@ export function destroyEngine(engine: AudioEngine): void {
     if (t.gainNode) t.gainNode.disconnect();
   });
   engine.masterGain.disconnect();
+  engine.drumBus.disconnect();
   if (engine.stNode) {
     engine.stNode.disconnect();
     engine.stNode = null;
