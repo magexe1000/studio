@@ -15,9 +15,7 @@ export default memo(function ChordDiagram({ data, accentFrom, fretsMulti }: Prop
   const padL = 13, padR = 6, padT = 18, padB = 8;
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
-  const numStrings = 6, numFrets = 4;
-  const cellW = innerW / (numStrings - 1);
-  const cellH = innerH / numFrets;
+  const numStrings = 6;
   const r = 3.8;
   const { barres, baseFret } = data;
 
@@ -27,8 +25,12 @@ export default memo(function ChordDiagram({ data, accentFrom, fretsMulti }: Prop
 
   const allPositive = perString.flatMap(arr => arr.filter(f => f > 0));
   const minActive = allPositive.length ? Math.min(...allPositive) : 1;
+  const maxActive = allPositive.length ? Math.max(...allPositive) : 1;
   const minFret = baseFret > 1 ? baseFret : Math.max(1, minActive);
+  const numFrets = Math.max(4, maxActive - minFret + 1);
   const showNut = minFret <= 1;
+  const cellW = innerW / (numStrings - 1);
+  const cellH = innerH / numFrets;
 
   const stringWidths = [1.4, 1.1, 0.85, 0.7, 0.6, 0.5];
 

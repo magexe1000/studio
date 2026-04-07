@@ -21,7 +21,9 @@ function MiniDotN({ frets, baseFret, accentFrom, numStrings, barres = [] }: {
   frets: number[]; baseFret: number; accentFrom: string; numStrings: number; barres?: BarreDef[];
 }) {
   const W = 44, H = 56;
-  const numF = 4;
+  const posF = frets.filter(f => f > 0);
+  const maxF = posF.length ? Math.max(...posF) : 1;
+  const numF = Math.max(4, maxF - baseFret + 1);
   const pL = 10, pT = 13, pR = 6;
   const cW = (W - pL - pR) / (numStrings - 1);
   const cH = (H - pT - 9) / numF;
@@ -53,8 +55,8 @@ function MiniDotN({ frets, baseFret, accentFrom, numStrings, barres = [] }: {
       {barres.map((b, bi) => {
         const fp = b.fret - min;
         if (fp < 0 || fp >= numF) return null;
-        const x1 = pL + (b.toString - 1) * cW;
-        const x2 = pL + (b.fromString - 1) * cW;
+        const x1 = pL + (numStrings - b.fromString) * cW;
+        const x2 = pL + (numStrings - b.toString) * cW;
         const cy = pT + fp * cH + cH / 2;
         return <rect key={bi} x={Math.min(x1, x2)} y={cy - r} width={Math.abs(x2 - x1)} height={r * 2} rx={r} fill={accentFrom} />;
       })}
@@ -117,8 +119,8 @@ function computeBarres(frets: number[]): BarreDef[] {
     .filter(([, strs]) => strs.length >= 2)
     .map(([fretStr, strs]) => ({
       fret: Number(fretStr),
-      fromString: Math.min(...strs) + 1,
-      toString: Math.max(...strs) + 1,
+      fromString: Math.max(...strs) + 1,
+      toString: Math.min(...strs) + 1,
     }));
 }
 
@@ -310,13 +312,12 @@ function FretboardBuilder({ instrument, frets, onChange, barres = [], onBarresCh
                 // Is this cell part of a barre?
                 const barre = barres.find(b =>
                   b.fret === fret &&
-                  sIdx >= b.fromString - 1 &&
-                  sIdx <= b.toString - 1,
+                  sIdx >= b.toString - 1 &&
+                  sIdx <= b.fromString - 1,
                 );
                 const isBarreCell = !!barre;
-                // display is reversed (high sIdx = top row), so visual top = toString-1
-                const isBarreStart = isBarreCell && sIdx === barre!.toString - 1;
-                const isBarreEnd   = isBarreCell && sIdx === barre!.fromString - 1;
+                const isBarreStart = isBarreCell && sIdx === barre!.fromString - 1;
+                const isBarreEnd   = isBarreCell && sIdx === barre!.toString - 1;
                 return (
                   <button key={fIdx} onClick={() => fret <= 12 && handleFretClick(sIdx, fret)}
                     className="btn-smooth"

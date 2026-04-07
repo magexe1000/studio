@@ -45,16 +45,20 @@ const DEFAULT_EXPORT_CONFIG: ExportConfig = {
 
 /* ──────────────────── PDF EXPORT ──────────────────── */
 function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679cff', _scale = 1, noLabel = false): string {
-  const W = 86, H = 84, numS = 6, numF = 4;
+  const numS = 6;
+  const { frets, barres, baseFret } = data;
+  const posF = frets.filter(f => f > 0);
+  const minA = posF.length ? Math.min(...posF) : 1;
+  const maxA = posF.length ? Math.max(...posF) : 1;
+  const effBase = baseFret > 1 ? baseFret : Math.max(1, minA);
+  const numF = Math.max(4, maxA - effBase + 1);
+  const W = 86, H = 84;
   const pL = 10, pT = 14, pR = 10;
   const gridW = W - pL - pR;
   const cW = gridW / (numS - 1);
   const cH = (H - pT - 10) / numF;
   const r  = 4.5;
-  const { frets, barres, baseFret } = data;
-  const allPositive = frets.filter(f => f > 0);
-  const minActive = allPositive.length ? Math.min(...allPositive) : 1;
-  const minF    = baseFret > 1 ? baseFret : Math.max(1, minActive);
+  const minF    = effBase;
   const showNut = minF <= 1;
 
   const dotFill    = dark ? '#e8e8e8' : '#191a1a';
@@ -94,9 +98,6 @@ function buildPrintSVG(data: GuitarChordData, dark = false, _accentColor = '#679
   frets.forEach((f, si) => {
     if (f <= 0) return;
     const fp = f - minF; if (fp < 0 || fp >= numF) return;
-    const stringNum = numS - si;
-    const onBarre = barres && barres.some(b => b.fret === f && stringNum >= b.toString && stringNum <= b.fromString);
-    if (onBarre) return;
     const cx = pL + si * cW, cy = pT + fp * cH + cH / 2;
     s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotFill}"/>`;
   });
@@ -118,15 +119,18 @@ function buildPrintFretboardSVG(
   numStrings: number,
   dark = false, _accentColor = '#679cff', _scale = 1, noLabel = false,
 ): string {
-  const W = 86, H = 84, numF = 4;
+  const posF = frets.filter(f => f > 0);
+  const minA = posF.length ? Math.min(...posF) : 1;
+  const maxA = posF.length ? Math.max(...posF) : 1;
+  const effBase = baseFret > 1 ? baseFret : Math.max(1, minA);
+  const numF = Math.max(4, maxA - effBase + 1);
+  const W = 86, H = 84;
   const pL = 10, pT = 14, pR = 10;
   const gridW = W - pL - pR;
   const strSpacing = numStrings > 1 ? gridW / (numStrings - 1) : 0;
   const cH = (H - pT - 10) / numF;
   const r  = 4.5;
-  const allPos = frets.filter(f => f > 0);
-  const minActive = allPos.length ? Math.min(...allPos) : 1;
-  const minF    = baseFret > 1 ? baseFret : Math.max(1, minActive);
+  const minF    = effBase;
   const showNut = minF <= 1;
   const dotFill    = dark ? '#e8e8e8' : '#191a1a';
   const lineFill   = dark ? 'rgba(200,200,200,0.18)' : 'rgba(25,26,26,0.15)';
@@ -160,9 +164,6 @@ function buildPrintFretboardSVG(
   frets.forEach((f, si) => {
     if (f <= 0) return;
     const fp = f - minF; if (fp < 0 || fp >= numF) return;
-    const stringNum = numStrings - si;
-    const onBarre = barres.some(b => b.fret === f && stringNum >= b.toString && stringNum <= b.fromString);
-    if (onBarre) return;
     const cx = pL + si * strSpacing, cy = pT + fp * cH + cH / 2;
     s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${dotFill}"/>`;
   });

@@ -40,7 +40,9 @@ const GuitarDiagram = memo(function GuitarDiagram({
   const { width, height, cellW, cellH, dotR, fontSize, headerH } = sizes[size];
 
   const numStrings = 6;
-  const numFrets = 5;
+  const positiveFrets = frets.filter(f => f > 0);
+  const maxFret = positiveFrets.length ? Math.max(...positiveFrets) : 1;
+  const numFrets = Math.max(5, maxFret - (baseFret > 1 ? baseFret : Math.max(1, positiveFrets.length ? Math.min(...positiveFrets) : 1)) + 1);
   const startX = size === 'lg' ? 30 : size === 'md' ? 22 : 16;
   const startY = headerH + (size === 'lg' ? 14 : 10);
   const boardW = cellW * (numStrings - 1);
@@ -189,11 +191,13 @@ const GuitarDiagram = memo(function GuitarDiagram({
 
         return (
           <g key={`dot-${stringIdx}`}>
-            {!isBarre && (
+            {!isBarre ? (
               <>
                 <circle cx={cx} cy={cy} r={dotR + 2} fill="#679cff" opacity={0.14} />
                 <circle cx={cx} cy={cy} r={dotR} fill={`url(#${dotGradId})`} />
               </>
+            ) : (
+              <circle cx={cx} cy={cy} r={dotR} fill={`url(#${dotGradId})`} opacity={0.85} />
             )}
             {label && (
               <text
