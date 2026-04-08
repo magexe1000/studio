@@ -2,12 +2,27 @@ import { NOTE_FREQ } from './exerciseData';
 
 let ctx: AudioContext | null = null;
 let activeNodes: AudioNode[] = [];
-let activeOscs: OscillatorNode[] = [];
+let activeOscs: (OscillatorNode | AudioBufferSourceNode)[] = [];
+let noiseBuffer: AudioBuffer | null = null;
+let voiceId = 0;
 
 function getCtx(): AudioContext {
   if (!ctx || ctx.state === 'closed') ctx = new AudioContext();
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
+}
+
+function getNoiseBuffer(): AudioBuffer {
+  if (noiseBuffer) return noiseBuffer;
+  const audio = getCtx();
+  const len = audio.sampleRate * 2;
+  noiseBuffer = audio.createBuffer(1, len, audio.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < len; i++) {
+    data[i] = (Math.random() * 2 - 1) * 0.5;
+    if (i > 0) data[i] = data[i] * 0.4 + data[i - 1] * 0.6;
+  }
+  return noiseBuffer;
 }
 
 export function stopVoice() {
@@ -29,114 +44,104 @@ interface FormantDef {
 
 const VOWEL_FORMANTS: Record<string, FormantDef[]> = {
   'mm': [
-    { freq: 250, bw: 60, gain: 1.0 },
-    { freq: 2500, bw: 200, gain: 0.15 },
-    { freq: 3500, bw: 300, gain: 0.05 },
+    { freq: 250, bw: 80, gain: 1.0 },
+    { freq: 2500, bw: 300, gain: 0.12 },
+    { freq: 3500, bw: 400, gain: 0.04 },
   ],
   'ah': [
-    { freq: 800, bw: 80, gain: 1.0 },
-    { freq: 1150, bw: 90, gain: 0.5 },
-    { freq: 2800, bw: 120, gain: 0.1 },
+    { freq: 780, bw: 120, gain: 1.0 },
+    { freq: 1200, bw: 150, gain: 0.55 },
+    { freq: 2600, bw: 200, gain: 0.12 },
   ],
   'ee': [
-    { freq: 270, bw: 60, gain: 1.0 },
-    { freq: 2300, bw: 100, gain: 0.4 },
-    { freq: 3000, bw: 120, gain: 0.15 },
+    { freq: 280, bw: 80, gain: 1.0 },
+    { freq: 2250, bw: 150, gain: 0.45 },
+    { freq: 2900, bw: 200, gain: 0.18 },
   ],
   'eh': [
-    { freq: 530, bw: 60, gain: 1.0 },
-    { freq: 1850, bw: 100, gain: 0.35 },
-    { freq: 2500, bw: 120, gain: 0.1 },
+    { freq: 520, bw: 90, gain: 1.0 },
+    { freq: 1800, bw: 140, gain: 0.4 },
+    { freq: 2500, bw: 180, gain: 0.12 },
   ],
   'oh': [
-    { freq: 500, bw: 70, gain: 1.0 },
-    { freq: 700, bw: 80, gain: 0.6 },
-    { freq: 2800, bw: 120, gain: 0.05 },
+    { freq: 480, bw: 100, gain: 1.0 },
+    { freq: 750, bw: 120, gain: 0.65 },
+    { freq: 2700, bw: 200, gain: 0.06 },
   ],
   'oo': [
-    { freq: 300, bw: 50, gain: 1.0 },
-    { freq: 870, bw: 80, gain: 0.3 },
-    { freq: 2250, bw: 120, gain: 0.05 },
+    { freq: 310, bw: 70, gain: 1.0 },
+    { freq: 900, bw: 120, gain: 0.35 },
+    { freq: 2300, bw: 180, gain: 0.06 },
   ],
   'uh': [
-    { freq: 640, bw: 60, gain: 1.0 },
-    { freq: 1200, bw: 80, gain: 0.35 },
-    { freq: 2400, bw: 120, gain: 0.08 },
+    { freq: 620, bw: 90, gain: 1.0 },
+    { freq: 1200, bw: 130, gain: 0.4 },
+    { freq: 2400, bw: 180, gain: 0.1 },
   ],
   'la': [
-    { freq: 700, bw: 80, gain: 1.0 },
-    { freq: 1100, bw: 90, gain: 0.5 },
-    { freq: 2700, bw: 120, gain: 0.1 },
+    { freq: 700, bw: 110, gain: 1.0 },
+    { freq: 1100, bw: 140, gain: 0.5 },
+    { freq: 2600, bw: 180, gain: 0.1 },
   ],
   'na': [
-    { freq: 550, bw: 70, gain: 1.0 },
-    { freq: 1400, bw: 100, gain: 0.4 },
-    { freq: 2600, bw: 120, gain: 0.1 },
+    { freq: 540, bw: 100, gain: 1.0 },
+    { freq: 1350, bw: 150, gain: 0.45 },
+    { freq: 2500, bw: 180, gain: 0.1 },
   ],
   'ng': [
-    { freq: 280, bw: 50, gain: 1.0 },
-    { freq: 2300, bw: 150, gain: 0.2 },
-    { freq: 3200, bw: 200, gain: 0.05 },
+    { freq: 280, bw: 70, gain: 1.0 },
+    { freq: 2300, bw: 250, gain: 0.2 },
+    { freq: 3100, bw: 300, gain: 0.06 },
   ],
   'nay': [
-    { freq: 350, bw: 60, gain: 1.0 },
-    { freq: 2100, bw: 100, gain: 0.4 },
-    { freq: 2900, bw: 120, gain: 0.12 },
+    { freq: 350, bw: 80, gain: 1.0 },
+    { freq: 2050, bw: 150, gain: 0.45 },
+    { freq: 2800, bw: 180, gain: 0.14 },
   ],
   'ya': [
-    { freq: 750, bw: 80, gain: 1.0 },
-    { freq: 1200, bw: 90, gain: 0.45 },
-    { freq: 2800, bw: 120, gain: 0.1 },
+    { freq: 730, bw: 110, gain: 1.0 },
+    { freq: 1200, bw: 140, gain: 0.5 },
+    { freq: 2700, bw: 180, gain: 0.1 },
   ],
   'da': [
-    { freq: 700, bw: 70, gain: 1.0 },
-    { freq: 1050, bw: 80, gain: 0.5 },
-    { freq: 2600, bw: 120, gain: 0.1 },
+    { freq: 700, bw: 100, gain: 1.0 },
+    { freq: 1050, bw: 130, gain: 0.5 },
+    { freq: 2500, bw: 180, gain: 0.1 },
   ],
   'ha': [
-    { freq: 800, bw: 80, gain: 1.0 },
-    { freq: 1100, bw: 90, gain: 0.45 },
-    { freq: 2700, bw: 120, gain: 0.08 },
+    { freq: 780, bw: 120, gain: 1.0 },
+    { freq: 1100, bw: 140, gain: 0.5 },
+    { freq: 2600, bw: 190, gain: 0.1 },
   ],
   'ga': [
-    { freq: 750, bw: 80, gain: 1.0 },
-    { freq: 1150, bw: 90, gain: 0.45 },
-    { freq: 2700, bw: 120, gain: 0.1 },
+    { freq: 740, bw: 110, gain: 1.0 },
+    { freq: 1150, bw: 140, gain: 0.48 },
+    { freq: 2600, bw: 180, gain: 0.1 },
   ],
   'ba': [
-    { freq: 720, bw: 80, gain: 1.0 },
-    { freq: 1100, bw: 90, gain: 0.5 },
-    { freq: 2600, bw: 120, gain: 0.1 },
+    { freq: 700, bw: 110, gain: 1.0 },
+    { freq: 1100, bw: 140, gain: 0.5 },
+    { freq: 2500, bw: 180, gain: 0.1 },
   ],
   'ma': [
-    { freq: 600, bw: 60, gain: 1.0 },
-    { freq: 1100, bw: 90, gain: 0.35 },
-    { freq: 2700, bw: 120, gain: 0.08 },
-  ],
-  'ss': [
-    { freq: 4000, bw: 500, gain: 0.2 },
-    { freq: 7000, bw: 600, gain: 0.15 },
-    { freq: 10000, bw: 800, gain: 0.05 },
-  ],
-  'zz': [
-    { freq: 250, bw: 60, gain: 0.5 },
-    { freq: 4000, bw: 400, gain: 0.2 },
-    { freq: 7000, bw: 500, gain: 0.1 },
+    { freq: 580, bw: 90, gain: 1.0 },
+    { freq: 1100, bw: 140, gain: 0.38 },
+    { freq: 2600, bw: 180, gain: 0.08 },
   ],
   'goh': [
-    { freq: 500, bw: 70, gain: 1.0 },
-    { freq: 750, bw: 80, gain: 0.6 },
-    { freq: 2800, bw: 120, gain: 0.05 },
+    { freq: 480, bw: 100, gain: 1.0 },
+    { freq: 750, bw: 120, gain: 0.6 },
+    { freq: 2700, bw: 200, gain: 0.06 },
   ],
   'nee': [
-    { freq: 300, bw: 50, gain: 1.0 },
-    { freq: 2200, bw: 100, gain: 0.4 },
-    { freq: 3000, bw: 120, gain: 0.15 },
+    { freq: 300, bw: 70, gain: 1.0 },
+    { freq: 2200, bw: 150, gain: 0.45 },
+    { freq: 2900, bw: 200, gain: 0.16 },
   ],
   'mah': [
-    { freq: 700, bw: 70, gain: 1.0 },
-    { freq: 1050, bw: 90, gain: 0.4 },
-    { freq: 2700, bw: 120, gain: 0.08 },
+    { freq: 700, bw: 100, gain: 1.0 },
+    { freq: 1050, bw: 130, gain: 0.42 },
+    { freq: 2600, bw: 180, gain: 0.08 },
   ],
 };
 
@@ -174,9 +179,6 @@ function mapSyllableToFormant(syllable: string): FormantDef[] {
   if (first.startsWith('goh')) return VOWEL_FORMANTS['goh'];
   if (first.startsWith('nee')) return VOWEL_FORMANTS['nee'];
   if (first.startsWith('mah')) return VOWEL_FORMANTS['mah'];
-  if (first.startsWith('ss')) return VOWEL_FORMANTS['ss'];
-  if (first.startsWith('zz')) return VOWEL_FORMANTS['zz'];
-  if (first.startsWith('fff')) return VOWEL_FORMANTS['ss'];
 
   if (raw.includes('ah') || raw.includes('ahhh')) return VOWEL_FORMANTS['ah'];
   if (raw.includes('oh')) return VOWEL_FORMANTS['oh'];
@@ -194,48 +196,110 @@ interface VoiceOptions {
 
 export function playVoice(opts: VoiceOptions) {
   stopVoice();
+  const thisId = ++voiceId;
   const audio = getCtx();
-  const { freq, durationMs, syllable, isTrill, volume = 0.14 } = opts;
+  const { freq, durationMs, syllable, isTrill, volume = 0.3 } = opts;
   const dur = durationMs / 1000;
   const now = audio.currentTime;
   const end = now + dur;
 
   const formants = syllable ? mapSyllableToFormant(syllable) : VOWEL_FORMANTS['ah'];
 
-  const mainOsc = audio.createOscillator();
-  mainOsc.type = 'sawtooth';
-  mainOsc.frequency.setValueAtTime(freq, now);
-  activeOscs.push(mainOsc);
+  const glottalOsc = audio.createOscillator();
+  glottalOsc.type = 'sawtooth';
+  glottalOsc.frequency.setValueAtTime(freq, now);
+  activeOscs.push(glottalOsc);
 
-  const vibratoLfo = audio.createOscillator();
-  vibratoLfo.type = 'sine';
-  vibratoLfo.frequency.setValueAtTime(5.2, now);
-  const vibratoGain = audio.createGain();
-  vibratoGain.gain.setValueAtTime(0, now);
-  vibratoGain.gain.linearRampToValueAtTime(freq * 0.006, now + 0.4);
-  vibratoLfo.connect(vibratoGain);
-  vibratoGain.connect(mainOsc.frequency);
-  vibratoLfo.start(now);
-  vibratoLfo.stop(end);
-  activeOscs.push(vibratoLfo);
-  activeNodes.push(vibratoGain);
+  const h2Osc = audio.createOscillator();
+  h2Osc.type = 'sine';
+  h2Osc.frequency.setValueAtTime(freq * 2, now);
+  activeOscs.push(h2Osc);
+
+  const h3Osc = audio.createOscillator();
+  h3Osc.type = 'sine';
+  h3Osc.frequency.setValueAtTime(freq * 3, now);
+  activeOscs.push(h3Osc);
 
   const subOsc = audio.createOscillator();
   subOsc.type = 'triangle';
   subOsc.frequency.setValueAtTime(freq, now);
-  vibratoGain.connect(subOsc.frequency);
   activeOscs.push(subOsc);
 
-  const subGain = audio.createGain();
-  subGain.gain.setValueAtTime(0.25, now);
-  subOsc.connect(subGain);
-  activeNodes.push(subGain);
+  const vibratoLfo = audio.createOscillator();
+  vibratoLfo.type = 'sine';
+  vibratoLfo.frequency.setValueAtTime(5 + Math.random() * 0.6, now);
+  const vibratoDepth = audio.createGain();
+  vibratoDepth.gain.setValueAtTime(0, now);
+  vibratoDepth.gain.linearRampToValueAtTime(0, now + 0.3);
+  vibratoDepth.gain.linearRampToValueAtTime(freq * 0.008, now + 0.8);
+  vibratoLfo.connect(vibratoDepth);
+  vibratoDepth.connect(glottalOsc.frequency);
+  vibratoDepth.connect(h2Osc.frequency);
+  vibratoDepth.connect(h3Osc.frequency);
+  vibratoDepth.connect(subOsc.frequency);
+  vibratoLfo.start(now);
+  vibratoLfo.stop(end);
+  activeOscs.push(vibratoLfo);
+  activeNodes.push(vibratoDepth);
 
-  const mixer = audio.createGain();
-  mixer.gain.setValueAtTime(1, now);
-  mainOsc.connect(mixer);
-  subGain.connect(mixer);
-  activeNodes.push(mixer);
+  const driftLfo = audio.createOscillator();
+  driftLfo.type = 'sine';
+  driftLfo.frequency.setValueAtTime(0.3 + Math.random() * 0.4, now);
+  const driftDepth = audio.createGain();
+  driftDepth.gain.setValueAtTime(freq * 0.002, now);
+  driftLfo.connect(driftDepth);
+  driftDepth.connect(glottalOsc.frequency);
+  driftDepth.connect(subOsc.frequency);
+  driftLfo.start(now);
+  driftLfo.stop(end);
+  activeOscs.push(driftLfo);
+  activeNodes.push(driftDepth);
+
+  const glottalMix = audio.createGain();
+  glottalMix.gain.setValueAtTime(0.55, now);
+  glottalOsc.connect(glottalMix);
+  activeNodes.push(glottalMix);
+
+  const h2Mix = audio.createGain();
+  h2Mix.gain.setValueAtTime(0.18, now);
+  h2Osc.connect(h2Mix);
+  activeNodes.push(h2Mix);
+
+  const h3Mix = audio.createGain();
+  h3Mix.gain.setValueAtTime(0.08, now);
+  h3Osc.connect(h3Mix);
+  activeNodes.push(h3Mix);
+
+  const subMix = audio.createGain();
+  subMix.gain.setValueAtTime(0.2, now);
+  subOsc.connect(subMix);
+  activeNodes.push(subMix);
+
+  const noiseSrc = audio.createBufferSource();
+  noiseSrc.buffer = getNoiseBuffer();
+  noiseSrc.loop = true;
+  activeOscs.push(noiseSrc);
+
+  const noiseFilter = audio.createBiquadFilter();
+  noiseFilter.type = 'bandpass';
+  noiseFilter.frequency.setValueAtTime(2200, now);
+  noiseFilter.Q.setValueAtTime(1.5, now);
+  noiseSrc.connect(noiseFilter);
+  activeNodes.push(noiseFilter);
+
+  const noiseMix = audio.createGain();
+  noiseMix.gain.setValueAtTime(0.06, now);
+  noiseFilter.connect(noiseMix);
+  activeNodes.push(noiseMix);
+
+  const preFormant = audio.createGain();
+  preFormant.gain.setValueAtTime(1, now);
+  glottalMix.connect(preFormant);
+  h2Mix.connect(preFormant);
+  h3Mix.connect(preFormant);
+  subMix.connect(preFormant);
+  noiseMix.connect(preFormant);
+  activeNodes.push(preFormant);
 
   const formantSum = audio.createGain();
   formantSum.gain.setValueAtTime(1, now);
@@ -248,32 +312,51 @@ export function playVoice(opts: VoiceOptions) {
     bp.Q.setValueAtTime(f.freq / f.bw, now);
     const fGain = audio.createGain();
     fGain.gain.setValueAtTime(f.gain, now);
-    mixer.connect(bp);
+    preFormant.connect(bp);
     bp.connect(fGain);
     fGain.connect(formantSum);
     activeNodes.push(bp, fGain);
   }
 
+  const directThrough = audio.createGain();
+  directThrough.gain.setValueAtTime(0.08, now);
+  preFormant.connect(directThrough);
+  activeNodes.push(directThrough);
+
   const warmth = audio.createBiquadFilter();
   warmth.type = 'lowshelf';
-  warmth.frequency.setValueAtTime(300, now);
-  warmth.gain.setValueAtTime(3, now);
+  warmth.frequency.setValueAtTime(350, now);
+  warmth.gain.setValueAtTime(4, now);
   formantSum.connect(warmth);
+  directThrough.connect(warmth);
   activeNodes.push(warmth);
+
+  const presence = audio.createBiquadFilter();
+  presence.type = 'peaking';
+  presence.frequency.setValueAtTime(2800, now);
+  presence.Q.setValueAtTime(2, now);
+  presence.gain.setValueAtTime(3, now);
+  warmth.connect(presence);
+  activeNodes.push(presence);
 
   const airCut = audio.createBiquadFilter();
   airCut.type = 'lowpass';
-  airCut.frequency.setValueAtTime(4500, now);
-  airCut.Q.setValueAtTime(0.7, now);
-  warmth.connect(airCut);
+  airCut.frequency.setValueAtTime(5000, now);
+  airCut.Q.setValueAtTime(0.5, now);
+  presence.connect(airCut);
   activeNodes.push(airCut);
 
   const envelope = audio.createGain();
-  const attack = Math.min(0.15, dur * 0.15);
-  const release = Math.min(0.2, dur * 0.2);
+  const attack = Math.min(0.18, dur * 0.12);
+  const release = Math.min(0.25, dur * 0.2);
   envelope.gain.setValueAtTime(0, now);
+  envelope.gain.setValueAtTime(0, now + 0.001);
+  envelope.gain.linearRampToValueAtTime(volume * 0.6, now + attack * 0.3);
   envelope.gain.linearRampToValueAtTime(volume, now + attack);
-  envelope.gain.setValueAtTime(volume, end - release);
+  if (end - release > now + attack) {
+    envelope.gain.setValueAtTime(volume, end - release);
+  }
+  envelope.gain.linearRampToValueAtTime(volume * 0.3, end - release * 0.3);
   envelope.gain.linearRampToValueAtTime(0, end);
   airCut.connect(envelope);
   activeNodes.push(envelope);
@@ -281,9 +364,9 @@ export function playVoice(opts: VoiceOptions) {
   if (isTrill) {
     const trillLfo = audio.createOscillator();
     trillLfo.type = 'sine';
-    trillLfo.frequency.setValueAtTime(22, now);
+    trillLfo.frequency.setValueAtTime(20 + Math.random() * 5, now);
     const trillDepth = audio.createGain();
-    trillDepth.gain.setValueAtTime(volume * 0.4, now);
+    trillDepth.gain.setValueAtTime(volume * 0.35, now);
     trillLfo.connect(trillDepth);
     trillDepth.connect(envelope.gain);
     trillLfo.start(now);
@@ -292,15 +375,45 @@ export function playVoice(opts: VoiceOptions) {
     activeNodes.push(trillDepth);
   }
 
-  envelope.connect(audio.destination);
+  const jitterLfo = audio.createOscillator();
+  jitterLfo.type = 'sine';
+  jitterLfo.frequency.setValueAtTime(12 + Math.random() * 4, now);
+  const jitterDepth = audio.createGain();
+  jitterDepth.gain.setValueAtTime(volume * 0.02, now);
+  jitterLfo.connect(jitterDepth);
+  jitterDepth.connect(envelope.gain);
+  jitterLfo.start(now);
+  jitterLfo.stop(end);
+  activeOscs.push(jitterLfo);
+  activeNodes.push(jitterDepth);
 
-  mainOsc.start(now);
-  mainOsc.stop(end);
+  const limiter = audio.createDynamicsCompressor();
+  limiter.threshold.setValueAtTime(-6, now);
+  limiter.knee.setValueAtTime(6, now);
+  limiter.ratio.setValueAtTime(12, now);
+  limiter.attack.setValueAtTime(0.003, now);
+  limiter.release.setValueAtTime(0.15, now);
+  activeNodes.push(limiter);
+
+  envelope.connect(limiter);
+  limiter.connect(audio.destination);
+
+  glottalOsc.start(now);
+  glottalOsc.stop(end);
+  h2Osc.start(now);
+  h2Osc.stop(end);
+  h3Osc.start(now);
+  h3Osc.stop(end);
   subOsc.start(now);
   subOsc.stop(end);
+  noiseSrc.start(now);
+  noiseSrc.stop(end);
 
-  mainOsc.onended = () => {
-    activeOscs = activeOscs.filter(o => o !== mainOsc && o !== subOsc && o !== vibratoLfo);
+  glottalOsc.onended = () => {
+    if (voiceId === thisId) {
+      activeOscs = [];
+      activeNodes = [];
+    }
   };
 }
 

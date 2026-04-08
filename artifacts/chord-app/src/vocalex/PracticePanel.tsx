@@ -2,6 +2,16 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { CATEGORIES, EXERCISES, NOTE_FREQ, type Exercise, type ExerciseStep } from './exerciseData';
 import { PracticeDetector, type DetectorState, type StepScore, statusColor, centsToAccuracy } from './practiceDetector';
 import { playNoteVoice, stopVoice } from './vocalSynth';
+import {
+  BreathingBodyIllustration,
+  HummingFaceIllustration,
+  MouthShapeIllustration,
+  SingingFaceIllustration,
+  LipTrillIllustration,
+  SireneSlideIllustration,
+  StaccatoIllustration,
+  SustainBodyIllustration,
+} from './ExerciseIllustrations';
 
 function stopActiveTone() {
   stopVoice();
@@ -372,22 +382,69 @@ function DynamicBarVisual({ progress }: { progress: number }) {
   );
 }
 
-function StepVisual({ step, progress, detectorState, exerciseColor }: { step: ExerciseStep; progress: number; detectorState?: DetectorState; exerciseColor: string }) {
+function IllustrationForStep({ step, progress, exerciseColor }: { step: ExerciseStep; progress: number; exerciseColor: string }) {
+  const syllable = step.syllable?.toLowerCase() ?? '';
+  const instruction = step.instruction.toLowerCase();
   switch (step.visualType) {
-    case 'breathBar': return <BreathBarVisual progress={progress} phase={step.instruction} />;
-    case 'sustainHold': return <SustainHoldVisual progress={progress} />;
-    case 'pitchLadder': return <PitchLadderVisual targetNote={step.targetNote} detectorState={detectorState} exerciseColor={exerciseColor} />;
-    case 'vowelShape': return <VowelShapeVisual syllable={step.syllable} progress={progress} />;
-    case 'trillWave': return <WaveVisual progress={progress} color="#60a5fa" />;
-    case 'sirene': return <SireneVisual progress={progress} />;
-    case 'intervalJump': return <IntervalJumpVisual targetNote={step.targetNote} exerciseColor={exerciseColor} />;
-    case 'dynamicBar': return <DynamicBarVisual progress={progress} />;
-    default: return null;
+    case 'breathBar':
+      return <BreathingBodyIllustration progress={progress} color={exerciseColor} phase={step.instruction} />;
+    case 'sustainHold':
+      return <SustainBodyIllustration progress={progress} color={exerciseColor} />;
+    case 'vowelShape':
+      return <MouthShapeIllustration progress={progress} color={exerciseColor} vowel={step.syllable ?? 'AH'} />;
+    case 'trillWave':
+      return <LipTrillIllustration progress={progress} color={exerciseColor} />;
+    case 'sirene':
+      return <SireneSlideIllustration progress={progress} color={exerciseColor} />;
+    case 'dynamicBar':
+      if (instruction.includes('pant') || syllable.includes('huh'))
+        return <StaccatoIllustration progress={progress} color={exerciseColor} />;
+      return <SingingFaceIllustration progress={progress} color={exerciseColor} note={step.targetNote} />;
+    case 'pitchLadder':
+    case 'intervalJump':
+      if (syllable.includes('mmm') || syllable.includes('hum'))
+        return <HummingFaceIllustration progress={progress} color={exerciseColor} />;
+      if (syllable.includes('ha '))
+        return <StaccatoIllustration progress={progress} color={exerciseColor} />;
+      return <SingingFaceIllustration progress={progress} color={exerciseColor} note={step.targetNote} />;
+    default:
+      return <SingingFaceIllustration progress={progress} color={exerciseColor} note={step.targetNote} />;
   }
 }
 
+function StepVisual({ step, progress, detectorState, exerciseColor }: { step: ExerciseStep; progress: number; detectorState?: DetectorState; exerciseColor: string }) {
+  const dataVisual = (() => {
+    switch (step.visualType) {
+      case 'breathBar': return <BreathBarVisual progress={progress} phase={step.instruction} />;
+      case 'sustainHold': return <SustainHoldVisual progress={progress} />;
+      case 'pitchLadder': return <PitchLadderVisual targetNote={step.targetNote} detectorState={detectorState} exerciseColor={exerciseColor} />;
+      case 'vowelShape': return <VowelShapeVisual syllable={step.syllable} progress={progress} />;
+      case 'trillWave': return <WaveVisual progress={progress} color="#60a5fa" />;
+      case 'sirene': return <SireneVisual progress={progress} />;
+      case 'intervalJump': return <IntervalJumpVisual targetNote={step.targetNote} exerciseColor={exerciseColor} />;
+      case 'dynamicBar': return <DynamicBarVisual progress={progress} />;
+      default: return null;
+    }
+  })();
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 0' }}>
+        <IllustrationForStep step={step} progress={progress} exerciseColor={exerciseColor} />
+      </div>
+      {dataVisual}
+    </div>
+  );
+}
+
 function StaticStepVisual({ step, exerciseColor }: { step: ExerciseStep; exerciseColor: string }) {
-  return <StepVisual step={step} progress={0.5} exerciseColor={exerciseColor} />;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 0' }}>
+        <IllustrationForStep step={step} progress={0.5} exerciseColor={exerciseColor} />
+      </div>
+    </div>
+  );
 }
 
 function CoachingBubble({ tips, exerciseColor }: { tips: string[]; exerciseColor: string }) {
