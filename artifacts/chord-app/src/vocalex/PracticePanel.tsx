@@ -2,16 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { CATEGORIES, EXERCISES, NOTE_FREQ, type Exercise, type ExerciseStep } from './exerciseData';
 import { PracticeDetector, type DetectorState, type StepScore, statusColor, centsToAccuracy } from './practiceDetector';
 import { playNoteVoice, stopVoice } from './vocalSynth';
-import {
-  BreathingBodyIllustration,
-  HummingFaceIllustration,
-  MouthShapeIllustration,
-  SingingFaceIllustration,
-  LipTrillIllustration,
-  SireneSlideIllustration,
-  StaccatoIllustration,
-  SustainBodyIllustration,
-} from './ExerciseIllustrations';
+import { speak, stopCoach, announceStepChange, announceCompletion, speakCoachingTip } from './voiceCoach';
 
 function stopActiveTone() {
   stopVoice();
@@ -382,69 +373,18 @@ function DynamicBarVisual({ progress }: { progress: number }) {
   );
 }
 
-function IllustrationForStep({ step, progress, exerciseColor }: { step: ExerciseStep; progress: number; exerciseColor: string }) {
-  const syllable = step.syllable?.toLowerCase() ?? '';
-  const instruction = step.instruction.toLowerCase();
-  switch (step.visualType) {
-    case 'breathBar':
-      return <BreathingBodyIllustration progress={progress} color={exerciseColor} phase={step.instruction} />;
-    case 'sustainHold':
-      return <SustainBodyIllustration progress={progress} color={exerciseColor} />;
-    case 'vowelShape':
-      return <MouthShapeIllustration progress={progress} color={exerciseColor} vowel={step.syllable ?? 'AH'} />;
-    case 'trillWave':
-      return <LipTrillIllustration progress={progress} color={exerciseColor} />;
-    case 'sirene':
-      return <SireneSlideIllustration progress={progress} color={exerciseColor} />;
-    case 'dynamicBar':
-      if (instruction.includes('pant') || syllable.includes('huh'))
-        return <StaccatoIllustration progress={progress} color={exerciseColor} />;
-      return <SingingFaceIllustration progress={progress} color={exerciseColor} note={step.targetNote} />;
-    case 'pitchLadder':
-    case 'intervalJump':
-      if (syllable.includes('mmm') || syllable.includes('hum'))
-        return <HummingFaceIllustration progress={progress} color={exerciseColor} />;
-      if (syllable.includes('ha '))
-        return <StaccatoIllustration progress={progress} color={exerciseColor} />;
-      return <SingingFaceIllustration progress={progress} color={exerciseColor} note={step.targetNote} />;
-    default:
-      return <SingingFaceIllustration progress={progress} color={exerciseColor} note={step.targetNote} />;
-  }
-}
-
 function StepVisual({ step, progress, detectorState, exerciseColor }: { step: ExerciseStep; progress: number; detectorState?: DetectorState; exerciseColor: string }) {
-  const dataVisual = (() => {
-    switch (step.visualType) {
-      case 'breathBar': return <BreathBarVisual progress={progress} phase={step.instruction} />;
-      case 'sustainHold': return <SustainHoldVisual progress={progress} />;
-      case 'pitchLadder': return <PitchLadderVisual targetNote={step.targetNote} detectorState={detectorState} exerciseColor={exerciseColor} />;
-      case 'vowelShape': return <VowelShapeVisual syllable={step.syllable} progress={progress} />;
-      case 'trillWave': return <WaveVisual progress={progress} color="#60a5fa" />;
-      case 'sirene': return <SireneVisual progress={progress} />;
-      case 'intervalJump': return <IntervalJumpVisual targetNote={step.targetNote} exerciseColor={exerciseColor} />;
-      case 'dynamicBar': return <DynamicBarVisual progress={progress} />;
-      default: return null;
-    }
-  })();
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 0' }}>
-        <IllustrationForStep step={step} progress={progress} exerciseColor={exerciseColor} />
-      </div>
-      {dataVisual}
-    </div>
-  );
-}
-
-function StaticStepVisual({ step, exerciseColor }: { step: ExerciseStep; exerciseColor: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 0' }}>
-        <IllustrationForStep step={step} progress={0.5} exerciseColor={exerciseColor} />
-      </div>
-    </div>
-  );
+  switch (step.visualType) {
+    case 'breathBar': return <BreathBarVisual progress={progress} phase={step.instruction} />;
+    case 'sustainHold': return <SustainHoldVisual progress={progress} />;
+    case 'pitchLadder': return <PitchLadderVisual targetNote={step.targetNote} detectorState={detectorState} exerciseColor={exerciseColor} />;
+    case 'vowelShape': return <VowelShapeVisual syllable={step.syllable} progress={progress} />;
+    case 'trillWave': return <WaveVisual progress={progress} color="#60a5fa" />;
+    case 'sirene': return <SireneVisual progress={progress} />;
+    case 'intervalJump': return <IntervalJumpVisual targetNote={step.targetNote} exerciseColor={exerciseColor} />;
+    case 'dynamicBar': return <DynamicBarVisual progress={progress} />;
+    default: return null;
+  }
 }
 
 function CoachingBubble({ tips, exerciseColor }: { tips: string[]; exerciseColor: string }) {
@@ -531,7 +471,7 @@ function ExerciseIntro({ exercise, onStart, starting }: { exercise: Exercise; on
             </button>
           )}
         </div>
-        <StaticStepVisual step={firstStep} exerciseColor={exercise.color} />
+        <StepVisual step={firstStep} progress={0.5} exerciseColor={exercise.color} />
         <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#767575', margin: '6px 0 0', textAlign: 'center', fontStyle: 'italic' }}>
           "{firstStep?.instruction}"
         </p>
@@ -644,12 +584,22 @@ function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: ()
       setShowCoaching(false);
       poorAccuracyStartRef.current = null;
       if (currentStep < totalSteps - 1) {
+        const nextStep = exercise.steps[currentStep + 1];
+        if (nextStep) announceStepChange(nextStep.instruction);
         setCurrentStep(prev => prev + 1);
         startRef.current = Date.now();
         tonePlayedRef.current = false;
       } else {
         setPhase('complete');
         detectorRef.current?.stop();
+        stopCoach();
+        const pitched = stepScores.filter(s => s && s.totalSamples > 0);
+        if (pitched.length > 0) {
+          const avg = pitched.reduce((a, s) => a + s.accuracy, 0) / pitched.length;
+          setTimeout(() => announceCompletion(avg), 400);
+        } else {
+          setTimeout(() => speak('Great work! Exercise complete.'), 400);
+        }
       }
     }
     if (p < 1) rafRef.current = requestAnimationFrame(tick);
@@ -678,7 +628,11 @@ function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: ()
     if (phase !== 'running' || !step?.listenForPitch) return;
     if (detectorState.status !== 'silent' && detectorState.status !== 'good') {
       if (poorAccuracyStartRef.current === null) poorAccuracyStartRef.current = Date.now();
-      else if (Date.now() - poorAccuracyStartRef.current > 3000) setShowCoaching(true);
+      else if (Date.now() - poorAccuracyStartRef.current > 3000) {
+        setShowCoaching(true);
+        const tips = VISUAL_COACHING[step?.visualType ?? ''];
+        if (tips?.length) speakCoachingTip(tips[0]);
+      }
     } else {
       poorAccuracyStartRef.current = null;
       if (detectorState.status === 'good') setShowCoaching(false);
@@ -687,7 +641,7 @@ function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: ()
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; stopActiveTone(); detectorRef.current?.stop(); };
+    return () => { mountedRef.current = false; stopActiveTone(); stopCoach(); detectorRef.current?.stop(); };
   }, []);
 
   const handleStart = async () => {
@@ -708,6 +662,7 @@ function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: ()
     }
     setStarting(false);
     setPhase('running');
+    if (exercise.steps[0]) announceStepChange(exercise.steps[0].instruction);
   };
 
   const timeLeft = step ? Math.max(0, Math.ceil(step.durationSec * (1 - progress))) : 0;
@@ -776,7 +731,7 @@ function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: ()
     <div style={{ padding: '16px 20px', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
-      <button onClick={() => { detectorRef.current?.stop(); stopActiveTone(); setPhase('intro'); }} style={{
+      <button onClick={() => { detectorRef.current?.stop(); stopActiveTone(); stopCoach(); setPhase('intro'); }} style={{
         background: 'none', border: 'none', cursor: 'pointer',
         display: 'flex', alignItems: 'center', gap: 4,
         color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13, marginBottom: 16, padding: 0,
