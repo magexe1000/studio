@@ -183,6 +183,54 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    id: 'harmonies',
+    name: 'Singing Harmonies',
+    icon: 'stacked_line_chart',
+    color: '#10b981',
+    tips: [
+      {
+        title: 'What a harmony actually is',
+        body: 'A harmony is a second voice singing a different note that sounds good with the melody. The most common harmony is a "third" — you sing the note that\'s two scale steps above or below the melody note. For example, if the melody sings C, the harmony sings E (a third above) or A (a third below). Every note the melody hits, your harmony note changes by the same interval relative to the scale. This is why harmonies follow the melody\'s shape but at a different pitch.',
+      },
+      {
+        title: 'Start with thirds above',
+        body: 'The easiest harmony to learn is singing a major or minor third above the melody. Pick a simple song you know well. Sing the melody once, then sing it again but start every note two scale steps higher. In C major: if the melody goes C-D-E, your harmony goes E-F-G. Some thirds will be major (4 semitones) and some minor (3 semitones) — this happens automatically if you stay in the key. Record the melody first in the Lab, then try singing the third on top.',
+      },
+      {
+        title: 'Thirds below the melody',
+        body: 'A third below is the harmony you hear in most country, folk, and pop music. If the melody sings E, you sing C. If the melody sings G, you sing E. The pattern: always drop two scale degrees. This sounds warmer and more grounded than a third above. Practice by playing a slow melody and singing along two notes lower in the scale. It feels like you\'re shadowing the melody from underneath.',
+      },
+      {
+        title: 'Fifths for power and openness',
+        body: 'A fifth above the melody (C melody → G harmony) creates a wide, powerful sound — think church music and anthems. Count up 4 scale steps from each melody note to find the fifth. Fifths are harmonically very stable and almost never clash. The drawback: they sound "hollow" compared to thirds and can feel generic if overused. Use fifths for choruses or climactic moments, and thirds for verses and intimate passages.',
+      },
+      {
+        title: 'How to lock in with the melody',
+        body: 'Harmony only works if you match the melody\'s rhythm exactly. Every syllable, every hold, every breath — precisely together. Record the melody track first, play it back through headphones (one ear only), and sing your harmony part along with it. If your timing drifts even slightly, the harmony falls apart. This is why practicing with your own recorded melody in the Lab is so valuable — you control the tempo and can loop sections.',
+      },
+      {
+        title: 'Hearing the interval, not the melody',
+        body: 'The hardest skill in harmony singing is hearing the melody and resisting the urge to sing it. You need to hear the melody in one "ear" of your brain while your voice produces a different note. Practice this: play and sustain a C note, then sing an E over it. Hold both. Feel the blend. Now have someone play a simple 3-note melody while you sing a third above each note. Start incredibly slow — speed comes after accuracy.',
+      },
+      {
+        title: 'When harmony notes clash',
+        body: 'Not every note harmonizes well at every interval. When a third above creates a dissonance (you\'ll hear it — it sounds "wrong"), shift to a fourth or a unison for that one note, then resume the third. These adjustments are called "voice leading" and they\'re what separates a good harmony from a mechanical one. Trust your ear: if it sounds sour on one note, move your harmony up or down by a half step until it resolves.',
+      },
+      {
+        title: 'Building a three-part harmony',
+        body: 'Once you can sing one harmony, stack a third one. The classic three-part: melody (middle), harmony a third above (high), harmony a third below (low). In C major on a C melody note: low voice sings A, melody sings C, high voice sings E — that\'s an A minor chord. On a G melody note: low sings E, melody sings G, high sings B — that\'s an E minor chord. Every melody note generates a chord. Use the Lab to record all three parts yourself.',
+      },
+      {
+        title: 'Practice workflow in the Lab',
+        body: 'Here\'s a concrete workflow: 1) Record the melody as Track 1. 2) Play it back and record a third above as Track 2. 3) Play both back and record a third below as Track 3. 4) Adjust volumes so all three blend — typically melody loudest, upper harmony slightly softer, lower harmony softest. 5) Pan the melody center, upper harmony slightly right, lower harmony slightly left. This creates a professional vocal stack from just your voice.',
+      },
+      {
+        title: 'Intervals reference by semitones',
+        body: 'Know your intervals by ear and by semitone count. Unison: 0 semitones (same note). Minor 2nd: 1 (dissonant, "Jaws" theme). Major 2nd: 2 ("Happy Birthday" first two notes). Minor 3rd: 3 (sad, minor key feel). Major 3rd: 4 (bright, major key feel). Perfect 4th: 5 ("Here Comes the Bride"). Perfect 5th: 7 ("Star Wars" opening). Octave: 12 (same note, higher). For harmony singing, thirds (3-4 semitones) and fifths (7 semitones) are your bread and butter.',
+      },
+    ],
+  },
+  {
     id: 'health',
     name: 'Vocal Health',
     icon: 'health_and_safety',

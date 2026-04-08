@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getAllSessions, saveSession, deleteSession, createLayer, createDefaultEffects, type LabSession, type LabLayer, type TrackEffect } from './labSessionDb';
 import { getAllTakes, type TakeRecord } from './takesDb';
 
@@ -34,6 +34,42 @@ const SOURCE_ICONS: Record<string, string> = {
   file: 'audio_file',
 };
 
+const LAB_ANIM_CSS = `
+@keyframes lab-fx-expand {
+  from { opacity: 0; max-height: 0; transform: translateY(-4px); }
+  to   { opacity: 1; max-height: 500px; transform: translateY(0); }
+}
+@keyframes lab-fx-row-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes lab-slider-pop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+@keyframes lab-param-expand {
+  from { opacity: 0; max-height: 0; }
+  to   { opacity: 1; max-height: 300px; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+`;
+
+function useLabAnimStyle() {
+  const injected = useRef(false);
+  useEffect(() => {
+    if (injected.current) return;
+    injected.current = true;
+    const s = document.createElement('style');
+    s.textContent = LAB_ANIM_CSS;
+    document.head.appendChild(s);
+    return () => { s.remove(); injected.current = false; };
+  }, []);
+}
+
 async function blobToBuffer(ctx: AudioContext, blob: Blob): Promise<AudioBuffer> {
   const arr = await blob.arrayBuffer();
   return ctx.decodeAudioData(arr);
@@ -51,8 +87,18 @@ function generateImpulse(ctx: AudioContext, decay: number): AudioBuffer {
   return buf;
 }
 
-function buildEffectChain(ctx: AudioContext, effects: TrackEffect[], source: AudioNode, dest: AudioNode) {
-  let current = source;
+interface TrackNodes {
+  source: AudioBufferSourceNode;
+  gainNode: GainNode;
+  pannerNode: StereoPannerNode;
+  effectInputGain: GainNode;
+  effectNodes: AudioNode[];
+  effectOutputGain: GainNode;
+}
+
+function connectEffectChain(ctx: AudioContext, effects: TrackEffect[], input: AudioNode, output: AudioNode) {
+  const nodes: AudioNode[] = [];
+  let current = input;
   for (const fx of effects) {
     if (!fx.enabled) continue;
     if (fx.type === 'reverb') {
@@ -65,6 +111,7 @@ function buildEffectChain(ctx: AudioContext, effects: TrackEffect[], source: Aud
       const merge = ctx.createGain();
       current.connect(dry).connect(merge);
       current.connect(convolver).connect(wet).connect(merge);
+      nodes.push(convolver, dry, wet, merge);
       current = merge;
     } else if (fx.type === 'delay') {
       const delay = ctx.createDelay(2);
@@ -79,6 +126,7 @@ function buildEffectChain(ctx: AudioContext, effects: TrackEffect[], source: Aud
       current.connect(dry).connect(merge);
       current.connect(delay).connect(feedback).connect(delay);
       delay.connect(wet).connect(merge);
+      nodes.push(delay, feedback, dry, wet, merge);
       current = merge;
     } else if (fx.type === 'chorus') {
       const delay = ctx.createDelay(0.05);
@@ -96,6 +144,7 @@ function buildEffectChain(ctx: AudioContext, effects: TrackEffect[], source: Aud
       const merge = ctx.createGain();
       current.connect(dry).connect(merge);
       current.connect(delay).connect(wet).connect(merge);
+      nodes.push(delay, lfo, lfoGain, dry, wet, merge);
       current = merge;
     } else if (fx.type === 'distortion') {
       const ws = ctx.createWaveShaper();
@@ -115,6 +164,7 @@ function buildEffectChain(ctx: AudioContext, effects: TrackEffect[], source: Aud
       const merge = ctx.createGain();
       current.connect(dry).connect(merge);
       current.connect(ws).connect(wet).connect(merge);
+      nodes.push(ws, dry, wet, merge);
       current = merge;
     } else if (fx.type === 'highpass') {
       const filter = ctx.createBiquadFilter();
@@ -122,6 +172,7 @@ function buildEffectChain(ctx: AudioContext, effects: TrackEffect[], source: Aud
       filter.frequency.value = fx.params.frequency ?? 200;
       filter.Q.value = fx.params.q ?? 0.7;
       current.connect(filter);
+      nodes.push(filter);
       current = filter;
     } else if (fx.type === 'lowpass') {
       const filter = ctx.createBiquadFilter();
@@ -129,27 +180,51 @@ function buildEffectChain(ctx: AudioContext, effects: TrackEffect[], source: Aud
       filter.frequency.value = fx.params.frequency ?? 8000;
       filter.Q.value = fx.params.q ?? 0.7;
       current.connect(filter);
+      nodes.push(filter);
       current = filter;
     }
   }
-  current.connect(dest);
+  current.connect(output);
+  return nodes;
 }
 
-function EffectSlider({ label, value, min, max, step, onChange }: {
-  label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void;
+function disconnectNodes(nodes: AudioNode[]) {
+  for (const n of nodes) {
+    try { n.disconnect(); } catch {}
+    if (n instanceof OscillatorNode) { try { n.stop(); } catch {} }
+  }
+}
+
+function rebuildTrackEffects(ctx: AudioContext, track: TrackNodes, effects: TrackEffect[]) {
+  try { track.effectInputGain.disconnect(); } catch {}
+  disconnectNodes(track.effectNodes);
+  try { track.effectOutputGain.disconnect(); } catch {}
+
+  track.effectNodes = connectEffectChain(ctx, effects, track.effectInputGain, track.effectOutputGain);
+  track.effectOutputGain.connect(track.pannerNode);
+}
+
+function EffectSlider({ label, value, min, max, step, onChange, accentColor }: {
+  label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; accentColor?: string;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      animation: 'lab-fx-row-in 250ms cubic-bezier(0.22,1,0.36,1) both',
+    }}>
       <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', minWidth: 48, textTransform: 'capitalize' }}>{label}</span>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(parseFloat(e.target.value))}
-        style={{ flex: 1, accentColor: '#679cff', height: 3, cursor: 'pointer' }} />
-      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', minWidth: 28, textAlign: 'right' }}>{value.toFixed(step < 1 ? 1 : 0)}</span>
+        style={{ flex: 1, accentColor: accentColor || '#679cff', height: 3, cursor: 'pointer', transition: 'opacity 150ms ease' }} />
+      <span style={{
+        fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', minWidth: 28, textAlign: 'right',
+        transition: 'color 150ms ease',
+      }}>{value.toFixed(step < 1 ? 1 : 0)}</span>
     </div>
   );
 }
 
-function EffectRow({ effect, onChange }: { effect: TrackEffect; onChange: (e: TrackEffect) => void }) {
+function EffectRow({ effect, onChange, index }: { effect: TrackEffect; onChange: (e: TrackEffect) => void; index: number }) {
   const meta = EFFECT_LABELS[effect.type] || { icon: 'tune', label: effect.type };
   const [expanded, setExpanded] = useState(false);
   const paramEntries = Object.entries(effect.params);
@@ -160,9 +235,16 @@ function EffectRow({ effect, onChange }: { effect: TrackEffect; onChange: (e: Tr
   };
 
   return (
-    <div style={{ background: '#0e0e0e', borderRadius: 10, overflow: 'hidden' }}>
+    <div style={{
+      background: '#0e0e0e', borderRadius: 10, overflow: 'hidden',
+      animation: `lab-fx-row-in 300ms cubic-bezier(0.22,1,0.36,1) ${index * 40}ms both`,
+      transition: 'box-shadow 200ms ease',
+      boxShadow: effect.enabled ? '0 0 12px rgba(103,156,255,0.05)' : 'none',
+    }}>
       <div onClick={() => setExpanded(!expanded)} style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', cursor: 'pointer',
+        transition: 'background 150ms ease',
+        background: expanded ? '#121313' : 'transparent',
       }}>
         <button
           onClick={e => { e.stopPropagation(); onChange({ ...effect, enabled: !effect.enabled }); }}
@@ -170,15 +252,34 @@ function EffectRow({ effect, onChange }: { effect: TrackEffect; onChange: (e: Tr
             width: 18, height: 18, borderRadius: 4, border: 'none', cursor: 'pointer',
             background: effect.enabled ? '#007aff' : '#252626',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 200ms ease, transform 150ms cubic-bezier(0.34,1.56,0.64,1)',
+            transform: effect.enabled ? 'scale(1)' : 'scale(0.9)',
           }}
         >
           {effect.enabled && <span className="material-symbols-outlined" style={{ fontSize: 12, color: '#fff' }}>check</span>}
         </button>
-        <span className="material-symbols-outlined" style={{ fontSize: 14, color: effect.enabled ? '#679cff' : '#484848' }}>{meta.icon}</span>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600, color: effect.enabled ? '#e7e5e4' : '#767575', flex: 1 }}>{meta.label}</span>
-        <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#484848', transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 200ms ease' }}>expand_more</span>
+        <span className="material-symbols-outlined" style={{
+          fontSize: 14,
+          color: effect.enabled ? '#679cff' : '#484848',
+          transition: 'color 200ms ease',
+        }}>{meta.icon}</span>
+        <span style={{
+          fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600,
+          color: effect.enabled ? '#e7e5e4' : '#767575', flex: 1,
+          transition: 'color 200ms ease',
+        }}>{meta.label}</span>
+        <span className="material-symbols-outlined" style={{
+          fontSize: 14, color: '#484848',
+          transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
+          transition: 'transform 300ms cubic-bezier(0.34,1.56,0.64,1)',
+        }}>expand_more</span>
       </div>
-      {expanded && (
+      <div style={{
+        overflow: 'hidden',
+        maxHeight: expanded ? 300 : 0,
+        opacity: expanded ? 1 : 0,
+        transition: 'max-height 350ms cubic-bezier(0.22,1,0.36,1), opacity 250ms ease',
+      }}>
         <div style={{ padding: '4px 10px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {paramEntries.map(([key, val]) => {
             const [mn, mx, st] = RANGES[key] || [0, 1, 0.1];
@@ -186,7 +287,7 @@ function EffectRow({ effect, onChange }: { effect: TrackEffect; onChange: (e: Tr
               onChange={v => onChange({ ...effect, params: { ...effect.params, [key]: v } })} />;
           })}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -211,14 +312,18 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
     <div style={{
       background: '#161717', borderRadius: 14, padding: '14px 16px',
       border: `1px solid ${isPlaying ? '#007aff30' : '#1f2020'}`,
-      transition: 'border-color 200ms ease',
+      transition: 'border-color 300ms ease, box-shadow 300ms ease',
+      boxShadow: isPlaying ? '0 0 16px rgba(0,122,255,0.06)' : 'none',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div style={{
           width: 32, height: 32, borderRadius: 8, background: '#0e0e0e',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 16, color: isMuted ? '#484848' : accent }}>{SOURCE_ICONS[layer.sourceType] || 'mic'}</span>
+          <span className="material-symbols-outlined" style={{
+            fontSize: 16, color: isMuted ? '#484848' : accent,
+            transition: 'color 200ms ease',
+          }}>{SOURCE_ICONS[layer.sourceType] || 'mic'}</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           {editName ? (
@@ -230,6 +335,7 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
               fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13,
               color: isMuted ? '#484848' : '#e7e5e4', margin: 0, cursor: 'pointer',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              transition: 'color 200ms ease',
             }}>{layer.name}</p>
           )}
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', margin: '1px 0 0' }}>
@@ -242,23 +348,44 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
             background: layer.muted ? '#7f2927' : '#252626',
             fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 800,
             color: layer.muted ? '#ff9993' : '#767575',
-          }}>M</button>
+            transition: 'background 200ms ease, color 200ms ease, transform 100ms ease',
+          }}
+            onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.9)')}
+            onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+            onPointerLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+          >M</button>
           <button onClick={() => onUpdate({ ...layer, solo: !layer.solo })} style={{
-            width: 26, height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
+            width: 26, height: 26, borderRadius: 6, cursor: 'pointer',
             background: layer.solo ? '#f59e0b22' : '#252626',
             fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 800,
             color: layer.solo ? '#f59e0b' : '#767575',
             border: layer.solo ? '1px solid #f59e0b40' : '1px solid transparent',
-          }}>S</button>
+            transition: 'background 200ms ease, color 200ms ease, border-color 200ms ease, transform 100ms ease',
+          }}
+            onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.9)')}
+            onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+            onPointerLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+          >S</button>
         </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#484848' }}>volume_up</span>
+        <span className="material-symbols-outlined" style={{
+          fontSize: 14, color: '#484848',
+          transition: 'color 150ms ease',
+          ...(isMuted ? {} : { color: '#5a5a5a' }),
+        }}>volume_up</span>
         <input type="range" min={0} max={1} step={0.01} value={layer.volume}
           onChange={e => onUpdate({ ...layer, volume: parseFloat(e.target.value) })}
-          style={{ flex: 1, accentColor: accent, height: 3, cursor: 'pointer', opacity: isMuted ? 0.3 : 1 }} />
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', minWidth: 42, textAlign: 'right' }}>
+          style={{
+            flex: 1, accentColor: accent, height: 3, cursor: 'pointer',
+            opacity: isMuted ? 0.3 : 1,
+            transition: 'opacity 200ms ease',
+          }} />
+        <span style={{
+          fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', minWidth: 42, textAlign: 'right',
+          transition: 'color 150ms ease',
+        }}>
           {dbToDisplay(layer.volume)}
         </span>
       </div>
@@ -268,18 +395,32 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
         <input type="range" min={-1} max={1} step={0.01} value={layer.pan}
           onChange={e => onUpdate({ ...layer, pan: parseFloat(e.target.value) })}
           style={{ flex: 1, accentColor: '#a78bfa', height: 3, cursor: 'pointer' }} />
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', minWidth: 28, textAlign: 'right' }}>
+        <span style={{
+          fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', minWidth: 28, textAlign: 'right',
+          transition: 'color 150ms ease',
+        }}>
           {layer.pan === 0 ? 'C' : layer.pan < 0 ? `L${Math.round(Math.abs(layer.pan) * 100)}` : `R${Math.round(layer.pan * 100)}`}
         </span>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: showFx ? 10 : 0 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: showFx ? 10 : 0, transition: 'margin-bottom 200ms ease' }}>
         <button onClick={() => setShowFx(!showFx)} style={{
           display: 'flex', alignItems: 'center', gap: 4, background: '#0e0e0e',
           border: '1px solid #1f2020', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
-          fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: layer.effects.some(e => e.enabled) ? '#679cff' : '#484848',
-        }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 12 }}>tune</span>
+          fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700,
+          color: layer.effects.some(e => e.enabled) ? '#679cff' : '#484848',
+          transition: 'color 200ms ease, border-color 200ms ease, transform 100ms ease',
+          borderColor: showFx ? '#679cff30' : '#1f2020',
+        }}
+          onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.95)')}
+          onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+          onPointerLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+        >
+          <span className="material-symbols-outlined" style={{
+            fontSize: 12,
+            transition: 'transform 300ms cubic-bezier(0.34,1.56,0.64,1)',
+            transform: showFx ? 'rotate(90deg)' : 'rotate(0)',
+          }}>tune</span>
           FX {layer.effects.filter(e => e.enabled).length > 0 && `(${layer.effects.filter(e => e.enabled).length})`}
         </button>
         {confirmDel ? (
@@ -294,17 +435,22 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
         )}
       </div>
 
-      {showFx && (
+      <div style={{
+        overflow: 'hidden',
+        maxHeight: showFx ? 1000 : 0,
+        opacity: showFx ? 1 : 0,
+        transition: 'max-height 400ms cubic-bezier(0.22,1,0.36,1), opacity 300ms ease',
+      }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {layer.effects.map((fx, i) => (
-            <EffectRow key={fx.type} effect={fx} onChange={updated => {
+            <EffectRow key={fx.type} effect={fx} index={i} onChange={updated => {
               const newFx = [...layer.effects];
               newFx[i] = updated;
               onUpdate({ ...layer, effects: newFx });
             }} />
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -375,140 +521,132 @@ function AddTrackSheet({ session, onAdd, onClose }: {
       };
       recorderRef.current = rec;
       startRef.current = Date.now();
-      rec.start(250);
+      rec.start();
       setRecording(true);
-    } catch { /* mic denied */ }
+    } catch {}
   };
 
   const stopRec = () => {
-    recorderRef.current?.stop();
-    setRecording(false);
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+      recorderRef.current.stop();
+      setRecording(false);
+    }
   };
-
-  const tabs = [
-    { id: 'takes' as const, label: 'From Takes', icon: 'video_library' },
-    { id: 'file' as const, label: 'Audio File', icon: 'audio_file' },
-    { id: 'record' as const, label: 'Record', icon: 'mic' },
-  ];
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 100,
-      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-    }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
-      <div style={{
-        position: 'relative', background: '#191a1a', borderRadius: '20px 20px 0 0',
-        maxHeight: '70vh', display: 'flex', flexDirection: 'column',
-        paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 8px' }}>
-          <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 18, color: '#e7e5e4', margin: 0 }}>Add Track</h3>
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100,
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      backdropFilter: 'blur(4px)',
+    }} onClick={onClose}>
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 500, maxHeight: '70vh', overflow: 'auto',
+          background: '#161717', borderRadius: '20px 20px 0 0', padding: '20px 20px 32px',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 20, color: '#e7e5e4', margin: 0 }}>Add Track</h3>
           <button onClick={onClose} style={{ background: '#252626', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#acabaa' }}>close</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#767575' }}>close</span>
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: 4, padding: '8px 20px 12px' }}>
-          {tabs.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: tab === t.id ? '#007aff' : '#252626',
-              color: tab === t.id ? '#fff' : '#767575',
-              fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700,
-              transition: 'all 150ms ease',
+        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#0e0e0e', borderRadius: 10, padding: 3 }}>
+          {(['takes', 'file', 'record'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{
+              flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700,
+              background: tab === t ? '#252626' : 'transparent',
+              color: tab === t ? '#e7e5e4' : '#767575',
+              textTransform: 'capitalize',
+              transition: 'background 200ms ease, color 200ms ease',
             }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{t.icon}</span>
-              {t.label}
+              {t}
             </button>
           ))}
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 16px' }}>
-          {tab === 'takes' && (
-            takes.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 28, color: '#484848' }}>video_library</span>
-                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#767575', margin: '8px 0 0' }}>No takes yet. Record some in the Takes tab first.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {takes.map(take => (
-                  <div key={take.id} onClick={() => importTake(take)} style={{
-                    background: '#0e0e0e', borderRadius: 10, padding: '12px 14px',
-                    display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-                    transition: 'background 150ms ease',
-                  }}
-                    onPointerDown={e => (e.currentTarget.style.background = '#1a1a1a')}
-                    onPointerUp={e => (e.currentTarget.style.background = '#0e0e0e')}
-                    onPointerLeave={e => (e.currentTarget.style.background = '#0e0e0e')}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#679cff' }}>video_library</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: '#e7e5e4', margin: 0 }}>{take.name}</p>
-                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', margin: '1px 0 0' }}>{formatDur(take.durationMs)}</p>
-                    </div>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#484848' }}>add_circle</span>
+        {tab === 'takes' && (
+          takes.length === 0 ? (
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575', textAlign: 'center', padding: '20px 0' }}>No takes yet. Record some in the Takes section first.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {takes.map(take => (
+                <div key={take.id} onClick={() => importTake(take)} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                  background: '#0e0e0e', borderRadius: 10, cursor: 'pointer',
+                  transition: 'background 150ms ease',
+                }}
+                  onPointerDown={e => (e.currentTarget.style.background = '#1a1a1a')}
+                  onPointerUp={e => (e.currentTarget.style.background = '#0e0e0e')}
+                  onPointerLeave={e => (e.currentTarget.style.background = '#0e0e0e')}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#679cff' }}>video_library</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 600, fontSize: 13, color: '#e7e5e4', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{take.name}</p>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', margin: '1px 0 0' }}>{formatDur(take.durationMs)}</p>
                   </div>
-                ))}
-              </div>
-            )
-          )}
-
-          {tab === 'file' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '24px 0' }}>
-              <input ref={fileRef} type="file" accept="audio/*" style={{ display: 'none' }}
-                onChange={e => { const f = e.target.files?.[0]; if (f) importFile(f); }} />
-              <button onClick={() => fileRef.current?.click()} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-                width: '100%', padding: '32px 20px', borderRadius: 14,
-                background: '#0e0e0e', border: '2px dashed #252626', cursor: 'pointer',
-                transition: 'border-color 150ms ease',
-              }}
-                onPointerDown={e => (e.currentTarget.style.borderColor = '#007aff')}
-                onPointerUp={e => (e.currentTarget.style.borderColor = '#252626')}
-                onPointerLeave={e => (e.currentTarget.style.borderColor = '#252626')}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#679cff' }}>upload_file</span>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#acabaa' }}>Tap to choose an audio file</span>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#484848' }}>MP3, WAV, OGG, M4A, WebM</span>
-              </button>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#484848' }}>add_circle</span>
+                </div>
+              ))}
             </div>
-          )}
+          )
+        )}
 
-          {tab === 'record' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '32px 0' }}>
-              {recording ? (
-                <>
-                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
-                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#ef4444', fontWeight: 600 }}>Recording...</p>
-                  <button onClick={stopRec} style={{
-                    width: 64, height: 64, borderRadius: '50%', background: '#ef4444', border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 8px 32px rgba(239,68,68,0.3)',
-                  }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 28, color: '#fff', fontVariationSettings: "'FILL' 1" }}>stop</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#679cff' }}>mic</span>
-                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', textAlign: 'center' }}>Record a new vocal track directly into this session.</p>
-                  <button onClick={startRec} style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px', borderRadius: 9999,
-                    background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
-                    fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, color: '#fff',
-                    boxShadow: '0 8px 32px rgba(0,122,255,0.25)',
-                  }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic</span>
-                    Start Recording
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
+        {tab === 'file' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '24px 0' }}>
+            <input ref={fileRef} type="file" accept="audio/*" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) importFile(f); }} />
+            <button onClick={() => fileRef.current?.click()} style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+              width: '100%', padding: '32px 20px', borderRadius: 14,
+              background: '#0e0e0e', border: '2px dashed #252626', cursor: 'pointer',
+              transition: 'border-color 150ms ease',
+            }}
+              onPointerDown={e => (e.currentTarget.style.borderColor = '#007aff')}
+              onPointerUp={e => (e.currentTarget.style.borderColor = '#252626')}
+              onPointerLeave={e => (e.currentTarget.style.borderColor = '#252626')}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#679cff' }}>upload_file</span>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#acabaa' }}>Tap to choose an audio file</span>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#484848' }}>MP3, WAV, OGG, M4A, WebM</span>
+            </button>
+          </div>
+        )}
+
+        {tab === 'record' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '32px 0' }}>
+            {recording ? (
+              <>
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#ef4444', fontWeight: 600 }}>Recording...</p>
+                <button onClick={stopRec} style={{
+                  width: 64, height: 64, borderRadius: '50%', background: '#ef4444', border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 8px 32px rgba(239,68,68,0.3)',
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 28, color: '#fff', fontVariationSettings: "'FILL' 1" }}>stop</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#679cff' }}>mic</span>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', textAlign: 'center' }}>Record a new vocal track directly into this session.</p>
+                <button onClick={startRec} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px', borderRadius: 9999,
+                  background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
+                  fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, color: '#fff',
+                  boxShadow: '0 8px 32px rgba(0,122,255,0.25)',
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic</span>
+                  Start Recording
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -517,6 +655,7 @@ function AddTrackSheet({ session, onAdd, onClose }: {
 function MixerView({ session, onBack, onUpdate }: {
   session: LabSession; onBack: () => void; onUpdate: (s: LabSession) => void;
 }) {
+  useLabAnimStyle();
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(session.name);
   const [showAddSheet, setShowAddSheet] = useState(false);
@@ -524,9 +663,12 @@ function MixerView({ session, onBack, onUpdate }: {
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const ctxRef = useRef<AudioContext | null>(null);
-  const sourcesRef = useRef<AudioBufferSourceNode[]>([]);
+  const trackNodesRef = useRef<Map<string, TrackNodes>>(new Map());
+  const masterGainRef = useRef<GainNode | null>(null);
   const startTimeRef = useRef(0);
   const animRef = useRef(0);
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
 
   const hasSolo = session.layers.some(l => l.solo);
   const maxDuration = Math.max(...session.layers.map(l => l.durationMs), 0);
@@ -539,19 +681,52 @@ function MixerView({ session, onBack, onUpdate }: {
     } else setName(session.name);
   };
 
-  const updateLayer = (updated: LabLayer) => {
-    const newSession = { ...session, layers: session.layers.map(l => l.id === updated.id ? updated : l), updatedAt: Date.now() };
+  const saveAndNotify = useCallback((newSession: LabSession) => {
     saveSession(newSession).then(() => onUpdate(newSession));
-  };
+  }, [onUpdate]);
+
+  const updateLayer = useCallback((updated: LabLayer) => {
+    const cur = sessionRef.current;
+    const newSession = { ...cur, layers: cur.layers.map(l => l.id === updated.id ? updated : l), updatedAt: Date.now() };
+
+    if (ctxRef.current && playing) {
+      const nodes = trackNodesRef.current.get(updated.id);
+      if (nodes) {
+        const ctx = ctxRef.current;
+        const oldLayer = cur.layers.find(l => l.id === updated.id);
+
+        const newHasSolo = newSession.layers.some(l => l.solo);
+        const isAudible = !updated.muted && (!newHasSolo || updated.solo);
+        nodes.gainNode.gain.setTargetAtTime(isAudible ? updated.volume : 0, ctx.currentTime, 0.015);
+        nodes.pannerNode.pan.setTargetAtTime(updated.pan, ctx.currentTime, 0.015);
+
+        const fxChanged = !oldLayer ||
+          JSON.stringify(oldLayer.effects) !== JSON.stringify(updated.effects);
+        if (fxChanged) {
+          rebuildTrackEffects(ctx, nodes, updated.effects);
+        }
+
+        for (const [id, tn] of trackNodesRef.current) {
+          if (id === updated.id) continue;
+          const lay = newSession.layers.find(l => l.id === id);
+          if (!lay) continue;
+          const aud = !lay.muted && (!newHasSolo || lay.solo);
+          tn.gainNode.gain.setTargetAtTime(aud ? lay.volume : 0, ctx.currentTime, 0.015);
+        }
+      }
+    }
+
+    saveAndNotify(newSession);
+  }, [playing, saveAndNotify]);
 
   const removeLayer = (id: string) => {
     const newSession = { ...session, layers: session.layers.filter(l => l.id !== id), updatedAt: Date.now() };
-    saveSession(newSession).then(() => onUpdate(newSession));
+    saveAndNotify(newSession);
   };
 
   const addLayer = (layer: LabLayer) => {
     const newSession = { ...session, layers: [...session.layers, layer], updatedAt: Date.now() };
-    saveSession(newSession).then(() => onUpdate(newSession));
+    saveAndNotify(newSession);
     setShowAddSheet(false);
   };
 
@@ -560,14 +735,22 @@ function MixerView({ session, onBack, onUpdate }: {
     onBack();
   };
 
-  const updateMasterVol = (v: number) => {
-    const updated = { ...session, masterVolume: v, updatedAt: Date.now() };
-    saveSession(updated).then(() => onUpdate(updated));
-  };
+  const updateMasterVol = useCallback((v: number) => {
+    if (masterGainRef.current && ctxRef.current) {
+      masterGainRef.current.gain.setTargetAtTime(v, ctxRef.current.currentTime, 0.015);
+    }
+    const updated = { ...sessionRef.current, masterVolume: v, updatedAt: Date.now() };
+    saveAndNotify(updated);
+  }, [saveAndNotify]);
 
   const stopPlayback = useCallback(() => {
-    sourcesRef.current.forEach(s => { try { s.stop(); } catch {} });
-    sourcesRef.current = [];
+    for (const [, nodes] of trackNodesRef.current) {
+      try { nodes.source.stop(); } catch {}
+      try { nodes.source.disconnect(); } catch {}
+      disconnectNodes(nodes.effectNodes);
+    }
+    trackNodesRef.current.clear();
+    masterGainRef.current = null;
     if (ctxRef.current) { ctxRef.current.close(); ctxRef.current = null; }
     cancelAnimationFrame(animRef.current);
     setPlaying(false);
@@ -576,42 +759,54 @@ function MixerView({ session, onBack, onUpdate }: {
 
   const playAll = useCallback(async () => {
     if (playing) { stopPlayback(); return; }
-    const audibleLayers = session.layers.filter(l => {
-      if (l.muted) return false;
-      if (hasSolo && !l.solo) return false;
-      return true;
-    });
-    if (audibleLayers.length === 0) return;
+    const cur = sessionRef.current;
+    if (cur.layers.length === 0) return;
 
     const ctx = new AudioContext();
     ctxRef.current = ctx;
     const master = ctx.createGain();
-    master.gain.value = session.masterVolume ?? 0.8;
+    master.gain.value = cur.masterVolume ?? 0.8;
     master.connect(ctx.destination);
+    masterGainRef.current = master;
 
-    const sources: AudioBufferSourceNode[] = [];
-    for (const layer of audibleLayers) {
+    const curHasSolo = cur.layers.some(l => l.solo);
+    const nodeMap = new Map<string, TrackNodes>();
+
+    for (const layer of cur.layers) {
       try {
         const buffer = await blobToBuffer(ctx, layer.audioBlob);
         const source = ctx.createBufferSource();
         source.buffer = buffer;
-        const gain = ctx.createGain();
-        gain.gain.value = layer.volume;
-        const panner = ctx.createStereoPanner();
-        panner.pan.value = layer.pan;
-        source.connect(gain);
-        buildEffectChain(ctx, layer.effects, gain, panner);
-        panner.connect(master);
-        sources.push(source);
+
+        const gainNode = ctx.createGain();
+        const isAudible = !layer.muted && (!curHasSolo || layer.solo);
+        gainNode.gain.value = isAudible ? layer.volume : 0;
+
+        const pannerNode = ctx.createStereoPanner();
+        pannerNode.pan.value = layer.pan;
+
+        const effectInputGain = ctx.createGain();
+        effectInputGain.gain.value = 1;
+        const effectOutputGain = ctx.createGain();
+        effectOutputGain.gain.value = 1;
+
+        source.connect(gainNode);
+        gainNode.connect(effectInputGain);
+        const effectNodes = connectEffectChain(ctx, layer.effects, effectInputGain, effectOutputGain);
+        effectOutputGain.connect(pannerNode);
+        pannerNode.connect(master);
+
+        const trackNode: TrackNodes = { source, gainNode, pannerNode, effectInputGain, effectNodes, effectOutputGain };
+        nodeMap.set(layer.id, trackNode);
       } catch {}
     }
 
-    sourcesRef.current = sources;
+    trackNodesRef.current = nodeMap;
     startTimeRef.current = ctx.currentTime;
-    sources.forEach(s => s.start());
+    for (const [, nodes] of nodeMap) { nodes.source.start(); }
     setPlaying(true);
 
-    const longestMs = Math.max(...audibleLayers.map(l => l.durationMs));
+    const longestMs = Math.max(...cur.layers.map(l => l.durationMs));
     const tick = () => {
       if (!ctxRef.current) return;
       const elapsed = (ctxRef.current.currentTime - startTimeRef.current) * 1000;
@@ -620,11 +815,7 @@ function MixerView({ session, onBack, onUpdate }: {
       animRef.current = requestAnimationFrame(tick);
     };
     animRef.current = requestAnimationFrame(tick);
-
-    sources.forEach(s => { s.onended = () => {
-      if (sources.every(src => src.context.state === 'closed' || !ctxRef.current)) return;
-    }; });
-  }, [playing, session, hasSolo, stopPlayback]);
+  }, [playing, stopPlayback]);
 
   useEffect(() => {
     return () => { stopPlayback(); };
