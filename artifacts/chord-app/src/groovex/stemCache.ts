@@ -205,8 +205,8 @@ async function fetchStemOnce(
   onProgress?: (p: DownloadProgress) => void,
   bustCache = false,
 ): Promise<ArrayBuffer> {
-  const baseUrl = import.meta.env.BASE_URL ?? '/';
-  let url = `${baseUrl}api/stems/${songId}/${stemName}.ogg`;
+  const R2_BASE = 'https://pub-b6a593f7d45247389f1accd1a54fec5c.r2.dev';
+  let url = `${R2_BASE}/stems/${songId}/${stemName}.ogg`;
   if (bustCache) {
     url += `?v=${Date.now()}`;
   }
