@@ -1,49 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { CATEGORIES, EXERCISES, NOTE_FREQ, type Exercise, type ExerciseStep } from './exerciseData';
 import { PracticeDetector, type DetectorState, type StepScore, statusColor, centsToAccuracy } from './practiceDetector';
-
-let sharedToneCtx: AudioContext | null = null;
-let activeOsc: OscillatorNode | null = null;
-let activeGain: GainNode | null = null;
+import { playNoteVoice, stopVoice } from './vocalSynth';
 
 function stopActiveTone() {
-  try {
-    if (activeOsc) { activeOsc.stop(); activeOsc.disconnect(); }
-    if (activeGain) activeGain.disconnect();
-  } catch { }
-  activeOsc = null;
-  activeGain = null;
-}
-
-function playTone(freq: number, durationMs: number) {
-  try {
-    stopActiveTone();
-    if (!sharedToneCtx || sharedToneCtx.state === 'closed') sharedToneCtx = new AudioContext();
-    const ctx = sharedToneCtx;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    const dur = durationMs / 1000;
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.05);
-    gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + dur - 0.1);
-    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + dur);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + dur);
-    activeOsc = osc;
-    activeGain = gain;
-    osc.onended = () => { activeOsc = null; activeGain = null; };
-  } catch { }
+  stopVoice();
 }
 
 function playNoteForStep(step: ExerciseStep) {
   if (!step.targetNote) return;
-  const note = step.targetNote.split('→')[0].split(',')[0].trim();
-  const freq = NOTE_FREQ[note];
-  if (freq) playTone(freq, Math.min(2000, step.durationSec * 500));
+  playNoteVoice(step.targetNote, step.durationSec, step.syllable);
 }
 
 const CATEGORY_TECHNIQUES: Record<string, string[]> = {
