@@ -238,7 +238,7 @@ export function playVoice(opts: VoiceOptions) {
   activeNodes.push(mixer);
 
   const formantSum = audio.createGain();
-  formantSum.gain.setValueAtTime(0, now);
+  formantSum.gain.setValueAtTime(1, now);
   activeNodes.push(formantSum);
 
   for (const f of formants) {
@@ -318,6 +318,6 @@ export function playNoteVoice(targetNote: string, durationSec: number, syllable?
     durationMs: Math.min(2500, durationSec * 500),
     syllable: syllable ?? 'ah',
     isTrill,
-    volume: 0.13,
+    volume: 0.35,
   });
 }
