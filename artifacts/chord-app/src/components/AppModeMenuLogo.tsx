@@ -91,15 +91,14 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
             ? '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)'
             : '0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          zIndex: 9999, minWidth: 200, overflow: 'hidden',
+          zIndex: 9999, minWidth: 175, overflow: 'hidden',
           transformOrigin: 'top left',
           animation: 'menu-pop 200ms cubic-bezier(0.34,1.56,0.64,1) both',
         }}>
 
-          {/* Section label */}
-          <div style={{ padding: '12px 14px 6px' }}>
+          <div style={{ padding: '10px 12px 4px' }}>
             <span style={{
-              fontSize: 9, fontWeight: 800, fontFamily: 'Manrope',
+              fontSize: 8, fontWeight: 800, fontFamily: 'Manrope',
               letterSpacing: '0.14em', textTransform: 'uppercase',
               color: isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.30)',
             }}>
@@ -107,8 +106,7 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
             </span>
           </div>
 
-          {/* App options */}
-          <div style={{ padding: '2px 8px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ padding: '2px 6px 6px', display: 'flex', flexDirection: 'column', gap: 1 }}>
             {OPTIONS.map(opt => {
               const isActive = currentMode === opt.value;
               return (
@@ -116,22 +114,22 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
                   key={opt.value}
                   onClick={() => { updateSettings({ appMode: opt.value }); setOpen(false); }}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    width: '100%', padding: '9px 10px',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    width: '100%', padding: '7px 8px',
                     background: isActive
                       ? (isLight ? `${accent.from}14` : `${accent.from}18`)
                       : 'transparent',
                     border: isActive
                       ? `1px solid ${accent.from}30`
                       : '1px solid transparent',
-                    borderRadius: 10,
+                    borderRadius: 9,
                     cursor: 'pointer', textAlign: 'left',
                     transition: 'background 120ms',
                   }}
                 >
                   <span style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                    width: 26, height: 26, borderRadius: 7, flexShrink: 0,
                     background: isActive
                       ? `${accent.from}22`
                       : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)'),
@@ -139,60 +137,58 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
                     border: `1px solid ${isActive ? accent.from + '30' : (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)')}`,
                     transition: 'background 120ms',
                   }}>
-                    <opt.Icon size={15} />
+                    <opt.Icon size={13} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
                       color: isActive ? accent.from : (isLight ? '#18181b' : '#e4e4e7'),
-                      fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0,
+                      fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, margin: 0,
                       letterSpacing: '-0.01em',
                     }}>{opt.label}</p>
                     <p style={{
                       color: isLight ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.35)',
-                      fontFamily: 'Inter', fontSize: 10, margin: '1px 0 0',
+                      fontFamily: 'Inter', fontSize: 8.5, margin: '1px 0 0',
                     }}>{opt.desc}</p>
                   </div>
                   {isActive && (
-                    <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: 15, flexShrink: 0 }}>check</span>
+                    <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: 13, flexShrink: 0 }}>check</span>
                   )}
                 </button>
               );
             })}
           </div>
 
-          {/* Divider */}
-          <div style={{ height: 1, background: divider, margin: '0 8px' }} />
+          <div style={{ height: 1, background: divider, margin: '0 6px' }} />
 
-          {/* Hub shortcut */}
-          <div style={{ padding: '8px' }}>
+          <div style={{ padding: '6px' }}>
             <button
               onClick={goToHub}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                width: '100%', padding: '9px 10px',
+                display: 'flex', alignItems: 'center', gap: 8,
+                width: '100%', padding: '7px 8px',
                 background: 'transparent', border: '1px solid transparent',
-                borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                borderRadius: 9, cursor: 'pointer', textAlign: 'left',
                 transition: 'background 120ms',
               }}
             >
               <span style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                width: 26, height: 26, borderRadius: 7, flexShrink: 0,
                 background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)',
                 border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
                 color: isLight ? '#18181b' : 'white',
               }}>
-                <StudioLogo size={14} />
+                <StudioLogo size={12} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{
                   color: isLight ? '#18181b' : '#e4e4e7',
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0,
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, margin: 0,
                   letterSpacing: '-0.01em',
                 }}>Studio Hub</p>
                 <p style={{
                   color: isLight ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.35)',
-                  fontFamily: 'Inter', fontSize: 10, margin: '1px 0 0',
+                  fontFamily: 'Inter', fontSize: 8.5, margin: '1px 0 0',
                 }}>Home screen</p>
               </div>
             </button>

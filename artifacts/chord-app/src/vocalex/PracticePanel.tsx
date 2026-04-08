@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 interface Tip {
   title: string;
@@ -212,8 +212,47 @@ const SECTIONS: Section[] = [
   },
 ];
 
+const ANIM_CSS = `
+@keyframes pp-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pp-slide-in {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pp-slide-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-40px); }
+}
+@keyframes pp-expand {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+`;
+
+function useAnimStyle() {
+  const injected = useRef(false);
+  useEffect(() => {
+    if (injected.current) return;
+    injected.current = true;
+    const s = document.createElement('style');
+    s.textContent = ANIM_CSS;
+    document.head.appendChild(s);
+    return () => { s.remove(); injected.current = false; };
+  }, []);
+}
+
 function TipCard({ tip, color, index }: { tip: Tip; color: string; index: number }) {
   const [expanded, setExpanded] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [bodyH, setBodyH] = useState(0);
+
+  useEffect(() => {
+    if (expanded && bodyRef.current) {
+      setBodyH(bodyRef.current.scrollHeight);
+    }
+  }, [expanded]);
 
   return (
     <div
@@ -224,13 +263,17 @@ function TipCard({ tip, color, index }: { tip: Tip; color: string; index: number
         padding: '18px 20px',
         cursor: 'pointer',
         border: `1px solid ${expanded ? color + '30' : '#1f2020'}`,
-        transition: 'all 200ms ease',
+        transition: 'border-color 250ms ease, box-shadow 250ms ease',
+        boxShadow: expanded ? `0 0 20px ${color}08` : 'none',
+        animation: `pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) ${index * 60}ms both`,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <span style={{
           fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 14,
           color: color, opacity: 0.5, minWidth: 20,
+          transition: 'opacity 200ms ease',
+          ...(expanded ? { opacity: 0.9 } : {}),
         }}>
           {String(index + 1).padStart(2, '0')}
         </span>
@@ -241,21 +284,28 @@ function TipCard({ tip, color, index }: { tip: Tip; color: string; index: number
           {tip.title}
         </span>
         <span className="material-symbols-outlined" style={{
-          fontSize: 18, color: '#484848',
-          transition: 'transform 200ms ease',
+          fontSize: 18, color: expanded ? color : '#484848',
+          transition: 'transform 300ms cubic-bezier(0.34,1.56,0.64,1), color 250ms ease',
           transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
         }}>
           expand_more
         </span>
       </div>
-      {expanded && (
-        <p style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 13.5, color: '#a8a6a5',
-          lineHeight: 1.7, margin: '14px 0 0', paddingLeft: 34,
-        }}>
-          {tip.body}
-        </p>
-      )}
+      <div style={{
+        overflow: 'hidden',
+        maxHeight: expanded ? bodyH : 0,
+        transition: 'max-height 350ms cubic-bezier(0.22,1,0.36,1)',
+      }}>
+        <div ref={bodyRef}>
+          <p style={{
+            fontFamily: 'Inter, sans-serif', fontSize: 13.5, color: '#a8a6a5',
+            lineHeight: 1.7, margin: '14px 0 0', paddingLeft: 34,
+            animation: expanded ? 'pp-expand 300ms cubic-bezier(0.22,1,0.36,1) both' : 'none',
+          }}>
+            {tip.body}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -271,26 +321,65 @@ function SectionView({ section }: { section: Section }) {
 }
 
 export default function PracticePanel() {
-  const [activeSection, setActiveSection] = useState<string | null>(null);
+  useAnimStyle();
+  const [transitioning, setTransitioning] = useState(false);
+  const [direction, setDirection] = useState<'in' | 'out'>('in');
+  const [displaySection, setDisplaySection] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (activeSection) {
-    const section = SECTIONS.find(s => s.id === activeSection)!;
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
+
+  const goToSection = useCallback((id: string) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setDirection('in');
+    setTransitioning(true);
+    setDisplaySection(id);
+    timerRef.current = setTimeout(() => {
+      setTransitioning(false);
+      timerRef.current = null;
+    }, 400);
+  }, []);
+
+  const goBack = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setDirection('out');
+    setTransitioning(true);
+    timerRef.current = setTimeout(() => {
+      setDisplaySection(null);
+      setTransitioning(false);
+      timerRef.current = null;
+    }, 250);
+  }, []);
+
+  if (displaySection) {
+    const section = SECTIONS.find(s => s.id === displaySection)!;
     return (
-      <div style={{ padding: '16px 20px', minHeight: '100%' }}>
+      <div style={{
+        padding: '16px 20px', minHeight: '100%',
+        animation: direction === 'in'
+          ? 'pp-slide-in 350ms cubic-bezier(0.22,1,0.36,1) both'
+          : (transitioning ? 'pp-slide-out 250ms cubic-bezier(0.22,1,0.36,1) both' : 'none'),
+      }}>
         <button
-          onClick={() => setActiveSection(null)}
+          onClick={goBack}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 6,
             color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13,
             padding: 0, marginBottom: 24,
+            transition: 'color 150ms ease',
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
           Back
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24,
+          animation: 'pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) 50ms both',
+        }}>
           <div style={{
             width: 44, height: 44, borderRadius: 12,
             background: `${section.color}15`,
@@ -325,29 +414,41 @@ export default function PracticePanel() {
       <h2 style={{
         fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 24,
         color: '#e7e5e4', margin: '0 0 6px',
+        animation: 'pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) both',
       }}>
         Tips & Techniques
       </h2>
       <p style={{
         fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575',
         margin: '0 0 28px', lineHeight: 1.5,
+        animation: 'pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) 60ms both',
       }}>
         Real vocal techniques that actually work. Pick a section and learn at your own pace.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {SECTIONS.map(section => (
+        {SECTIONS.map((section, i) => (
           <div
             key={section.id}
-            onClick={() => setActiveSection(section.id)}
+            onClick={() => goToSection(section.id)}
             style={{
               background: '#161717',
               borderRadius: 16,
               padding: '20px',
               cursor: 'pointer',
               border: '1px solid #1f2020',
-              transition: 'all 150ms ease',
+              transition: 'transform 200ms cubic-bezier(0.34,1.56,0.64,1), border-color 200ms ease, box-shadow 200ms ease',
               display: 'flex', alignItems: 'center', gap: 16,
+              animation: `pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) ${100 + i * 50}ms both`,
+            }}
+            onPointerDown={e => {
+              (e.currentTarget as HTMLElement).style.transform = 'scale(0.97)';
+            }}
+            onPointerUp={e => {
+              (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+            }}
+            onPointerLeave={e => {
+              (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
             }}
           >
             <div style={{

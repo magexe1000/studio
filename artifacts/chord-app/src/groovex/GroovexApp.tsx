@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useGroovexStore, type GroovexView } from './useGroovexStore';
-import { GroovexLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, StudioLogo } from '../components/ChordexLogo';
+import { GroovexLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, VocalexLogo, StudioLogo } from '../components/ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 
 const GroovexLibrary = lazy(() => import('./GroovexLibrary'));
@@ -277,10 +277,11 @@ function GroovexAppMenuLogo() {
     label: string;
     desc: string;
   }[] = [
-    { value: 'chords', Icon: ChordexLogo,    label: 'Chordex', desc: 'Chords & songs'     },
-    { value: 'drums',  Icon: DrumexLogo,     label: 'Drumex',  desc: 'Drum sheets'         },
-    { value: 'stage',  Icon: StagexLogoIcon, label: 'Stagex',  desc: 'Stage plot & rider'  },
-    { value: 'groovex', Icon: GroovexLogo,   label: 'Groovex', desc: 'Multitrack mixer'    },
+    { value: 'chords',  Icon: ChordexLogo,    label: 'Chordex', desc: 'Chords & songs'       },
+    { value: 'drums',   Icon: DrumexLogo,     label: 'Drumex',  desc: 'Drum sheets'          },
+    { value: 'stage',   Icon: StagexLogoIcon, label: 'Stagex',  desc: 'Stage plot & rider'   },
+    { value: 'groovex', Icon: GroovexLogo,    label: 'Groovex', desc: 'Multitrack mixer'     },
+    { value: 'vocalex', Icon: VocalexLogo,    label: 'Vocalex', desc: 'Vocal tools & training' },
   ];
 
   const goToHub = () => {
@@ -291,7 +292,7 @@ function GroovexAppMenuLogo() {
   const switchTo = (mode: string) => {
     setOpen(false);
     if (mode === 'groovex') return;
-    updateSettings({ appMode: mode as 'chords' | 'drums' | 'stage' });
+    updateSettings({ appMode: mode as 'chords' | 'drums' | 'stage' | 'vocalex' });
   };
 
   const resolvedColor = isLight ? '#18181b' : '#d4d4d8';
@@ -338,13 +339,13 @@ function GroovexAppMenuLogo() {
             ? '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)'
             : '0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          zIndex: 9999, minWidth: 200, overflow: 'hidden',
+          zIndex: 9999, minWidth: 175, overflow: 'hidden',
           transformOrigin: 'top left',
           animation: 'menu-pop 200ms cubic-bezier(0.34,1.56,0.64,1) both',
         }}>
-          <div style={{ padding: '12px 14px 6px' }}>
+          <div style={{ padding: '10px 12px 4px' }}>
             <span style={{
-              fontSize: 9, fontWeight: 800, fontFamily: 'Manrope',
+              fontSize: 8, fontWeight: 800, fontFamily: 'Manrope',
               letterSpacing: '0.14em', textTransform: 'uppercase',
               color: sectionLabel,
             }}>
@@ -352,7 +353,7 @@ function GroovexAppMenuLogo() {
             </span>
           </div>
 
-          <div style={{ padding: '2px 8px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ padding: '2px 6px 6px', display: 'flex', flexDirection: 'column', gap: 1 }}>
             {OPTIONS.map(opt => {
               const isActive = opt.value === 'groovex';
               return (
@@ -360,79 +361,79 @@ function GroovexAppMenuLogo() {
                   key={opt.value}
                   onClick={() => switchTo(opt.value)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    width: '100%', padding: '9px 10px',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    width: '100%', padding: '7px 8px',
                     background: isActive
                       ? (isLight ? `${accent.from}14` : `${accent.from}18`)
                       : 'transparent',
                     border: isActive
                       ? `1px solid ${accent.from}30`
                       : '1px solid transparent',
-                    borderRadius: 10,
+                    borderRadius: 9,
                     cursor: 'pointer', textAlign: 'left',
                     transition: 'background 120ms',
                   }}
                 >
                   <span style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                    width: 26, height: 26, borderRadius: 7, flexShrink: 0,
                     background: isActive ? `${accent.from}22` : iconBg,
                     color: isActive ? accent.from : inactiveIcon,
                     border: `1px solid ${isActive ? accent.from + '30' : iconBorder}`,
                     transition: 'background 120ms',
                   }}>
-                    <opt.Icon size={15} />
+                    <opt.Icon size={13} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
                       color: isActive ? accent.from : labelColor,
-                      fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0,
+                      fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, margin: 0,
                       letterSpacing: '-0.01em',
                     }}>{opt.label}</p>
                     <p style={{
                       color: descColor,
-                      fontFamily: 'Inter', fontSize: 10, margin: '1px 0 0',
+                      fontFamily: 'Inter', fontSize: 8.5, margin: '1px 0 0',
                     }}>{opt.desc}</p>
                   </div>
                   {isActive && (
-                    <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: 15, flexShrink: 0 }}>check</span>
+                    <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: 13, flexShrink: 0 }}>check</span>
                   )}
                 </button>
               );
             })}
           </div>
 
-          <div style={{ height: 1, background: divider, margin: '0 8px' }} />
+          <div style={{ height: 1, background: divider, margin: '0 6px' }} />
 
-          <div style={{ padding: 8 }}>
+          <div style={{ padding: 6 }}>
             <button
               onClick={goToHub}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                width: '100%', padding: '9px 10px',
+                display: 'flex', alignItems: 'center', gap: 8,
+                width: '100%', padding: '7px 8px',
                 background: 'transparent', border: '1px solid transparent',
-                borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                borderRadius: 9, cursor: 'pointer', textAlign: 'left',
                 transition: 'background 120ms',
               }}
             >
               <span style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                width: 26, height: 26, borderRadius: 7, flexShrink: 0,
                 background: iconBg,
                 border: `1px solid ${iconBorder}`,
                 color: isLight ? '#18181b' : 'white',
               }}>
-                <StudioLogo size={14} />
+                <StudioLogo size={12} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{
                   color: labelColor,
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0,
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, margin: 0,
                   letterSpacing: '-0.01em',
                 }}>Studio Hub</p>
                 <p style={{
                   color: descColor,
-                  fontFamily: 'Inter', fontSize: 10, margin: '1px 0 0',
+                  fontFamily: 'Inter', fontSize: 8.5, margin: '1px 0 0',
                 }}>Home screen</p>
               </div>
             </button>
