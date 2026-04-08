@@ -1,917 +1,385 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { CATEGORIES, EXERCISES, NOTE_FREQ, type Exercise, type ExerciseStep } from './exerciseData';
-import { PracticeDetector, type DetectorState, type StepScore, statusColor, centsToAccuracy } from './practiceDetector';
-import { playNoteVoice, stopVoice } from './vocalSynth';
-import { speak, stopCoach, announceStepChange, announceCompletion, speakCoachingTip } from './voiceCoach';
+import { useState } from 'react';
 
-function stopActiveTone() {
-  stopVoice();
+interface Tip {
+  title: string;
+  body: string;
 }
 
-function playNoteForStep(step: ExerciseStep) {
-  if (!step.targetNote) return;
-  playNoteVoice(step.targetNote, step.durationSec, step.syllable);
+interface Section {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  tips: Tip[];
 }
 
-const CATEGORY_TECHNIQUES: Record<string, string[]> = {
-  warmup: [
-    'Keep lips and jaw relaxed — no tension',
-    'Feel the vibration in your lips, nose & forehead',
-    'Start gently — never force the voice at this stage',
-    'Breathe through your nose between each repetition',
-  ],
-  breath: [
-    'Expand your belly outward, not your chest upward',
-    'Keep your shoulders still and relaxed',
-    'Imagine a balloon inflating in your stomach',
-    'Exhale on a steady stream — like blowing through a straw',
-  ],
-  pitch: [
-    'Listen to the reference tone before singing',
-    'Relax your jaw — tension makes you sharp',
-    'Think the note in your head first, then sing it',
-    'Watch the pitch indicator and adjust in real time',
-  ],
-  resonance: [
-    'Feel where the sound vibrates — face, chest, or head',
-    'Keep your throat open like a yawn inside',
-    'Vowel shape matters — exaggerate mouth positions',
-    'Forward placement gives a bright, carrying tone',
-  ],
-  range: [
-    'Never push or force notes at the top of your range',
-    'Think "light and forward" as you ascend',
-    'Stay on the vowel shape through register transitions',
-    'If it strains, drop the key lower and build up',
-  ],
-  agility: [
-    'Start slow — accuracy first, speed follows',
-    'Keep each note clean before increasing tempo',
-    'Use a light, bouncy touch — diaphragm drives each note',
-    'Record yourself: clarity sounds different than it feels',
-  ],
-  articulation: [
-    'Exaggerate consonants more than feels natural',
-    'Keep the vowel space open between consonants',
-    'Tongue tip stays light and agile — don\'t over-tighten',
-    'Speak it perfectly slow before you sing it fast',
-  ],
-};
+const SECTIONS: Section[] = [
+  {
+    id: 'warmup',
+    name: 'Warming Up',
+    icon: 'local_fire_department',
+    color: '#f59e0b',
+    tips: [
+      {
+        title: 'Lip trills',
+        body: 'Blow air through closed lips so they vibrate loosely. Slide from your lowest comfortable note up to your highest and back down. This loosens your lips, jaw, and engages diaphragmatic airflow without straining your vocal folds. Do 5-6 slides over about 2 minutes.',
+      },
+      {
+        title: 'Humming scales',
+        body: 'Hum gently on "mmm" through a 5-note scale (do-re-mi-fa-sol) starting in a comfortable mid-range. Feel the buzz in your lips, nose, and forehead — that vibration means your resonators are engaged. Move the starting note up by a half-step each repetition. Keep your jaw relaxed and teeth slightly apart behind closed lips.',
+      },
+      {
+        title: 'Tongue trills',
+        body: 'Roll your tongue on an "rrr" while sliding pitch up and down your range. This warms up the tongue muscles and coordinates breath support with phonation. If you can\'t roll your tongue, substitute with a lip trill or a "vvv" buzz on your bottom lip.',
+      },
+      {
+        title: 'Gentle sirens',
+        body: 'On an "ooh" or "eee", glide smoothly from the bottom of your range to the top and back down in one breath — like an ambulance siren. Keep the volume soft. This stretches your vocal folds gradually and reveals where your register transitions (breaks) are so you can smooth them out over time.',
+      },
+      {
+        title: 'Jaw and neck release',
+        body: 'Before you sing a single note, massage your jaw joints (in front of your ears) in small circles. Drop your jaw open and let it hang — don\'t force it. Roll your neck slowly side to side. Tension in the jaw and neck directly restricts your larynx and limits your range.',
+      },
+    ],
+  },
+  {
+    id: 'breath',
+    name: 'Breath Control',
+    icon: 'air',
+    color: '#34d399',
+    tips: [
+      {
+        title: 'Diaphragmatic breathing',
+        body: 'Place one hand on your chest and one on your belly. Breathe in through your nose — only your belly hand should move outward. Your chest stays still. This engages your diaphragm, which is the muscle that controls airflow for singing. Practice this lying down first, then standing. 5 minutes daily will rewire your breathing habit.',
+      },
+      {
+        title: 'The straw exercise',
+        body: 'Breathe in fully, then exhale through a thin straw (or purse your lips tightly to simulate one). Try to keep a steady, consistent airflow for as long as possible — aim for 20-30 seconds. This trains your body to regulate air pressure, which directly translates to better sustain and dynamic control when singing.',
+      },
+      {
+        title: 'Counted breathing',
+        body: 'Inhale for 4 counts, hold for 4 counts, exhale on a sustained "sss" for 8 counts. As you improve, extend the exhale: 12, 16, even 20 counts. The exhale phase trains the slow, controlled release of air that powers sustained notes and long phrases without running out of breath.',
+      },
+      {
+        title: 'Panting for support awareness',
+        body: 'Do quick, short pants like a dog — "huh huh huh" — with your hand on your belly. You\'ll feel your abdominal muscles pulsing. That\'s your support mechanism. Now slow the pants down to a steady "huh... huh... huh..." and feel how each pulse connects to a controlled burst of air. This awareness transfers directly to staccato and dynamic singing.',
+      },
+      {
+        title: 'Sustained tone on one breath',
+        body: 'Pick a comfortable note and sing "ahh" on one breath for as long as you can. Time yourself. Don\'t push — keep the volume at a comfortable medium. Track your time weekly. A healthy untrained voice sustains about 15 seconds; with training, 25-35 seconds is achievable. This is the most direct measure of your breath support.',
+      },
+    ],
+  },
+  {
+    id: 'pitch',
+    name: 'Pitch & Ear Training',
+    icon: 'music_note',
+    color: '#007aff',
+    tips: [
+      {
+        title: 'Matching single notes',
+        body: 'Play a note on a piano, guitar, or app — then sing it back. Hold it and listen carefully. Are you slightly above (sharp) or below (flat)? Most people sing slightly flat when they start. Use a tuner app to check. Do this with random notes across your range, 10-15 per session. Accurate single-note matching is the foundation of all pitch work.',
+      },
+      {
+        title: 'Interval training',
+        body: 'Learn to hear and sing the common intervals by associating them with songs you know. A major 2nd sounds like the first two notes of "Happy Birthday." A perfect 5th is "Star Wars." A perfect 4th is "Here Comes the Bride." Practice singing these intervals up and down from any starting note until they become automatic.',
+      },
+      {
+        title: 'Scale singing with a drone',
+        body: 'Play a sustained root note (a drone) and sing a major scale over it: do-re-mi-fa-sol-la-ti-do. Listen to how each scale degree sounds against the drone. The 4th and 7th want to resolve — feel that tension. This trains relative pitch, which is far more useful than perfect pitch for real-world singing.',
+      },
+      {
+        title: 'Singing back melodies',
+        body: 'Listen to a short phrase from a song you like — just 4-8 notes. Pause it, then sing it back from memory. Check yourself by playing it again. Start with simple melodies and work up to more complex ones. This builds your musical memory and your ability to reproduce what you hear internally, which is the core of singing in tune.',
+      },
+      {
+        title: 'Sliding vs. stepping',
+        body: 'Many pitch problems come from sliding between notes instead of stepping cleanly. Practice singing two notes a whole step apart: sing the first, stop completely (brief silence), then sing the second. No scooping, no sliding. Once clean, remove the silence gap. This trains precision in your vocal fold tension changes.',
+      },
+    ],
+  },
+  {
+    id: 'resonance',
+    name: 'Resonance & Tone',
+    icon: 'record_voice_over',
+    color: '#a78bfa',
+    tips: [
+      {
+        title: 'Finding your mask resonance',
+        body: 'Hum on "mmm" and focus the buzz into the front of your face — the area around your nose, cheekbones, and forehead. This is called "mask resonance" or "forward placement." Now open to "mmm-ahh" while keeping that frontal buzz. If the buzz disappears, you\'ve fallen back into your throat. This forward placement is what gives a voice carry and brightness without volume.',
+      },
+      {
+        title: 'The ng exercise',
+        body: 'Sing "ng" (like the end of "sing") on a sustained note. This forces the sound through your nasal resonators. Now open to "ng-ah" while maintaining the nasal ring. Cycle through "ng-ah-ng-ah" on a single pitch. This is one of the most effective exercises for finding mix voice — the blend between chest and head voice that sounds full everywhere.',
+      },
+      {
+        title: 'Vowel modification',
+        body: 'As you sing higher, pure vowels stop working — "ee" becomes shrill, "ah" becomes shouty. The fix is subtle vowel modification: "ee" shifts toward "ih", "ah" shifts toward "uh", "oh" closes toward "oo". Practice singing a scale on "ah" and consciously rounding the vowel as you ascend. It should feel like the vowel narrows slightly. This is how professional singers sing high notes that sound effortless.',
+      },
+      {
+        title: 'Chest voice vs. head voice',
+        body: 'Place your hand on your chest and sing a low note on "ahh" — feel the vibration. That\'s chest voice. Now sing a high, light "ooh" and feel the vibration move to your head/skull. That\'s head voice. Practice the transition zone (your "bridge" or "passaggio") where one hands off to the other. The goal is to make this transition smooth and inaudible. Sirens on "ooh" through the bridge zone are the best exercise.',
+      },
+      {
+        title: 'Open throat technique',
+        body: 'Yawn — feel how the back of your throat opens up and your larynx drops? That\'s an open throat. Now try to recreate that feeling while singing "ahh" without actually yawning. Think "beginning of a yawn" rather than a full yawn. This space in your throat is where rich, warm tone comes from. If your throat feels tight or closed while singing, you\'re losing resonance and risking strain.',
+      },
+    ],
+  },
+  {
+    id: 'range',
+    name: 'Extending Your Range',
+    icon: 'expand',
+    color: '#ec4899',
+    tips: [
+      {
+        title: 'Know your current range',
+        body: 'Sing down to your lowest comfortable note and record it. Then sing up to your highest comfortable note (not falsetto — full voice) and record it. That\'s your current usable range. Most untrained singers have about 1.5 octaves. With training, 2-3 octaves is achievable. Track this monthly to see real progress.',
+      },
+      {
+        title: 'Extending low notes',
+        body: 'Low range is mostly about relaxation. Sing a descending scale on "oh" and let your voice get heavy and relaxed as you descend. Don\'t push for volume — low notes are naturally quieter. Practice vocal fry (that creaky sound) at your lowest pitches to train your vocal folds to vibrate at those slower rates. Over months, you can gain 2-4 low notes.',
+      },
+      {
+        title: 'Extending high notes safely',
+        body: 'Never shout your way to high notes. Instead, practice in head voice or falsetto first — get comfortable with those pitches. Then gradually add more chest voice energy through mix voice. Lip trills and "nay nay nay" (like a bratty child) through your break are the safest way to build high range. If it hurts or feels strained, you\'re pushing too hard. Back off and try again lighter.',
+      },
+      {
+        title: 'The mix voice bridge',
+        body: 'Your voice has a "break" (passaggio) where chest voice can\'t keep going up and head voice hasn\'t kicked in. For most men, this is around E4-G4; for most women, around A4-C5. Practice "nay" or "gee" scales through this zone at medium volume. These bright, twangy syllables help your vocal folds find the right coordination for mix voice without flipping or cracking.',
+      },
+      {
+        title: 'Patience with range building',
+        body: 'Range builds slowly — expect to gain maybe 2-3 notes over several months of consistent practice. Your vocal folds are muscles and the coordinating muscles need time to develop. Daily 15-minute sessions are far more effective than occasional hour-long sessions. Never sacrifice tone quality for range — a beautiful note in your comfortable range is worth more than a strained note at your limit.',
+      },
+    ],
+  },
+  {
+    id: 'performance',
+    name: 'Performance & Expression',
+    icon: 'theater_comedy',
+    color: '#ef4444',
+    tips: [
+      {
+        title: 'Dynamics tell the story',
+        body: 'Singing everything at the same volume is the fastest way to bore a listener. Practice singing a phrase starting soft, growing to loud, and pulling back to soft — even if the original song doesn\'t do this. Master the extremes: can you sing a phrase barely above a whisper? Can you belt the same phrase? The space between those extremes is your dynamic range, and it\'s what makes a performance compelling.',
+      },
+      {
+        title: 'Phrasing and breath marks',
+        body: 'Before you sing a song, decide where you\'ll breathe. Mark the lyrics — put a check mark where you\'ll take a breath. Breathe at natural phrase endings, not in the middle of words or thoughts. Plan your breaths so you always have enough air to finish each phrase with control. Running out of air mid-phrase is the most common amateur mistake and the easiest to fix with planning.',
+      },
+      {
+        title: 'Consonants carry the words',
+        body: 'Vowels carry the tone, but consonants carry the meaning. Exaggerate your consonants when practicing — really pop your P\'s, snap your T\'s, buzz your Z\'s. When performing, pull back to about 80% of that exaggeration. Most singers under-articulate, making lyrics muddy and unintelligible. Clear diction doesn\'t require volume — it requires intention.',
+      },
+      {
+        title: 'Microphone technique',
+        body: 'Hold the mic 1-3 inches from your mouth for normal singing. Pull back slightly on loud/belted notes, move closer for soft/intimate phrases. This is called "working the mic" and it\'s how professionals maintain consistent volume despite singing with huge dynamics. Never cup the mic head with your hand — it causes feedback and muddies the sound.',
+      },
+      {
+        title: 'Emotional connection',
+        body: 'Before you sing a song, decide what emotion you want to convey. Speak the lyrics out loud as if you\'re telling someone the story. Notice where you naturally emphasize words, where you slow down, where you get intense. Now sing it with those same intentions. Technical perfection without emotional connection sounds impressive but doesn\'t move anyone. Connection first, technique second.',
+      },
+    ],
+  },
+  {
+    id: 'health',
+    name: 'Vocal Health',
+    icon: 'health_and_safety',
+    color: '#06b6d4',
+    tips: [
+      {
+        title: 'Hydration is non-negotiable',
+        body: 'Your vocal folds need to be hydrated to vibrate efficiently. Drink water consistently throughout the day — not just right before singing. Room temperature water is best. Avoid caffeine and alcohol before singing as they dehydrate. If your voice feels "thick" or "sticky", you\'re probably dehydrated. Steam inhalation (hot shower, humidifier) helps hydrate the folds directly.',
+      },
+      {
+        title: 'Rest days matter',
+        body: 'Your vocal folds are muscles — they need recovery. If you sing intensely, take the next day easy. Signs you need rest: hoarseness lasting more than a day, feeling like you need to clear your throat constantly, a "scratchy" feeling when speaking. Pushing through these signals can lead to nodes (calluses on your vocal folds) that may require surgery.',
+      },
+      {
+        title: 'Avoid throat clearing',
+        body: 'That "ahem" throat clear is like slamming your vocal folds together violently. Instead, swallow hard, take a sip of water, or do a gentle hum. If you constantly feel the need to clear your throat, it might be reflux (acid reaching your throat) — talk to a doctor. Chronic throat clearing is one of the most damaging habits for singers.',
+      },
+      {
+        title: 'Speaking voice habits',
+        body: 'Most vocal damage happens from speaking, not singing. Don\'t speak in noisy environments (bars, concerts) without amplification — you\'ll unconsciously shout. Don\'t speak in a pitch that\'s too low for your natural voice (vocal fry speech). Don\'t whisper when your voice is tired — whispering actually strains the folds more than normal soft speech.',
+      },
+      {
+        title: 'When to see a professional',
+        body: 'See an ENT (ear, nose, throat doctor) or a voice specialist if: hoarseness lasts more than 2 weeks, you experience pain while singing or speaking, your range suddenly decreases, or you hear breathiness that wasn\'t there before. Early intervention prevents small problems from becoming permanent. A good voice teacher is also invaluable — even a few lessons can correct habits that take years to unlearn alone.',
+      },
+    ],
+  },
+];
 
-const VISUAL_COACHING: Record<string, string[]> = {
-  breathBar: [
-    'Expand your belly like a balloon — shoulders stay down',
-    'Let the breath fall out — don\'t push or force it',
-    'Count slowly in your head to pace the flow',
-  ],
-  sustainHold: [
-    'Engage your core — like bracing for a gentle punch',
-    'Keep your throat relaxed while you hold',
-    'Imagine a steady, even pressure — no jerking',
-  ],
-  pitchLadder: [
-    'Listen to the tone playing — match it before singing',
-    'Relax your jaw and let the pitch find its place',
-    'Try a soft "mm" hum first, then open to the vowel',
-  ],
-  vowelShape: [
-    'Exaggerate the lip and tongue shape more than normal',
-    'Keep the back of your throat open — like a yawn',
-    'Focus on where you feel the vibration in your face',
-  ],
-  trillWave: [
-    'Loose, floppy lips — don\'t press them together tightly',
-    'Let the air do the work — steady breath pressure',
-    'If the trill stops, smile slightly and try again',
-  ],
-  sirene: [
-    'Glide smoothly — no flipping or jumping',
-    'Think of it as one continuous tone bending',
-    'Stay on "oo" — it keeps your voice connected',
-  ],
-  intervalJump: [
-    'Hear the target note in your head before you sing it',
-    'Take a small breath between jumps',
-    'Don\'t slide — aim for a clean landing on the note',
-  ],
-  dynamicBar: [
-    'Imagine a speaker with a volume knob — control it',
-    'Breath pressure drives dynamics, not throat tension',
-    'Pianissimo should still feel resonant, not breathy',
-  ],
-};
+function TipCard({ tip, color, index }: { tip: Tip; color: string; index: number }) {
+  const [expanded, setExpanded] = useState(false);
 
-function AccuracyRing({ state, size = 56 }: { state: DetectorState; size?: number }) {
-  const r = (size - 6) / 2;
-  const C = 2 * Math.PI * r;
-  const fill = state.status !== 'silent' ? state.accuracy * C : 0;
-  const color = statusColor(state.status);
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#252626" strokeWidth="4" />
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="4"
-        strokeDasharray={`${fill} ${C - fill}`} strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        style={{ transition: 'stroke-dasharray 150ms ease, stroke 150ms ease' }}
-      />
-      <text x={size / 2} y={size / 2 + 1} textAnchor="middle" dominantBaseline="middle"
-        fill={color} fontSize={state.status === 'good' ? 14 : 10} fontWeight="800" fontFamily="Manrope"
-        style={{ transition: 'fill 150ms ease' }}
-      >
-        {state.status === 'silent' ? '—' :
-         state.status === 'good' ? '✓' :
-         state.centsOff > 0 ? '↑' : '↓'}
-      </text>
-    </svg>
-  );
-}
-
-function ScoreDisplay({ scores, exerciseColor }: { scores: StepScore[]; exerciseColor: string }) {
-  const totalAccuracy = scores.length > 0
-    ? scores.filter(s => s.totalSamples > 0).reduce((sum, s) => sum + s.accuracy, 0) / Math.max(1, scores.filter(s => s.totalSamples > 0).length)
-    : 0;
-  const pct = Math.round(totalAccuracy * 100);
-  const grade = pct >= 90 ? 'Excellent' : pct >= 75 ? 'Good' : pct >= 55 ? 'Fair' : 'Keep Practicing';
-  const gradeColor = pct >= 90 ? '#34d399' : pct >= 75 ? '#007aff' : pct >= 55 ? '#eab308' : '#ef4444';
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-      <div style={{
-        width: 80, height: 80, borderRadius: '50%',
-        background: `${gradeColor}1a`, display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
-      }}>
-        <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 28, fontWeight: 800, color: gradeColor }}>{pct}%</span>
-      </div>
-      <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 16, fontWeight: 700, color: gradeColor }}>{grade}</span>
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {scores.map((s, i) => {
-          const stepPct = Math.round(s.accuracy * 100);
-          const c = stepPct >= 80 ? '#34d399' : stepPct >= 55 ? '#eab308' : s.totalSamples === 0 ? '#484848' : '#ef4444';
-          return (
-            <div key={i} style={{
-              width: 28, height: 28, borderRadius: 6, background: `${c}22`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: `1px solid ${c}44`,
-            }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: c, fontFamily: 'Inter, sans-serif' }}>
-                {s.totalSamples === 0 ? '—' : stepPct >= 80 ? '✓' : stepPct >= 55 ? '~' : '✗'}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function BreathBarVisual({ progress, phase }: { progress: number; phase: string }) {
-  const isIn = phase.toLowerCase().includes('breathe in') || phase.toLowerCase().includes('inhale') || phase.toLowerCase().includes('deep in');
-  const isHold = phase.toLowerCase().includes('hold');
-  const fillH = isIn ? progress * 100 : isHold ? 85 : (1 - progress) * 100;
-  const label = isIn ? '↑ INHALE' : isHold ? '· HOLD' : '↓ EXHALE';
-  const color = isIn ? '#34d399' : isHold ? '#eab308' : '#60a5fa';
-  return (
-    <div style={{ width: '100%', height: 72, borderRadius: 14, background: '#141515', position: 'relative', overflow: 'hidden', border: '1px solid #252626' }}>
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        height: `${Math.max(4, fillH)}%`,
-        background: `linear-gradient(to top, ${color}55, ${color}18)`,
-        transition: 'height 200ms ease',
-      }} />
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-        <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 15, fontWeight: 800, color, opacity: 0.9 }}>{label}</span>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575' }}>belly expands, chest stays still</span>
-      </div>
-    </div>
-  );
-}
-
-function SustainHoldVisual({ progress }: { progress: number }) {
-  const ringP = progress * 283;
-  const pct = Math.round(progress * 100);
-  return (
-    <div style={{ width: '100%', height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-      <svg viewBox="0 0 100 100" width={60} height={60}>
-        <circle cx="50" cy="50" r="45" fill="none" stroke="#252626" strokeWidth="5" />
-        <circle cx="50" cy="50" r="45" fill="none" stroke="#34d399" strokeWidth="5"
-          strokeDasharray="283" strokeDashoffset={283 - ringP} strokeLinecap="round"
-          transform="rotate(-90 50 50)" style={{ transition: 'stroke-dashoffset 200ms ease' }} />
-        <text x="50" y="47" textAnchor="middle" fill="#e7e5e4" fontSize="15" fontWeight="700" fontFamily="Manrope">HOLD</text>
-        <text x="50" y="62" textAnchor="middle" fill="#34d399" fontSize="11" fontWeight="600" fontFamily="Inter">{pct}%</text>
-      </svg>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575' }}>Core engaged</span>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575' }}>Throat open</span>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575' }}>Shoulders down</span>
-      </div>
-    </div>
-  );
-}
-
-function PitchLadderVisual({ targetNote, detectorState, exerciseColor }: { targetNote?: string; detectorState?: DetectorState; exerciseColor: string }) {
-  const scaleNotes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
-  const detected = detectorState && detectorState.status !== 'silent' ? `${detectorState.currentPitch?.noteName}${detectorState.currentPitch?.octave}` : null;
-  return (
-    <div style={{ width: '100%' }}>
-      <div style={{ width: '100%', height: 72, display: 'flex', alignItems: 'flex-end', gap: 3, padding: '0 4px', background: '#141515', borderRadius: 14, border: '1px solid #252626', overflow: 'hidden', position: 'relative' }}>
-        {scaleNotes.map((note, i) => {
-          const isTarget = targetNote?.includes(note.replace(/\d/, '')) || targetNote === note;
-          const isDetected = detected === note;
-          const h = 20 + ((i / Math.max(1, scaleNotes.length - 1)) * 65);
-          const bg = isTarget ? exerciseColor : isDetected ? '#34d399' : '#252626';
-          const opacity = isTarget ? 1 : isDetected ? 0.9 : 0.4;
-          return (
-            <div key={note} style={{
-              flex: 1, height: `${h}%`, borderRadius: '4px 4px 0 0',
-              background: bg, opacity,
-              transition: 'background 200ms ease, opacity 200ms ease',
-              display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 3,
-              position: 'relative',
-            }}>
-              {isTarget && (
-                <span style={{ fontSize: 7, fontFamily: 'Inter, sans-serif', fontWeight: 700, color: '#fff', opacity: 0.9 }}>
-                  {note.replace(/\d/, '')}
-                </span>
-              )}
-              {!isTarget && (
-                <span style={{ fontSize: 6, fontFamily: 'Inter, sans-serif', fontWeight: 600, color: '#484848' }}>
-                  {note.replace(/\d/, '')}
-                </span>
-              )}
-            </div>
-          );
-        })}
-        {targetNote && (
-          <div style={{ position: 'absolute', top: 6, right: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 11, fontWeight: 800, color: exerciseColor }}>Target: {targetNote}</span>
-          </div>
-        )}
-      </div>
-      {detectorState && detectorState.status !== 'silent' && detectorState.currentPitch && (
-        <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', gap: 8 }}>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#767575' }}>You:</span>
-          <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 11, fontWeight: 700, color: statusColor(detectorState.status) }}>
-            {detectorState.currentPitch.noteName}{detectorState.currentPitch.octave}
-            {detectorState.status === 'good' ? ' ✓ On pitch' : detectorState.centsOff > 0 ? ' ↑ Too high' : ' ↓ Too low'}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function VowelShapeVisual({ syllable, progress }: { syllable?: string; progress: number }) {
-  const vowelDefs: Record<string, { w: number; h: number; label: string; hint: string; color: string }> = {
-    'EE': { w: 48, h: 22, label: 'EE', hint: 'Teeth close, lips spread', color: '#60a5fa' },
-    'EH': { w: 52, h: 30, label: 'EH', hint: 'Jaw slightly dropped', color: '#60a5fa' },
-    'AH': { w: 56, h: 52, label: 'AH', hint: 'Wide open, jaw down', color: '#a78bfa' },
-    'OH': { w: 46, h: 46, label: 'OH', hint: 'Rounded lips forward', color: '#a78bfa' },
-    'OO': { w: 34, h: 38, label: 'OO', hint: 'Lips forward & pursed', color: '#ec4899' },
-    'UH': { w: 42, h: 36, label: 'UH', hint: 'Neutral, relaxed jaw', color: '#f59e0b' },
-    'IH': { w: 44, h: 26, label: 'IH', hint: 'Between EE and EH', color: '#60a5fa' },
-    'NG': { w: 38, h: 20, label: 'NG', hint: 'Tongue to soft palate', color: '#34d399' },
-  };
-  const key = syllable?.split('→')[0].toUpperCase() ?? '';
-  const def = vowelDefs[key] ?? { w: 44, h: 36, label: syllable ?? '—', hint: 'Shape your mouth', color: '#a78bfa' };
-
-  const pulse = 1 + Math.sin(progress * Math.PI * 4) * 0.03;
-  return (
-    <div style={{ width: '100%', height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, background: '#141515', borderRadius: 14, border: '1px solid #252626' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-        <div style={{
-          width: def.w * pulse, height: def.h * pulse,
-          borderRadius: '50%', border: `3px solid ${def.color}`,
-          background: `${def.color}18`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 150ms ease',
-          boxShadow: `0 0 20px ${def.color}30`,
+    <div
+      onClick={() => setExpanded(!expanded)}
+      style={{
+        background: '#161717',
+        borderRadius: 16,
+        padding: '18px 20px',
+        cursor: 'pointer',
+        border: `1px solid ${expanded ? color + '30' : '#1f2020'}`,
+        transition: 'all 200ms ease',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <span style={{
+          fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 14,
+          color: color, opacity: 0.5, minWidth: 20,
         }}>
-          <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 12, fontWeight: 800, color: def.color }}>{def.label}</span>
-        </div>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#767575', textAlign: 'center' }}>mouth shape</span>
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        <span style={{
+          fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 15,
+          color: '#e7e5e4', flex: 1,
+        }}>
+          {tip.title}
+        </span>
+        <span className="material-symbols-outlined" style={{
+          fontSize: 18, color: '#484848',
+          transition: 'transform 200ms ease',
+          transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+        }}>
+          expand_more
+        </span>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 120 }}>
-        <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 11, fontWeight: 700, color: def.color }}>"{def.label}"</span>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#acabaa', lineHeight: 1.4 }}>{def.hint}</span>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', lineHeight: 1.4 }}>Feel vibration in your face</span>
-      </div>
-    </div>
-  );
-}
-
-function WaveVisual({ progress, color }: { progress: number; color: string }) {
-  const pts = Array.from({ length: 40 }, (_, i) => {
-    const x = (i / 39) * 100;
-    const y = 32 + Math.sin((i * 0.6) + (progress * Math.PI * 8)) * 15 * (0.3 + Math.sin(progress * Math.PI) * 0.7);
-    return `${x},${y}`;
-  }).join(' ');
-  return (
-    <div style={{ width: '100%', height: 72, borderRadius: 14, background: '#141515', border: '1px solid #252626', overflow: 'hidden', position: 'relative' }}>
-      <svg viewBox="0 0 100 64" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-        <polyline points={pts} fill="none" stroke={color} strokeWidth="2" opacity="0.7" />
-      </svg>
-      <div style={{ position: 'absolute', bottom: 6, left: 0, right: 0, textAlign: 'center' }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848' }}>loose floppy lips · steady airflow</span>
-      </div>
-    </div>
-  );
-}
-
-function SireneVisual({ progress }: { progress: number }) {
-  const y = 52 - Math.sin(progress * Math.PI) * 40;
-  const path = Array.from({ length: 50 }, (_, i) => {
-    const px = (i / 49) * 100;
-    const py = 52 - Math.sin((i / 49) * Math.PI) * 40;
-    return i === 0 ? `M ${px} ${py}` : `L ${px} ${py}`;
-  }).join(' ');
-  return (
-    <div style={{ width: '100%', height: 72, borderRadius: 14, background: '#141515', border: '1px solid #252626', overflow: 'hidden', position: 'relative' }}>
-      <svg viewBox="0 0 100 64" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-        <path d={path} fill="none" stroke="#f59e0b44" strokeWidth="1.5" />
-        <circle cx={progress * 100} cy={y} r="5" fill="#f59e0b" opacity="0.9" />
-        <circle cx={progress * 100} cy={y} r="9" fill="#f59e0b" opacity="0.2" />
-      </svg>
-      <div style={{ position: 'absolute', bottom: 5, left: 0, right: 0, textAlign: 'center' }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848' }}>glide smoothly · no breaks or jumps</span>
-      </div>
-    </div>
-  );
-}
-
-function IntervalJumpVisual({ targetNote, exerciseColor }: { targetNote?: string; exerciseColor: string }) {
-  return (
-    <div style={{ width: '100%', height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: '#141515', borderRadius: 14, border: '1px solid #252626' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#767575', textTransform: 'uppercase' }}>Target</span>
-        <div style={{ padding: '8px 18px', borderRadius: 10, background: `${exerciseColor}18`, border: `1px solid ${exerciseColor}44` }}>
-          <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 22, fontWeight: 800, color: exerciseColor }}>{targetNote ?? '—'}</span>
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575' }}>Hear it first</span>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575' }}>Then sing it</span>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575' }}>Aim clean</span>
-      </div>
-    </div>
-  );
-}
-
-function DynamicBarVisual({ progress }: { progress: number }) {
-  const intensity = Math.sin(progress * Math.PI);
-  return (
-    <div style={{ width: '100%', height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, background: '#141515', borderRadius: 14, border: '1px solid #252626', padding: '0 12px', position: 'relative' }}>
-      {Array.from({ length: 20 }, (_, i) => {
-        const d = Math.abs(i - 9.5) / 9.5;
-        const h = Math.max(8, (1 - d * 0.5) * intensity * 56);
-        return <div key={i} style={{ flex: 1, height: h, borderRadius: 2, background: '#a78bfa', opacity: 0.3 + intensity * 0.6, transition: 'height 80ms ease' }} />;
-      })}
-      <div style={{ position: 'absolute', bottom: 5, left: 0, right: 0, textAlign: 'center' }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848' }}>breath pressure controls volume</span>
-      </div>
-    </div>
-  );
-}
-
-function StepVisual({ step, progress, detectorState, exerciseColor }: { step: ExerciseStep; progress: number; detectorState?: DetectorState; exerciseColor: string }) {
-  switch (step.visualType) {
-    case 'breathBar': return <BreathBarVisual progress={progress} phase={step.instruction} />;
-    case 'sustainHold': return <SustainHoldVisual progress={progress} />;
-    case 'pitchLadder': return <PitchLadderVisual targetNote={step.targetNote} detectorState={detectorState} exerciseColor={exerciseColor} />;
-    case 'vowelShape': return <VowelShapeVisual syllable={step.syllable} progress={progress} />;
-    case 'trillWave': return <WaveVisual progress={progress} color="#60a5fa" />;
-    case 'sirene': return <SireneVisual progress={progress} />;
-    case 'intervalJump': return <IntervalJumpVisual targetNote={step.targetNote} exerciseColor={exerciseColor} />;
-    case 'dynamicBar': return <DynamicBarVisual progress={progress} />;
-    default: return null;
-  }
-}
-
-function CoachingBubble({ tips, exerciseColor }: { tips: string[]; exerciseColor: string }) {
-  const [tipIndex, setTipIndex] = useState(0);
-
-  useEffect(() => {
-    const t = setTimeout(() => setTipIndex(i => (i + 1) % tips.length), 5000);
-    return () => clearTimeout(t);
-  }, [tipIndex, tips.length]);
-
-  if (!tips.length) return null;
-  return (
-    <div style={{
-      background: '#1a1a1a',
-      border: `1px solid ${exerciseColor}33`,
-      borderRadius: 12, padding: '10px 14px',
-      display: 'flex', alignItems: 'flex-start', gap: 8,
-      animation: 'fadeSlideIn 300ms ease',
-    }}>
-      <span className="material-symbols-outlined" style={{ fontSize: 16, color: exerciseColor, flexShrink: 0, marginTop: 1 }}>tips_and_updates</span>
-      <div>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: exerciseColor, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 2 }}>Coaching tip</span>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#acabaa', lineHeight: 1.4 }}>{tips[tipIndex]}</span>
-      </div>
-    </div>
-  );
-}
-
-function ExerciseIntro({ exercise, onStart, starting }: { exercise: Exercise; onStart: () => void; starting: boolean }) {
-  const [demoPlaying, setDemoPlaying] = useState(false);
-  const demoTimerRef = useRef<ReturnType<typeof setTimeout>>();
-
-  const categoryTips = CATEGORY_TECHNIQUES[exercise.category] ?? [];
-  const firstStep = exercise.steps[0];
-
-  function handleTryIt() {
-    if (demoPlaying) return;
-    setDemoPlaying(true);
-    if (firstStep?.targetNote) playNoteForStep(firstStep);
-    demoTimerRef.current = setTimeout(() => setDemoPlaying(false), 3000);
-  }
-
-  useEffect(() => () => { clearTimeout(demoTimerRef.current); stopActiveTone(); }, []);
-
-  return (
-    <div style={{ padding: '16px 20px 32px', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-      <style>{`
-        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-      `}</style>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: `${exercise.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 20, color: exercise.color, fontVariationSettings: "'FILL' 1" }}>{exercise.icon}</span>
-        </div>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: exercise.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{exercise.level}</span>
-            <span style={{ color: '#333', fontSize: 9 }}>·</span>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#767575' }}>{exercise.durationMin}</span>
-            <span style={{ color: '#333', fontSize: 9 }}>·</span>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#767575' }}>{exercise.steps.length} steps</span>
-          </div>
-          <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 20, color: '#e7e5e4', margin: 0, letterSpacing: '-0.02em' }}>{exercise.name}</h2>
-        </div>
-      </div>
-
-      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: '0 0 20px', lineHeight: 1.6 }}>{exercise.description}</p>
-
-      {/* Demo preview */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#767575', textTransform: 'uppercase', letterSpacing: '0.08em' }}>What it looks like</span>
-          {firstStep?.targetNote && (
-            <button onClick={handleTryIt} disabled={demoPlaying} style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              background: demoPlaying ? `${exercise.color}18` : 'none',
-              border: `1px solid ${exercise.color}44`,
-              borderRadius: 20, padding: '4px 10px', cursor: demoPlaying ? 'default' : 'pointer',
-              color: exercise.color, fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
-            }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>{demoPlaying ? 'volume_up' : 'play_circle'}</span>
-              {demoPlaying ? 'Listen…' : 'Hear the note'}
-            </button>
-          )}
-        </div>
-        <StepVisual step={firstStep} progress={0.5} exerciseColor={exercise.color} />
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#767575', margin: '6px 0 0', textAlign: 'center', fontStyle: 'italic' }}>
-          "{firstStep?.instruction}"
+      {expanded && (
+        <p style={{
+          fontFamily: 'Inter, sans-serif', fontSize: 13.5, color: '#a8a6a5',
+          lineHeight: 1.7, margin: '14px 0 0', paddingLeft: 34,
+        }}>
+          {tip.body}
         </p>
-      </div>
-
-      {/* Technique tips */}
-      {categoryTips.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#767575', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>Technique tips</span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {categoryTips.map((tip, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <div style={{ width: 18, height: 18, borderRadius: '50%', background: `${exercise.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: exercise.color }}>{i + 1}</span>
-                </div>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#acabaa', lineHeight: 1.5 }}>{tip}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Steps overview */}
-      <div style={{ marginBottom: 24 }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#767575', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>Step-by-step</span>
-        <div style={{ background: '#1f2020', borderRadius: 14, overflow: 'hidden' }}>
-          {exercise.steps.slice(0, 6).map((s, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px',
-              borderBottom: i < Math.min(5, exercise.steps.length - 1) ? '1px solid #252626' : 'none',
-            }}>
-              <div style={{
-                width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                background: i === 0 ? `${exercise.color}22` : '#252626',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: i === 0 ? exercise.color : '#767575' }}>{i + 1}</span>
-              </div>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#acabaa', flex: 1 }}>{s.instruction}</span>
-              <div style={{ display: 'flex', align: 'center', gap: 4, flexShrink: 0 }}>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#484848' }}>{s.durationSec}s</span>
-                {s.listenForPitch && <span className="material-symbols-outlined" style={{ fontSize: 11, color: '#007aff' }}>mic</span>}
-              </div>
-            </div>
-          ))}
-          {exercise.steps.length > 6 && (
-            <div style={{ padding: '8px 14px', textAlign: 'center' }}>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#484848' }}>+ {exercise.steps.length - 6} more steps</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {exercise.steps.some(s => s.listenForPitch) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, background: '#007aff0d', border: '1px solid #007aff22', marginBottom: 20 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#007aff' }}>mic</span>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#007aff', lineHeight: 1.4 }}>Your microphone will listen and score your pitch accuracy in real time</span>
-        </div>
-      )}
-
-      <button onClick={onStart} disabled={starting} style={{
-        width: '100%', padding: '16px', borderRadius: 14,
-        background: starting ? `${exercise.color}66` : `linear-gradient(135deg, ${exercise.color}, ${exercise.color}cc)`,
-        border: 'none', cursor: starting ? 'wait' : 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        boxShadow: `0 8px 32px ${exercise.color}40`,
-        transition: 'all 150ms ease',
-      }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#fff', fontVariationSettings: "'FILL' 1" }}>{starting ? 'mic' : 'play_arrow'}</span>
-        <span style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 16, color: '#fff' }}>{starting ? 'Requesting mic…' : 'Begin Exercise'}</span>
-      </button>
-    </div>
-  );
-}
-
-function ExerciseRunner({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
-  const [phase, setPhase] = useState<'intro' | 'running' | 'complete'>('intro');
-  const [currentStep, setCurrentStep] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [starting, setStarting] = useState(false);
-  const [detectorState, setDetectorState] = useState<DetectorState>({ listening: false, currentPitch: null, accuracy: 0, centsOff: 0, status: 'silent' });
-  const [stepScores, setStepScores] = useState<StepScore[]>([]);
-  const [showCoaching, setShowCoaching] = useState(false);
-  const rafRef = useRef(0);
-  const startRef = useRef(0);
-  const tonePlayedRef = useRef(false);
-  const detectorRef = useRef<PracticeDetector | null>(null);
-  const mountedRef = useRef(true);
-  const poorAccuracyStartRef = useRef<number | null>(null);
-  const hasPitchSteps = exercise.steps.some(s => s.listenForPitch);
-
-  const step = exercise.steps[currentStep];
-  const totalSteps = exercise.steps.length;
-
-  const tick = useCallback(() => {
-    if (!step) return;
-    const elapsed = (Date.now() - startRef.current) / 1000;
-    const p = Math.min(1, elapsed / step.durationSec);
-    setProgress(p);
-
-    if (p >= 1) {
-      const detector = detectorRef.current;
-      if (detector && step.listenForPitch) {
-        const score = detector.getStepScore();
-        setStepScores(prev => { const n = [...prev]; n[currentStep] = score; return n; });
-        detector.resetStepScore();
-      } else {
-        setStepScores(prev => { const n = [...prev]; n[currentStep] = { avgCentsOff: 0, accuracy: 0, samplesDetected: 0, totalSamples: 0 }; return n; });
-      }
-      setShowCoaching(false);
-      poorAccuracyStartRef.current = null;
-      if (currentStep < totalSteps - 1) {
-        const nextStep = exercise.steps[currentStep + 1];
-        if (nextStep) announceStepChange(nextStep.instruction);
-        setCurrentStep(prev => prev + 1);
-        startRef.current = Date.now();
-        tonePlayedRef.current = false;
-      } else {
-        setPhase('complete');
-        detectorRef.current?.stop();
-        stopCoach();
-        const pitched = stepScores.filter(s => s && s.totalSamples > 0);
-        if (pitched.length > 0) {
-          const avg = pitched.reduce((a, s) => a + s.accuracy, 0) / pitched.length;
-          setTimeout(() => announceCompletion(avg), 400);
-        } else {
-          setTimeout(() => speak('Great work! Exercise complete.'), 400);
-        }
-      }
-    }
-    if (p < 1) rafRef.current = requestAnimationFrame(tick);
-  }, [step, currentStep, totalSteps]);
-
-  useEffect(() => {
-    if (phase !== 'running') return;
-    startRef.current = Date.now();
-    tonePlayedRef.current = false;
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [phase, currentStep, tick]);
-
-  useEffect(() => {
-    if (phase === 'running' && step?.targetNote && !tonePlayedRef.current) {
-      tonePlayedRef.current = true;
-      playNoteForStep(step);
-      if (step.listenForPitch) detectorRef.current?.setTarget(step.targetNote);
-    }
-    if (phase === 'running' && step && !step.listenForPitch) {
-      detectorRef.current?.setTarget(undefined);
-    }
-  }, [phase, currentStep, step]);
-
-  useEffect(() => {
-    if (phase !== 'running' || !step?.listenForPitch) return;
-    if (detectorState.status !== 'silent' && detectorState.status !== 'good') {
-      if (poorAccuracyStartRef.current === null) poorAccuracyStartRef.current = Date.now();
-      else if (Date.now() - poorAccuracyStartRef.current > 3000) {
-        setShowCoaching(true);
-        const tips = VISUAL_COACHING[step?.visualType ?? ''];
-        if (tips?.length) speakCoachingTip(tips[0]);
-      }
-    } else {
-      poorAccuracyStartRef.current = null;
-      if (detectorState.status === 'good') setShowCoaching(false);
-    }
-  }, [detectorState, phase, step]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; stopActiveTone(); stopCoach(); detectorRef.current?.stop(); };
-  }, []);
-
-  const handleStart = async () => {
-    if (starting || phase === 'running') return;
-    setStarting(true);
-    setPhase('intro');
-    setCurrentStep(0);
-    setProgress(0);
-    setStepScores([]);
-    setShowCoaching(false);
-    poorAccuracyStartRef.current = null;
-    detectorRef.current?.stop();
-    if (hasPitchSteps) {
-      const det = new PracticeDetector();
-      detectorRef.current = det;
-      await det.start(setDetectorState);
-      if (!mountedRef.current) { det.stop(); return; }
-    }
-    setStarting(false);
-    setPhase('running');
-    if (exercise.steps[0]) announceStepChange(exercise.steps[0].instruction);
-  };
-
-  const timeLeft = step ? Math.max(0, Math.ceil(step.durationSec * (1 - progress))) : 0;
-  const coachingTips = VISUAL_COACHING[step?.visualType ?? ''] ?? [];
-
-  if (phase === 'intro') {
-    return (
-      <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button onClick={() => { detectorRef.current?.stop(); stopActiveTone(); onClose(); }} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 4,
-            color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13, padding: 0,
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span> Back
-          </button>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <ExerciseIntro exercise={exercise} onStart={handleStart} starting={starting} />
-        </div>
-      </div>
-    );
-  }
-
-  if (phase === 'complete') {
-    return (
-      <div style={{ padding: '16px 20px', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-        <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-        <button onClick={() => { detectorRef.current?.stop(); stopActiveTone(); onClose(); }} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 4,
-          color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13, marginBottom: 16, padding: 0,
-        }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span> Back
-        </button>
-
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 48, color: exercise.color, fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-          <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 24, color: '#e7e5e4', margin: 0 }}>Complete!</h3>
-          {hasPitchSteps && <ScoreDisplay scores={stepScores} exerciseColor={exercise.color} />}
-          {!hasPitchSteps && (
-            <div style={{ background: '#1f2020', borderRadius: 14, padding: '16px 20px', textAlign: 'center', maxWidth: 280 }}>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', lineHeight: 1.6 }}>
-                Great work. Consistent practice builds lasting vocal strength. Come back tomorrow to keep the momentum!
-              </span>
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={handleStart} style={{
-              padding: '12px 24px', borderRadius: 9999, background: '#1f2020', border: 'none',
-              color: '#e7e5e4', fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-            }}>Repeat</button>
-            <button onClick={() => { detectorRef.current?.stop(); onClose(); }} style={{
-              padding: '12px 24px', borderRadius: 9999,
-              background: `linear-gradient(135deg, ${exercise.color}, ${exercise.color}cc)`,
-              border: 'none', color: '#fff', fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-              boxShadow: `0 4px 16px ${exercise.color}40`,
-            }}>Done</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ padding: '16px 20px', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-      <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-
-      <button onClick={() => { detectorRef.current?.stop(); stopActiveTone(); stopCoach(); setPhase('intro'); }} style={{
-        background: 'none', border: 'none', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', gap: 4,
-        color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13, marginBottom: 16, padding: 0,
-      }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span> Back to overview
-      </button>
-
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <span style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 16, color: '#e7e5e4' }}>{exercise.name}</span>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575' }}>Step {currentStep + 1} of {totalSteps}</span>
-        </div>
-        <div style={{ display: 'flex', gap: 3 }}>
-          {exercise.steps.map((_, i) => (
-            <div key={i} style={{
-              flex: 1, height: 4, borderRadius: 2,
-              background: i < currentStep ? exercise.color : i === currentStep ? `${exercise.color}80` : '#252626',
-              transition: 'background 200ms ease',
-            }} />
-          ))}
-        </div>
-      </div>
-
-      {step && (
-        <div style={{ background: '#1f2020', borderRadius: 18, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {step.listenForPitch && <AccuracyRing state={detectorState} size={42} />}
-              <div>
-                <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 15, color: '#e7e5e4', margin: 0, lineHeight: 1.4 }}>{step.instruction}</p>
-                {step.syllable && (
-                  <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 13, fontWeight: 700, color: exercise.color }}>"{step.syllable}"</span>
-                )}
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-              <span style={{ fontFamily: 'Manrope, sans-serif', fontSize: 22, fontWeight: 800, color: exercise.color, fontVariantNumeric: 'tabular-nums' }}>{timeLeft}s</span>
-              {step.targetNote && (
-                <button onClick={() => playNoteForStep(step)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#767575' }}>volume_up</span>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575' }}>{step.targetNote}</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          <StepVisual step={step} progress={progress} detectorState={step.listenForPitch ? detectorState : undefined} exerciseColor={exercise.color} />
-
-          <div style={{ width: '100%', height: 4, borderRadius: 2, background: '#252626', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progress * 100}%`, background: exercise.color, borderRadius: 2, transition: 'width 100ms linear' }} />
-          </div>
-        </div>
-      )}
-
-      {showCoaching && coachingTips.length > 0 && (
-        <div style={{ marginTop: 12, animation: 'fadeSlideIn 300ms ease' }}>
-          <CoachingBubble tips={coachingTips} exerciseColor={exercise.color} />
-        </div>
-      )}
-
-      {!showCoaching && step && (
-        <div style={{ marginTop: 12, padding: '10px 14px', background: '#1a1a1a', borderRadius: 12, border: '1px solid #252626' }}>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#767575', lineHeight: 1.5 }}>
-            {step.listenForPitch
-              ? 'Sing along — the mic is listening and checking your pitch automatically'
-              : 'Follow the visual guide and the instructions above'}
-          </span>
-        </div>
       )}
     </div>
   );
 }
 
-function PitchGraphic() {
-  const heights = [20, 40, 60, 75, 90, 75, 50, 30, 15, 55, 100, 65, 45];
+function SectionView({ section }: { section: Section }) {
   return (
-    <div style={{ height: 48, width: '100%', background: '#0e0e0e', borderRadius: 10, padding: '6px 10px', display: 'flex', alignItems: 'flex-end', gap: 3, position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(0,122,255,0.05), rgba(0,122,255,0.15))', opacity: 0.4 }} />
-      {heights.map((h, i) => <div key={i} style={{ flex: 1, height: `${h}%`, borderRadius: 999, background: `rgba(0,122,255,${0.2 + (h / 100) * 0.6})` }} />)}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {section.tips.map((tip, i) => (
+        <TipCard key={i} tip={tip} color={section.color} index={i} />
+      ))}
     </div>
   );
 }
 
 export default function PracticePanel() {
-  const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
-  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
 
-  if (activeExercise) {
-    return <ExerciseRunner exercise={activeExercise} onClose={() => setActiveExercise(null)} />;
-  }
+  if (activeSection) {
+    const section = SECTIONS.find(s => s.id === activeSection)!;
+    return (
+      <div style={{ padding: '16px 20px', minHeight: '100%' }}>
+        <button
+          onClick={() => setActiveSection(null)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
+            color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13,
+            padding: 0, marginBottom: 24,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
+          Back
+        </button>
 
-  const recommended = EXERCISES.find(e => e.id === 'major-scale')!;
-  const exercisesByCategory = CATEGORIES.map(cat => ({
-    ...cat,
-    exercises: EXERCISES.filter(e => e.category === cat.id),
-  }));
-
-  return (
-    <div style={{ padding: '20px 20px 40px', minHeight: '100%' }}>
-      <section style={{ marginBottom: 28 }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#007aff', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Personalized Training</span>
-        <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em', color: '#e7e5e4', margin: '0 0 8px', lineHeight: 1 }}>Practice</h2>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0, lineHeight: 1.5, maxWidth: 320 }}>
-          {EXERCISES.length} exercises across {CATEGORIES.length} categories. Each exercise starts with a guided walkthrough.
-        </p>
-      </section>
-
-      <section style={{ marginBottom: 20 }}>
-        <div onClick={() => setActiveExercise(recommended)} style={{ background: '#1f2020', borderRadius: 18, padding: 20, position: 'relative', overflow: 'hidden', cursor: 'pointer' }}>
-          <div style={{ position: 'absolute', right: -40, bottom: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(0,122,255,0.04)', filter: 'blur(60px)' }} />
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-              <div>
-                <span style={{ display: 'inline-block', background: 'rgba(0,122,255,0.1)', color: '#007aff', fontSize: 9, fontWeight: 700, fontFamily: 'Inter, sans-serif', padding: '3px 8px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Recommended</span>
-                <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 20, color: '#e7e5e4', margin: '0 0 6px' }}>{recommended.name}</h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 11 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>schedule</span>{recommended.durationMin}
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>bar_chart</span>{recommended.level}
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>auto_awesome</span>Guided walkthrough
-                  </span>
-                </div>
-              </div>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, #007aff, #0066d6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,122,255,0.25)', flexShrink: 0 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#fff', fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
-              </div>
-            </div>
-            <PitchGraphic />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: `${section.color}15`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 22, color: section.color }}>
+              {section.icon}
+            </span>
+          </div>
+          <div>
+            <h2 style={{
+              fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 22,
+              color: '#e7e5e4', margin: 0,
+            }}>
+              {section.name}
+            </h2>
+            <span style={{
+              fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#767575',
+            }}>
+              {section.tips.length} tips
+            </span>
           </div>
         </div>
-      </section>
 
-      {exercisesByCategory.map(cat => (
-        <section key={cat.id} style={{ marginBottom: 16 }}>
-          <button
-            onClick={() => setExpandedCat(expandedCat === cat.id ? null : cat.id)}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+        <SectionView section={section} />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '16px 20px', minHeight: '100%' }}>
+      <h2 style={{
+        fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 24,
+        color: '#e7e5e4', margin: '0 0 6px',
+      }}>
+        Tips & Techniques
+      </h2>
+      <p style={{
+        fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575',
+        margin: '0 0 28px', lineHeight: 1.5,
+      }}>
+        Real vocal techniques that actually work. Pick a section and learn at your own pace.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {SECTIONS.map(section => (
+          <div
+            key={section.id}
+            onClick={() => setActiveSection(section.id)}
+            style={{
+              background: '#161717',
+              borderRadius: 16,
+              padding: '20px',
+              cursor: 'pointer',
+              border: '1px solid #1f2020',
+              transition: 'all 150ms ease',
+              display: 'flex', alignItems: 'center', gap: 16,
+            }}
           >
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${cat.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 16, color: cat.color }}>{cat.icon}</span>
+            <div style={{
+              width: 48, height: 48, borderRadius: 14,
+              background: `${section.color}12`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 24, color: section.color }}>
+                {section.icon}
+              </span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, color: '#e7e5e4', margin: 0 }}>{cat.name}</p>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', margin: '1px 0 0' }}>{cat.exercises.length} exercises · guided walkthrough</p>
+              <p style={{
+                fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 16,
+                color: '#e7e5e4', margin: 0,
+              }}>
+                {section.name}
+              </p>
+              <p style={{
+                fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#767575',
+                margin: '3px 0 0',
+              }}>
+                {section.tips.length} tips
+              </p>
             </div>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#484848', transition: 'transform 200ms ease', transform: expandedCat === cat.id ? 'rotate(180deg)' : 'rotate(0deg)' }}>expand_more</span>
-          </button>
-
-          {expandedCat === cat.id && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 8 }}>
-              {cat.exercises.map(ex => (
-                <div
-                  key={ex.id}
-                  onClick={() => setActiveExercise(ex)}
-                  style={{ background: '#191a1a', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, border: '1px solid rgba(72,72,72,0.08)', cursor: 'pointer' }}
-                >
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: '#0e0e0e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#acabaa' }}>{ex.icon}</span>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: '#e7e5e4', margin: 0 }}>{ex.name}</p>
-                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 600, color: '#767575', margin: '2px 0 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{ex.subtitle}</p>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', fontWeight: 600 }}>{ex.durationMin}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: ex.color, textTransform: 'uppercase' }}>{ex.level}</span>
-                      {ex.steps.some(s => s.listenForPitch) && <span className="material-symbols-outlined" style={{ fontSize: 10, color: '#007aff' }}>mic</span>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      ))}
+            <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#484848' }}>
+              chevron_right
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
