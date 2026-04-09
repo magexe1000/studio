@@ -87,7 +87,7 @@ export default function VocalexApp() {
   }, [activeTab, durMs]);
 
   const NAV_ITEMS: { panel: VocalexPanel; Icon: React.FC<{ active: boolean }>; label: string }[] = [
-    { panel: 'practice', Icon: IconMic,   label: 'Practice' },
+    { panel: 'practice', Icon: IconMic,   label: 'Tips' },
     { panel: 'pitch',    Icon: IconPitch,  label: 'Pitch' },
     { panel: 'vocalLab', Icon: IconLab,    label: 'Lab' },
     { panel: 'takes',    Icon: IconTakes,  label: 'Takes' },

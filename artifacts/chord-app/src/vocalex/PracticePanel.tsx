@@ -341,17 +341,25 @@ function TipCard({ tip, color, index }: { tip: Tip; color: string; index: number
       </div>
       <div style={{
         overflow: 'hidden',
-        maxHeight: expanded ? bodyH : 0,
+        maxHeight: expanded ? bodyH + 20 : 0,
         transition: 'max-height 350ms cubic-bezier(0.22,1,0.36,1)',
       }}>
         <div ref={bodyRef}>
-          <p style={{
-            fontFamily: 'Inter, sans-serif', fontSize: 13.5, color: '#a8a6a5',
-            lineHeight: 1.7, margin: '14px 0 0', paddingLeft: 34,
-            animation: expanded ? 'pp-expand 300ms cubic-bezier(0.22,1,0.36,1) both' : 'none',
+          <div style={{
+            maxHeight: 200,
+            overflowY: 'auto',
+            marginTop: 14,
+            paddingLeft: 34,
+            WebkitOverflowScrolling: 'touch',
           }}>
-            {tip.body}
-          </p>
+            <p style={{
+              fontFamily: 'Inter, sans-serif', fontSize: 13.5, color: '#a8a6a5',
+              lineHeight: 1.7, margin: 0,
+              animation: expanded ? 'pp-expand 300ms cubic-bezier(0.22,1,0.36,1) both' : 'none',
+            }}>
+              {tip.body}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -464,7 +472,7 @@ export default function PracticePanel() {
         color: '#e7e5e4', margin: '0 0 6px',
         animation: 'pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) both',
       }}>
-        Tips & Techniques
+        Tips
       </h2>
       <p style={{
         fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575',
