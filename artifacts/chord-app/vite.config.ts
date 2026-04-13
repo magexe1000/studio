@@ -70,6 +70,13 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    proxy: {
+      "/r2-stems": {
+        target: "https://pub-b6a593f7d45247389f1accd1a54fec5c.r2.dev",
+        changeOrigin: true,
+        rewrite: (p: string) => p.replace(/^\/r2-stems/, ""),
+      },
+    },
   },
   preview: {
     port,

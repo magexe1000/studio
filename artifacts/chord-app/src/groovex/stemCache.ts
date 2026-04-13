@@ -199,18 +199,22 @@ export type DownloadProgress = {
   percent: number;
 };
 
-async function fetchStemOnce(
-  songId: string,
+const R2_DIRECT = 'https://pub-b6a593f7d45247389f1accd1a54fec5c.r2.dev';
+const R2_PROXY = '/r2-stems';
+
+function getStemUrl(songId: string, stemName: string, useProxy: boolean, bustCache: boolean): string {
+  const base = useProxy ? R2_PROXY : R2_DIRECT;
+  let url = `${base}/stems/${songId}/${stemName}.ogg`;
+  if (bustCache) url += `?v=${Date.now()}`;
+  return url;
+}
+
+async function fetchFromUrl(
+  url: string,
   stemName: string,
   onProgress?: (p: DownloadProgress) => void,
   bustCache = false,
 ): Promise<ArrayBuffer> {
-  const R2_BASE = 'https://pub-b6a593f7d45247389f1accd1a54fec5c.r2.dev';
-  let url = `${R2_BASE}/stems/${songId}/${stemName}.ogg`;
-  if (bustCache) {
-    url += `?v=${Date.now()}`;
-  }
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120_000);
 
@@ -259,6 +263,21 @@ async function fetchStemOnce(
     return data.buffer;
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+async function fetchStemOnce(
+  songId: string,
+  stemName: string,
+  onProgress?: (p: DownloadProgress) => void,
+  bustCache = false,
+): Promise<ArrayBuffer> {
+  const directUrl = getStemUrl(songId, stemName, false, bustCache);
+  try {
+    return await fetchFromUrl(directUrl, stemName, onProgress, bustCache);
+  } catch {
+    const proxyUrl = getStemUrl(songId, stemName, true, bustCache);
+    return await fetchFromUrl(proxyUrl, stemName, onProgress, bustCache);
   }
 }
 
