@@ -34,18 +34,16 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
   const accent = ACCENT_COLORS[vis.accentColor as keyof typeof ACCENT_COLORS];
 
   const [selected, setSelected] = useState<Set<AppKey>>(new Set(['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex']));
-  // `mounted`  — whether the DOM node exists (lags behind `show` on close)
-  // `open`     — drives CSS "visible" state; set after mount, cleared before unmount
   const [mounted, setMounted] = useState(false);
   const [open,    setOpen]    = useState(false);
   const unmountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (show) {
       if (unmountTimer.current) { clearTimeout(unmountTimer.current); unmountTimer.current = null; }
       setSelected(new Set(['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex']));
       setMounted(true);
-      requestAnimationFrame(() => setOpen(true));
     } else {
       setOpen(false);
       unmountTimer.current = setTimeout(() => setMounted(false), 220);
@@ -54,6 +52,14 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
       if (unmountTimer.current) clearTimeout(unmountTimer.current);
     };
   }, [show]);
+
+  useEffect(() => {
+    if (mounted && show) {
+      const el = sheetRef.current;
+      if (el) void el.offsetHeight;
+      requestAnimationFrame(() => setOpen(true));
+    }
+  }, [mounted, show]);
 
   if (!mounted) return null;
 
@@ -93,6 +99,7 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
       }}
     >
       <div
+        ref={sheetRef}
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%',
