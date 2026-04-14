@@ -196,37 +196,57 @@ export default function App() {
     root.style.setProperty('--accent-mid',  accent.mid);
   }, [accent.from, accent.to, accent.mid]);
 
-  // AMOLED mode
+  // Theme + AMOLED mode — wrapped in View Transitions API for smooth crossfade
+  const prevThemeRef = useRef({ theme: activeVis.theme, amoled: activeVis.amoledMode });
+  const themeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    const root = document.documentElement;
-    activeVis.amoledMode ? root.classList.add('amoled') : root.classList.remove('amoled');
-  }, [activeVis.amoledMode]);
+    const prev = prevThemeRef.current;
+    const changed = prev.theme !== activeVis.theme || prev.amoled !== activeVis.amoledMode;
+    prevThemeRef.current = { theme: activeVis.theme, amoled: activeVis.amoledMode };
 
-  // Sync theme-color meta tag so the PWA / browser status bar matches the app theme
-  useEffect(() => {
-    const isLight = activeVis.theme === 'light' ||
-      (activeVis.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
-    const color = activeVis.amoledMode ? (isLight ? '#ffffff' : '#000000') : (isLight ? '#f5f5f5' : '#111116');
-    let tag = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-    if (!tag) {
-      tag = document.createElement('meta');
-      tag.name = 'theme-color';
-      document.head.appendChild(tag);
+    if (themeTimerRef.current) {
+      clearTimeout(themeTimerRef.current);
+      themeTimerRef.current = null;
     }
-    tag.content = color;
+
+    const applyTheme = () => {
+      const root = document.documentElement;
+
+      root.classList.add('theme-transitioning');
+
+      activeVis.amoledMode ? root.classList.add('amoled') : root.classList.remove('amoled');
+
+      root.classList.remove('light', 'theme-system');
+      if (activeVis.theme === 'light') root.classList.add('light');
+      else if (activeVis.theme === 'system') root.classList.add('theme-system');
+
+      const isLight = activeVis.theme === 'light' ||
+        (activeVis.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
+      const color = activeVis.amoledMode ? (isLight ? '#ffffff' : '#000000') : (isLight ? '#f5f5f5' : '#111116');
+      let tag = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+      if (!tag) {
+        tag = document.createElement('meta');
+        tag.name = 'theme-color';
+        document.head.appendChild(tag);
+      }
+      tag.content = color;
+
+      themeTimerRef.current = setTimeout(() => {
+        root.classList.remove('theme-transitioning');
+        themeTimerRef.current = null;
+      }, 350);
+    };
+
+    if (changed && 'startViewTransition' in document) {
+      try {
+        (document as any).startViewTransition(applyTheme);
+      } catch {
+        applyTheme();
+      }
+    } else {
+      applyTheme();
+    }
   }, [activeVis.theme, activeVis.amoledMode]);
-
-  // Theme mode (dark / light / system)
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove('light', 'theme-system');
-    if (activeVis.theme === 'light') {
-      root.classList.add('light');
-    } else if (activeVis.theme === 'system') {
-      root.classList.add('theme-system');
-    }
-    // 'dark' is the default — no class needed
-  }, [activeVis.theme]);
 
   // Keep the native Android status bar in sync with the active theme
   useStatusBar(activeVis.theme, activeVis.amoledMode);
