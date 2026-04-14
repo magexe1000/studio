@@ -216,7 +216,9 @@ export default function BottomNav() {
           : 'translateX(-50%) translateY(0)',
         transition: [
           'transform 420ms cubic-bezier(0.4, 0, 0.2, 1)',
-          'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+          'background-color 300ms cubic-bezier(0.4,0,0.2,1)',
+          'border-color 300ms cubic-bezier(0.4,0,0.2,1)',
+          'box-shadow 300ms cubic-bezier(0.4,0,0.2,1)',
         ].join(', '),
       }}
     >

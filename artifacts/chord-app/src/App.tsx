@@ -487,7 +487,7 @@ export default function App() {
     >
 
       {/* Panel container — only mount visible + exiting panels */}
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
         {ALL_PANELS.map(panel => {
           const isVisible  = visiblePanel === panel;
           const isExiting  = exitingPanel === panel;
@@ -507,6 +507,7 @@ export default function App() {
                 inset: 0,
                 opacity: isExiting && !animClass ? 0 : undefined,
                 pointerEvents: isVisible && !isExiting ? 'auto' : 'none',
+                contain: 'layout style paint',
               }}
             >
               <Suspense fallback={null}>

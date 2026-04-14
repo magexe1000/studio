@@ -206,11 +206,11 @@ html, body { background: var(--app-bg); }
   to   { opacity: 0; }
 }
 
-/* When theme is transitioning, add color transitions to all elements */
-html.theme-transitioning,
-html.theme-transitioning *,
-html.theme-transitioning *::before,
-html.theme-transitioning *::after {
+/* When theme is transitioning, add color transitions to all elements
+   Exempt: elements inside [data-theme-exempt] keep their own transitions */
+html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt]),
+html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::before,
+html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::after {
   transition:
     background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
     color            300ms cubic-bezier(0.4, 0, 0.2, 1),
@@ -415,12 +415,12 @@ html.theme-transitioning *::after {
 
   /* ===== Bottom sheet slide-up / slide-down ===== */
   @keyframes sheet-up {
-    from { transform: translateY(100%); opacity: 0; }
-    to   { transform: translateY(0);   opacity: 1; }
+    from { transform: translate3d(0, 100%, 0); opacity: 0; }
+    to   { transform: translate3d(0, 0, 0);   opacity: 1; }
   }
   @keyframes sheet-down {
-    from { transform: translateY(0);   opacity: 1; }
-    to   { transform: translateY(100%); opacity: 0; }
+    from { transform: translate3d(0, 0, 0);   opacity: 1; }
+    to   { transform: translate3d(0, 100%, 0); opacity: 0; }
   }
   @keyframes fade-out {
     from { opacity: 1; }
@@ -429,36 +429,40 @@ html.theme-transitioning *::after {
 
   /* ===== Panel slide transitions ===== */
   @keyframes panel-enter-right {
-    from { transform: translateX(18px); opacity: 0; }
-    to   { transform: translateX(0);    opacity: 1; }
+    from { transform: translate3d(18px, 0, 0); opacity: 0; }
+    to   { transform: translate3d(0, 0, 0);    opacity: 1; }
   }
   @keyframes panel-enter-left {
-    from { transform: translateX(-18px); opacity: 0; }
-    to   { transform: translateX(0);     opacity: 1; }
+    from { transform: translate3d(-18px, 0, 0); opacity: 0; }
+    to   { transform: translate3d(0, 0, 0);     opacity: 1; }
   }
   @keyframes panel-exit-left {
-    from { transform: translateX(0);     opacity: 1; }
-    to   { transform: translateX(-18px); opacity: 0; }
+    from { transform: translate3d(0, 0, 0);     opacity: 1; }
+    to   { transform: translate3d(-18px, 0, 0); opacity: 0; }
   }
   @keyframes panel-exit-right {
-    from { transform: translateX(0);    opacity: 1; }
-    to   { transform: translateX(18px); opacity: 0; }
+    from { transform: translate3d(0, 0, 0);    opacity: 1; }
+    to   { transform: translate3d(18px, 0, 0); opacity: 0; }
   }
   .panel-enter-right {
     animation: panel-enter-right var(--panel-dur, 260ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
     will-change: transform, opacity;
+    backface-visibility: hidden;
   }
   .panel-enter-left  {
     animation: panel-enter-left  var(--panel-dur, 260ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
     will-change: transform, opacity;
+    backface-visibility: hidden;
   }
   .panel-exit-left   {
     animation: panel-exit-left   var(--panel-dur, 260ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
     will-change: transform, opacity;
+    backface-visibility: hidden;
   }
   .panel-exit-right  {
     animation: panel-exit-right  var(--panel-dur, 260ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
     will-change: transform, opacity;
+    backface-visibility: hidden;
   }
 
   /* ===== Live Mode chord transitions ===== */
@@ -526,13 +530,13 @@ html.theme-transitioning *::after {
   }
 
   @keyframes hub-return-enter {
-    from { opacity: 0; transform: scale(1.10); }
-    to   { opacity: 1; transform: scale(1);    }
+    from { opacity: 0; transform: scale3d(1.10, 1.10, 1); }
+    to   { opacity: 1; transform: scale3d(1, 1, 1);       }
   }
 
   @keyframes mode-enter {
-    from { opacity: 0; transform: scale(0.96) translateY(12px); }
-    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+    from { opacity: 0; transform: scale3d(0.96, 0.96, 1) translate3d(0, 12px, 0); }
+    to   { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0);          }
   }
 
   @keyframes drumHamburgerIn {

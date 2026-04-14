@@ -81,6 +81,7 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
 
   return (
     <div
+      data-theme-exempt
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
@@ -91,6 +92,7 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
           ? 'opacity 240ms cubic-bezier(0.0,0.0,0.2,1)'
           : 'opacity 300ms cubic-bezier(0.4,0,1,1)',
         display: 'flex', alignItems: 'flex-end',
+        contain: 'layout style',
       }}
     >
       <div
@@ -101,12 +103,13 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
           borderRadius: '24px 24px 0 0',
           padding: '12px 20px',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)',
-          transform: `translateY(${sheetTranslate})`,
+          transform: `translate3d(0, ${sheetTranslate}, 0)`,
           transition: open
-            ? 'transform 380ms cubic-bezier(0.34,1.08,0.64,1)'   /* spring up  */
-            : 'transform 280ms cubic-bezier(0.4,0,1,1)',          /* snap down  */
+            ? 'transform 380ms cubic-bezier(0.34,1.08,0.64,1)'
+            : 'transform 280ms cubic-bezier(0.4,0,1,1)',
           boxShadow: '0 -8px 40px rgba(0,0,0,0.4)',
           willChange: 'transform',
+          backfaceVisibility: 'hidden' as const,
         }}
       >
         {/* Handle */}
