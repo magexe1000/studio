@@ -192,25 +192,18 @@ html, body { background: var(--app-bg); }
 }
 
 /* ===== View Transition (theme crossfade) ===== */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 300ms;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  mix-blend-mode: normal;
-}
 ::view-transition-old(root) {
-  animation-name: vt-fade-out;
+  animation: vt-fade-out 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  z-index: 2;
 }
 ::view-transition-new(root) {
-  animation-name: vt-fade-in;
+  animation: none;
+  opacity: 1;
+  z-index: 1;
 }
 @keyframes vt-fade-out {
   from { opacity: 1; }
   to   { opacity: 0; }
-}
-@keyframes vt-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
 }
 
 /* When theme is transitioning, add color transitions to all elements */
