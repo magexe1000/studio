@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
+import { useT } from '../lib/useT';
 
 const PracticePanelLazy = lazy(() => import('./PracticePanel'));
 const PitchPanelLazy = lazy(() => import('./PitchPanel'));
@@ -61,6 +62,7 @@ function IconTakes({ active }: { active: boolean }) {
 
 export default function VocalexApp() {
   const { settings } = useChordStore();
+  const t = useT();
   const [activeTab, setActiveTab] = useState<VocalexPanel>('practice');
   const [visibleTab, setVisibleTab] = useState<VocalexPanel>('practice');
   const [exitingTab, setExitingTab] = useState<VocalexPanel | null>(null);
@@ -82,15 +84,15 @@ export default function VocalexApp() {
     setExitingTab(prevTab.current);
     setVisibleTab(activeTab);
     prevTab.current = activeTab;
-    const t = setTimeout(() => setExitingTab(null), durMs + 20);
-    return () => clearTimeout(t);
+    const ti = setTimeout(() => setExitingTab(null), durMs + 20);
+    return () => clearTimeout(ti);
   }, [activeTab, durMs]);
 
   const NAV_ITEMS: { panel: VocalexPanel; Icon: React.FC<{ active: boolean }>; label: string }[] = [
-    { panel: 'practice', Icon: IconMic,   label: 'Tips' },
-    { panel: 'pitch',    Icon: IconPitch,  label: 'Pitch' },
-    { panel: 'vocalLab', Icon: IconLab,    label: 'Lab' },
-    { panel: 'takes',    Icon: IconTakes,  label: 'Takes' },
+    { panel: 'practice', Icon: IconMic,   label: t.vocalex.navTips },
+    { panel: 'pitch',    Icon: IconPitch,  label: t.vocalex.navPitch },
+    { panel: 'vocalLab', Icon: IconLab,    label: t.vocalex.navLab },
+    { panel: 'takes',    Icon: IconTakes,  label: t.vocalex.navTakes },
   ];
 
   const navRef = useRef<HTMLElement | null>(null);

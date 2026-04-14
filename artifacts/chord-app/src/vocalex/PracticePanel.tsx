@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useT } from '../lib/useT';
 
 interface Tip {
   title: string;
@@ -376,8 +377,20 @@ function SectionView({ section }: { section: Section }) {
   );
 }
 
+const SECTION_NAME_KEYS: Record<string, string> = {
+  warmup: 'sectionWarmup',
+  breath: 'sectionBreath',
+  pitch: 'sectionPitch',
+  resonance: 'sectionResonance',
+  range: 'sectionRange',
+  performance: 'sectionPerformance',
+  harmonies: 'sectionHarmonies',
+  health: 'sectionHealth',
+};
+
 export default function PracticePanel() {
   useAnimStyle();
+  const t = useT();
   const [transitioning, setTransitioning] = useState(false);
   const [direction, setDirection] = useState<'in' | 'out'>('in');
   const [displaySection, setDisplaySection] = useState<string | null>(null);
@@ -429,7 +442,7 @@ export default function PracticePanel() {
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-          Back
+          {t.vocalex.back}
         </button>
 
         <div style={{
@@ -450,12 +463,12 @@ export default function PracticePanel() {
               fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 22,
               color: '#e7e5e4', margin: 0,
             }}>
-              {section.name}
+              {(t.vocalex as any)[SECTION_NAME_KEYS[section.id]] ?? section.name}
             </h2>
             <span style={{
               fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#767575',
             }}>
-              {section.tips.length} tips
+              {t.vocalex.tipsCount(section.tips.length)}
             </span>
           </div>
         </div>
@@ -472,14 +485,14 @@ export default function PracticePanel() {
         color: '#e7e5e4', margin: '0 0 6px',
         animation: 'pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) both',
       }}>
-        Tips
+        {t.vocalex.tipsTitle}
       </h2>
       <p style={{
         fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575',
         margin: '0 0 28px', lineHeight: 1.5,
         animation: 'pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) 60ms both',
       }}>
-        Real vocal techniques that actually work. Pick a section and learn at your own pace.
+        {t.vocalex.tipsSubtitle}
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -522,13 +535,13 @@ export default function PracticePanel() {
                 fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 16,
                 color: '#e7e5e4', margin: 0,
               }}>
-                {section.name}
+                {(t.vocalex as any)[SECTION_NAME_KEYS[section.id]] ?? section.name}
               </p>
               <p style={{
                 fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#767575',
                 margin: '3px 0 0',
               }}>
-                {section.tips.length} tips
+                {t.vocalex.tipsCount(section.tips.length)}
               </p>
             </div>
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#484848' }}>

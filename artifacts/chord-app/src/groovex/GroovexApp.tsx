@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useGroovexStore, type GroovexView } from './useGroovexStore';
 import { GroovexLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, VocalexLogo, StudioLogo } from '../components/ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
+import { useT } from '../lib/useT';
 
 const GroovexLibrary = lazy(() => import('./GroovexLibrary'));
 const GroovexPlayer = lazy(() => import('./GroovexPlayer'));
@@ -83,9 +84,10 @@ function GroovexNav({ view, setView, hasActiveSong }: {
     (groovexVis.theme === 'system' && typeof window !== 'undefined' &&
      window.matchMedia('(prefers-color-scheme: light)').matches);
 
+  const t = useT();
   const items: { id: GroovexView; icon: string; label: string }[] = [
-    { id: 'library', icon: 'library_music', label: 'Library' },
-    { id: 'preferences', icon: 'tune', label: 'Preferences' },
+    { id: 'library', icon: 'library_music', label: t.groovex.library },
+    { id: 'preferences', icon: 'tune', label: t.groovex.preferences },
   ];
 
   const navRef = useRef<HTMLElement | null>(null);
@@ -248,6 +250,7 @@ function GroovexNav({ view, setView, hasActiveSong }: {
 
 function GroovexAppMenuLogo() {
   const { settings, updateSettings } = useChordStore();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -277,11 +280,11 @@ function GroovexAppMenuLogo() {
     label: string;
     desc: string;
   }[] = [
-    { value: 'chords',  Icon: ChordexLogo,    label: 'Chordex', desc: 'Chords & songs'       },
-    { value: 'drums',   Icon: DrumexLogo,     label: 'Drumex',  desc: 'Drum sheets'          },
-    { value: 'stage',   Icon: StagexLogoIcon, label: 'Stagex',  desc: 'Stage plot & rider'   },
-    { value: 'groovex', Icon: GroovexLogo,    label: 'Groovex', desc: 'Multitrack mixer'     },
-    { value: 'vocalex', Icon: VocalexLogo,    label: 'Vocalex', desc: 'Vocal tools & training' },
+    { value: 'chords',  Icon: ChordexLogo,    label: 'Chordex', desc: t.groovex.chordsAndSongs       },
+    { value: 'drums',   Icon: DrumexLogo,     label: 'Drumex',  desc: t.groovex.drumSheets          },
+    { value: 'stage',   Icon: StagexLogoIcon, label: 'Stagex',  desc: t.groovex.stagePlotAndRider   },
+    { value: 'groovex', Icon: GroovexLogo,    label: 'Groovex', desc: t.groovex.multitrackMixer     },
+    { value: 'vocalex', Icon: VocalexLogo,    label: 'Vocalex', desc: t.groovex.vocalToolsAndTraining },
   ];
 
   const goToHub = () => {
@@ -349,7 +352,7 @@ function GroovexAppMenuLogo() {
               letterSpacing: '0.14em', textTransform: 'uppercase',
               color: sectionLabel,
             }}>
-              Switch App
+              {t.groovex.switchApp}
             </span>
           </div>
 
@@ -430,11 +433,11 @@ function GroovexAppMenuLogo() {
                   color: labelColor,
                   fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, margin: 0,
                   letterSpacing: '-0.01em',
-                }}>Studio Hub</p>
+                }}>{t.groovex.studioHub}</p>
                 <p style={{
                   color: descColor,
                   fontFamily: 'Inter', fontSize: 8.5, margin: '1px 0 0',
-                }}>Home screen</p>
+                }}>{t.groovex.homeScreen}</p>
               </div>
             </button>
           </div>

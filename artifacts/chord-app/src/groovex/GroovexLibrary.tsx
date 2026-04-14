@@ -2,9 +2,11 @@ import { useState, useMemo, useRef } from 'react';
 import { SONG_CATALOG, getArtists, getGenres } from './songCatalog';
 import type { SongMeta } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
+import { useT } from '../lib/useT';
 
 export default function GroovexLibrary() {
   const { searchQuery, setSearchQuery, filterArtist, setFilterArtist, filterGenre, setFilterGenre, sortBy, setSortBy, setView, setActiveSong, addRecentSong, recentSongs } = useGroovexStore();
+  const t = useT();
   const [showFilters, setShowFilters] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -57,15 +59,15 @@ export default function GroovexLibrary() {
     setView('player');
   }
 
-  const sortLabel = sortBy === 'title' ? 'A-Z' : sortBy === 'artist' ? 'ARTIST' : 'RECENT';
+  const sortLabel = sortBy === 'title' ? t.groovex.sortAZ : sortBy === 'artist' ? t.groovex.sortArtist : t.groovex.sortRecent;
 
   return (
     <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
         <section style={{ paddingTop: 32, marginBottom: 32 }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}>Library</h2>
+          <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}>{t.groovex.libraryTitle}</h2>
           <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0, fontWeight: 600 }}>
-            {SONG_CATALOG.length} Multitrack Sessions Available
+            {t.groovex.sessionsAvailable(SONG_CATALOG.length)}
           </p>
         </section>
 
@@ -75,7 +77,7 @@ export default function GroovexLibrary() {
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search songs, artists, or genres..."
+              placeholder={t.groovex.searchPlaceholder}
               style={{
                 width: '100%', boxSizing: 'border-box',
                 background: 'var(--gx-surface-low)', border: 'none', borderRadius: 14,
@@ -112,7 +114,7 @@ export default function GroovexLibrary() {
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>tune</span>
-              FILTER
+              {t.groovex.filter}
             </button>
             {(filterArtist || filterGenre) && (
               <button
@@ -123,7 +125,7 @@ export default function GroovexLibrary() {
                   fontFamily: 'Inter', fontSize: 12, fontWeight: 600,
                 }}
               >
-                CLEAR
+                {t.groovex.clear}
               </button>
             )}
           </div>
@@ -134,16 +136,16 @@ export default function GroovexLibrary() {
             marginBottom: 24, background: 'var(--gx-surface)',
             borderRadius: 16, padding: 16,
           }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-secondary)', letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 10px' }}>Artist</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-secondary)', letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 10px' }}>{t.groovex.artist}</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-              <FilterChip label="All" active={!filterArtist} onClick={() => setFilterArtist('')} />
+              <FilterChip label={t.groovex.all} active={!filterArtist} onClick={() => setFilterArtist('')} />
               {artists.map(a => (
                 <FilterChip key={a} label={a} active={filterArtist === a} onClick={() => setFilterArtist(filterArtist === a ? '' : a)} />
               ))}
             </div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-secondary)', letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 10px' }}>Genre</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-secondary)', letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 10px' }}>{t.groovex.genre}</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              <FilterChip label="All" active={!filterGenre} onClick={() => setFilterGenre('')} />
+              <FilterChip label={t.groovex.all} active={!filterGenre} onClick={() => setFilterGenre('')} />
               {genres.map(g => (
                 <FilterChip key={g} label={g} active={filterGenre === g} onClick={() => setFilterGenre(filterGenre === g ? '' : g)} />
               ))}
@@ -154,8 +156,8 @@ export default function GroovexLibrary() {
         {filteredSongs.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--c-text-secondary)' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 48, marginBottom: 12, display: 'block', opacity: 0.4 }}>search_off</span>
-            <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>No songs found</p>
-            <p style={{ fontSize: 13, margin: 0 }}>Try a different search or filter</p>
+            <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>{t.groovex.noSongsFound}</p>
+            <p style={{ fontSize: 13, margin: 0 }}>{t.groovex.noSongsHint}</p>
           </div>
         )}
 

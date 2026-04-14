@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getAllSessions, saveSession, deleteSession, createLayer, createDefaultEffects, type LabSession, type LabLayer, type TrackEffect } from './labSessionDb';
 import { getAllTakes, type TakeRecord } from './takesDb';
+import { useT } from '../lib/useT';
 
 const SESSION_ICONS = ['graphic_eq', 'layers', 'multiline_chart', 'equalizer', 'tune', 'mic', 'queue_music', 'stacked_line_chart'];
 function randomIcon() { return SESSION_ICONS[Math.floor(Math.random() * SESSION_ICONS.length)]; }
-function formatDate(ts: number): string {
+function formatDate(ts: number, months: readonly string[]): string {
   const d = new Date(ts);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${months[d.getMonth()]} ${d.getDate()}`;
 }
 function formatDur(ms: number) {
@@ -19,14 +19,26 @@ function dbToDisplay(v: number) {
   return `${db >= 0 ? '+' : ''}${db.toFixed(1)} dB`;
 }
 
-const EFFECT_LABELS: Record<string, { icon: string; label: string }> = {
-  reverb: { icon: 'water_drop', label: 'Reverb' },
-  delay: { icon: 'schedule', label: 'Delay' },
-  chorus: { icon: 'waves', label: 'Chorus' },
-  distortion: { icon: 'electric_bolt', label: 'Drive' },
-  highpass: { icon: 'filter_alt', label: 'High Pass' },
-  lowpass: { icon: 'filter_alt', label: 'Low Pass' },
+const EFFECT_ICONS: Record<string, string> = {
+  reverb: 'water_drop',
+  delay: 'schedule',
+  chorus: 'waves',
+  distortion: 'electric_bolt',
+  highpass: 'filter_alt',
+  lowpass: 'filter_alt',
 };
+
+function getEffectLabel(key: string, t: any): { icon: string; label: string } {
+  const labelMap: Record<string, string> = {
+    reverb: t.vocalex.effectReverb,
+    delay: t.vocalex.effectDelay,
+    chorus: t.vocalex.effectChorus,
+    distortion: t.vocalex.effectDrive,
+    highpass: t.vocalex.effectHighPass,
+    lowpass: t.vocalex.effectLowPass,
+  };
+  return { icon: EFFECT_ICONS[key] ?? 'tune', label: labelMap[key] ?? key };
+}
 
 const SOURCE_ICONS: Record<string, string> = {
   recorded: 'mic',
@@ -225,7 +237,8 @@ function EffectSlider({ label, value, min, max, step, onChange, accentColor }: {
 }
 
 function EffectRow({ effect, onChange, index }: { effect: TrackEffect; onChange: (e: TrackEffect) => void; index: number }) {
-  const meta = EFFECT_LABELS[effect.type] || { icon: 'tune', label: effect.type };
+  const t = useT();
+  const meta = getEffectLabel(effect.type, t);
   const [expanded, setExpanded] = useState(false);
   const paramEntries = Object.entries(effect.params);
   const RANGES: Record<string, [number, number, number]> = {
@@ -460,6 +473,7 @@ function AddTrackSheet({ session, onAdd, onClose }: {
   onAdd: (layer: LabLayer) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [tab, setTab] = useState<'takes' | 'file' | 'record'>('takes');
   const [takes, setTakes] = useState<TakeRecord[]>([]);
   const [recording, setRecording] = useState(false);
@@ -547,30 +561,33 @@ function AddTrackSheet({ session, onAdd, onClose }: {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 20, color: '#e7e5e4', margin: 0 }}>Add Track</h3>
+          <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 20, color: '#e7e5e4', margin: 0 }}>{t.vocalex.addTrack}</h3>
           <button onClick={onClose} style={{ background: '#252626', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#767575' }}>close</span>
           </button>
         </div>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#0e0e0e', borderRadius: 10, padding: 3 }}>
-          {(['takes', 'file', 'record'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
+          {(['takes', 'file', 'record'] as const).map(tabKey => {
+            const tabLabels: Record<string, string> = { takes: t.vocalex.tabTakes, file: t.vocalex.tabFile, record: t.vocalex.tabRecord };
+            return (
+            <button key={tabKey} onClick={() => setTab(tabKey)} style={{
               flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
               fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700,
-              background: tab === t ? '#252626' : 'transparent',
-              color: tab === t ? '#e7e5e4' : '#767575',
+              background: tab === tabKey ? '#252626' : 'transparent',
+              color: tab === tabKey ? '#e7e5e4' : '#767575',
               textTransform: 'capitalize',
               transition: 'background 200ms ease, color 200ms ease',
             }}>
-              {t}
+              {tabLabels[tabKey]}
             </button>
-          ))}
+            );
+          })}
         </div>
 
         {tab === 'takes' && (
           takes.length === 0 ? (
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575', textAlign: 'center', padding: '20px 0' }}>No takes yet. Record some in the Takes section first.</p>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575', textAlign: 'center', padding: '20px 0' }}>{t.vocalex.noTakesForImport}</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {takes.map(take => (
@@ -610,8 +627,8 @@ function AddTrackSheet({ session, onAdd, onClose }: {
               onPointerLeave={e => (e.currentTarget.style.borderColor = '#252626')}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#679cff' }}>upload_file</span>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#acabaa' }}>Tap to choose an audio file</span>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#484848' }}>MP3, WAV, OGG, M4A, WebM</span>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#acabaa' }}>{t.vocalex.tapToChooseAudio}</span>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#484848' }}>{t.vocalex.audioFormats}</span>
             </button>
           </div>
         )}
@@ -621,7 +638,7 @@ function AddTrackSheet({ session, onAdd, onClose }: {
             {recording ? (
               <>
                 <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
-                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#ef4444', fontWeight: 600 }}>Recording...</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#ef4444', fontWeight: 600 }}>{t.vocalex.recording}</p>
                 <button onClick={stopRec} style={{
                   width: 64, height: 64, borderRadius: '50%', background: '#ef4444', border: 'none', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -633,7 +650,7 @@ function AddTrackSheet({ session, onAdd, onClose }: {
             ) : (
               <>
                 <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#679cff' }}>mic</span>
-                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', textAlign: 'center' }}>Record a new vocal track directly into this session.</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', textAlign: 'center' }}>{t.vocalex.recordPrompt}</p>
                 <button onClick={startRec} style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px', borderRadius: 9999,
                   background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
@@ -641,7 +658,7 @@ function AddTrackSheet({ session, onAdd, onClose }: {
                   boxShadow: '0 8px 32px rgba(0,122,255,0.25)',
                 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic</span>
-                  Start Recording
+                  {t.vocalex.startRecording}
                 </button>
               </>
             )}
@@ -656,6 +673,7 @@ function MixerView({ session, onBack, onUpdate }: {
   session: LabSession; onBack: () => void; onUpdate: (s: LabSession) => void;
 }) {
   useLabAnimStyle();
+  const t = useT();
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(session.name);
   const [showAddSheet, setShowAddSheet] = useState(false);
@@ -825,12 +843,12 @@ function MixerView({ session, onBack, onUpdate }: {
     <div style={{ padding: '16px 20px', paddingBottom: 120, minHeight: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <button onClick={() => { stopPlayback(); onBack(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13, padding: 0 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span> Back
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span> {t.vocalex.back}
         </button>
         {confirmDelete ? (
           <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={handleDelete} style={{ background: '#7f2927', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: '#ff9993' }}>Delete</button>
-            <button onClick={() => setConfirmDelete(false)} style={{ background: '#252626', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: '#acabaa' }}>Cancel</button>
+            <button onClick={handleDelete} style={{ background: '#7f2927', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: '#ff9993' }}>{t.vocalex.deleteTake}</button>
+            <button onClick={() => setConfirmDelete(false)} style={{ background: '#252626', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: '#acabaa' }}>{t.vocalex.cancelAction}</button>
           </div>
         ) : (
           <button onClick={() => setConfirmDelete(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#484848', display: 'flex' }}>
@@ -850,7 +868,7 @@ function MixerView({ session, onBack, onUpdate }: {
           <h2 onClick={() => setEditingName(true)} style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 24, color: '#e7e5e4', margin: '0 0 4px', cursor: 'pointer', letterSpacing: '-0.02em' }}>{session.name}</h2>
         )}
         <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#767575', margin: 0 }}>
-          {session.layers.length} {session.layers.length === 1 ? 'track' : 'tracks'} · {formatDur(maxDuration)}
+          {t.vocalex.trackCount(session.layers.length)} · {formatDur(maxDuration)}
         </p>
       </div>
 
@@ -872,7 +890,7 @@ function MixerView({ session, onBack, onUpdate }: {
           </button>
           <div style={{ flex: 1 }}>
             <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: '#e7e5e4', margin: 0 }}>
-              {playing ? 'Playing' : 'Ready'}
+              {playing ? t.vocalex.playing : t.vocalex.ready}
             </p>
             <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#484848', margin: '2px 0 0' }}>
               {formatDur(currentTime)} / {formatDur(maxDuration)}
@@ -892,7 +910,7 @@ function MixerView({ session, onBack, onUpdate }: {
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#767575', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Master</span>
+          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#767575', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t.vocalex.master}</span>
           <input type="range" min={0} max={1} step={0.01} value={session.masterVolume ?? 0.8}
             onChange={e => updateMasterVol(parseFloat(e.target.value))}
             style={{ flex: 1, accentColor: '#679cff', height: 3, cursor: 'pointer' }} />
@@ -903,28 +921,28 @@ function MixerView({ session, onBack, onUpdate }: {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#767575', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Tracks</span>
+        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#767575', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t.vocalex.tracks}</span>
         <button onClick={() => setShowAddSheet(true)} style={{
           display: 'flex', alignItems: 'center', gap: 4, background: '#252626', border: 'none',
           borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
           fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#679cff',
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>
-          Add Track
+          {t.vocalex.addTrack}
         </button>
       </div>
 
       {session.layers.length === 0 ? (
         <div style={{ background: '#161717', borderRadius: 14, padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
           <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#484848' }}>queue_music</span>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575', margin: 0, textAlign: 'center' }}>No tracks yet. Add a take, record something, or import an audio file.</p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575', margin: 0, textAlign: 'center' }}>{t.vocalex.noTracksYet}</p>
           <button onClick={() => setShowAddSheet(true)} style={{
             marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 9999,
             background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
             fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: '#fff',
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-            Add First Track
+            {t.vocalex.addFirstTrack}
           </button>
         </div>
       ) : (
@@ -944,6 +962,7 @@ function MixerView({ session, onBack, onUpdate }: {
 function SessionCard({ session, onOpen, onDelete }: {
   session: LabSession; onOpen: (s: LabSession) => void; onDelete: (id: string) => void;
 }) {
+  const t = useT();
   const [confirmDel, setConfirmDel] = useState(false);
 
   return (
@@ -963,13 +982,13 @@ function SessionCard({ session, onOpen, onDelete }: {
       <div style={{ flex: 1, minWidth: 0 }}>
         <h4 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 15, color: '#e7e5e4', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{session.name}</h4>
         <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', margin: 0 }}>
-          {session.layers.length} {session.layers.length === 1 ? 'track' : 'tracks'} · {formatDate(session.createdAt)}
+          {t.vocalex.trackCount(session.layers.length)} · {formatDate(session.createdAt, t.vocalex.months)}
         </p>
       </div>
       {confirmDel ? (
         <div style={{ display: 'flex', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-          <button onClick={() => { onDelete(session.id); setConfirmDel(false); }} style={{ background: '#7f2927', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#ff9993' }}>Delete</button>
-          <button onClick={() => setConfirmDel(false)} style={{ background: '#252626', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#acabaa' }}>Cancel</button>
+          <button onClick={() => { onDelete(session.id); setConfirmDel(false); }} style={{ background: '#7f2927', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#ff9993' }}>{t.vocalex.deleteTake}</button>
+          <button onClick={() => setConfirmDel(false)} style={{ background: '#252626', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#acabaa' }}>{t.vocalex.cancelAction}</button>
         </div>
       ) : (
         <button onClick={e => { e.stopPropagation(); setConfirmDel(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#484848', display: 'flex', flexShrink: 0 }}>
@@ -981,6 +1000,7 @@ function SessionCard({ session, onOpen, onDelete }: {
 }
 
 export default function LabPanel() {
+  const t = useT();
   const [sessions, setSessions] = useState<LabSession[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [activeSession, setActiveSession] = useState<LabSession | null>(null);
@@ -997,7 +1017,7 @@ export default function LabPanel() {
   const createSession = async () => {
     const session: LabSession = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      name: `Session ${sessions.length + 1}`,
+      name: t.vocalex.sessionName(sessions.length + 1),
       createdAt: Date.now(),
       updatedAt: Date.now(),
       layers: [],
@@ -1033,9 +1053,9 @@ export default function LabPanel() {
   return (
     <div style={{ padding: '20px 20px 40px', minHeight: '100%' }}>
       <section style={{ marginBottom: 28 }}>
-        <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em', color: '#e7e5e4', margin: '0 0 8px', lineHeight: 1 }}>Lab</h2>
+        <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em', color: '#e7e5e4', margin: '0 0 8px', lineHeight: 1 }}>{t.vocalex.labTitle}</h2>
         <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0, lineHeight: 1.6, maxWidth: 320 }}>
-          Build harmonies, layer vocals, add effects, and mix everything together.
+          {t.vocalex.labSubtitle}
         </p>
       </section>
 
@@ -1054,21 +1074,21 @@ export default function LabPanel() {
           onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 18, fontWeight: 700 }}>add</span>
-          New Session
+          {t.vocalex.newSession}
         </button>
       </section>
 
       {loaded && sessions.length > 0 && (
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
-            <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 18, color: '#e7e5e4', margin: 0 }}>Sessions</h3>
+            <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 18, color: '#e7e5e4', margin: 0 }}>{t.vocalex.sessionsLabel}</h3>
             {sessions.length > 6 && (
               <button onClick={() => setShowAll(!showAll)} style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                 fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: '#679cff',
                 textTransform: 'uppercase', letterSpacing: '0.12em',
               }}>
-                {showAll ? 'Show Less' : 'View All'}
+                {showAll ? t.vocalex.showLess : t.vocalex.viewAll}
               </button>
             )}
           </div>
@@ -1084,7 +1104,7 @@ export default function LabPanel() {
         <section style={{ textAlign: 'center', padding: '40px 0' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#484848', marginBottom: 8 }}>science</span>
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575', margin: '8px 0 0' }}>
-            Create your first session to start mixing.
+            {t.vocalex.noSessionsHint}
           </p>
         </section>
       )}

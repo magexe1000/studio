@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useGroovexStore } from './useGroovexStore';
 import { getCacheSize, clearAllCache, clearSongCache, getPerSongCacheInfo, type SongCacheInfo } from './stemCache';
 import { SONG_CATALOG } from './songCatalog';
+import { useT } from '../lib/useT';
 
 export default function GroovexPreferences() {
+  const t = useT();
   const { preferences, updatePreferences } = useGroovexStore();
   const [cacheInfo, setCacheInfo] = useState({ totalBytes: 0, songCount: 0, stemCount: 0 });
   const [songCaches, setSongCaches] = useState<SongCacheInfo[]>([]);
@@ -51,53 +53,53 @@ export default function GroovexPreferences() {
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
 
         <section style={{ paddingTop: 32, marginBottom: 32 }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}>Audio Engine</h2>
+          <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}>{t.groovex.audioEngine}</h2>
           <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: 0 }}>
-            Fine-tune the output behavior and default playback states.
+            {t.groovex.audioEngineDesc}
           </p>
         </section>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          <PrefCard title="Default Volume Levels" icon="equalizer">
+          <PrefCard title={t.groovex.defaultVolumeLevels} icon="equalizer">
             <SliderRow
-              label="Master Gain"
+              label={t.groovex.masterGain}
               value={preferences.masterVolume}
               onChange={(v) => updatePreferences({ masterVolume: v })}
               displayValue={`${Math.round((preferences.masterVolume - 1) * 20)} dB`}
             />
             <SliderRow
-              label="Default Stem Volume"
+              label={t.groovex.defaultStemVolume}
               value={preferences.defaultStemVolume}
               onChange={(v) => updatePreferences({ defaultStemVolume: v })}
               displayValue={`${Math.round(preferences.defaultStemVolume * 100)}%`}
             />
           </PrefCard>
 
-          <PrefCard title="Playback" icon="play_circle">
+          <PrefCard title={t.groovex.playback} icon="play_circle">
             <ToggleRow
-              label="Auto-play on Load"
+              label={t.groovex.autoPlayOnLoad}
               value={preferences.autoPlay}
               onChange={(v) => updatePreferences({ autoPlay: v })}
             />
             <ToggleRow
-              label="Infinite Loop"
+              label={t.groovex.infiniteLoop}
               value={preferences.loopPlayback}
               onChange={(v) => updatePreferences({ loopPlayback: v })}
             />
             <ToggleRow
-              label="Pre-roll Count-in"
+              label={t.groovex.prerollCountIn}
               value={preferences.countIn}
               onChange={(v) => updatePreferences({ countIn: v })}
             />
           </PrefCard>
 
-          <PrefCard title="Downloaded Songs" icon="cloud_done">
+          <PrefCard title={t.groovex.downloadedSongs} icon="cloud_done">
             <div style={{ padding: '4px 0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <div>
                   <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '0 0 4px', fontFamily: 'Inter' }}>
-                    {cacheInfo.songCount} {cacheInfo.songCount === 1 ? 'song' : 'songs'} • {cacheInfo.stemCount} stems
+                    {t.groovex.songUnit(cacheInfo.songCount)} • {cacheInfo.stemCount} {t.groovex.stems}
                   </p>
                   <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>
                     {formatBytes(cacheInfo.totalBytes)}
@@ -116,7 +118,7 @@ export default function GroovexPreferences() {
                           opacity: deletingId ? 0.5 : 1,
                         }}
                       >
-                        Confirm
+                        {t.groovex.confirm}
                       </button>
                       <button
                         onClick={() => setConfirmDeleteAll(false)}
@@ -126,7 +128,7 @@ export default function GroovexPreferences() {
                           fontSize: 12, fontWeight: 700, fontFamily: 'Inter',
                         }}
                       >
-                        Cancel
+                        {t.groovex.cancel}
                       </button>
                     </div>
                   ) : (
@@ -140,7 +142,7 @@ export default function GroovexPreferences() {
                         opacity: deletingId ? 0.5 : 1,
                       }}
                     >
-                      Delete All
+                      {t.groovex.deleteAll}
                     </button>
                   )
                 )}
@@ -183,7 +185,7 @@ export default function GroovexPreferences() {
                             fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0',
                             fontFamily: 'Inter',
                           }}>
-                            {meta?.artist ?? 'Unknown'} • {sc.stemCount} stems • {formatBytes(sc.totalBytes)}
+                            {meta?.artist ?? t.groovex.unknown} • {sc.stemCount} {t.groovex.stems} • {formatBytes(sc.totalBytes)}
                           </p>
                         </div>
                         <button
@@ -211,25 +213,22 @@ export default function GroovexPreferences() {
 
               <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, fontFamily: 'Inter', opacity: 0.7, lineHeight: 1.4 }}>
                 {songCaches.length === 0
-                  ? 'No songs downloaded yet. Songs are cached automatically when you play them.'
-                  : 'Downloaded songs stay available offline. Remove individual songs or clear all to free up space.'}
+                  ? t.groovex.noSongsDownloaded
+                  : t.groovex.downloadedSongsHint}
               </p>
             </div>
           </PrefCard>
 
-          <PrefCard title="About Groovex" icon="info">
+          <PrefCard title={t.groovex.aboutGroovex} icon="info">
             <div style={{ padding: '4px 0' }}>
               <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '0 0 8px', fontFamily: 'Inter', lineHeight: 1.5 }}>
-                Groovex is a multitrack music practice tool. Load audio stems for any song
-                and control each track independently — adjust volumes, mute, or solo individual
-                instruments to practice at your own pace.
+                {t.groovex.aboutDesc1}
               </p>
               <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '0 0 8px', fontFamily: 'Inter', lineHeight: 1.5 }}>
-                All audio processing happens locally using the Web Audio API for zero-latency,
-                perfectly synchronized playback.
+                {t.groovex.aboutDesc2}
               </p>
               <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, fontFamily: 'Inter', opacity: 0.6 }}>
-                Version 1.0 • Part of Studio by Mag
+                {t.groovex.aboutVersion}
               </p>
             </div>
           </PrefCard>
@@ -237,10 +236,10 @@ export default function GroovexPreferences() {
           <div style={{ marginTop: 16, paddingTop: 20, borderTop: '1px solid rgba(72,72,72,0.15)' }}>
             <h4 style={{ color: '#ee7d77', fontWeight: 700, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>warning</span>
-              Reset All Preferences
+              {t.groovex.resetAllPreferences}
             </h4>
             <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '0 0 16px', maxWidth: 400, lineHeight: 1.4 }}>
-              Resetting preferences will revert all volume levels and playback behaviors to defaults. This cannot be undone.
+              {t.groovex.resetDesc}
             </p>
             <button
               onClick={() => updatePreferences({
@@ -257,7 +256,7 @@ export default function GroovexPreferences() {
                 transition: 'background 150ms ease',
               }}
             >
-              Reset to Defaults
+              {t.groovex.resetToDefaults}
             </button>
           </div>
         </div>

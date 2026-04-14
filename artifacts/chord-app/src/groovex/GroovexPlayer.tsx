@@ -8,6 +8,7 @@ import {
   type AudioEngine,
 } from './audioEngine';
 import { downloadStem, getSongCacheStatus, clearSongCache, type DownloadProgress } from './stemCache';
+import { useT } from '../lib/useT';
 
 type PlayerPhase = 'idle' | 'downloading' | 'ready';
 
@@ -27,6 +28,7 @@ function transposeKey(key: string, semitones: number): string {
 }
 
 export default function GroovexPlayer() {
+  const t = useT();
   const { activeSongId, setView, preferences } = useGroovexStore();
   const song = useMemo(() => SONG_CATALOG.find(s => s.id === activeSongId), [activeSongId]);
 
@@ -349,7 +351,7 @@ export default function GroovexPlayer() {
   if (!song) {
     return (
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)' }}>
-        <p>No song selected</p>
+        <p>{t.groovex.noSongSelected}</p>
       </div>
     );
   }
@@ -450,9 +452,9 @@ export default function GroovexPlayer() {
             >
               <span className="material-symbols-outlined" style={{ fontSize: 28 }}>cloud_download</span>
               <div style={{ textAlign: 'left' }}>
-                <p style={{ fontSize: 16, fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>Download Stems</p>
+                <p style={{ fontSize: 16, fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>{t.groovex.downloadStems}</p>
                 <p style={{ fontSize: 11, margin: '2px 0 0', opacity: 0.8, fontFamily: 'Inter' }}>
-                  {song.stems.length} tracks will be downloaded
+                  {t.groovex.tracksWillBeDownloaded(song.stems.length)}
                 </p>
               </div>
             </button>
@@ -469,7 +471,7 @@ export default function GroovexPlayer() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 22, color: 'var(--gx-accent)', animation: 'spin 1s linear infinite' }}>progress_activity</span>
                   <div>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>Downloading...</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>{t.groovex.downloading}</p>
                     <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0', fontFamily: 'Inter' }}>
                       {currentStemLabel}
                     </p>
@@ -556,7 +558,7 @@ export default function GroovexPlayer() {
                   <div style={{
                     fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
                     color: 'var(--c-text-secondary)', fontFamily: 'Inter, sans-serif', marginBottom: 2,
-                  }}>Key</div>
+                  }}>{t.groovex.key}</div>
                   <div style={{
                     fontSize: 15, fontWeight: 800, fontFamily: 'Manrope, sans-serif',
                     color: pitchShift !== 0 ? 'var(--gx-accent)' : 'var(--c-text-primary)',
@@ -617,7 +619,7 @@ export default function GroovexPlayer() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#ee7d77' }}>warning</span>
                     <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: 0, fontFamily: 'Inter' }}>
-                      {failedStems.length} stem{failedStems.length > 1 ? 's' : ''} failed
+                      {t.groovex.stemsFailed(failedStems.length)}
                     </p>
                   </div>
                   <button
@@ -630,7 +632,7 @@ export default function GroovexPlayer() {
                       transition: 'background 150ms ease',
                     }}
                   >
-                    Retry
+                    {t.groovex.retry}
                   </button>
                 </div>
               </section>
@@ -645,7 +647,7 @@ export default function GroovexPlayer() {
                   fontSize: 11, fontWeight: 700, color: 'var(--c-text-secondary)',
                   letterSpacing: '0.18em', textTransform: 'uppercase', margin: 0,
                   fontFamily: 'Inter, sans-serif',
-                }}>Stems Mixer</h3>
+                }}>{t.groovex.stemsMixer}</h3>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   {song.hasStems && (
                     <button
@@ -660,7 +662,7 @@ export default function GroovexPlayer() {
                       }}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 13 }}>refresh</span>
-                      Re-download
+                      {t.groovex.redownload}
                     </button>
                   )}
                 </div>
@@ -695,7 +697,7 @@ export default function GroovexPlayer() {
             }}>
               <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--gx-accent)' }}>info</span>
               <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: 0, fontFamily: 'Inter', lineHeight: 1.4 }}>
-                Stems not available on server. Load audio files from your device below.
+                {t.groovex.stemsNotAvailable}
               </p>
             </div>
           </section>
@@ -704,7 +706,7 @@ export default function GroovexPlayer() {
         {phase === 'idle' && !song.hasStems && (
           <section className="gx-fade-up-3" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '0 0 4px 4px', fontFamily: 'Inter' }}>
-              Mixer — {tracks.length} Tracks
+              {t.groovex.mixerTracks(tracks.length)}
             </p>
             {tracks.map((track, idx) => (
               <MixerRow

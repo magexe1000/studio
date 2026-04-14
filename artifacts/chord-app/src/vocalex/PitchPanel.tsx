@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { detectPitch, type PitchResult } from './pitchYin';
+import { useT } from '../lib/useT';
 
 const HISTORY_LEN = 12;
 const SMOOTHING = 0.3;
@@ -11,11 +12,11 @@ function centsToColor(cents: number): string {
   return '#ef4444';
 }
 
-function centsToLabel(cents: number): string {
+function centsToLabel(cents: number, labels: { inTune: string; close: string; offKey: string }): string {
   const abs = Math.abs(cents);
-  if (abs <= 5) return 'IN TUNE';
-  if (abs <= 15) return 'CLOSE';
-  return 'OFF KEY';
+  if (abs <= 5) return labels.inTune;
+  if (abs <= 15) return labels.close;
+  return labels.offKey;
 }
 
 function centsToNeedleRotation(cents: number): number {
@@ -23,6 +24,7 @@ function centsToNeedleRotation(cents: number): number {
 }
 
 export default function PitchPanel({ active: panelActive = true }: { active?: boolean }) {
+  const t = useT();
   const [listening, setListening] = useState(false);
   const [result, setResult] = useState<PitchResult | null>(null);
   const [history, setHistory] = useState<PitchResult[]>([]);
@@ -98,7 +100,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
       smoothedFreqRef.current = 0;
       rafRef.current = requestAnimationFrame(detectLoop);
     } catch (err: unknown) {
-      setPermError(err instanceof Error ? err.message : 'Microphone access denied');
+      setPermError(err instanceof Error ? err.message : t.vocalex.micDenied);
     }
   }, [detectLoop]);
 
@@ -138,7 +140,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
   const active = listening && result !== null;
   const needleRot = centsToNeedleRotation(active ? result!.cents : 0);
   const statusColor = active ? centsToColor(result!.cents) : '#007aff';
-  const statusLabel = active ? centsToLabel(result!.cents) : '';
+  const statusLabel = active ? centsToLabel(result!.cents, t.vocalex) : '';
 
   const barHeights = [40, 60, 85, 70, 95, 50, 30, 65, 80, 45, 20, 55];
   const barColors  = [false, false, true, true, true, false, false, false, true, false, false, false];
@@ -248,7 +250,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
           <p style={{
             fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 500,
             color: '#acabaa', letterSpacing: '0.2em', marginBottom: 8,
-          }}>CURRENT NOTE</p>
+          }}>{t.vocalex.currentNote}</p>
           <h1 style={{
             fontFamily: 'Manrope, sans-serif',
             fontSize: 96, fontWeight: 800,
@@ -286,7 +288,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
             fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
             color: '#acabaa', letterSpacing: '0.14em', textTransform: 'uppercase',
             margin: '0 0 4px',
-          }}>Frequency</p>
+          }}>{t.vocalex.frequency}</p>
           <p style={{
             fontFamily: 'Manrope, sans-serif', fontSize: 24, fontWeight: 700,
             color: active ? '#e7e5e4' : 'rgba(231,229,228,0.1)',
@@ -304,7 +306,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
             fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
             color: '#acabaa', letterSpacing: '0.14em', textTransform: 'uppercase',
             margin: '0 0 4px',
-          }}>Precision</p>
+          }}>{t.vocalex.precision}</p>
           <p style={{
             fontFamily: 'Manrope, sans-serif', fontSize: 24, fontWeight: 700,
             color: active ? '#e7e5e4' : 'rgba(231,229,228,0.1)',
@@ -376,7 +378,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
             <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
           </svg>
-          Reset
+          {t.vocalex.reset}
         </button>
       </div>
 

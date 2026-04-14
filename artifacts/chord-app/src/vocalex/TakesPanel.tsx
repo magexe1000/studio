@@ -5,6 +5,7 @@ import {
   type TakeRecord,
 } from './takesDb';
 import { analyzeAudio, type VocalAnalysis } from './vocalAnalysis';
+import { useT } from '../lib/useT';
 
 function formatDuration(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -13,18 +14,18 @@ function formatDuration(ms: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function formatDate(ts: number): string {
+function formatDateI18n(ts: number, t: { today: string; yesterday: string; daysAgo: (n: number) => string }): string {
   const d = new Date(ts);
   const now = new Date();
   const diff = now.getTime() - ts;
   if (diff < 86400000) {
-    return `Today, ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    return `${t.today}, ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
   }
   if (diff < 172800000) {
-    return `Yesterday, ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    return `${t.yesterday}, ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
   }
   if (diff < 604800000) {
-    return `${Math.floor(diff / 86400000)} days ago`;
+    return t.daysAgo(Math.floor(diff / 86400000));
   }
   return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 }
@@ -35,6 +36,7 @@ type ViewState =
   | { mode: 'detail'; takeId: string };
 
 export default function TakesPanel() {
+  const t = useT();
   const [takes, setTakes] = useState<TakeRecord[]>([]);
   const [view, setView] = useState<ViewState>({ mode: 'list' });
   const [loading, setLoading] = useState(true);
@@ -69,7 +71,7 @@ export default function TakesPanel() {
 
   if (view.mode === 'detail') {
     const take = takes.find(t => t.id === view.takeId);
-    if (!take) return <div style={{ padding: 24, color: '#acabaa' }}>Take not found</div>;
+    if (!take) return <div style={{ padding: 24, color: '#acabaa' }}>{t.vocalex.takeNotFound}</div>;
     return <TakeDetailView take={take} onBack={() => setView({ mode: 'list' })} onDelete={handleDelete} />;
   }
 
@@ -80,11 +82,11 @@ export default function TakesPanel() {
           fontFamily: 'Manrope, sans-serif', fontWeight: 800,
           fontSize: 34, letterSpacing: '-0.03em',
           color: '#e7e5e4', margin: '0 0 8px', lineHeight: 1,
-        }}>Takes</h2>
+        }}>{t.vocalex.takesTitle}</h2>
         <p style={{
           fontFamily: 'Inter, sans-serif', fontSize: 13,
           color: '#acabaa', margin: 0, lineHeight: 1.5,
-        }}>Review and manage your vocal performances.</p>
+        }}>{t.vocalex.takesSubtitle}</p>
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
@@ -96,7 +98,7 @@ export default function TakesPanel() {
           fontWeight: 600, fontSize: 13, cursor: 'pointer',
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>sort</span>
-          Recent
+          {t.vocalex.recent}
         </button>
         <button
           onClick={() => setView({ mode: 'recording' })}
@@ -110,20 +112,20 @@ export default function TakesPanel() {
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 16, fontVariationSettings: "'FILL' 1" }}>mic</span>
-          New Take
+          {t.vocalex.newTake}
         </button>
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>Loading…</div>
+        <div style={{ padding: 40, textAlign: 'center', color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>{t.vocalex.loading}</div>
       ) : takes.length === 0 ? (
         <div style={{
           padding: '48px 24px', textAlign: 'center',
           background: '#191a1a', borderRadius: 16,
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: 40, color: '#484848', marginBottom: 12, display: 'block' }}>mic_none</span>
-          <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 16, color: '#e7e5e4', margin: '0 0 6px' }}>No takes yet</p>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0 }}>Tap "New Take" to record your first vocal.</p>
+          <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 16, color: '#e7e5e4', margin: '0 0 6px' }}>{t.vocalex.noTakesYet}</p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0 }}>{t.vocalex.noTakesHint}</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -142,6 +144,7 @@ export default function TakesPanel() {
 }
 
 function TakeListItem({ take, onOpen, onDelete }: { take: TakeRecord; onOpen: () => void; onDelete: () => void }) {
+  const t = useT();
   const [confirming, setConfirming] = useState(false);
 
   return (
@@ -174,7 +177,7 @@ function TakeListItem({ take, onOpen, onDelete }: { take: TakeRecord; onOpen: ()
             display: 'flex', alignItems: 'center', gap: 6, marginTop: 3,
             fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#acabaa',
           }}>
-            <span>{formatDate(take.createdAt)}</span>
+            <span>{formatDateI18n(take.createdAt, t.vocalex)}</span>
             <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#484848' }} />
             <span>{formatDuration(take.durationMs)}</span>
           </div>
@@ -192,7 +195,7 @@ function TakeListItem({ take, onOpen, onDelete }: { take: TakeRecord; onOpen: ()
               fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600,
               color: '#ef4444',
             }}
-          >Delete</button>
+          >{t.vocalex.deleteTake}</button>
           <button
             onClick={() => setConfirming(false)}
             style={{
@@ -201,7 +204,7 @@ function TakeListItem({ take, onOpen, onDelete }: { take: TakeRecord; onOpen: ()
               fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600,
               color: '#acabaa',
             }}
-          >Cancel</button>
+          >{t.vocalex.cancelAction}</button>
         </div>
       ) : (
         <button
@@ -234,6 +237,7 @@ const VIZ_BARS = 48;
 const SMOOTHING_FACTOR = 0.35;
 
 function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord) => void; onCancel: () => void }) {
+  const t = useT();
   const [state, setState] = useState<'idle' | 'countdown' | 'recording' | 'processing'>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [countdownNum, setCountdownNum] = useState(3);
@@ -438,7 +442,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
             borderTopColor: 'transparent', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite', margin: '0 auto 16px',
           }} />
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#acabaa' }}>Processing recording…</p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#acabaa' }}>{t.vocalex.processing}</p>
         </div>
       )}
 
@@ -451,7 +455,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
             color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13, zIndex: 10,
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-            Cancel
+            {t.vocalex.cancelAction}
           </button>
 
           {/* Circular visualizer + button */}
@@ -551,7 +555,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
                 <span style={{
                   fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 600,
                   color: '#ef4444', letterSpacing: '0.1em', textTransform: 'uppercase',
-                }}>REC</span>
+                }}>{t.vocalex.rec}</span>
               </div>
             )}
             <p style={{
@@ -565,9 +569,9 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
               fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa',
               margin: '8px 0 0',
             }}>
-              {state === 'countdown' ? 'Get ready…' :
-               state === 'recording' ? 'Tap the button to stop' :
-               'Tap to start recording'}
+              {state === 'countdown' ? t.vocalex.getReady :
+               state === 'recording' ? t.vocalex.tapToStop :
+               t.vocalex.tapToStart}
             </p>
           </div>
 
@@ -575,7 +579,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
           {(state === 'idle' || state === 'recording') && (
             <input
               type="text"
-              placeholder="Take name (optional)"
+              placeholder={t.vocalex.takeNamePlaceholder}
               value={name}
               onChange={e => setName(e.target.value)}
               style={{
@@ -609,6 +613,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
 function TakeDetailView({ take, onBack, onDelete }: {
   take: TakeRecord; onBack: () => void; onDelete: (id: string) => void;
 }) {
+  const t = useT();
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [analysis, setAnalysis] = useState<VocalAnalysis | null>(null);
@@ -698,7 +703,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
           color: '#007aff', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 600,
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-          Takes
+          {t.vocalex.takesTitle}
         </button>
         <button
           onClick={() => setShowDeleteConfirm(true)}
@@ -709,7 +714,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
-          Delete
+          {t.vocalex.deleteTake}
         </button>
       </div>
 
@@ -720,22 +725,22 @@ function TakeDetailView({ take, onBack, onDelete }: {
           marginBottom: 16, border: '1px solid rgba(239,68,68,0.2)',
         }}>
           <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 15, color: '#e7e5e4', margin: '0 0 8px' }}>
-            Delete this take?
+            {t.vocalex.deleteConfirmTitle}
           </p>
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: '0 0 16px', lineHeight: 1.5 }}>
-            This recording will be permanently deleted and cannot be recovered.
+            {t.vocalex.deleteConfirmBody}
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => setShowDeleteConfirm(false)} style={{
               flex: 1, padding: '10px 16px', borderRadius: 10,
               background: '#454747', border: 'none', color: '#e7e5e4',
               fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer',
-            }}>Cancel</button>
+            }}>{t.vocalex.cancelAction}</button>
             <button onClick={handleDelete} style={{
               flex: 1, padding: '10px 16px', borderRadius: 10,
               background: '#ef4444', border: 'none', color: '#fff',
               fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer',
-            }}>Delete</button>
+            }}>{t.vocalex.deleteTake}</button>
           </div>
         </div>
       )}
@@ -751,7 +756,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
           display: 'flex', alignItems: 'center', gap: 8,
           fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#acabaa',
         }}>
-          <span>{formatDate(take.createdAt)}</span>
+          <span>{formatDateI18n(take.createdAt, t.vocalex)}</span>
           <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#484848' }} />
           <span>{formatDuration(take.durationMs)}</span>
         </div>
@@ -786,7 +791,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
               color: playing ? '#007aff' : '#acabaa', margin: 0,
               transition: 'color 200ms ease',
             }}>
-              {playing ? 'Playing' : 'Tap to play'}
+              {playing ? t.vocalex.playing : t.vocalex.tapToPlay}
             </p>
           </div>
         </div>
@@ -838,7 +843,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
           <h3 style={{
             fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 18,
             color: '#e7e5e4', margin: 0,
-          }}>Vocal Analysis</h3>
+          }}>{t.vocalex.vocalAnalysis}</h3>
         </div>
 
         {analyzing ? (
@@ -851,17 +856,17 @@ function TakeDetailView({ take, onBack, onDelete }: {
               borderTopColor: 'transparent', borderRadius: '50%',
               animation: 'spin 0.8s linear infinite', margin: '0 auto 12px',
             }} />
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0 }}>Analyzing your vocal…</p>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0 }}>{t.vocalex.analyzing}</p>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : analysis ? (
           <>
             {/* Stats grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-              <StatCard label="Avg Frequency" value={analysis.avgFrequency > 0 ? `${analysis.avgFrequency.toFixed(0)} Hz` : '—'} />
-              <StatCard label="Stability" value={`${analysis.stabilityPercent}%`} color={analysis.stabilityPercent >= 80 ? '#34d399' : analysis.stabilityPercent >= 60 ? '#eab308' : '#ef4444'} />
-              <StatCard label="Lowest" value={analysis.lowestNote} />
-              <StatCard label="Highest" value={analysis.highestNote} />
+              <StatCard label={t.vocalex.avgFrequency} value={analysis.avgFrequency > 0 ? `${analysis.avgFrequency.toFixed(0)} Hz` : '—'} />
+              <StatCard label={t.vocalex.stability} value={`${analysis.stabilityPercent}%`} color={analysis.stabilityPercent >= 80 ? '#34d399' : analysis.stabilityPercent >= 60 ? '#eab308' : '#ef4444'} />
+              <StatCard label={t.vocalex.lowest} value={analysis.lowestNote} />
+              <StatCard label={t.vocalex.highest} value={analysis.highestNote} />
             </div>
 
             {/* Pitch timeline */}
@@ -874,7 +879,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
                   fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
                   color: '#acabaa', letterSpacing: '0.12em', textTransform: 'uppercase',
                   margin: '0 0 8px', position: 'relative', zIndex: 1,
-                }}>Pitch Timeline</p>
+                }}>{t.vocalex.pitchTimeline}</p>
                 <svg viewBox={`0 0 ${analysis.pitchTimeline.length} 60`} style={{
                   width: '100%', height: 56, display: 'block',
                 }} preserveAspectRatio="none">
@@ -942,7 +947,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
             padding: 24, textAlign: 'center', background: '#191a1a', borderRadius: 14,
           }}>
             <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0 }}>
-              Could not analyze this recording.
+              {t.vocalex.analysisError}
             </p>
           </div>
         )}

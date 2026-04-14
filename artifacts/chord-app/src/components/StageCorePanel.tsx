@@ -3,6 +3,7 @@ import { AppModeMenuLogo } from './AppModeMenuLogo';
 import { setBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import translations from '../lib/i18n';
+import { useT } from '../lib/useT';
 
 type StageWin = Window & {
   stageGoBack?: () => boolean;
@@ -186,6 +187,7 @@ export default function StagexPanel() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const iframeReady = useRef(false);
   const { settings } = useChordStore();
+  const tr = useT();
   const [curView, setCurView] = useState<string>('Editor');
 
   /* ── Glassmorphism bottom nav state ─────────────────────── */
@@ -367,9 +369,9 @@ export default function StagexPanel() {
   const isLandscapeEditor = isLandscape && curView === 'Editor';
 
   const navTabs: { view: string; label: string; icon: string }[] = [
-    { view: 'Editor', label: 'STAGE', icon: 'grid_view' },
-    { view: 'Setup', label: 'SETUP', icon: 'folder_open' },
-    { view: 'Preferences', label: 'PREFERENCES', icon: 'tune' },
+    { view: 'Editor', label: tr.stagex.navStage, icon: 'grid_view' },
+    { view: 'Setup', label: tr.stagex.navSetup, icon: 'folder_open' },
+    { view: 'Preferences', label: tr.stagex.navPreferences, icon: 'tune' },
   ];
 
   const isTabActive = (view: string) => {
@@ -505,10 +507,10 @@ export default function StagexPanel() {
 
             {(
               [
-                { label: 'Measure', icon: 'straighten',  fn: () => callIframe('scActivateMeasure')   },
-                { label: 'Zones',   icon: 'grid_4x4',    fn: () => callIframe('scToggleZones')       },
-                { label: 'Length',  icon: 'cable',        fn: () => callIframe('scToggleCableLength') },
-                { label: 'History', icon: 'history',      fn: () => callIframe('openTimelinePanel')   },
+                { label: tr.stagex.toolMeasure, icon: 'straighten',  fn: () => callIframe('scActivateMeasure')   },
+                { label: tr.stagex.toolZones,   icon: 'grid_4x4',    fn: () => callIframe('scToggleZones')       },
+                { label: tr.stagex.toolLength,  icon: 'cable',        fn: () => callIframe('scToggleCableLength') },
+                { label: tr.stagex.toolHistory, icon: 'history',      fn: () => callIframe('openTimelinePanel')   },
               ] as { label: string; icon: string; fn: () => void }[]
             ).map(({ label, icon, fn }) => (
               <button
@@ -530,7 +532,7 @@ export default function StagexPanel() {
 
             <button
               onClick={() => callIframe('openPresetsPanel')}
-              title="Presets"
+              title={tr.stagex.toolPresets}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 32, height: 32,
@@ -545,7 +547,7 @@ export default function StagexPanel() {
 
             <button
               onClick={() => callIframe('switchView', 'Export')}
-              title="Export to PDF"
+              title={tr.stagex.toolExport}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 32, height: 32,
@@ -576,7 +578,7 @@ export default function StagexPanel() {
           <button
             onClick={handleFabTap}
             onTouchEnd={(e) => { e.preventDefault(); handleFabTap(); }}
-            aria-label="Add instrument"
+            aria-label={tr.stagex.addInstrument}
             style={{
               position: 'absolute',
               bottom: isLandscapeEditor ? 14 : 90,
@@ -611,8 +613,8 @@ export default function StagexPanel() {
         {isLandscapeEditor && landscapeNavHidden && (
           <button
             onClick={() => setLandscapeNavHidden(false)}
-            aria-label="Show navigation"
-            title="Show navigation"
+            aria-label={tr.stagex.showNav}
+            title={tr.stagex.showNav}
             style={{
               position: 'absolute',
               bottom: 'max(4px, env(safe-area-inset-bottom))',
@@ -641,8 +643,8 @@ export default function StagexPanel() {
         {isLandscapeEditor && !landscapeNavHidden && (
           <button
             onClick={() => setLandscapeNavHidden(true)}
-            aria-label="Hide navigation"
-            title="Hide navigation"
+            aria-label={tr.stagex.hideNav}
+            title={tr.stagex.hideNav}
             style={{
               position: 'absolute',
               bottom: `calc(max(10px, env(safe-area-inset-bottom)) + ${isLandscapeEditor ? 34 : 52}px)`,
