@@ -42,16 +42,13 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
 
   useEffect(() => {
     if (show) {
-      // Cancel any pending unmount
       if (unmountTimer.current) { clearTimeout(unmountTimer.current); unmountTimer.current = null; }
       setSelected(new Set(['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex']));
       setMounted(true);
-      // One rAF so the browser paints the mounted state before we trigger the transition
-      requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)));
+      requestAnimationFrame(() => setOpen(true));
     } else {
-      // Animate out first, then unmount
       setOpen(false);
-      unmountTimer.current = setTimeout(() => setMounted(false), 380);
+      unmountTimer.current = setTimeout(() => setMounted(false), 220);
     }
     return () => {
       if (unmountTimer.current) clearTimeout(unmountTimer.current);
@@ -89,8 +86,8 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
         opacity: backdropOpacity,
         pointerEvents: open ? 'auto' : 'none',
         transition: open
-          ? 'opacity 240ms cubic-bezier(0.0,0.0,0.2,1)'
-          : 'opacity 300ms cubic-bezier(0.4,0,1,1)',
+          ? 'opacity 180ms cubic-bezier(0.0,0.0,0.2,1)'
+          : 'opacity 200ms cubic-bezier(0.4,0,1,1)',
         display: 'flex', alignItems: 'flex-end',
         contain: 'layout style',
       }}
@@ -105,8 +102,8 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)',
           transform: `translate3d(0, ${sheetTranslate}, 0)`,
           transition: open
-            ? 'transform 380ms cubic-bezier(0.34,1.08,0.64,1)'
-            : 'transform 280ms cubic-bezier(0.4,0,1,1)',
+            ? 'transform 260ms cubic-bezier(0.34,1.08,0.64,1)'
+            : 'transform 200ms cubic-bezier(0.4,0,1,1)',
           boxShadow: '0 -8px 40px rgba(0,0,0,0.4)',
           willChange: 'transform',
           backfaceVisibility: 'hidden' as const,
