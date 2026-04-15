@@ -1006,7 +1006,7 @@ const translations = {
         chordLibrary: 'Biblioteca',
         instruments: 'Instrumentos',
         storage: 'Almacenamiento',
-        storageValue: 'Local stored',
+        storageValue: 'Guardado localmente',
         instrumentsValue: 'Guitarra · Piano · Bajo',
         chordLibraryValue: 'Más de 200 acordes',
         footer: 'By Mag, With Love.',

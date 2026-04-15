@@ -204,7 +204,7 @@ export const useChordStore = create<ChordStore>()(
         liveModeAnimations: true,
         liveModeDiagram: false,
         liveChordSize: 100,
-        language: 'en',
+        language: 'es',
         preferFlats: false,
         defaultTab: 'library',
         defaultDrumTab: 'songs',
@@ -595,7 +595,7 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
-      version: 4,
+      version: 5,
       migrate: (stored: unknown, fromVersion: number) => {
         const s = stored as Record<string, unknown>;
         if (fromVersion < 1) {
@@ -638,6 +638,12 @@ export const useChordStore = create<ChordStore>()(
               const hubVis = perApp.hub as PerAppVisuals | undefined;
               perApp.vocalex = hubVis ? { ...hubVis } : { theme: 'dark', accentColor: 'blue', amoledMode: false };
             }
+          }
+        }
+        if (fromVersion < 5) {
+          if (s.settings && typeof s.settings === 'object') {
+            const settings = s.settings as Record<string, unknown>;
+            settings.language = 'es';
           }
         }
         return s;

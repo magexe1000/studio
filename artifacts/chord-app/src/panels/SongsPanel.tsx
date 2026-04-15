@@ -340,7 +340,7 @@ async function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT
     : '';
 
   const badges = [
-    cfg.includeKey && preset.key    ? `<span style="${badgeStyle}">Key of ${preset.key}</span>` : '',
+    cfg.includeKey && preset.key    ? `<span style="${badgeStyle}">Tonalidad de ${preset.key}</span>` : '',
     cfg.includeBPM && preset.bpm > 0 ? `<span style="${badgeStyle}">${preset.bpm} BPM</span>` : '',
   ].filter(Boolean).join('');
 
@@ -350,7 +350,7 @@ async function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT
   /* ── Section row ── */
   const pip = elegant
     ? `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${accentColor};margin-right:7px;flex-shrink:0;"></span>` : '';
-  const chordCount = `${entries.length} chord${entries.length !== 1 ? 's' : ''}`;
+  const chordCount = `${entries.length} acorde${entries.length !== 1 ? 's' : ''}`;
 
   /* ── Instrument badge helper ── */
   const INSTR_COLORS: Record<string, string> = {
@@ -403,7 +403,7 @@ async function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT
         return `
           <div class="section-group">
             <div class="section-heading">${section.name}</div>
-            <div class="chord-grid">${blocks || '<p style="font-size:11px;color:' + muted + ';padding:8px 0;">No chords</p>'}</div>
+            <div class="chord-grid">${blocks || '<p style="font-size:11px;color:' + muted + ';padding:8px 0;">Sin acordes</p>'}</div>
           </div>`;
       }).join('')
     : `<div class="chord-grid">${entries.map((e, i) => buildBlock(e, i)).join('')}</div>`;
@@ -499,7 +499,7 @@ body{
   <div class="header-right">${chordCount}</div>
 </div>
 <div class="section-row">
-  <div class="section-label">${pip}${hasSections ? 'Song Sections' : 'Chord Progression'}</div>
+  <div class="section-label">${pip}${hasSections ? 'Secciones' : 'Progresión de acordes'}</div>
   <div class="section-label">${chordCount}</div>
 </div>
 ${chordContent}
@@ -1154,7 +1154,7 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0, storedCustomCh
 
   const previewSections: PreviewSection[] = hasSections
     ? preset.sections!.map(sec => ({ name: sec.name, entries: buildPreviewEntries(sec.chords) }))
-    : [{ name: 'Chord Progression', entries: buildPreviewEntries(preset.chords) }];
+    : [{ name: 'Progresión de acordes', entries: buildPreviewEntries(preset.chords) }];
 
   /* Auto-fit columns based on total chord count – same thresholds as jsPDF engine */
   const totalChords = previewSections.reduce((n, s) => n + s.entries.length, 0);
@@ -1254,7 +1254,7 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0, storedCustomCh
                   </div>
                 : <>
                     {elegant && <span style={{ display: 'inline-block', width: '4px', height: '4px', borderRadius: '50%', background: accentC, flexShrink: 0 }} />}
-                    <p style={{ fontSize: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.22em', color: muted }}>Chord Progression</p>
+                    <p style={{ fontSize: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.22em', color: muted }}>Progresión de acordes</p>
                   </>
               }
             </div>
@@ -1456,7 +1456,7 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
               <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: '22px' }}>arrow_back</span>
             </button>
             <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#e7e5e4', lineHeight: 1 }}>
-              Export Preview
+              Vista previa
             </p>
           </div>
           <span style={{ fontFamily: 'Inter', fontSize: '10px', fontWeight: 700, color: '#484848', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(72,72,72,0.3)' }}>
@@ -1487,11 +1487,11 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginTop: '14px' }}>
             <span style={{ fontFamily: 'Inter', fontSize: '10px', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#3a3a3a' }}>
-              Page 1 of 1
+              Página 1 de 1
             </span>
             <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#3a3a3a', display: 'inline-block' }} />
             <span style={{ fontFamily: 'Inter', fontSize: '10px', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#3a3a3a' }}>
-              {totalChordCount} {totalChordCount === 1 ? 'chord' : 'chords'}
+              {totalChordCount} {totalChordCount === 1 ? 'acorde' : 'acordes'}
             </span>
           </div>
         </div>

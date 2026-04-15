@@ -10,8 +10,8 @@ type HubTab = 'home' | 'settings';
 type TargetApp = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
-  { value: 'dark',   label: 'Dark' },
-  { value: 'light',  label: 'Light' },
+  { value: 'dark',   label: 'Oscuro' },
+  { value: 'light',  label: 'Claro' },
   { value: 'system', label: 'Auto' },
 ];
 
