@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { useT } from '../lib/useT';
+import { useScrollHide, useNavHidden } from '../lib/navScroll';
 
 const PracticePanelLazy = lazy(() => import('./PracticePanel'));
 const PitchPanelLazy = lazy(() => import('./PitchPanel'));
@@ -98,6 +99,18 @@ export default function VocalexApp() {
   const navRef = useRef<HTMLElement | null>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const prevIdxRef = useRef(0);
+
+  const practiceScrollRef = useRef<HTMLDivElement | null>(null);
+  const pitchScrollRef    = useRef<HTMLDivElement | null>(null);
+  const labScrollRef      = useRef<HTMLDivElement | null>(null);
+  const takesScrollRef    = useRef<HTMLDivElement | null>(null);
+
+  useScrollHide(practiceScrollRef);
+  useScrollHide(pitchScrollRef);
+  useScrollHide(labScrollRef);
+  useScrollHide(takesScrollRef);
+
+  const navHidden = useNavHidden();
   const stretchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pill, setPill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const [pressedPanel, setPressedPanel] = useState<VocalexPanel | null>(null);
@@ -177,8 +190,14 @@ export default function VocalexApp() {
           if (isEntering) animClass = slideDir === 'right' ? 'panel-enter-right' : 'panel-enter-left';
           else if (isExiting) animClass = slideDir === 'right' ? 'panel-exit-left' : 'panel-exit-right';
 
+          const scrollRef =
+            panel === 'practice' ? practiceScrollRef :
+            panel === 'pitch'    ? pitchScrollRef    :
+            panel === 'vocalLab' ? labScrollRef      :
+                                   takesScrollRef;
+
           return (
-            <div key={panel} className={animClass} style={{
+            <div key={panel} ref={scrollRef} className={animClass} style={{
               position: 'absolute', inset: 0,
               opacity: isExiting && !animClass ? 0 : undefined,
               pointerEvents: isVisible && !isExiting ? 'auto' : 'none',
@@ -216,7 +235,8 @@ export default function VocalexApp() {
             : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
           zIndex: 50,
           overflow: 'hidden',
-          transform: 'translateX(-50%)',
+          transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 20px)' : '0'})`,
+          transition: 'transform 320ms cubic-bezier(0.4, 0, 0.2, 1)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
         }}
