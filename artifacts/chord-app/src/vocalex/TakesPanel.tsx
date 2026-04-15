@@ -4,7 +4,7 @@ import {
   extractWaveformPeaks, blobToAudioBuffer,
   type TakeRecord,
 } from './takesDb';
-import { analyzeAudio, type VocalAnalysis } from './vocalAnalysis';
+import { analyzeAudio, type VocalAnalysis, type AnalysisLabels } from './vocalAnalysis';
 import { useT } from '../lib/useT';
 
 function formatDuration(ms: number): string {
@@ -646,7 +646,34 @@ function TakeDetailView({ take, onBack, onDelete }: {
     (async () => {
       try {
         const audioBuffer = await blobToAudioBuffer(take.audioBlob);
-        const result = analyzeAudio(audioBuffer);
+        const labels: AnalysisLabels = {
+          noPitchTitle: t.vocalex.noPitchTitle,
+          noPitchDetail: t.vocalex.noPitchDetail,
+          pitchStability: t.vocalex.pitchStabilityTitle,
+          stabilityExcellent: t.vocalex.stabilityExcellent,
+          stabilityGood: t.vocalex.stabilityGood,
+          stabilityPractice: t.vocalex.stabilityPractice,
+          vocalRange: t.vocalex.vocalRangeTitle,
+          semitones: t.vocalex.semitonesUnit,
+          rangeWide: t.vocalex.rangeWide,
+          rangeModerate: t.vocalex.rangeModerate,
+          rangeNarrow: t.vocalex.rangeNarrow,
+          rangeTo: t.vocalex.rangeTo,
+          pitchTrend: t.vocalex.pitchTrendTitle,
+          driftingFlat: t.vocalex.driftingFlat,
+          driftingFlatDetail: t.vocalex.driftingFlatDetail,
+          driftingSharp: t.vocalex.driftingSharp,
+          driftingSharpDetail: t.vocalex.driftingSharpDetail,
+          stableTrend: t.vocalex.stableTrend,
+          stableTrendDetail: t.vocalex.stableTrendDetail,
+          breathGaps: t.vocalex.breathGapsTitle,
+          breathGapsDetail: t.vocalex.breathGapsDetail,
+          inTuneRate: t.vocalex.inTuneRateTitle,
+          inTuneExcellent: t.vocalex.inTuneExcellent,
+          inTuneDecent: t.vocalex.inTuneDecent,
+          inTunePractice: t.vocalex.inTunePractice,
+        };
+        const result = analyzeAudio(audioBuffer, labels);
         setAnalysis(result);
       } catch { /* empty */ }
       setAnalyzing(false);

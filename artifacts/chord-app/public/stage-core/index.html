@@ -1754,11 +1754,11 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
   </button>
   <button class="mob-tab" data-view="Setup" id="setup-mob-tab" onclick="activateSetup()">
     <span class="material-symbols-outlined sc-nav-icon">folder_open</span>
-    <span>Setup</span>
+    <span data-i18n="setupTitle">Setup</span>
   </button>
   <button class="mob-tab" data-view="Assistant" onclick="switchView('Assistant')">
     <span class="material-symbols-outlined sc-nav-icon">tune</span>
-    <span>Preferences</span>
+    <span data-i18n="prefTitle">Preferences</span>
   </button>
 </div>
 
@@ -1768,8 +1768,8 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
     <!-- Section heading -->
     <div style="margin-bottom:28px;">
-      <h1 style="font-family:'Manrope',sans-serif;font-size:2.8rem;font-weight:800;color:#f2f2f2;margin:0 0 4px;letter-spacing:-0.04em;line-height:1;">Setup</h1>
-      <p style="font-family:'Manrope',sans-serif;font-size:13px;color:#5a5a59;margin:0;font-weight:500;">Your show documents &amp; band info</p>
+      <h1 data-i18n="setupTitle" style="font-family:'Manrope',sans-serif;font-size:2.8rem;font-weight:800;color:#f2f2f2;margin:0 0 4px;letter-spacing:-0.04em;line-height:1;">Setup</h1>
+      <p data-i18n="setupSubtitle" style="font-family:'Manrope',sans-serif;font-size:13px;color:#5a5a59;margin:0;font-weight:500;">Your show documents &amp; band info</p>
     </div>
 
     <!-- Cards -->
@@ -1780,8 +1780,8 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           <span class="material-symbols-outlined" style="font-size:23px;color:var(--accent);">cable</span>
         </div>
         <div class="sc-hub-text">
-          <p class="sc-hub-title">Rider</p>
-          <p class="sc-hub-sub">Channel list, mic inputs &amp; tech requirements</p>
+          <p class="sc-hub-title" data-i18n="navRider">Rider</p>
+          <p class="sc-hub-sub" data-i18n="setupRiderSub">Channel list, mic inputs &amp; tech requirements</p>
         </div>
         <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
@@ -1791,8 +1791,8 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           <span class="material-symbols-outlined" style="font-size:23px;color:var(--accent);">format_list_numbered</span>
         </div>
         <div class="sc-hub-text">
-          <p class="sc-hub-title">Setlist</p>
-          <p class="sc-hub-sub">Song order, timing &amp; performance flow</p>
+          <p class="sc-hub-title" data-i18n="navSetlist">Setlist</p>
+          <p class="sc-hub-sub" data-i18n="setupSetlistSub">Song order, timing &amp; performance flow</p>
         </div>
         <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
@@ -1802,8 +1802,8 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           <span class="material-symbols-outlined" style="font-size:23px;color:var(--accent);">checklist</span>
         </div>
         <div class="sc-hub-text">
-          <p class="sc-hub-title">Gear</p>
-          <p class="sc-hub-sub">Instruments, amps &amp; load-in checklist</p>
+          <p class="sc-hub-title" data-i18n="navGear">Gear</p>
+          <p class="sc-hub-sub" data-i18n="setupGearSub">Instruments, amps &amp; load-in checklist</p>
         </div>
         <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
@@ -1813,8 +1813,8 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           <span class="material-symbols-outlined" style="font-size:23px;color:var(--accent);">badge</span>
         </div>
         <div class="sc-hub-text">
-          <p class="sc-hub-title">Members</p>
-          <p class="sc-hub-sub">Band roster, roles &amp; contact info</p>
+          <p class="sc-hub-title" data-i18n="navMembers">Members</p>
+          <p class="sc-hub-sub" data-i18n="setupMembersSub">Band roster, roles &amp; contact info</p>
         </div>
         <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
@@ -2467,13 +2467,13 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 <!-- ═══════════════════════ RIDER VIEW ═══════════════════════ -->
 <div id="view-Rider" class="view-page scrollable-view" style="padding-top:16px;padding-left:18px;padding-right:18px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
-    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span><span data-i18n="backToSetup">Setup</span>
   </button>
   <div class="sc-section-wrap">
 
     <!-- Header -->
     <div style="margin-bottom:24px;">
-      <h1 style="font-family:'Manrope',sans-serif;font-size:2rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;line-height:1;">Rider</h1>
+      <h1 data-i18n="riderTitle" style="font-family:'Manrope',sans-serif;font-size:2rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;line-height:1;">Rider</h1>
     </div>
 
     <!-- Input List section -->
@@ -2535,7 +2535,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     <div class="rd-card">
       <div class="rd-card-header">
         <span class="material-symbols-outlined rd-card-icon">description</span>
-        <h3 class="rd-card-title">Technical Notes</h3>
+        <h3 class="rd-card-title" data-i18n="techNotesTitle">Technical Notes</h3>
       </div>
       <textarea id="rider-notes-text" class="rd-notes-textarea"
         placeholder="Add technical notes, venue requirements, hospitality requests…"
@@ -2564,36 +2564,36 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <!-- ═══════════════════════ SETLIST VIEW ═══════════════════════ -->
 <div id="view-Setlist" class="view-page scrollable-view" style="padding-top:16px;padding-left:18px;padding-right:18px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
-    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span><span data-i18n="backToSetup">Setup</span>
   </button>
   <div class="sc-section-wrap">
 
     <!-- Header — matches Rider style -->
     <div style="margin-bottom:14px;">
-      <h1 class="sc-section-title">Setlist</h1>
+      <h1 class="sc-section-title" data-i18n="setlistLabel">Setlist</h1>
       <p style="font-family:'Manrope',sans-serif;font-size:11px;color:#484847;margin:3px 0 0;"><span id="sl-rev">Rev 1.0</span>&nbsp;·&nbsp;<span id="sl-date-val"></span></p>
     </div>
 
     <!-- ── Big stat cards (stacked) ── -->
     <div class="sl-big-stat" style="margin-bottom:10px;">
-      <p class="sl-big-stat-label">Songs Count</p>
+      <p class="sl-big-stat-label" data-i18n="slSongsCount">Songs Count</p>
       <p id="sl-stat-count" class="sl-big-stat-val">0</p>
     </div>
 
     <div class="sl-big-stat" style="margin-bottom:10px;">
-      <p class="sl-big-stat-label">Total Duration</p>
+      <p class="sl-big-stat-label" data-i18n="slTotalDuration">Total Duration</p>
       <p id="sl-stat-duration" class="sl-big-stat-val" style="color:var(--hot);">0:00</p>
     </div>
 
     <div class="sl-big-stat" style="margin-bottom:20px;">
-      <p class="sl-big-stat-label">Avg Energy</p>
+      <p class="sl-big-stat-label" data-i18n="slAvgEnergy">Avg Energy</p>
       <p id="sl-stat-energy" class="sl-big-stat-val" style="color:var(--accent);">—</p>
     </div>
 
     <!-- Segments stat card (revealed by app.js) -->
     <div id="sl-stat-segments-block" style="display:none;margin-bottom:10px;">
       <div class="sl-big-stat">
-        <p class="sl-big-stat-label">Segments</p>
+        <p class="sl-big-stat-label" data-i18n="slSegments">Segments</p>
         <p id="sl-stat-segments" class="sl-big-stat-val" style="color:#c8a2ff;">0</p>
       </div>
     </div>
@@ -2605,13 +2605,13 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
     <!-- ── "Current Arrangement" header + action buttons ── -->
     <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:14px;">
-      <h2 style="font-family:'Manrope',sans-serif;font-size:1.55rem;font-weight:800;color:#e0e0e0;margin:0;letter-spacing:-0.025em;line-height:1.15;">Current<br>Arrangement</h2>
+      <h2 data-i18n="slCurrentArrangement" style="font-family:'Manrope',sans-serif;font-size:1.55rem;font-weight:800;color:#e0e0e0;margin:0;letter-spacing:-0.025em;line-height:1.15;">Current<br>Arrangement</h2>
       <div style="display:flex;gap:6px;flex-shrink:0;padding-bottom:2px;">
         <button onclick="openBatchImport()" class="sl-refine-btn" title="Import">
           <span class="material-symbols-outlined" style="font-size:14px;">playlist_add</span>
         </button>
         <button onclick="openSectionsModal()" class="sl-refine-btn">
-          <span class="material-symbols-outlined" style="font-size:14px;">view_agenda</span>Sections
+          <span class="material-symbols-outlined" style="font-size:14px;">view_agenda</span><span data-i18n="slSections">Sections</span>
         </button>
       </div>
     </div>
@@ -2623,22 +2623,22 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
     <!-- ── Add New Track pill ── -->
     <button onclick="addSong()" class="sl-add-btn">
-      <span class="material-symbols-outlined" style="font-size:16px;">add_circle</span>Add New Track
+      <span class="material-symbols-outlined" style="font-size:16px;">add_circle</span><span data-i18n="slAddNewTrack">Add New Track</span>
     </button>
 
     <!-- ── Setlist Insights ── -->
     <div class="sc-card">
-      <p class="sc-card-title" style="margin-bottom:14px;">Setlist Insights</p>
+      <p class="sc-card-title" data-i18n="slSetlistInsights" style="margin-bottom:14px;">Setlist Insights</p>
       <div class="sl-insight-row">
-        <span class="sl-insight-label">Tempo Stability</span>
+        <span class="sl-insight-label" data-i18n="slTempoStability">Tempo Stability</span>
         <span class="sl-insight-val" id="insight-tempo">—</span>
       </div>
       <div class="sl-insight-row">
-        <span class="sl-insight-label">Key Variety</span>
+        <span class="sl-insight-label" data-i18n="slKeyVariety">Key Variety</span>
         <span class="sl-insight-val" id="insight-keys">—</span>
       </div>
       <div class="sl-insight-row">
-        <span class="sl-insight-label">Transition Fluidity</span>
+        <span class="sl-insight-label" data-i18n="slTransitionFluidity">Transition Fluidity</span>
         <span class="sl-insight-val" id="insight-flow">—</span>
       </div>
     </div>
@@ -2655,27 +2655,27 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
     </div>
     <!-- Sheet title -->
     <div style="padding:8px 22px 16px;">
-      <h2 style="font-family:'Manrope',sans-serif;font-size:24px;font-weight:800;color:#fff;margin:0;letter-spacing:-0.03em;">New Song</h2>
+      <h2 data-i18n="sngNewSong" style="font-family:'Manrope',sans-serif;font-size:24px;font-weight:800;color:#fff;margin:0;letter-spacing:-0.03em;">New Song</h2>
     </div>
     <!-- Form fields -->
     <div style="padding:0 22px;display:flex;flex-direction:column;gap:14px;max-height:56vh;overflow-y:auto;">
       <div>
-        <label class="sng-label">Song Title</label>
+        <label class="sng-label" data-i18n="sngTitle">Song Title</label>
         <input id="sng-title" type="text" placeholder="e.g. Blackbird" class="sng-input"
           oninput="this.classList.remove('sng-error')" onkeydown="if(event.key==='Enter')saveSong()" />
       </div>
       <div>
-        <label class="sng-label">Artist</label>
+        <label class="sng-label" data-i18n="sngArtist">Artist</label>
         <input id="sng-artist" type="text" placeholder="e.g. The Beatles" class="sng-input"
           onkeydown="if(event.key==='Enter')saveSong()" />
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
-          <label class="sng-label">BPM</label>
+          <label class="sng-label" data-i18n="sngBpm">BPM</label>
           <input id="sng-bpm" type="number" min="40" max="300" placeholder="120" class="sng-input" />
         </div>
         <div>
-          <label class="sng-label">Key</label>
+          <label class="sng-label" data-i18n="sngKey">Key</label>
           <select id="sng-key" class="sng-input">
             <option>C</option><option>C#</option><option>Db</option><option>D</option><option>D#</option><option>Eb</option>
             <option>E</option><option>F</option><option>F#</option><option>Gb</option><option>G</option><option>G#</option>
@@ -2687,23 +2687,23 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
         </div>
       </div>
       <div>
-        <label class="sng-label">Duration (MM:SS)</label>
+        <label class="sng-label" data-i18n="sngDuration">Duration (MM:SS)</label>
         <input id="sng-duration" type="text" placeholder="3:45" class="sng-input" />
       </div>
       <div>
-        <label class="sng-label">Notes</label>
+        <label class="sng-label" data-i18n="sngNotes">Notes</label>
         <textarea id="sng-notes" rows="3" placeholder="Capo, strumming pattern…" class="sng-input" style="resize:none;"></textarea>
       </div>
       <!-- Section picker — visible only when sections exist -->
       <div id="sng-section-row" style="display:none;padding-bottom:4px;">
-        <label class="sng-label">Add to Section</label>
+        <label class="sng-label" data-i18n="sngAddToSection">Add to Section</label>
         <div id="sng-section-pills" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;"></div>
       </div>
     </div>
     <!-- Footer buttons -->
     <div style="padding:18px 22px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeSongModal()" class="sng-btn-cancel">Cancel</button>
-      <button onclick="saveSong()" class="sng-btn-add">New Song</button>
+      <button onclick="closeSongModal()" class="sng-btn-cancel" data-i18n="sngCancel">Cancel</button>
+      <button onclick="saveSong()" class="sng-btn-add" data-i18n="sngNewSong">New Song</button>
     </div>
   </div>
 </div>
@@ -2716,8 +2716,8 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
       <div style="display:flex;align-items:center;gap:10px;">
         <div style="width:3px;height:20px;background:var(--accent);border-radius:2px;flex-shrink:0;"></div>
         <div>
-          <div style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#484847;margin-bottom:2px;">Setlist</div>
-          <h2 style="font-family:'Manrope',sans-serif;font-size:17px;font-weight:900;color:#e0e0e0;margin:0;letter-spacing:-0.02em;">Add Section</h2>
+          <div data-i18n="setlistLabel" style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#484847;margin-bottom:2px;">Setlist</div>
+          <h2 data-i18n="slAddSection" style="font-family:'Manrope',sans-serif;font-size:17px;font-weight:900;color:#e0e0e0;margin:0;letter-spacing:-0.02em;">Add Section</h2>
         </div>
       </div>
       <button onclick="closeSectionsModal()" style="background:rgba(255,255,255,0.05);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#888;font-size:18px;line-height:1;">×</button>
@@ -2727,32 +2727,32 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
       <button onclick="addSection('opening')" class="sl-sec-card">
         <span class="sl-sec-dot" style="background:#ff7439;box-shadow:0 0 8px #ff743966;"></span>
         <div class="sl-sec-card-body">
-          <div class="sl-sec-card-name" style="color:#ff7439;">Opening Segment</div>
-          <div class="sl-sec-card-desc">A strong, high-energy opener to grab attention and establish competence.</div>
+          <div class="sl-sec-card-name" data-i18n="slOpeningSegment" style="color:#ff7439;">Opening Segment</div>
+          <div class="sl-sec-card-desc" data-i18n="slOpeningDesc">A strong, high-energy opener to grab attention and establish competence.</div>
         </div>
         <span class="material-symbols-outlined" style="font-size:16px;color:#333;flex-shrink:0;">chevron_right</span>
       </button>
       <button onclick="addSection('main')" class="sl-sec-card">
         <span class="sl-sec-dot" style="background:#7aafff;box-shadow:0 0 8px #7aafff66;"></span>
         <div class="sl-sec-card-body">
-          <div class="sl-sec-card-name" style="color:#7aafff;">Main Set</div>
-          <div class="sl-sec-card-desc">The core journey — 3–4 song clusters alternating high &amp; low energy in a "W" shape.</div>
+          <div class="sl-sec-card-name" data-i18n="slMainSet" style="color:#7aafff;">Main Set</div>
+          <div class="sl-sec-card-desc" data-i18n="slMainDesc">The core journey — 3–4 song clusters alternating high &amp; low energy in a "W" shape.</div>
         </div>
         <span class="material-symbols-outlined" style="font-size:16px;color:#333;flex-shrink:0;">chevron_right</span>
       </button>
       <button onclick="addSection('closing')" class="sl-sec-card">
         <span class="sl-sec-dot" style="background:#c8a2ff;box-shadow:0 0 8px #c8a2ff66;"></span>
         <div class="sl-sec-card-body">
-          <div class="sl-sec-card-name" style="color:#c8a2ff;">Closing Segment</div>
-          <div class="sl-sec-card-desc">A powerful crowd-pleaser to end the main set on a high note.</div>
+          <div class="sl-sec-card-name" data-i18n="slClosingSegment" style="color:#c8a2ff;">Closing Segment</div>
+          <div class="sl-sec-card-desc" data-i18n="slClosingDesc">A powerful crowd-pleaser to end the main set on a high note.</div>
         </div>
         <span class="material-symbols-outlined" style="font-size:16px;color:#333;flex-shrink:0;">chevron_right</span>
       </button>
       <button onclick="addSection('encore')" class="sl-sec-card">
         <span class="sl-sec-dot" style="background:#c5ffc9;box-shadow:0 0 8px #c5ffc966;"></span>
         <div class="sl-sec-card-body">
-          <div class="sl-sec-card-name" style="color:#c5ffc9;">Encore</div>
-          <div class="sl-sec-card-desc">An optional final song or two — often a major hit after the main set concludes.</div>
+          <div class="sl-sec-card-name" data-i18n="slEncore" style="color:#c5ffc9;">Encore</div>
+          <div class="sl-sec-card-desc" data-i18n="slEncoreDesc">An optional final song or two — often a major hit after the main set concludes.</div>
         </div>
         <span class="material-symbols-outlined" style="font-size:16px;color:#333;flex-shrink:0;">chevron_right</span>
       </button>
@@ -2856,41 +2856,41 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <!-- ═══════════════════════ GEAR VIEW ═══════════════════════ -->
 <div id="view-Gear" class="view-page scrollable-view" style="padding-top:16px;padding-left:18px;padding-right:18px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
-    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span><span data-i18n="backToSetup">Setup</span>
   </button>
   <div class="sc-section-wrap">
 
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;">
-      <h1 class="sc-section-title" style="margin:0;">Gear</h1>
+      <h1 class="sc-section-title" data-i18n="gearTitle" style="margin:0;">Gear</h1>
       <button onclick="openGearModal()" style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:10px 20px;font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;border-radius:100px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--hot));color:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.3);-webkit-tap-highlight-color:transparent;transition:transform 0.12s,box-shadow 0.2s;" onpointerdown="this.style.transform='scale(0.95)'" onpointerup="this.style.transform='scale(1)'">
-        <span class="material-symbols-outlined" style="font-size:16px;">add</span>Add Item
+        <span class="material-symbols-outlined" style="font-size:16px;">add</span><span data-i18n="gearAddItem">Add Item</span>
       </button>
     </div>
 
     <div id="gear-stats-row" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px;">
       <div class="gear-bento-stat">
-        <p class="gear-bento-label">Total Items</p>
+        <p class="gear-bento-label" data-i18n="gearTotalItems">Total Items</p>
         <div style="display:flex;align-items:flex-end;justify-content:space-between;">
           <span id="gear-stat-total" class="gear-bento-val">0</span>
           <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">inventory_2</span>
         </div>
       </div>
       <div class="gear-bento-stat">
-        <p class="gear-bento-label">Packed</p>
+        <p class="gear-bento-label" data-i18n="gearPacked">Packed</p>
         <div style="display:flex;align-items:flex-end;justify-content:space-between;">
           <span id="gear-stat-packed" class="gear-bento-val" style="color:#c5ffc9;">0</span>
           <span class="material-symbols-outlined" style="font-size:22px;color:#c5ffc9;margin-bottom:2px;">done_all</span>
         </div>
       </div>
       <div class="gear-bento-stat">
-        <p class="gear-bento-label">Remaining</p>
+        <p class="gear-bento-label" data-i18n="gearRemaining">Remaining</p>
         <div style="display:flex;align-items:flex-end;justify-content:space-between;">
           <span id="gear-stat-remaining" class="gear-bento-val" style="color:var(--hot);">0</span>
           <span class="material-symbols-outlined" style="font-size:22px;color:var(--hot);margin-bottom:2px;">pending_actions</span>
         </div>
       </div>
       <div class="gear-bento-stat">
-        <p class="gear-bento-label">Total Units</p>
+        <p class="gear-bento-label" data-i18n="gearTotalUnits">Total Units</p>
         <div style="display:flex;align-items:flex-end;justify-content:space-between;">
           <span id="gear-stat-units" class="gear-bento-val" style="color:var(--accent);">0</span>
           <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">layers</span>
@@ -2899,7 +2899,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
     </div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <p style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;color:#e7e5e4;margin:0;letter-spacing:-0.01em;">Active Inventory</p>
+      <p data-i18n="gearActiveInventory" style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;color:#e7e5e4;margin:0;letter-spacing:-0.01em;">Active Inventory</p>
       <div id="gear-search-wrap" style="position:relative;">
         <span class="material-symbols-outlined" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#484847;">search</span>
         <input id="gear-search" type="text" placeholder="Search gear..." oninput="renderGear()"
@@ -2964,13 +2964,13 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <!-- ═══════════════════════ MEMBERS VIEW ═══════════════════════ -->
 <div id="view-Members" class="view-page scrollable-view" style="padding-top:16px;padding-left:18px;padding-right:18px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
-    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span>Setup
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span><span data-i18n="backToSetup">Setup</span>
   </button>
   <div class="sc-section-wrap">
 
     <!-- Header -->
     <div style="margin-bottom:12px;">
-      <h1 class="sc-section-title">Members</h1>
+      <h1 class="sc-section-title" data-i18n="membersTitle">Members</h1>
     </div>
 
     <!-- Add member — full-width card -->
@@ -3291,14 +3291,14 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
   <div class="sc-prefs-scroll">
 
     <div style="padding:4px 4px 8px;">
-      <h1 style="font-family:'Manrope',sans-serif;font-size:2.6rem;font-weight:900;letter-spacing:-0.04em;color:#e8e8ed;margin:0;line-height:1;">Preferences</h1>
-      <p style="font-family:'Inter',sans-serif;font-size:13px;color:#585858;margin:4px 0 0;">Customize your Stagex experience</p>
+      <h1 data-i18n="prefTitle" style="font-family:'Manrope',sans-serif;font-size:2.6rem;font-weight:900;letter-spacing:-0.04em;color:#e8e8ed;margin:0;line-height:1;">Preferences</h1>
+      <p data-i18n="prefSubtitle" style="font-family:'Inter',sans-serif;font-size:13px;color:#585858;margin:4px 0 0;">Customize your Stagex experience</p>
     </div>
 
     <!-- ── APPEARANCE ── -->
     <div class="sc-prefs-section-label">
       <span class="material-symbols-outlined sc-sec-icon">palette</span>
-      <span class="sc-sec-text">Appearance</span>
+      <span class="sc-sec-text" data-i18n="prefAppearance">Appearance</span>
     </div>
     <div class="sc-prefs-card">
       <!-- Canvas Background -->
@@ -3357,7 +3357,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
     <!-- ── CANVAS ── -->
     <div class="sc-prefs-section-label">
       <span class="material-symbols-outlined sc-sec-icon">grid_on</span>
-      <span class="sc-sec-text">Canvas</span>
+      <span class="sc-sec-text" data-i18n="prefCanvas">Canvas</span>
     </div>
     <div class="sc-prefs-card">
       <!-- Grid Size -->
@@ -3399,8 +3399,8 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
       <!-- Stage Balance -->
       <div class="sc-prefs-row">
         <div>
-          <p class="sc-prefs-row-label">Stage Balance Visualizer</p>
-          <p class="sc-prefs-row-hint">Show an L/C/R balance indicator at the top of the canvas.</p>
+          <p class="sc-prefs-row-label" data-i18n="prefStageBalance">Stage Balance Visualizer</p>
+          <p class="sc-prefs-row-hint" data-i18n="prefStageBalanceHint">Show an L/C/R balance indicator at the top of the canvas.</p>
         </div>
         <button id="settings-sbv-toggle" class="toggle-switch" onclick="toggleStageBalance()" title="Toggle stage balance visualizer"></button>
       </div>
@@ -3409,30 +3409,30 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
     <!-- ── EDITOR ── -->
     <div class="sc-prefs-section-label">
       <span class="material-symbols-outlined sc-sec-icon">edit</span>
-      <span class="sc-sec-text">Editor</span>
+      <span class="sc-sec-text" data-i18n="prefEditor">Editor</span>
     </div>
     <div class="sc-prefs-card">
       <!-- Element Labels -->
       <div class="sc-prefs-row">
         <div>
-          <p class="sc-prefs-row-label">Element Labels</p>
-          <p class="sc-prefs-row-hint">Show name labels under stage elements.</p>
+          <p class="sc-prefs-row-label" data-i18n="prefElementLabels">Element Labels</p>
+          <p class="sc-prefs-row-hint" data-i18n="prefElementLabelsHint">Show name labels under stage elements.</p>
         </div>
         <button id="settings-labels-toggle" class="toggle-switch on" onclick="toggleLabelsFromSettings()" title="Toggle labels"></button>
       </div>
       <!-- Animations -->
       <div class="sc-prefs-row">
         <div>
-          <p class="sc-prefs-row-label">Animations</p>
-          <p class="sc-prefs-row-hint">Disable for a faster feel on slower devices.</p>
+          <p class="sc-prefs-row-label" data-i18n="prefAnimations">Animations</p>
+          <p class="sc-prefs-row-hint" data-i18n="prefAnimationsHint">Disable for a faster feel on slower devices.</p>
         </div>
         <button id="settings-anim-toggle" class="toggle-switch on" onclick="toggleAnimationsFromSettings()" title="Toggle animations"></button>
       </div>
       <!-- Smart Suggestions -->
       <div class="sc-prefs-row">
         <div>
-          <p class="sc-prefs-row-label">Smart Suggestions</p>
-          <p class="sc-prefs-row-hint">Show audio engineering tips when placing elements.</p>
+          <p class="sc-prefs-row-label" data-i18n="prefSmartSuggestions">Smart Suggestions</p>
+          <p class="sc-prefs-row-hint" data-i18n="prefSmartSuggestionsHint">Show audio engineering tips when placing elements.</p>
         </div>
         <button id="settings-ss-toggle" class="toggle-switch" onclick="toggleSmartSuggestions()" title="Toggle smart suggestions"></button>
       </div>
@@ -3441,14 +3441,14 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
     <!-- ── EXPORT ── -->
     <div class="sc-prefs-section-label">
       <span class="material-symbols-outlined sc-sec-icon">picture_as_pdf</span>
-      <span class="sc-sec-text">Export</span>
+      <span class="sc-sec-text" data-i18n="prefExport">Export</span>
     </div>
     <div class="sc-prefs-card">
       <!-- Last Updated -->
       <div class="sc-prefs-row">
         <div>
-          <p class="sc-prefs-row-label">Last Updated Timestamp</p>
-          <p class="sc-prefs-row-hint">Show "Last Updated" on exported PDFs.</p>
+          <p class="sc-prefs-row-label" data-i18n="prefLastUpdated">Last Updated Timestamp</p>
+          <p class="sc-prefs-row-hint" data-i18n="prefLastUpdatedHint">Show "Last Updated" on exported PDFs.</p>
         </div>
         <button id="settings-lu-toggle" class="toggle-switch on" onclick="toggleShowLastUpdated()" title="Toggle last updated in exports"></button>
       </div>

@@ -21,7 +21,35 @@ export interface VocalAnalysis {
   insights: VocalInsight[];
 }
 
-export function analyzeAudio(audioBuffer: AudioBuffer): VocalAnalysis {
+export interface AnalysisLabels {
+  noPitchTitle: string;
+  noPitchDetail: string;
+  pitchStability: string;
+  stabilityExcellent: string;
+  stabilityGood: string;
+  stabilityPractice: string;
+  vocalRange: string;
+  semitones: string;
+  rangeWide: string;
+  rangeModerate: string;
+  rangeNarrow: string;
+  rangeTo: string;
+  pitchTrend: string;
+  driftingFlat: string;
+  driftingFlatDetail: string;
+  driftingSharp: string;
+  driftingSharpDetail: string;
+  stableTrend: string;
+  stableTrendDetail: string;
+  breathGaps: string;
+  breathGapsDetail: string;
+  inTuneRate: string;
+  inTuneExcellent: string;
+  inTuneDecent: string;
+  inTunePractice: string;
+}
+
+export function analyzeAudio(audioBuffer: AudioBuffer, labels: AnalysisLabels): VocalAnalysis {
   const raw = audioBuffer.getChannelData(0);
   const sr = audioBuffer.sampleRate;
   const chunkSize = 2048;
@@ -70,7 +98,7 @@ export function analyzeAudio(audioBuffer: AudioBuffer): VocalAnalysis {
       pitchTrend: 'stable',
       silencePercent: totalSamples > 0 ? Math.round((silentSamples / totalSamples) * 100) : 100,
       insights: [
-        { icon: 'info', title: 'No Pitch Detected', value: '', detail: 'The recording was too quiet or contained no clear vocal content.', color: '#acabaa' },
+        { icon: 'info', title: labels.noPitchTitle, value: '', detail: labels.noPitchDetail, color: '#acabaa' },
       ],
     };
   }
@@ -109,62 +137,62 @@ export function analyzeAudio(audioBuffer: AudioBuffer): VocalAnalysis {
 
   if (stabilityPercent >= 80) {
     insights.push({
-      icon: 'verified', title: 'Pitch Stability', value: `${stabilityPercent}%`,
-      detail: 'Excellent pitch control. Your voice stays consistently on target.',
+      icon: 'verified', title: labels.pitchStability, value: `${stabilityPercent}%`,
+      detail: labels.stabilityExcellent,
       color: '#34d399',
     });
   } else if (stabilityPercent >= 60) {
     insights.push({
-      icon: 'tune', title: 'Pitch Stability', value: `${stabilityPercent}%`,
-      detail: 'Good foundation. Try sustaining notes longer to build consistency.',
+      icon: 'tune', title: labels.pitchStability, value: `${stabilityPercent}%`,
+      detail: labels.stabilityGood,
       color: '#eab308',
     });
   } else {
     insights.push({
-      icon: 'music_note', title: 'Pitch Stability', value: `${stabilityPercent}%`,
-      detail: 'Practice with a drone tone to anchor your pitch. Slow scales help build muscle memory.',
+      icon: 'music_note', title: labels.pitchStability, value: `${stabilityPercent}%`,
+      detail: labels.stabilityPractice,
       color: '#ef4444',
     });
   }
 
   insights.push({
-    icon: 'straighten', title: 'Vocal Range', value: `${rangeSemitones} semitones`,
-    detail: `${lowestNote} to ${highestNote}. ${rangeSemitones >= 12 ? 'Wide range — nice versatility!' : rangeSemitones >= 6 ? 'Moderate range — try extending with warm-ups.' : 'Narrow range — lip trills and sirens can help expand.'}`,
+    icon: 'straighten', title: labels.vocalRange, value: `${rangeSemitones} ${labels.semitones}`,
+    detail: `${lowestNote} ${labels.rangeTo} ${highestNote}. ${rangeSemitones >= 12 ? labels.rangeWide : rangeSemitones >= 6 ? labels.rangeModerate : labels.rangeNarrow}`,
     color: '#007aff',
   });
 
   if (pitchTrend === 'flat') {
     insights.push({
-      icon: 'trending_down', title: 'Pitch Trend', value: 'Drifting Flat',
-      detail: 'Your pitch drops over time, often from breath support fatigue. Try diaphragmatic breathing exercises and take breaths before you need them.',
+      icon: 'trending_down', title: labels.pitchTrend, value: labels.driftingFlat,
+      detail: labels.driftingFlatDetail,
       color: '#f97316',
     });
   } else if (pitchTrend === 'sharp') {
     insights.push({
-      icon: 'trending_up', title: 'Pitch Trend', value: 'Drifting Sharp',
-      detail: 'Tension may be pushing your pitch up. Relax your jaw and throat. Gentle humming can help release tension.',
+      icon: 'trending_up', title: labels.pitchTrend, value: labels.driftingSharp,
+      detail: labels.driftingSharpDetail,
       color: '#f97316',
     });
   } else {
     insights.push({
-      icon: 'check_circle', title: 'Pitch Trend', value: 'Stable',
-      detail: 'Your pitch remains consistent throughout. Great breath control and awareness.',
+      icon: 'check_circle', title: labels.pitchTrend, value: labels.stableTrend,
+      detail: labels.stableTrendDetail,
       color: '#34d399',
     });
   }
 
   if (silencePercent > 40) {
     insights.push({
-      icon: 'air', title: 'Breath Gaps', value: `${silencePercent}%`,
-      detail: 'Significant silent gaps detected. Work on sustaining phrases and efficient breath management.',
+      icon: 'air', title: labels.breathGaps, value: `${silencePercent}%`,
+      detail: labels.breathGapsDetail,
       color: '#eab308',
     });
   }
 
   const inTunePercent = Math.round((centsArr.filter(c => Math.abs(c) <= 10).length / centsArr.length) * 100);
   insights.push({
-    icon: 'target', title: 'In-Tune Rate', value: `${inTunePercent}%`,
-    detail: `${inTunePercent >= 80 ? 'Outstanding accuracy — you are hitting your notes.' : inTunePercent >= 50 ? 'Decent accuracy. Ear training exercises can sharpen this further.' : 'Try matching single notes with a piano or app — slow, deliberate practice builds accuracy.'}`,
+    icon: 'target', title: labels.inTuneRate, value: `${inTunePercent}%`,
+    detail: `${inTunePercent >= 80 ? labels.inTuneExcellent : inTunePercent >= 50 ? labels.inTuneDecent : labels.inTunePractice}`,
     color: inTunePercent >= 80 ? '#34d399' : inTunePercent >= 50 ? '#eab308' : '#ef4444',
   });
 
