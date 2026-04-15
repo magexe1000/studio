@@ -82,12 +82,10 @@ export function VocalexLogo({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none"
       xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', flexShrink: 0 }}>
-      <g transform="translate(0, 0.75)">
-        <rect x="6.5" y="1" width="3" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M4 7.5C4 10.26 5.79 12 8 12C10.21 12 12 10.26 12 7.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
-        <line x1="8" y1="12" x2="8" y2="14" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-        <line x1="6" y1="14" x2="10" y2="14" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-      </g>
+      <rect x="6.5" y="3" width="3" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M4 9.5C4 12.26 5.79 14 8 14C10.21 14 12 12.26 12 9.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+      <line x1="8" y1="14" x2="8" y2="15" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <line x1="6" y1="15" x2="10" y2="15" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }
