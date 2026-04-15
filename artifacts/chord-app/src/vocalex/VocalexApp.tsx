@@ -17,10 +17,10 @@ function IconMic({ active }: { active: boolean }) {
   const sw = active ? 2 : 1.6;
   return (
     <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-      <rect x="9" y="2" width="6" height="11" rx="3" strokeWidth={sw} />
-      <path d="M5 10a7 7 0 0 0 14 0" strokeWidth={sw} />
-      <line x1="12" y1="17" x2="12" y2="21" strokeWidth={sw} />
-      <line x1="8" y1="21" x2="16" y2="21" strokeWidth={sw} />
+      <rect x="9" y="5" width="6" height="10" rx="3" strokeWidth={sw} />
+      <path d="M5 12a7 7 0 0 0 14 0" strokeWidth={sw} />
+      <line x1="12" y1="19" x2="12" y2="22" strokeWidth={sw} />
+      <line x1="8" y1="22" x2="16" y2="22" strokeWidth={sw} />
     </svg>
   );
 }
