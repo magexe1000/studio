@@ -2904,17 +2904,20 @@ function toggleSCVTools() {
 function _setToolBtn(id, active, activeColor) {
   const btn = document.getElementById(id);
   if (!btn) return;
-  // Use a CSS class (`is-active`) so the highlight beats the :hover rule —
-  // including the !important light-mode hover override — and stays lit while
-  // the toggle is on. `activeColor` is kept for back-compat but unused;
-  // every toggle adopts the current theme accent.
   void activeColor;
+  // Write inline styles with !important so they beat every theme/hover rule
+  // unconditionally. The `is-active` class is kept in sync purely for
+  // semantic / debugging purposes.
   btn.classList.toggle('is-active', !!active);
-  // Clear any legacy inline styles from previous builds so the class wins.
-  btn.style.background = '';
-  btn.style.color      = '';
-  // Drop focus so the button doesn't keep showing a focused/gray look on
-  // touch devices after the user toggles it off.
+  if (active) {
+    btn.style.setProperty('background', 'var(--accent-22)', 'important');
+    btn.style.setProperty('color',      'var(--accent)',    'important');
+  } else {
+    btn.style.setProperty('background', 'transparent', 'important');
+    // Use the theme-appropriate dim color (light theme = #555, dark = #767575).
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    btn.style.setProperty('color', isLight ? '#555' : '#767575', 'important');
+  }
   try { btn.blur(); } catch (_) {}
 }
 function toggleGrid() {
