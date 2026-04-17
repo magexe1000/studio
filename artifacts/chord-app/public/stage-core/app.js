@@ -2896,6 +2896,9 @@ function _setToolBtn(id, active, activeColor) {
   // Clear any legacy inline styles from previous builds so the class wins.
   btn.style.background = '';
   btn.style.color      = '';
+  // Drop focus so the button doesn't keep showing a focused/gray look on
+  // touch devices after the user toggles it off.
+  try { btn.blur(); } catch (_) {}
 }
 function toggleGrid() {
   state.gridVisible = !state.gridVisible;

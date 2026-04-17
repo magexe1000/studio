@@ -420,6 +420,24 @@ body {
   -webkit-tap-highlight-color: transparent;
   transition: color 130ms ease, background 130ms ease;
   flex-shrink: 0;
+  outline: none;
+}
+/* Suppress focus-ring/leftover styling on toggles after tap. The toggle's
+   on/off state is communicated via the `is-active` class only. */
+.sc-vtool-btn:focus,
+.sc-vtool-btn:focus-visible,
+.sc-vtool-btn:active:not(.is-active) {
+  background: transparent;
+  color: #767575;
+  outline: none;
+  box-shadow: none;
+}
+html[data-theme="light"] .sc-vtool-btn:focus,
+html[data-theme="light"] .sc-vtool-btn:focus-visible,
+html[data-theme="light"] .sc-vtool-btn:active:not(.is-active) {
+  background: transparent !important;
+  color: #555 !important;
+  box-shadow: none !important;
 }
 /* Only paint hover styles on real pointing devices (mouse / trackpad).
    On touch screens `:hover` is sticky after a tap, which made toggles
