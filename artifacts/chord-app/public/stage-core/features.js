@@ -2343,11 +2343,11 @@ function _renderZones() {
   const lW = W * 0.25, rW = W * 0.25;
   const cX = lW, cW = W - lW - rW;
 
-  // Light mode needs a darker, higher-opacity stroke so the dashed borders
-  // are clearly visible against the white stage background.
+  // Theme-aware stroke colors so the dashed zone borders stay clearly
+  // visible on every background — dark, AMOLED black, and light alike.
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  const accent = isLight ? 'rgba(30, 90, 200, 0.95)' : 'rgba(122,175,255,0.55)';
-  const dim    = isLight ? 'rgba(30, 90, 200, 0.55)' : 'rgba(122,175,255,0.22)';
+  const accent = isLight ? 'rgba(30, 90, 200, 0.95)'  : 'rgba(170, 205, 255, 0.95)';
+  const dim    = isLight ? 'rgba(30, 90, 200, 0.55)'  : 'rgba(170, 205, 255, 0.65)';
 
   const zones = [
     { x: 0,      y: 0,    w: W,   h: bH,   label: 'BACK',   anchor: 'tl' },
