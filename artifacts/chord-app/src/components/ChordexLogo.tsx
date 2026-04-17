@@ -79,9 +79,8 @@ export function GroovexLogo({ size = 14 }: { size?: number }) {
 }
 
 export function VocalexLogo({ size = 14 }: { size?: number }) {
-  const h = Math.round(size * 13 / 9);
   return (
-    <svg width={size} height={h} viewBox="3.5 2.5 9 13" fill="none"
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none"
       xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', flexShrink: 0 }}>
       <rect x="6.5" y="3" width="3" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
       <path d="M4 9.5C4 12.26 5.79 14 8 14C10.21 14 12 12.26 12 9.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
