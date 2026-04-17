@@ -468,7 +468,7 @@ export default function StagexPanel() {
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
-        padding: '24px 20px 12px',
+        padding: '24px 24px 4px',
         background: stageHdr,
         transition: 'background 180ms ease',
         gap: showBack ? 8 : 0,

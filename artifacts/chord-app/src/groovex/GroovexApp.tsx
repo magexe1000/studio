@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useGroovexStore, type GroovexView } from './useGroovexStore';
-import { GroovexLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, VocalexLogo, StudioLogo } from '../components/ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { useT } from '../lib/useT';
+import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 
 const GroovexLibrary = lazy(() => import('./GroovexLibrary'));
 const GroovexPlayer = lazy(() => import('./GroovexPlayer'));
@@ -29,31 +29,34 @@ export default function GroovexApp() {
     }}>
 
       <header style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        display: 'flex', alignItems: 'center',
         padding: '24px 24px 4px', flexShrink: 0,
         background: 'var(--gx-bg)',
       }}>
-        {view === 'player' ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button
-              onClick={handleBack}
-              className="btn-smooth"
-              style={{
-                width: 36, height: 36, borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'var(--gx-surface-high)',
-                border: '1px solid rgba(128,128,128,0.15)',
-                cursor: 'pointer',
-                animation: 'spring-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
-                transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 18 }}>arrow_back</span>
-            </button>
-          </div>
-        ) : (
-          <GroovexAppMenuLogo />
-        )}
+        <div style={{
+          overflow: 'hidden',
+          flexShrink: 0,
+          width: view === 'player' ? '40px' : '0px',
+          opacity: view === 'player' ? 1 : 0,
+          transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
+        }}>
+          <button
+            onClick={handleBack}
+            className="btn-smooth"
+            aria-label="Back"
+            style={{
+              width: '32px', height: '32px', borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'var(--gx-surface-high)',
+              border: '1px solid rgba(128,128,128,0.15)',
+              cursor: 'pointer', padding: 0,
+              transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 18 }}>arrow_back</span>
+          </button>
+        </div>
+        <AppModeMenuLogo />
       </header>
 
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
@@ -245,204 +248,5 @@ function GroovexNav({ view, setView, hasActiveSong }: {
         );
       })}
     </nav>
-  );
-}
-
-function GroovexAppMenuLogo() {
-  const { settings, updateSettings } = useChordStore();
-  const t = useT();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  const groovexVis = settings.perApp?.groovex ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
-  const accentKey = (groovexVis.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
-  const accent = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
-  const isLight = groovexVis.theme === 'light' ||
-    (groovexVis.theme === 'system' && typeof window !== 'undefined' &&
-     window.matchMedia('(prefers-color-scheme: light)').matches);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent | TouchEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    document.addEventListener('touchstart', close);
-    return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('touchstart', close);
-    };
-  }, [open]);
-
-  const OPTIONS: {
-    value: string;
-    Icon: React.FC<{ size?: number }>;
-    label: string;
-    desc: string;
-  }[] = [
-    { value: 'chords',  Icon: ChordexLogo,    label: 'Chordex', desc: t.groovex.chordsAndSongs       },
-    { value: 'drums',   Icon: DrumexLogo,     label: 'Drumex',  desc: t.groovex.drumSheets          },
-    { value: 'stage',   Icon: StagexLogoIcon, label: 'Stagex',  desc: t.groovex.stagePlotAndRider   },
-    { value: 'groovex', Icon: GroovexLogo,    label: 'Groovex', desc: t.groovex.multitrackMixer     },
-    { value: 'vocalex', Icon: VocalexLogo,    label: 'Vocalex', desc: t.groovex.vocalToolsAndTraining },
-  ];
-
-  const goToHub = () => {
-    setOpen(false);
-    window.dispatchEvent(new CustomEvent('studio-hub-return'));
-  };
-
-  const switchTo = (mode: string) => {
-    setOpen(false);
-    if (mode === 'groovex') return;
-    updateSettings({ appMode: mode as 'chords' | 'drums' | 'stage' | 'vocalex' });
-  };
-
-  const resolvedColor = isLight ? '#18181b' : '#d4d4d8';
-  const borderColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
-  const bgColor     = isLight ? 'rgba(252,252,253,0.98)' : 'rgba(18,18,22,0.98)';
-  const divider     = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
-  const iconBg      = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)';
-  const iconBorder  = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
-  const labelColor  = isLight ? '#18181b' : '#e4e4e7';
-  const descColor   = isLight ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.35)';
-  const inactiveIcon = isLight ? 'rgba(0,0,0,0.55)' : 'rgba(200,200,210,0.8)';
-  const sectionLabel = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.30)';
-
-  return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: 'transparent', border: 'none', cursor: 'pointer',
-          padding: '4px 6px 4px 0', margin: '-4px 0',
-          color: resolvedColor,
-        }}
-      >
-        <GroovexLogo size={14} />
-        <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color: resolvedColor }}>
-          Groovex
-        </span>
-        <span style={{
-          fontSize: 9, opacity: 0.4, marginLeft: -3, color: resolvedColor,
-          display: 'inline-block',
-          transform: open ? 'rotate(-180deg)' : 'rotate(0deg)',
-          transition: 'transform 220ms cubic-bezier(0.34,1.56,0.64,1)',
-        }}>▾</span>
-      </button>
-
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 10px)', left: 0,
-          background: bgColor,
-          border: `1px solid ${borderColor}`,
-          borderRadius: 16,
-          boxShadow: isLight
-            ? '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)'
-            : '0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)',
-          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          zIndex: 9999, minWidth: 175, overflow: 'hidden',
-          transformOrigin: 'top left',
-          animation: 'menu-pop 200ms cubic-bezier(0.34,1.56,0.64,1) both',
-        }}>
-          <div style={{ padding: '10px 12px 4px' }}>
-            <span style={{
-              fontSize: 8, fontWeight: 800, fontFamily: 'Manrope',
-              letterSpacing: '0.14em', textTransform: 'uppercase',
-              color: sectionLabel,
-            }}>
-              {t.groovex.switchApp}
-            </span>
-          </div>
-
-          <div style={{ padding: '2px 6px 6px', display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {OPTIONS.map(opt => {
-              const isActive = opt.value === 'groovex';
-              return (
-                <button
-                  key={opt.value}
-                  onClick={() => switchTo(opt.value)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    width: '100%', padding: '7px 8px',
-                    background: isActive
-                      ? (isLight ? `${accent.from}14` : `${accent.from}18`)
-                      : 'transparent',
-                    border: isActive
-                      ? `1px solid ${accent.from}30`
-                      : '1px solid transparent',
-                    borderRadius: 9,
-                    cursor: 'pointer', textAlign: 'left',
-                    transition: 'background 120ms',
-                  }}
-                >
-                  <span style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-                    background: isActive ? `${accent.from}22` : iconBg,
-                    color: isActive ? accent.from : inactiveIcon,
-                    border: `1px solid ${isActive ? accent.from + '30' : iconBorder}`,
-                    transition: 'background 120ms',
-                  }}>
-                    <opt.Icon size={13} />
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{
-                      color: isActive ? accent.from : labelColor,
-                      fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, margin: 0,
-                      letterSpacing: '-0.01em',
-                    }}>{opt.label}</p>
-                    <p style={{
-                      color: descColor,
-                      fontFamily: 'Inter', fontSize: 8.5, margin: '1px 0 0',
-                    }}>{opt.desc}</p>
-                  </div>
-                  {isActive && (
-                    <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: 13, flexShrink: 0 }}>check</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <div style={{ height: 1, background: divider, margin: '0 6px' }} />
-
-          <div style={{ padding: 6 }}>
-            <button
-              onClick={goToHub}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                width: '100%', padding: '7px 8px',
-                background: 'transparent', border: '1px solid transparent',
-                borderRadius: 9, cursor: 'pointer', textAlign: 'left',
-                transition: 'background 120ms',
-              }}
-            >
-              <span style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-                background: iconBg,
-                border: `1px solid ${iconBorder}`,
-                color: isLight ? '#18181b' : 'white',
-              }}>
-                <StudioLogo size={12} />
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{
-                  color: labelColor,
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, margin: 0,
-                  letterSpacing: '-0.01em',
-                }}>{t.groovex.studioHub}</p>
-                <p style={{
-                  color: descColor,
-                  fontFamily: 'Inter', fontSize: 8.5, margin: '1px 0 0',
-                }}>{t.groovex.homeScreen}</p>
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
