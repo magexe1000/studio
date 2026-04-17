@@ -2347,7 +2347,12 @@ function _renderZones() {
           fill="none" stroke="${dim}" stroke-width="1"
           stroke-dasharray="3 4" rx="2" ry="2"/>`).join('');
 
-  svg.innerHTML = DOMPurify.sanitize(borders + origin + zones.map(chip).join(''));
+  // Use SVG profile so DOMPurify keeps <rect>/<line>/<text> elements
+  // (default HTML profile silently strips bare SVG tags, which is why the
+  // zones overlay was rendering as empty before).
+  svg.innerHTML = DOMPurify.sanitize(borders + origin + zones.map(chip).join(''), {
+    USE_PROFILES: { svg: true, svgFilters: true }
+  });
 }
 
 // Re-render zones on canvas resize so labels and borders stay correctly

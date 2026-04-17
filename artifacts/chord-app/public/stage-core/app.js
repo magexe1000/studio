@@ -6878,6 +6878,10 @@ function toggleSmartSuggestions() {
 // ══════════════════════════════════════════════════════════
 //  GIG MODE
 // ══════════════════════════════════════════════════════════
+// Remember whether the left vtools panel was expanded before live mode so
+// we can restore it on exit. (Default state is collapsed.)
+let _gigVtoolsWasOpen = false;
+
 function toggleGigMode() {
   const body = document.body;
   const FADE = 170;   // panel fade duration (ms)
@@ -6885,6 +6889,12 @@ function toggleGigMode() {
 
   if (!state.gigMode) {
     // ── Entering focus mode ──────────────────────────────
+    // Auto-collapse the left vertical toolbar so the stage plot has the
+    // full canvas width before we start the fade.
+    const vbody = document.getElementById('sc-vtools-body');
+    _gigVtoolsWasOpen = !!(vbody && !vbody.classList.contains('vtools-collapsed'));
+    if (_gigVtoolsWasOpen && typeof toggleSCVTools === 'function') toggleSCVTools();
+
     // 1. Enable transitions + start fading panels out
     body.classList.add('gig-transitioning', 'gig-fade-out');
 
@@ -6917,6 +6927,13 @@ function toggleGigMode() {
         _notifyLiveMode(false);
         saveSettings();
         setTimeout(() => body.classList.remove('gig-transitioning'), MOVE);
+        // Restore the left vtools panel to whatever it was before live mode
+        const vbody = document.getElementById('sc-vtools-body');
+        const isCollapsed = vbody && vbody.classList.contains('vtools-collapsed');
+        if (_gigVtoolsWasOpen && isCollapsed && typeof toggleSCVTools === 'function') {
+          toggleSCVTools();
+        }
+        _gigVtoolsWasOpen = false;
       });
     });
   }
