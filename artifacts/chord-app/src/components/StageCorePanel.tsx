@@ -460,7 +460,10 @@ export default function StagexPanel() {
         flexShrink: 0,
         overflow: collapseHeader ? 'hidden' : 'visible',
         height: collapseHeader ? 0 : 'calc(env(safe-area-inset-top) + 68px)',
-        transition: 'height 260ms cubic-bezier(0.4,0,0.2,1)',
+        // In the Export view we want the header to disappear instantly on
+        // scroll-down (no animation). In landscape Editor mode we still
+        // animate the collapse for a smooth rotation feel.
+        transition: curView === 'Export' ? 'none' : 'height 260ms cubic-bezier(0.4,0,0.2,1)',
       }}>
       <div style={{ height: 'env(safe-area-inset-top)', background: 'transparent', flexShrink: 0 }} />
 

@@ -5810,25 +5810,31 @@ window.stageGoBack = function() {
 // preview, and reveal them when scrolling up. Posts {type:'sc-scroll-dir', down}
 // to the React parent (StageCorePanel listens for this).
 //
-// Bounce protection: native overscroll at the top/bottom of the list causes
-// scrollTop to flicker, which previously made the bottom nav re-trigger its
-// slide-in/out animation forever. We solve this by:
-//   • Clamping scrollTop into the valid [0, maxScroll] range before reading it.
-//   • Ignoring direction changes once we are within OVERSCROLL_PAD of either
-//     end — when bouncing at the bottom we keep the bars hidden, and at the
-//     top we keep them shown.
-//   • Requiring a minimum delta (DELTA_MIN) so micro-jitter doesn't toggle.
+// Anti-bounce strategy (this is what kills the infinite oscillation when you
+// fling-scroll all the way to the bottom):
+//
+//   1. Clamp scrollTop into [0, maxScroll]. iOS/Android rubber-band can report
+//      negative or beyond-max values; ignoring them stops phantom direction
+//      changes during the elastic snap-back.
+//   2. Asymmetric hysteresis: hiding is instant on any meaningful downward
+//      delta, but *showing* requires UP_SHOW_THRESHOLD pixels of cumulative
+//      upward motion. Momentum-bounce reversals at the bottom are tiny
+//      (a few px), so they never reach the threshold and the nav stays put.
+//   3. Lock the hidden state in a small zone near the bottom so the bounce
+//      itself can't even start a "show" attempt.
+//   4. Always show near the top; reset the upward accumulator once shown.
 function _initExportScrollHide() {
   const scroll = document.getElementById('export-preview-scroll');
   if (!scroll || scroll._scrollHideInit) return;
   scroll._scrollHideInit = true;
 
-  const TOP_THRESHOLD  = 30;   // always show bars near the top
-  const DELTA_MIN      = 6;    // ignore tiny scroll jitter
-  const OVERSCROLL_PAD = 4;    // ignore rubber-band wobble near edges
+  const TOP_THRESHOLD     = 30;   // always show bars within this of the top
+  const BOTTOM_LOCK_ZONE  = 80;   // within this of bottom: stay hidden, ignore reversals
+  const UP_SHOW_THRESHOLD = 40;   // need 40px of cumulative up-scroll to reveal
 
   let lastY = 0;
-  let lastDir = false; // false = up/shown, true = down/hidden
+  let lastDir = false; // false = shown, true = hidden
+  let upAccum = 0;     // cumulative upward distance since last hide
   let ticking = false;
 
   const post = (down) => {
@@ -5840,19 +5846,36 @@ function _initExportScrollHide() {
   const update = () => {
     ticking = false;
     const max = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-    // Clamp so iOS/Android rubber-band overscroll can't drive direction flips.
+    // Clamp so rubber-band overscroll values don't enter the math at all.
     const y = Math.max(0, Math.min(max, scroll.scrollTop));
-
-    // Near the top: always reveal the bars.
-    if (y <= TOP_THRESHOLD) { post(false); lastY = y; return; }
-
-    // Near the bottom: keep current state; bounce should not re-trigger anything.
-    if (max - y <= OVERSCROLL_PAD) { lastY = y; return; }
-
     const dy = y - lastY;
-    if (Math.abs(dy) < DELTA_MIN) return;
-    post(dy > 0);
     lastY = y;
+
+    // Near the top: force-show, reset upward accumulator.
+    if (y <= TOP_THRESHOLD) {
+      upAccum = 0;
+      post(false);
+      return;
+    }
+
+    // Near the bottom: lock hidden so the elastic snap-back can't cause
+    // alternating hide/show signals.
+    if (max - y <= BOTTOM_LOCK_ZONE) {
+      upAccum = 0;
+      post(true);
+      return;
+    }
+
+    if (dy > 0) {
+      // Scrolling down — hide immediately and reset the upward counter.
+      upAccum = 0;
+      post(true);
+    } else if (dy < 0) {
+      // Scrolling up — only show after enough sustained upward motion.
+      // Ignore single-pixel reversals so jitter never registers.
+      if (dy <= -1) upAccum += -dy;
+      if (upAccum >= UP_SHOW_THRESHOLD) post(false);
+    }
   };
 
   scroll.addEventListener('scroll', () => {
@@ -5864,6 +5887,7 @@ function _initExportScrollHide() {
   // Reset state every time we (re-)enter the export view.
   lastY = scroll.scrollTop || 0;
   lastDir = false;
+  upAccum = 0;
   try { window.parent?.postMessage({ type: 'sc-scroll-dir', down: false }, '*'); } catch (_) {}
 }
 
