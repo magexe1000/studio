@@ -588,16 +588,16 @@ export default function StagexPanel() {
         )}
 
         {curView === 'Export' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <button
               onClick={() => callIframe('toggleExportOptions')}
               title="Sections"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 32, height: 32,
-                background: 'var(--accent-08)',
-                color: 'var(--accent)',
-                border: '1px solid var(--accent-20)',
+                background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)',
+                color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(180,185,200,0.75)',
+                border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
                 borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
               }}
             >
@@ -607,21 +607,16 @@ export default function StagexPanel() {
               onClick={() => callIframe('exportPDF')}
               title="Export PDF"
               style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                height: 32, padding: '0 12px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 32, height: 32,
                 background: 'var(--accent)',
                 color: '#fff',
                 border: 'none',
-                borderRadius: 16,
-                cursor: 'pointer', flexShrink: 0,
-                fontFamily: 'Manrope, sans-serif',
-                fontSize: 9, fontWeight: 800,
-                textTransform: 'uppercase', letterSpacing: '0.1em',
+                borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
                 boxShadow: '0 2px 12px var(--accent-30)',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 13, lineHeight: 1 }}>picture_as_pdf</span>
-              PDF
+              <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>picture_as_pdf</span>
             </button>
           </div>
         )}
