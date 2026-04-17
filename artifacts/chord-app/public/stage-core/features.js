@@ -2281,37 +2281,89 @@ function _renderZones() {
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.removeAttribute('preserveAspectRatio');
 
-  // Non-overlapping layout: BACK(top 25%) | middle 50% split L/C/R | FRONT(bottom 25%)
-  const bH  = H * 0.25;          // BACK height
-  const fH  = H * 0.25;          // FRONT height
+  // ── Modern, minimal zone layout ───────────────────────────
+  // BACK(top 25%) | middle 50% split L/C/R | FRONT(bottom 25%)
+  const bH   = H * 0.25;
+  const fH   = H * 0.25;
   const midY = bH;
-  const midH = H - bH - fH;      // exactly H * 0.5
+  const midH = H - bH - fH;
   const lW   = W * 0.25;
   const rW   = W * 0.25;
   const cX   = lW;
   const cW   = W - lW - rW;
 
+  // Each zone gets a thin dashed border + a tiny corner label chip.
+  // No heavy fill — keeps the plot clean and modern.
+  const accent = 'rgba(122,175,255,0.55)';
+  const dim    = 'rgba(122,175,255,0.22)';
+
   const zones = [
-    { x: 0,      y: 0,    w: W,   h: bH,   label: 'BACK',   color: 'rgba(122,175,255,0.05)', stroke: 'rgba(122,175,255,0.12)' },
-    { x: 0,      y: H-fH, w: W,   h: fH,   label: 'FRONT',  color: 'rgba(255,116,57,0.05)',  stroke: 'rgba(255,116,57,0.12)'  },
-    { x: 0,      y: midY, w: lW,  h: midH, label: 'LEFT',   color: 'rgba(122,255,175,0.05)', stroke: 'rgba(122,175,255,0.12)' },
-    { x: W - rW, y: midY, w: rW,  h: midH, label: 'RIGHT',  color: 'rgba(122,255,175,0.05)', stroke: 'rgba(122,175,255,0.12)' },
-    { x: cX,     y: midY, w: cW,  h: midH, label: 'CENTER', color: 'rgba(255,200,60,0.04)',  stroke: 'rgba(255,200,60,0.1)'   },
+    { x: 0,      y: 0,    w: W,   h: bH,   label: 'BACK',   anchor: 'tl' },
+    { x: 0,      y: H-fH, w: W,   h: fH,   label: 'FRONT',  anchor: 'bl' },
+    { x: 0,      y: midY, w: lW,  h: midH, label: 'LEFT',   anchor: 'tl' },
+    { x: W - rW, y: midY, w: rW,  h: midH, label: 'RIGHT',  anchor: 'tr' },
+    { x: cX,     y: midY, w: cW,  h: midH, label: 'CENTER', anchor: 'tc' },
   ];
 
-  const fs  = Math.round(Math.min(W, H) * 0.055); // font size proportional to canvas
-  const ls  = (fs * 0.18).toFixed(1);
+  // Chip dimensions scale with canvas, but stay readable
+  const chipH  = Math.max(14, Math.min(18, Math.round(H * 0.035)));
+  const chipFs = Math.round(chipH * 0.55);
+  const chipPad = Math.round(chipH * 0.55);
+  const inset  = 8; // distance from zone corner
 
-  svg.innerHTML = DOMPurify.sanitize(zones.map(z => `
-    <rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}"
-          fill="${z.color}" stroke="${z.stroke}" stroke-width="1"/>
-    <text x="${z.x + z.w / 2}" y="${z.y + z.h / 2 + fs * 0.36}"
-          text-anchor="middle" dominant-baseline="auto"
-          font-family="Manrope, sans-serif" font-weight="700"
-          font-size="${fs}" fill="rgba(122,175,255,0.22)"
-          letter-spacing="${ls}">${z.label}</text>
-  `).join(''));
+  function chip(z) {
+    const tw = z.label.length * (chipFs * 0.62) + chipPad * 2;
+    let cxp, cyp;
+    if (z.anchor === 'tl') { cxp = z.x + inset;             cyp = z.y + inset; }
+    else if (z.anchor === 'tr') { cxp = z.x + z.w - tw - inset; cyp = z.y + inset; }
+    else if (z.anchor === 'bl') { cxp = z.x + inset;             cyp = z.y + z.h - chipH - inset; }
+    else if (z.anchor === 'tc') { cxp = z.x + (z.w - tw) / 2;    cyp = z.y + inset; }
+    else                        { cxp = z.x + inset;             cyp = z.y + inset; }
+    return `
+      <rect x="${cxp}" y="${cyp}" width="${tw}" height="${chipH}" rx="${chipH/2}" ry="${chipH/2}"
+            fill="rgba(10,10,12,0.78)" stroke="${accent}" stroke-width="0.8"/>
+      <text x="${cxp + tw/2}" y="${cyp + chipH/2 + chipFs*0.34}"
+            text-anchor="middle" font-family="Manrope, sans-serif"
+            font-weight="800" font-size="${chipFs}" fill="${accent}"
+            letter-spacing="0.18em">${z.label}</text>`;
+  }
+
+  // Center stage origin marker (small cross at exact stage center)
+  const ocx = W / 2, ocy = H / 2;
+  const ocs = Math.max(6, Math.min(12, H * 0.018));
+  const origin = `
+    <line x1="${ocx-ocs}" y1="${ocy}" x2="${ocx+ocs}" y2="${ocy}" stroke="${dim}" stroke-width="0.8"/>
+    <line x1="${ocx}" y1="${ocy-ocs}" x2="${ocx}" y2="${ocy+ocs}" stroke="${dim}" stroke-width="0.8"/>
+    <circle cx="${ocx}" cy="${ocy}" r="2" fill="${accent}" fill-opacity="0.6"/>`;
+
+  const borders = zones.map(z => `
+    <rect x="${z.x + 0.5}" y="${z.y + 0.5}" width="${z.w - 1}" height="${z.h - 1}"
+          fill="none" stroke="${dim}" stroke-width="1"
+          stroke-dasharray="3 4" rx="2" ry="2"/>`).join('');
+
+  svg.innerHTML = DOMPurify.sanitize(borders + origin + zones.map(chip).join(''));
 }
+
+// Re-render zones on canvas resize so labels and borders stay correctly
+// positioned at any viewport size. ResizeObserver fires once on attach,
+// so this also covers the initial layout.
+(function _wireZonesResize() {
+  if (typeof ResizeObserver === 'undefined') return;
+  const attach = () => {
+    const el = document.getElementById('stage-canvas');
+    if (!el) { setTimeout(attach, 200); return; }
+    let raf = 0;
+    new ResizeObserver(() => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = 0; if (scZonesVisible) _renderZones(); });
+    }).observe(el);
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
+})();
 
 
 // ─── E. CABLE LENGTH ESTIMATOR ─────────────────────
@@ -3315,11 +3367,17 @@ function openTimelinePanel() {
   // Toggle: close if already open
   if (_histTimelineOpen) { closeTimelinePanel(); return; }
 
-  const sc  = document.getElementById('stage-canvas');
-  const vp  = document.getElementById('stage-viewport');
-  const scRect = sc ? sc.getBoundingClientRect() : { top: 64, bottom: window.innerHeight - 100, height: window.innerHeight - 164 };
-  const panelTop    = Math.round(scRect.top);
-  const panelHeight = Math.round(scRect.height);
+  // ── Top-down floating sheet ────────────────────────────────
+  // Anchored to the top of the stage area, centered horizontally.
+  // Doesn't shift the canvas — overlays on top with a soft shadow,
+  // so users can see what they're undoing/redoing underneath.
+  const sc = document.getElementById('stage-canvas');
+  const scRect = sc ? sc.getBoundingClientRect() : { top: 64, left: 0, width: window.innerWidth };
+  const isNarrow = window.innerWidth < 520;
+  const panelW = isNarrow ? Math.min(window.innerWidth - 16, 360) : 360;
+  const panelTop = Math.round(scRect.top + 8);
+  const panelLeft = Math.round(scRect.left + (scRect.width - panelW) / 2);
+  const maxH = Math.max(220, Math.round(window.innerHeight * 0.6));
 
   let panel = document.getElementById('sc-hist-panel');
   if (!panel) {
@@ -3328,32 +3386,47 @@ function openTimelinePanel() {
     document.body.appendChild(panel);
   }
   panel.style.cssText = [
-    `position:absolute;left:0;top:${panelTop}px;height:${panelHeight}px;width:224px;`,
+    `position:fixed;top:${panelTop}px;left:${panelLeft}px;width:${panelW}px;`,
+    `max-height:${maxH}px;`,
     'background:rgba(10,10,12,0.97);',
-    'border:1px solid rgba(72,72,71,0.35);border-left:none;',
-    'border-radius:0 10px 10px 0;',
-    'box-shadow:4px 0 24px rgba(0,0,0,0.45);',
-    'z-index:45;display:flex;flex-direction:column;overflow:hidden;',
-    'transform:translateX(-100%);transition:transform 0.25s cubic-bezier(.16,1,.3,1);',
+    'border:1px solid rgba(72,72,71,0.35);',
+    'border-radius:12px;',
+    'box-shadow:0 24px 60px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3);',
+    'z-index:9000;display:flex;flex-direction:column;overflow:hidden;',
+    'transform:translateY(-12px);opacity:0;',
+    'transition:transform 0.22s cubic-bezier(.16,1,.3,1), opacity 0.18s ease;',
   ].join('');
-
-  // Shift the stage viewport right to make room (don't cover the plot)
-  if (vp) {
-    vp.style.transition = 'padding-left 0.25s cubic-bezier(.16,1,.3,1)';
-    vp.style.paddingLeft = '224px';
-  }
 
   _histTimelineOpen = true;
   _renderHistTimeline();
-  requestAnimationFrame(() => { panel.style.transform = 'translateX(0)'; });
+  requestAnimationFrame(() => {
+    panel.style.transform = 'translateY(0)';
+    panel.style.opacity = '1';
+  });
+
+  // Backdrop tap closes the panel (mobile-friendly)
+  let backdrop = document.getElementById('sc-hist-backdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'sc-hist-backdrop';
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click', closeTimelinePanel);
+  }
+  backdrop.style.cssText =
+    'position:fixed;inset:0;background:transparent;z-index:8999;';
+
   if (typeof closeShareModal === 'function') closeShareModal();
 }
 
 function closeTimelinePanel() {
   const panel = document.getElementById('sc-hist-panel');
-  if (panel) panel.style.transform = 'translateX(-100%)';
-  const vp = document.getElementById('stage-viewport');
-  if (vp) { vp.style.paddingLeft = ''; }
+  if (panel) {
+    panel.style.transform = 'translateY(-12px)';
+    panel.style.opacity = '0';
+    setTimeout(() => { if (!_histTimelineOpen && panel.parentNode) panel.style.pointerEvents = 'none'; }, 220);
+  }
+  const backdrop = document.getElementById('sc-hist-backdrop');
+  if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
   _histTimelineOpen = false;
 }
 

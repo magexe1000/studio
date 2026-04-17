@@ -2691,12 +2691,27 @@ function _applyCableHover(newIdx) {
       const handleEl = e.target.closest ? e.target.closest('[data-handle-conn]') : null;
       if (handleEl && handleEl.dataset.handleConn !== undefined) {
         const connIdx = parseInt(handleEl.dataset.handleConn, 10);
-        const { cx, cy } = toCanvas(e.clientX, e.clientY);
-        _cableDragState = { connIdx, prevCx: cx, prevCy: cy };
+        const c = state.connections[connIdx];
+        const a = c && state.elements.find(el => el.id === c.from);
+        const b = c && state.elements.find(el => el.id === c.to);
+        if (!a || !b) return;
+        // Capture the source/target endpoint coords + the CURRENT auto-curve
+        // CP at drag-start so we can solve for the new CP analytically (no
+        // delta accumulation drift, no jitter from lagged renders).
+        const x1 = a.x, y1 = a.y, x2 = b.x, y2 = b.y;
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.max(1, Math.hypot(dx, dy));
+        // Must match renderConnections() exactly — same cap, scale, AND parity
+        // sign. Otherwise the cached baseline drifts from the rendered baseline
+        // and the handle won't track the cursor pixel-perfectly.
+        const autoOffset = Math.min(35, len * 0.14) * (connIdx % 2 === 0 ? 1 : -1);
+        const autoCpx = (x1 + x2) / 2 - (dy / len) * autoOffset;
+        const autoCpy = (y1 + y2) / 2 + (dx / len) * autoOffset;
+        _cableDragState = { connIdx, x1, y1, x2, y2, autoCpx, autoCpy, dirty: false, raf: 0 };
         canvas.style.cursor = 'grabbing';
         e.stopPropagation();
         e.preventDefault();
-        canvas.setPointerCapture(e.pointerId);
+        try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
         return;
       }
     });
@@ -2706,20 +2721,31 @@ function _applyCableHover(newIdx) {
       if (state.currentView !== 'Editor') return;
       const { cx, cy } = toCanvas(e.clientX, e.clientY);
 
-      // Active bend drag
+      // Active bend drag — solve for CP so the handle position EQUALS
+      // the cursor position. The bezier midpoint formula is:
+      //   midpoint = 0.25*P0 + 0.5*CP + 0.25*P2
+      // Solving for CP:  CP = 2*midpoint - 0.5*(P0 + P2)
+      // Using absolute positioning eliminates lag/drift entirely and the
+      // handle tracks the finger/cursor pixel-perfectly.
       if (_cableDragState) {
-        const { connIdx, prevCx, prevCy } = _cableDragState;
-        const ddx = cx - prevCx, ddy = cy - prevCy;
-        const c = state.connections[connIdx];
+        const s = _cableDragState;
+        const c = state.connections[s.connIdx];
         if (c) {
-          // Dragging the bezier midpoint moves the CP by 2× the delta
-          c.cpDx = (c.cpDx || 0) + ddx * 2;
-          c.cpDy = (c.cpDy || 0) + ddy * 2;
+          const newCpx = 2 * cx - 0.5 * (s.x1 + s.x2);
+          const newCpy = 2 * cy - 0.5 * (s.y1 + s.y2);
+          c.cpDx = newCpx - s.autoCpx;
+          c.cpDy = newCpy - s.autoCpy;
+          s.dirty = true;
+          // Throttle redraw to one per animation frame for smooth 60fps
+          if (!s.raf) {
+            s.raf = requestAnimationFrame(() => {
+              s.raf = 0;
+              if (!_cableDragState) return;
+              _connFP = '';
+              renderConnections();
+            });
+          }
         }
-        _cableDragState.prevCx = cx;
-        _cableDragState.prevCy = cy;
-        _connFP = ''; // force SVG rebuild
-        renderConnections();
         return;
       }
 
@@ -2756,16 +2782,29 @@ function _applyCableHover(newIdx) {
     // ── Pointer-up: end drag, save ───────────────────────────────
     canvas.addEventListener('pointerup', function(e) {
       if (_cableDragState) {
+        if (_cableDragState.raf) cancelAnimationFrame(_cableDragState.raf);
+        const wasDirty = _cableDragState.dirty;
         _cableDragState = null;
         canvas.style.cursor = 'grab';
-        pushHistory();
-        markAutosaveDirty();
+        // Final render to make sure last frame is shown, then commit history
+        _connFP = '';
+        renderConnections();
+        if (wasDirty) {
+          pushHistory();
+          markAutosaveDirty();
+        }
+        try { canvas.releasePointerCapture(e.pointerId); } catch(_) {}
       }
     });
 
     canvas.addEventListener('pointercancel', function() {
-      _cableDragState = null;
-      canvas.style.cursor = '';
+      if (_cableDragState) {
+        if (_cableDragState.raf) cancelAnimationFrame(_cableDragState.raf);
+        const wasDirty = _cableDragState.dirty;
+        _cableDragState = null;
+        canvas.style.cursor = '';
+        if (wasDirty) { _connFP = ''; renderConnections(); }
+      }
     });
 
     canvas.addEventListener('mouseleave', function() {
