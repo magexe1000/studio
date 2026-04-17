@@ -79,13 +79,20 @@ export function GroovexLogo({ size = 14 }: { size?: number }) {
 }
 
 export function VocalexLogo({ size = 14 }: { size?: number }) {
+  // Geometry centered on (8, 8) within the 16x16 viewBox so the icon sits
+  // visually centered at every render size (especially the 60px splash).
+  // Content bounds: x=4..12, y=2..14.
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none"
       xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', flexShrink: 0 }}>
-      <rect x="6.5" y="3" width="3" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M4 9.5C4 12.26 5.79 14 8 14C10.21 14 12 12.26 12 9.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
-      <line x1="8" y1="14" x2="8" y2="15" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-      <line x1="6" y1="15" x2="10" y2="15" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      {/* Mic capsule */}
+      <rect x="6.5" y="2" width="3" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      {/* Cradle arc */}
+      <path d="M4 8.5C4 11.26 5.79 13 8 13C10.21 13 12 11.26 12 8.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+      {/* Stand */}
+      <line x1="8" y1="13" x2="8" y2="14" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      {/* Base */}
+      <line x1="6" y1="14" x2="10" y2="14" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }
