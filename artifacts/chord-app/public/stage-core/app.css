@@ -1548,13 +1548,7 @@ body.share-mode::after {
   }
   #sm-disclaimer { display: none !important; }
 
-  /* Layers panel: open downward on mobile */
-  #layer-panel {
-    bottom: auto !important;
-    top: calc(100% + 8px) !important;
-    right: auto !important;
-    left: -16px !important;
-  }
+  /* Layer panel position is computed in JS (fixed coords) — no override here */
 
   /* Mobile nav bar: extra trailing space so AI tab lands clear of the edge */
   #mobile-nav-bar {

@@ -900,18 +900,52 @@ const LAYERS = {
 let layerPanelOpen = false;
 let _layerCloseTimer = null;
 
+function _layerPositionPanel() {
+  const panel = document.getElementById('layer-panel');
+  const btn   = document.getElementById('btn-layers');
+  if (!panel || !btn) return;
+  const r = btn.getBoundingClientRect();
+  // Show panel briefly to measure its size
+  const prevVis = panel.style.visibility;
+  panel.style.visibility = 'hidden';
+  panel.style.display    = 'block';
+  panel.style.left       = '0px';
+  panel.style.top        = '0px';
+  const pw = panel.offsetWidth  || 200;
+  const ph = panel.offsetHeight || 160;
+  panel.style.visibility = prevVis || '';
+  // Prefer to the right of the button; fall back to left if no room
+  const margin = 8;
+  let left = r.right + 10;
+  if (left + pw + margin > window.innerWidth) {
+    left = Math.max(margin, r.left - pw - 10);
+  }
+  // Vertically centre on the button, then clamp to viewport
+  let top = r.top + r.height / 2 - ph / 2;
+  top = Math.max(margin, Math.min(top, window.innerHeight - ph - margin));
+  panel.style.left = left + 'px';
+  panel.style.top  = top  + 'px';
+}
+
 function _layerSetOpen(open) {
   layerPanelOpen = open;
   const panel = document.getElementById('layer-panel');
   const btn   = document.getElementById('btn-layers');
   if (panel) {
     if (open) {
-      // Render content fresh every time so first-open isn't empty
+      // Re-parent to body so the toolbar's overflow:hidden doesn't clip us
+      if (panel.parentElement !== document.body) {
+        document.body.appendChild(panel);
+        // Keep open while hovering the panel itself (desktop)
+        panel.onmouseenter = () => { if (_layerCloseTimer) { clearTimeout(_layerCloseTimer); _layerCloseTimer = null; } };
+        panel.onmouseleave = () => { if (window.innerWidth >= 768) _layerCloseTimer = setTimeout(() => _layerSetOpen(false), 180); };
+      }
       try { renderLayerPanel(); } catch(e) {}
+      panel.style.display       = 'block';
       panel.style.opacity       = '0';
       panel.style.transform     = 'translateX(-6px)';
       panel.style.pointerEvents = 'none';
-      panel.style.display       = 'block';
+      _layerPositionPanel();
       // Force reflow so transition fires
       panel.getBoundingClientRect();
       panel.style.opacity       = '1';
@@ -921,7 +955,6 @@ function _layerSetOpen(open) {
       panel.style.opacity       = '0';
       panel.style.transform     = 'translateX(-6px)';
       panel.style.pointerEvents = 'none';
-      // Hide after fade so it doesn't block other clicks
       setTimeout(() => {
         if (!layerPanelOpen) panel.style.display = 'none';
       }, 220);

@@ -430,13 +430,41 @@ body {
   border-radius: 1px;
   flex-shrink: 0;
 }
-/* Layer popup opens to the RIGHT in vertical mode */
+/* Layer popup — minimalistic, positioned via JS using fixed coords so the
+   toolbar's overflow:hidden doesn't clip it. */
 #layer-panel {
-  top: 0 !important;
-  bottom: auto !important;
-  left: calc(100% + 10px) !important;
-  right: auto !important;
-  transform: translateX(-6px) !important;
+  position: fixed !important;
+  z-index: 9999 !important;
+  background: rgba(17,18,23,0.96) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 12px !important;
+  padding: 10px 12px 8px !important;
+  min-width: 180px !important;
+  box-shadow: 0 10px 32px rgba(0,0,0,0.55) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateX(-6px);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+#layer-panel .layer-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 4px 6px; border-radius: 6px;
+  cursor: pointer; user-select: none;
+}
+#layer-panel .layer-row:hover { background: rgba(255,255,255,0.05); }
+#layer-panel .layer-row input[type="checkbox"] {
+  width: 14px; height: 14px; accent-color: #7aafff; margin: 0;
+}
+#layer-panel .layer-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+#layer-panel .layer-name {
+  font-family: 'Manrope', sans-serif;
+  font-size: 12px; font-weight: 600; color: #d8d8d8;
+  letter-spacing: 0.01em;
 }
 
 /* Unify the canvas background — body, html and the canvas container all use the same dark
@@ -2218,10 +2246,10 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           <button id="btn-layers" onclick="toggleLayerPanel()" class="sc-vtool-btn" title="Layer Visibility">
             <span class="material-symbols-outlined" style="font-size:17px;">layers</span>
           </button>
-          <!-- Layer panel — pops open to the RIGHT -->
-          <div id="layer-panel" style="position:absolute;top:0;left:calc(100% + 10px);z-index:300;background:#111217;border:1px solid var(--accent-14);border-radius:12px;padding:12px 14px 10px;min-width:200px;box-shadow:0 12px 50px rgba(0,0,0,0.85);opacity:0;transform:translateX(-6px);pointer-events:none;transition:opacity 0.2s ease,transform 0.2s ease;display:none;">
-            <p style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.18em;color:#a0a0a0;margin:0 0 9px;">Show on stage</p>
-            <div id="layer-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+          <!-- Layer panel — JS positions it next to the button using fixed coords -->
+          <div id="layer-panel" style="display:none;">
+            <p style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.18em;color:#a0a0a0;margin:0 0 8px;">Show on stage</p>
+            <div id="layer-list" style="display:flex;flex-direction:column;gap:2px;"></div>
           </div>
         </div>
         <!-- Clear -->
