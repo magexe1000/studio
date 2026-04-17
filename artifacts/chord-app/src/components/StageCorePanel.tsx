@@ -365,9 +365,10 @@ export default function StagexPanel() {
     return () => setBackHandler(null);
   }, []);
 
-  // In the Export (PDF) view we hide the top header AND the bottom nav
-  // outright — the export preview is its own self-contained, full-screen UI.
-  const collapseHeader = (isLandscape && curView === 'Editor') || curView === 'Export';
+  // In the Export (PDF) view: keep the top header visible (back, app icon,
+  // sections toggle, PDF button) but remove the bottom nav so the preview
+  // owns the full lower area.
+  const collapseHeader = (isLandscape && curView === 'Editor');
   const hideBottomNav  = curView === 'Export';
   const isLandscapeEditor = isLandscape && curView === 'Editor';
 
