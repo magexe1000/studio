@@ -5,6 +5,7 @@ import { useNavHidden, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import ApplyToSheet from './ApplyToSheet';
+import { playStudioChime } from '../lib/studioChime';
 
 type HubTab = 'home' | 'settings';
 type TargetApp = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
@@ -173,6 +174,15 @@ export default function StudioHub() {
   const [zooming, setZooming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
+
+  // Studio chime — fires once when the hub mounts and the logo appears.
+  // Triggers on initial app load AND whenever the user returns to the hub
+  // from any sub-app (StudioHub re-mounts each time appMode flips back to 'hub').
+  // Gated on the user-controllable hubChimeEnabled setting.
+  useEffect(() => {
+    if (settings.hubChimeEnabled) playStudioChime();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const launchApp = (appMode: 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex') => {
     setZooming(true);
@@ -598,6 +608,9 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
       <div style={cardStyle}>
         <SettingRow label={t.settings.rows.haptic} desc={t.settings.rows.hapticDesc}>
           <Toggle value={settings.hapticFeedback} onChange={v => updateSettings({ hapticFeedback: v })} accentFrom={accent.from} accentTo={accent.to} />
+        </SettingRow>
+        <SettingRow label={t.settings.rows.studioChime} desc={t.settings.rows.studioChimeDesc}>
+          <Toggle value={settings.hubChimeEnabled} onChange={v => updateSettings({ hubChimeEnabled: v })} accentFrom={accent.from} accentTo={accent.to} />
         </SettingRow>
       </div>
 

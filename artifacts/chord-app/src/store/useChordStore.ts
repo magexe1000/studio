@@ -90,6 +90,7 @@ export interface AppSettings {
   startupApp: 'chords' | 'drums' | 'hub' | 'stage' | 'groovex' | 'vocalex';
   appMode: 'chords' | 'drums' | 'hub' | 'stage' | 'groovex' | 'vocalex';
   hubUserName: string;
+  hubChimeEnabled: boolean;
   chordAssistant: boolean;
   assistantSmartSuggestions: boolean;
   assistantProgressionTips: boolean;
@@ -212,6 +213,7 @@ export const useChordStore = create<ChordStore>()(
         startupApp: 'hub',
         appMode: 'hub',
         hubUserName: '',
+        hubChimeEnabled: true,
         chordAssistant: false,
         assistantSmartSuggestions: true,
         assistantProgressionTips: true,
@@ -595,7 +597,7 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
-      version: 5,
+      version: 6,
       migrate: (stored: unknown, fromVersion: number) => {
         const s = stored as Record<string, unknown>;
         if (fromVersion < 1) {
@@ -644,6 +646,14 @@ export const useChordStore = create<ChordStore>()(
           if (s.settings && typeof s.settings === 'object') {
             const settings = s.settings as Record<string, unknown>;
             settings.language = 'es';
+          }
+        }
+        if (fromVersion < 6) {
+          if (s.settings && typeof s.settings === 'object') {
+            const settings = s.settings as Record<string, unknown>;
+            if (typeof settings.hubChimeEnabled !== 'boolean') {
+              settings.hubChimeEnabled = true;
+            }
           }
         }
         return s;
