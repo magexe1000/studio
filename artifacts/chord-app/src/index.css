@@ -154,6 +154,81 @@
 /* Body background always tracks the active theme so the status bar area blends in */
 html, body { background: var(--app-bg); }
 
+/* ============================================================
+   Light-mode inline-color remap — keeps text legible across all
+   apps (Chordex, Drumex, Groovex, Vocalex, Stagex) without
+   editing every component. Many components hard-code the dark-
+   theme text token values inline (e.g. color:'#e7e5e4' for
+   primary text, '#acabaa' for secondary, '#767575' for muted).
+   In light mode those become light-grey-on-light-grey and
+   disappear. We only override the dark token VALUES — pure
+   white (#fff) is intentionally left alone because it's used
+   for white-on-accent gradient buttons that must stay white.
+   ============================================================ */
+html[data-theme="light"] [style*="color:#e7e5e4"],
+html[data-theme="light"] [style*="color: #e7e5e4"],
+html[data-theme="light"] [style*="color:#E7E5E4"],
+html[data-theme="light"] [style*="color: #E7E5E4"],
+html[data-theme="light"] [style*="color:#eee"],
+html[data-theme="light"] [style*="color: #eee"],
+html[data-theme="light"] [style*="color:#ddd"],
+html[data-theme="light"] [style*="color: #ddd"],
+html[data-theme="light"] [style*="color:#f5f5f5"],
+html[data-theme="light"] [style*="color: #f5f5f5"] {
+  color: var(--c-text-primary) !important;
+}
+html[data-theme="light"] [style*="color:#acabaa"],
+html[data-theme="light"] [style*="color: #acabaa"],
+html[data-theme="light"] [style*="color:#ACABAA"],
+html[data-theme="light"] [style*="color: #ACABAA"],
+html[data-theme="light"] [style*="color:#adaaaa"],
+html[data-theme="light"] [style*="color: #adaaaa"],
+html[data-theme="light"] [style*="color:#ccc"],
+html[data-theme="light"] [style*="color: #ccc"] {
+  color: var(--c-text-secondary) !important;
+}
+html[data-theme="light"] [style*="color:#767575"],
+html[data-theme="light"] [style*="color: #767575"],
+html[data-theme="light"] [style*="color:#484848"],
+html[data-theme="light"] [style*="color: #484848"],
+html[data-theme="light"] [style*="color:#484847"],
+html[data-theme="light"] [style*="color: #484847"],
+html[data-theme="light"] [style*="color:#3a3a3a"],
+html[data-theme="light"] [style*="color: #3a3a3a"] {
+  color: var(--c-text-muted) !important;
+}
+/* Same remap for the system "auto" theme when OS is light. */
+@media (prefers-color-scheme: light) {
+  :root.theme-system [style*="color:#e7e5e4"],
+  :root.theme-system [style*="color: #e7e5e4"],
+  :root.theme-system [style*="color:#eee"],
+  :root.theme-system [style*="color: #eee"],
+  :root.theme-system [style*="color:#ddd"],
+  :root.theme-system [style*="color: #ddd"],
+  :root.theme-system [style*="color:#f5f5f5"],
+  :root.theme-system [style*="color: #f5f5f5"] {
+    color: var(--c-text-primary) !important;
+  }
+  :root.theme-system [style*="color:#acabaa"],
+  :root.theme-system [style*="color: #acabaa"],
+  :root.theme-system [style*="color:#adaaaa"],
+  :root.theme-system [style*="color: #adaaaa"],
+  :root.theme-system [style*="color:#ccc"],
+  :root.theme-system [style*="color: #ccc"] {
+    color: var(--c-text-secondary) !important;
+  }
+  :root.theme-system [style*="color:#767575"],
+  :root.theme-system [style*="color: #767575"],
+  :root.theme-system [style*="color:#484848"],
+  :root.theme-system [style*="color: #484848"],
+  :root.theme-system [style*="color:#484847"],
+  :root.theme-system [style*="color: #484847"],
+  :root.theme-system [style*="color:#3a3a3a"],
+  :root.theme-system [style*="color: #3a3a3a"] {
+    color: var(--c-text-muted) !important;
+  }
+}
+
 /* System preference: auto-apply light when OS is in light mode and user chose system */
 :root.theme-system {
   color-scheme: light dark;
