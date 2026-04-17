@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getAllSessions, saveSession, deleteSession, createLayer, createDefaultEffects, type LabSession, type LabLayer, type TrackEffect } from './labSessionDb';
 import { getAllTakes, type TakeRecord } from './takesDb';
 import { useT } from '../lib/useT';
+import { setVocalexBack } from './headerBack';
 
 const SESSION_ICONS = ['graphic_eq', 'layers', 'multiline_chart', 'equalizer', 'tune', 'mic', 'queue_music', 'stacked_line_chart'];
 function randomIcon() { return SESSION_ICONS[Math.floor(Math.random() * SESSION_ICONS.length)]; }
@@ -839,12 +840,15 @@ function MixerView({ session, onBack, onUpdate }: {
     return () => { stopPlayback(); };
   }, [stopPlayback]);
 
+  useEffect(() => {
+    const handler = () => { stopPlayback(); onBack(); };
+    setVocalexBack(handler);
+    return () => setVocalexBack(null);
+  }, [onBack, stopPlayback]);
+
   return (
     <div style={{ padding: '16px 20px', paddingBottom: 120, minHeight: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <button onClick={() => { stopPlayback(); onBack(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13, padding: 0 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span> {t.vocalex.back}
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 20 }}>
         {confirmDelete ? (
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={handleDelete} style={{ background: '#7f2927', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: '#ff9993' }}>{t.vocalex.deleteTake}</button>

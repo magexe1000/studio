@@ -246,6 +246,11 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setVocalexBack(onCancel);
+    return () => setVocalexBack(null);
+  }, [onCancel]);
+
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -449,16 +454,6 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
 
       {state !== 'processing' && (
         <>
-          <button onClick={onCancel} style={{
-            position: 'absolute', top: 16, left: 16,
-            background: 'none', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 4,
-            color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13, zIndex: 10,
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-            {t.vocalex.cancelAction}
-          </button>
-
           {/* Circular visualizer + button */}
           <div style={{
             width: vizR * 2 + 40, height: vizR * 2 + 40,
