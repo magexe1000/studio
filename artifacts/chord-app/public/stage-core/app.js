@@ -168,6 +168,7 @@ const TRANSLATIONS = {
     settingsStatusBar:'Status Bar', settingsStatusBarHint:'Show plot info at the bottom of the editor.',
     settingsSnap:'Snap to Grid', settingsSnapHint:'Elements snap to grid when dragging.',
     settingsConn:'Show Connections', settingsConnHint:'Display lines between connected elements.',
+    settingsAutoWire:'Auto Wire', settingsAutoWireHint:'Automatically connect compatible elements when placed.',
     settingsTheme:'App Theme', settingsThemeHint:'Choose the accent color scheme for the entire interface.',
     themeElectric:'Electric', themeLime:'Lime', themeCyan:'Cyan', themeAmber:'Amber', themeViolet:'Violet', themeRose:'Rose',
     // Library — Mics
@@ -309,6 +310,7 @@ const TRANSLATIONS = {
     settingsStatusBar:'Barra de estado', settingsStatusBarHint:'Info en la parte inferior del editor.',
     settingsSnap:'Ajuste a grilla', settingsSnapHint:'Los elementos se ajustan al arrastrar.',
     settingsConn:'Mostrar conexiones', settingsConnHint:'Líneas entre elementos conectados.',
+    settingsAutoWire:'Cableado automático', settingsAutoWireHint:'Conecta automáticamente elementos compatibles al colocarlos.',
     settingsTheme:'Tema', settingsThemeHint:'Color de acento de la interfaz.',
     themeElectric:'Eléctrico', themeLime:'Lima', themeCyan:'Cian', themeAmber:'Ámbar', themeViolet:'Violeta', themeRose:'Rosa',
     // Library — Mics
