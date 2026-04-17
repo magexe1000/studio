@@ -3220,26 +3220,26 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
   <!-- Sections options drawer (slides down from outer header) -->
   <div id="exp-options-drawer" style="flex-shrink:0;overflow:hidden;max-height:0;transition:max-height 0.28s ease;background:linear-gradient(135deg, var(--accent-08) 0%, transparent 70%), transparent;">
     <div style="padding:10px 14px 14px;">
-      <p style="font-family:'Manrope',sans-serif;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.3em;color:#282828;margin:0 0 10px;">Include Sections</p>
+      <p data-i18n="includeSections" style="font-family:'Manrope',sans-serif;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.3em;color:#282828;margin:0 0 10px;">Include Sections</p>
       <div style="display:flex;flex-direction:column;gap:0;">
         <button onclick="toggleExpChip('exp-stage-section','chip-stage');syncDrawerRow('exp-stage-section','drw-tog-stage')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 0;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;text-align:left;">
-          <span style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;color:#adaaaa;">Stage Plot</span>
+          <span data-i18n="stagePlot" style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;color:#adaaaa;">Stage Plot</span>
           <span class="material-symbols-outlined" id="drw-tog-stage" style="font-size:22px;color:var(--accent);transition:color 0.15s;">toggle_on</span>
         </button>
         <button onclick="toggleExpChip('exp-input-section','chip-input');syncDrawerRow('exp-input-section','drw-tog-input')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 0;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;text-align:left;">
-          <span style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;color:#adaaaa;">Input List</span>
+          <span data-i18n="inputList" style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;color:#adaaaa;">Input List</span>
           <span class="material-symbols-outlined" id="drw-tog-input" style="font-size:22px;color:var(--accent);transition:color 0.15s;">toggle_on</span>
         </button>
         <button onclick="toggleExpChip('exp-notes-section','chip-notes');syncDrawerRow('exp-notes-section','drw-tog-notes')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 0;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;text-align:left;">
-          <span style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;color:#adaaaa;">Technical Notes</span>
+          <span data-i18n="techNotes" style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;color:#adaaaa;">Technical Notes</span>
           <span class="material-symbols-outlined" id="drw-tog-notes" style="font-size:22px;color:var(--accent);transition:color 0.15s;">toggle_on</span>
         </button>
         <button onclick="toggleExpChip('exp-gear-section','chip-gear');syncDrawerRow('exp-gear-section','drw-tog-gear')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 0;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;text-align:left;">
-          <span style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;color:#adaaaa;">Gear / Load-In</span>
+          <span data-i18n="gearShort" style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;color:#adaaaa;">Gear / Load-In</span>
           <span class="material-symbols-outlined" id="drw-tog-gear" style="font-size:22px;color:var(--accent);transition:color 0.15s;">toggle_on</span>
         </button>
         <button onclick="toggleExpChip('exp-lighting-section','chip-lighting');syncDrawerRow('exp-lighting-section','drw-tog-lighting')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 0;background:transparent;border:none;cursor:pointer;text-align:left;">
-          <span style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;color:#adaaaa;">Lighting Rider</span>
+          <span data-i18n="lightingRider" style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;color:#adaaaa;">Lighting Rider</span>
           <span class="material-symbols-outlined" id="drw-tog-lighting" style="font-size:22px;color:#3a3a3a;transition:color 0.15s;">toggle_off</span>
         </button>
       </div>
@@ -3260,11 +3260,11 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
           <!-- Metadata chips -->
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <div style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:3px;">
-              <span style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#333;">Elements</span>
+              <span data-i18n="elements" style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#333;">Elements</span>
               <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:800;color:var(--accent);" id="exp-el-count">0</span>
             </div>
             <div id="exp-version-box" style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:3px;">
-              <span style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#333;">Ver</span>
+              <span data-i18n="verLabel" style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#333;">Ver</span>
               <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;color:#484847;" id="exp-version">v1</span>
             </div>
             <div style="display:inline-flex;align-items:center;height:22px;padding:0 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:3px;">
@@ -3279,12 +3279,12 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
             <p style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;color:#3a3a3a;margin:0;letter-spacing:0.06em;" id="exp-doc-id">STAGE-CORE</p>
           </div>
           <div id="exp-last-updated-box" style="padding:10px 20px;">
-            <p style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.24em;color:#222;margin:0 0 3px;">Last Updated</p>
+            <p data-i18n="lastUpdatedLabel" style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.24em;color:#222;margin:0 0 3px;">Last Updated</p>
             <p style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;color:#3a3a3a;margin:0;" id="exp-last-updated">—</p>
           </div>
         </div>
         <!-- Stale warning -->
-        <div id="exp-stale-warning" style="display:none;padding:7px 20px;background:rgba(255,193,7,0.05);border-top:1px solid rgba(255,193,7,0.18);font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#ffc107;">
+        <div id="exp-stale-warning" data-i18n="staleWarning" style="display:none;padding:7px 20px;background:rgba(255,193,7,0.05);border-top:1px solid rgba(255,193,7,0.18);font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#ffc107;">
           ⚠ Plot may be outdated — last updated more than 30 days ago
         </div>
       </div>
@@ -3302,10 +3302,10 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
         <div id="exp-canvas-wrap" style="position:relative;width:100%;height:174px;background:#0c0c0c;border:1px solid rgba(72,72,71,0.18);overflow:hidden;background-image:linear-gradient(rgba(72,72,71,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(72,72,71,0.07) 1px,transparent 1px);background-size:24px 24px;">
           <div id="exp-canvas-elements" style="position:absolute;inset:0;"></div>
           <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--accent-40);"></div>
-          <div style="position:absolute;bottom:5px;left:50%;transform:translateX(-50%);font-family:'Manrope',sans-serif;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.32em;color:var(--accent-60);">Downstage / Audience</div>
+          <div data-i18n="downstageLabel" style="position:absolute;bottom:5px;left:50%;transform:translateX(-50%);font-family:'Manrope',sans-serif;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.32em;color:var(--accent-60);">Downstage / Audience</div>
         </div>
         <div id="exp-canvas-empty" style="display:none;text-align:center;padding:28px 0;color:#282828;">
-          <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;margin:0;">No elements placed on stage</p>
+          <p data-i18n="noElements" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;margin:0;">No elements placed on stage</p>
         </div>
       </div>
 
@@ -3372,8 +3372,8 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
           <span data-i18n="lightingRider">Lighting Rider</span>
         </h2>
         <div style="padding:14px 16px;background:#0a0a0a;border-left:2px solid rgba(72,72,71,0.2);">
-          <p style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#282828;margin:0 0 6px;">Placeholder</p>
-          <p style="font-size:12px;color:#3a3a3a;line-height:1.6;margin:0;">Lighting rider module is part of a future development roadmap. Attach a separate lighting specification document as needed.</p>
+          <p data-i18n="placeholderLabel" style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#282828;margin:0 0 6px;">Placeholder</p>
+          <p data-i18n="lightingPlaceholderText" style="font-size:12px;color:#3a3a3a;line-height:1.6;margin:0;">Lighting rider module is part of a future development roadmap. Attach a separate lighting specification document as needed.</p>
         </div>
       </div>
 
@@ -3640,11 +3640,11 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <div id="mob-export-bar" class="mob-hidden" style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:500;">
   <button onclick="exportPDF()" id="mob-exp-pdf-btn">
     <span class="material-symbols-outlined">picture_as_pdf</span>
-    Export
+    <span data-i18n="mobExport">Export</span>
   </button>
   <button onclick="toggleMobExportSettings()" id="mob-exp-set-btn">
     <span class="material-symbols-outlined">tune</span>
-    Options
+    <span data-i18n="mobOptions">Options</span>
   </button>
 </div>
 
@@ -3666,38 +3666,38 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
   <!-- Header -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-    <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:var(--accent);">Export Settings</span>
+    <span data-i18n="exportSettingsLabel" style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:var(--accent);">Export Settings</span>
     <button id="mob-set-close" style="background:transparent;border:none;color:#767575;cursor:pointer;padding:2px;line-height:1;font-size:18px;">✕</button>
   </div>
 
   <!-- Format -->
   <div style="margin-bottom:14px;">
-    <p style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0 0 7px;">Format</p>
+    <p data-i18n="formatLabel" style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0 0 7px;">Format</p>
     <div style="display:flex;gap:6px;">
       <button id="mob-fmt-pdf" style="flex:1;padding:7px 0;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--accent);color:var(--accent-dark);border:none;cursor:pointer;">PDF</button>
-      <button onclick="closeMobExportSettings(); openShareModal();" style="flex:1;padding:7px 0;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(197,255,201,0.1);color:#c5ffc9;border:1px solid rgba(197,255,201,0.25);cursor:pointer;">Share / QR</button>
+      <button onclick="closeMobExportSettings(); openShareModal();" data-i18n="shareQR" style="flex:1;padding:7px 0;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(197,255,201,0.1);color:#c5ffc9;border:1px solid rgba(197,255,201,0.25);cursor:pointer;">Share / QR</button>
     </div>
   </div>
 
   <!-- Sections -->
   <div>
-    <p style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0 0 10px;">Sections</p>
+    <p data-i18n="sectionsLabel" style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0 0 10px;">Sections</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="mob-chk-stage" checked style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;"/>
-        <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:600;color:#adaaaa;">Stage Plot</span>
+        <span data-i18n="stagePlot" style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:600;color:#adaaaa;">Stage Plot</span>
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="mob-chk-input" checked style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;"/>
-        <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:600;color:#adaaaa;">Input List</span>
+        <span data-i18n="inputList" style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:600;color:#adaaaa;">Input List</span>
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="mob-chk-notes" checked style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;"/>
-        <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:600;color:#adaaaa;">Tech Notes</span>
+        <span data-i18n="techNotesShort" style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:600;color:#adaaaa;">Tech Notes</span>
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="mob-chk-lighting" style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;"/>
-        <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:600;color:#adaaaa;">Lighting</span>
+        <span data-i18n="lightingShort" style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:600;color:#adaaaa;">Lighting</span>
       </label>
     </div>
   </div>
