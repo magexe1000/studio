@@ -2422,9 +2422,17 @@ function renderConnections() {
     hndl.setAttribute('stroke', lineColor);
     hndl.setAttribute('stroke-opacity', hasBend ? '0.55' : '0.18');
     hndl.setAttribute('stroke-width', '1.2');
-    hndl.setAttribute('style', 'pointer-events:all;cursor:grab;transition:stroke-opacity 0.22s ease,fill-opacity 0.22s ease;');
-    hndl.dataset.handleConn = idx;
+    hndl.setAttribute('style', 'pointer-events:none;transition:stroke-opacity 0.22s ease,fill-opacity 0.22s ease;');
     svg.appendChild(hndl);
+    // Invisible larger hit target (finger-friendly on mobile)
+    const hitR = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: none)').matches) ? 22 : 14;
+    const hndlHit = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    hndlHit.setAttribute('cx', hx); hndlHit.setAttribute('cy', hy);
+    hndlHit.setAttribute('r', String(hitR));
+    hndlHit.setAttribute('fill', 'transparent');
+    hndlHit.setAttribute('style', 'pointer-events:all;cursor:grab;touch-action:none;');
+    hndlHit.dataset.handleConn = idx;
+    svg.appendChild(hndlHit);
 
     // Cable type badge — shown only for non-XLR types
     if (cableType !== 'xlr') {
