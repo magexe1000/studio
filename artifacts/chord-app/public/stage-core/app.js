@@ -2222,6 +2222,8 @@ function handleConnectClick(id) {
   if (state.connectSource === id) {
     state.connectSource = null;
     _setConnectBanner(null);
+    _clearConnectPreview();
+    _connFP = '';
     renderConnections();
     return;
   }
@@ -2239,6 +2241,8 @@ function handleConnectClick(id) {
   }
   state.connectSource = null;
   _setConnectBanner(null);
+  _clearConnectPreview();
+  _connFP = ''; // force fresh render so the new cable shows
   renderConnections();
   pushHistory();
 }
@@ -2721,6 +2725,11 @@ function _applyCableHover(newIdx) {
       if (state.currentView !== 'Editor') return;
       const { cx, cy } = toCanvas(e.clientX, e.clientY);
 
+      // Live preview line while picking a connection target
+      if (state.connectMode && state.connectSource) {
+        _updateConnectPreview(cx, cy);
+      }
+
       // Active bend drag — solve for CP so the handle position EQUALS
       // the cursor position. The bezier midpoint formula is:
       //   midpoint = 0.25*P0 + 0.5*CP + 0.25*P2
@@ -2899,7 +2908,53 @@ function toggleConnect() {
   _setConnectBanner(state.connectMode
     ? (state.lang === 'es' ? 'CONECTAR — toca un elemento' : 'CONNECT — tap an element')
     : null);
+  // Self-heal: connect mode should always show cables so the user can see them
+  if (state.connectMode && !state.connectionsVisible) {
+    state.connectionsVisible = true;
+    _setToolBtn('btn-connections', true, 'primary');
+    const connSvg = document.getElementById('connections-svg');
+    if (connSvg) { connSvg.style.display = ''; connSvg.style.opacity = '1'; }
+  }
+  if (!state.connectMode) _clearConnectPreview();
+  _connFP = ''; // force fresh render
   renderConnections();
+}
+
+// ── Live preview line: source → cursor while connecting ───────
+let _connectPreviewEl = null;
+function _ensureConnectPreview() {
+  if (_connectPreviewEl) return _connectPreviewEl;
+  const svg = document.getElementById('connections-svg');
+  if (!svg) return null;
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  p.setAttribute('id', 'connect-preview-line');
+  p.setAttribute('stroke', '#ff7439');
+  p.setAttribute('stroke-width', '2');
+  p.setAttribute('stroke-dasharray', '6,4');
+  p.setAttribute('fill', 'none');
+  p.setAttribute('stroke-linecap', 'round');
+  p.setAttribute('opacity', '0.85');
+  p.setAttribute('pointer-events', 'none');
+  svg.appendChild(p);
+  _connectPreviewEl = p;
+  return p;
+}
+function _updateConnectPreview(cx, cy) {
+  if (!state.connectMode || !state.connectSource) { _clearConnectPreview(); return; }
+  const src = state.elements.find(e => e.id === state.connectSource);
+  if (!src) { _clearConnectPreview(); return; }
+  const p = _ensureConnectPreview();
+  if (!p) return;
+  // Re-attach if a render wiped the SVG
+  const svg = document.getElementById('connections-svg');
+  if (svg && p.parentNode !== svg) svg.appendChild(p);
+  p.setAttribute('d', `M ${src.x} ${src.y} L ${cx} ${cy}`);
+}
+function _clearConnectPreview() {
+  if (_connectPreviewEl && _connectPreviewEl.parentNode) {
+    _connectPreviewEl.parentNode.removeChild(_connectPreviewEl);
+  }
+  _connectPreviewEl = null;
 }
 function zoomIn() { state.zoom = Math.min(state.zoom + 0.15, 3); applyZoom(); }
 function zoomOut() { state.zoom = Math.max(state.zoom - 0.15, 0.3); applyZoom(); }

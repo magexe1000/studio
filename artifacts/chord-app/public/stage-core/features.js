@@ -906,6 +906,8 @@ function _layerSetOpen(open) {
   const btn   = document.getElementById('btn-layers');
   if (panel) {
     if (open) {
+      // Render content fresh every time so first-open isn't empty
+      try { renderLayerPanel(); } catch(e) {}
       panel.style.opacity       = '0';
       panel.style.transform     = 'translateX(-6px)';
       panel.style.pointerEvents = 'none';
@@ -919,6 +921,10 @@ function _layerSetOpen(open) {
       panel.style.opacity       = '0';
       panel.style.transform     = 'translateX(-6px)';
       panel.style.pointerEvents = 'none';
+      // Hide after fade so it doesn't block other clicks
+      setTimeout(() => {
+        if (!layerPanelOpen) panel.style.display = 'none';
+      }, 220);
     }
   }
   if (btn) {
