@@ -2727,10 +2727,8 @@ function _applyCableHover(newIdx) {
       if (state.currentView !== 'Editor') return;
       const { cx, cy } = toCanvas(e.clientX, e.clientY);
 
-      // Live preview line while picking a connection target
-      if (state.connectMode && state.connectSource) {
-        _updateConnectPreview(cx, cy);
-      }
+      // (Connect mode preview disabled — cables only render after a 2nd
+      // element is tapped, so users can't see "cables to nowhere".)
 
       // Active bend drag — solve for CP so the handle position EQUALS
       // the cursor position. The bezier midpoint formula is:
@@ -2889,12 +2887,15 @@ function toggleSCVTools() {
 function _setToolBtn(id, active, activeColor) {
   const btn = document.getElementById(id);
   if (!btn) return;
-  // Always use the theme accent color so the toolbar adapts to the active theme
-  // (blue, purple, etc). The `activeColor` argument is kept for back-compat but
-  // ignored — connect & other tool toggles all light up in the theme color.
+  // Use a CSS class (`is-active`) so the highlight beats the :hover rule —
+  // including the !important light-mode hover override — and stays lit while
+  // the toggle is on. `activeColor` is kept for back-compat but unused;
+  // every toggle adopts the current theme accent.
   void activeColor;
-  btn.style.background = active ? 'var(--accent-22)' : 'transparent';
-  btn.style.color      = active ? 'var(--accent)'    : '#767575';
+  btn.classList.toggle('is-active', !!active);
+  // Clear any legacy inline styles from previous builds so the class wins.
+  btn.style.background = '';
+  btn.style.color      = '';
 }
 function toggleGrid() {
   state.gridVisible = !state.gridVisible;

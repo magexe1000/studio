@@ -1,4 +1,4 @@
-const CACHE = 'chordex-v3';
+const CACHE = 'chordex-v4';
 
 self.addEventListener('install', e => {
   e.waitUntil(

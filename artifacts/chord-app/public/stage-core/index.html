@@ -422,6 +422,15 @@ body {
   flex-shrink: 0;
 }
 .sc-vtool-btn:hover { color: #c8c8c8; background: rgba(255,255,255,0.07); }
+/* Active toggle state — wins over :hover in every theme.
+   `--accent` is themed (blue / purple / etc.) so the highlight follows the user's theme. */
+.sc-vtool-btn.is-active,
+.sc-vtool-btn.is-active:hover,
+.sc-vtool-btn.is-active:focus,
+.sc-vtool-btn.is-active:active {
+  color: var(--accent) !important;
+  background: var(--accent-22) !important;
+}
 .sc-vtool-sep {
   width: 22px;
   height: 1px;
@@ -2272,7 +2281,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
         <!-- Live Mode (eye) moved to top toolbar in StageCorePanel.tsx -->
         <div class="sc-vtool-sep"></div>
         <!-- Toggle group -->
-        <button id="btn-grid" onclick="toggleGrid()" class="sc-vtool-btn" title="Toggle Grid" style="background:rgba(122,175,255,0.18);color:#7aafff;">
+        <button id="btn-grid" onclick="toggleGrid()" class="sc-vtool-btn is-active" title="Toggle Grid">
           <span class="material-symbols-outlined" style="font-size:17px;">grid_on</span>
         </button>
         <button id="btn-snap" onclick="toggleSnap()" class="sc-vtool-btn" title="Snap to Grid">
@@ -2281,7 +2290,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
         <button id="btn-connect" onclick="toggleConnect()" class="sc-vtool-btn" title="Connection Mode">
           <span class="material-symbols-outlined" style="font-size:17px;">hub</span>
         </button>
-        <button id="btn-connections" onclick="toggleConnectionsVisible()" class="sc-vtool-btn" title="Show / Hide Connection Lines" style="background:rgba(122,175,255,0.18);color:#7aafff;">
+        <button id="btn-connections" onclick="toggleConnectionsVisible()" class="sc-vtool-btn is-active" title="Show / Hide Connection Lines">
           <span class="material-symbols-outlined" style="font-size:17px;">cable</span>
         </button>
         <div class="sc-vtool-sep"></div>
