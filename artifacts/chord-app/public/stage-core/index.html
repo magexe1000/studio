@@ -430,42 +430,93 @@ body {
   border-radius: 1px;
   flex-shrink: 0;
 }
-/* Layer popup — minimalistic, positioned via JS using fixed coords so the
-   toolbar's overflow:hidden doesn't clip it. */
+/* Layer popup — matches the vertical toolbar's glass aesthetic.
+   Positioned via JS using fixed coords so toolbar overflow:hidden doesn't clip it. */
 #layer-panel {
   position: fixed !important;
   z-index: 9999 !important;
-  background: rgba(17,18,23,0.96) !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
-  border-radius: 12px !important;
-  padding: 10px 12px 8px !important;
-  min-width: 180px !important;
-  box-shadow: 0 10px 32px rgba(0,0,0,0.55) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(14,14,14,0.94) !important;
+  border: 1px solid rgba(255,255,255,0.09) !important;
+  border-radius: 16px !important;
+  padding: 10px 8px 8px !important;
+  min-width: 168px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.65) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   opacity: 0;
   transform: translateX(-6px);
   pointer-events: none;
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
+#layer-panel .sc-layer-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #767575;
+  margin: 0 6px 8px;
+}
 #layer-panel .layer-row {
-  display: flex; align-items: center; gap: 9px;
-  padding: 4px 6px; border-radius: 6px;
+  position: relative;
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px;
+  border-radius: 10px;
   cursor: pointer; user-select: none;
+  transition: background 140ms ease;
 }
 #layer-panel .layer-row:hover { background: rgba(255,255,255,0.05); }
 #layer-panel .layer-row input[type="checkbox"] {
-  width: 14px; height: 14px; accent-color: #7aafff; margin: 0;
+  position: absolute; opacity: 0; pointer-events: none;
 }
+/* Trailing pill switch (matches Preferences toggle vibe) */
+#layer-panel .layer-row::after {
+  content: '';
+  width: 24px; height: 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+  margin-left: auto;
+  position: relative;
+  transition: background 160ms ease;
+  flex-shrink: 0;
+}
+#layer-panel .layer-row::before {
+  content: '';
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #d0d0d0;
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: right 160ms ease, background 160ms ease;
+  z-index: 1;
+}
+#layer-panel .layer-row.on::after { background: rgba(122,175,255,0.55); }
+#layer-panel .layer-row.on::before { right: 9px; background: #fff; }
 #layer-panel .layer-dot {
-  width: 8px; height: 8px; border-radius: 50%;
+  width: 7px; height: 7px; border-radius: 50%;
   box-shadow: 0 0 6px currentColor;
+  flex-shrink: 0;
 }
 #layer-panel .layer-name {
   font-family: 'Manrope', sans-serif;
-  font-size: 12px; font-weight: 600; color: #d8d8d8;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e0e0e0;
   letter-spacing: 0.01em;
 }
+html[data-theme="light"] #layer-panel {
+  background: rgba(255,255,255,0.96) !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important;
+}
+html[data-theme="light"] #layer-panel .layer-name { color: #1a1a1a; }
+html[data-theme="light"] #layer-panel .sc-layer-title { color: #767575; }
+html[data-theme="light"] #layer-panel .layer-row::after { background: rgba(0,0,0,0.10); }
+html[data-theme="light"] #layer-panel .layer-row::before { background: #888; }
+html[data-theme="light"] #layer-panel .layer-row.on::after { background: rgba(122,175,255,0.7); }
+html[data-theme="light"] #layer-panel .layer-row.on::before { background: #fff; }
 
 /* Unify the canvas background — body, html and the canvas container all use the same dark
    base so there is no visible seam between the React header above and the iframe content */

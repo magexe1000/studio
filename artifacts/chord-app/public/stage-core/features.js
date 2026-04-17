@@ -979,19 +979,22 @@ function _layerHoverLeave() {
 
 function toggleLayerPanel() {
   _layerSetOpen(!layerPanelOpen);
-  // On mobile, close panel when tapping outside
-  if (layerPanelOpen && window.innerWidth < 768) {
-    const _closeMobLayer = (e) => {
+  if (layerPanelOpen) {
+    // Close when tapping outside the button or the panel itself
+    const _closeOutside = (e) => {
       const wrapper = document.getElementById('layers-wrapper');
-      if (wrapper && !wrapper.contains(e.target)) {
+      const panel   = document.getElementById('layer-panel');
+      const inWrap  = wrapper && wrapper.contains(e.target);
+      const inPanel = panel   && panel.contains(e.target);
+      if (!inWrap && !inPanel) {
         _layerSetOpen(false);
-        document.removeEventListener('touchstart', _closeMobLayer, true);
-        document.removeEventListener('click', _closeMobLayer, true);
+        document.removeEventListener('touchstart', _closeOutside, true);
+        document.removeEventListener('click', _closeOutside, true);
       }
     };
     setTimeout(() => {
-      document.addEventListener('touchstart', _closeMobLayer, true);
-      document.addEventListener('click', _closeMobLayer, true);
+      document.addEventListener('touchstart', _closeOutside, true);
+      document.addEventListener('click', _closeOutside, true);
     }, 50);
   }
 }
@@ -1024,12 +1027,17 @@ function renderLayerPanel() {
   if (!list) return;
   list.innerHTML = DOMPurify.sanitize('');
   Object.entries(LAYERS).forEach(([key, layer]) => {
-    const row = document.createElement('label');
-    row.className = 'layer-row';
+    const row = document.createElement('div');
+    row.className = 'layer-row' + (layer.visible ? ' on' : '');
+    row.dataset.key = key;
     row.innerHTML = DOMPurify.sanitize(`
-      <input type="checkbox" ${layer.visible ? 'checked' : ''} onchange="setLayer('${key}', this.checked)" />
-      <span class="layer-dot" style="background:${layer.color}"></span>
-      <span class="layer-name">${layer.label}</span>`);
+      <span class="layer-dot" style="background:${layer.color};color:${layer.color}"></span>
+      <span class="layer-name">${layer.label}</span>
+      <input type="checkbox" ${layer.visible ? 'checked' : ''} />`);
+    row.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setLayer(key, !LAYERS[key].visible);
+    });
     list.appendChild(row);
   });
 }
