@@ -670,8 +670,8 @@ function AddTrackSheet({ session, onAdd, onClose }: {
   );
 }
 
-function MixerView({ session, onBack, onUpdate }: {
-  session: LabSession; onBack: () => void; onUpdate: (s: LabSession) => void;
+function MixerView({ session, sessionNumber, onBack, onUpdate }: {
+  session: LabSession; sessionNumber: number; onBack: () => void; onUpdate: (s: LabSession) => void;
 }) {
   useLabAnimStyle();
   const t = useT();
@@ -846,35 +846,110 @@ function MixerView({ session, onBack, onUpdate }: {
     return () => setVocalexBack(null);
   }, [onBack, stopPlayback]);
 
+  // Format the session number with a leading zero (01, 02, ...) so it always
+  // takes the same visual space — the header tag stays consistent in width.
+  const sessionTag = `#${String(sessionNumber).padStart(2, '0')}`;
+
   return (
     <div style={{ padding: '16px 20px', paddingBottom: 120, minHeight: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 20 }}>
+
+      {/* ── Session header ─────────────────────────────────────────────
+          Single coherent block with: session icon, session number tag,
+          editable session name (with explicit pencil affordance), and
+          the delete control on the right. ─────────────────────────── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        background: '#0e0e0e', border: '1px solid #1f2020',
+        borderRadius: 16, padding: '12px 14px', marginBottom: 16,
+      }}>
+        {/* Icon */}
+        <div style={{
+          width: 40, height: 40, borderRadius: 12,
+          background: 'rgba(103,156,255,0.10)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#679cff' }}>{session.icon}</span>
+        </div>
+
+        {/* Number + name */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{
+            fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 800,
+            color: '#679cff', letterSpacing: '0.12em', textTransform: 'uppercase',
+            margin: 0, lineHeight: 1,
+          }}>
+            {t.vocalex.session ?? 'Session'} {sessionTag}
+          </p>
+          {editingName ? (
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onBlur={saveName}
+              onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setName(session.name); setEditingName(false); } }}
+              autoFocus
+              maxLength={48}
+              style={{
+                fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 18,
+                color: '#e7e5e4', background: 'none',
+                border: 'none', borderBottom: '2px solid #679cff',
+                outline: 'none', padding: '2px 0',
+                width: '100%', letterSpacing: '-0.02em', marginTop: 4,
+              }}
+            />
+          ) : (
+            <button
+              onClick={() => setEditingName(true)}
+              title="Rename session"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'none', border: 'none', padding: '2px 0', marginTop: 2,
+                cursor: 'pointer', color: '#e7e5e4',
+                width: '100%', textAlign: 'left',
+              }}
+            >
+              <span style={{
+                fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 18,
+                letterSpacing: '-0.02em',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                flex: 1, minWidth: 0,
+              }}>
+                {session.name}
+              </span>
+              <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#484848', flexShrink: 0 }}>edit</span>
+            </button>
+          )}
+        </div>
+
+        {/* Delete (with inline confirm) */}
         {confirmDelete ? (
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button onClick={handleDelete} style={{ background: '#7f2927', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: '#ff9993' }}>{t.vocalex.deleteTake}</button>
             <button onClick={() => setConfirmDelete(false)} style={{ background: '#252626', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: '#acabaa' }}>{t.vocalex.cancelAction}</button>
           </div>
         ) : (
-          <button onClick={() => setConfirmDelete(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#484848', display: 'flex' }}>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            title="Delete session"
+            style={{
+              flexShrink: 0,
+              width: 36, height: 36, borderRadius: 10,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: '#767575', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 150ms ease, color 150ms ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.10)'; e.currentTarget.style.color = '#ef4444'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#767575'; }}
+          >
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
           </button>
         )}
       </div>
 
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 12, background: '#0e0e0e', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#679cff' }}>{session.icon}</span>
-        </div>
-        {editingName ? (
-          <input value={name} onChange={e => setName(e.target.value)} onBlur={saveName} onKeyDown={e => e.key === 'Enter' && saveName()} autoFocus
-            style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 24, color: '#e7e5e4', background: 'none', border: 'none', borderBottom: '2px solid #007aff', outline: 'none', padding: '0 0 4px', width: '100%', letterSpacing: '-0.02em' }} />
-        ) : (
-          <h2 onClick={() => setEditingName(true)} style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 24, color: '#e7e5e4', margin: '0 0 4px', cursor: 'pointer', letterSpacing: '-0.02em' }}>{session.name}</h2>
-        )}
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#767575', margin: 0 }}>
-          {t.vocalex.trackCount(session.layers.length)} · {formatDur(maxDuration)}
-        </p>
-      </div>
+      {/* Meta line — track count + total duration */}
+      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#767575', margin: '0 0 16px 4px' }}>
+        {t.vocalex.trackCount(session.layers.length)} · {formatDur(maxDuration)}
+      </p>
 
       <div style={{
         background: '#0e0e0e', borderRadius: 14, padding: '14px 16px', marginBottom: 16,
@@ -1049,7 +1124,14 @@ export default function LabPanel() {
   };
 
   if (activeSession) {
-    return <MixerView session={activeSession} onBack={handleBack} onUpdate={handleUpdate} />;
+    // Determine the session's display number from its position in the list
+    // sorted by creation time. New sessions are pushed at the end so this is
+    // stable and matches the user's mental ordering ("Session #03" = the
+    // third one created). Falls back to 1 if not yet present in the list.
+    const ordered = [...sessions].sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+    const idx = ordered.findIndex(s => s.id === activeSession.id);
+    const sessionNumber = idx >= 0 ? idx + 1 : 1;
+    return <MixerView session={activeSession} sessionNumber={sessionNumber} onBack={handleBack} onUpdate={handleUpdate} />;
   }
 
   const displaySessions = showAll ? sessions : sessions.slice(0, 6);
