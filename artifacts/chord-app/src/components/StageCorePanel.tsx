@@ -365,7 +365,7 @@ export default function StagexPanel() {
     return () => setBackHandler(null);
   }, []);
 
-  const collapseHeader = isLandscape && curView === 'Editor';
+  const collapseHeader = (isLandscape && curView === 'Editor') || (curView === 'Export' && stageNavHidden);
   const isLandscapeEditor = isLandscape && curView === 'Editor';
 
   const navTabs: { view: string; label: string; icon: string }[] = [
