@@ -199,6 +199,7 @@ export default function StagexPanel() {
   const [pressedTab, setPressedTab] = useState<string | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
   const [stageNavHidden, setStageNavHidden] = useState(false);
+  const [liveMode, setLiveMode] = useState(false);
   const [landscapeNavHidden, setLandscapeNavHidden] = useState(false);
   const [propPanelOpen, setPropPanelOpen] = useState(false);
   const [pdfSheetOpen, setPdfSheetOpen] = useState(false);
@@ -364,6 +365,7 @@ export default function StagexPanel() {
       if (e.data?.type === 'sc-dial-state') setFabOpen(!!e.data.open);
       if (e.data?.type === 'sc-scroll-dir') setStageNavHidden(!!e.data.down);
       if (e.data?.type === 'sc-prop-state') setPropPanelOpen(e.data.state === 'open' || e.data.state === 'peek');
+      if (e.data?.type === 'sc-live-mode') setLiveMode(!!e.data.on);
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
@@ -409,7 +411,7 @@ export default function StagexPanel() {
   // In the Export (PDF) view: keep the top header visible (back, app icon,
   // sections toggle, PDF button) but remove the bottom nav so the preview
   // owns the full lower area.
-  const collapseHeader = (isLandscape && curView === 'Editor');
+  const collapseHeader = (isLandscape && curView === 'Editor') || liveMode;
   const hideBottomNav  = curView === 'Export';
   const isLandscapeEditor = isLandscape && curView === 'Editor';
 
@@ -579,9 +581,9 @@ export default function StagexPanel() {
 
             {(
               [
-                { label: tr.stagex.toolMeasure, icon: 'straighten',  fn: () => callIframe('scActivateMeasure')   },
-                { label: tr.stagex.toolZones,   icon: 'grid_4x4',    fn: () => callIframe('scToggleZones')       },
-                { label: tr.stagex.toolLength,  icon: 'cable',        fn: () => callIframe('scToggleCableLength') },
+                { label: tr.stagex.toolMeasure, icon: 'straighten',   fn: () => callIframe('scActivateMeasure')   },
+                { label: tr.stagex.toolZones,   icon: 'grid_4x4',     fn: () => callIframe('scToggleZones')       },
+                { label: 'Live mode',           icon: 'visibility',   fn: () => callIframe('toggleGigMode')       },
                 { label: tr.stagex.toolHistory, icon: 'history',      fn: () => callIframe('openTimelinePanel')   },
               ] as { label: string; icon: string; fn: () => void }[]
             ).map(({ label, icon, fn }) => (
@@ -707,9 +709,10 @@ export default function StagexPanel() {
               WebkitTapHighlightColor: 'transparent',
               touchAction: 'manipulation',
               display: 'flex',
-              opacity: (isLandscapeEditor && propPanelOpen) ? 0 : (stageNavHidden && !isLandscapeEditor) ? 0 : 1,
-              pointerEvents: (isLandscapeEditor && propPanelOpen) ? 'none' as const : 'auto' as const,
-              visibility: (isLandscapeEditor && propPanelOpen) ? 'hidden' as const : 'visible' as const,
+              opacity: liveMode ? 0 : (isLandscapeEditor && propPanelOpen) ? 0 : (stageNavHidden && !isLandscapeEditor) ? 0 : 1,
+              pointerEvents: liveMode ? 'none' as const : (isLandscapeEditor && propPanelOpen) ? 'none' as const : 'auto' as const,
+              visibility: liveMode ? 'hidden' as const : (isLandscapeEditor && propPanelOpen) ? 'hidden' as const : 'visible' as const,
+              transition: 'opacity 200ms ease',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: fabOpen
@@ -793,9 +796,10 @@ export default function StagexPanel() {
             bottom: 'max(10px, env(safe-area-inset-bottom))',
             left: '50%',
             transform: `translateX(-50%) translateY(${
-              hideBottomNav || (isLandscapeEditor ? landscapeNavHidden : stageNavHidden) ? '140%' : '0'
+              liveMode || hideBottomNav || (isLandscapeEditor ? landscapeNavHidden : stageNavHidden) ? '140%' : '0'
             })`,
-            pointerEvents: hideBottomNav ? 'none' : 'auto',
+            pointerEvents: (liveMode || hideBottomNav) ? 'none' : 'auto',
+            opacity: liveMode ? 0 : 1,
             width: isLandscapeEditor ? '70%' : '90%',
             maxWidth: isLandscapeEditor ? 320 : 400,
             display: 'flex',

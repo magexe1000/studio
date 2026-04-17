@@ -6839,6 +6839,7 @@ function toggleGigMode() {
       body.classList.remove('gig-fade-out');
       state.gigMode = true;
       _applyGigEyeState();
+      _notifyLiveMode(true);
       saveSettings();
       // 3. Clean up transition class once canvas finishes expanding
       setTimeout(() => body.classList.remove('gig-transitioning'), MOVE);
@@ -6858,6 +6859,7 @@ function toggleGigMode() {
         body.classList.remove('gig-fade-out');
         state.gigMode = false;
         _applyGigEyeState();
+        _notifyLiveMode(false);
         saveSettings();
         setTimeout(() => body.classList.remove('gig-transitioning'), MOVE);
       });
@@ -6866,15 +6868,25 @@ function toggleGigMode() {
 }
 
 function _applyGigEyeState() {
+  // Legacy left-toolbar eye is gone; live-mode-exit (bottom-right) is
+  // entirely CSS-driven via body.gig-mode. Kept as a no-op for any
+  // callers that still invoke it.
   const eyeBtn  = document.getElementById('btn-gig-eye');
   const eyeIcon = document.getElementById('gig-eye-icon');
   if (eyeBtn)  eyeBtn.style.color  = state.gigMode ? '#ff4444' : '#767575';
   if (eyeIcon) eyeIcon.textContent = state.gigMode ? 'visibility_off' : 'visibility';
 }
 
+function _notifyLiveMode(on) {
+  try {
+    window.parent?.postMessage({ type: 'sc-live-mode', on: !!on }, window.location.origin);
+  } catch (_) {}
+}
+
 function _applyGigMode() {
   document.body.classList.toggle('gig-mode', state.gigMode);
   _applyGigEyeState();
+  _notifyLiveMode(state.gigMode);
 }
 
 // ══════════════════════════════════════════════════════════

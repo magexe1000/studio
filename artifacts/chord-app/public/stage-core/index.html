@@ -2190,9 +2190,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
         <button onclick="zoomOut()" class="sc-vtool-btn" title="Zoom Out">
           <span class="material-symbols-outlined" style="font-size:17px;">zoom_out</span>
         </button>
-        <button id="btn-gig-eye" onclick="toggleGigMode()" class="sc-vtool-btn" title="Focus Mode — hide editing tools">
-          <span id="gig-eye-icon" class="material-symbols-outlined" style="font-size:17px;">visibility</span>
-        </button>
+        <!-- Live Mode (eye) moved to top toolbar in StageCorePanel.tsx -->
         <div class="sc-vtool-sep"></div>
         <!-- Toggle group -->
         <button id="btn-grid" onclick="toggleGrid()" class="sc-vtool-btn" title="Toggle Grid" style="background:rgba(122,175,255,0.18);color:#7aafff;">
@@ -4106,5 +4104,10 @@ window.addEventListener('message', function(e) {
 
 })();
 </script>
+
+<!-- Live Mode exit eye — only visible while body.gig-mode is active (CSS controls visibility) -->
+<button id="live-mode-exit" onclick="toggleGigMode()" title="Exit Live mode" aria-label="Exit Live mode">
+  <span class="material-symbols-outlined" style="font-size:20px;">visibility_off</span>
+</button>
 </body>
 </html>

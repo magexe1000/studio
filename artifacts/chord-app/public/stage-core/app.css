@@ -1074,21 +1074,48 @@ body.gig-mode #properties-panel,
 body.gig-mode #mode-pill,
 body.gig-mode .mob-nav-rail,
 body.gig-mode #mobile-fab,
+body.gig-mode #sc-fab-wrap,
+body.gig-mode #sc-vtools,
+body.gig-mode #bottom-toolbar,
 body.gig-mode .el-resize-bar,
 body.gig-mode .el-rotate-handle,
 body.gig-mode .el-connect-dot {
   display: none !important;
 }
 
-/* In gig mode — keep toolbar visible but hide everything except the eye button */
-body.gig-mode #bottom-toolbar > *:not(#btn-gig-eye) {
-  display: none !important;
+/* ── Live Mode exit eye (floating, bottom-right) ─────────── */
+#live-mode-exit {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 14, 16, 0.85);
+  color: #c5ffc9;
+  border: 1px solid rgba(197, 255, 201, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  z-index: 10000;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 180ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1), background 150ms ease;
 }
-body.gig-mode #bottom-toolbar {
-  background: transparent !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
+#live-mode-exit:hover {
+  background: rgba(20, 20, 24, 0.95);
+}
+#live-mode-exit:active {
+  transform: scale(0.92);
+}
+body.gig-mode #live-mode-exit {
+  display: flex;
+  opacity: 1;
+  transform: scale(1);
 }
 
 body.gig-mode #canvas-container {
@@ -1106,7 +1133,9 @@ body.gig-transitioning #desktop-cat-bar,
 body.gig-transitioning #status-bar,
 body.gig-transitioning #properties-panel,
 body.gig-transitioning #mode-pill,
-body.gig-transitioning #bottom-toolbar > *:not(#btn-gig-eye) {
+body.gig-transitioning #sc-fab-wrap,
+body.gig-transitioning #sc-vtools,
+body.gig-transitioning #bottom-toolbar {
   transition: opacity 0.17s ease, transform 0.17s ease !important;
 }
 
@@ -1129,7 +1158,9 @@ body.gig-fade-out #desktop-cat-bar,
 body.gig-fade-out #status-bar,
 body.gig-fade-out #properties-panel,
 body.gig-fade-out #mode-pill,
-body.gig-fade-out #bottom-toolbar > *:not(#btn-gig-eye) {
+body.gig-fade-out #sc-fab-wrap,
+body.gig-fade-out #sc-vtools,
+body.gig-fade-out #bottom-toolbar {
   opacity: 0 !important;
   transform: translateY(3px) !important;
   pointer-events: none !important;
