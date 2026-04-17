@@ -3028,15 +3028,8 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <!-- ═══════════════════════ EXPORT VIEW ═══════════════════════ -->
 <div id="view-Export" class="view-page" style="margin-left:0;padding-top:0;height:100vh;display:none;flex-direction:column;overflow:hidden;position:relative;box-sizing:border-box;">
 
-  <!-- ── Export top bar ─────────────────────────────────── -->
-  <div id="export-top-bar" style="display:flex;align-items:center;gap:12px;padding:0 20px;height:56px;flex-shrink:0;background:linear-gradient(135deg, var(--accent-10) 0%, transparent 55%), #060606;border-bottom:1px solid var(--accent-20);position:relative;z-index:10;">
-    <button onclick="leaveExport()" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;background:var(--accent-08);border:1px solid var(--accent-20);cursor:pointer;border-radius:50%;flex-shrink:0;transition:background 0.18s;" onmouseover="this.style.background='var(--accent-14)'" onmouseout="this.style.background='var(--accent-08)'" title="Back">
-      <span class="material-symbols-outlined" style="font-size:18px;color:var(--accent);">arrow_back</span>
-    </button>
-    <div style="flex:1;min-width:0;">
-      <p style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.26em;color:var(--accent);opacity:0.6;margin:0 0 2px;">Export Preview</p>
-      <p id="exp-topbar-name" style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#e7e5e4;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Technical Rider</p>
-    </div>
+  <!-- ── Export top bar (actions only — title/back live in outer Stagex header) ─────────────────────────────────── -->
+  <div id="export-top-bar" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:8px 20px;flex-shrink:0;background:linear-gradient(135deg, var(--accent-10) 0%, transparent 60%), #060606;border-bottom:1px solid var(--accent-20);position:relative;z-index:10;">
     <button id="exp-opts-btn" onclick="toggleExportOptions()" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:var(--accent-08);border:1px solid var(--accent-20);cursor:pointer;border-radius:4px;flex-shrink:0;transition:background 0.18s;" title="Sections" onmouseover="this.style.background='var(--accent-14)'" onmouseout="if(!document.getElementById('exp-options-drawer').classList.contains('exp-options-open'))this.style.background='var(--accent-08)'">
       <span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);">tune</span>
     </button>
@@ -3076,7 +3069,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
   </div>
 
   <!-- Full-width scrollable document preview -->
-  <div id="export-preview-scroll" style="flex:1;min-height:0;overflow-y:auto;background:#080808;padding:0 0 24px;">
+  <div id="export-preview-scroll" style="flex:1;min-height:0;overflow-y:auto;background:linear-gradient(180deg, var(--accent-08) 0%, transparent 320px), #080808;padding:0 0 24px;">
     <div id="export-document" style="width:100%;font-family:'Inter',sans-serif;color:#fff;">
 
       <!-- ── COVER ──────────────────────────────────────────── -->
