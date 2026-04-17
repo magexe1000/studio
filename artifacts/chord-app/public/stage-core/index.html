@@ -421,7 +421,12 @@ body {
   transition: color 130ms ease, background 130ms ease;
   flex-shrink: 0;
 }
-.sc-vtool-btn:hover { color: #c8c8c8; background: rgba(255,255,255,0.07); }
+/* Only paint hover styles on real pointing devices (mouse / trackpad).
+   On touch screens `:hover` is sticky after a tap, which made toggles
+   look "stuck selected" until tapping elsewhere. */
+@media (hover: hover) {
+  .sc-vtool-btn:hover { color: #c8c8c8; background: rgba(255,255,255,0.07); }
+}
 /* Active toggle state — wins over :hover in every theme (incl. the
    light-theme `html[data-theme="light"] .sc-vtool-btn:hover` override).
    Specificity boosted with `html` + extra class so it always trumps theme rules.
@@ -1300,7 +1305,9 @@ html[data-theme="light"] #sc-vtools-body {
   box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
 }
 html[data-theme="light"] .sc-vtool-btn         { color: #555 !important; }
-html[data-theme="light"] .sc-vtool-btn:hover   { color: #0e0e0e !important; background: rgba(0,0,0,0.06) !important; }
+@media (hover: hover) {
+  html[data-theme="light"] .sc-vtool-btn:hover { color: #0e0e0e !important; background: rgba(0,0,0,0.06) !important; }
+}
 html[data-theme="light"] .sc-vtool-sep         { background: rgba(0,0,0,0.08) !important; }
 
 /* ── Mobile category bar & element tray ── */
