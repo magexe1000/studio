@@ -647,7 +647,7 @@ export default function StagexPanel() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 32, height: 32,
                 background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)',
-                color: accent.from,
+                color: isLight ? '#111' : '#fff',
                 border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
                 borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
               }}
