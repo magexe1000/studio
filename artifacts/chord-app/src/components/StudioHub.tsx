@@ -658,6 +658,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
 
       {/* ── PERFORMANCE ── */}
       <SectionHeader icon="speed" title="Performance" />
+      <GlobalHint />
       <div style={cardStyle}>
         <SettingRow
           label="High refresh rate"
