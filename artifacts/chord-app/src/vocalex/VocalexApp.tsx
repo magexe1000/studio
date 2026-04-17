@@ -178,7 +178,14 @@ export default function VocalexApp() {
         padding: '10px 16px 6px',
         flexShrink: 0,
       }}>
-        <AppModeMenuLogo size={14} />
+        <h1 style={{
+          fontSize: '14px', fontWeight: 700,
+          color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em',
+          display: 'flex', alignItems: 'center', gap: '7px',
+          margin: 0,
+        }}>
+          <AppModeMenuLogo />
+        </h1>
       </header>
 
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
