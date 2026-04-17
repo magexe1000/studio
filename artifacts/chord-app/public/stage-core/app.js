@@ -1014,6 +1014,23 @@ document.addEventListener('DOMContentLoaded', function() {
   const panel = document.getElementById('lib-panel');
   if (panel) panel.style.display = 'none';
 
+  // ── Sticky-focus killer for the left toolbar ──────────────────────────
+  // On touch, tapped buttons keep focus / pseudo-state until the user taps
+  // somewhere else, which made the toggles look "stuck selected" after
+  // toggling them off. Removing focusability + blurring on touchend gives a
+  // clean unselected look the instant the finger lifts.
+  document.querySelectorAll('.sc-vtool-btn').forEach(b => {
+    b.setAttribute('tabindex', '-1');
+  });
+  const _toolbarBlur = () => {
+    const el = document.activeElement;
+    if (el && el.classList && el.classList.contains('sc-vtool-btn')) {
+      try { el.blur(); } catch (_) {}
+    }
+  };
+  document.addEventListener('touchend',  _toolbarBlur, { passive: true });
+  document.addEventListener('pointerup', _toolbarBlur, { passive: true });
+
   const closeBtn = document.getElementById('mob-set-close');
   if (closeBtn) closeBtn.addEventListener('click', closeMobExportSettings);
   const fPdf = document.getElementById('mob-fmt-pdf');
