@@ -3422,17 +3422,13 @@ function openTimelinePanel() {
   // Toggle: close if already open
   if (_histTimelineOpen) { closeTimelinePanel(); return; }
 
-  // ── Top-down floating sheet ────────────────────────────────
-  // Anchored to the top of the stage area, centered horizontally.
-  // Doesn't shift the canvas — overlays on top with a soft shadow,
-  // so users can see what they're undoing/redoing underneath.
-  const sc = document.getElementById('stage-canvas');
-  const scRect = sc ? sc.getBoundingClientRect() : { top: 64, left: 0, width: window.innerWidth };
+  // ── Compact floating sheet anchored near the top of the viewport ──
+  // Sits just below the React top toolbar so it doesn't cover the stage.
   const isNarrow = window.innerWidth < 520;
-  const panelW = isNarrow ? Math.min(window.innerWidth - 16, 360) : 360;
-  const panelTop = Math.round(scRect.top + 8);
-  const panelLeft = Math.round(scRect.left + (scRect.width - panelW) / 2);
-  const maxH = Math.max(220, Math.round(window.innerHeight * 0.6));
+  const panelW = isNarrow ? Math.min(window.innerWidth - 16, 320) : 320;
+  const panelTop = 8;
+  const panelLeft = Math.round((window.innerWidth - panelW) / 2);
+  const maxH = Math.min(260, Math.round(window.innerHeight * 0.5));
 
   let panel = document.getElementById('sc-hist-panel');
   if (!panel) {
@@ -3510,19 +3506,19 @@ function _renderHistTimeline() {
   }).reverse().join('');
 
   panel.innerHTML = DOMPurify.sanitize(`
-    <div style="display:flex;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(72,72,71,0.22);flex-shrink:0;gap:8px;">
-      <span class="material-symbols-outlined" style="font-size:14px;color:#7aafff;">history</span>
-      <span style="font-family:'Manrope',sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#e0e0e0;flex:1;">History</span>
-      <button onclick="closeTimelinePanel()" style="background:none;border:none;color:#484847;cursor:pointer;font-size:18px;line-height:1;padding:0 2px;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#484847'">×</button>
+    <div style="display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid rgba(72,72,71,0.22);flex-shrink:0;gap:6px;">
+      <span class="material-symbols-outlined" style="font-size:12px;color:#7aafff;">history</span>
+      <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#e0e0e0;flex:1;">History</span>
+      <button onclick="closeTimelinePanel()" style="background:none;border:none;color:#484847;cursor:pointer;font-size:15px;line-height:1;padding:0 2px;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#484847'">×</button>
     </div>
-    <div style="flex:1;overflow-y:auto;padding:6px 0;scrollbar-width:thin;scrollbar-color:rgba(72,72,71,0.4) transparent;">
+    <div style="flex:1;overflow-y:auto;padding:4px 0;scrollbar-width:thin;scrollbar-color:rgba(72,72,71,0.4) transparent;">
       ${entries.length === 0
-        ? '<p style="font-family:\'Inter\';font-size:10px;color:#767575;text-align:center;margin-top:28px;line-height:1.6;">No history yet.<br>Make some edits<br>to see your timeline.</p>'
+        ? '<p style="font-family:\'Inter\';font-size:9px;color:#767575;text-align:center;margin:14px 0;line-height:1.5;">No history yet.<br>Make edits to see your timeline.</p>'
         : rows}
     </div>
-    <div style="padding:10px 14px;border-top:1px solid rgba(72,72,71,0.15);display:flex;gap:6px;flex-shrink:0;">
-      <button onclick="undo();_renderHistTimeline();" style="flex:1;padding:6px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">← Undo</button>
-      <button onclick="redo();_renderHistTimeline();" style="flex:1;padding:6px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">Redo →</button>
+    <div style="padding:6px 8px;border-top:1px solid rgba(72,72,71,0.15);display:flex;gap:5px;flex-shrink:0;">
+      <button onclick="undo();_renderHistTimeline();" style="flex:1;padding:4px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">← Undo</button>
+      <button onclick="redo();_renderHistTimeline();" style="flex:1;padding:4px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">Redo →</button>
     </div>`);
 }
 
