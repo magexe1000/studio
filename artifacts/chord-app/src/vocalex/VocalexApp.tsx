@@ -173,11 +173,7 @@ export default function VocalexApp() {
       paddingTop: 'env(safe-area-inset-top)',
       '--panel-dur': `${durMs}ms`,
     } as React.CSSProperties}>
-      <header style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 16px 6px',
-        flexShrink: 0,
-      }}>
+      <header className="flex-none px-6 pt-6 pb-1">
         <h1 style={{
           fontSize: '14px', fontWeight: 700,
           color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em',
