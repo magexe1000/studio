@@ -13,7 +13,6 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.1",
-    "tar": "^6.2.1",
     "@replit/vite-plugin-cartographer": "catalog:",
     "@replit/vite-plugin-dev-banner": "catalog:",
     "@replit/vite-plugin-runtime-error-modal": "catalog:",

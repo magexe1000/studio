@@ -1,0 +1,46 @@
+PS C:\Users\maure\chordex-app> pnpm --filter @workspace/chord-app run android:sync
+
+> @workspace/chord-app@0.0.0 android:sync C:\Users\maure\chordex-app\artifacts\chord-app
+> npx cap sync android && node patch-android.cjs
+
+npm warn Unknown env config "catalog". This will stop working in the next major version of npm.
+npm warn Unknown env config "minimum-release-age". This will stop working in the next major version of npm.
+npm warn Unknown env config "npm-globalconfig". This will stop working in the next major version of npm.
+npm warn Unknown env config "overrides". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+npm warn Unknown env config "verify-deps-before-run". This will stop working in the next major version of npm.
+npm warn Unknown env config "_jsr-registry". This will stop working in the next major version of npm.
+√ Copying web assets from public to android\app\src\main\assets\public in 921.82ms
+√ Creating capacitor.config.json in android\app\src\main\assets in 1.03ms
+√ copy android in 954.29ms
+√ Updating Android plugins in 7.30ms
+[info] Found 4 Capacitor plugins for android:
+       @capacitor/app@6.0.3
+       @capacitor/filesystem@6.0.4
+       @capacitor/share@6.0.4
+       @capacitor/status-bar@6.0.3
+× update android - failed!
+[error] TypeError: Cannot read properties of undefined (reading 'extract')
+        at extractTemplate
+        (C:\Users\maure\chordex-app\node_modules\.pnpm\@capacitor+cli@6.2.1\node_modules\@capacitor\cli\dist\util\template.js:9:25)
+        at async removePluginsNativeFiles
+        (C:\Users\maure\chordex-app\node_modules\.pnpm\@capacitor+cli@6.2.1\node_modules\@capacitor\cli\dist\android\update.js:298:5)
+        at async updateAndroid
+        (C:\Users\maure\chordex-app\node_modules\.pnpm\@capacitor+cli@6.2.1\node_modules\@capacitor\cli\dist\android\update.js:26:5)
+        at async
+        C:\Users\maure\chordex-app\node_modules\.pnpm\@capacitor+cli@6.2.1\node_modules\@capacitor\cli\dist\tasks\update.js:69:13
+        at async runTask
+        (C:\Users\maure\chordex-app\node_modules\.pnpm\@capacitor+cli@6.2.1\node_modules\@capacitor\cli\dist\common.js:165:23)
+        at async update
+        (C:\Users\maure\chordex-app\node_modules\.pnpm\@capacitor+cli@6.2.1\node_modules\@capacitor\cli\dist\tasks\update.js:63:5)
+        at async sync
+        (C:\Users\maure\chordex-app\node_modules\.pnpm\@capacitor+cli@6.2.1\node_modules\@capacitor\cli\dist\tasks\sync.js:56:5)
+        at async syncCommand
+        (C:\Users\maure\chordex-app\node_modules\.pnpm\@capacitor+cli@6.2.1\node_modules\@capacitor\cli\dist\tasks\sync.js:33:13)
+        at async
+        C:\Users\maure\chordex-app\node_modules\.pnpm\@capacitor+cli@6.2.1\node_modules\@capacitor\cli\dist\index.js:70:9
+        at async
+        C:\Users\maure\chordex-app\node_modules\.pnpm\@capacitor+cli@6.2.1\node_modules\@capacitor\cli\dist\telemetry.js:26:13
+C:\Users\maure\chordex-app\artifacts\chord-app:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/chord-app@0.0.0 android:sync: `npx cap sync android && node patch-android.cjs`
+Exit status 1

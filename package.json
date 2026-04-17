@@ -25,10 +25,16 @@
       "picomatch@2.3.1": "2.3.2",
       "picomatch@4.0.3": "4.0.4",
       "lodash@4.17.23": "4.18.0",
-      "tar@6.2.1": "7.5.11",
       "brace-expansion@2.0.2": "2.0.3",
       "esbuild@0.18.20": "0.25.0",
       "yaml@2.8.2": "2.8.3"
+    },
+    "packageExtensions": {
+      "@capacitor/cli@6.2.1": {
+        "dependencies": {
+          "tar": "^6.2.1"
+        }
+      }
     }
   }
 }
