@@ -175,14 +175,16 @@ export default function StudioHub() {
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
 
-  // Studio chime — fires once when the hub mounts and the logo appears.
-  // useLayoutEffect runs *synchronously before paint*, so the audio is
-  // scheduled before the browser even draws the logo. Combined with the
-  // zero scheduling-lead inside playStudioChime, the first sample of the
-  // chord arrives essentially the same frame the logo first becomes visible.
-  // Gated on the user-controllable hubChimeEnabled setting.
-  useLayoutEffect(() => {
-    if (settings.hubChimeEnabled) playStudioChime();
+  // Studio chime — fires once the *whole* Studio Hub is on screen.
+  // The retro CRT power-on takes ~260ms, then the logo drop-in (500ms)
+  // and the apps card rise-in (80ms delay + 500ms = 580ms) finish.
+  // We fire the chime at ~620ms so audio + visuals land together as
+  // the hub fully settles. Gated on the user-controllable
+  // hubChimeEnabled setting.
+  useEffect(() => {
+    if (!settings.hubChimeEnabled) return;
+    const id = window.setTimeout(() => playStudioChime(), 620);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -208,10 +210,42 @@ export default function StudioHub() {
       fontFamily: 'Manrope, sans-serif',
       transform: zooming ? 'scale(1.10)' : 'scale(1)',
       opacity: zooming ? 0 : 1,
+      transformOrigin: 'center center',
+      // 80s CRT power-on: vertical slit blooms open, then settles. Only
+      // plays on first paint of the hub (not while zooming out into an
+      // app), and is suppressed if the user prefers reduced motion.
+      animation: zooming
+        ? undefined
+        : 'hub-crt-on 260ms cubic-bezier(0.2, 0.7, 0.2, 1) both',
       transition: zooming
         ? 'transform 380ms cubic-bezier(0.4,0,1,1), opacity 280ms ease-in, background-color 700ms cubic-bezier(0.4,0,0.2,1)'
         : 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
     }}>
+      {/* ── Retro neon scan-line sweep (one-shot) ── */}
+      <div aria-hidden style={{
+        position: 'absolute', left: 0, right: 0, top: 0,
+        height: 3, pointerEvents: 'none', zIndex: 9999,
+        background: isHubLight
+          ? 'linear-gradient(90deg, transparent 0%, rgba(160,80,255,0.55) 30%, rgba(255,90,200,0.85) 50%, rgba(160,80,255,0.55) 70%, transparent 100%)'
+          : 'linear-gradient(90deg, transparent 0%, rgba(0,229,255,0.55) 30%, rgba(255,80,200,0.95) 50%, rgba(0,229,255,0.55) 70%, transparent 100%)',
+        boxShadow: isHubLight
+          ? '0 0 12px rgba(255,90,200,0.55), 0 0 24px rgba(160,80,255,0.35)'
+          : '0 0 12px rgba(0,229,255,0.85), 0 0 24px rgba(255,80,200,0.45)',
+        mixBlendMode: 'screen',
+        animation: zooming ? undefined : 'hub-scanline-sweep 720ms 80ms cubic-bezier(0.4, 0, 0.2, 1) both',
+        willChange: 'transform, opacity',
+      }} />
+
+      {/* ── CRT power-on flash (one-shot) ── */}
+      <div aria-hidden style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 9998,
+        background: isHubLight
+          ? 'radial-gradient(ellipse at center, rgba(255,255,255,0.9) 0%, rgba(255,200,240,0.5) 40%, transparent 75%)'
+          : 'radial-gradient(ellipse at center, rgba(255,255,255,0.85) 0%, rgba(120,200,255,0.45) 40%, transparent 75%)',
+        mixBlendMode: 'screen',
+        animation: zooming ? undefined : 'hub-crt-flash 420ms cubic-bezier(0.4, 0, 0.6, 1) both',
+        opacity: 0,
+      }} />
 
       {/* ── Main scrollable content ── */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
