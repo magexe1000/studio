@@ -712,7 +712,6 @@ export default function StagexPanel() {
               opacity: liveMode ? 0 : (isLandscapeEditor && propPanelOpen) ? 0 : (stageNavHidden && !isLandscapeEditor) ? 0 : 1,
               pointerEvents: liveMode ? 'none' as const : (isLandscapeEditor && propPanelOpen) ? 'none' as const : 'auto' as const,
               visibility: liveMode ? 'hidden' as const : (isLandscapeEditor && propPanelOpen) ? 'hidden' as const : 'visible' as const,
-              transition: 'opacity 200ms ease',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: fabOpen

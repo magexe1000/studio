@@ -91,6 +91,7 @@ export interface AppSettings {
   appMode: 'chords' | 'drums' | 'hub' | 'stage' | 'groovex' | 'vocalex';
   hubUserName: string;
   hubChimeEnabled: boolean;
+  highRefreshRate: boolean;
   chordAssistant: boolean;
   assistantSmartSuggestions: boolean;
   assistantProgressionTips: boolean;
@@ -214,6 +215,7 @@ export const useChordStore = create<ChordStore>()(
         appMode: 'hub',
         hubUserName: '',
         hubChimeEnabled: true,
+        highRefreshRate: false,
         chordAssistant: false,
         assistantSmartSuggestions: true,
         assistantProgressionTips: true,
@@ -651,6 +653,9 @@ export const useChordStore = create<ChordStore>()(
         if (fromVersion < 6) {
           if (s.settings && typeof s.settings === 'object') {
             const settings = s.settings as Record<string, unknown>;
+            if (typeof settings.highRefreshRate !== 'boolean') {
+              settings.highRefreshRate = false;
+            }
             if (typeof settings.hubChimeEnabled !== 'boolean') {
               settings.hubChimeEnabled = true;
             }

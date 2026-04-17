@@ -198,6 +198,17 @@ html.light {
    white (#fff) is intentionally left alone because it's used
    for white-on-accent gradient buttons that must stay white.
    ============================================================ */
+/* High-refresh-rate hints — promote frequently-animated elements to GPU
+   layers so the compositor stays in high-frequency mode on 90/120Hz screens. */
+html[data-hifps="on"] body,
+html[data-hifps="on"] .panel-slide,
+html[data-hifps="on"] [data-anim-target],
+html[data-hifps="on"] .sc-vtool-btn {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
 html[data-theme="light"] [style*="color:#e7e5e4"],
 html[data-theme="light"] [style*="color: #e7e5e4"],
 html[data-theme="light"] [style*="color:#E7E5E4"],

@@ -177,4 +177,6 @@ export async function playStudioChime(): Promise<boolean> {
   // Shimmer sines (bypass the resonant filter — pure top-end air, dry to master)
   scheduleSineShimmer(ctx, master, { freq: C6, startAt: t0 + 0.20, duration: PAD_DURATION - 0.20, peakGain: 0.045 });
   scheduleSineShimmer(ctx, master, { freq: G6, startAt: t0 + 0.30, duration: PAD_DURATION - 0.30, peakGain: 0.035 });
+
+  return true;
 }

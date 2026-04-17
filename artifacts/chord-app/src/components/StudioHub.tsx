@@ -656,6 +656,17 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
         </SettingRow>
       </div>
 
+      {/* ── PERFORMANCE ── */}
+      <SectionHeader icon="speed" title="Performance" />
+      <div style={cardStyle}>
+        <SettingRow
+          label="High refresh rate"
+          desc="Keeps animations running at your display's max refresh rate (90/120Hz). May increase battery use."
+        >
+          <Toggle value={settings.highRefreshRate} onChange={v => updateSettings({ highRefreshRate: v })} accentFrom={accent.from} accentTo={accent.to} />
+        </SettingRow>
+      </div>
+
       {/* ── LANGUAGE ── */}
       <SectionHeader icon="language" title={t.settings.sections.language} />
       <div style={cardStyle}>

@@ -284,6 +284,30 @@ export default function App() {
     document.documentElement.setAttribute('data-anim', settings.animationSpeed);
   }, [settings.animationSpeed]);
 
+  // High refresh rate (90/120Hz) — keeps the compositor in high-frequency mode
+  // by running a continuous rAF tick. Many mobile browsers (Android Chrome
+  // especially) drop to 60Hz when the page is "idle" — this prevents that.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!settings.highRefreshRate) {
+      root.removeAttribute('data-hifps');
+      return;
+    }
+    root.setAttribute('data-hifps', 'on');
+    let rafId = 0;
+    let stopped = false;
+    const tick = () => {
+      if (stopped) return;
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => {
+      stopped = true;
+      cancelAnimationFrame(rafId);
+      root.removeAttribute('data-hifps');
+    };
+  }, [settings.highRefreshRate]);
+
   // Font size
   useEffect(() => {
     const root = document.documentElement;
