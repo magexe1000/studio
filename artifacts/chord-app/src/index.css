@@ -197,6 +197,98 @@ html[data-theme="light"] [style*="color:#3a3a3a"],
 html[data-theme="light"] [style*="color: #3a3a3a"] {
   color: var(--c-text-muted) !important;
 }
+/* ============================================================
+   REACT-TREE light remap (html.light) — the existing block above
+   uses `html[data-theme="light"]` which is set by the Stagex
+   iframe but **not** by the main React app (App.tsx adds the
+   `light` class to <html> instead, see ~line 248). Without these
+   rules, every hardcoded dark color inside Chordex / Drumex /
+   Vocalex / Groovex / Studio Hub stays dark in light mode.
+   We scope by `html.light` so we don't accidentally affect dark
+   mode and we keep accent / danger / status colors untouched.
+   ============================================================ */
+/* — TEXT — primary token (#e7e5e4 / #eee / #ddd / #f5f5f5) → dark text */
+html.light [style*="color:#e7e5e4"],
+html.light [style*="color: #e7e5e4"],
+html.light [style*="color:#E7E5E4"],
+html.light [style*="color: #E7E5E4"],
+html.light [style*="color:#eee"],
+html.light [style*="color: #eee"],
+html.light [style*="color:#ddd"],
+html.light [style*="color: #ddd"],
+html.light [style*="color:#f5f5f5"],
+html.light [style*="color: #f5f5f5"],
+html.light [style*="color:#e8e8ed"],
+html.light [style*="color: #e8e8ed"] {
+  color: var(--c-text-primary) !important;
+}
+/* — TEXT — secondary token (#acabaa / #adaaaa / #a8a6a5 / #ccc) */
+html.light [style*="color:#acabaa"],
+html.light [style*="color: #acabaa"],
+html.light [style*="color:#ACABAA"],
+html.light [style*="color: #ACABAA"],
+html.light [style*="color:#adaaaa"],
+html.light [style*="color: #adaaaa"],
+html.light [style*="color:#a8a6a5"],
+html.light [style*="color: #a8a6a5"],
+html.light [style*="color:#ccc"],
+html.light [style*="color: #ccc"] {
+  color: var(--c-text-secondary) !important;
+}
+/* — TEXT — muted token (#767575 / #484848 / #484847 / #3a3a3a) */
+html.light [style*="color:#767575"],
+html.light [style*="color: #767575"],
+html.light [style*="color:#484848"],
+html.light [style*="color: #484848"],
+html.light [style*="color:#484847"],
+html.light [style*="color: #484847"],
+html.light [style*="color:#3a3a3a"],
+html.light [style*="color: #3a3a3a"] {
+  color: var(--c-text-muted) !important;
+}
+/* — SURFACE BACKGROUNDS — dark "card" colors → light surfaces.
+   Hits Vocalex tip cards (#161717), lab modules (#0e0e0e / #1f2020),
+   Takes panel rows (#191a1a / #252626) etc. We map to layered
+   neutrals so adjacent surfaces still have visual separation. */
+html.light [style*="background:#0e0e0e"],
+html.light [style*="background: #0e0e0e"],
+html.light [style*="background-color:#0e0e0e"],
+html.light [style*="background-color: #0e0e0e"] {
+  background: var(--app-surface-lowest) !important;
+}
+html.light [style*="background:#161717"],
+html.light [style*="background: #161717"],
+html.light [style*="background-color:#161717"],
+html.light [style*="background-color: #161717"],
+html.light [style*="background:#191a1a"],
+html.light [style*="background: #191a1a"],
+html.light [style*="background-color:#191a1a"],
+html.light [style*="background-color: #191a1a"] {
+  background: var(--app-surface-high) !important;
+}
+html.light [style*="background:#1f2020"],
+html.light [style*="background: #1f2020"],
+html.light [style*="background-color:#1f2020"],
+html.light [style*="background-color: #1f2020"],
+html.light [style*="background:#252626"],
+html.light [style*="background: #252626"],
+html.light [style*="background-color:#252626"],
+html.light [style*="background-color: #252626"],
+html.light [style*="background:#2c2c2c"],
+html.light [style*="background: #2c2c2c"] {
+  background: var(--app-surface-highest) !important;
+}
+/* — BORDERS — dark "card" border colors → soft grey borders so
+   the light-remapped surfaces still have a visible edge. */
+html.light [style*="border: 1px solid #1f2020"],
+html.light [style*="border:1px solid #1f2020"],
+html.light [style*="border: 1px solid #252626"],
+html.light [style*="border:1px solid #252626"],
+html.light [style*="border: 1px solid #161717"],
+html.light [style*="border:1px solid #161717"] {
+  border-color: rgba(0,0,0,0.08) !important;
+}
+
 /* Same remap for the system "auto" theme when OS is light. */
 @media (prefers-color-scheme: light) {
   :root.theme-system [style*="color:#e7e5e4"],
