@@ -3029,25 +3029,25 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <div id="view-Export" class="view-page" style="margin-left:0;padding-top:0;height:100vh;display:none;flex-direction:column;overflow:hidden;position:relative;box-sizing:border-box;">
 
   <!-- ── Export top bar ─────────────────────────────────── -->
-  <div id="export-top-bar" style="display:flex;align-items:center;gap:12px;padding:0 12px 0 10px;height:52px;flex-shrink:0;background:#060606;border-bottom:1px solid rgba(255,255,255,0.06);position:relative;z-index:10;">
-    <button onclick="leaveExport()" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);cursor:pointer;border-radius:50%;flex-shrink:0;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" title="Back">
-      <span class="material-symbols-outlined" style="font-size:18px;color:#fff;">arrow_back</span>
+  <div id="export-top-bar" style="display:flex;align-items:center;gap:12px;padding:0 20px;height:56px;flex-shrink:0;background:linear-gradient(135deg, var(--accent-10) 0%, transparent 55%), #060606;border-bottom:1px solid var(--accent-20);position:relative;z-index:10;">
+    <button onclick="leaveExport()" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;background:var(--accent-08);border:1px solid var(--accent-20);cursor:pointer;border-radius:50%;flex-shrink:0;transition:background 0.18s;" onmouseover="this.style.background='var(--accent-14)'" onmouseout="this.style.background='var(--accent-08)'" title="Back">
+      <span class="material-symbols-outlined" style="font-size:18px;color:var(--accent);">arrow_back</span>
     </button>
     <div style="flex:1;min-width:0;">
-      <p style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.26em;color:#333;margin:0 0 2px;">Export Preview</p>
-      <p id="exp-topbar-name" style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#adaaaa;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Technical Rider</p>
+      <p style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.26em;color:var(--accent);opacity:0.6;margin:0 0 2px;">Export Preview</p>
+      <p id="exp-topbar-name" style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#e7e5e4;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Technical Rider</p>
     </div>
-    <button id="exp-opts-btn" onclick="toggleExportOptions()" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);cursor:pointer;border-radius:4px;flex-shrink:0;transition:background 0.15s;" title="Sections" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="if(!document.getElementById('exp-options-drawer').classList.contains('exp-options-open'))this.style.background='rgba(255,255,255,0.05)'">
-      <span class="material-symbols-outlined" style="font-size:16px;color:#767575;">tune</span>
+    <button id="exp-opts-btn" onclick="toggleExportOptions()" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:var(--accent-08);border:1px solid var(--accent-20);cursor:pointer;border-radius:4px;flex-shrink:0;transition:background 0.18s;" title="Sections" onmouseover="this.style.background='var(--accent-14)'" onmouseout="if(!document.getElementById('exp-options-drawer').classList.contains('exp-options-open'))this.style.background='var(--accent-08)'">
+      <span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);">tune</span>
     </button>
-    <button onclick="exportPDF()" style="display:flex;align-items:center;gap:5px;height:30px;padding:0 12px;font-family:'Manrope',sans-serif;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent);color:var(--accent-dark,#000);border:none;cursor:pointer;border-radius:4px;flex-shrink:0;transition:opacity 0.15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+    <button onclick="exportPDF()" style="display:flex;align-items:center;gap:5px;height:30px;padding:0 12px;font-family:'Manrope',sans-serif;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;background:var(--accent);color:var(--accent-dark,#000);border:none;cursor:pointer;border-radius:4px;flex-shrink:0;transition:opacity 0.15s;box-shadow:0 2px 12px var(--accent-30);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
       <span class="material-symbols-outlined" style="font-size:13px;">picture_as_pdf</span>
       PDF
     </button>
   </div>
 
   <!-- Sections options drawer (slides down from top bar) -->
-  <div id="exp-options-drawer" style="flex-shrink:0;overflow:hidden;max-height:0;transition:max-height 0.28s ease;background:#070707;border-bottom:1px solid rgba(255,255,255,0.05);">
+  <div id="exp-options-drawer" style="flex-shrink:0;overflow:hidden;max-height:0;transition:max-height 0.28s ease;background:linear-gradient(135deg, var(--accent-08) 0%, transparent 70%), #070707;border-bottom:1px solid var(--accent-20);">
     <div style="padding:10px 14px 14px;">
       <p style="font-family:'Manrope',sans-serif;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.3em;color:#282828;margin:0 0 10px;">Include Sections</p>
       <div style="display:flex;flex-direction:column;gap:0;">
