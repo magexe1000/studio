@@ -291,7 +291,7 @@ export default function App() {
   }, [settings.displayDensity]);
 
   // Panel transition with slide direction
-  const durMs = settings.animationSpeed === 'fast' ? 160 : settings.animationSpeed === 'reduced' ? 0 : 300;
+  const durMs = settings.animationSpeed === 'fast' ? 160 : settings.animationSpeed === 'reduced' ? 0 : 200;
 
   useEffect(() => {
     if (activePanel === prevPanel.current) return;

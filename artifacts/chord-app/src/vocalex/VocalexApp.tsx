@@ -76,7 +76,7 @@ export default function VocalexApp() {
   const accent = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
   const isLight = activeVis.theme === 'light' || (activeVis.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
 
-  const durMs = settings.animationSpeed === 'fast' ? 160 : settings.animationSpeed === 'reduced' ? 0 : 300;
+  const durMs = settings.animationSpeed === 'fast' ? 160 : settings.animationSpeed === 'reduced' ? 0 : 200;
 
   useEffect(() => {
     if (activeTab === prevTab.current) return;

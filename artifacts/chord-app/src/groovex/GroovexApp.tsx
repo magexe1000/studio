@@ -61,9 +61,11 @@ export default function GroovexApp() {
 
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         <Suspense fallback={null}>
-          {view === 'library' && <GroovexLibrary />}
-          {view === 'player' && <GroovexPlayer />}
-          {view === 'preferences' && <GroovexPreferences />}
+          <div key={view} className="panel-enter-right" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {view === 'library' && <GroovexLibrary />}
+            {view === 'player' && <GroovexPlayer />}
+            {view === 'preferences' && <GroovexPreferences />}
+          </div>
         </Suspense>
       </div>
 
