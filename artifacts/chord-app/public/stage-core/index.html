@@ -3908,30 +3908,29 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
 
 <!-- CABLE CONTEXT MENU -->
-<div id="cable-context-menu" style="display:none;position:absolute;z-index:6000;min-width:178px;background:#111217;border:1px solid var(--accent-14);box-shadow:0 8px 32px rgba(0,0,0,0.85);font-family:'Manrope',sans-serif;overflow:hidden;">
-  <div style="padding:7px 12px 5px;border-bottom:1px solid rgba(72,72,71,0.2);">
-    <p style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:#484847;margin:0;">Cable Type</p>
-  </div>
-  <div class="cable-type-item" data-ctype="xlr" onclick="setCableType('xlr')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:#adaaaa;transition:background 0.1s;" onmouseover="this.style.background='var(--accent-08)'" onmouseout="this.style.background='transparent'">
-    <span class="cable-type-check" style="font-size:9px;width:10px;flex-shrink:0;color:var(--accent);"> </span>
-    <span style="font-size:11px;font-weight:700;">XLR</span>
-    <span style="font-size:9px;color:#484847;margin-left:auto;">Balanced audio</span>
-  </div>
-  <div class="cable-type-item" data-ctype="quarter" onclick="setCableType('quarter')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:#adaaaa;transition:background 0.1s;" onmouseover="this.style.background='var(--accent-08)'" onmouseout="this.style.background='transparent'">
-    <span class="cable-type-check" style="font-size:9px;width:10px;flex-shrink:0;color:var(--accent);"> </span>
-    <span style="font-size:11px;font-weight:700;">1/4&quot;</span>
-    <span style="font-size:9px;color:#484847;margin-left:auto;">Instrument</span>
-  </div>
-  <div class="cable-type-item" data-ctype="power" onclick="setCableType('power')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:#adaaaa;transition:background 0.1s;" onmouseover="this.style.background='rgba(255,179,71,0.08)'" onmouseout="this.style.background='transparent'">
-    <span class="cable-type-check" style="font-size:9px;width:10px;flex-shrink:0;color:var(--accent);"> </span>
-    <span style="font-size:11px;font-weight:700;">Power</span>
-    <span style="font-size:9px;color:#484847;margin-left:auto;">AC mains</span>
-  </div>
-  <div id="cable-menu-power-info" style="display:none;padding:4px 12px 6px;font-size:8px;font-weight:700;letter-spacing:0.06em;color:#ffb347;text-transform:uppercase;border-top:1px solid rgba(255,179,71,0.12);"></div>
-  <div style="height:1px;background:rgba(72,72,71,0.2);margin:2px 0;"></div>
-  <div onclick="deleteCableConnection()" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:#ff6b6b;font-size:11px;font-weight:700;transition:background 0.1s;" onmouseover="this.style.background='rgba(255,107,107,0.08)'" onmouseout="this.style.background='transparent'">
-    <span style="font-size:12px;">✕</span> Delete Connection
-  </div>
+<div id="cable-context-menu">
+  <div class="ccm-header">Cable Type</div>
+  <button class="ccm-item" data-ctype="xlr" onclick="setCableType('xlr')">
+    <span class="ccm-check"></span>
+    <span class="ccm-label">XLR</span>
+    <span class="ccm-sub">Balanced audio</span>
+  </button>
+  <button class="ccm-item" data-ctype="quarter" onclick="setCableType('quarter')">
+    <span class="ccm-check"></span>
+    <span class="ccm-label">1/4&quot;</span>
+    <span class="ccm-sub">Instrument</span>
+  </button>
+  <button class="ccm-item" data-ctype="power" onclick="setCableType('power')">
+    <span class="ccm-check"></span>
+    <span class="ccm-label">Power</span>
+    <span class="ccm-sub">AC mains</span>
+  </button>
+  <div id="cable-menu-power-info" class="ccm-power-info"></div>
+  <div class="ccm-divider"></div>
+  <button class="ccm-delete" onclick="deleteCableConnection()">
+    <span class="material-symbols-outlined" style="font-size:15px;">delete</span>
+    <span>Delete Connection</span>
+  </button>
 </div>
 
 <script src="vendor/qrcode.min.js"></script>

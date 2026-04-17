@@ -2591,11 +2591,9 @@ function _showCableContextMenu(connIdx, clientX, clientY) {
   const c = state.connections[connIdx];
   const currentType = (c && c.type) || 'xlr';
 
-  // Update checkmarks
-  menu.querySelectorAll('.cable-type-item').forEach(item => {
-    const active = item.dataset.ctype === currentType;
-    item.style.color = active ? '#7aafff' : '#adaaaa';
-    item.querySelector('.cable-type-check').textContent = active ? '✓' : ' ';
+  // Update selection state via CSS class
+  menu.querySelectorAll('.ccm-item').forEach(item => {
+    item.classList.toggle('is-selected', item.dataset.ctype === currentType);
   });
 
   // Show power device count if power type
@@ -2610,11 +2608,11 @@ function _showCableContextMenu(connIdx, clientX, clientY) {
 
   // Position: keep inside viewport
   const vw = window.innerWidth, vh = window.innerHeight;
-  const mw = 180, mh = 140;
+  const mw = 230, mh = 220;
   let left = Math.min(clientX, vw - mw - 8);
   let top  = Math.min(clientY, vh - mh - 8);
-  menu.style.left = left + 'px';
-  menu.style.top  = top  + 'px';
+  menu.style.left = Math.max(8, left) + 'px';
+  menu.style.top  = Math.max(8, top)  + 'px';
   menu.style.display = 'block';
   requestAnimationFrame(() => menu.classList.add('visible'));
 }
