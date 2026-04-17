@@ -428,9 +428,14 @@ export default function StagexPanel() {
 
   const handleNavTap = useCallback((view: string) => {
     setStageNavHidden(false);
+    // Optimistically update curView so the top toolbar swaps immediately —
+    // don't wait for the iframe's __onViewChange callback to round-trip,
+    // which can race on iframe reloads and leave the wrong toolbar showing.
     if (view === 'Setup') {
+      setCurView('SetupHub');
       callIframe('switchView', 'SetupHub');
     } else {
+      setCurView(view);
       callIframe('switchView', view);
     }
   }, [callIframe]);
@@ -534,12 +539,14 @@ export default function StagexPanel() {
             onClick={() => {
               // Drive the iframe directly using React's known view, so we don't
               // depend on the iframe's internal state.currentView staying in sync.
+              // Optimistically update curView so the toolbar swaps instantly.
               try {
                 const win = iframeRef.current?.contentWindow as (Record<string, unknown> & { switchView?: (v: string) => void }) | null;
                 const sv = win?.switchView;
                 if (typeof sv === 'function') {
-                  if (curView === 'Export') { sv('Editor'); return; }
-                  if (['Rider', 'Setlist', 'Gear', 'Members'].includes(curView)) { sv('SetupHub'); return; }
+                  if (curView === 'Export') { setCurView('Editor'); sv('Editor'); return; }
+                  if (['Rider', 'Setlist', 'Gear', 'Members'].includes(curView)) { setCurView('SetupHub'); sv('SetupHub'); return; }
+                  setCurView('Editor');
                   sv('Editor');
                   return;
                 }
@@ -611,7 +618,7 @@ export default function StagexPanel() {
             </button>
 
             <button
-              onClick={() => callIframe('switchView', 'Export')}
+              onClick={() => { setCurView('Export'); callIframe('switchView', 'Export'); }}
               title={tr.stagex.toolExport}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
