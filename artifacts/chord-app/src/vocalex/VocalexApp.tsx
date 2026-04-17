@@ -3,6 +3,7 @@ import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStor
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { useT } from '../lib/useT';
 import { useScrollHide, useNavHidden, setNavHidden } from '../lib/navScroll';
+import { subscribeVocalexBack } from './headerBack';
 
 const PracticePanelLazy = lazy(() => import('./PracticePanel'));
 const PitchPanelLazy = lazy(() => import('./PitchPanel'));
@@ -113,6 +114,8 @@ export default function VocalexApp() {
   useScrollHide(takesScrollRef);
 
   const navHidden = useNavHidden();
+  const [headerBack, setHeaderBack] = useState<(() => void) | null>(null);
+  useEffect(() => subscribeVocalexBack(setHeaderBack), []);
   const stretchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pill, setPill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const [pressedPanel, setPressedPanel] = useState<VocalexPanel | null>(null);
@@ -173,7 +176,30 @@ export default function VocalexApp() {
       paddingTop: 'env(safe-area-inset-top)',
       '--panel-dur': `${durMs}ms`,
     } as React.CSSProperties}>
-      <header className="flex-none px-6 pt-6 pb-1">
+      <header className="flex-none px-6 pt-6 pb-1" style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{
+          overflow: 'hidden',
+          flexShrink: 0,
+          width: headerBack ? '40px' : '0px',
+          opacity: headerBack ? 1 : 0,
+          transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
+        }}>
+          <button
+            onClick={() => headerBack?.()}
+            data-testid="vocalex-back-button"
+            aria-label="Back"
+            style={{
+              width: '32px', height: '32px', borderRadius: '50%',
+              background: 'var(--app-surface-high)',
+              border: '1px solid rgba(128,128,128,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', padding: 0,
+              transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
+          </button>
+        </div>
         <h1 style={{
           fontSize: '14px', fontWeight: 700,
           color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em',

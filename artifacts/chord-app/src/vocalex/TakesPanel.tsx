@@ -6,6 +6,7 @@ import {
 } from './takesDb';
 import { analyzeAudio, type VocalAnalysis, type AnalysisLabels } from './vocalAnalysis';
 import { useT } from '../lib/useT';
+import { setVocalexBack } from './headerBack';
 
 function formatDuration(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -625,6 +626,11 @@ function TakeDetailView({ take, onBack, onDelete }: {
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
+    setVocalexBack(() => onBack());
+    return () => setVocalexBack(null);
+  }, [onBack]);
+
+  useEffect(() => {
     const url = URL.createObjectURL(take.audioBlob);
     urlRef.current = url;
     const audio = new Audio(url);
@@ -723,15 +729,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
   return (
     <div style={{ padding: '16px 20px', minHeight: '100%' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <button onClick={onBack} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 4,
-          color: '#007aff', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 600,
-        }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-          {t.vocalex.takesTitle}
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 24 }}>
         <button
           onClick={() => setShowDeleteConfirm(true)}
           style={{

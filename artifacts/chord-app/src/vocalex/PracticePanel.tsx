@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useT } from '../lib/useT';
+import { setVocalexBack } from './headerBack';
 
 interface Tip {
   title: string;
@@ -189,6 +190,15 @@ export default function PracticePanel() {
     }, 250);
   }, []);
 
+  useEffect(() => {
+    if (!displaySection) {
+      setVocalexBack(null);
+      return;
+    }
+    setVocalexBack(() => goBack());
+    return () => setVocalexBack(null);
+  }, [displaySection, goBack]);
+
   if (displaySection) {
     const section = sections.find(s => s.id === displaySection)!;
     return (
@@ -198,20 +208,6 @@ export default function PracticePanel() {
           ? 'pp-slide-in 350ms cubic-bezier(0.22,1,0.36,1) both'
           : (transitioning ? 'pp-slide-out 250ms cubic-bezier(0.22,1,0.36,1) both' : 'none'),
       }}>
-        <button
-          onClick={goBack}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 6,
-            color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13,
-            padding: 0, marginBottom: 24,
-            transition: 'color 150ms ease',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-          {t.vocalex.back}
-        </button>
-
         <div style={{
           display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24,
           animation: 'pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) 50ms both',
