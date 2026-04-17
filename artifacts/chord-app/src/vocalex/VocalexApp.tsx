@@ -115,7 +115,7 @@ export default function VocalexApp() {
 
   const navHidden = useNavHidden();
   const [headerBack, setHeaderBack] = useState<(() => void) | null>(null);
-  useEffect(() => subscribeVocalexBack(setHeaderBack), []);
+  useEffect(() => subscribeVocalexBack(fn => setHeaderBack(() => fn)), []);
   const stretchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pill, setPill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const [pressedPanel, setPressedPanel] = useState<VocalexPanel | null>(null);
