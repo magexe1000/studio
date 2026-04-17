@@ -692,9 +692,14 @@ export default function LibraryPanel() {
                       <div style={{
                         position: 'absolute', right: '-4px', top: '50%',
                         transform: 'translateY(-50%)',
-                        opacity: 0.30, pointerEvents: 'none', width: '84px', height: '88px',
-                        maskImage: 'linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
-                        WebkitMaskImage: 'linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
+                        opacity: isDark ? 0.30 : 0.85,
+                        pointerEvents: 'none', width: '84px', height: '88px',
+                        maskImage: isDark
+                          ? 'linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)'
+                          : 'linear-gradient(to left, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%)',
+                        WebkitMaskImage: isDark
+                          ? 'linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)'
+                          : 'linear-gradient(to left, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%)',
                       }}>
                         <MiniChordPreview
                           frets={sampleChords[cat.type]!.guitar.frets}
