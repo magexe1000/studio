@@ -2380,3 +2380,146 @@ html[data-amoled="1"] #presets-panel { background: rgba(0,0,0,0.98) !important; 
     background: #000 !important;
   }
 }
+
+/* ────────────────────────────────────────────────────────
+   PDF Export view — Light theme readability overrides
+   The export sections were authored with dark-only inline
+   colors. These overrides remap them to light-friendly
+   values so every label, value, heading and surface stays
+   visible and on-brand in light mode.
+   ──────────────────────────────────────────────────────── */
+html[data-theme="light"] #view-Export,
+html[data-theme="light"] #export-preview-scroll {
+  background: #f6f6f8 !important;
+}
+html[data-theme="light"] #export-document {
+  color: #111 !important;
+}
+/* Section dividers — soften for light bg */
+html[data-theme="light"] #view-Export .export-section {
+  border-bottom-color: rgba(0,0,0,0.08) !important;
+}
+/* Cover hero title + subtitle */
+html[data-theme="light"] #exp-project-name {
+  color: #0d0d10 !important;
+}
+html[data-theme="light"] #exp-subtitle {
+  color: rgba(0,0,0,0.55) !important;
+}
+/* Section headings (STAGE PLOT / INPUT LIST / CONNECTIVITY / …) */
+html[data-theme="light"] #view-Export h2 {
+  color: #111 !important;
+}
+html[data-theme="light"] #view-Export h2 > span:nth-child(2) {
+  /* the "//" separator */
+  color: rgba(0,0,0,0.18) !important;
+}
+/* Generic muted labels: previously #222, #282828, #2e2e2e, #333, #3a3a3a, #484847, #adaaaa */
+html[data-theme="light"] #view-Export [style*="color:#222"],
+html[data-theme="light"] #view-Export [style*="color: #222"],
+html[data-theme="light"] #view-Export [style*="color:#282828"],
+html[data-theme="light"] #view-Export [style*="color: #282828"],
+html[data-theme="light"] #view-Export [style*="color:#2e2e2e"],
+html[data-theme="light"] #view-Export [style*="color: #2e2e2e"],
+html[data-theme="light"] #view-Export [style*="color:#333"],
+html[data-theme="light"] #view-Export [style*="color: #333"] {
+  color: rgba(0,0,0,0.55) !important;
+}
+html[data-theme="light"] #view-Export [style*="color:#3a3a3a"],
+html[data-theme="light"] #view-Export [style*="color: #3a3a3a"],
+html[data-theme="light"] #view-Export [style*="color:#484847"],
+html[data-theme="light"] #view-Export [style*="color: #484847"],
+html[data-theme="light"] #view-Export [style*="color:#adaaaa"],
+html[data-theme="light"] #view-Export [style*="color: #adaaaa"] {
+  color: rgba(0,0,0,0.78) !important;
+}
+/* "ADD ELEMENTS IN THE EDITOR…" / "NO ELEMENTS PLACED ON STAGE" empty states */
+html[data-theme="light"] #exp-canvas-empty,
+html[data-theme="light"] #exp-canvas-empty p {
+  color: rgba(0,0,0,0.55) !important;
+}
+/* Pure-white text used for hero / section titles (already remapped above, but
+   covers any other element that hard-codes color:#fff inside the export view) */
+html[data-theme="light"] #view-Export [style*="color:#fff"],
+html[data-theme="light"] #view-Export [style*="color: #fff"],
+html[data-theme="light"] #view-Export [style*="color:#ffffff"],
+html[data-theme="light"] #view-Export [style*="color: #ffffff"] {
+  color: #0d0d10 !important;
+}
+/* Translucent-white text fallbacks used for body copy */
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.38)"] {
+  color: rgba(0,0,0,0.55) !important;
+}
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.7)"],
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.75)"],
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.8)"] {
+  color: rgba(0,0,0,0.78) !important;
+}
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.5)"],
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.55)"],
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.6)"] {
+  color: rgba(0,0,0,0.6) !important;
+}
+/* Faint white surfaces for chips / cards / boxes */
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.02)"],
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.03)"],
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.04)"],
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.05)"] {
+  background: rgba(0,0,0,0.035) !important;
+}
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.06)"],
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.07)"],
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.08)"],
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.09)"],
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.1)"] {
+  border-color: rgba(0,0,0,0.10) !important;
+}
+/* The "//" inline separators in section headings used rgba(255,255,255,0.12) */
+html[data-theme="light"] #view-Export [style*="rgba(255,255,255,0.12)"] {
+  color: rgba(0,0,0,0.18) !important;
+}
+/* Stage plot canvas — invert the dark grid for light bg */
+html[data-theme="light"] #exp-canvas-wrap {
+  background: #ffffff !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px) !important;
+}
+/* Input list table headers — kept as a dark band; on light, give it a soft surface */
+html[data-theme="light"] .rd-input-table thead,
+html[data-theme="light"] .rd-input-table th,
+html[data-theme="light"] #view-Export table thead,
+html[data-theme="light"] #view-Export table th {
+  background: rgba(0,0,0,0.05) !important;
+  color: rgba(0,0,0,0.65) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+html[data-theme="light"] #view-Export table td {
+  color: rgba(0,0,0,0.78) !important;
+  border-color: rgba(0,0,0,0.06) !important;
+}
+/* Connectivity / requirement cards (FOH PROTOCOL, MONITOR/IEM, POWER REQUIREMENT…) */
+html[data-theme="light"] .rd-info-banner,
+html[data-theme="light"] .rd-mix-item {
+  background: rgba(0,0,0,0.035) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+html[data-theme="light"] .rd-info-banner p {
+  color: var(--accent) !important;
+}
+/* Section number badges (01, 02…) keep accent — already var(--accent) */
+/* Labels inside the cover metadata strip */
+html[data-theme="light"] #exp-doc-id,
+html[data-theme="light"] #exp-last-updated,
+html[data-theme="light"] #exp-version,
+html[data-theme="light"] #exp-el-count {
+  color: rgba(0,0,0,0.78) !important;
+}
+/* Drawer (Sections panel) labels were #adaaaa on dark */
+html[data-theme="light"] #exp-options-drawer button span:not(.material-symbols-outlined) {
+  color: rgba(0,0,0,0.62) !important;
+}
+html[data-theme="light"] #exp-options-drawer button {
+  border-bottom-color: rgba(0,0,0,0.06) !important;
+}
