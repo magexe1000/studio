@@ -2319,7 +2319,16 @@ function scToggleZones() {
 function _renderZones() {
   const svg = document.getElementById('sc-zones-svg');
   if (!svg) return;
-  if (!scZonesVisible) { svg.innerHTML = DOMPurify.sanitize(''); return; }
+  // Clear existing content (createElementNS-built nodes — no sanitizer needed)
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  if (!scZonesVisible) return;
+
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs) => {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  };
 
   // Use real canvas pixel dimensions so SVG text is never distorted
   const canvasEl = document.getElementById('stage-canvas');
@@ -2328,19 +2337,12 @@ function _renderZones() {
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.removeAttribute('preserveAspectRatio');
 
-  // ── Modern, minimal zone layout ───────────────────────────
   // BACK(top 25%) | middle 50% split L/C/R | FRONT(bottom 25%)
-  const bH   = H * 0.25;
-  const fH   = H * 0.25;
-  const midY = bH;
-  const midH = H - bH - fH;
-  const lW   = W * 0.25;
-  const rW   = W * 0.25;
-  const cX   = lW;
-  const cW   = W - lW - rW;
+  const bH = H * 0.25, fH = H * 0.25;
+  const midY = bH, midH = H - bH - fH;
+  const lW = W * 0.25, rW = W * 0.25;
+  const cX = lW, cW = W - lW - rW;
 
-  // Each zone gets a thin dashed border + a tiny corner label chip.
-  // No heavy fill — keeps the plot clean and modern.
   const accent = 'rgba(122,175,255,0.55)';
   const dim    = 'rgba(122,175,255,0.22)';
 
@@ -2352,47 +2354,48 @@ function _renderZones() {
     { x: cX,     y: midY, w: cW,  h: midH, label: 'CENTER', anchor: 'tc' },
   ];
 
-  // Chip dimensions scale with canvas, but stay readable
-  const chipH  = Math.max(14, Math.min(18, Math.round(H * 0.035)));
-  const chipFs = Math.round(chipH * 0.55);
-  const chipPad = Math.round(chipH * 0.55);
-  const inset  = 8; // distance from zone corner
-
-  function chip(z) {
-    const tw = z.label.length * (chipFs * 0.62) + chipPad * 2;
-    let cxp, cyp;
-    if (z.anchor === 'tl') { cxp = z.x + inset;             cyp = z.y + inset; }
-    else if (z.anchor === 'tr') { cxp = z.x + z.w - tw - inset; cyp = z.y + inset; }
-    else if (z.anchor === 'bl') { cxp = z.x + inset;             cyp = z.y + z.h - chipH - inset; }
-    else if (z.anchor === 'tc') { cxp = z.x + (z.w - tw) / 2;    cyp = z.y + inset; }
-    else                        { cxp = z.x + inset;             cyp = z.y + inset; }
-    return `
-      <rect x="${cxp}" y="${cyp}" width="${tw}" height="${chipH}" rx="${chipH/2}" ry="${chipH/2}"
-            fill="rgba(10,10,12,0.78)" stroke="${accent}" stroke-width="0.8"/>
-      <text x="${cxp + tw/2}" y="${cyp + chipH/2 + chipFs*0.34}"
-            text-anchor="middle" font-family="Manrope, sans-serif"
-            font-weight="800" font-size="${chipFs}" fill="${accent}"
-            letter-spacing="0.18em">${z.label}</text>`;
-  }
+  // Dashed zone borders
+  zones.forEach(z => {
+    svg.appendChild(mk('rect', {
+      x: z.x + 0.5, y: z.y + 0.5, width: z.w - 1, height: z.h - 1,
+      fill: 'none', stroke: dim, 'stroke-width': '1',
+      'stroke-dasharray': '3 4', rx: '2', ry: '2',
+    }));
+  });
 
   // Center stage origin marker (small cross at exact stage center)
   const ocx = W / 2, ocy = H / 2;
   const ocs = Math.max(6, Math.min(12, H * 0.018));
-  const origin = `
-    <line x1="${ocx-ocs}" y1="${ocy}" x2="${ocx+ocs}" y2="${ocy}" stroke="${dim}" stroke-width="0.8"/>
-    <line x1="${ocx}" y1="${ocy-ocs}" x2="${ocx}" y2="${ocy+ocs}" stroke="${dim}" stroke-width="0.8"/>
-    <circle cx="${ocx}" cy="${ocy}" r="2" fill="${accent}" fill-opacity="0.6"/>`;
+  svg.appendChild(mk('line', { x1: ocx-ocs, y1: ocy, x2: ocx+ocs, y2: ocy, stroke: dim, 'stroke-width': '0.8' }));
+  svg.appendChild(mk('line', { x1: ocx, y1: ocy-ocs, x2: ocx, y2: ocy+ocs, stroke: dim, 'stroke-width': '0.8' }));
+  svg.appendChild(mk('circle', { cx: ocx, cy: ocy, r: '2', fill: accent, 'fill-opacity': '0.6' }));
 
-  const borders = zones.map(z => `
-    <rect x="${z.x + 0.5}" y="${z.y + 0.5}" width="${z.w - 1}" height="${z.h - 1}"
-          fill="none" stroke="${dim}" stroke-width="1"
-          stroke-dasharray="3 4" rx="2" ry="2"/>`).join('');
-
-  // Use SVG profile so DOMPurify keeps <rect>/<line>/<text> elements
-  // (default HTML profile silently strips bare SVG tags, which is why the
-  // zones overlay was rendering as empty before).
-  svg.innerHTML = DOMPurify.sanitize(borders + origin + zones.map(chip).join(''), {
-    USE_PROFILES: { svg: true, svgFilters: true }
+  // Label chips
+  const chipH  = Math.max(14, Math.min(18, Math.round(H * 0.035)));
+  const chipFs = Math.round(chipH * 0.55);
+  const chipPad = Math.round(chipH * 0.55);
+  const inset  = 8;
+  zones.forEach(z => {
+    const tw = z.label.length * (chipFs * 0.62) + chipPad * 2;
+    let cxp, cyp;
+    if (z.anchor === 'tl')      { cxp = z.x + inset;             cyp = z.y + inset; }
+    else if (z.anchor === 'tr') { cxp = z.x + z.w - tw - inset;  cyp = z.y + inset; }
+    else if (z.anchor === 'bl') { cxp = z.x + inset;             cyp = z.y + z.h - chipH - inset; }
+    else if (z.anchor === 'tc') { cxp = z.x + (z.w - tw) / 2;    cyp = z.y + inset; }
+    else                        { cxp = z.x + inset;             cyp = z.y + inset; }
+    svg.appendChild(mk('rect', {
+      x: cxp, y: cyp, width: tw, height: chipH,
+      rx: chipH/2, ry: chipH/2,
+      fill: 'rgba(10,10,12,0.78)', stroke: accent, 'stroke-width': '0.8',
+    }));
+    const t = mk('text', {
+      x: cxp + tw/2, y: cyp + chipH/2 + chipFs*0.34,
+      'text-anchor': 'middle', 'font-family': 'Manrope, sans-serif',
+      'font-weight': '800', 'font-size': chipFs, fill: accent,
+      'letter-spacing': '0.18em',
+    });
+    t.textContent = z.label;
+    svg.appendChild(t);
   });
 }
 
