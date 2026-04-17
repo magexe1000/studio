@@ -293,17 +293,21 @@ const InstrumentRow = memo(({
       {STAFF_YF.map((yf, i) => (
         <line key={i} x1={0} y1={yf * ROW_H} x2={totalW} y2={yf * ROW_H} stroke={staffColor} strokeWidth={0.7} />
       ))}
-      {/* Beat sub-dividers (gridEmphasis=true makes beat lines bolder) */}
+      {/* Per-step cell dividers — gives every note slot a visible square box */}
       {rowMeasures.map((_, mi) =>
-        Array.from({ length: spm / stepsPerBeat }, (__, bi) => {
-          if (bi === 0) return null;
-          const x = (mi * spm + bi * stepsPerBeat) * STEP_W;
-          return <line key={`b-${mi}-${bi}`} x1={x} y1={0} x2={x} y2={ROW_H}
+        Array.from({ length: spm }, (__, s) => {
+          if (s === 0) return null;
+          const x = (mi * spm + s) * STEP_W;
+          const onBeat = s % stepsPerBeat === 0;
+          return <line key={`s-${mi}-${s}`} x1={x} y1={0} x2={x} y2={ROW_H}
             stroke={staffColor}
-            strokeWidth={gridEmphasis ? 0.8 : 0.4}
-            opacity={gridEmphasis ? 0.7 : 0.3} />;
+            strokeWidth={onBeat ? (gridEmphasis ? 0.8 : 0.4) : 0.3}
+            opacity={onBeat ? (gridEmphasis ? 0.7 : 0.3) : 0.18} />;
         })
       )}
+      {/* Top + bottom row borders — close the cell squares vertically */}
+      <line x1={0} y1={0} x2={totalW} y2={0} stroke={staffColor} strokeWidth={0.4} opacity={0.25} />
+      <line x1={0} y1={ROW_H} x2={totalW} y2={ROW_H} stroke={staffColor} strokeWidth={0.4} opacity={0.25} />
       {/* Measure bar lines */}
       {rowMeasures.map((_, mi) => (
         <line key={mi} x1={mi * MEASURE_W} y1={0} x2={mi * MEASURE_W} y2={ROW_H} stroke={barColor} strokeWidth={mi === 0 ? 1.5 : 1.2} />
