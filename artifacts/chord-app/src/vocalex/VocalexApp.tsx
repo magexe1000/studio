@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { useT } from '../lib/useT';
-import { useScrollHide, useNavHidden } from '../lib/navScroll';
+import { useScrollHide, useNavHidden, setNavHidden } from '../lib/navScroll';
 
 const PracticePanelLazy = lazy(() => import('./PracticePanel'));
 const PitchPanelLazy = lazy(() => import('./PitchPanel'));
@@ -85,6 +85,8 @@ export default function VocalexApp() {
     setExitingTab(prevTab.current);
     setVisibleTab(activeTab);
     prevTab.current = activeTab;
+    // Always show the nav when switching tabs — some panels (e.g. pitch) are not scrollable.
+    setNavHidden(false);
     const ti = setTimeout(() => setExitingTab(null), durMs + 20);
     return () => clearTimeout(ti);
   }, [activeTab, durMs]);

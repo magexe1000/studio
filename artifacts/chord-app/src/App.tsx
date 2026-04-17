@@ -156,6 +156,9 @@ export default function App() {
     if (settings.appMode === 'stage'   && prevAppMode.current !== 'stage')   fireSplash(setStageSplash);
     if (settings.appMode === 'groovex' && prevAppMode.current !== 'groovex') fireSplash(setGroovexSplash);
     if (settings.appMode === 'vocalex' && prevAppMode.current !== 'vocalex') fireSplash(setVocalexSplash);
+    // Always show the nav when switching apps — non-scrollable sections (e.g. Stage)
+    // have no way to scroll up to reveal it, so we reset visibility on every mode change.
+    if (prevAppMode.current !== settings.appMode) setNavHidden(false);
     prevAppMode.current = settings.appMode;
     return () => splashTimers.current.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
