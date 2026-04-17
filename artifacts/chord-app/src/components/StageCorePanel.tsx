@@ -484,10 +484,17 @@ export default function StagexPanel() {
         }}>
           <button
             onClick={() => {
-              // Bypass throttle for back navigation — must always fire
+              // Drive the iframe directly using React's known view, so we don't
+              // depend on the iframe's internal state.currentView staying in sync.
               try {
-                const win = iframeRef.current?.contentWindow as StageWin | null;
-                if (win?.stageGoBack?.()) return;
+                const win = iframeRef.current?.contentWindow as (Record<string, unknown> & { switchView?: (v: string) => void }) | null;
+                const sv = win?.switchView;
+                if (typeof sv === 'function') {
+                  if (curView === 'Export') { sv('Editor'); return; }
+                  if (['Rider', 'Setlist', 'Gear', 'Members'].includes(curView)) { sv('SetupHub'); return; }
+                  sv('Editor');
+                  return;
+                }
               } catch {}
               callIframe('stageGoBack');
             }}
