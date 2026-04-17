@@ -1905,18 +1905,55 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 <div id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
 
 <!-- ═══════════════ CUSTOM CONFIRM MODAL ═══════════════ -->
-<div id="confirm-modal" style="display:none;position:absolute;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);">
-  <div style="width:380px;max-width:92vw;background:#111;border:1px solid #2a2a2a;box-shadow:0 24px 80px rgba(0,0,0,0.9);">
-    <div style="padding:28px 28px 0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <i data-lucide="alert-triangle" style="width:18px;height:18px;color:var(--hot);flex-shrink:0;"></i>
-        <span style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--hot);">Confirm</span>
+<!-- Modern confirm modal — themed via CSS vars below -->
+<style>
+  #confirm-modal {
+    --sc-cf-bg:           #1a1a1c;
+    --sc-cf-border:       rgba(255,255,255,0.07);
+    --sc-cf-title:        #f5f4f2;
+    --sc-cf-msg:          #a8a6a5;
+    --sc-cf-cancel-bg:    rgba(255,255,255,0.05);
+    --sc-cf-cancel-bg-h:  rgba(255,255,255,0.09);
+    --sc-cf-cancel-fg:    #e7e5e4;
+    --sc-cf-cancel-bd:    rgba(255,255,255,0.08);
+    --sc-cf-icon-tint:    rgba(239,68,68,0.13);
+    --sc-cf-overlay:      rgba(8,8,10,0.55);
+    --sc-cf-shadow:       0 30px 80px rgba(0,0,0,0.55), 0 8px 24px rgba(0,0,0,0.32);
+  }
+  [data-theme="light"] #confirm-modal {
+    --sc-cf-bg:           #ffffff;
+    --sc-cf-border:       rgba(0,0,0,0.06);
+    --sc-cf-title:        #1a1a1a;
+    --sc-cf-msg:          #6e6d6b;
+    --sc-cf-cancel-bg:    rgba(0,0,0,0.04);
+    --sc-cf-cancel-bg-h:  rgba(0,0,0,0.08);
+    --sc-cf-cancel-fg:    #1a1a1a;
+    --sc-cf-cancel-bd:    rgba(0,0,0,0.08);
+    --sc-cf-icon-tint:    rgba(239,68,68,0.10);
+    --sc-cf-overlay:      rgba(20,20,24,0.32);
+    --sc-cf-shadow:       0 24px 60px rgba(0,0,0,0.18), 0 6px 18px rgba(0,0,0,0.08);
+  }
+  @keyframes sc-cf-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes sc-cf-pop {
+    from { opacity: 0; transform: scale(0.92) translateY(8px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+  }
+</style>
+<div id="confirm-modal" style="display:none;position:absolute;inset:0;z-index:9999;align-items:center;justify-content:center;background:var(--sc-cf-overlay);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);padding:20px;animation:sc-cf-fade 180ms ease-out;">
+  <div style="width:100%;max-width:360px;background:var(--sc-cf-bg);border:1px solid var(--sc-cf-border);border-radius:20px;box-shadow:var(--sc-cf-shadow);overflow:hidden;animation:sc-cf-pop 240ms cubic-bezier(0.34,1.4,0.5,1);">
+    <div style="padding:28px 24px 6px;display:flex;flex-direction:column;align-items:center;text-align:center;">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--sc-cf-icon-tint);display:flex;align-items:center;justify-content:center;margin-bottom:18px;">
+        <i data-lucide="alert-triangle" style="width:24px;height:24px;color:var(--hot);"></i>
       </div>
-      <p id="confirm-msg" style="font-family:'Inter';font-size:13px;color:#c8c7c4;line-height:1.6;margin:0;"></p>
+      <h3 style="font-family:'Manrope',sans-serif;font-size:17px;font-weight:700;color:var(--sc-cf-title);margin:0 0 8px;letter-spacing:-0.01em;">Confirm</h3>
+      <p id="confirm-msg" style="font-family:'Inter',sans-serif;font-size:14px;color:var(--sc-cf-msg);line-height:1.55;margin:0;max-width:300px;"></p>
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;padding:20px 28px;">
-      <button onclick="doConfirm(false)" style="padding:9px 20px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:#1a1a1a;color:#767575;border:1px solid #2a2a2a;cursor:pointer;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#767575'">Cancel</button>
-      <button onclick="doConfirm(true)" style="padding:9px 24px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;background:var(--hot);color:#fff;border:none;cursor:pointer;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">Confirm</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:22px 22px 22px;">
+      <button onclick="doConfirm(false)" style="padding:13px 16px;font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;background:var(--sc-cf-cancel-bg);color:var(--sc-cf-cancel-fg);border:1px solid var(--sc-cf-cancel-bd);border-radius:12px;cursor:pointer;transition:background 160ms ease;" onmouseover="this.style.background='var(--sc-cf-cancel-bg-h)'" onmouseout="this.style.background='var(--sc-cf-cancel-bg)'">Cancel</button>
+      <button onclick="doConfirm(true)" style="padding:13px 16px;font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;background:var(--hot);color:#fff;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 14px rgba(239,68,68,0.30);transition:box-shadow 160ms ease, transform 120ms ease;" onmouseover="this.style.boxShadow='0 6px 20px rgba(239,68,68,0.45)';this.style.transform='translateY(-1px)'" onmouseout="this.style.boxShadow='0 4px 14px rgba(239,68,68,0.30)';this.style.transform='translateY(0)'">Confirm</button>
     </div>
   </div>
 </div>
