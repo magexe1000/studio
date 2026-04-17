@@ -658,7 +658,6 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
 
       {/* ── PERFORMANCE ── */}
       <SectionHeader icon="speed" title="Performance" />
-      <GlobalHint />
       <div style={cardStyle}>
         <SettingRow
           label="High refresh rate"
@@ -679,6 +678,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
           <Toggle value={settings.performanceMode} onChange={v => updateSettings({ performanceMode: v })} accentFrom={accent.from} accentTo={accent.to} />
         </SettingRow>
       </div>
+      <GlobalHint />
 
       {/* ── LANGUAGE ── */}
       <SectionHeader icon="language" title={t.settings.sections.language} />
