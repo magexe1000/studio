@@ -2343,8 +2343,11 @@ function _renderZones() {
   const lW = W * 0.25, rW = W * 0.25;
   const cX = lW, cW = W - lW - rW;
 
-  const accent = 'rgba(122,175,255,0.55)';
-  const dim    = 'rgba(122,175,255,0.22)';
+  // Light mode needs a darker, higher-opacity stroke so the dashed borders
+  // are clearly visible against the white stage background.
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const accent = isLight ? 'rgba(30, 90, 200, 0.95)' : 'rgba(122,175,255,0.55)';
+  const dim    = isLight ? 'rgba(30, 90, 200, 0.55)' : 'rgba(122,175,255,0.22)';
 
   const zones = [
     { x: 0,      y: 0,    w: W,   h: bH,   label: 'BACK',   anchor: 'tl' },
