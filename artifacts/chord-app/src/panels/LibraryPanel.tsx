@@ -693,12 +693,10 @@ export default function LibraryPanel() {
                       <div style={{
                         position: 'absolute', right: '6px', top: '50%',
                         transform: 'translateY(-50%)',
-                        opacity: isDark ? 0.30 : 1,
+                        opacity: isDark ? 0.30 : 0.55,
                         pointerEvents: 'none', width: '72px', height: '80px',
-                        ...(isDark ? {
-                          maskImage: 'linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
-                          WebkitMaskImage: 'linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
-                        } : {}),
+                        maskImage: 'linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
+                        WebkitMaskImage: 'linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
                       }}>
                         <MiniChordPreview
                           frets={sampleChords[cat.type]!.guitar.frets}
