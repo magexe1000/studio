@@ -70,7 +70,7 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
         }}
       >
         {currentMode === 'drums' ? <DrumexLogo size={size} /> : currentMode === 'stage' ? <StagexLogoIcon size={size} /> : currentMode === 'groovex' ? <GroovexLogo size={size} /> : currentMode === 'vocalex' ? <VocalexLogo size={size} /> : <ChordexLogo size={size} />}
-        <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color: resolvedColor, transform: currentMode === 'vocalex' ? 'translateY(3px)' : undefined }}>
+        <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'Manrope', letterSpacing: '-0.02em', color: resolvedColor }}>
           {currentMode === 'drums' ? 'Drumex' : currentMode === 'stage' ? 'Stagex' : currentMode === 'groovex' ? 'Groovex' : currentMode === 'vocalex' ? 'Vocalex' : 'Chordex'}
         </span>
         <span style={{
