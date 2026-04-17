@@ -365,7 +365,10 @@ export default function StagexPanel() {
     return () => setBackHandler(null);
   }, []);
 
-  const collapseHeader = (isLandscape && curView === 'Editor') || (curView === 'Export' && stageNavHidden);
+  // In the Export (PDF) view we hide the top header AND the bottom nav
+  // outright — the export preview is its own self-contained, full-screen UI.
+  const collapseHeader = (isLandscape && curView === 'Editor') || curView === 'Export';
+  const hideBottomNav  = curView === 'Export';
   const isLandscapeEditor = isLandscape && curView === 'Editor';
 
   const navTabs: { view: string; label: string; icon: string }[] = [
@@ -737,7 +740,10 @@ export default function StagexPanel() {
             position: 'absolute',
             bottom: 'max(10px, env(safe-area-inset-bottom))',
             left: '50%',
-            transform: `translateX(-50%) translateY(${(isLandscapeEditor ? landscapeNavHidden : stageNavHidden) ? '140%' : '0'})`,
+            transform: `translateX(-50%) translateY(${
+              hideBottomNav || (isLandscapeEditor ? landscapeNavHidden : stageNavHidden) ? '140%' : '0'
+            })`,
+            pointerEvents: hideBottomNav ? 'none' : 'auto',
             width: isLandscapeEditor ? '70%' : '90%',
             maxWidth: isLandscapeEditor ? 320 : 400,
             display: 'flex',
