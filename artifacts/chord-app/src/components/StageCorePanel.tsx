@@ -419,8 +419,11 @@ export default function StagexPanel() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* Animate pill when view changes */
+  /* Animate pill when view changes + always show nav on view change */
   useEffect(() => {
+    // Any view transition (including back-button from scrollable sections) resets nav visibility
+    setStageNavHidden(false);
+
     const newIdx = navTabs.findIndex(t => isTabActive(t.view));
     if (newIdx < 0) return;
     const oldIdx = prevTabRef.current;
