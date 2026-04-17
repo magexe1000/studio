@@ -190,19 +190,15 @@ export default function StudioHub() {
   useEffect(() => {
     if (!settings.hubChimeEnabled) return;
     if (_hubChimePlayed) return;
+    _hubChimePlayed = true;
 
-    let timerId: number | null = null;
     let played = false;
-
     const fire = () => {
       if (played) return;
       played = true;
-      _hubChimePlayed = true;
-      if (timerId !== null) window.clearTimeout(timerId);
       cleanup();
       playStudioChime();
     };
-
     const onGesture = () => fire();
     const cleanup = () => {
       window.removeEventListener('pointerdown', onGesture);
@@ -211,29 +207,18 @@ export default function StudioHub() {
       window.removeEventListener('click', onGesture);
     };
 
-    // Listen for the first user gesture (required by browser autoplay policy).
+    // Try to play immediately when the hub appears (works if audio is
+    // already unlocked from any previous interaction this session).
+    const id = window.setTimeout(() => fire(), 620);
+
+    // Fallback: if browser autoplay blocked it, fire on the first gesture.
     window.addEventListener('pointerdown', onGesture, { once: true, passive: true });
     window.addEventListener('touchstart', onGesture, { once: true, passive: true });
     window.addEventListener('keydown',    onGesture, { once: true });
     window.addEventListener('click',      onGesture, { once: true });
 
-    // If audio is already unlocked from a previous interaction, fire on schedule.
-    timerId = window.setTimeout(() => {
-      try {
-        const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        if (!AC) return;
-        const probe = new AC();
-        if (probe.state === 'running') {
-          probe.close().catch(() => {});
-          fire();
-        } else {
-          probe.close().catch(() => {});
-        }
-      } catch { /* noop */ }
-    }, 620);
-
     return () => {
-      if (timerId !== null) window.clearTimeout(timerId);
+      window.clearTimeout(id);
       cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
