@@ -201,6 +201,43 @@ export default function StagexPanel() {
   const [stageNavHidden, setStageNavHidden] = useState(false);
   const [landscapeNavHidden, setLandscapeNavHidden] = useState(false);
   const [propPanelOpen, setPropPanelOpen] = useState(false);
+  const [pdfSheetOpen, setPdfSheetOpen] = useState(false);
+  const [pdfFileName, setPdfFileName] = useState('');
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [canShareFiles, setCanShareFiles] = useState(false);
+
+  useEffect(() => {
+    try {
+      const probe = new File([new Blob(['x'], { type: 'application/pdf' })], 'x.pdf', { type: 'application/pdf' });
+      setCanShareFiles(!!(navigator.canShare && navigator.canShare({ files: [probe] })));
+    } catch {
+      setCanShareFiles(false);
+    }
+  }, []);
+
+  const openPdfSheet = useCallback(() => {
+    try {
+      const doc = iframeRef.current?.contentDocument;
+      const name = doc?.getElementById('exp-project-name')?.textContent?.trim() || 'Stagex_Export';
+      setPdfFileName(name);
+    } catch {
+      setPdfFileName('Stagex_Export');
+    }
+    setPdfBusy(false);
+    setPdfSheetOpen(true);
+  }, []);
+
+  const runPdfExport = useCallback(async (action: 'save' | 'share') => {
+    const win = iframeRef.current?.contentWindow as (Window & { exportPDFWithOptions?: (o: { name: string; action: string }) => Promise<void> }) | null;
+    if (!win?.exportPDFWithOptions) return;
+    setPdfBusy(true);
+    try {
+      await win.exportPDFWithOptions({ name: pdfFileName.trim() || 'Stagex_Export', action });
+    } finally {
+      setPdfBusy(false);
+      setPdfSheetOpen(false);
+    }
+  }, [pdfFileName]);
 
   const [isLandscape, setIsLandscape] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches
@@ -604,16 +641,15 @@ export default function StagexPanel() {
               <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>tune</span>
             </button>
             <button
-              onClick={() => callIframe('exportPDF')}
+              onClick={openPdfSheet}
               title="Export PDF"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 32, height: 32,
-                background: 'var(--accent)',
-                color: '#fff',
-                border: 'none',
+                background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)',
+                color: accent.from,
+                border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
                 borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
-                boxShadow: '0 2px 12px var(--accent-30)',
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>picture_as_pdf</span>
@@ -835,6 +871,148 @@ export default function StagexPanel() {
           })}
         </div>
       </div>
+
+      {/* ── PDF Export Bottom Sheet ───────────────────────── */}
+      {pdfSheetOpen && (
+        <>
+          <div
+            onClick={() => !pdfBusy && setPdfSheetOpen(false)}
+            style={{
+              position: 'absolute', inset: 0, zIndex: 9998,
+              background: 'rgba(0,0,0,0.55)',
+              animation: 'pdfSheetFade 180ms ease-out',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 9999,
+              background: isLight ? '#ffffff' : (isAmoled ? '#000' : '#161616'),
+              borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+              borderTopLeftRadius: 20, borderTopRightRadius: 20,
+              padding: '14px 18px 22px',
+              boxShadow: '0 -12px 40px rgba(0,0,0,0.45)',
+              animation: 'pdfSheetSlide 240ms cubic-bezier(.16,1,.3,1)',
+            }}
+          >
+            <div style={{
+              width: 38, height: 4, borderRadius: 2,
+              background: isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.22)',
+              margin: '0 auto 14px',
+            }} />
+            <div style={{
+              fontFamily: 'Manrope, sans-serif',
+              fontSize: 11, fontWeight: 800,
+              textTransform: 'uppercase', letterSpacing: '0.14em',
+              color: accent.from, marginBottom: 14,
+            }}>
+              {tr.stagex.pdfSheetTitle}
+            </div>
+
+            <label style={{
+              display: 'block',
+              fontFamily: 'Manrope, sans-serif',
+              fontSize: 10, fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '0.1em',
+              color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(180,185,200,0.65)',
+              marginBottom: 6,
+            }}>
+              {tr.stagex.pdfSheetName}
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18 }}>
+              <input
+                type="text"
+                value={pdfFileName}
+                onChange={(e) => setPdfFileName(e.target.value)}
+                disabled={pdfBusy}
+                maxLength={64}
+                style={{
+                  flex: 1,
+                  padding: '11px 12px',
+                  background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
+                  borderRadius: 10,
+                  color: isLight ? '#111' : '#fff',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: 14,
+                  outline: 'none',
+                }}
+              />
+              <span style={{
+                fontFamily: 'Inter, sans-serif',
+                fontSize: 12, fontWeight: 600,
+                color: isLight ? 'rgba(0,0,0,0.45)' : 'rgba(180,185,200,0.55)',
+                paddingRight: 4,
+              }}>.pdf</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                onClick={() => runPdfExport('save')}
+                disabled={pdfBusy || !pdfFileName.trim()}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  width: '100%', height: 48,
+                  background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                  color: '#fff', border: 'none', borderRadius: 12,
+                  fontFamily: 'Manrope, sans-serif', fontSize: 13, fontWeight: 800,
+                  textTransform: 'uppercase', letterSpacing: '0.08em',
+                  cursor: pdfBusy ? 'wait' : 'pointer',
+                  opacity: pdfBusy || !pdfFileName.trim() ? 0.55 : 1,
+                  boxShadow: `0 4px 18px ${accent.from}44`,
+                  transition: 'opacity 150ms',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18, lineHeight: 1 }}>download</span>
+                {tr.stagex.pdfSheetSave}
+              </button>
+
+              {canShareFiles && (
+                <button
+                  onClick={() => runPdfExport('share')}
+                  disabled={pdfBusy || !pdfFileName.trim()}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    width: '100%', height: 48,
+                    background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+                    color: isLight ? '#111' : '#fff',
+                    border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
+                    borderRadius: 12,
+                    fontFamily: 'Manrope, sans-serif', fontSize: 13, fontWeight: 800,
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    cursor: pdfBusy ? 'wait' : 'pointer',
+                    opacity: pdfBusy || !pdfFileName.trim() ? 0.55 : 1,
+                    transition: 'opacity 150ms',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, lineHeight: 1 }}>ios_share</span>
+                  {tr.stagex.pdfSheetShare}
+                </button>
+              )}
+
+              <button
+                onClick={() => setPdfSheetOpen(false)}
+                disabled={pdfBusy}
+                style={{
+                  width: '100%', height: 44,
+                  background: 'transparent',
+                  color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(180,185,200,0.7)',
+                  border: 'none',
+                  fontFamily: 'Manrope, sans-serif', fontSize: 12, fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.1em',
+                  cursor: 'pointer',
+                  opacity: pdfBusy ? 0.4 : 1,
+                }}
+              >
+                {tr.stagex.pdfSheetCancel}
+              </button>
+            </div>
+          </div>
+          <style>{`
+            @keyframes pdfSheetFade { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes pdfSheetSlide { from { transform: translateY(100%); } to { transform: translateY(0); } }
+          `}</style>
+        </>
+      )}
     </div>
   );
 }

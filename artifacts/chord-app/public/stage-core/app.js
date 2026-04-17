@@ -4933,6 +4933,13 @@ function _loadScript(src) {
     s.onload = res; s.onerror = rej; document.head.appendChild(s);
   });
 }
+// Allow external callers (parent React shell) to override filename + action.
+// action: 'save' (default, downloads) | 'share' (Web Share API with file)
+window.__pdfExportOptions = null;
+window.exportPDFWithOptions = function(opts) {
+  window.__pdfExportOptions = opts || null;
+  return exportPDF();
+};
 async function exportPDF() {
   // Lazy-load heavy PDF libs only when actually needed
   await Promise.all([
@@ -5106,8 +5113,32 @@ async function exportPDF() {
     for (const cvs of sections) { if (cvs) placeSection(cvs); }
 
     const projectName = (document.getElementById('exp-project-name') || {}).textContent || 'STAGE_CORE_V1';
-    pdf.save(projectName.trim().replace(/\s+/g, '_') + '_Export.pdf');
-    showToast(T('pdfSaved'));
+    const opts = window.__pdfExportOptions || {};
+    window.__pdfExportOptions = null;
+    const baseName = (opts.name && opts.name.trim()) || projectName.trim();
+    const fileName = baseName.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_').replace(/\.pdf$/i, '') + '.pdf';
+
+    if (opts.action === 'share' && navigator.canShare) {
+      try {
+        const blob = pdf.output('blob');
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: baseName, text: baseName });
+          showToast(T('pdfSaved'));
+        } else {
+          pdf.save(fileName);
+          showToast(T('pdfSaved'));
+        }
+      } catch (shareErr) {
+        if (shareErr && shareErr.name !== 'AbortError') {
+          pdf.save(fileName);
+          showToast(T('pdfSaved'));
+        }
+      }
+    } else {
+      pdf.save(fileName);
+      showToast(T('pdfSaved'));
+    }
   } catch (err) {
     console.error('PDF export error:', err);
     showToast(T('pdfFailed'));

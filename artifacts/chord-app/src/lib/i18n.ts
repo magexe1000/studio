@@ -719,6 +719,11 @@ const translations = {
       addInstrument: 'Add instrument',
       showNav: 'Show navigation',
       hideNav: 'Hide navigation',
+      pdfSheetTitle: 'Export PDF',
+      pdfSheetName: 'File name',
+      pdfSheetSave: 'Save to device',
+      pdfSheetShare: 'Share',
+      pdfSheetCancel: 'Cancel',
     },
 
     /* ── Apply To Sheet ── */
@@ -1439,6 +1444,11 @@ const translations = {
       addInstrument: 'Agregar instrumento',
       showNav: 'Mostrar navegación',
       hideNav: 'Ocultar navegación',
+      pdfSheetTitle: 'Exportar PDF',
+      pdfSheetName: 'Nombre del archivo',
+      pdfSheetSave: 'Guardar en dispositivo',
+      pdfSheetShare: 'Compartir',
+      pdfSheetCancel: 'Cancelar',
     },
 
     /* ── Apply To Sheet ── */
