@@ -267,10 +267,15 @@ export default function StagexPanel() {
   const showBack = curView === 'Rider' || curView === 'Setlist' || curView === 'Gear' || curView === 'Members' || curView === 'Export';
 
   const lastCallTime = useRef(0);
+  // Functions that are idempotent navigation actions and should never be
+  // throttled — spam-tapping Stage/Setup/Preferences must always feel instant.
+  const NO_THROTTLE_FNS = new Set(['switchView', 'stageGoBack']);
   const callIframe = useCallback((fn: string, arg?: string) => {
-    const now = Date.now();
-    if (now - lastCallTime.current < 200) return;
-    lastCallTime.current = now;
+    if (!NO_THROTTLE_FNS.has(fn)) {
+      const now = Date.now();
+      if (now - lastCallTime.current < 200) return;
+      lastCallTime.current = now;
+    }
     const iframe = iframeRef.current;
     if (!iframe) return;
     try {
