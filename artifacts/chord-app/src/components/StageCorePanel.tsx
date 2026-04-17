@@ -596,7 +596,7 @@ export default function StagexPanel() {
                 display: 'flex', alignItems: 'center', gap: 5,
                 height: 32, padding: '0 12px',
                 background: 'var(--accent)',
-                color: 'var(--accent-dark, #000)',
+                color: '#fff',
                 border: 'none',
                 borderRadius: 16,
                 cursor: 'pointer', flexShrink: 0,
