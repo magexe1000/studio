@@ -5271,6 +5271,7 @@ function refreshExport() {
   }
   applyTranslations();
   _initExportSwipeBack();
+  _initExportScrollHide();
 }
 
 function refreshExportCanvas() {
@@ -5804,6 +5805,67 @@ window.stageGoBack = function() {
   }
   return false;
 };
+
+// Hide parent's top header + bottom nav while scrolling down inside the export
+// preview, and reveal them when scrolling up. Posts {type:'sc-scroll-dir', down}
+// to the React parent (StageCorePanel listens for this).
+//
+// Bounce protection: native overscroll at the top/bottom of the list causes
+// scrollTop to flicker, which previously made the bottom nav re-trigger its
+// slide-in/out animation forever. We solve this by:
+//   • Clamping scrollTop into the valid [0, maxScroll] range before reading it.
+//   • Ignoring direction changes once we are within OVERSCROLL_PAD of either
+//     end — when bouncing at the bottom we keep the bars hidden, and at the
+//     top we keep them shown.
+//   • Requiring a minimum delta (DELTA_MIN) so micro-jitter doesn't toggle.
+function _initExportScrollHide() {
+  const scroll = document.getElementById('export-preview-scroll');
+  if (!scroll || scroll._scrollHideInit) return;
+  scroll._scrollHideInit = true;
+
+  const TOP_THRESHOLD  = 30;   // always show bars near the top
+  const DELTA_MIN      = 6;    // ignore tiny scroll jitter
+  const OVERSCROLL_PAD = 4;    // ignore rubber-band wobble near edges
+
+  let lastY = 0;
+  let lastDir = false; // false = up/shown, true = down/hidden
+  let ticking = false;
+
+  const post = (down) => {
+    if (down === lastDir) return;
+    lastDir = down;
+    try { window.parent?.postMessage({ type: 'sc-scroll-dir', down }, '*'); } catch (_) {}
+  };
+
+  const update = () => {
+    ticking = false;
+    const max = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+    // Clamp so iOS/Android rubber-band overscroll can't drive direction flips.
+    const y = Math.max(0, Math.min(max, scroll.scrollTop));
+
+    // Near the top: always reveal the bars.
+    if (y <= TOP_THRESHOLD) { post(false); lastY = y; return; }
+
+    // Near the bottom: keep current state; bounce should not re-trigger anything.
+    if (max - y <= OVERSCROLL_PAD) { lastY = y; return; }
+
+    const dy = y - lastY;
+    if (Math.abs(dy) < DELTA_MIN) return;
+    post(dy > 0);
+    lastY = y;
+  };
+
+  scroll.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(update);
+  }, { passive: true });
+
+  // Reset state every time we (re-)enter the export view.
+  lastY = scroll.scrollTop || 0;
+  lastDir = false;
+  try { window.parent?.postMessage({ type: 'sc-scroll-dir', down: false }, '*'); } catch (_) {}
+}
 
 function _initExportSwipeBack() {
   const scroll = document.getElementById('export-preview-scroll');
