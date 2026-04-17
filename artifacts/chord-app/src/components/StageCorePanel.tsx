@@ -483,7 +483,14 @@ export default function StagexPanel() {
           transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
         }}>
           <button
-            onClick={() => callIframe('stageGoBack')}
+            onClick={() => {
+              // Bypass throttle for back navigation — must always fire
+              try {
+                const win = iframeRef.current?.contentWindow as StageWin | null;
+                if (win?.stageGoBack?.()) return;
+              } catch {}
+              callIframe('stageGoBack');
+            }}
             className="btn-smooth"
             aria-label="Back"
             style={{
@@ -563,6 +570,45 @@ export default function StagexPanel() {
               <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>picture_as_pdf</span>
             </button>
 
+          </div>
+        )}
+
+        {curView === 'Export' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              onClick={() => callIframe('toggleExportOptions')}
+              title="Sections"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 32, height: 32,
+                background: 'var(--accent-08)',
+                color: 'var(--accent)',
+                border: '1px solid var(--accent-20)',
+                borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>tune</span>
+            </button>
+            <button
+              onClick={() => callIframe('exportPDF')}
+              title="Export PDF"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                height: 32, padding: '0 12px',
+                background: 'var(--accent)',
+                color: 'var(--accent-dark, #000)',
+                border: 'none',
+                borderRadius: 16,
+                cursor: 'pointer', flexShrink: 0,
+                fontFamily: 'Manrope, sans-serif',
+                fontSize: 9, fontWeight: 800,
+                textTransform: 'uppercase', letterSpacing: '0.1em',
+                boxShadow: '0 2px 12px var(--accent-30)',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 13, lineHeight: 1 }}>picture_as_pdf</span>
+              PDF
+            </button>
           </div>
         )}
       </div>
