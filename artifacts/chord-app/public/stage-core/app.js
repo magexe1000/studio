@@ -5120,23 +5120,32 @@ async function exportPDF() {
     const baseName = (opts.name && opts.name.trim()) || projectName.trim();
     const fileName = baseName.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_').replace(/\.pdf$/i, '') + '.pdf';
 
-    if (opts.action === 'share' && navigator.canShare) {
+    if (opts.action === 'share' && typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      const blob = pdf.output('blob');
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+      // Try a real file share first (Web Share API Level 2). Some Android
+      // WebViews report canShare({files})===false even though share() works,
+      // so we attempt the share regardless and only fall back on real errors.
+      let shared = false;
       try {
-        const blob = pdf.output('blob');
-        const file = new File([blob], fileName, { type: 'application/pdf' });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: baseName, text: baseName });
-          showToast(T('pdfSaved'));
-        } else {
-          pdf.save(fileName);
-          showToast(T('pdfSaved'));
-        }
+        await navigator.share({ files: [file], title: baseName, text: baseName });
+        shared = true;
       } catch (shareErr) {
-        if (shareErr && shareErr.name !== 'AbortError') {
-          pdf.save(fileName);
-          showToast(T('pdfSaved'));
+        if (shareErr && shareErr.name === 'AbortError') {
+          // User dismissed the native share sheet — leave the file unsaved.
+          shared = true;
         }
       }
+      if (!shared) {
+        // File share rejected by the platform. Fall back to a URL share so the
+        // user still gets the native share sheet, then also save the PDF so it
+        // isn't lost. If even URL share fails, we just save.
+        try {
+          await navigator.share({ title: baseName, text: baseName });
+        } catch (_) { /* ignored — saving below */ }
+        pdf.save(fileName);
+      }
+      showToast(T('pdfSaved'));
     } else {
       pdf.save(fileName);
       showToast(T('pdfSaved'));

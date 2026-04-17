@@ -207,12 +207,11 @@ export default function StagexPanel() {
   const [canShareFiles, setCanShareFiles] = useState(false);
 
   useEffect(() => {
-    try {
-      const probe = new File([new Blob(['x'], { type: 'application/pdf' })], 'x.pdf', { type: 'application/pdf' });
-      setCanShareFiles(!!(navigator.canShare && navigator.canShare({ files: [probe] })));
-    } catch {
-      setCanShareFiles(false);
-    }
+    // Always show the share button when navigator.share exists. Android WebView
+    // often returns false from canShare({files}) even when share() actually
+    // works; the iframe-side export will attempt the share and fall back to
+    // saving the PDF if the share is unsupported or fails.
+    setCanShareFiles(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
   }, []);
 
   const openPdfSheet = useCallback(() => {
