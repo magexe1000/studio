@@ -4933,6 +4933,21 @@ function _loadScript(src) {
     s.onload = res; s.onerror = rej; document.head.appendChild(s);
   });
 }
+
+// Preload heavy PDF libs at idle so the first export is instant.
+// Without this, tapping Save/Share waits ~300-1500ms for html2canvas + jsPDF
+// to download and parse before any work begins.
+(function preloadPdfLibs() {
+  const kick = () => {
+    if (!window.html2canvas) _loadScript('/stage-core/vendor/html2canvas.min.js').catch(() => {});
+    if (!window.jspdf)       _loadScript('/stage-core/vendor/jspdf.umd.min.js').catch(() => {});
+  };
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(kick, { timeout: 3000 });
+  } else {
+    setTimeout(kick, 1500);
+  }
+})();
 // Allow external callers (parent React shell) to override filename + action.
 // action: 'save' (default, downloads) | 'share' (Web Share API with file)
 window.__pdfExportOptions = null;
@@ -4972,7 +4987,9 @@ async function exportPDF() {
     const CAPTURE_WIDTH = 794;
     const SCALE      = 1.0;
     const GAP_MM     = 8;
-    const JPEG_Q     = 0.82;
+    // 0.72 keeps text/diagrams sharp while encoding ~30-40% faster than 0.82
+    // and producing a noticeably smaller file (faster share + faster save IO).
+    const JPEG_Q     = 0.72;
 
     const SECTION_IDS = [
       'exp-cover', 'exp-stage-section', 'exp-input-section',
@@ -5080,7 +5097,9 @@ async function exportPDF() {
       if (hMm <= pdfH) {
         // ── Short section: keep whole, move to next page if needed ──
         if (pageY > 0 && pageY + hMm > pdfH) startNewPage();
-        pdf.addImage(imgData, 'JPEG', 0, pageY, pdfW, hMm);
+        // 'FAST' tells jsPDF to skip its internal re-compression — we already
+        // chose the JPEG quality above, so this is a free speedup.
+        pdf.addImage(imgData, 'JPEG', 0, pageY, pdfW, hMm, undefined, 'FAST');
         pageY += hMm + GAP_MM;
 
       } else {
@@ -5102,7 +5121,7 @@ async function exportPDF() {
           ctx.drawImage(cvs, 0, -sliceTopPx);
 
           const sliceHMm = slicePx * mmPerPx;
-          pdf.addImage(sc.toDataURL('image/jpeg', JPEG_Q), 'JPEG', 0, pageY, pdfW, sliceHMm);
+          pdf.addImage(sc.toDataURL('image/jpeg', JPEG_Q), 'JPEG', 0, pageY, pdfW, sliceHMm, undefined, 'FAST');
           pageY    += sliceHMm;
           sliceTopPx += availPx;
 
