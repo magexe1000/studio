@@ -393,8 +393,9 @@ export default function LibraryPanel() {
   const { selectedChordId, recentChords, favorites, selectChord, settings, activePanel } = useChordStore();
   const accent = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
   const t = useT();
-  const isDark = settings.theme === 'dark' ||
-    (settings.theme === 'system' && typeof window !== 'undefined' &&
+  const activeTheme = settings.perApp?.chords?.theme ?? settings.theme;
+  const isDark = activeTheme === 'dark' ||
+    (activeTheme === 'system' && typeof window !== 'undefined' &&
      !window.matchMedia('(prefers-color-scheme: light)').matches);
 
   const scrollRef = useRef<HTMLDivElement>(null);
