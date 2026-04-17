@@ -298,7 +298,10 @@ body {
 .sc-prefs-row-label {
   font-family: 'Manrope', sans-serif;
   font-size: 14px;
-  font-weight: 600;
+  /* Bumped 600 → 700 to match Chordex Preferences (Tailwind font-bold).
+     With weight 600 the thinner strokes made the labels read as grey
+     even though the colour was nearly black. */
+  font-weight: 700;
   color: #e8e8ed;
   margin: 0 0 2px;
 }
