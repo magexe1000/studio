@@ -192,11 +192,36 @@ export default function App() {
   }, [activePresetId, visiblePanel]);
 
   // Apply CSS vars for accent color (re-runs when appMode or per-app accent changes)
+  // Wrap in the same theme-transitioning class so every element cross-fades to the
+  // new accent at the same time (matches the dark/light switch animation).
+  const prevAccentRef = useRef({ from: accent.from, to: accent.to, mid: accent.mid });
+  const accentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty('--accent-from', accent.from);
-    root.style.setProperty('--accent-to',   accent.to);
-    root.style.setProperty('--accent-mid',  accent.mid);
+    const prev = prevAccentRef.current;
+    const changed =
+      prev.from !== accent.from || prev.to !== accent.to || prev.mid !== accent.mid;
+    prevAccentRef.current = { from: accent.from, to: accent.to, mid: accent.mid };
+
+    if (accentTimerRef.current) {
+      clearTimeout(accentTimerRef.current);
+      accentTimerRef.current = null;
+    }
+
+    const apply = () => {
+      if (changed) root.classList.add('theme-transitioning');
+      root.style.setProperty('--accent-from', accent.from);
+      root.style.setProperty('--accent-to',   accent.to);
+      root.style.setProperty('--accent-mid',  accent.mid);
+      if (changed) {
+        accentTimerRef.current = setTimeout(() => {
+          root.classList.remove('theme-transitioning');
+          accentTimerRef.current = null;
+        }, 350);
+      }
+    };
+
+    apply();
   }, [accent.from, accent.to, accent.mid]);
 
   // Theme + AMOLED mode — wrapped in View Transitions API for smooth crossfade
