@@ -626,6 +626,7 @@ export default function LibraryPanel() {
 
       {/* ── Scrollable body ── */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar">
+       <div key={mainTab} className="panel-enter-right">
 
         {/* ══ EXPLORE: Search results ══ */}
         {mainTab === 'explore' && showSearch && (
@@ -942,6 +943,7 @@ export default function LibraryPanel() {
             </div>
           </div>
         )}
+       </div>
       </div>
     </div>
   );
