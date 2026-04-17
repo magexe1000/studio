@@ -3,6 +3,7 @@ import { getAllSessions, saveSession, deleteSession, createLayer, createDefaultE
 import { getAllTakes, type TakeRecord } from './takesDb';
 import { useT } from '../lib/useT';
 import { setVocalexBack } from './headerBack';
+import { createAudioContext } from '../lib/audioContextOptions';
 
 const SESSION_ICONS = ['graphic_eq', 'layers', 'multiline_chart', 'equalizer', 'tune', 'mic', 'queue_music', 'stacked_line_chart'];
 function randomIcon() { return SESSION_ICONS[Math.floor(Math.random() * SESSION_ICONS.length)]; }
@@ -504,7 +505,7 @@ function AddTrackSheet({ session, onAdd, onClose }: {
 
   const importFile = async (file: File) => {
     const blob = new Blob([await file.arrayBuffer()], { type: file.type });
-    const ctx = new AudioContext();
+    const ctx = createAudioContext();
     try {
       const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
       onAdd(createLayer({
@@ -781,7 +782,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
     const cur = sessionRef.current;
     if (cur.layers.length === 0) return;
 
-    const ctx = new AudioContext();
+    const ctx = createAudioContext();
     ctxRef.current = ctx;
     const master = ctx.createGain();
     master.gain.value = cur.masterVolume ?? 0.8;

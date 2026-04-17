@@ -665,6 +665,18 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
         >
           <Toggle value={settings.highRefreshRate} onChange={v => updateSettings({ highRefreshRate: v })} accentFrom={accent.from} accentTo={accent.to} />
         </SettingRow>
+        <SettingRow
+          label="Low latency mode"
+          desc="Faster audio response across all apps (drums, chords, vocals, stage). Trades a bit of stability for snap."
+        >
+          <Toggle value={settings.lowLatencyMode} onChange={v => updateSettings({ lowLatencyMode: v })} accentFrom={accent.from} accentTo={accent.to} />
+        </SettingRow>
+        <SettingRow
+          label="Performance mode"
+          desc="Disables blur effects, heavy shadows and non-essential animations across all apps for smoother performance on older devices."
+        >
+          <Toggle value={settings.performanceMode} onChange={v => updateSettings({ performanceMode: v })} accentFrom={accent.from} accentTo={accent.to} />
+        </SettingRow>
       </div>
 
       {/* ── LANGUAGE ── */}

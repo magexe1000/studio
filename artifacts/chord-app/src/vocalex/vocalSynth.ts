@@ -1,4 +1,5 @@
 import { NOTE_FREQ } from './exerciseData';
+import { createAudioContext } from '../lib/audioContextOptions';
 
 let ctx: AudioContext | null = null;
 let activeNodes: AudioNode[] = [];
@@ -7,7 +8,7 @@ let noiseBuffer: AudioBuffer | null = null;
 let voiceId = 0;
 
 function getCtx(): AudioContext {
-  if (!ctx || ctx.state === 'closed') ctx = new AudioContext();
+  if (!ctx || ctx.state === 'closed') ctx = createAudioContext();
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
 }

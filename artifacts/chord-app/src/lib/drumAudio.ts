@@ -2,6 +2,7 @@ import type { DrumInstrument, DrumPattern, InstFX, KitType, HouseMic, HouseCrash
 import { DRUM_INSTRUMENTS, stepsPerMeasure } from '../store/useDrumStore';
 import { getPlugin } from './drumPlugins';
 import type { InstPlugin } from './drumPlugins';
+import { createAudioContext } from './audioContextOptions';
 
 // ── Variation → sound/volume helpers ─────────────────────────────────────────
 
@@ -235,7 +236,7 @@ let _masterGain: GainNode | null = null;
 
 function getCtx(): { ctx: AudioContext; dest: AudioNode } {
   if (!_ctx) {
-    _ctx = new AudioContext();
+    _ctx = createAudioContext();
 
     _masterGain = _ctx.createGain();
     _masterGain.gain.value = 0.72;

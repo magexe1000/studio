@@ -1843,8 +1843,7 @@ export default function DrumEditor() {
   const endAdvTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drumPrefsRef    = useRef(drumPrefs);
   useEffect(() => { drumPrefsRef.current = drumPrefs; }, [drumPrefs]);
-  // Wire lowLatencyMode → scheduler
-  useEffect(() => { drumScheduler.setLowLatency(drumPrefs.lowLatencyMode); }, [drumPrefs.lowLatencyMode]);
+  // Low latency now lives globally (Studio Hub → Performance) and is wired in App.tsx.
 
   useEffect(() => {
     drumScheduler.onStep = (gs, mIdx, stepInM) => {
@@ -2168,7 +2167,7 @@ export default function DrumEditor() {
 
   const applyHitToCell = useCallback((inst: DrumInstrument, m: DrumMeasure, stepInM: number, patternId: string, preview = true) => {
     const prefs = useDrumStore.getState().drumPrefs;
-    const useSimple = prefs.quickDeleteMode || !prefs.noteVariationsCycle;
+    const useSimple = !prefs.noteVariationsCycle;
     if (useSimple) {
       simpleToggleHit(patternId, m.id, inst, stepInM);
     } else {
@@ -2392,7 +2391,7 @@ export default function DrumEditor() {
   const menuItemSt: React.CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12.5, fontFamily: 'Manrope', fontWeight: 600, textAlign: 'left', transition: 'background 120ms' };
 
   return (
-    <div data-perf-mode={drumPrefs.performanceMode ? 'on' : undefined} style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
 
       {/* ── Safe-area spacer ─────────────────────────────────────────────── */}
       {!(isLandscape && inEditor) && (

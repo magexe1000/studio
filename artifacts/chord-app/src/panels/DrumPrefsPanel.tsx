@@ -117,7 +117,6 @@ export default function DrumPrefsPanel() {
 
         <SectionHeader icon="touch_app" title={dp.interaction} />
         <div style={cardStyle}>
-          {row('quickDeleteMode', dp.quickDelete, dp.quickDeleteDesc)}
           {row('showNoteVariations', dp.showVariations, dp.showVariationsDesc)}
           {row('highlightActiveInst', dp.highlightActive, dp.highlightActiveDesc)}
         </div>
@@ -125,12 +124,6 @@ export default function DrumPrefsPanel() {
         <SectionHeader icon="grid_on" title={dp.visual} />
         <div style={cardStyle}>
           {row('gridLinesEmphasis', dp.gridEmphasis, dp.gridEmphasisDesc)}
-        </div>
-
-        <SectionHeader icon="speed" title={dp.performance} />
-        <div style={cardStyle}>
-          {row('lowLatencyMode', dp.lowLatency, dp.lowLatencyDesc)}
-          {row('performanceMode', dp.performanceMode, dp.performanceModeDesc)}
         </div>
 
         <SectionHeader icon="dashboard" title={dp.startOn} />

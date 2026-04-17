@@ -1,5 +1,6 @@
 import { detectPitch, type PitchResult } from './pitchYin';
 import { NOTE_FREQ } from './exerciseData';
+import { createAudioContext } from '../lib/audioContextOptions';
 
 export interface DetectorState {
   listening: boolean;
@@ -73,7 +74,7 @@ export class PracticeDetector {
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
-      this.ctx = new AudioContext();
+      this.ctx = createAudioContext();
       const src = this.ctx.createMediaStreamSource(this.stream);
       this.analyser = this.ctx.createAnalyser();
       this.analyser.fftSize = 2048;

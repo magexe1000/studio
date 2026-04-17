@@ -14,14 +14,16 @@
  * Length ≈ 1.6 s. Generated entirely in-browser, no samples.
  */
 
+import { createAudioContext } from './audioContextOptions';
+
 let _ctx: AudioContext | null = null;
 let _lastPlay = 0;
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
-  const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-  if (!AC) return null;
-  if (!_ctx) _ctx = new AC();
+  if (!_ctx) {
+    try { _ctx = createAudioContext(); } catch { _ctx = null; }
+  }
   return _ctx;
 }
 

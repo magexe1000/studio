@@ -284,6 +284,24 @@ export default function App() {
     document.documentElement.setAttribute('data-anim', settings.animationSpeed);
   }, [settings.animationSpeed]);
 
+  // Performance mode → root attribute (used by CSS to disable blur, heavy
+  // shadows, non-essential animations across all apps).
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.performanceMode) root.setAttribute('data-perf-mode', 'on');
+    else root.removeAttribute('data-perf-mode');
+  }, [settings.performanceMode]);
+
+  // Low latency mode → drum scheduler tick budget. Other audio engines pick
+  // up the latencyHint at AudioContext creation time via createAudioContext().
+  useEffect(() => {
+    let cancelled = false;
+    import('./lib/drumAudio').then(({ drumScheduler }) => {
+      if (!cancelled) drumScheduler.setLowLatency(settings.lowLatencyMode);
+    }).catch(() => { /* drum module not loaded yet */ });
+    return () => { cancelled = true; };
+  }, [settings.lowLatencyMode]);
+
   // High refresh rate (90/120Hz) — keeps the compositor in high-frequency mode
   // by running a continuous rAF tick. Many mobile browsers (Android Chrome
   // especially) drop to 60Hz when the page is "idle" — this prevents that.

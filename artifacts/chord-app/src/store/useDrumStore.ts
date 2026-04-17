@@ -263,14 +263,10 @@ export interface DrumPrefs {
   metronome:            boolean;
   countIn:              boolean;
   // Interaction
-  quickDeleteMode:      boolean;
   showNoteVariations:   boolean;
   highlightActiveInst:  boolean;
   // Visual
   gridLinesEmphasis:    boolean;
-  // Performance
-  lowLatencyMode:       boolean;
-  performanceMode:      boolean;
   // Cymbal
   randomVariations:     boolean;
 }
@@ -284,12 +280,9 @@ export const DEFAULT_DRUM_PREFS: DrumPrefs = {
   loopPlayback:         true,
   metronome:            false,
   countIn:              false,
-  quickDeleteMode:      false,
   showNoteVariations:   true,
   highlightActiveInst:  true,
   gridLinesEmphasis:    true,
-  lowLatencyMode:       false,
-  performanceMode:      false,
   randomVariations:     true,
 };
 

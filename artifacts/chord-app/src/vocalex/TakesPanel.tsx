@@ -7,6 +7,7 @@ import {
 import { analyzeAudio, type VocalAnalysis, type AnalysisLabels } from './vocalAnalysis';
 import { useT } from '../lib/useT';
 import { setVocalexBack } from './headerBack';
+import { createAudioContext } from '../lib/audioContextOptions';
 
 function formatDuration(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -300,7 +301,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
     });
     streamRef.current = stream;
 
-    const ctx = new AudioContext();
+    const ctx = createAudioContext();
     ctxRef.current = ctx;
     const src = ctx.createMediaStreamSource(stream);
     const analyser = ctx.createAnalyser();

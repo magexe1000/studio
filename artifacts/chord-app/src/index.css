@@ -209,6 +209,37 @@ html[data-hifps="on"] .sc-vtool-btn {
   backface-visibility: hidden;
 }
 
+/* ============================================================
+   PERFORMANCE MODE — applied globally via root data-perf-mode.
+   Disables expensive visual effects across all apps so older /
+   slower devices stay snappy. User-controlled in Studio Hub.
+   ============================================================ */
+html[data-perf-mode="on"] *,
+html[data-perf-mode="on"] *::before,
+html[data-perf-mode="on"] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+html[data-perf-mode="on"] * {
+  /* Strip heavy box-shadows down to a single thin shadow. */
+  text-shadow: none !important;
+}
+html[data-perf-mode="on"] [style*="box-shadow"],
+html[data-perf-mode="on"] [style*="boxShadow"] {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18) !important;
+}
+/* Cut animation/transition durations to a hard minimum so things still
+   feel responsive but cost nearly nothing to animate. */
+html[data-perf-mode="on"] *,
+html[data-perf-mode="on"] *::before,
+html[data-perf-mode="on"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 80ms !important;
+  scroll-behavior: auto !important;
+}
+
 html[data-theme="light"] [style*="color:#e7e5e4"],
 html[data-theme="light"] [style*="color: #e7e5e4"],
 html[data-theme="light"] [style*="color:#E7E5E4"],

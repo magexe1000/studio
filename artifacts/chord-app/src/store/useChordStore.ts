@@ -92,6 +92,8 @@ export interface AppSettings {
   hubUserName: string;
   hubChimeEnabled: boolean;
   highRefreshRate: boolean;
+  lowLatencyMode: boolean;
+  performanceMode: boolean;
   chordAssistant: boolean;
   assistantSmartSuggestions: boolean;
   assistantProgressionTips: boolean;
@@ -216,6 +218,8 @@ export const useChordStore = create<ChordStore>()(
         hubUserName: '',
         hubChimeEnabled: true,
         highRefreshRate: false,
+        lowLatencyMode: false,
+        performanceMode: false,
         chordAssistant: false,
         assistantSmartSuggestions: true,
         assistantProgressionTips: true,
@@ -655,6 +659,12 @@ export const useChordStore = create<ChordStore>()(
             const settings = s.settings as Record<string, unknown>;
             if (typeof settings.highRefreshRate !== 'boolean') {
               settings.highRefreshRate = false;
+            }
+            if (typeof settings.lowLatencyMode !== 'boolean') {
+              settings.lowLatencyMode = false;
+            }
+            if (typeof settings.performanceMode !== 'boolean') {
+              settings.performanceMode = false;
             }
             if (typeof settings.hubChimeEnabled !== 'boolean') {
               settings.hubChimeEnabled = true;

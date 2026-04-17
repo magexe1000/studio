@@ -1,4 +1,5 @@
 import { SoundTouchNode } from '@soundtouchjs/audio-worklet';
+import { createAudioContext } from '../lib/audioContextOptions';
 
 export interface TrackState {
   name: string;
@@ -18,7 +19,7 @@ let workletRegistering: Promise<void> | null = null;
 
 function getAudioContext(): AudioContext {
   if (!audioCtx) {
-    audioCtx = new AudioContext();
+    audioCtx = createAudioContext();
   }
   return audioCtx;
 }
