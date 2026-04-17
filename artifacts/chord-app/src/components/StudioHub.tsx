@@ -623,7 +623,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
       <div style={cardStyle}>
         <div style={{ padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {[
-            { label: t.settings.about.version, value: '2.0.0'                      },
+            { label: t.settings.about.version, value: 'Beta 3.0.0'                 },
             { label: t.settings.about.storage, value: t.settings.about.storageValue },
           ].map(({ label, value }) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
