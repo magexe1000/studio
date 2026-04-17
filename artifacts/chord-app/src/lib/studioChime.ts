@@ -100,7 +100,7 @@ function scheduleSubBass(ctx: AudioContext, dest: AudioNode, freq: number, start
   osc.stop(startAt + duration + 0.05);
 }
 
-export function playStudioChime(): boolean {
+export async function playStudioChime(): Promise<boolean> {
   // Debounce — guard against React double-mount in dev StrictMode.
   const now = Date.now();
   if (now - _lastPlay < 1500) return false;
@@ -109,9 +109,9 @@ export function playStudioChime(): boolean {
   if (!ctx) return false;
 
   if (ctx.state === 'suspended') {
-    ctx.resume().catch(() => {});
+    try { await ctx.resume(); } catch { /* blocked by autoplay */ }
   }
-  // If autoplay is blocked, bail without marking _lastPlay so a later
+  // If autoplay is still blocked, bail without marking _lastPlay so a later
   // gesture-triggered call still fires.
   if (ctx.state !== 'running') return false;
   _lastPlay = now;

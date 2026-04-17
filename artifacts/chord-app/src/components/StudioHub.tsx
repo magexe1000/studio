@@ -193,9 +193,9 @@ export default function StudioHub() {
     _hubChimePlayed = true;
 
     let played = false;
-    const fire = () => {
+    const fire = async () => {
       if (played) return;
-      const ok = playStudioChime();
+      const ok = await playStudioChime();
       if (ok) {
         played = true;
         cleanup();
