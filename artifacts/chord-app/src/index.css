@@ -460,25 +460,22 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
     from { transform: translate3d(0, 0, 0) scale(1);          opacity: 1; }
     to   { transform: translate3d(0, -6px, 0) scale(0.985);   opacity: 0; }
   }
+  /* will-change + backface-visibility removed — they force a permanent GPU
+     compositing layer that drops subpixel text anti-aliasing, making body
+     text look fuzzy after every navigation. Animations stay smooth without
+     them on modern browsers because transform/opacity are auto-promoted
+     for the duration of the animation only. */
   .panel-enter-right {
     animation: panel-enter-right var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
-    will-change: transform, opacity;
-    backface-visibility: hidden;
   }
   .panel-enter-left  {
     animation: panel-enter-left  var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
-    will-change: transform, opacity;
-    backface-visibility: hidden;
   }
   .panel-exit-left   {
     animation: panel-exit-left   var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
-    will-change: transform, opacity;
-    backface-visibility: hidden;
   }
   .panel-exit-right  {
     animation: panel-exit-right  var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
-    will-change: transform, opacity;
-    backface-visibility: hidden;
   }
 
   /* ===== Live Mode chord transitions ===== */
