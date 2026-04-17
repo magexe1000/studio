@@ -224,7 +224,10 @@ function GroovexNav({ view, setView, hasActiveSong }: {
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              color: active ? (isLight ? '#1a1a1a' : '#fff') : 'var(--c-text-secondary)',
+              // Active pill is always filled with the accent gradient, so the
+              // active label/icon must always be white — dark text would be
+              // unreadable on the blue fill in light mode.
+              color: active ? '#fff' : 'var(--c-text-secondary)',
               position: 'relative',
               zIndex: 1,
               transform: pressed ? 'scale(0.91)' : 'scale(1)',
