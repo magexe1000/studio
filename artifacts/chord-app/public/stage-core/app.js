@@ -130,7 +130,7 @@ const TRANSLATIONS = {
     pdfSaved:'PDF saved successfully', pdfFailed:'PDF export failed — try again',
     linkCopied:'Link copied to clipboard',
     maxMembers:'Max 8 members',
-    connectOn:'Connect Mode ON — click an element to start',
+    connectOn:'Connect Mode ON', connectOff:'Connect Mode OFF',
     connected:'Connected', alreadyConnected:'Already connected',
     presetSaved:'Preset saved', presetLoaded:'Preset loaded', presetDeleted:'Preset deleted',
     fileDownloaded:'Project file downloaded',
@@ -273,7 +273,7 @@ const TRANSLATIONS = {
     pdfSaved:'PDF guardado', pdfFailed:'Error al exportar PDF — intenta de nuevo',
     linkCopied:'Enlace copiado',
     maxMembers:'Máximo 8 integrantes',
-    connectOn:'Modo Conectar ON — toca un elemento para empezar',
+    connectOn:'Modo Conectar ON', connectOff:'Modo Conectar OFF',
     connected:'Conectados', alreadyConnected:'Ya conectados',
     presetSaved:'Preset guardado', presetLoaded:'Preset cargado', presetDeleted:'Preset eliminado',
     fileDownloaded:'Archivo descargado',
@@ -2206,11 +2206,11 @@ function updateDropHint() {
 // ══════════════════════════════════════════════════════════
 //  CONNECTIONS
 // ══════════════════════════════════════════════════════════
-function _setConnectBanner(msg) {
+function _setConnectBanner(_msg) {
+  // Banner intentionally disabled — connect mode status is shown via the
+  // toolbar button highlight + a toast at the bottom. No floating overlay.
   const pill = document.getElementById('mode-pill');
-  if (!pill) return;
-  if (msg) { pill.textContent = msg; pill.classList.add('visible'); }
-  else { pill.classList.remove('visible'); }
+  if (pill) pill.classList.remove('visible');
 }
 
 function handleConnectClick(id) {
@@ -2889,8 +2889,12 @@ function toggleSCVTools() {
 function _setToolBtn(id, active, activeColor) {
   const btn = document.getElementById(id);
   if (!btn) return;
-  btn.style.background = active ? (activeColor === 'secondary' ? 'rgba(255,116,57,0.18)' : 'rgba(122,175,255,0.18)') : 'transparent';
-  btn.style.color = active ? (activeColor === 'secondary' ? '#ff7439' : '#7aafff') : '#767575';
+  // Always use the theme accent color so the toolbar adapts to the active theme
+  // (blue, purple, etc). The `activeColor` argument is kept for back-compat but
+  // ignored — connect & other tool toggles all light up in the theme color.
+  void activeColor;
+  btn.style.background = active ? 'var(--accent-22)' : 'transparent';
+  btn.style.color      = active ? 'var(--accent)'    : '#767575';
 }
 function toggleGrid() {
   state.gridVisible = !state.gridVisible;
@@ -2905,11 +2909,10 @@ function toggleSnap() {
 function toggleConnect() {
   state.connectMode = !state.connectMode;
   state.connectSource = null;
-  _setToolBtn('btn-connect', state.connectMode, 'secondary');
+  _setToolBtn('btn-connect', state.connectMode, 'primary');
   document.getElementById('canvas-container').style.cursor = state.connectMode ? 'crosshair' : 'default';
-  _setConnectBanner(state.connectMode
-    ? (state.lang === 'es' ? 'CONECTAR — toca un elemento' : 'CONNECT — tap an element')
-    : null);
+  _setConnectBanner(null);
+  showToast(state.connectMode ? T('connectOn') : T('connectOff'));
   // Self-heal: connect mode should always show cables so the user can see them
   if (state.connectMode && !state.connectionsVisible) {
     state.connectionsVisible = true;
