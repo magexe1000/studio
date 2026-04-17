@@ -43,10 +43,10 @@ function schedulePadVoice(ctx: AudioContext, dest: AudioNode, opts: PadVoiceOpts
 
   const voiceGain = ctx.createGain();
   voiceGain.gain.setValueAtTime(0.0001, startAt);
-  // Soft 80 ms attack — the "swelling in" feel
-  voiceGain.gain.linearRampToValueAtTime(peakGain, startAt + 0.08);
-  // Hold near peak then long release (synthy tail)
-  voiceGain.gain.setValueAtTime(peakGain, startAt + duration - 0.55);
+  // Quick 25 ms attack — onset is audible the instant the logo appears
+  voiceGain.gain.linearRampToValueAtTime(peakGain, startAt + 0.025);
+  // Hold near peak then long graceful release (synthy tail)
+  voiceGain.gain.setValueAtTime(peakGain, startAt + duration - 1.2);
   voiceGain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
   voiceGain.connect(dest);
 
@@ -113,21 +113,24 @@ export function playStudioChime(): void {
     ctx.resume().catch(() => {});
   }
 
-  const t0 = ctx.currentTime + 0.04;
-  const PAD_DURATION = 1.4;
+  // No scheduling lead — fire as close to "now" as the audio thread allows
+  // so the chime hits exactly when the logo appears, not a moment later.
+  const t0 = ctx.currentTime;
+  const PAD_DURATION = 2.8;
 
-  // ── Master bus ──
+  // ── Master bus ── (lowered ≈45 % from previous version for a softer presence)
   const master = ctx.createGain();
-  master.gain.value = 0.9;
+  master.gain.value = 0.5;
   master.connect(ctx.destination);
 
   // ── Resonant low-pass filter with envelope sweep — the heart of the synthwave sound ──
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
-  filter.Q.value = 6.5; // High resonance for that "wowww" character
-  filter.frequency.setValueAtTime(350, t0);
-  filter.frequency.exponentialRampToValueAtTime(3800, t0 + 0.7);
-  filter.frequency.exponentialRampToValueAtTime(900, t0 + PAD_DURATION);
+  filter.Q.value = 5.5; // Slightly less resonance — keeps things gentle
+  // Start a bit higher so the very first instant has audible energy (not muffled)
+  filter.frequency.setValueAtTime(700, t0);
+  filter.frequency.exponentialRampToValueAtTime(3600, t0 + 1.0);
+  filter.frequency.exponentialRampToValueAtTime(700, t0 + PAD_DURATION);
   filter.connect(master);
 
   // Pad bus → goes through the swept filter
