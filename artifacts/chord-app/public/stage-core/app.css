@@ -2390,7 +2390,9 @@ html[data-amoled="1"] #presets-panel { background: rgba(0,0,0,0.98) !important; 
    ──────────────────────────────────────────────────────── */
 html[data-theme="light"] #view-Export,
 html[data-theme="light"] #export-preview-scroll {
-  background: #f6f6f8 !important;
+  /* Match the React shell header (#f2f1ef) exactly so the iframe seam
+     disappears and the page reads as a single continuous surface. */
+  background: #f2f1ef !important;
 }
 html[data-theme="light"] #export-document {
   color: #111 !important;
@@ -2504,6 +2506,26 @@ html[data-theme="light"] .rd-info-banner,
 html[data-theme="light"] .rd-mix-item {
   background: rgba(0,0,0,0.035) !important;
   border-color: rgba(0,0,0,0.08) !important;
+}
+/* The connectivity cards, signal-patch rows, and input list table header are
+   all rendered with hard-coded inline dark backgrounds (#0a0a0a, #111,
+   #131313). On light theme those become opaque black bars that swallow the
+   text inside them. Remap each shade to a soft on-brand light surface. */
+html[data-theme="light"] #view-Export [style*="background:#0a0a0a"],
+html[data-theme="light"] #view-Export [style*="background: #0a0a0a"] {
+  background: rgba(0,0,0,0.05) !important;
+}
+html[data-theme="light"] #view-Export [style*="background:#111"],
+html[data-theme="light"] #view-Export [style*="background: #111"],
+html[data-theme="light"] #view-Export [style*="background:#131313"],
+html[data-theme="light"] #view-Export [style*="background: #131313"] {
+  background: rgba(0,0,0,0.035) !important;
+}
+/* Text inside those remapped surfaces — convert the dark-theme #e0e0e0
+   light-text used for instrument names to a readable dark-on-light. */
+html[data-theme="light"] #view-Export [style*="color:#e0e0e0"],
+html[data-theme="light"] #view-Export [style*="color: #e0e0e0"] {
+  color: rgba(0,0,0,0.82) !important;
 }
 html[data-theme="light"] .rd-info-banner p {
   color: var(--accent) !important;
