@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useNavHidden, useScrollHide } from '../lib/navScroll';
@@ -176,10 +176,12 @@ export default function StudioHub() {
   useScrollHide(scrollRef);
 
   // Studio chime — fires once when the hub mounts and the logo appears.
-  // Triggers on initial app load AND whenever the user returns to the hub
-  // from any sub-app (StudioHub re-mounts each time appMode flips back to 'hub').
+  // useLayoutEffect runs *synchronously before paint*, so the audio is
+  // scheduled before the browser even draws the logo. Combined with the
+  // zero scheduling-lead inside playStudioChime, the first sample of the
+  // chord arrives essentially the same frame the logo first becomes visible.
   // Gated on the user-controllable hubChimeEnabled setting.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (settings.hubChimeEnabled) playStudioChime();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
