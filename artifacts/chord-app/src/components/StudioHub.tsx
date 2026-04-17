@@ -190,9 +190,52 @@ export default function StudioHub() {
   useEffect(() => {
     if (!settings.hubChimeEnabled) return;
     if (_hubChimePlayed) return;
-    _hubChimePlayed = true;
-    const id = window.setTimeout(() => playStudioChime(), 620);
-    return () => window.clearTimeout(id);
+
+    let timerId: number | null = null;
+    let played = false;
+
+    const fire = () => {
+      if (played) return;
+      played = true;
+      _hubChimePlayed = true;
+      if (timerId !== null) window.clearTimeout(timerId);
+      cleanup();
+      playStudioChime();
+    };
+
+    const onGesture = () => fire();
+    const cleanup = () => {
+      window.removeEventListener('pointerdown', onGesture);
+      window.removeEventListener('touchstart', onGesture);
+      window.removeEventListener('keydown', onGesture);
+      window.removeEventListener('click', onGesture);
+    };
+
+    // Listen for the first user gesture (required by browser autoplay policy).
+    window.addEventListener('pointerdown', onGesture, { once: true, passive: true });
+    window.addEventListener('touchstart', onGesture, { once: true, passive: true });
+    window.addEventListener('keydown',    onGesture, { once: true });
+    window.addEventListener('click',      onGesture, { once: true });
+
+    // If audio is already unlocked from a previous interaction, fire on schedule.
+    timerId = window.setTimeout(() => {
+      try {
+        const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!AC) return;
+        const probe = new AC();
+        if (probe.state === 'running') {
+          probe.close().catch(() => {});
+          fire();
+        } else {
+          probe.close().catch(() => {});
+        }
+      } catch { /* noop */ }
+    }, 620);
+
+    return () => {
+      if (timerId !== null) window.clearTimeout(timerId);
+      cleanup();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
