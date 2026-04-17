@@ -5416,7 +5416,7 @@ function refreshExportInputList() {
   if (empty) empty.style.display = 'none';
 
   const sorted = [...state.elements].sort((a, b) => a.channelId.localeCompare(b.channelId));
-  tbody.innerHTML = DOMPurify.sanitize(sorted.map((el, i) => {
+  const rowsHtml = sorted.map((el, i) => {
     const micDI = Ttype(el.type || el.name) || '—';
     const source = TSource(el.source) || el.source || '—';
     const rolesCount = (el.roles || []).length;
@@ -5453,7 +5453,18 @@ function refreshExportInputList() {
       </tr>`;
     });
     return rows;
-  }).join(''));
+  }).join('');
+
+  // The HTML5 parser strips orphan <tr>/<td> tags when they aren't inside a
+  // <table>, so wrap before sanitizing and then move the parsed rows over.
+  const wrapped = `<table><tbody>${rowsHtml}</tbody></table>`;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = DOMPurify.sanitize(wrapped);
+  const parsedTbody = tmp.querySelector('tbody');
+  tbody.innerHTML = '';
+  if (parsedTbody) {
+    while (parsedTbody.firstChild) tbody.appendChild(parsedTbody.firstChild);
+  }
 }
 
 function refreshExportMembers() {
