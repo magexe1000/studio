@@ -652,7 +652,16 @@ export default function StagexPanel() {
                 borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }}>picture_as_pdf</span>
+              <span
+                aria-hidden
+                style={{
+                  display: 'block',
+                  width: 16, height: 16,
+                  background: 'currentColor',
+                  WebkitMask: `url(${import.meta.env.BASE_URL}icons/export-pdf.png) center / contain no-repeat`,
+                  mask: `url(${import.meta.env.BASE_URL}icons/export-pdf.png) center / contain no-repeat`,
+                }}
+              />
             </button>
           </div>
         )}
