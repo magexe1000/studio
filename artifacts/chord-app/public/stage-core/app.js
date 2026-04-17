@@ -6641,48 +6641,7 @@ switchView('Editor');
 
 // Drop hint is only shown during active drag-over, not on load
 
-// ── Pull-to-refresh (mobile only, only from top 60px of screen) ──
-(function() {
-  if (window.innerWidth > 767) return;
-  let startY = 0, pulling = false, triggered = false;
-  const THRESHOLD = 90;
-  const TOP_ZONE  = 60; // must start touch in top 60px
-  const indicator = document.getElementById('ptr-indicator');
-  const label     = document.getElementById('ptr-label');
-
-  document.addEventListener('touchstart', e => {
-    startY = e.touches[0].clientY;
-    triggered = false;
-    pulling = startY < TOP_ZONE; // only activate if touch starts near top
-  }, { passive: true });
-
-  document.addEventListener('touchmove', e => {
-    if (!pulling || triggered) return;
-    const dy = e.touches[0].clientY - startY;
-    if (dy <= 0) { pulling = false; return; }
-    const pct = Math.min(dy / THRESHOLD, 1);
-    indicator.style.display = 'block';
-    indicator.style.opacity = pct;
-    label.style.display = 'block';
-    label.textContent = pct >= 1 ? '↑ Release to refresh' : '↓ Pull to refresh';
-    label.style.color  = pct >= 1 ? '#ff7439' : '#7aafff';
-  }, { passive: true });
-
-  document.addEventListener('touchend', e => {
-    if (!pulling || triggered) return;
-    const dy = e.changedTouches[0].clientY - startY;
-    if (dy >= THRESHOLD) {
-      triggered = true;
-      label.textContent = 'Refreshing…';
-      label.style.color = '#c5ffc9';
-      setTimeout(() => location.reload(), 300);
-    } else {
-      indicator.style.display = 'none';
-      label.style.display = 'none';
-    }
-    pulling = false;
-  }, { passive: true });
-})();
+// Pull-to-refresh removed (was disorienting on mobile)
 
 function scheduleCloudAutosave() {}
 window.onSCAuthChange = function() {};
