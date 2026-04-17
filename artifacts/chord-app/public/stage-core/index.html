@@ -1243,14 +1243,27 @@ html[data-theme="light"] .sc-prefs-card {
   border: 1px solid rgba(0,0,0,0.07);
 }
 html[data-theme="light"] .sc-prefs-row        { border-bottom-color: rgba(0,0,0,0.06) !important; }
-html[data-theme="light"] .sc-prefs-row-label  { color: #0e0e0e !important; }
-html[data-theme="light"] .sc-prefs-row-hint   { color: #888 !important; }
+/* Match Chordex Preferences palette exactly:
+   - Row label  → --c-text-primary   (#1a1a1a, near-black, font-bold)
+   - Row hint   → --c-text-secondary (#6e6d6b, medium-dark, readable)
+   - Chip text  → --c-text-primary   (#1a1a1a) so option labels like
+     "Fine / Normal / Coarse" are crisply legible, not washed-out grey.
+   Specifying the var values explicitly so the rule wins over inline styles. */
+html[data-theme="light"] .sc-prefs-row-label  { color: #1a1a1a !important; }
+html[data-theme="light"] .sc-prefs-row-hint   { color: #6e6d6b !important; }
 html[data-theme="light"] .sc-prefs-chip {
   background: rgba(0,0,0,0.04) !important;
   border-color: rgba(0,0,0,0.10) !important;
-  color: #555 !important;
+  color: #1a1a1a !important;
 }
 html[data-theme="light"] .sc-prefs-chip.active { background: var(--accent-12) !important; border-color: var(--accent-30) !important; color: var(--accent) !important; }
+/* Section eyebrow labels (APPEARANCE / CANVAS / EDITOR / EXPORT) */
+html[data-theme="light"] .sc-prefs-section-label .sc-sec-icon,
+html[data-theme="light"] .sc-prefs-section-label .sc-sec-text { color: #6e6d6b !important; }
+/* Preferences subtitle ("Customize your Stagex experience") */
+html[data-theme="light"] #view-Assistant p { color: #6e6d6b !important; }
+/* Background-swatch labels under each colour preview ("Shadow", "Void", … ) */
+html[data-theme="light"] #view-Assistant .bg-swatch-label { color: #1a1a1a !important; }
 
 /* ── Rider need cards — CSS vars (overridden per theme) ── */
 :root {
@@ -1391,12 +1404,28 @@ html[data-theme="light"] #view-Members {
 /* Rider Input List wrapper — uses inline background:#191a1a + a faint white
    border. In light mode that becomes an opaque black slab over a black-ish
    border that swallows the whole table. Remap to a soft on-brand surface
-   so the table inside stays visible (cell text already maps via the
-   .rd-input-table light overrides further down). */
+   so the table inside stays visible. */
 html[data-theme="light"] #view-Rider [style*="background:#191a1a"],
 html[data-theme="light"] #view-Rider [style*="background: #191a1a"] {
   background: #ffffff !important;
   border-color: rgba(0,0,0,0.08) !important;
+}
+/* Rider Input List CELL TEXT — the JS that builds each <tr> sets inline
+   color values per <td>: #e7e5e4 (Output column), #acabaa (Source column),
+   #767575 (Notes column). Inline styles beat the .rd-input-table td CSS
+   class selector, so they stayed white. Remap each value with attribute
+   selectors so the text is properly dark-on-light. */
+html[data-theme="light"] #view-Rider [style*="color:#e7e5e4"],
+html[data-theme="light"] #view-Rider [style*="color: #e7e5e4"] {
+  color: #1a1a1a !important;
+}
+html[data-theme="light"] #view-Rider [style*="color:#acabaa"],
+html[data-theme="light"] #view-Rider [style*="color: #acabaa"] {
+  color: #6e6d6b !important;
+}
+html[data-theme="light"] #view-Rider [style*="color:#767575"],
+html[data-theme="light"] #view-Rider [style*="color: #767575"] {
+  color: #6e6d6b !important;
 }
 
 /* ── Gear / Members list items ── */
