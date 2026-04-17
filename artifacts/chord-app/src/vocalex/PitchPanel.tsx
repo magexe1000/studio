@@ -249,12 +249,12 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
         <div style={{ textAlign: 'center', zIndex: 1, position: 'relative' }}>
           <p style={{
             fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 500,
-            color: '#acabaa', letterSpacing: '0.2em', marginBottom: 8,
+            color: 'var(--vx-text-2)', letterSpacing: '0.2em', marginBottom: 8,
           }}>{t.vocalex.currentNote}</p>
           <h1 style={{
             fontFamily: 'Manrope, sans-serif',
             fontSize: 96, fontWeight: 800,
-            color: active ? '#e7e5e4' : 'rgba(231,229,228,0.08)',
+            color: active ? 'var(--vx-text)' : 'rgba(231,229,228,0.08)',
             lineHeight: 1, letterSpacing: '-0.04em',
             margin: 0,
             transition: 'color 200ms ease',
@@ -281,45 +281,45 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
         width: '100%', maxWidth: 360,
       }}>
         <div style={{
-          background: '#191a1a', borderRadius: 12, padding: '16px 18px',
+          background: 'var(--vx-card-2)', borderRadius: 12, padding: '16px 18px',
           borderLeft: '2px solid #007aff',
         }}>
           <p style={{
             fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
-            color: '#acabaa', letterSpacing: '0.14em', textTransform: 'uppercase',
+            color: 'var(--vx-text-2)', letterSpacing: '0.14em', textTransform: 'uppercase',
             margin: '0 0 4px',
           }}>{t.vocalex.frequency}</p>
           <p style={{
             fontFamily: 'Manrope, sans-serif', fontSize: 24, fontWeight: 700,
-            color: active ? '#e7e5e4' : 'rgba(231,229,228,0.1)',
+            color: active ? 'var(--vx-text)' : 'rgba(231,229,228,0.1)',
             margin: 0, transition: 'color 200ms ease',
           }}>
             {active ? result!.frequency.toFixed(2) : '—'}
-            {active && <span style={{ fontSize: 14, fontWeight: 400, color: '#acabaa', marginLeft: 4 }}>Hz</span>}
+            {active && <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--vx-text-2)', marginLeft: 4 }}>Hz</span>}
           </p>
         </div>
 
         <div style={{
-          background: '#191a1a', borderRadius: 12, padding: '16px 18px',
+          background: 'var(--vx-card-2)', borderRadius: 12, padding: '16px 18px',
         }}>
           <p style={{
             fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
-            color: '#acabaa', letterSpacing: '0.14em', textTransform: 'uppercase',
+            color: 'var(--vx-text-2)', letterSpacing: '0.14em', textTransform: 'uppercase',
             margin: '0 0 4px',
           }}>{t.vocalex.precision}</p>
           <p style={{
             fontFamily: 'Manrope, sans-serif', fontSize: 24, fontWeight: 700,
-            color: active ? '#e7e5e4' : 'rgba(231,229,228,0.1)',
+            color: active ? 'var(--vx-text)' : 'rgba(231,229,228,0.1)',
             margin: 0, transition: 'color 200ms ease',
           }}>
             {active ? (result!.cents >= 0 ? '+' : '') + result!.cents.toFixed(1) : '—'}
-            {active && <span style={{ fontSize: 14, fontWeight: 400, color: '#acabaa', marginLeft: 4 }}>cents</span>}
+            {active && <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--vx-text-2)', marginLeft: 4 }}>cents</span>}
           </p>
         </div>
 
         <div style={{
           gridColumn: '1 / -1',
-          background: '#1f2020', borderRadius: 12, padding: 16,
+          background: 'var(--vx-edge)', borderRadius: 12, padding: 16,
           height: 96, position: 'relative', overflow: 'hidden',
         }}>
           <div style={{
@@ -335,10 +335,10 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
               if (entry) {
                 const absCents = Math.abs(entry.cents);
                 h = Math.max(15, (1 - absCents / 50) * 100);
-                bg = absCents <= 10 ? '#007aff' : '#484848';
+                bg = absCents <= 10 ? '#007aff' : 'var(--vx-text-4)';
               } else {
                 h = barHeights[i] ?? 30;
-                bg = barColors[i] ? '#007aff' : '#484848';
+                bg = barColors[i] ? '#007aff' : 'var(--vx-text-4)';
               }
 
               return (
@@ -352,7 +352,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
           </div>
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'linear-gradient(to top, #1f2020, transparent)',
+            background: 'linear-gradient(to top, var(--vx-edge), transparent)',
             pointerEvents: 'none',
           }} />
         </div>
@@ -368,8 +368,8 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
             flex: 1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             height: 48, borderRadius: 12,
-            background: '#454747', border: 'none',
-            color: '#d0d0d0',
+            background: 'var(--vx-input-2)', border: 'none',
+            color: 'var(--vx-text-5)',
             fontSize: 14, fontWeight: 700,
             fontFamily: 'Inter, sans-serif',
             cursor: 'pointer',

@@ -72,7 +72,7 @@ export default function TakesPanel() {
 
   if (view.mode === 'detail') {
     const take = takes.find(t => t.id === view.takeId);
-    if (!take) return <div style={{ padding: 24, color: '#acabaa' }}>{t.vocalex.takeNotFound}</div>;
+    if (!take) return <div style={{ padding: 24, color: 'var(--vx-text-2)' }}>{t.vocalex.takeNotFound}</div>;
     return <TakeDetailView take={take} onBack={() => setView({ mode: 'list' })} onDelete={handleDelete} />;
   }
 
@@ -82,11 +82,11 @@ export default function TakesPanel() {
         <h2 style={{
           fontFamily: 'Manrope, sans-serif', fontWeight: 800,
           fontSize: 34, letterSpacing: '-0.03em',
-          color: '#e7e5e4', margin: '0 0 8px', lineHeight: 1,
+          color: 'var(--vx-text)', margin: '0 0 8px', lineHeight: 1,
         }}>{t.vocalex.takesTitle}</h2>
         <p style={{
           fontFamily: 'Inter, sans-serif', fontSize: 13,
-          color: '#acabaa', margin: 0, lineHeight: 1.5,
+          color: 'var(--vx-text-2)', margin: 0, lineHeight: 1.5,
         }}>{t.vocalex.takesSubtitle}</p>
       </div>
 
@@ -94,8 +94,8 @@ export default function TakesPanel() {
         <button style={{
           display: 'flex', alignItems: 'center', gap: 6,
           padding: '10px 18px', borderRadius: 9999,
-          background: '#1f2020', border: 'none',
-          color: '#e7e5e4', fontFamily: 'Manrope, sans-serif',
+          background: 'var(--vx-edge)', border: 'none',
+          color: 'var(--vx-text)', fontFamily: 'Manrope, sans-serif',
           fontWeight: 600, fontSize: 13, cursor: 'pointer',
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>sort</span>
@@ -118,15 +118,15 @@ export default function TakesPanel() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: '#acabaa', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>{t.vocalex.loading}</div>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--vx-text-2)', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>{t.vocalex.loading}</div>
       ) : takes.length === 0 ? (
         <div style={{
           padding: '48px 24px', textAlign: 'center',
-          background: '#191a1a', borderRadius: 16,
+          background: 'var(--vx-card-2)', borderRadius: 16,
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 40, color: '#484848', marginBottom: 12, display: 'block' }}>mic_none</span>
-          <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 16, color: '#e7e5e4', margin: '0 0 6px' }}>{t.vocalex.noTakesYet}</p>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0 }}>{t.vocalex.noTakesHint}</p>
+          <span className="material-symbols-outlined" style={{ fontSize: 40, color: 'var(--vx-text-4)', marginBottom: 12, display: 'block' }}>mic_none</span>
+          <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--vx-text)', margin: '0 0 6px' }}>{t.vocalex.noTakesYet}</p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', margin: 0 }}>{t.vocalex.noTakesHint}</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -150,7 +150,7 @@ function TakeListItem({ take, onOpen, onDelete }: { take: TakeRecord; onOpen: ()
 
   return (
     <div style={{
-      background: '#1f2020', borderRadius: 14,
+      background: 'var(--vx-edge)', borderRadius: 14,
       padding: '14px 16px',
       display: 'flex', alignItems: 'center', gap: 12,
     }}>
@@ -163,23 +163,23 @@ function TakeListItem({ take, onOpen, onDelete }: { take: TakeRecord; onOpen: ()
       >
         <div style={{
           width: 40, height: 40, borderRadius: '50%',
-          background: '#191a1a', flexShrink: 0,
+          background: 'var(--vx-card-2)', flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#e7e5e4' }}>play_arrow</span>
+          <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--vx-text)' }}>play_arrow</span>
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <h4 style={{
             fontFamily: 'Manrope, sans-serif', fontWeight: 600,
-            fontSize: 14, color: '#e7e5e4', margin: 0,
+            fontSize: 14, color: 'var(--vx-text)', margin: 0,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{take.name}</h4>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6, marginTop: 3,
-            fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#acabaa',
+            fontFamily: 'Inter, sans-serif', fontSize: 11, color: 'var(--vx-text-2)',
           }}>
             <span>{formatDateI18n(take.createdAt, t.vocalex)}</span>
-            <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#484848' }} />
+            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--vx-text-4)' }} />
             <span>{formatDuration(take.durationMs)}</span>
           </div>
         </div>
@@ -200,10 +200,10 @@ function TakeListItem({ take, onOpen, onDelete }: { take: TakeRecord; onOpen: ()
           <button
             onClick={() => setConfirming(false)}
             style={{
-              background: '#252626', border: 'none',
+              background: 'var(--vx-input)', border: 'none',
               borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
               fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600,
-              color: '#acabaa',
+              color: 'var(--vx-text-2)',
             }}
           >{t.vocalex.cancelAction}</button>
         </div>
@@ -212,7 +212,7 @@ function TakeListItem({ take, onOpen, onDelete }: { take: TakeRecord; onOpen: ()
           onClick={() => setConfirming(true)}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            padding: 6, flexShrink: 0, color: '#484848',
+            padding: 6, flexShrink: 0, color: 'var(--vx-text-4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
@@ -228,7 +228,7 @@ function MiniWaveform({ peaks }: { peaks: number[] }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 1.5, height: 24, opacity: 0.4, flexShrink: 0 }}>
       {display.map((h, i) => (
-        <div key={i} style={{ width: 2, height: `${Math.max(15, h)}%`, background: '#e7e5e4', borderRadius: 9999 }} />
+        <div key={i} style={{ width: 2, height: `${Math.max(15, h)}%`, background: 'var(--vx-text)', borderRadius: 9999 }} />
       ))}
     </div>
   );
@@ -448,7 +448,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
             borderTopColor: 'transparent', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite', margin: '0 auto 16px',
           }} />
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#acabaa' }}>{t.vocalex.processing}</p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: 'var(--vx-text-2)' }}>{t.vocalex.processing}</p>
         </div>
       )}
 
@@ -556,13 +556,13 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
             )}
             <p style={{
               fontFamily: 'Manrope, sans-serif', fontSize: 48, fontWeight: 800,
-              color: '#e7e5e4', margin: 0, letterSpacing: '-0.02em',
+              color: 'var(--vx-text)', margin: 0, letterSpacing: '-0.02em',
               fontVariantNumeric: 'tabular-nums',
             }}>
               {formatDuration(elapsed)}
             </p>
             <p style={{
-              fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa',
+              fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)',
               margin: '8px 0 0',
             }}>
               {state === 'countdown' ? t.vocalex.getReady :
@@ -581,12 +581,12 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
               style={{
                 width: '100%', maxWidth: 300,
                 padding: '12px 16px', borderRadius: 12,
-                background: '#191a1a', border: '1px solid #484848',
-                color: '#e7e5e4', fontFamily: 'Inter, sans-serif',
+                background: 'var(--vx-card-2)', border: '1px solid var(--vx-text-4)',
+                color: 'var(--vx-text)', fontFamily: 'Inter, sans-serif',
                 fontSize: 14, outline: 'none',
               }}
               onFocus={e => { e.target.style.borderColor = '#007aff'; }}
-              onBlur={e => { e.target.style.borderColor = '#484848'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--vx-text-4)'; }}
             />
           )}
 
@@ -741,19 +741,19 @@ function TakeDetailView({ take, onBack, onDelete }: {
       {/* Delete confirmation */}
       {showDeleteConfirm && (
         <div style={{
-          background: '#1f2020', borderRadius: 14, padding: 20,
+          background: 'var(--vx-edge)', borderRadius: 14, padding: 20,
           marginBottom: 16, border: '1px solid rgba(239,68,68,0.2)',
         }}>
-          <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 15, color: '#e7e5e4', margin: '0 0 8px' }}>
+          <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--vx-text)', margin: '0 0 8px' }}>
             {t.vocalex.deleteConfirmTitle}
           </p>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: '0 0 16px', lineHeight: 1.5 }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', margin: '0 0 16px', lineHeight: 1.5 }}>
             {t.vocalex.deleteConfirmBody}
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => setShowDeleteConfirm(false)} style={{
               flex: 1, padding: '10px 16px', borderRadius: 10,
-              background: '#454747', border: 'none', color: '#e7e5e4',
+              background: 'var(--vx-input-2)', border: 'none', color: 'var(--vx-text)',
               fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer',
             }}>{t.vocalex.cancelAction}</button>
             <button onClick={handleDelete} style={{
@@ -769,27 +769,27 @@ function TakeDetailView({ take, onBack, onDelete }: {
       <div style={{ marginBottom: 20 }}>
         <h2 style={{
           fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 22,
-          color: '#e7e5e4', margin: '0 0 4px', lineHeight: 1.2,
+          color: 'var(--vx-text)', margin: '0 0 4px', lineHeight: 1.2,
           wordBreak: 'break-word',
         }}>{take.name}</h2>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
-          fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#acabaa',
+          fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'var(--vx-text-2)',
         }}>
           <span>{formatDateI18n(take.createdAt, t.vocalex)}</span>
-          <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#484848' }} />
+          <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--vx-text-4)' }} />
           <span>{formatDuration(take.durationMs)}</span>
         </div>
       </div>
 
       {/* Player card */}
       <div style={{
-        background: '#191a1a', borderRadius: 16, padding: 20,
+        background: 'var(--vx-card-2)', borderRadius: 16, padding: 20,
         marginBottom: 24, position: 'relative', overflow: 'hidden',
       }}>
         <div style={{
           position: 'absolute', left: 0, top: 0, bottom: 0,
-          width: 3, background: playing ? '#007aff' : '#484848',
+          width: 3, background: playing ? '#007aff' : 'var(--vx-text-4)',
           transition: 'background 200ms ease',
         }} />
 
@@ -808,7 +808,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
           <div>
             <p style={{
               fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14,
-              color: playing ? '#007aff' : '#acabaa', margin: 0,
+              color: playing ? '#007aff' : 'var(--vx-text-2)', margin: 0,
               transition: 'color 200ms ease',
             }}>
               {playing ? t.vocalex.playing : t.vocalex.tapToPlay}
@@ -849,7 +849,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
           display: 'flex', justifyContent: 'space-between',
           padding: '6px 2px 0',
           fontFamily: 'Inter, sans-serif', fontSize: 11,
-          fontWeight: 700, color: '#acabaa', fontVariantNumeric: 'tabular-nums',
+          fontWeight: 700, color: 'var(--vx-text-2)', fontVariantNumeric: 'tabular-nums',
         }}>
           <span>{formatDuration(currentTimeSec * 1000)}</span>
           <span>-{formatDuration((totalTimeSec - currentTimeSec) * 1000)}</span>
@@ -862,21 +862,21 @@ function TakeDetailView({ take, onBack, onDelete }: {
           <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#007aff' }}>insights</span>
           <h3 style={{
             fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 18,
-            color: '#e7e5e4', margin: 0,
+            color: 'var(--vx-text)', margin: 0,
           }}>{t.vocalex.vocalAnalysis}</h3>
         </div>
 
         {analyzing ? (
           <div style={{
             padding: 32, textAlign: 'center',
-            background: '#191a1a', borderRadius: 14,
+            background: 'var(--vx-card-2)', borderRadius: 14,
           }}>
             <div style={{
               width: 32, height: 32, border: '2px solid #007aff',
               borderTopColor: 'transparent', borderRadius: '50%',
               animation: 'spin 0.8s linear infinite', margin: '0 auto 12px',
             }} />
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0 }}>{t.vocalex.analyzing}</p>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', margin: 0 }}>{t.vocalex.analyzing}</p>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : analysis ? (
@@ -892,12 +892,12 @@ function TakeDetailView({ take, onBack, onDelete }: {
             {/* Pitch timeline */}
             {analysis.pitchTimeline.length > 0 && (
               <div style={{
-                background: '#191a1a', borderRadius: 14, padding: 16,
+                background: 'var(--vx-card-2)', borderRadius: 14, padding: 16,
                 marginBottom: 16, height: 100, position: 'relative', overflow: 'hidden',
               }}>
                 <p style={{
                   fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
-                  color: '#acabaa', letterSpacing: '0.12em', textTransform: 'uppercase',
+                  color: 'var(--vx-text-2)', letterSpacing: '0.12em', textTransform: 'uppercase',
                   margin: '0 0 8px', position: 'relative', zIndex: 1,
                 }}>{t.vocalex.pitchTimeline}</p>
                 <svg viewBox={`0 0 ${analysis.pitchTimeline.length} 60`} style={{
@@ -933,7 +933,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {analysis.insights.map((insight, i) => (
                 <div key={i} style={{
-                  background: '#191a1a', borderRadius: 14, padding: '16px 18px',
+                  background: 'var(--vx-card-2)', borderRadius: 14, padding: '16px 18px',
                   borderLeft: `3px solid ${insight.color}`,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -944,7 +944,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{
                         fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14,
-                        color: '#e7e5e4',
+                        color: 'var(--vx-text)',
                       }}>{insight.title}</span>
                       {insight.value && (
                         <span style={{
@@ -956,7 +956,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
                   </div>
                   <p style={{
                     fontFamily: 'Inter, sans-serif', fontSize: 12.5,
-                    color: '#acabaa', margin: 0, lineHeight: 1.6,
+                    color: 'var(--vx-text-2)', margin: 0, lineHeight: 1.6,
                   }}>{insight.detail}</p>
                 </div>
               ))}
@@ -964,9 +964,9 @@ function TakeDetailView({ take, onBack, onDelete }: {
           </>
         ) : (
           <div style={{
-            padding: 24, textAlign: 'center', background: '#191a1a', borderRadius: 14,
+            padding: 24, textAlign: 'center', background: 'var(--vx-card-2)', borderRadius: 14,
           }}>
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0 }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', margin: 0 }}>
               {t.vocalex.analysisError}
             </p>
           </div>
@@ -978,15 +978,15 @@ function TakeDetailView({ take, onBack, onDelete }: {
 
 function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div style={{ background: '#191a1a', borderRadius: 12, padding: '14px 16px' }}>
+    <div style={{ background: 'var(--vx-card-2)', borderRadius: 12, padding: '14px 16px' }}>
       <p style={{
         fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
-        color: '#acabaa', letterSpacing: '0.12em', textTransform: 'uppercase',
+        color: 'var(--vx-text-2)', letterSpacing: '0.12em', textTransform: 'uppercase',
         margin: '0 0 4px',
       }}>{label}</p>
       <p style={{
         fontFamily: 'Manrope, sans-serif', fontSize: 20, fontWeight: 700,
-        color: color ?? '#e7e5e4', margin: 0,
+        color: color ?? 'var(--vx-text)', margin: 0,
       }}>{value}</p>
     </div>
   );

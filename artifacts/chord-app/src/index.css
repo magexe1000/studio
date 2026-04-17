@@ -155,6 +155,39 @@
 html, body { background: var(--app-bg); }
 
 /* ============================================================
+   Vocalex theme tokens — used by PracticePanel / PitchPanel /
+   LabPanel / TakesPanel. Defined here (not inline) so the white
+   theme can override them in one place. Attribute selectors over
+   inline hexes proved unreliable; using CSS vars is bulletproof.
+   ============================================================ */
+:root {
+  --vx-deep:    #0e0e0e;  /* deepest surface (modal backdrops, inputs-on-cards) */
+  --vx-card:    #161717;  /* main card background */
+  --vx-card-2:  #191a1a;  /* slightly elevated card variant */
+  --vx-edge:    #1f2020;  /* card border / muted surface */
+  --vx-input:   #252626;  /* button / pill / input chip */
+  --vx-input-2: #454747;  /* light grey button (Reset etc.) */
+  --vx-text:    #e7e5e4;  /* primary text on dark cards */
+  --vx-text-2:  #acabaa;  /* secondary label text */
+  --vx-text-3:  #767575;  /* muted/tertiary */
+  --vx-text-4:  #484848;  /* most-muted / icon-on-dark */
+  --vx-text-5:  #d0d0d0;  /* light-grey button label */
+}
+html.light {
+  --vx-deep:    #f4f3f1;
+  --vx-card:    #faf9f7;
+  --vx-card-2:  #f4f3f1;
+  --vx-edge:    rgba(0,0,0,0.08);
+  --vx-input:   #eeedeb;
+  --vx-input-2: #e5e4e2;
+  --vx-text:    #1a1a1a;
+  --vx-text-2:  #6e6d6b;
+  --vx-text-3:  #6e6d6b;
+  --vx-text-4:  #b2b1b0;
+  --vx-text-5:  #1a1a1a;
+}
+
+/* ============================================================
    Light-mode inline-color remap — keeps text legible across all
    apps (Chordex, Drumex, Groovex, Vocalex, Stagex) without
    editing every component. Many components hard-code the dark-

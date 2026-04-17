@@ -225,12 +225,12 @@ function EffectSlider({ label, value, min, max, step, onChange, accentColor }: {
       display: 'flex', alignItems: 'center', gap: 8,
       animation: 'lab-fx-row-in 250ms cubic-bezier(0.22,1,0.36,1) both',
     }}>
-      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', minWidth: 48, textTransform: 'capitalize' }}>{label}</span>
+      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'var(--vx-text-3)', minWidth: 48, textTransform: 'capitalize' }}>{label}</span>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(parseFloat(e.target.value))}
         style={{ flex: 1, accentColor: accentColor || '#679cff', height: 3, cursor: 'pointer', transition: 'opacity 150ms ease' }} />
       <span style={{
-        fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', minWidth: 28, textAlign: 'right',
+        fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 28, textAlign: 'right',
         transition: 'color 150ms ease',
       }}>{value.toFixed(step < 1 ? 1 : 0)}</span>
     </div>
@@ -250,7 +250,7 @@ function EffectRow({ effect, onChange, index }: { effect: TrackEffect; onChange:
 
   return (
     <div style={{
-      background: '#0e0e0e', borderRadius: 10, overflow: 'hidden',
+      background: 'var(--vx-deep)', borderRadius: 10, overflow: 'hidden',
       animation: `lab-fx-row-in 300ms cubic-bezier(0.22,1,0.36,1) ${index * 40}ms both`,
       transition: 'box-shadow 200ms ease',
       boxShadow: effect.enabled ? '0 0 12px rgba(103,156,255,0.05)' : 'none',
@@ -264,7 +264,7 @@ function EffectRow({ effect, onChange, index }: { effect: TrackEffect; onChange:
           onClick={e => { e.stopPropagation(); onChange({ ...effect, enabled: !effect.enabled }); }}
           style={{
             width: 18, height: 18, borderRadius: 4, border: 'none', cursor: 'pointer',
-            background: effect.enabled ? '#007aff' : '#252626',
+            background: effect.enabled ? '#007aff' : 'var(--vx-input)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'background 200ms ease, transform 150ms cubic-bezier(0.34,1.56,0.64,1)',
             transform: effect.enabled ? 'scale(1)' : 'scale(0.9)',
@@ -274,16 +274,16 @@ function EffectRow({ effect, onChange, index }: { effect: TrackEffect; onChange:
         </button>
         <span className="material-symbols-outlined" style={{
           fontSize: 14,
-          color: effect.enabled ? '#679cff' : '#484848',
+          color: effect.enabled ? '#679cff' : 'var(--vx-text-4)',
           transition: 'color 200ms ease',
         }}>{meta.icon}</span>
         <span style={{
           fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600,
-          color: effect.enabled ? '#e7e5e4' : '#767575', flex: 1,
+          color: effect.enabled ? 'var(--vx-text)' : 'var(--vx-text-3)', flex: 1,
           transition: 'color 200ms ease',
         }}>{meta.label}</span>
         <span className="material-symbols-outlined" style={{
-          fontSize: 14, color: '#484848',
+          fontSize: 14, color: 'var(--vx-text-4)',
           transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
           transition: 'transform 300ms cubic-bezier(0.34,1.56,0.64,1)',
         }}>expand_more</span>
@@ -324,18 +324,18 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
 
   return (
     <div style={{
-      background: '#161717', borderRadius: 14, padding: '14px 16px',
-      border: `1px solid ${isPlaying ? '#007aff30' : '#1f2020'}`,
+      background: 'var(--vx-card)', borderRadius: 14, padding: '14px 16px',
+      border: `1px solid ${isPlaying ? '#007aff30' : 'var(--vx-edge)'}`,
       transition: 'border-color 300ms ease, box-shadow 300ms ease',
       boxShadow: isPlaying ? '0 0 16px rgba(0,122,255,0.06)' : 'none',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div style={{
-          width: 32, height: 32, borderRadius: 8, background: '#0e0e0e',
+          width: 32, height: 32, borderRadius: 8, background: 'var(--vx-deep)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
           <span className="material-symbols-outlined" style={{
-            fontSize: 16, color: isMuted ? '#484848' : accent,
+            fontSize: 16, color: isMuted ? 'var(--vx-text-4)' : accent,
             transition: 'color 200ms ease',
           }}>{SOURCE_ICONS[layer.sourceType] || 'mic'}</span>
         </div>
@@ -343,25 +343,25 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
           {editName ? (
             <input value={name} onChange={e => setName(e.target.value)} onBlur={saveName}
               onKeyDown={e => e.key === 'Enter' && saveName()} autoFocus
-              style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: '#e7e5e4', background: 'none', border: 'none', borderBottom: '1px solid #007aff', outline: 'none', padding: 0, width: '100%' }} />
+              style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--vx-text)', background: 'none', border: 'none', borderBottom: '1px solid #007aff', outline: 'none', padding: 0, width: '100%' }} />
           ) : (
             <p onClick={() => setEditName(true)} style={{
               fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13,
-              color: isMuted ? '#484848' : '#e7e5e4', margin: 0, cursor: 'pointer',
+              color: isMuted ? 'var(--vx-text-4)' : 'var(--vx-text)', margin: 0, cursor: 'pointer',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               transition: 'color 200ms ease',
             }}>{layer.name}</p>
           )}
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', margin: '1px 0 0' }}>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', margin: '1px 0 0' }}>
             {formatDur(layer.durationMs)} · {layer.sourceType}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
           <button onClick={() => onUpdate({ ...layer, muted: !layer.muted })} style={{
             width: 26, height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
-            background: layer.muted ? '#7f2927' : '#252626',
+            background: layer.muted ? '#7f2927' : 'var(--vx-input)',
             fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 800,
-            color: layer.muted ? '#ff9993' : '#767575',
+            color: layer.muted ? '#ff9993' : 'var(--vx-text-3)',
             transition: 'background 200ms ease, color 200ms ease, transform 100ms ease',
           }}
             onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.9)')}
@@ -370,9 +370,9 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
           >M</button>
           <button onClick={() => onUpdate({ ...layer, solo: !layer.solo })} style={{
             width: 26, height: 26, borderRadius: 6, cursor: 'pointer',
-            background: layer.solo ? '#f59e0b22' : '#252626',
+            background: layer.solo ? '#f59e0b22' : 'var(--vx-input)',
             fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 800,
-            color: layer.solo ? '#f59e0b' : '#767575',
+            color: layer.solo ? '#f59e0b' : 'var(--vx-text-3)',
             border: layer.solo ? '1px solid #f59e0b40' : '1px solid transparent',
             transition: 'background 200ms ease, color 200ms ease, border-color 200ms ease, transform 100ms ease',
           }}
@@ -385,7 +385,7 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
         <span className="material-symbols-outlined" style={{
-          fontSize: 14, color: '#484848',
+          fontSize: 14, color: 'var(--vx-text-4)',
           transition: 'color 150ms ease',
           ...(isMuted ? {} : { color: '#5a5a5a' }),
         }}>volume_up</span>
@@ -397,7 +397,7 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
             transition: 'opacity 200ms ease',
           }} />
         <span style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', minWidth: 42, textAlign: 'right',
+          fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 42, textAlign: 'right',
           transition: 'color 150ms ease',
         }}>
           {dbToDisplay(layer.volume)}
@@ -405,12 +405,12 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#484848' }}>swap_horiz</span>
+        <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--vx-text-4)' }}>swap_horiz</span>
         <input type="range" min={-1} max={1} step={0.01} value={layer.pan}
           onChange={e => onUpdate({ ...layer, pan: parseFloat(e.target.value) })}
           style={{ flex: 1, accentColor: '#a78bfa', height: 3, cursor: 'pointer' }} />
         <span style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', minWidth: 28, textAlign: 'right',
+          fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 28, textAlign: 'right',
           transition: 'color 150ms ease',
         }}>
           {layer.pan === 0 ? 'C' : layer.pan < 0 ? `L${Math.round(Math.abs(layer.pan) * 100)}` : `R${Math.round(layer.pan * 100)}`}
@@ -419,12 +419,12 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
 
       <div style={{ display: 'flex', gap: 6, marginBottom: showFx ? 10 : 0, transition: 'margin-bottom 200ms ease' }}>
         <button onClick={() => setShowFx(!showFx)} style={{
-          display: 'flex', alignItems: 'center', gap: 4, background: '#0e0e0e',
-          border: '1px solid #1f2020', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 4, background: 'var(--vx-deep)',
+          border: '1px solid var(--vx-edge)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
           fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700,
-          color: layer.effects.some(e => e.enabled) ? '#679cff' : '#484848',
+          color: layer.effects.some(e => e.enabled) ? '#679cff' : 'var(--vx-text-4)',
           transition: 'color 200ms ease, border-color 200ms ease, transform 100ms ease',
-          borderColor: showFx ? '#679cff30' : '#1f2020',
+          borderColor: showFx ? '#679cff30' : 'var(--vx-edge)',
         }}
           onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.95)')}
           onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
@@ -440,10 +440,10 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
         {confirmDel ? (
           <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
             <button onClick={() => { onDelete(); setConfirmDel(false); }} style={{ background: '#7f2927', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#ff9993' }}>Delete</button>
-            <button onClick={() => setConfirmDel(false)} style={{ background: '#252626', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#acabaa' }}>Cancel</button>
+            <button onClick={() => setConfirmDel(false)} style={{ background: 'var(--vx-input)', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: 'var(--vx-text-2)' }}>Cancel</button>
           </div>
         ) : (
-          <button onClick={() => setConfirmDel(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#484848', display: 'flex', marginLeft: 'auto' }}>
+          <button onClick={() => setConfirmDel(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--vx-text-4)', display: 'flex', marginLeft: 'auto' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
           </button>
         )}
@@ -558,25 +558,25 @@ function AddTrackSheet({ session, onAdd, onClose }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: 500, maxHeight: '70vh', overflow: 'auto',
-          background: '#161717', borderRadius: '20px 20px 0 0', padding: '20px 20px 32px',
+          background: 'var(--vx-card)', borderRadius: '20px 20px 0 0', padding: '20px 20px 32px',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 20, color: '#e7e5e4', margin: 0 }}>{t.vocalex.addTrack}</h3>
-          <button onClick={onClose} style={{ background: '#252626', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#767575' }}>close</span>
+          <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 20, color: 'var(--vx-text)', margin: 0 }}>{t.vocalex.addTrack}</h3>
+          <button onClick={onClose} style={{ background: 'var(--vx-input)', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--vx-text-3)' }}>close</span>
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#0e0e0e', borderRadius: 10, padding: 3 }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'var(--vx-deep)', borderRadius: 10, padding: 3 }}>
           {(['takes', 'file', 'record'] as const).map(tabKey => {
             const tabLabels: Record<string, string> = { takes: t.vocalex.tabTakes, file: t.vocalex.tabFile, record: t.vocalex.tabRecord };
             return (
             <button key={tabKey} onClick={() => setTab(tabKey)} style={{
               flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
               fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700,
-              background: tab === tabKey ? '#252626' : 'transparent',
-              color: tab === tabKey ? '#e7e5e4' : '#767575',
+              background: tab === tabKey ? 'var(--vx-input)' : 'transparent',
+              color: tab === tabKey ? 'var(--vx-text)' : 'var(--vx-text-3)',
               textTransform: 'capitalize',
               transition: 'background 200ms ease, color 200ms ease',
             }}>
@@ -588,25 +588,25 @@ function AddTrackSheet({ session, onAdd, onClose }: {
 
         {tab === 'takes' && (
           takes.length === 0 ? (
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575', textAlign: 'center', padding: '20px 0' }}>{t.vocalex.noTakesForImport}</p>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-3)', textAlign: 'center', padding: '20px 0' }}>{t.vocalex.noTakesForImport}</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {takes.map(take => (
                 <div key={take.id} onClick={() => importTake(take)} style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                  background: '#0e0e0e', borderRadius: 10, cursor: 'pointer',
+                  background: 'var(--vx-deep)', borderRadius: 10, cursor: 'pointer',
                   transition: 'background 150ms ease',
                 }}
                   onPointerDown={e => (e.currentTarget.style.background = '#1a1a1a')}
-                  onPointerUp={e => (e.currentTarget.style.background = '#0e0e0e')}
-                  onPointerLeave={e => (e.currentTarget.style.background = '#0e0e0e')}
+                  onPointerUp={e => (e.currentTarget.style.background = 'var(--vx-deep)')}
+                  onPointerLeave={e => (e.currentTarget.style.background = 'var(--vx-deep)')}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#679cff' }}>video_library</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 600, fontSize: 13, color: '#e7e5e4', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{take.name}</p>
-                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', margin: '1px 0 0' }}>{formatDur(take.durationMs)}</p>
+                    <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 600, fontSize: 13, color: 'var(--vx-text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{take.name}</p>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'var(--vx-text-3)', margin: '1px 0 0' }}>{formatDur(take.durationMs)}</p>
                   </div>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#484848' }}>add_circle</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--vx-text-4)' }}>add_circle</span>
                 </div>
               ))}
             </div>
@@ -620,16 +620,16 @@ function AddTrackSheet({ session, onAdd, onClose }: {
             <button onClick={() => fileRef.current?.click()} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
               width: '100%', padding: '32px 20px', borderRadius: 14,
-              background: '#0e0e0e', border: '2px dashed #252626', cursor: 'pointer',
+              background: 'var(--vx-deep)', border: '2px dashed var(--vx-input)', cursor: 'pointer',
               transition: 'border-color 150ms ease',
             }}
               onPointerDown={e => (e.currentTarget.style.borderColor = '#007aff')}
-              onPointerUp={e => (e.currentTarget.style.borderColor = '#252626')}
-              onPointerLeave={e => (e.currentTarget.style.borderColor = '#252626')}
+              onPointerUp={e => (e.currentTarget.style.borderColor = 'var(--vx-input)')}
+              onPointerLeave={e => (e.currentTarget.style.borderColor = 'var(--vx-input)')}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#679cff' }}>upload_file</span>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: '#acabaa' }}>{t.vocalex.tapToChooseAudio}</span>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#484848' }}>{t.vocalex.audioFormats}</span>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: 'var(--vx-text-2)' }}>{t.vocalex.tapToChooseAudio}</span>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'var(--vx-text-4)' }}>{t.vocalex.audioFormats}</span>
             </button>
           </div>
         )}
@@ -651,7 +651,7 @@ function AddTrackSheet({ session, onAdd, onClose }: {
             ) : (
               <>
                 <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#679cff' }}>mic</span>
-                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', textAlign: 'center' }}>{t.vocalex.recordPrompt}</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', textAlign: 'center' }}>{t.vocalex.recordPrompt}</p>
                 <button onClick={startRec} style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px', borderRadius: 9999,
                   background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
@@ -859,7 +859,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
           the delete control on the right. ─────────────────────────── */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12,
-        background: '#0e0e0e', border: '1px solid #1f2020',
+        background: 'var(--vx-deep)', border: '1px solid var(--vx-edge)',
         borderRadius: 16, padding: '12px 14px', marginBottom: 16,
       }}>
         {/* Icon */}
@@ -891,7 +891,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
               maxLength={48}
               style={{
                 fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 18,
-                color: '#e7e5e4', background: 'none',
+                color: 'var(--vx-text)', background: 'none',
                 border: 'none', borderBottom: '2px solid #679cff',
                 outline: 'none', padding: '2px 0',
                 width: '100%', letterSpacing: '-0.02em', marginTop: 4,
@@ -904,7 +904,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 background: 'none', border: 'none', padding: '2px 0', marginTop: 2,
-                cursor: 'pointer', color: '#e7e5e4',
+                cursor: 'pointer', color: 'var(--vx-text)',
                 width: '100%', textAlign: 'left',
               }}
             >
@@ -916,7 +916,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
               }}>
                 {session.name}
               </span>
-              <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#484848', flexShrink: 0 }}>edit</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--vx-text-4)', flexShrink: 0 }}>edit</span>
             </button>
           )}
         </div>
@@ -925,7 +925,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
         {confirmDelete ? (
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button onClick={handleDelete} style={{ background: '#7f2927', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: '#ff9993' }}>{t.vocalex.deleteTake}</button>
-            <button onClick={() => setConfirmDelete(false)} style={{ background: '#252626', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: '#acabaa' }}>{t.vocalex.cancelAction}</button>
+            <button onClick={() => setConfirmDelete(false)} style={{ background: 'var(--vx-input)', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: 'var(--vx-text-2)' }}>{t.vocalex.cancelAction}</button>
           </div>
         ) : (
           <button
@@ -935,11 +935,11 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
               flexShrink: 0,
               width: 36, height: 36, borderRadius: 10,
               background: 'transparent', border: 'none', cursor: 'pointer',
-              color: '#767575', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--vx-text-3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 150ms ease, color 150ms ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.10)'; e.currentTarget.style.color = '#ef4444'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#767575'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--vx-text-3)'; }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
           </button>
@@ -947,13 +947,13 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
       </div>
 
       {/* Meta line — track count + total duration */}
-      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#767575', margin: '0 0 16px 4px' }}>
+      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: 'var(--vx-text-3)', margin: '0 0 16px 4px' }}>
         {t.vocalex.trackCount(session.layers.length)} · {formatDur(maxDuration)}
       </p>
 
       <div style={{
-        background: '#0e0e0e', borderRadius: 14, padding: '14px 16px', marginBottom: 16,
-        border: '1px solid #1f2020',
+        background: 'var(--vx-deep)', borderRadius: 14, padding: '14px 16px', marginBottom: 16,
+        border: '1px solid var(--vx-edge)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
           <button onClick={playAll} style={{
@@ -968,17 +968,17 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
             </span>
           </button>
           <div style={{ flex: 1 }}>
-            <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: '#e7e5e4', margin: 0 }}>
+            <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--vx-text)', margin: 0 }}>
               {playing ? t.vocalex.playing : t.vocalex.ready}
             </p>
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#484848', margin: '2px 0 0' }}>
+            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'var(--vx-text-4)', margin: '2px 0 0' }}>
               {formatDur(currentTime)} / {formatDur(maxDuration)}
             </p>
           </div>
         </div>
 
         {maxDuration > 0 && (
-          <div style={{ height: 3, borderRadius: 2, background: '#252626', overflow: 'hidden' }}>
+          <div style={{ height: 3, borderRadius: 2, background: 'var(--vx-input)', overflow: 'hidden' }}>
             <div style={{
               height: '100%', borderRadius: 2,
               background: 'linear-gradient(90deg, #679cff, #007aff)',
@@ -989,20 +989,20 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#767575', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t.vocalex.master}</span>
+          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: 'var(--vx-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t.vocalex.master}</span>
           <input type="range" min={0} max={1} step={0.01} value={session.masterVolume ?? 0.8}
             onChange={e => updateMasterVol(parseFloat(e.target.value))}
             style={{ flex: 1, accentColor: '#679cff', height: 3, cursor: 'pointer' }} />
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#484848', minWidth: 42, textAlign: 'right' }}>
+          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 42, textAlign: 'right' }}>
             {dbToDisplay(session.masterVolume ?? 0.8)}
           </span>
         </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#767575', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t.vocalex.tracks}</span>
+        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: 'var(--vx-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t.vocalex.tracks}</span>
         <button onClick={() => setShowAddSheet(true)} style={{
-          display: 'flex', alignItems: 'center', gap: 4, background: '#252626', border: 'none',
+          display: 'flex', alignItems: 'center', gap: 4, background: 'var(--vx-input)', border: 'none',
           borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
           fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#679cff',
         }}>
@@ -1012,9 +1012,9 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
       </div>
 
       {session.layers.length === 0 ? (
-        <div style={{ background: '#161717', borderRadius: 14, padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#484848' }}>queue_music</span>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575', margin: 0, textAlign: 'center' }}>{t.vocalex.noTracksYet}</p>
+        <div style={{ background: 'var(--vx-card)', borderRadius: 14, padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--vx-text-4)' }}>queue_music</span>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-3)', margin: 0, textAlign: 'center' }}>{t.vocalex.noTracksYet}</p>
           <button onClick={() => setShowAddSheet(true)} style={{
             marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 9999,
             background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
@@ -1046,31 +1046,31 @@ function SessionCard({ session, onOpen, onDelete }: {
 
   return (
     <div style={{
-      background: '#1f2020', borderRadius: 14, padding: '16px 16px',
+      background: 'var(--vx-edge)', borderRadius: 14, padding: '16px 16px',
       display: 'flex', alignItems: 'center', gap: 14,
       transition: 'background 150ms ease', cursor: 'pointer',
     }}
       onClick={() => onOpen(session)}
       onPointerDown={e => (e.currentTarget.style.background = '#2c2c2c')}
-      onPointerUp={e => (e.currentTarget.style.background = '#1f2020')}
-      onPointerLeave={e => (e.currentTarget.style.background = '#1f2020')}
+      onPointerUp={e => (e.currentTarget.style.background = 'var(--vx-edge)')}
+      onPointerLeave={e => (e.currentTarget.style.background = 'var(--vx-edge)')}
     >
-      <div style={{ width: 42, height: 42, borderRadius: 10, background: '#0e0e0e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--vx-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#679cff' }}>{session.icon}</span>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <h4 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 15, color: '#e7e5e4', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{session.name}</h4>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#767575', margin: 0 }}>
+        <h4 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--vx-text)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{session.name}</h4>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'var(--vx-text-3)', margin: 0 }}>
           {t.vocalex.trackCount(session.layers.length)} · {formatDate(session.createdAt, t.vocalex.months)}
         </p>
       </div>
       {confirmDel ? (
         <div style={{ display: 'flex', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
           <button onClick={() => { onDelete(session.id); setConfirmDel(false); }} style={{ background: '#7f2927', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#ff9993' }}>{t.vocalex.deleteTake}</button>
-          <button onClick={() => setConfirmDel(false)} style={{ background: '#252626', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#acabaa' }}>{t.vocalex.cancelAction}</button>
+          <button onClick={() => setConfirmDel(false)} style={{ background: 'var(--vx-input)', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: 'var(--vx-text-2)' }}>{t.vocalex.cancelAction}</button>
         </div>
       ) : (
-        <button onClick={e => { e.stopPropagation(); setConfirmDel(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#484848', display: 'flex', flexShrink: 0 }}>
+        <button onClick={e => { e.stopPropagation(); setConfirmDel(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--vx-text-4)', display: 'flex', flexShrink: 0 }}>
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
         </button>
       )}
@@ -1139,8 +1139,8 @@ export default function LabPanel() {
   return (
     <div style={{ padding: '20px 20px 40px', minHeight: '100%' }}>
       <section style={{ marginBottom: 28 }}>
-        <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em', color: '#e7e5e4', margin: '0 0 8px', lineHeight: 1 }}>{t.vocalex.labTitle}</h2>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#acabaa', margin: 0, lineHeight: 1.6, maxWidth: 320 }}>
+        <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em', color: 'var(--vx-text)', margin: '0 0 8px', lineHeight: 1 }}>{t.vocalex.labTitle}</h2>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', margin: 0, lineHeight: 1.6, maxWidth: 320 }}>
           {t.vocalex.labSubtitle}
         </p>
       </section>
@@ -1167,7 +1167,7 @@ export default function LabPanel() {
       {loaded && sessions.length > 0 && (
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
-            <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 18, color: '#e7e5e4', margin: 0 }}>{t.vocalex.sessionsLabel}</h3>
+            <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--vx-text)', margin: 0 }}>{t.vocalex.sessionsLabel}</h3>
             {sessions.length > 6 && (
               <button onClick={() => setShowAll(!showAll)} style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -1188,8 +1188,8 @@ export default function LabPanel() {
 
       {loaded && sessions.length === 0 && (
         <section style={{ textAlign: 'center', padding: '40px 0' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#484848', marginBottom: 8 }}>science</span>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575', margin: '8px 0 0' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--vx-text-4)', marginBottom: 8 }}>science</span>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-3)', margin: '8px 0 0' }}>
             {t.vocalex.noSessionsHint}
           </p>
         </section>

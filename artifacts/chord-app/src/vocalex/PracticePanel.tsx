@@ -85,11 +85,11 @@ function TipCard({ tip, color, index }: { tip: Tip; color: string; index: number
     <div
       onClick={() => setExpanded(!expanded)}
       style={{
-        background: '#161717',
+        background: 'var(--vx-card)',
         borderRadius: 16,
         padding: '18px 20px',
         cursor: 'pointer',
-        border: `1px solid ${expanded ? color + '30' : '#1f2020'}`,
+        border: `1px solid ${expanded ? color + '30' : 'var(--vx-edge)'}`,
         transition: 'border-color 250ms ease, box-shadow 250ms ease',
         boxShadow: expanded ? `0 0 20px ${color}08` : 'none',
         animation: `pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) ${index * 60}ms both`,
@@ -106,12 +106,12 @@ function TipCard({ tip, color, index }: { tip: Tip; color: string; index: number
         </span>
         <span style={{
           fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 15,
-          color: '#e7e5e4', flex: 1,
+          color: 'var(--vx-text)', flex: 1,
         }}>
           {tip.title}
         </span>
         <span className="material-symbols-outlined" style={{
-          fontSize: 18, color: expanded ? color : '#484848',
+          fontSize: 18, color: expanded ? color : 'var(--vx-text-4)',
           transition: 'transform 300ms cubic-bezier(0.34,1.56,0.64,1), color 250ms ease',
           transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
         }}>
@@ -132,7 +132,7 @@ function TipCard({ tip, color, index }: { tip: Tip; color: string; index: number
             WebkitOverflowScrolling: 'touch',
           }}>
             <p style={{
-              fontFamily: 'Inter, sans-serif', fontSize: 13.5, color: '#a8a6a5',
+              fontFamily: 'Inter, sans-serif', fontSize: 13.5, color: 'var(--vx-text-2)',
               lineHeight: 1.7, margin: 0,
               animation: expanded ? 'pp-expand 300ms cubic-bezier(0.22,1,0.36,1) both' : 'none',
             }}>
@@ -224,12 +224,12 @@ export default function PracticePanel() {
           <div>
             <h2 style={{
               fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 22,
-              color: '#e7e5e4', margin: 0,
+              color: 'var(--vx-text)', margin: 0,
             }}>
               {section.name}
             </h2>
             <span style={{
-              fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#767575',
+              fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'var(--vx-text-3)',
             }}>
               {t.vocalex.tipsCount(section.tips.length)}
             </span>
@@ -245,13 +245,13 @@ export default function PracticePanel() {
     <div style={{ padding: '16px 20px', minHeight: '100%' }}>
       <h2 style={{
         fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 24,
-        color: '#e7e5e4', margin: '0 0 6px',
+        color: 'var(--vx-text)', margin: '0 0 6px',
         animation: 'pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) both',
       }}>
         {t.vocalex.tipsTitle}
       </h2>
       <p style={{
-        fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#767575',
+        fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-3)',
         margin: '0 0 28px', lineHeight: 1.5,
         animation: 'pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) 60ms both',
       }}>
@@ -264,11 +264,11 @@ export default function PracticePanel() {
             key={section.id}
             onClick={() => goToSection(section.id)}
             style={{
-              background: '#161717',
+              background: 'var(--vx-card)',
               borderRadius: 16,
               padding: '20px',
               cursor: 'pointer',
-              border: '1px solid #1f2020',
+              border: '1px solid var(--vx-edge)',
               transition: 'transform 200ms cubic-bezier(0.34,1.56,0.64,1), border-color 200ms ease, box-shadow 200ms ease',
               display: 'flex', alignItems: 'center', gap: 16,
               animation: `pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) ${100 + i * 50}ms both`,
@@ -296,18 +296,18 @@ export default function PracticePanel() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{
                 fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 16,
-                color: '#e7e5e4', margin: 0,
+                color: 'var(--vx-text)', margin: 0,
               }}>
                 {section.name}
               </p>
               <p style={{
-                fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#767575',
+                fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'var(--vx-text-3)',
                 margin: '3px 0 0',
               }}>
                 {t.vocalex.tipsCount(section.tips.length)}
               </p>
             </div>
-            <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#484848' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--vx-text-4)' }}>
               chevron_right
             </span>
           </div>
