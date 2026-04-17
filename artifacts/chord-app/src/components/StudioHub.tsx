@@ -195,9 +195,11 @@ export default function StudioHub() {
     let played = false;
     const fire = () => {
       if (played) return;
-      played = true;
-      cleanup();
-      playStudioChime();
+      const ok = playStudioChime();
+      if (ok) {
+        played = true;
+        cleanup();
+      }
     };
     const onGesture = () => fire();
     const cleanup = () => {
