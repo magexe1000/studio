@@ -1716,9 +1716,15 @@ function createElementDOM(el) {
     selectElement(el.id);
     if (!e.target.closest('.el-resize-bar')) startDragElement(e, el);
   });
-  // Touch: select + drag on mobile
+  // Touch: select + drag on mobile (or fire connect in connect mode)
   wrap.addEventListener('touchstart', e => {
     e.stopPropagation();
+    // In connect mode, a tap means "pick this element for the connection",
+    // NOT drag it. Mirrors the mouse path in the pointerdown handler above.
+    if (state.connectMode) {
+      handleConnectClick(el.id);
+      return;
+    }
     selectElement(el.id);
     if (!e.target.closest('.el-resize-bar') && e.touches.length === 1) {
       startTouchDragElement(e.touches[0], el);
