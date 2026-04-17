@@ -4975,21 +4975,36 @@ async function exportPDF() {
   const mobBtn = document.getElementById('mob-exp-pdf-btn');
   const origHTML = genBtn ? genBtn.innerHTML : '';
   const origMob  = mobBtn ? mobBtn.innerHTML : '';
-  if (genBtn) { genBtn.disabled = true; genBtn.innerHTML = DOMPurify.sanitize('<span style="font-size:11px;letter-spacing:0.1em;">GENERATING…</span>'); }
+  // Disable buttons immediately to prevent double-tap, but only show
+  // the "GENERATING…" label if export runs longer than 400ms — most
+  // exports finish before then and feel truly instant (no label flash).
+  if (genBtn) { genBtn.disabled = true; }
   if (mobBtn) { mobBtn.disabled = true; }
+  const spinnerTimer = genBtn ? setTimeout(() => {
+    genBtn.innerHTML = DOMPurify.sanitize('<span style="font-size:11px;letter-spacing:0.1em;">GENERATING…</span>');
+  }, 400) : null;
 
   try {
     const { jsPDF } = window.jspdf;
     const source = document.getElementById('export-document');
 
-    // Tuned for fast export: 794px ≈ A4 width @ 96dpi, scale 1.0 keeps text crisp
-    // while cutting html2canvas work by ~3.4x vs the old 900×1.5 settings.
-    const CAPTURE_WIDTH = 794;
-    const SCALE      = 1.0;
-    const GAP_MM     = 8;
-    // 0.72 keeps text/diagrams sharp while encoding ~30-40% faster than 0.82
-    // and producing a noticeably smaller file (faster share + faster save IO).
-    const JPEG_Q     = 0.72;
+    // ─────────────────────────────────────────────────────────────────
+    // FAST PDF EXPORT — single-capture strategy
+    // ─────────────────────────────────────────────────────────────────
+    // Key insight: html2canvas's per-call overhead (DOM walk + style
+    // resolution + font loading + container setup) is huge. The previous
+    // implementation did 10 separate captures, paying that overhead 10×.
+    // We now clone the whole #export-document ONCE, capture it ONCE, and
+    // slice the resulting bitmap into A4 pages — breaking only on natural
+    // section boundaries (recorded BEFORE capture from the cloned DOM).
+    //
+    // We also strip box-shadow / backdrop-filter / filter:blur() from the
+    // clone in onclone — those are extremely expensive to rasterize and
+    // contribute almost nothing visible against a flat #0e0e0e background.
+    // ─────────────────────────────────────────────────────────────────
+    const CAPTURE_WIDTH = 794;   // A4 width @ 96dpi
+    const SCALE         = 1.0;
+    const JPEG_Q        = 0.7;   // crisp at A4 print scale, faster encode
 
     const SECTION_IDS = [
       'exp-cover', 'exp-stage-section', 'exp-input-section',
@@ -4998,140 +5013,246 @@ async function exportPDF() {
       'exp-notes-section', 'exp-gear-section', 'exp-footer'
     ];
 
-    // ── 1. Build all clones in one pass ──
-    const wraps = [];
-    for (const id of SECTION_IDS) {
-      const el = source.querySelector('#' + id);
-      if (!el || el.style.display === 'none') continue;
+    // ── 1. Clone the WHOLE export document once ──
+    const wrap = document.createElement('div');
+    wrap.style.cssText =
+      `position:absolute;left:-9999px;top:0;width:${CAPTURE_WIDTH}px;` +
+      `background:#0e0e0e;z-index:-9999;pointer-events:none;font-family:Inter,sans-serif;`;
+    const docClone = source.cloneNode(true);
+    docClone.style.margin     = '0';
+    docClone.style.padding    = '0';
+    docClone.style.height     = 'auto';
+    docClone.style.maxHeight  = 'none';
+    docClone.style.overflow   = 'visible';
+    docClone.style.background = '#0e0e0e';
 
-      const wrap = document.createElement('div');
-      wrap.style.cssText =
-        `position:absolute;left:-9999px;top:0;width:${CAPTURE_WIDTH}px;` +
-        `background:#0e0e0e;z-index:-9999;pointer-events:none;font-family:Inter,sans-serif;`;
-      const clone = el.cloneNode(true);
-      clone.style.margin = '0';
-      // Give every section generous padding so text never clips
-      if (!clone.style.padding || clone.style.padding === '0px') {
-        clone.style.paddingTop    = '32px';
-        clone.style.paddingBottom = '32px';
-        clone.style.paddingLeft   = '28px';
-        clone.style.paddingRight  = '28px';
-      } else {
-        clone.style.paddingTop    = '32px';
-        clone.style.paddingBottom = '32px';
-      }
-      // Ensure all text wraps and never overflows
-      clone.style.wordBreak     = 'break-word';
-      clone.style.overflowWrap  = 'break-word';
-      clone.style.overflow      = 'visible';
-      clone.style.height        = 'auto';
-      clone.style.maxHeight     = 'none';
-      // Fix editable notes: remove fixed height so it fully expands
-      clone.querySelectorAll('[contenteditable]').forEach(e => {
-        e.setAttribute('contenteditable', 'false');
-        e.style.minHeight  = 'auto';
-        e.style.height     = 'auto';
-        e.style.maxHeight  = 'none';
-        e.style.overflow   = 'visible';
-        e.style.wordBreak  = 'break-word';
-        e.style.overflowWrap = 'break-word';
-      });
-      wrap.appendChild(clone);
-      document.body.appendChild(wrap);
-      wraps.push(wrap);
-    }
+    // Apply per-section padding + neutralize editable / overflow constraints
+    SECTION_IDS.forEach(id => {
+      const sec = docClone.querySelector('#' + id);
+      if (!sec) return;
+      sec.style.height        = 'auto';
+      sec.style.maxHeight     = 'none';
+      sec.style.overflow      = 'visible';
+      sec.style.wordBreak     = 'break-word';
+      sec.style.overflowWrap  = 'break-word';
+      // Ensure consistent breathing room around every section
+      sec.style.paddingTop    = '32px';
+      sec.style.paddingBottom = '32px';
+      if (!sec.style.paddingLeft || sec.style.paddingLeft === '0px') sec.style.paddingLeft = '28px';
+      if (!sec.style.paddingRight || sec.style.paddingRight === '0px') sec.style.paddingRight = '28px';
+    });
+    docClone.querySelectorAll('[contenteditable]').forEach(e => {
+      e.setAttribute('contenteditable', 'false');
+      e.style.minHeight  = 'auto';
+      e.style.height     = 'auto';
+      e.style.maxHeight  = 'none';
+      e.style.overflow   = 'visible';
+    });
 
-    // ── 2. One animation frame so all clones are painted ──
+    wrap.appendChild(docClone);
+    document.body.appendChild(wrap);
+
+    // ── 2. One animation frame so layout settles ──
     await new Promise(r => requestAnimationFrame(r));
 
-    // ── 3. Capture each section (skip zero-height to avoid hangs) ──
-    const sections = await Promise.all(wraps.map(wrap => {
-      const h = Math.max(wrap.scrollHeight, 1);
-      if (h <= 1) return Promise.resolve(null);
-      return canvasWithTimeout(wrap, {
-        scale: SCALE, useCORS: true, allowTaint: true,
-        backgroundColor: '#0e0e0e', logging: false,
-        width: CAPTURE_WIDTH, height: h,
-        windowWidth: CAPTURE_WIDTH, windowHeight: h,
-        imageTimeout: 8000,
-        onclone: (doc) => {
-          // Ensure all SVGs inside cloned doc are inlined and sized
-          doc.querySelectorAll('svg').forEach(s => {
-            if (!s.getAttribute('width'))  s.setAttribute('width',  s.getBoundingClientRect().width  || CAPTURE_WIDTH);
-            if (!s.getAttribute('height')) s.setAttribute('height', s.getBoundingClientRect().height || 40);
-          });
-        }
-      }).catch(() => null);
-    }));
+    // ── 3. Record section break points + total height BEFORE capture ──
+    // We use these as the only "safe" places to cut between PDF pages so
+    // text and diagrams are never sliced mid-content.
+    const wrapTop = wrap.getBoundingClientRect().top;
+    const breakPx = [0];
+    SECTION_IDS.forEach(id => {
+      const sec = docClone.querySelector('#' + id);
+      if (!sec) return;
+      const rect = sec.getBoundingClientRect();
+      const top  = rect.top - wrapTop;
+      if (top > 0) breakPx.push(top);
+    });
+    const totalH = Math.max(wrap.scrollHeight, 1);
+    breakPx.push(totalH);
+    const breaks = [...new Set(breakPx.map(v => Math.round(v)))].sort((a,b) => a - b);
 
-    // ── 4. Remove all clones ──
-    wraps.forEach(w => { try { document.body.removeChild(w); } catch(_){} });
+    const onclone = (doc) => {
+      // Strip the most expensive CSS effects from the cloned document.
+      // These are invisible (or nearly so) against the flat #0e0e0e
+      // background but cost html2canvas heavily to rasterize.
+      const kill = doc.createElement('style');
+      kill.textContent =
+        `#export-document, #export-document * {` +
+        `box-shadow:none !important;` +
+        `text-shadow:none !important;` +
+        `backdrop-filter:none !important;` +
+        `-webkit-backdrop-filter:none !important;` +
+        `filter:none !important;` +
+        `transition:none !important;` +
+        `animation:none !important;` +
+        `}`;
+      doc.head.appendChild(kill);
+      doc.querySelectorAll('svg').forEach(s => {
+        if (!s.getAttribute('width'))  s.setAttribute('width',  s.getBoundingClientRect().width  || CAPTURE_WIDTH);
+        if (!s.getAttribute('height')) s.setAttribute('height', s.getBoundingClientRect().height || 40);
+      });
+    };
 
-    // ── PDF layout ──────────────────────────────────────────
+    // ── 4. Try the fast single-capture path. Cleanup is guaranteed in
+    //      finally. If it fails (e.g., very tall doc exceeding the
+    //      browser's max canvas dimension/memory) we fall back to a
+    //      per-section capture below so export degrades gracefully.
+    // Most browsers cap canvas height around 16k–32k px. Stay well under.
+    const MAX_SAFE_H = 14000;
+    let bigCvs = null;
+    if (totalH <= MAX_SAFE_H) {
+      try {
+        bigCvs = await canvasWithTimeout(wrap, {
+          scale: SCALE, useCORS: true, allowTaint: true,
+          backgroundColor: '#0e0e0e', logging: false,
+          width: CAPTURE_WIDTH, height: totalH,
+          windowWidth: CAPTURE_WIDTH, windowHeight: totalH,
+          imageTimeout: 8000,
+          onclone
+        });
+      } catch (e) {
+        console.warn('Fast PDF capture failed, falling back to per-section:', e);
+        bigCvs = null;
+      }
+    }
+    // Always remove the offscreen clone, success or failure.
+    try { document.body.removeChild(wrap); } catch(_) {}
+
+    // ── PDF document ──────────────────────────────────────
     const pdf  = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pdfW = pdf.internal.pageSize.getWidth();   // 210 mm
-    const pdfH = pdf.internal.pageSize.getHeight();  // 297 mm
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    const cssPerMm = CAPTURE_WIDTH / pdfW;
+    const pageHpx  = Math.floor(pdfH * cssPerMm);
 
-    // mm per source pixel  (cvs was rendered at SCALE×, so effective px = width*SCALE)
-    const mmPerPx = pdfW / (CAPTURE_WIDTH * SCALE);
-
-    let pageY     = 0;
-    let firstPage = true;
-
-    function fillBg() {
+    function fillPageBg() {
       pdf.setFillColor(14, 14, 14);
       pdf.rect(0, 0, pdfW, pdfH, 'F');
     }
-    fillBg();
 
-    function startNewPage() {
-      pdf.addPage();
-      fillBg();
-      pageY = 0;
-    }
+    if (bigCvs) {
+      // ── 5a. FAST PATH: slice the single big canvas into A4 pages,
+      //         breaking only at recorded section boundaries.
+      const cvsPerCss = bigCvs.width / CAPTURE_WIDTH;
 
-    function placeSection(cvs) {
-      const hMm    = cvs.height * mmPerPx;
-      const imgData = cvs.toDataURL('image/jpeg', JPEG_Q);
-
-      if (hMm <= pdfH) {
-        // ── Short section: keep whole, move to next page if needed ──
-        if (pageY > 0 && pageY + hMm > pdfH) startNewPage();
-        // 'FAST' tells jsPDF to skip its internal re-compression — we already
-        // chose the JPEG quality above, so this is a free speedup.
-        pdf.addImage(imgData, 'JPEG', 0, pageY, pdfW, hMm, undefined, 'FAST');
-        pageY += hMm + GAP_MM;
-
-      } else {
-        // ── Tall section (e.g. long input list): tile cleanly ──
-        let sliceTopPx = 0;
-
-        while (sliceTopPx < cvs.height) {
-          const availMm = pdfH - pageY;
-          const availPx = availMm / mmPerPx;
-          const slicePx = Math.min(availPx, cvs.height - sliceTopPx);
-
-          // Draw the slice onto a temp canvas
-          const sc  = document.createElement('canvas');
-          sc.width  = cvs.width;
-          sc.height = Math.ceil(slicePx);
-          const ctx = sc.getContext('2d');
-          ctx.fillStyle = '#0e0e0e';
-          ctx.fillRect(0, 0, sc.width, sc.height);
-          ctx.drawImage(cvs, 0, -sliceTopPx);
-
-          const sliceHMm = slicePx * mmPerPx;
-          pdf.addImage(sc.toDataURL('image/jpeg', JPEG_Q), 'JPEG', 0, pageY, pdfW, sliceHMm, undefined, 'FAST');
-          pageY    += sliceHMm;
-          sliceTopPx += availPx;
-
-          if (sliceTopPx < cvs.height) startNewPage();
+      const pages = [];
+      let pageStart = 0;
+      for (let i = 1; i < breaks.length; i++) {
+        const segStart = breaks[i - 1];
+        const segEnd   = breaks[i];
+        const segH     = segEnd - segStart;
+        if (segH > pageHpx) {
+          if (pageStart < segStart) pages.push({ s: pageStart, e: segStart });
+          let s = segStart;
+          while (s < segEnd) {
+            const e = Math.min(s + pageHpx, segEnd);
+            pages.push({ s, e });
+            s = e;
+          }
+          pageStart = segEnd;
+        } else if (segEnd - pageStart > pageHpx) {
+          pages.push({ s: pageStart, e: segStart });
+          pageStart = segStart;
         }
-        pageY += GAP_MM;
+      }
+      if (pageStart < totalH) pages.push({ s: pageStart, e: totalH });
+
+      const pageCvs = document.createElement('canvas');
+      const pageCtx = pageCvs.getContext('2d');
+      for (let p = 0; p < pages.length; p++) {
+        const { s, e } = pages[p];
+        const sliceCss = e - s;
+        pageCvs.width  = bigCvs.width;
+        pageCvs.height = Math.max(1, Math.round(sliceCss * cvsPerCss));
+        pageCtx.fillStyle = '#0e0e0e';
+        pageCtx.fillRect(0, 0, pageCvs.width, pageCvs.height);
+        pageCtx.drawImage(bigCvs, 0, -Math.round(s * cvsPerCss));
+
+        const imgData = pageCvs.toDataURL('image/jpeg', JPEG_Q);
+        const hMm = sliceCss / cssPerMm;
+        if (p > 0) pdf.addPage();
+        fillPageBg();
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, hMm, undefined, 'FAST');
+      }
+    } else {
+      // ── 5b. FALLBACK PATH: capture each section individually.
+      //         Slower but more resilient for very long documents or
+      //         environments where the single capture fails.
+      const GAP_MM = 8;
+      let pageY = 0;
+      fillPageBg();
+      const startNewPage = () => { pdf.addPage(); fillPageBg(); pageY = 0; };
+      const mmPerPx = pdfW / (CAPTURE_WIDTH * SCALE);
+
+      for (const id of SECTION_IDS) {
+        const el = source.querySelector('#' + id);
+        if (!el || el.style.display === 'none') continue;
+        const w = document.createElement('div');
+        w.style.cssText =
+          `position:absolute;left:-9999px;top:0;width:${CAPTURE_WIDTH}px;` +
+          `background:#0e0e0e;z-index:-9999;pointer-events:none;font-family:Inter,sans-serif;`;
+        const c = el.cloneNode(true);
+        c.style.margin = '0';
+        c.style.paddingTop = '32px'; c.style.paddingBottom = '32px';
+        if (!c.style.paddingLeft  || c.style.paddingLeft  === '0px') c.style.paddingLeft  = '28px';
+        if (!c.style.paddingRight || c.style.paddingRight === '0px') c.style.paddingRight = '28px';
+        c.style.wordBreak = 'break-word';
+        c.style.overflowWrap = 'break-word';
+        c.style.overflow = 'visible';
+        c.style.height = 'auto';
+        c.style.maxHeight = 'none';
+        c.querySelectorAll('[contenteditable]').forEach(x => {
+          x.setAttribute('contenteditable', 'false');
+          x.style.height = 'auto'; x.style.maxHeight = 'none'; x.style.overflow = 'visible';
+        });
+        w.appendChild(c);
+        document.body.appendChild(w);
+        try {
+          await new Promise(r => requestAnimationFrame(r));
+          const h = Math.max(w.scrollHeight, 1);
+          if (h <= 1) continue;
+          let cvs = null;
+          try {
+            cvs = await canvasWithTimeout(w, {
+              scale: SCALE, useCORS: true, allowTaint: true,
+              backgroundColor: '#0e0e0e', logging: false,
+              width: CAPTURE_WIDTH, height: h,
+              windowWidth: CAPTURE_WIDTH, windowHeight: h,
+              imageTimeout: 8000, onclone
+            });
+          } catch (_) { cvs = null; }
+          if (!cvs) continue;
+          const hMm = cvs.height * mmPerPx;
+          const imgData = cvs.toDataURL('image/jpeg', JPEG_Q);
+          if (hMm <= pdfH) {
+            if (pageY > 0 && pageY + hMm > pdfH) startNewPage();
+            pdf.addImage(imgData, 'JPEG', 0, pageY, pdfW, hMm, undefined, 'FAST');
+            pageY += hMm + GAP_MM;
+          } else {
+            let topPx = 0;
+            while (topPx < cvs.height) {
+              const availMm = pdfH - pageY;
+              const availPx = availMm / mmPerPx;
+              const slicePx = Math.min(availPx, cvs.height - topPx);
+              const sc = document.createElement('canvas');
+              sc.width = cvs.width; sc.height = Math.ceil(slicePx);
+              const sctx = sc.getContext('2d');
+              sctx.fillStyle = '#0e0e0e';
+              sctx.fillRect(0, 0, sc.width, sc.height);
+              sctx.drawImage(cvs, 0, -topPx);
+              const sliceHMm = slicePx * mmPerPx;
+              pdf.addImage(sc.toDataURL('image/jpeg', JPEG_Q), 'JPEG', 0, pageY, pdfW, sliceHMm, undefined, 'FAST');
+              pageY += sliceHMm;
+              topPx += availPx;
+              if (topPx < cvs.height) startNewPage();
+            }
+            pageY += GAP_MM;
+          }
+        } finally {
+          try { document.body.removeChild(w); } catch(_){}
+        }
       }
     }
-
-    for (const cvs of sections) { if (cvs) placeSection(cvs); }
 
     const projectName = (document.getElementById('exp-project-name') || {}).textContent || 'STAGE_CORE_V1';
     const opts = window.__pdfExportOptions || {};
@@ -5173,6 +5294,7 @@ async function exportPDF() {
     console.error('PDF export error:', err);
     showToast(T('pdfFailed'));
   } finally {
+    if (spinnerTimer) clearTimeout(spinnerTimer);
     if (genBtn) { genBtn.disabled = false; genBtn.innerHTML = DOMPurify.sanitize(origHTML); }
     if (mobBtn) { mobBtn.disabled = false; mobBtn.innerHTML = DOMPurify.sanitize(origMob); }
   }
