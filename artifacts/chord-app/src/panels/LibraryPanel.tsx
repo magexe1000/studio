@@ -408,6 +408,12 @@ export default function LibraryPanel() {
   // Discover state
   const [activeGenre, setActiveGenre]   = useState<Genre | null>(null);
   const [discoverQuery, setDiscoverQuery] = useState('');
+  const DISCOVER_PAGE_SIZE = 20;
+  const [discoverLimit, setDiscoverLimit] = useState(DISCOVER_PAGE_SIZE);
+
+  // Reset pagination whenever the filter or search changes so the user
+  // always sees the first page of results for the new query.
+  useEffect(() => { setDiscoverLimit(DISCOVER_PAGE_SIZE); }, [activeGenre, discoverQuery]);
 
   // ── Back navigation ──────────────────────────────────────────────────────
   const backHandlerRef = useRef<() => boolean>(() => false);
@@ -840,7 +846,7 @@ export default function LibraryPanel() {
             {/* Song count */}
             <div className="px-5 mb-3">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
-                {discoverSongs.length} song{discoverSongs.length !== 1 ? 's' : ''}
+                {Math.min(discoverLimit, discoverSongs.length)} / {discoverSongs.length} song{discoverSongs.length !== 1 ? 's' : ''}
                 {activeGenre ? ` · ${GENRE_META[activeGenre].label}` : ''}
                 {discoverQuery.trim() ? ` · "${discoverQuery.trim()}"` : ''}
               </p>
@@ -862,7 +868,7 @@ export default function LibraryPanel() {
                   </button>
                 </div>
               )}
-              {discoverSongs.map(song => {
+              {discoverSongs.slice(0, discoverLimit).map(song => {
                 const meta = GENRE_META[song.genre];
                 return (
                   <div key={song.id}
@@ -940,6 +946,29 @@ export default function LibraryPanel() {
                   </div>
                 );
               })}
+
+              {/* Load more — shown when there are more songs to reveal */}
+              {discoverLimit < discoverSongs.length && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={() => setDiscoverLimit(n => n + DISCOVER_PAGE_SIZE)}
+                    className="btn-smooth px-6 py-3 font-bold"
+                    style={{
+                      borderRadius: '9999px',
+                      background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                      color: '#0d0e0f',
+                      fontFamily: 'Manrope',
+                      fontSize: '13px',
+                      letterSpacing: '-0.01em',
+                      boxShadow: `0 4px 18px ${accent.to}33`,
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>expand_more</span>
+                    Load {Math.min(DISCOVER_PAGE_SIZE, discoverSongs.length - discoverLimit)} more
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
