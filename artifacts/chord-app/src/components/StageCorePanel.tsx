@@ -375,7 +375,7 @@ export default function StagexPanel() {
   ];
 
   const isTabActive = (view: string) => {
-    if (view === 'Editor') return curView === 'Editor';
+    if (view === 'Editor') return curView === 'Editor' || curView === 'Export';
     if (view === 'Setup') return ['SetupHub','Rider','Setlist','Gear','Members'].includes(curView);
     if (view === 'Preferences') return curView === 'Preferences';
     return false;

@@ -888,11 +888,13 @@ function switchView(view) {
     // All other views are safe to fade because they have no fixed children.
     if (prevView !== view && view !== 'Editor') {
       page.style.opacity = '0';
-      page.style.transform = 'translateY(5px)';
+      page.style.transform = 'translateY(10px) scale(0.985)';
       page.classList.add('view-entering');
       requestAnimationFrame(() => {
-        page.style.opacity = '1';
-        page.style.transform = 'translateY(0)';
+        requestAnimationFrame(() => {
+          page.style.opacity = '1';
+          page.style.transform = 'translateY(0) scale(1)';
+        });
       });
     }
   }
