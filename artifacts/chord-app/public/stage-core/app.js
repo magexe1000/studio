@@ -6228,11 +6228,12 @@ function applySettings() {
   const sbToggle = document.getElementById('settings-sb-toggle');
   if (sbToggle) sbToggle.classList.toggle('on', state.showStatusBar);
 
-  // Connections visibility
+  // Connections visibility (controlled by left toolbar button only)
   const connSvg = document.getElementById('connections-svg');
   if (connSvg) connSvg.style.display = state.connectionsVisible ? '' : 'none';
-  const connToggle = document.getElementById('settings-conn-toggle');
-  if (connToggle) connToggle.classList.toggle('on', state.connectionsVisible);
+  // Cable length labels toggle (preferences)
+  const cableLenToggle = document.getElementById('settings-cablelen-toggle');
+  if (cableLenToggle) cableLenToggle.classList.toggle('on', !!(typeof scCableLengthVisible !== 'undefined' && scCableLengthVisible));
 
   // Snap to grid
   const snapToggle = document.getElementById('settings-snap-toggle');
@@ -6419,12 +6420,10 @@ function toggleSnapFromSettings() {
 // ══════════════════════════════════════════════════════════
 //  SETTINGS — connections toggle (from settings)
 // ══════════════════════════════════════════════════════════
-function toggleConnectionsFromSettings() {
-  state.connectionsVisible = !state.connectionsVisible;
-  const svg = document.getElementById('connections-svg');
-  if (svg) svg.style.display = state.connectionsVisible ? '' : 'none';
-  const toggle = document.getElementById('settings-conn-toggle');
-  if (toggle) toggle.classList.toggle('on', state.connectionsVisible);
+function toggleCableLengthFromSettings() {
+  if (typeof scToggleCableLength === 'function') scToggleCableLength();
+  const toggle = document.getElementById('settings-cablelen-toggle');
+  if (toggle) toggle.classList.toggle('on', !!(typeof scCableLengthVisible !== 'undefined' && scCableLengthVisible));
 }
 
 // ══════════════════════════════════════════════════════════
@@ -6582,9 +6581,9 @@ function syncSettingsUI() {
   // Snap toggle
   const snapToggle = document.getElementById('settings-snap-toggle');
   if (snapToggle) snapToggle.classList.toggle('on', state.snapToGrid);
-  // Connections toggle
-  const connToggle = document.getElementById('settings-conn-toggle');
-  if (connToggle) connToggle.classList.toggle('on', state.connectionsVisible);
+  // Cable length labels toggle
+  const cableLenToggle = document.getElementById('settings-cablelen-toggle');
+  if (cableLenToggle) cableLenToggle.classList.toggle('on', !!(typeof scCableLengthVisible !== 'undefined' && scCableLengthVisible));
 }
 
 // ══════════════════════════════════════════════════════════
