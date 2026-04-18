@@ -39,27 +39,29 @@ export function subscribeAuth(cb: (u: AuthUser | null) => void): () => void {
   return onAuthStateChanged(auth, (u) => cb(toAuthUser(u)));
 }
 
-function isMobileLike(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-}
-
+/**
+ * Sign in with Google.
+ *
+ * We always try `signInWithPopup` first — even on mobile and inside installed
+ * PWAs. On Android Chrome the popup opens as a Custom Tab and shares the
+ * Firebase session correctly, whereas `signInWithRedirect` is broken in
+ * installed PWAs (cookies are partitioned, so `getRedirectResult` returns
+ * null after the redirect comes back). We only fall back to redirect when
+ * the environment genuinely cannot host a popup.
+ */
 export async function signInGoogle(): Promise<void> {
   const auth = getFirebaseAuth();
   if (!auth) throw new Error('Firebase not configured');
-  // Popups are unreliable on mobile webviews / in-app browsers — fall back to redirect.
-  if (isMobileLike()) {
-    await signInWithRedirect(auth, googleProvider);
-    return;
-  }
   try {
     await signInWithPopup(auth, googleProvider);
   } catch (e: unknown) {
     const code = (e as { code?: string })?.code ?? '';
+    // User dismissed — don't retry, don't navigate away.
+    if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+      return;
+    }
     if (
       code === 'auth/popup-blocked' ||
-      code === 'auth/popup-closed-by-user' ||
-      code === 'auth/cancelled-popup-request' ||
       code === 'auth/operation-not-supported-in-this-environment'
     ) {
       await signInWithRedirect(auth, googleProvider);
