@@ -4463,6 +4463,10 @@ function setPresets(arr) {
 }
 
 function openPresetsPanel(triggerEl) {
+  // Mutual exclusion: never overlap with the history timeline panel
+  if (typeof closeTimelinePanel === 'function') {
+    try { closeTimelinePanel(); } catch(e) { /* noop */ }
+  }
   const panel = document.getElementById('presets-panel');
   document.getElementById('presets-backdrop').style.display = 'block';
   panel.classList.add('preset-open');

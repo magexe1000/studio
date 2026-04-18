@@ -3421,9 +3421,18 @@ function _guessHistLabel() {
   return n === 0 ? 'Stage cleared' : `${n} element${n !== 1 ? 's' : ''} on stage`;
 }
 
+function _scIsLight() {
+  return document.documentElement.getAttribute('data-theme') === 'light';
+}
+
 function openTimelinePanel() {
   // Toggle: close if already open
   if (_histTimelineOpen) { closeTimelinePanel(); return; }
+
+  // Mutual exclusion: never overlap with the presets panel
+  if (typeof closePresetsPanel === 'function') {
+    try { closePresetsPanel(); } catch(e) { /* noop */ }
+  }
 
   // ── Compact floating sheet anchored near the top of the viewport ──
   // Sits just below the React top toolbar so it doesn't cover the stage.
@@ -3439,13 +3448,19 @@ function openTimelinePanel() {
     panel.id = 'sc-hist-panel';
     document.body.appendChild(panel);
   }
+  const light = _scIsLight();
+  const bg = light ? 'rgba(252,252,253,0.98)' : 'rgba(10,10,12,0.97)';
+  const border = light ? 'rgba(0,0,0,0.10)' : 'rgba(72,72,71,0.35)';
+  const shadow = light
+    ? '0 12px 40px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)'
+    : '0 24px 60px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)';
   panel.style.cssText = [
     `position:fixed;top:${panelTop}px;left:${panelLeft}px;width:${panelW}px;`,
     `max-height:${maxH}px;`,
-    'background:rgba(10,10,12,0.97);',
-    'border:1px solid rgba(72,72,71,0.35);',
+    `background:${bg};`,
+    `border:1px solid ${border};`,
     'border-radius:12px;',
-    'box-shadow:0 24px 60px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3);',
+    `box-shadow:${shadow};`,
     'z-index:9000;display:flex;flex-direction:column;overflow:hidden;',
     'transform:translateY(-12px);opacity:0;',
     'transition:transform 0.22s cubic-bezier(.16,1,.3,1), opacity 0.18s ease;',
@@ -3477,7 +3492,7 @@ function closeTimelinePanel() {
   if (panel) {
     panel.style.transform = 'translateY(-12px)';
     panel.style.opacity = '0';
-    setTimeout(() => { if (!_histTimelineOpen && panel.parentNode) panel.style.pointerEvents = 'none'; }, 220);
+    panel.style.pointerEvents = 'none';
   }
   const backdrop = document.getElementById('sc-hist-backdrop');
   if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
@@ -3489,6 +3504,33 @@ function _renderHistTimeline() {
   if (!panel) return;
   const entries = state.history || [];
   const cur     = state.historyIndex;
+  const light   = _scIsLight();
+
+  const c = light ? {
+    headerBorder: 'rgba(0,0,0,0.10)',
+    title: '#1a1a1c',
+    closeIdle: '#7a7a7d',
+    closeHover: '#1a1a1c',
+    emptyText: '#6c6c70',
+    footerBorder: 'rgba(0,0,0,0.08)',
+    btnBorder: 'rgba(0,0,0,0.14)',
+    btnText: '#5c5c60',
+    btnHoverText: '#1a1a1c',
+    btnHoverBorder: 'rgba(122,175,255,0.45)',
+    scrollThumb: 'rgba(0,0,0,0.18)',
+  } : {
+    headerBorder: 'rgba(72,72,71,0.22)',
+    title: '#e0e0e0',
+    closeIdle: '#484847',
+    closeHover: '#e0e0e0',
+    emptyText: '#767575',
+    footerBorder: 'rgba(72,72,71,0.15)',
+    btnBorder: 'rgba(72,72,71,0.3)',
+    btnText: '#767575',
+    btnHoverText: '#e0e0e0',
+    btnHoverBorder: 'rgba(122,175,255,0.35)',
+    scrollThumb: 'rgba(72,72,71,0.4)',
+  };
 
   const rows = entries.map((_, i) => {
     const meta  = _histTimeline[i] || {};
@@ -3509,19 +3551,19 @@ function _renderHistTimeline() {
   }).reverse().join('');
 
   panel.innerHTML = DOMPurify.sanitize(`
-    <div style="display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid rgba(72,72,71,0.22);flex-shrink:0;gap:6px;">
+    <div style="display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid ${c.headerBorder};flex-shrink:0;gap:6px;">
       <span class="material-symbols-outlined" style="font-size:12px;color:#7aafff;">history</span>
-      <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#e0e0e0;flex:1;">History</span>
-      <button onclick="closeTimelinePanel()" style="background:none;border:none;color:#484847;cursor:pointer;font-size:15px;line-height:1;padding:0 2px;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#484847'">×</button>
+      <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:${c.title};flex:1;">History</span>
+      <button onclick="closeTimelinePanel()" style="background:none;border:none;color:${c.closeIdle};cursor:pointer;font-size:15px;line-height:1;padding:0 2px;" onmouseover="this.style.color='${c.closeHover}'" onmouseout="this.style.color='${c.closeIdle}'">×</button>
     </div>
-    <div style="flex:1;overflow-y:auto;padding:4px 0;scrollbar-width:thin;scrollbar-color:rgba(72,72,71,0.4) transparent;">
+    <div style="flex:1;overflow-y:auto;padding:4px 0;scrollbar-width:thin;scrollbar-color:${c.scrollThumb} transparent;">
       ${entries.length === 0
-        ? '<p style="font-family:\'Inter\';font-size:9px;color:#767575;text-align:center;margin:14px 0;line-height:1.5;">No history yet.<br>Make edits to see your timeline.</p>'
+        ? `<p style="font-family:'Inter';font-size:9px;color:${c.emptyText};text-align:center;margin:14px 0;line-height:1.5;">No history yet.<br>Make edits to see your timeline.</p>`
         : rows}
     </div>
-    <div style="padding:6px 8px;border-top:1px solid rgba(72,72,71,0.15);display:flex;gap:5px;flex-shrink:0;">
-      <button onclick="undo();_renderHistTimeline();" style="flex:1;padding:4px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">← Undo</button>
-      <button onclick="redo();_renderHistTimeline();" style="flex:1;padding:4px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid rgba(72,72,71,0.3);color:#767575;cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='#e0e0e0';this.style.borderColor='rgba(122,175,255,0.35)'" onmouseout="this.style.color='#767575';this.style.borderColor='rgba(72,72,71,0.3)'">Redo →</button>
+    <div style="padding:6px 8px;border-top:1px solid ${c.footerBorder};display:flex;gap:5px;flex-shrink:0;">
+      <button onclick="undo();_renderHistTimeline();" style="flex:1;padding:4px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid ${c.btnBorder};color:${c.btnText};cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='${c.btnHoverText}';this.style.borderColor='${c.btnHoverBorder}'" onmouseout="this.style.color='${c.btnText}';this.style.borderColor='${c.btnBorder}'">← Undo</button>
+      <button onclick="redo();_renderHistTimeline();" style="flex:1;padding:4px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid ${c.btnBorder};color:${c.btnText};cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='${c.btnHoverText}';this.style.borderColor='${c.btnHoverBorder}'" onmouseout="this.style.color='${c.btnText}';this.style.borderColor='${c.btnBorder}'">Redo →</button>
     </div>`);
 }
 

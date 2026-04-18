@@ -1912,6 +1912,17 @@ body.share-mode::after {
   align-self: center;
 }
 
+/* ── History timeline: light theme overrides ───────────────── */
+html[data-theme="light"] .sc-hist-row { border-left-color: rgba(0,0,0,0.10); }
+html[data-theme="light"] .sc-hist-row:hover { background: rgba(122,175,255,0.08); }
+html[data-theme="light"] .sc-hist-now { background: rgba(122,175,255,0.10); border-left-color: #4a8fe6; }
+html[data-theme="light"] .sc-hist-dot { background: rgba(0,0,0,0.28); }
+html[data-theme="light"] .sc-hist-dot-now { background: #4a8fe6; }
+html[data-theme="light"] .sc-hist-label { color: #5c5c60; }
+html[data-theme="light"] .sc-hist-label-now { color: #1a1a1c; }
+html[data-theme="light"] .sc-hist-time { color: #8a8a90; }
+html[data-theme="light"] .sc-hist-badge { color: #4a8fe6; background: rgba(74,143,230,0.14); }
+
 /* ── Cable context menu (theme-aware, minimal) ────────────── */
 #cable-context-menu {
   display: none;
@@ -2391,6 +2402,40 @@ html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important
 
 /* ── AMOLED ── */
 html[data-amoled="1"] #presets-panel { background: rgba(0,0,0,0.98) !important; }
+
+/* ── Presets panel: light theme overrides ──────────────────── */
+html[data-theme="light"] #presets-panel {
+  background: rgba(252,252,253,0.98);
+  border-color: rgba(0,0,0,0.10);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+}
+html[data-theme="light"] #presets-panel-title { color: #6c6c70; }
+html[data-theme="light"] #presets-back-btn {
+  background: rgba(0,0,0,0.06);
+  color: #3a3a3c;
+}
+html[data-theme="light"] #presets-back-btn:active { background: rgba(0,0,0,0.12); }
+html[data-theme="light"] #presets-save-row:active { background: rgba(0,0,0,0.05); }
+html[data-theme="light"] #preset-name-input {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.12);
+  color: #1a1a1c;
+}
+html[data-theme="light"] #presets-cancel-btn {
+  background: rgba(0,0,0,0.05);
+  color: #6c6c70;
+}
+html[data-theme="light"] #presets-cancel-btn:active { background: rgba(0,0,0,0.10); }
+html[data-theme="light"] .preset-item:hover { background: rgba(0,0,0,0.04); }
+html[data-theme="light"] .preset-item-name { color: #1a1a1c; }
+html[data-theme="light"] .preset-item-meta { color: #8a8a90; }
+html[data-theme="light"] .preset-item-load {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.12);
+}
+html[data-theme="light"] .preset-item-load:active { background: rgba(0,0,0,0.10); }
+html[data-theme="light"] .preset-item-del { color: #b8b8be; }
+html[data-theme="light"] .presets-empty { color: rgba(40,40,50,0.55); }
 
 /* ── Landscape: keep at top, allow taller panel ── */
 @media screen and (orientation: landscape) and (max-width: 960px) {
