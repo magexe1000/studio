@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { getFirebaseDb } from './firebase';
 import { subscribeAuth, type AuthUser } from './auth';
 
@@ -340,18 +340,29 @@ async function pullApp(app: SyncAppKey, meta: Meta): Promise<{ pulled: boolean }
 async function flushOnce(): Promise<void> {
   if (!currentUser) return;
   if (status.syncing) { pendingFlush = true; return; }
+
+  // Read all snapshots first and pre-check hashes locally. If nothing has
+  // actually changed since last sync, skip the entire round-trip — this
+  // prevents the periodic 5s tick (and unrelated UI re-renders) from making
+  // the status indicator blink "syncing" forever.
+  const meta = readMeta();
+  const chordex  = snapshotChordex();
+  const drumex   = snapshotDrumex();
+  const drumexUI = snapshotDrumexUI();
+  const stagex   = await snapshotStagex();
+
+  const work: Array<{ app: SyncAppKey; raw: string | StagexSnapshot }> = [];
+  if (chordex   && hashString(chordex)                  !== meta.chordex?.lastHash)  work.push({ app: 'chordex',  raw: chordex });
+  if (drumex    && hashString(drumex)                   !== meta.drumex?.lastHash)   work.push({ app: 'drumex',   raw: drumex });
+  if (drumexUI  && hashString(drumexUI)                 !== meta.drumexUI?.lastHash) work.push({ app: 'drumexUI', raw: drumexUI });
+  if (stagex    && hashString(JSON.stringify(stagex))   !== meta.stagex?.lastHash)   work.push({ app: 'stagex',   raw: stagex });
+
+  if (work.length === 0) return; // nothing to push → don't show "syncing"
+
   status = { ...status, syncing: true, error: null };
   emit();
   try {
-    const meta = readMeta();
-    const chordex = snapshotChordex();
-    const drumex  = snapshotDrumex();
-    const drumexUI = snapshotDrumexUI();
-    const stagex  = await snapshotStagex();
-    if (chordex)   await pushApp('chordex',  chordex,  meta);
-    if (drumex)    await pushApp('drumex',   drumex,   meta);
-    if (drumexUI)  await pushApp('drumexUI', drumexUI, meta);
-    if (stagex)    await pushApp('stagex',   stagex,   meta);
+    for (const w of work) await pushApp(w.app, w.raw, meta);
     status = { ...status, syncing: false, lastSyncedMs: Date.now(), error: null };
   } catch (e) {
     status = { ...status, syncing: false, error: (e as Error)?.message ?? 'Sync failed' };
@@ -361,6 +372,25 @@ async function flushOnce(): Promise<void> {
     pendingFlush = false;
     setTimeout(() => { void flushOnce(); }, 800);
   }
+}
+
+// ── Account deletion ────────────────────────────────────────────────────────
+
+/**
+ * Delete every Firestore doc this user owns under `users/{uid}/state/*`.
+ * Used by the Danger Zone "delete account" flow. Returns silently when
+ * Firebase isn't configured or the user is signed out.
+ */
+export async function deleteCloudData(): Promise<void> {
+  const db = getFirebaseDb();
+  if (!db || !currentUser) return;
+  const apps: SyncAppKey[] = ['chordex', 'drumex', 'drumexUI', 'stagex'];
+  for (const app of apps) {
+    try {
+      await deleteDoc(doc(db, 'users', currentUser.uid, 'state', app));
+    } catch { /* per-doc continue */ }
+  }
+  try { localStorage.removeItem(SYNC_META_KEY); } catch { /* noop */ }
 }
 
 let flushDebounce: ReturnType<typeof setTimeout> | null = null;

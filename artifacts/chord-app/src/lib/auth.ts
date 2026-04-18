@@ -7,6 +7,7 @@ import {
   getRedirectResult,
   signOut as fbSignOut,
   updateProfile,
+  deleteUser,
   type User,
 } from 'firebase/auth';
 import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from './firebase';
@@ -90,6 +91,22 @@ export async function signOut(): Promise<void> {
   const auth = getFirebaseAuth();
   if (!auth) return;
   await fbSignOut(auth);
+}
+
+/**
+ * Permanently delete the currently signed-in Firebase Auth user.
+ * Throws `auth/requires-recent-login` if the session is too old — the caller
+ * should sign the user out and ask them to sign in again before retrying.
+ */
+export async function deleteAccount(): Promise<void> {
+  const auth = getFirebaseAuth();
+  if (!auth || !auth.currentUser) throw new Error('Not signed in');
+  await deleteUser(auth.currentUser);
+}
+
+export function getCurrentEmail(): string | null {
+  const auth = getFirebaseAuth();
+  return auth?.currentUser?.email ?? null;
 }
 
 export { isFirebaseConfigured };
