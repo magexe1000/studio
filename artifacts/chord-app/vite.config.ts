@@ -6,8 +6,25 @@ const rawPort = process.env.PORT ?? "5173";
 const port = Number(rawPort);
 const basePath = process.env.BASE_PATH ?? "/";
 
+// Expose Firebase web config from process.env (Replit secrets) into
+// import.meta.env at build time. The web config is non-sensitive (it goes to
+// the client anyway) but we keep it in env vars for portability.
+const firebaseEnvKeys = [
+  "VITE_FIREBASE_API_KEY",
+  "VITE_FIREBASE_AUTH_DOMAIN",
+  "VITE_FIREBASE_PROJECT_ID",
+  "VITE_FIREBASE_STORAGE_BUCKET",
+  "VITE_FIREBASE_MESSAGING_SENDER_ID",
+  "VITE_FIREBASE_APP_ID",
+] as const;
+const firebaseDefines: Record<string, string> = {};
+for (const k of firebaseEnvKeys) {
+  firebaseDefines[`import.meta.env.${k}`] = JSON.stringify(process.env[k] ?? "");
+}
+
 export default defineConfig({
   base: basePath,
+  define: firebaseDefines,
   plugins: [
     react(),
     tailwindcss(),

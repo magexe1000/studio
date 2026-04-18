@@ -6,6 +6,7 @@ import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import ApplyToSheet from './ApplyToSheet';
 import { playStudioChime } from '../lib/studioChime';
+import AccountCard from './AccountCard';
 
 type HubTab = 'home' | 'settings';
 type TargetApp = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
@@ -476,21 +477,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
 
       {/* ── Account ── */}
       <p style={sectionLabel}>{t.hub.account}</p>
-      <div style={cardStyle}>
-        <div style={rowStyle}>
-          <div>
-            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>{t.hub.login}</p>
-            <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>{t.hub.syncDevices}</p>
-          </div>
-          <div style={{
-            padding: '7px 14px', borderRadius: 9999,
-            background: 'rgba(128,128,128,0.1)',
-            border: '1px solid rgba(128,128,128,0.15)',
-          }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-secondary)', margin: 0, whiteSpace: 'nowrap' }}>{t.hub.comingSoon}</p>
-          </div>
-        </div>
-      </div>
+      <AccountCard accent={accent} cardStyle={cardStyle} rowStyle={rowStyle} />
 
       {/* ── Profile ── */}
       <p style={sectionLabel}>{t.hub.profile}</p>

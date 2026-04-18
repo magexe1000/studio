@@ -7989,3 +7989,68 @@ function downloadQRCode() {
     console.warn('[Stagex] Failed to parse share link:', e);
   }
 })();
+
+// ── Cloud sync bridge ────────────────────────────────────────────────────────
+// Receives postMessage from the parent (Chordex shell) to snapshot or restore
+// StageX localStorage. Audio blobs/IndexedDB are NOT included — only the JSON
+// state listed below.
+(function () {
+  var SYNC_KEYS = [
+    'stagecoreProject',
+    'stagecorePresets_v1',
+    'stagecoreSettings',
+    'sc_session',
+    'scCustomElements',
+    'sc-offline-mode',
+    'sm_behavior',
+    'sc_el_presets_v1'
+  ];
+
+  function snapshot() {
+    var out = {};
+    for (var i = 0; i < SYNC_KEYS.length; i++) {
+      try {
+        var v = localStorage.getItem(SYNC_KEYS[i]);
+        if (v != null) out[SYNC_KEYS[i]] = v;
+      } catch (e) {}
+    }
+    return out;
+  }
+
+  function restore(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    for (var i = 0; i < SYNC_KEYS.length; i++) {
+      var k = SYNC_KEYS[i];
+      try {
+        if (Object.prototype.hasOwnProperty.call(payload, k)) {
+          var val = payload[k];
+          if (val == null) localStorage.removeItem(k);
+          else localStorage.setItem(k, String(val));
+        }
+      } catch (e) {}
+    }
+  }
+
+  window.addEventListener('message', function (e) {
+    if (!e.data || typeof e.data !== 'object') return;
+    if (e.origin && e.origin !== window.location.origin) return;
+    var t = e.data.type;
+    if (t === 'sc-sync-snapshot') {
+      try {
+        var src = e.source || window.parent;
+        src.postMessage({
+          type: 'sc-sync-snapshot-result',
+          data: snapshot()
+        }, window.location.origin);
+      } catch (err) {}
+    } else if (t === 'sc-sync-restore') {
+      restore(e.data.data);
+      // After restoring, soft-reload so the app re-reads its state cleanly.
+      try {
+        if (e.data.reload !== false) {
+          setTimeout(function () { try { location.reload(); } catch (e) {} }, 50);
+        }
+      } catch (err) {}
+    }
+  });
+})();

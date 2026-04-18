@@ -371,6 +371,20 @@ export default function StagexPanel() {
     return () => window.removeEventListener('message', onMsg);
   }, []);
 
+  // Register this iframe with the cloud sync engine so it can request
+  // snapshots and push restores through postMessage.
+  useEffect(() => {
+    let cancelled = false;
+    void import('../lib/sync').then(({ registerStageIframe }) => {
+      if (cancelled) return;
+      registerStageIframe(iframeRef.current);
+    });
+    return () => {
+      cancelled = true;
+      void import('../lib/sync').then(({ registerStageIframe }) => registerStageIframe(null));
+    };
+  }, []);
+
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;

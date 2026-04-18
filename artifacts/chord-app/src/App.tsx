@@ -7,6 +7,7 @@ import { setNavHidden, setNavLocked } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 import StudioHub from './components/StudioHub';
+import { attachSyncEngine, requestFlush } from './lib/sync';
 const stagexImport  = () => import('./components/StageCorePanel');
 const libraryImport = () => import('./panels/LibraryPanel');
 const chordImport   = () => import('./panels/ChordPanel');
@@ -37,6 +38,45 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
+
+  // Boot the cloud sync engine once. It listens for sign-in changes and
+  // pushes/pulls Chordex/Drumex/StageX state. Also bridges localStorage
+  // restores back into the in-memory zustand stores.
+  useEffect(() => {
+    attachSyncEngine();
+
+    let cancelled = false;
+    const onRehydrate = async (e: Event) => {
+      const detail = (e as CustomEvent<{ key?: string }>).detail;
+      try {
+        if (detail?.key === 'chord-explorer-storage-v3') {
+          await useChordStore.persist.rehydrate();
+        } else if (detail?.key === 'chordex-drums') {
+          const { useDrumStore } = await import('./store/useDrumStore');
+          if (!cancelled) await useDrumStore.persist.rehydrate();
+        }
+      } catch { /* noop */ }
+    };
+    window.addEventListener('chordex:storage-rehydrate', onRehydrate as EventListener);
+
+    // Push when the global Chord store changes (covers all per-app visuals,
+    // settings, favorites, presets, custom chords, history).
+    const unsubChord = useChordStore.subscribe(() => requestFlush());
+
+    // Push when the Drum store changes. Lazy-load to avoid pulling it on Hub-only sessions.
+    let unsubDrum: (() => void) | null = null;
+    void import('./store/useDrumStore').then(({ useDrumStore }) => {
+      if (cancelled) return;
+      unsubDrum = useDrumStore.subscribe(() => requestFlush());
+    });
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('chordex:storage-rehydrate', onRehydrate as EventListener);
+      unsubChord();
+      if (unsubDrum) unsubDrum();
+    };
+  }, []);
 
   // On first mount: apply startupApp preference
   useEffect(() => {
