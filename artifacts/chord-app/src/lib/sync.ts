@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { getFirebaseDb } from './firebase';
 import { subscribeAuth, type AuthUser } from './auth';
 
@@ -41,9 +41,8 @@ type StagexSnapshot = Partial<Record<(typeof STAGEX_KEYS)[number], string>>;
 
 type Meta = {
   [K in SyncAppKey]?: {
-    lastHash: string;        // last snapshot we pushed or pulled
-    lastUpdatedMs: number;   // local clock when we last pushed/pulled
-    cloudUpdatedMs?: number; // server-side updatedAt mirror (ms)
+    lastHash: string;        // hash of the last snapshot we pushed or pulled
+    cloudUpdatedMs: number;  // server-assigned updatedAt (ms) we last saw
   };
 };
 
@@ -226,54 +225,114 @@ function handleStageMessage(data: unknown) {
 
 // ── Push / pull a single app ────────────────────────────────────────────────
 
+type CloudDoc = {
+  kind?: string;
+  body?: unknown;
+  updatedAt?: Timestamp;
+  deviceId?: string;
+  schemaVersion?: number;
+};
+
+function cloudMs(v: CloudDoc | null | undefined): number {
+  const ts = v?.updatedAt;
+  if (ts && typeof ts.toMillis === 'function') {
+    try { return ts.toMillis(); } catch { /* noop */ }
+  }
+  return 0;
+}
+
+function applyCloudBody(app: SyncAppKey, body: unknown, meta: Meta, cloudUpdatedMs: number): boolean {
+  if (app === 'stagex' && body && typeof body === 'object') {
+    restoreStagex(body as StagexSnapshot);
+    meta[app] = { lastHash: hashString(JSON.stringify(body)), cloudUpdatedMs };
+    return true;
+  }
+  if (typeof body === 'string') {
+    if (app === 'chordex')      restoreChordex(body);
+    else if (app === 'drumex')  restoreDrumex(body);
+    else if (app === 'drumexUI') restoreDrumexUI(body);
+    else return false;
+    meta[app] = { lastHash: hashString(body), cloudUpdatedMs };
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Push local state to the cloud, but only if it has changed *and* nothing
+ * newer is sitting in the cloud that we haven't pulled yet. If the cloud
+ * has advanced since our last sync, we pull-first to avoid clobbering edits
+ * made on another device.
+ *
+ * Conflict ordering uses Firestore's server-assigned `updatedAt` Timestamp
+ * (NOT client clocks), so device clock skew cannot cause data loss.
+ */
 async function pushApp(app: SyncAppKey, raw: string | StagexSnapshot, meta: Meta) {
   const db = getFirebaseDb();
   if (!db || !currentUser) return;
-  const payload = typeof raw === 'string' ? { kind: 'json', body: raw } : { kind: 'bundle', body: raw };
-  const hash = hashString(typeof raw === 'string' ? raw : JSON.stringify(raw));
-  if (meta[app]?.lastHash === hash) return; // no change
   const ref = doc(db, 'users', currentUser.uid, 'state', app);
+  const localHash = hashString(typeof raw === 'string' ? raw : JSON.stringify(raw));
+
+  // Read current cloud doc to detect remote-newer-than-our-last-sync.
+  const snap = await getDoc(ref);
+  const v = snap.exists() ? (snap.data() as CloudDoc) : null;
+  const cloudTs = cloudMs(v);
+  const knownCloudTs = meta[app]?.cloudUpdatedMs ?? 0;
+
+  if (v && cloudTs > knownCloudTs) {
+    // Someone else (or this same device on another tab) advanced cloud state.
+    // Pull it first; if after merging the local snapshot still differs, we'll
+    // push on the next tick.
+    if (applyCloudBody(app, v.body, meta, cloudTs)) {
+      writeMeta(meta);
+      return;
+    }
+  }
+
+  if (meta[app]?.lastHash === localHash) return; // local unchanged → nothing to push
+
   await setDoc(ref, {
-    ...payload,
+    kind: typeof raw === 'string' ? 'json' : 'bundle',
+    body: raw,
     updatedAt: serverTimestamp(),
-    updatedAtMs: Date.now(),
     deviceId: deviceId(),
     schemaVersion: 1,
   }, { merge: false });
-  meta[app] = { lastHash: hash, lastUpdatedMs: Date.now(), cloudUpdatedMs: Date.now() };
+
+  // Re-read to capture the server-assigned timestamp.
+  const after = await getDoc(ref);
+  const afterTs = after.exists() ? cloudMs(after.data() as CloudDoc) : Date.now();
+  meta[app] = { lastHash: localHash, cloudUpdatedMs: afterTs };
   writeMeta(meta);
 }
 
-async function pullApp(app: SyncAppKey, meta: Meta): Promise<{ pulled: boolean; cloudUpdatedMs: number }> {
+async function pullApp(app: SyncAppKey, meta: Meta): Promise<{ pulled: boolean }> {
   const db = getFirebaseDb();
-  if (!db || !currentUser) return { pulled: false, cloudUpdatedMs: 0 };
+  if (!db || !currentUser) return { pulled: false };
   const ref = doc(db, 'users', currentUser.uid, 'state', app);
   const snap = await getDoc(ref);
-  if (!snap.exists()) return { pulled: false, cloudUpdatedMs: 0 };
-  const v = snap.data() as { kind?: string; body?: unknown; updatedAtMs?: number; deviceId?: string };
-  const cloudUpdatedMs = typeof v.updatedAtMs === 'number' ? v.updatedAtMs : 0;
-  const localUpdatedMs = meta[app]?.lastUpdatedMs ?? 0;
-  // Same device just pushed it → nothing to do
-  if (v.deviceId === deviceId() && cloudUpdatedMs === (meta[app]?.cloudUpdatedMs ?? 0)) {
-    return { pulled: false, cloudUpdatedMs };
+  if (!snap.exists()) return { pulled: false };
+  const v = snap.data() as CloudDoc;
+  const cloudTs = cloudMs(v);
+  const knownCloudTs = meta[app]?.cloudUpdatedMs ?? 0;
+
+  // Fast paths: nothing new on the server.
+  if (cloudTs > 0 && cloudTs <= knownCloudTs) return { pulled: false };
+
+  // Compute hashes to avoid a redundant restore if cloud body matches local.
+  const cloudHash = v.body == null
+    ? ''
+    : hashString(typeof v.body === 'string' ? v.body : JSON.stringify(v.body));
+  if (cloudHash && cloudHash === meta[app]?.lastHash) {
+    // Same content, just refresh our cloudUpdatedMs marker.
+    meta[app] = { lastHash: cloudHash, cloudUpdatedMs: cloudTs };
+    writeMeta(meta);
+    return { pulled: false };
   }
-  // Cloud is the same age or older than our local push → skip
-  if (cloudUpdatedMs <= localUpdatedMs && (meta[app]?.cloudUpdatedMs ?? 0) >= cloudUpdatedMs) {
-    return { pulled: false, cloudUpdatedMs };
-  }
-  // Apply
-  const body = v.body;
-  if (app === 'stagex' && body && typeof body === 'object') {
-    restoreStagex(body as StagexSnapshot);
-    meta[app] = { lastHash: hashString(JSON.stringify(body)), lastUpdatedMs: Date.now(), cloudUpdatedMs };
-  } else if (typeof body === 'string') {
-    if (app === 'chordex') restoreChordex(body);
-    else if (app === 'drumex') restoreDrumex(body);
-    else if (app === 'drumexUI') restoreDrumexUI(body);
-    meta[app] = { lastHash: hashString(body), lastUpdatedMs: Date.now(), cloudUpdatedMs };
-  }
-  writeMeta(meta);
-  return { pulled: true, cloudUpdatedMs };
+
+  const applied = applyCloudBody(app, v.body, meta, cloudTs);
+  if (applied) writeMeta(meta);
+  return { pulled: applied };
 }
 
 // ── Tick / flush ────────────────────────────────────────────────────────────

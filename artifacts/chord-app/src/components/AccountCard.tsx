@@ -67,10 +67,10 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
         <div style={rowStyle}>
           <div>
             <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>
-              {t.account.title}
+              {t.title}
             </p>
             <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.4 }}>
-              {t.account.notConfigured}
+              {t.notConfigured}
             </p>
           </div>
         </div>
@@ -86,7 +86,7 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
   }
 
   async function doEmail() {
-    if (!email.trim() || !password) { setErr(t.account.errMissing); return; }
+    if (!email.trim() || !password) { setErr(t.errMissing); return; }
     setBusy(true); setErr(null);
     try {
       if (mode === 'email-signin') await signInEmail(email, password);
@@ -129,7 +129,7 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
               {user.displayName || user.email}
             </p>
             <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user.displayName ? user.email : t.account.signedIn}
+              {user.displayName ? user.email : t.signedIn}
             </p>
           </div>
         </div>
@@ -140,10 +140,10 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-primary)', margin: 0 }}>
-              {sync.syncing ? t.account.syncing
-                : sync.error ? t.account.syncError
-                : sync.lastSyncedMs ? `${t.account.lastSynced} ${formatRelative(sync.lastSyncedMs, lang)}`
-                : t.account.notSyncedYet}
+              {sync.syncing ? t.syncing
+                : sync.error ? t.syncError
+                : sync.lastSyncedMs ? `${t.lastSynced} ${formatRelative(sync.lastSyncedMs, lang)}`
+                : t.notSyncedYet}
             </p>
             {sync.error && (
               <p style={{ fontSize: 10, color: '#ff6b6b', margin: '2px 0 0' }}>{sync.error}</p>
@@ -153,14 +153,14 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
             onClick={doSyncNow}
             disabled={busy || sync.syncing}
             style={pillBtn(accent, false)}
-          >{t.account.syncNow}</button>
+          >{t.syncNow}</button>
         </div>
 
         <div style={{ ...rowStyle, borderBottom: 'none' }}>
           <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: 0, flex: 1, lineHeight: 1.4 }}>
-            {t.account.syncedAppsNote}
+            {t.syncedAppsNote}
           </p>
-          <button onClick={doSignOut} disabled={busy} style={pillBtn(accent, true)}>{t.account.signOut}</button>
+          <button onClick={doSignOut} disabled={busy} style={pillBtn(accent, true)}>{t.signOut}</button>
         </div>
       </div>
     );
@@ -170,21 +170,21 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
   return (
     <div style={cardStyle}>
       <div style={{ padding: '15px 18px 4px' }}>
-        <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>{t.account.title}</p>
-        <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.4 }}>{t.account.subtitle}</p>
+        <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>{t.title}</p>
+        <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.4 }}>{t.subtitle}</p>
       </div>
 
       {mode === 'idle' && (
         <div style={{ padding: '12px 14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button onClick={doGoogle} disabled={busy} style={primaryBtn(accent)}>
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>account_circle</span>
-            {t.account.continueGoogle}
+            {t.continueGoogle}
           </button>
           <button onClick={() => { setMode('email-signin'); setErr(null); }} disabled={busy} style={secondaryBtn()}>
-            {t.account.continueEmail}
+            {t.continueEmail}
           </button>
           <button onClick={() => { setMode('email-register'); setErr(null); }} disabled={busy} style={textBtn()}>
-            {t.account.createAccount}
+            {t.createAccount}
           </button>
         </div>
       )}
@@ -195,7 +195,7 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={t.account.namePlaceholder}
+              placeholder={t.namePlaceholder}
               autoComplete="name"
               style={inputStyle(accent)}
             />
@@ -203,7 +203,7 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
           <input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder={t.account.emailPlaceholder}
+            placeholder={t.emailPlaceholder}
             autoComplete="email"
             type="email"
             style={inputStyle(accent)}
@@ -211,26 +211,26 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
           <input
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={t.account.passwordPlaceholder}
+            placeholder={t.passwordPlaceholder}
             autoComplete={mode === 'email-signin' ? 'current-password' : 'new-password'}
             type="password"
             style={inputStyle(accent)}
           />
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button onClick={() => { setMode('idle'); setErr(null); }} disabled={busy} style={{ ...secondaryBtn(), flex: 1 }}>
-              {t.account.cancel}
+              {t.cancel}
             </button>
             <button onClick={doEmail} disabled={busy} style={{ ...primaryBtn(accent), flex: 1 }}>
-              {mode === 'email-signin' ? t.account.signIn : t.account.register}
+              {mode === 'email-signin' ? t.signIn : t.register}
             </button>
           </div>
           {mode === 'email-signin' ? (
             <button onClick={() => { setMode('email-register'); setErr(null); }} style={textBtn()}>
-              {t.account.switchToRegister}
+              {t.switchToRegister}
             </button>
           ) : (
             <button onClick={() => { setMode('email-signin'); setErr(null); }} style={textBtn()}>
-              {t.account.switchToSignIn}
+              {t.switchToSignIn}
             </button>
           )}
         </div>

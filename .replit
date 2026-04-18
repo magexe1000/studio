@@ -27,3 +27,13 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+VITE_FIREBASE_API_KEY = "AIzaSyAsNSkWg41_g78MkKcqQA8Sj3j506Az1OQ"
+VITE_FIREBASE_AUTH_DOMAIN = "studio-30f44.firebaseapp.com"
+VITE_FIREBASE_PROJECT_ID = "studio-30f44"
+VITE_FIREBASE_STORAGE_BUCKET = "studio-30f44.firebasestorage.app"
+VITE_FIREBASE_MESSAGING_SENDER_ID = "355186993352"
+VITE_FIREBASE_APP_ID = "1:355186993352:web:7c76f1957cb3cac5d1ddfd"
