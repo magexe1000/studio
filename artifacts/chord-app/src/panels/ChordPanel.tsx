@@ -9,6 +9,7 @@ import FourStringDiagram from '../components/FourStringDiagram';
 import ChordDiagram from '../components/ChordDiagram';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import CustomChordBuilder from '../components/CustomChordBuilder';
+import ProgressionGenerator from '../components/ProgressionGenerator';
 import { setBackHandler } from '../lib/backStack';
 import { playChord, stopChordPlayback } from '../lib/guitarAudio';
 import type { GuitarChordData } from '../data/chords';
@@ -69,15 +70,19 @@ export default function ChordPanel() {
   const [saving, setSaving] = useState(false);
   const [progName, setProgName] = useState('');
   const [showFinder, setShowFinder] = useState(false);
+  const [showGenerator, setShowGenerator] = useState(false);
   const [chordPlaying, setChordPlaying] = useState(false);
 
-  // Register back handler when Chord panel is active and the finder is open
+  // Register back handler when Chord panel is active and the finder is open.
+  // Generator owns its own back-handler while open (registered in the modal),
+  // so we only intercept here when the finder is the active overlay.
   useEffect(() => {
     if (activePanel !== 'chord') return;
+    if (showGenerator) return; // generator handles its own back stack
     if (!showFinder) { setBackHandler(null); return; }
     setBackHandler(() => { setShowFinder(false); return true; });
     return () => setBackHandler(null);
-  }, [activePanel, showFinder]);
+  }, [activePanel, showFinder, showGenerator]);
 
   const chord = selectedChordId ? getChordById(selectedChordId) : null;
 
@@ -132,9 +137,9 @@ export default function ChordPanel() {
             <AppModeMenuLogo />
           </h1>
         </header>
-        <div className="flex-1 flex flex-col items-center justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
           <span className="material-symbols-outlined mb-4" style={{ fontSize: '52px', color: 'var(--c-text-muted)' }}>music_note</span>
-          <p style={{ color: 'var(--c-text-secondary)', fontSize: '14px', fontFamily: 'Inter', marginBottom: '20px' }}>{t.chord.emptyState}</p>
+          <p style={{ color: 'var(--c-text-secondary)', fontSize: '14px', fontFamily: 'Inter', marginBottom: '20px', textAlign: 'center' }}>{t.chord.emptyState}</p>
           <button
             onClick={() => setShowFinder(true)}
             className="btn-smooth flex items-center gap-2 px-5 py-3 font-bold"
@@ -147,12 +152,31 @@ export default function ChordPanel() {
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>search</span>
             {t.chordFinder.openFinder}
           </button>
+          <button
+            data-testid="open-generator-empty"
+            onClick={() => setShowGenerator(true)}
+            className="btn-smooth flex items-center gap-2 px-5 py-2.5 font-bold mt-3"
+            style={{
+              background: 'transparent', color: accent.from,
+              border: `1.5px solid ${accent.from}55`, borderRadius: '9999px',
+              fontFamily: 'Manrope', fontSize: '13px', cursor: 'pointer',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>auto_awesome</span>
+            Generate Progression
+          </button>
         </div>
         {showFinder && (
           <CustomChordBuilder
             accent={accent}
             mode="find"
             onClose={() => setShowFinder(false)}
+          />
+        )}
+        {showGenerator && (
+          <ProgressionGenerator
+            accent={accent}
+            onClose={() => setShowGenerator(false)}
           />
         )}
       </div>
@@ -363,14 +387,26 @@ export default function ChordPanel() {
           <div className="mx-4 mt-4 rounded-3xl p-6 app-surface">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>{t.chord.currentProgression}</h3>
-              <button
-                className="btn-smooth text-[10px] font-bold uppercase tracking-wider"
-                data-testid="clear-progression"
-                onClick={() => useChordStore.getState().clearProgression()}
-                style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}
-              >
-                {t.chord.clear}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  data-testid="open-generator-header"
+                  className="btn-smooth text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+                  onClick={() => setShowGenerator(true)}
+                  style={{ color: accent.from, fontFamily: 'Manrope' }}
+                  title="Generate a new progression"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>auto_awesome</span>
+                  Generate
+                </button>
+                <button
+                  className="btn-smooth text-[10px] font-bold uppercase tracking-wider"
+                  data-testid="clear-progression"
+                  onClick={() => useChordStore.getState().clearProgression()}
+                  style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}
+                >
+                  {t.chord.clear}
+                </button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
               {progressionChords.map((c, i) => c && (
@@ -472,6 +508,13 @@ export default function ChordPanel() {
           accent={accent}
           mode="find"
           onClose={() => setShowFinder(false)}
+        />
+      )}
+      {/* Progression Generator modal */}
+      {showGenerator && (
+        <ProgressionGenerator
+          accent={accent}
+          onClose={() => setShowGenerator(false)}
         />
       )}
     </div>
