@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
+  signInWithCredential,
   GoogleAuthProvider,
   getRedirectResult,
   signOut as fbSignOut,
@@ -12,6 +13,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from './firebase';
+import { isNative } from './capgoUpdater';
 
 export type AuthUser = {
   uid: string;
@@ -42,18 +44,43 @@ export function subscribeAuth(cb: (u: AuthUser | null) => void): () => void {
 }
 
 /**
- * Sign in with Google. Web-only flow — popup first, redirect as fallback.
+ * Sign in with Google.
  *
- * NOTE: Inside the Capacitor Android WebView, BOTH signInWithPopup and
- * signInWithRedirect have issues (popup not supported; redirect breaks
- * with "missing initial state" because WebView sessionStorage is
- * partitioned across the redirect to accounts.google.com). A future
- * release will reintroduce a native sign-in path. Until then, mobile
- * users should sign in with email/password.
+ * Two completely different code paths depending on where we're running:
+ *
+ * 1. NATIVE (Capacitor APK) → @capacitor-firebase/authentication.
+ *    The Firebase JS SDK's `signInWithPopup` and `signInWithRedirect`
+ *    are both broken inside Capacitor's Android WebView:
+ *      - popup → `auth/operation-not-supported-in-this-environment`
+ *      - redirect → "Unable to process request due to missing initial
+ *        state" because WebView sessionStorage is partitioned across
+ *        the redirect to accounts.google.com.
+ *    The plugin runs in `skipNativeAuth: true` mode — it only invokes
+ *    the platform Google Sign-In SDK to get an idToken and does NOT
+ *    touch the native Firebase Auth SDK (which crashed the app on
+ *    launch in 3.0.5). We bridge the resulting idToken into the
+ *    Firebase JS SDK via signInWithCredential.
+ *
+ * 2. WEB / PWA → `signInWithPopup` first, with `signInWithRedirect`
+ *    as a fallback.
  */
 export async function signInGoogle(): Promise<void> {
   const auth = getFirebaseAuth();
   if (!auth) throw new Error('Firebase not configured');
+
+  if (isNative()) {
+    // Lazy-import so the web bundle never tries to load native code.
+    const { FirebaseAuthentication } = await import(
+      '@capacitor-firebase/authentication'
+    );
+    const result = await FirebaseAuthentication.signInWithGoogle();
+    if (!result.credential?.idToken) {
+      throw new Error('Google sign-in returned no idToken');
+    }
+    const credential = GoogleAuthProvider.credential(result.credential.idToken);
+    await signInWithCredential(auth, credential);
+    return;
+  }
 
   try {
     await signInWithPopup(auth, googleProvider);
@@ -92,6 +119,19 @@ export async function registerEmail(email: string, password: string, displayName
 export async function signOut(): Promise<void> {
   const auth = getFirebaseAuth();
   if (!auth) return;
+  // On native, also sign out of the Capacitor plugin so the next
+  // "Continue with Google" tap shows the account chooser instead of
+  // silently picking the cached account.
+  if (isNative()) {
+    try {
+      const { FirebaseAuthentication } = await import(
+        '@capacitor-firebase/authentication'
+      );
+      await FirebaseAuthentication.signOut();
+    } catch (err) {
+      console.warn('[auth] native sign-out failed (continuing):', err);
+    }
+  }
   await fbSignOut(auth);
 }
 

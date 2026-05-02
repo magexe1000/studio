@@ -36,6 +36,21 @@ const config: CapacitorConfig = {
       directUpdate: false,
       resetWhenUpdate: false,
     },
+    // ── Capacitor Firebase Authentication (native Google sign-in) ─────
+    // skipNativeAuth=true means the plugin ONLY does the Google account
+    // picker and returns the idToken — it does NOT touch the native
+    // Firebase Auth SDK at all. We then bridge the idToken into the
+    // Firebase JS SDK ourselves via signInWithCredential. This is the
+    // safest mode because it avoids the native Firebase Auth init path
+    // (which crashed the app on launch in 3.0.5).
+    //
+    // providers=['google.com'] limits the plugin's bundled SDKs to
+    // Google Sign-In only — no Apple, GitHub, Facebook, Microsoft etc.
+    // pulled in transitively.
+    FirebaseAuthentication: {
+      skipNativeAuth: true,
+      providers: ['google.com'],
+    },
   },
 };
 

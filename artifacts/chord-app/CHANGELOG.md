@@ -17,6 +17,15 @@ Conventions:
 
 ---
 
+## 3.0.7
+
+- Sign in with Google is back on the phone — uses the native Google
+  account picker. This version uses the safer "credential bridge" mode
+  (the plugin only fetches the idToken and we hand it to Firebase
+  ourselves), which avoids the native Firebase init that crashed 3.0.5.
+- Pinned Firebase Auth + Play Services Auth versions in the Android
+  build to keep the native dependencies predictable across rebuilds.
+
 ## 3.0.6
 
 - Stability fix — reverted the native Google sign-in change that was
