@@ -1,6 +1,6 @@
 {
-  "version": "3.0.4",
-  "changelog": "• Cloud sync now works on the phone — sign-in with Google and email/password no longer shows \"Cloud sync is not configured for this build\". The Firebase config is now bundled with the app, so a fresh APK build always has it.",
+  "version": "3.0.5",
+  "changelog": "• Sign in with Google now works on the phone — uses the native Google account picker instead of the broken WebView redirect that showed \"Unable to process request due to missing initial state\".\n• The app now asks for permission to send notifications on first launch, so update alerts can reach you even when the app is closed.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.4.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.5.zip"
 }
