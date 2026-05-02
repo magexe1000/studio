@@ -70,6 +70,7 @@ The monorepo uses TypeScript composite projects. Every package extends `tsconfig
 *   **DrumEditor:** A vertical drum tab editor with 10 instruments, pattern management, humanization features, and a dedicated Drum Library with search, filters, and audio previews.
 *   **Drum Audio FX:** Per-instrument FX chain with 4-band EQ, compressor, gate, asymmetric tanh saturation, and Freeverb reverb, all configurable.
 *   **Localization:** Full EN/ES (LATAM) localization system (`i18n.ts`) across all application sections.
+*   **OTA Update Notifications:** Studio checks `public/version.json` on launch and shows a top-right "Update" pill in the Hub when remote > local. After a successful update, a one-time changelog modal appears on the next launch. The version constant `APP_VERSION` in `src/lib/appVersion.ts` is the single source of truth: Settings → About reads it, the OTA comparator reads it, and `scripts/sync-version.mjs` (auto-run via the `predev`/`prebuild` npm hooks) regenerates `public/version.json` from it so the bundle and manifest never drift. Semver parsing is strict (rejects leading zeros and incomplete versions) and implements semver §11 prerelease precedence. All fetch failures are silently swallowed.
 
 ### API Server
 

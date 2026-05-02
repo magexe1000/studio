@@ -7,6 +7,8 @@ import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } fr
 import ApplyToSheet from './ApplyToSheet';
 import { playStudioChime } from '../lib/studioChime';
 import AccountCard, { AccountDangerZone } from './AccountCard';
+import UpdateIndicator from './UpdateIndicator';
+import { APP_VERSION_LABEL } from '../lib/appVersion';
 
 type HubTab = 'home' | 'settings';
 type TargetApp = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
@@ -332,6 +334,10 @@ export default function StudioHub() {
 
       {/* ── Bottom nav ── */}
       <HubNav tab={tab} setTab={setTab} accent={accent} />
+
+      {/* ── Floating top-right update indicator (only renders when a
+          newer version.json has been published — otherwise no DOM) ── */}
+      <UpdateIndicator accentFrom={accent.from} accentTo={accent.to} />
     </div>
   );
 }
@@ -692,7 +698,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
       <div style={cardStyle}>
         <div style={{ padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {[
-            { label: t.settings.about.version, value: 'Beta 3.0.0'                 },
+            { label: t.settings.about.version, value: APP_VERSION_LABEL              },
             { label: t.settings.about.storage, value: t.settings.about.storageValue },
           ].map(({ label, value }) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

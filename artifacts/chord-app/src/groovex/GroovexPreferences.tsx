@@ -3,6 +3,7 @@ import { useGroovexStore } from './useGroovexStore';
 import { getCacheSize, clearAllCache, clearSongCache, getPerSongCacheInfo, type SongCacheInfo } from './stemCache';
 import { SONG_CATALOG } from './songCatalog';
 import { useT } from '../lib/useT';
+import { APP_VERSION_LABEL } from '../lib/appVersion';
 
 export default function GroovexPreferences() {
   const t = useT();
@@ -228,7 +229,7 @@ export default function GroovexPreferences() {
                 {t.groovex.aboutDesc2}
               </p>
               <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, fontFamily: 'Inter', opacity: 0.6 }}>
-                {t.groovex.aboutVersion}
+                {APP_VERSION_LABEL} • {t.groovex.aboutVersion}
               </p>
             </div>
           </PrefCard>
