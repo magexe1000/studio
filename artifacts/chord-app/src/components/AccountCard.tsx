@@ -318,103 +318,106 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
   }
 
   return (
-    <div style={cardStyle}>
+    <>
       <SyncAnimations />
-      <div style={{
-        margin: '14px 14px',
-        padding: '12px 14px',
-        borderRadius: 14,
-        background: 'rgba(255,107,107,0.06)',
-        border: '1px solid rgba(255,107,107,0.22)',
-        display: 'flex', flexDirection: 'column', gap: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#ff6b6b' }}>warning</span>
-          <p style={{ fontSize: 13, fontWeight: 700, color: '#ff6b6b', margin: 0 }}>{t.dangerZone}</p>
-        </div>
-        <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.4 }}>
-          {t.dangerZoneNote}
-        </p>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={doSignOut} disabled={busy} style={{ ...dangerOutlineBtn(), flex: 1 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span>
-            {t.signOut}
-          </button>
-          {!showDelete && (
-            <button
-              onClick={() => { setShowDelete(true); setErr(null); setDeleteEmail(''); }}
-              disabled={busy}
-              style={{ ...dangerSolidBtn(), flex: 1 }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
-              {t.deleteAccount}
+      {/* Red section header — matches SectionHeader style but in danger colour */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 24, marginBottom: 12 }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#ff6b6b' }}>warning</span>
+        <p style={{
+          color: '#ff6b6b', fontFamily: 'Manrope', fontWeight: 700,
+          fontSize: 'var(--font-xs)', letterSpacing: '0.2em',
+          textTransform: 'uppercase', margin: 0,
+        }}>{t.dangerZone}</p>
+      </div>
+
+      {/* Card — same structure as every other settings card */}
+      <div style={cardStyle}>
+        <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.4 }}>
+            {t.dangerZoneNote}
+          </p>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={doSignOut} disabled={busy} style={{ ...dangerOutlineBtn(), flex: 1 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span>
+              {t.signOut}
             </button>
+            {!showDelete && (
+              <button
+                onClick={() => { setShowDelete(true); setErr(null); setDeleteEmail(''); }}
+                disabled={busy}
+                style={{ ...dangerSolidBtn(), flex: 1 }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
+                {t.deleteAccount}
+              </button>
+            )}
+          </div>
+
+          {showDelete && (
+            <div style={{
+              marginTop: 4, padding: 12, borderRadius: 10,
+              background: 'rgba(255,107,107,0.10)',
+              border: '1px solid rgba(255,107,107,0.3)',
+              display: 'flex', flexDirection: 'column', gap: 8,
+              animation: 'sync-fade-in 200ms ease',
+            }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#ff6b6b', margin: 0 }}>
+                {t.deleteAccountConfirmTitle}
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                {t.deleteAccountConfirmBody}
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0 }}>
+                {t.deleteAccountTypeEmail}: <strong style={{ color: 'var(--c-text-primary)' }}>{user.email}</strong>
+              </p>
+              <input
+                value={deleteEmail}
+                onChange={(e) => setDeleteEmail(e.target.value)}
+                placeholder={user.email ?? ''}
+                autoComplete="off"
+                spellCheck={false}
+                style={{
+                  ...inputStyle(accent),
+                  borderColor: canDelete ? '#ff6b6b' : 'rgba(255,107,107,0.3)',
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => { setShowDelete(false); setDeleteEmail(''); setErr(null); }}
+                  disabled={deleting}
+                  style={{ ...secondaryBtn(), flex: 1 }}
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  onClick={doDeleteAccount}
+                  disabled={!canDelete}
+                  style={{
+                    ...dangerSolidBtn(),
+                    flex: 1,
+                    opacity: canDelete ? 1 : 0.5,
+                    cursor: canDelete ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {deleting ? (
+                    <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span>
+                  ) : (
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
+                  )}
+                  {t.deleteAccountFinal}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {err && (
+            <p style={{ fontSize: 11, color: '#ff6b6b', margin: 0 }}>{err}</p>
           )}
         </div>
-
-        {showDelete && (
-          <div style={{
-            marginTop: 4, padding: 12, borderRadius: 10,
-            background: 'rgba(255,107,107,0.10)',
-            border: '1px solid rgba(255,107,107,0.3)',
-            display: 'flex', flexDirection: 'column', gap: 8,
-            animation: 'sync-fade-in 200ms ease',
-          }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#ff6b6b', margin: 0 }}>
-              {t.deleteAccountConfirmTitle}
-            </p>
-            <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.4 }}>
-              {t.deleteAccountConfirmBody}
-            </p>
-            <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0 }}>
-              {t.deleteAccountTypeEmail}: <strong style={{ color: 'var(--c-text-primary)' }}>{user.email}</strong>
-            </p>
-            <input
-              value={deleteEmail}
-              onChange={(e) => setDeleteEmail(e.target.value)}
-              placeholder={user.email ?? ''}
-              autoComplete="off"
-              spellCheck={false}
-              style={{
-                ...inputStyle(accent),
-                borderColor: canDelete ? '#ff6b6b' : 'rgba(255,107,107,0.3)',
-              }}
-            />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => { setShowDelete(false); setDeleteEmail(''); setErr(null); }}
-                disabled={deleting}
-                style={{ ...secondaryBtn(), flex: 1 }}
-              >
-                {t.cancel}
-              </button>
-              <button
-                onClick={doDeleteAccount}
-                disabled={!canDelete}
-                style={{
-                  ...dangerSolidBtn(),
-                  flex: 1,
-                  opacity: canDelete ? 1 : 0.5,
-                  cursor: canDelete ? 'pointer' : 'not-allowed',
-                }}
-              >
-                {deleting ? (
-                  <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span>
-                ) : (
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
-                )}
-                {t.deleteAccountFinal}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {err && (
-          <p style={{ fontSize: 11, color: '#ff6b6b', margin: 0 }}>{err}</p>
-        )}
       </div>
-    </div>
+    </>
   );
 }
 
