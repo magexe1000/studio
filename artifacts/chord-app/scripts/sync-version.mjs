@@ -13,6 +13,23 @@
  * trivial string / array literals so a one-line regex is robust.
  * If the format ever changes, this script will exit non-zero (loud
  * failure) instead of silently writing the wrong version.
+ *
+ * ─── Flags ─────────────────────────────────────────────────────────
+ * --preserve-newer   DEV-ONLY OTA OVERRIDE.
+ *   When set, if `public/version.json` already exists AND its
+ *   `version` field is a STRICTLY-VALID semver that compares greater
+ *   than `APP_VERSION`, the existing file is left untouched. This
+ *   lets a developer hand-edit `public/version.json` to a higher
+ *   version (with a custom changelog) to demo the in-app
+ *   UpdateIndicator without every `pnpm dev` restart wiping it.
+ *
+ *   The `prebuild` hook must NOT pass this flag — production builds
+ *   require strict lockstep so the shipped APK reports its real
+ *   version. Only the `predev` hook passes it.
+ *
+ *   Any malformed / non-strict-semver value in the existing file is
+ *   treated as a parse failure and the file is rewritten — preserve
+ *   only kicks in for unambiguously-newer, strict versions.
  */
 
 import fs from 'node:fs';
@@ -23,6 +40,27 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const sourcePath = path.join(root, 'src/lib/appVersion.ts');
 const outPath = path.join(root, 'public/version.json');
+
+const preserveNewer = process.argv.includes('--preserve-newer');
+
+// Strict semver parser — anchored end-to-end so values like
+// "3.1.0junk", "3.1.0.1", or "v3.1.0" are rejected (return null).
+// We only need core MAJOR.MINOR.PATCH for the preserve check; any
+// prerelease / build metadata is treated as "not a clean release"
+// and falls through to a rewrite.
+function parseSemver(v) {
+  const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(String(v).trim());
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+function semverGt(a, b) {
+  const x = parseSemver(a), y = parseSemver(b);
+  if (!x || !y) return false;
+  for (let i = 0; i < 3; i++) {
+    if (x[i] > y[i]) return true;
+    if (x[i] < y[i]) return false;
+  }
+  return false;
+}
 
 const src = fs.readFileSync(sourcePath, 'utf8');
 
@@ -78,5 +116,20 @@ const payload = {
 };
 
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
+
+if (preserveNewer && fs.existsSync(outPath)) {
+  try {
+    const existing = JSON.parse(fs.readFileSync(outPath, 'utf8'));
+    if (existing && typeof existing.version === 'string' && semverGt(existing.version, version)) {
+      console.log(
+        `sync-version: ↷ kept existing ${path.relative(root, outPath)} (version=${existing.version} > APP_VERSION=${version}) — dev OTA override.`,
+      );
+      process.exit(0);
+    }
+  } catch {
+    /* malformed file — fall through and rewrite */
+  }
+}
+
 fs.writeFileSync(outPath, JSON.stringify(payload, null, 2) + '\n', 'utf8');
 console.log(`sync-version: ✓ wrote ${path.relative(root, outPath)} (version=${version})`);
