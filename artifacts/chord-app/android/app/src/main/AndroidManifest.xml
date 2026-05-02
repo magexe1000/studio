@@ -40,4 +40,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required by @capacitor/local-notifications on Android 13+ to
+         surface the "update available — version X.Y.Z" notification.
+         The plugin requests it at runtime; this declaration is what
+         makes the runtime request actually possible. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

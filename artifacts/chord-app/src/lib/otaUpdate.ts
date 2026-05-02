@@ -24,7 +24,7 @@
 
 import { useEffect, useState } from 'react';
 import { APP_VERSION, compareSemver, normalizeSemver } from './appVersion';
-import { isNative } from './capgoUpdater';
+import { isNative, notifyOtaAvailable } from './capgoUpdater';
 
 const LAST_SEEN_KEY = 'studio:lastSeenVersion';
 const FETCH_TIMEOUT_MS = 6000;
@@ -188,6 +188,13 @@ export function useOtaUpdate(): OtaState {
         downloadUrl: remote.downloadUrl ?? null,
         loading: false,
       });
+      // Fire an OS-level notification with the version number. This is
+      // intentionally fire-and-forget: it dedups internally per version,
+      // and a failure to surface a notification must never block the
+      // in-app update banner from showing.
+      if (cmp > 0) {
+        void notifyOtaAvailable(remote.version);
+      }
     })();
     return () => {
       cancelled = true;

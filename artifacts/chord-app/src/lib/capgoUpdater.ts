@@ -85,6 +85,144 @@ export interface ApplyUpdateResult {
  * who happen to have a fast service-worker update cached) or show a
  * "couldn't update" toast.
  */
+/* ──────────────────────────────────────────────────────────────────── *
+ * Local notifications for OTA availability.                            *
+ * ──────────────────────────────────────────────────────────────────── */
+
+/**
+ * localStorage key recording the most recent remote version we've
+ * already fired a notification for. Prevents the user from getting
+ * spammed every time the OTA check runs (i.e. on every app launch).
+ *
+ * The value is overwritten only when a brand-new remote version is
+ * detected, so a future bump (e.g. 3.0.3 → 3.0.4) will surface a fresh
+ * notification.
+ */
+const NOTIFIED_VERSION_KEY = 'studio:notifiedUpdateVersion';
+
+function readNotifiedVersion(): string | null {
+  try {
+    return localStorage.getItem(NOTIFIED_VERSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeNotifiedVersion(v: string): void {
+  try {
+    localStorage.setItem(NOTIFIED_VERSION_KEY, v);
+  } catch {
+    /* quota / privacy mode — silently ignore */
+  }
+}
+
+/**
+ * In-flight guard. localStorage dedup catches the case where the user
+ * has already been notified about this version on a previous launch,
+ * but two near-simultaneous OTA checks (e.g. visibility change racing
+ * the initial mount) can BOTH pass the localStorage check before
+ * either has had a chance to write. The set tracks versions whose
+ * notification flow is currently mid-await so the second caller
+ * short-circuits cleanly.
+ */
+const inFlightNotifications = new Set<string>();
+
+/**
+ * Fire an OS-level notification announcing a new bundle is available.
+ * The notification body includes the version number so the user knows
+ * exactly what they're being offered before opening the app.
+ *
+ *   - On NATIVE (Android APK): uses @capacitor/local-notifications,
+ *     requesting POST_NOTIFICATIONS at first call (Android 13+ requires
+ *     runtime grant).
+ *   - On WEB (PWA / browser): falls back to the standard Notification
+ *     API, also requesting permission lazily.
+ *   - DEDUP: a notification only fires ONCE per unique remote version.
+ *     Subsequent OTA checks that report the same version stay silent.
+ *   - All errors are swallowed — a failed notification never blocks the
+ *     update banner UI from appearing in-app.
+ */
+export async function notifyOtaAvailable(version: string): Promise<void> {
+  if (!version) return;
+  // Canonicalize so trivially-different formats ("3.0.3 ", "v3.0.3")
+  // can't slip past the dedup. Empty after trim → bail out.
+  const v = version.trim();
+  if (!v) return;
+  if (readNotifiedVersion() === v) return;
+  // In-flight guard: a second concurrent caller for the same version
+  // short-circuits without racing the permission/schedule pipeline.
+  if (inFlightNotifications.has(v)) return;
+  inFlightNotifications.add(v);
+
+  try {
+    if (isNative()) {
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        // Android 13+ requires explicit grant of POST_NOTIFICATIONS.
+        // checkPermissions() returns 'granted' / 'denied' / 'prompt'.
+        // If the user has previously denied, don't re-prompt — that
+        // re-runs the system permission dialog every launch and is
+        // hostile UX. We just stay silent on this version.
+        let display = (await LocalNotifications.checkPermissions()).display;
+        if (display === 'prompt' || display === 'prompt-with-rationale') {
+          display = (await LocalNotifications.requestPermissions()).display;
+        }
+        if (display !== 'granted') return;
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              // 32-bit signed positive id — Android rejects negatives
+              // and overflow values. Using a stable hash of the
+              // version means the same version can never produce two
+              // simultaneous visible notifications even if dedup misfires.
+              id: hash31(`ota:${v}`),
+              title: 'Studio update available',
+              body: `Version ${v} is ready to install.`,
+              // Tiny delay so the notification fires from the system
+              // scheduler (more reliable than "show now" on some OEMs).
+              schedule: { at: new Date(Date.now() + 200) },
+              // NOTE: no `smallIcon` — the plugin falls back to the
+              // app icon, which is always present. Specifying a name
+              // that doesn't exist as a drawable causes the schedule
+              // to fail silently and the user sees nothing.
+            },
+          ],
+        });
+        writeNotifiedVersion(v);
+      } catch (err) {
+        console.warn('[ota] local notification failed:', err);
+      }
+      return;
+    }
+
+    // Web fallback — same behaviour via the browser's Notification API.
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    try {
+      let perm = Notification.permission;
+      if (perm === 'default') perm = await Notification.requestPermission();
+      if (perm !== 'granted') return;
+      new Notification('Studio update available', {
+        body: `Version ${v} is ready to install.`,
+        tag: `ota:${v}`,
+      });
+      writeNotifiedVersion(v);
+    } catch (err) {
+      console.warn('[ota] web notification failed:', err);
+    }
+  } finally {
+    inFlightNotifications.delete(v);
+  }
+}
+
+/** Stable, non-negative 31-bit hash. Java/Android-friendly notification id. */
+function hash31(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  }
+  return h & 0x7fffffff;
+}
+
 export async function applyUpdate(
   options: ApplyUpdateOptions,
 ): Promise<ApplyUpdateResult> {

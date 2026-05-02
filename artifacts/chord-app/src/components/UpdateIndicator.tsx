@@ -2,24 +2,27 @@
  * Floating "update available" indicator — top of the Hub.
  *
  * Two-phase behaviour:
- *  1. BANNER — when an update is first detected, a full-width pill
- *     drops down from the top of the screen with the message
- *     "New update available" and a minimize button. Stays for
- *     ~6 seconds (or until the user taps the minimize button), then
- *     smoothly morphs into…
- *  2. PILL — a small circular badge anchored to the top-right with
- *     just a download icon, gently pulsing. It stays there until the
- *     user actually applies the update (Reload). Tapping it re-opens
- *     the update modal.
+ *  1. BANNER — when an update is first detected, a wide pill drops in
+ *     from the top of the screen, CENTERED horizontally, announcing
+ *     "Version X.Y.Z available" with a minimize button. Stays for
+ *     ~6 seconds (or until the user taps minimize), then…
+ *  2. PILL — smoothly morphs into a small circular badge that travels
+ *     to the top-right corner. The element's right edge slides from
+ *     the viewport center to `right: 14px` while the width contracts;
+ *     border-radius eases from 14 → 999, producing a single fluid
+ *     "rectangle becomes a circle and tucks itself away" motion.
+ *
+ * Why the right-edge anchor trick:
+ *   The morph animates `right: 50%` → `right: 14px` and
+ *   `transform: translateX(50%)` → `translateX(0)` together. Both are
+ *   interpolatable CSS values, so a single transition handles both
+ *   the centering and the shrink — no JS measurement, no layout
+ *   thrash, GPU-accelerated end-to-end.
  *
  * The banner-shown flag is stored in sessionStorage so the user only
  * sees the full banner once per session — subsequent navigations
  * within the same session render the pill directly. A hard reload
  * (or the next day's session) plays the banner again.
- *
- * The morph between banner and pill uses a single element with CSS
- * transitions on width/height/border-radius/etc., so the motion is
- * GPU-accelerated and butter-smooth.
  *
  * Lives inside StudioHub. Sub-apps deliberately don't show this —
  * when the user is inside Drumex / etc. they're focused on a task
@@ -145,23 +148,37 @@ export default function UpdateIndicator({
 
   return (
     <>
-      {/* Single morphing element: banner ↔ pill. The right edge stays
-          anchored so the contraction reads as "rolling up into the
-          top-right corner". */}
+      {/* Single morphing element: banner ↔ pill. The position trick
+          keeps the right edge as the morph anchor so the element can
+          smoothly slide from the screen center to the top-right
+          corner WITHOUT any "left/auto" non-interpolatable gaps:
+            - banner: right: 50% + translateX(50%)  → centered
+            - pill:   right: 14px + translateX(0)   → corner
+          Both halves of that pair animate as plain numeric CSS, so
+          the entire morph (position + size + radius) is one fluid
+          GPU-accelerated transition. */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={isBanner ? 'New update available — tap for details' : 'Update available'}
+        aria-label={
+          isBanner
+            ? `New update available — version ${ota.remoteVersion ?? ''} — tap for details`
+            : 'Update available'
+        }
         style={{
           position: 'absolute',
           top: 'calc(env(safe-area-inset-top) + 14px)',
-          right: 14,
+          // Anchor the RIGHT edge: 50% of viewport while centered,
+          // 14px from corner once minimized. Both values are length
+          // units so the browser can interpolate smoothly between them.
+          right: isBanner ? '50%' : '14px',
           zIndex: 60,
-          // Width/height morph — width contracts toward the right edge.
-          width: isBanner ? 'min(360px, calc(100% - 28px))' : 38,
-          height: isBanner ? 48 : 38,
+          // Width/height morph. Width contracts; the right edge stays
+          // pinned to wherever `right` currently points.
+          width: isBanner ? 'min(360px, calc(100vw - 28px))' : 38,
+          height: isBanner ? 52 : 38,
           padding: isBanner ? '0 12px 0 14px' : 0,
-          borderRadius: isBanner ? 14 : 999,
+          borderRadius: isBanner ? 16 : 999,
           // Layout
           display: 'flex',
           alignItems: 'center',
@@ -176,7 +193,7 @@ export default function UpdateIndicator({
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
           boxShadow: isBanner
-            ? `0 10px 32px ${accentTo}33, inset 0 0 0 1px ${accentTo}22`
+            ? `0 16px 40px ${accentTo}40, inset 0 0 0 1px ${accentTo}22`
             : `0 4px 14px ${accentTo}30`,
           // Text
           fontFamily: 'Manrope, sans-serif',
@@ -185,23 +202,35 @@ export default function UpdateIndicator({
           letterSpacing: '-0.005em',
           textAlign: 'left',
           cursor: 'pointer',
-          // Entrance + morph motion. The cubic-bezier is a soft
-          // overshoot, the duration is tuned so the morph feels
-          // weighted but not sluggish.
+          // Entrance fades + drops from above; morph slides the
+          // right-edge anchor (translateX 50% → 0) from screen-center
+          // to top-right. Both transforms are combined so a single
+          // `transform` transition drives the whole motion.
           opacity: entered ? 1 : 0,
-          transform: entered ? 'translateY(0)' : 'translateY(-16px)',
+          transform: [
+            isBanner ? 'translateX(50%)' : 'translateX(0)',
+            entered ? 'translateY(0)' : 'translateY(-16px)',
+          ].join(' '),
+          // Slightly longer + more pronounced overshoot for the morph
+          // so the "rectangle → circle that tucks into the corner"
+          // motion reads as deliberate and luxurious, not snappy.
           transition: [
-            'width 520ms cubic-bezier(0.34, 1.15, 0.64, 1)',
-            'height 520ms cubic-bezier(0.34, 1.15, 0.64, 1)',
-            'padding 520ms cubic-bezier(0.34, 1.15, 0.64, 1)',
-            'border-radius 520ms cubic-bezier(0.34, 1.15, 0.64, 1)',
-            'gap 520ms cubic-bezier(0.34, 1.15, 0.64, 1)',
-            'background 520ms ease',
-            'box-shadow 520ms ease',
+            'right 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
+            'width 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
+            'height 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
+            'padding 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
+            'border-radius 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
+            'gap 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
+            'background 620ms ease',
+            'box-shadow 620ms ease',
             'opacity 380ms ease',
-            'transform 460ms cubic-bezier(0.34, 1.18, 0.64, 1)',
+            'transform 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
           ].join(', '),
           animation: isBanner ? undefined : 'pill-pulse 2.6s ease-in-out infinite',
+          // willChange hints to the compositor so the morph stays on
+          // the GPU even on lower-end Androids — without it some
+          // devices fall back to layout-driven animation and stutter.
+          willChange: 'right, width, height, transform, border-radius',
         }}
       >
         <span
@@ -220,19 +249,23 @@ export default function UpdateIndicator({
           download
         </span>
 
-        {/* Text label — fades + slides out as the element morphs to a circle */}
+        {/* Text label — fades + slides out as the element morphs to a circle.
+            Shows the version number so the user knows exactly what they're
+            being offered before they tap through to the modal. */}
         <span
           style={{
             flex: 1,
             opacity: isBanner ? 1 : 0,
             transform: isBanner ? 'translateX(0)' : 'translateX(-8px)',
             transition: isBanner
-              ? 'opacity 280ms 140ms ease, transform 280ms 140ms ease'
+              ? 'opacity 280ms 200ms ease, transform 280ms 200ms ease'
               : 'opacity 200ms ease, transform 200ms ease',
             pointerEvents: isBanner ? 'auto' : 'none',
           }}
         >
-          New update available
+          {ota.remoteVersion
+            ? `Version ${ota.remoteVersion} available`
+            : 'New update available'}
         </span>
 
         {/* Minimize affordance — only meaningful in banner phase. We
