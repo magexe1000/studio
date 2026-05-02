@@ -90,7 +90,6 @@ export interface AppSettings {
   startupApp: 'chords' | 'drums' | 'hub' | 'stage' | 'groovex' | 'vocalex';
   appMode: 'chords' | 'drums' | 'hub' | 'stage' | 'groovex' | 'vocalex';
   hubUserName: string;
-  hubChimeEnabled: boolean;
   highRefreshRate: boolean;
   lowLatencyMode: boolean;
   performanceMode: boolean;
@@ -231,7 +230,6 @@ export const useChordStore = create<ChordStore>()(
         startupApp: 'hub',
         appMode: 'hub',
         hubUserName: '',
-        hubChimeEnabled: true,
         highRefreshRate: false,
         lowLatencyMode: false,
         performanceMode: false,
@@ -700,8 +698,12 @@ export const useChordStore = create<ChordStore>()(
             if (typeof settings.performanceMode !== 'boolean') {
               settings.performanceMode = false;
             }
-            if (typeof settings.hubChimeEnabled !== 'boolean') {
-              settings.hubChimeEnabled = true;
+            // Drop legacy `hubChimeEnabled` from older persisted state — the
+            // Studio Chime feature was removed entirely. Leaving the property
+            // around is harmless but pointless; remove it on rehydrate so
+            // old installs don't carry dead config forever.
+            if ('hubChimeEnabled' in settings) {
+              delete (settings as Record<string, unknown>).hubChimeEnabled;
             }
           }
         }

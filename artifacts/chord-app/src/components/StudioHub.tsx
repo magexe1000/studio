@@ -5,7 +5,6 @@ import { useNavHidden, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import ApplyToSheet from './ApplyToSheet';
-import { playStudioChime } from '../lib/studioChime';
 import AccountCard, { AccountDangerZone } from './AccountCard';
 import UpdateIndicator from './UpdateIndicator';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
@@ -36,11 +35,6 @@ function getSessionIndex(): number {
   localStorage.setItem(_INDEX_KEY, String(_cachedIdx));
   return _cachedIdx;
 }
-
-// Module-level chime latch — survives StudioHub remounts (returning
-// from an app) but resets on full page reload. Ensures the chime
-// plays only once per session, when the user first enters the app.
-let _hubChimePlayed = false;
 
 // ── Greeting pairs — greeting + subtitle are always shown together ─────────────
 interface GreetingPair { greeting: string; subtitle: string }
@@ -182,52 +176,6 @@ export default function StudioHub() {
   const [zooming, setZooming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
-
-  // Studio chime — fires once per page-load, only when the user first
-  // enters the app (not when navigating back to the hub from an app).
-  // _hubChimePlayed is a module-level latch that survives StudioHub
-  // remounts but resets on a fresh page reload. The 620ms delay lets
-  // the logo drop-in (500ms) and apps card rise-in (80+500ms) settle
-  // so audio + visuals land together. Gated on the user-controllable
-  // hubChimeEnabled setting.
-  useEffect(() => {
-    if (!settings.hubChimeEnabled) return;
-    if (_hubChimePlayed) return;
-    _hubChimePlayed = true;
-
-    let played = false;
-    const fire = async () => {
-      if (played) return;
-      const ok = await playStudioChime();
-      if (ok) {
-        played = true;
-        cleanup();
-      }
-    };
-    const onGesture = () => fire();
-    const cleanup = () => {
-      window.removeEventListener('pointerdown', onGesture);
-      window.removeEventListener('touchstart', onGesture);
-      window.removeEventListener('keydown', onGesture);
-      window.removeEventListener('click', onGesture);
-    };
-
-    // Try to play immediately when the hub appears (works if audio is
-    // already unlocked from any previous interaction this session).
-    const id = window.setTimeout(() => fire(), 620);
-
-    // Fallback: if browser autoplay blocked it, fire on the first gesture.
-    window.addEventListener('pointerdown', onGesture, { once: true, passive: true });
-    window.addEventListener('touchstart', onGesture, { once: true, passive: true });
-    window.addEventListener('keydown',    onGesture, { once: true });
-    window.addEventListener('click',      onGesture, { once: true });
-
-    return () => {
-      window.clearTimeout(id);
-      cleanup();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const launchApp = (appMode: 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex') => {
     setZooming(true);
@@ -643,9 +591,6 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
       <div style={cardStyle}>
         <SettingRow label={t.settings.rows.haptic} desc={t.settings.rows.hapticDesc}>
           <Toggle value={settings.hapticFeedback} onChange={v => updateSettings({ hapticFeedback: v })} accentFrom={accent.from} accentTo={accent.to} />
-        </SettingRow>
-        <SettingRow label={t.settings.rows.studioChime} desc={t.settings.rows.studioChimeDesc}>
-          <Toggle value={settings.hubChimeEnabled} onChange={v => updateSettings({ hubChimeEnabled: v })} accentFrom={accent.from} accentTo={accent.to} />
         </SettingRow>
       </div>
 
