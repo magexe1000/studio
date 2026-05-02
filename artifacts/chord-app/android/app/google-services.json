@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "355186993352",
+    "project_id": "studio-30f44",
+    "storage_bucket": "studio-30f44.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:355186993352:android:46ce8c309cf0b0b1d1ddfd",
+        "android_client_info": {
+          "package_name": "com.chordex.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "355186993352-p1kkmo4rrr9hs13lotqr2hl2g6f0chm8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-RgfD6No4R9D5AXMNcYrnnZBUe5AUSOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "355186993352-p1kkmo4rrr9hs13lotqr2hl2g6f0chm8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
