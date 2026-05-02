@@ -14,7 +14,7 @@
     "android:patch": "node patch-android.cjs",
     "android:sync": "npx cap sync android && node patch-android.cjs",
     "bundle:publish": "node scripts/publish-bundle.mjs",
-    "release:gh-pages": "pnpm build && OTA_BASE_URL=${OTA_BASE_URL:?set OTA_BASE_URL to your GitHub Pages URL, e.g. https://USER.github.io/REPO} OTA_OUTPUT_DIR=../../docs node scripts/publish-bundle.mjs"
+    "release:gh-pages": "node scripts/release-gh-pages.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.1",
@@ -26,6 +26,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "archiver": "^7.0.1",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwindcss": "catalog:",

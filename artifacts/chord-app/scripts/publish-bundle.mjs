@@ -34,9 +34,9 @@
  *   ${OTA_OUTPUT_DIR}/...      (mirror copy, only when env var set)
  *
  * Implementation notes:
- *   - The zip is created with the system `zip` command. Replit's
- *     deploy environment ships zip; on Windows-only dev machines this
- *     script will fail with a clear error and a pointer to install zip.
+ *   - The zip is created via the `archiver` npm package — pure JS, so
+ *     this script runs identically on Windows, macOS, Linux, and CI
+ *     without depending on a system `zip` binary.
  *   - The `bundles/` directory itself is excluded from the zip's
  *     contents so successive bundles don't accumulate inside each
  *     other (every bundle would otherwise embed every prior bundle).
@@ -47,8 +47,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import archiver from 'archiver';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -76,15 +76,6 @@ if (!fs.existsSync(path.join(distDir, 'index.html'))) {
   process.exit(1);
 }
 
-// ── Verify zip is available before we mutate anything ─────────────────
-try {
-  execSync('zip -v', { stdio: 'ignore' });
-} catch {
-  console.error('publish-bundle: ✗ system `zip` command not found.');
-  console.error('  Install it (e.g. `apt install zip`, `brew install zip`) and retry.');
-  process.exit(1);
-}
-
 // ── Make the bundles directory + zip the build ────────────────────────
 fs.mkdirSync(bundlesDir, { recursive: true });
 const zipName = `bundle-${version}.zip`;
@@ -93,14 +84,26 @@ const zipPath = path.join(bundlesDir, zipName);
 // can't leave us with a half-written zip.
 if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
 
-// Run zip from inside dist/public so paths inside the archive are
-// rooted at the bundle's WebView root (no leading "dist/public/").
-// Exclude bundles/ AND version.json — bundles must not contain a
-// stale copy of themselves, and version.json is regenerated below.
-execSync(
-  `zip -rq "${zipPath}" . -x "bundles/*" "version.json"`,
-  { cwd: distDir, stdio: 'inherit' },
-);
+// Use archiver (pure-Node, cross-platform) so this script runs on
+// Windows dev machines as well as Replit/Linux/Mac without needing
+// the system `zip` binary. Archive paths are rooted at the bundle's
+// WebView root (no leading "dist/public/"). Exclude bundles/ AND
+// version.json — bundles must not contain a stale copy of themselves,
+// and version.json is regenerated below.
+await new Promise((resolve, reject) => {
+  const output = fs.createWriteStream(zipPath);
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  output.on('close', resolve);
+  output.on('error', reject);
+  archive.on('error', reject);
+  archive.pipe(output);
+  archive.glob('**/*', {
+    cwd: distDir,
+    dot: false,
+    ignore: ['bundles/**', 'version.json'],
+  });
+  archive.finalize();
+});
 
 const sizeKb = (fs.statSync(zipPath).size / 1024).toFixed(1);
 console.log(`publish-bundle: ✓ created ${path.relative(root, zipPath)} (${sizeKb} KB)`);
