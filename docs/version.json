@@ -1,6 +1,6 @@
 {
-  "version": "3.0.3",
-  "changelog": "• Session persistence — the app remembers where you left off.\n• Studio Project — chord, drum, vocal and stage data now flow through a single project.\n• Update notifications — Studio now tells you when a new version is available.",
+  "version": "3.0.4",
+  "changelog": "• Cloud sync now works on the phone — sign-in with Google and email/password no longer shows \"Cloud sync is not configured for this build\". The Firebase config is now bundled with the app, so a fresh APK build always has it.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.3.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.4.zip"
 }

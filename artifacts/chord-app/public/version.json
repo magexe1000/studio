@@ -1,5 +1,5 @@
 {
-  "version": "3.0.3",
+  "version": "3.0.4",
   "changelog": "• Session persistence — the app remembers where you left off.\n• Studio Project — chord, drum, vocal and stage data now flow through a single project.\n• Update notifications — Studio now tells you when a new version is available.",
   "mandatory": false
 }
