@@ -3,7 +3,7 @@ import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
 import { ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './components/ChordexLogo';
-import { setNavHidden, setNavLocked } from './lib/navScroll';
+import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 import StudioHub from './components/StudioHub';
@@ -45,6 +45,15 @@ export default function App() {
   // overlay a lockdown screen with a countdown + Restore button.
   const [accountState, setAccountState] = useState<AccountState>({ phase: 'unknown' });
   useEffect(() => subscribeAccountState(setAccountState), []);
+
+  // Whenever we leave the lockdown screen (e.g. user tapped Restore), force
+  // the bottom nav back into a clean visible state. The lockdown screen
+  // unmounts before the underlying panels remount, so without this reset
+  // any stale `hidden` flag from a previous session would persist and the
+  // user would land on the Hub without a visible nav bar.
+  useEffect(() => {
+    if (accountState.phase !== 'pending') resetNav();
+  }, [accountState.phase]);
 
   // Boot the cloud sync engine once. It listens for sign-in changes and
   // pushes/pulls Chordex/Drumex/StageX state. Also bridges localStorage
