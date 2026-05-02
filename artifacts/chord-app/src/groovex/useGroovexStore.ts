@@ -90,6 +90,10 @@ export const useGroovexStore = create<GroovexState>()(
         stemVolumes: s.stemVolumes,
         stemMutes: s.stemMutes,
         sortBy: s.sortBy,
+        // Persist the last-visited view + active song so launch resumes
+        // exactly where the user left off (e.g. mid-song in the player).
+        view: s.view,
+        activeSongId: s.activeSongId,
       }),
     }
   )

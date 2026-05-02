@@ -118,6 +118,20 @@ interface ChordStore {
   customChords: CustomChord[];
   chordUsage: Record<string, number>;
 
+  /**
+   * Persisted "where was the user last?" snapshot — used at app launch to
+   * restore the prior session (last opened app, sub-screen, etc.). Project
+   * IDs (activePresetId, activePatternId, etc.) live in their own stores
+   * and are restored independently. Optional fields default to undefined,
+   * in which case launch falls back to settings.startupApp / 'hub'.
+   */
+  lastSession: {
+    app?: AppKey;
+    vocalexTab?: 'practice' | 'pitch' | 'vocalLab' | 'takes';
+    stagexView?: string;
+    drumexTab?: 'songs' | 'patterns' | 'prefs';
+  };
+
   selectChord: (chordId: string) => void;
   trackChordUsage: (chordId: string) => void;
   setActivePanel: (panel: ActivePanel) => void;
@@ -125,6 +139,7 @@ interface ChordStore {
   isFavorite: (chordId: string) => boolean;
   updateSettings: (settings: Partial<AppSettings>) => void;
   updatePerApp: (apps: AppKey[], patch: Partial<PerAppVisuals>) => void;
+  setLastSession: (patch: Partial<ChordStore['lastSession']>) => void;
 
   addToProgression: (chordId: string) => void;
   removeFromProgression: (index: number) => void;
@@ -245,6 +260,7 @@ export const useChordStore = create<ChordStore>()(
       transpositions: {},
       customChords: [],
       chordUsage: {},
+      lastSession: { app: 'hub' },
 
       trackChordUsage: (chordId) => {
         set(state => ({
@@ -275,7 +291,25 @@ export const useChordStore = create<ChordStore>()(
       isFavorite: (chordId) => get().favorites.includes(chordId),
 
       updateSettings: (newSettings) => {
-        set((state) => ({ settings: { ...state.settings, ...newSettings } }));
+        set((state) => {
+          // Mirror appMode changes into lastSession so a refresh / cold start
+          // can restore the user to the last app they were viewing. This is
+          // the universal write path for appMode (exit-to-hub, BottomNav,
+          // launcher tiles all flow through here), so no extra subscription
+          // is needed.
+          const nextSession =
+            newSettings.appMode && newSettings.appMode !== state.settings.appMode
+              ? { ...state.lastSession, app: newSettings.appMode }
+              : state.lastSession;
+          return {
+            settings: { ...state.settings, ...newSettings },
+            lastSession: nextSession,
+          };
+        });
+      },
+
+      setLastSession: (patch) => {
+        set((state) => ({ lastSession: { ...state.lastSession, ...patch } }));
       },
 
       updatePerApp: (apps, patch) => {
@@ -683,6 +717,7 @@ export const useChordStore = create<ChordStore>()(
         transpositions: state.transpositions,
         customChords: state.customChords,
         chordUsage: state.chordUsage,
+        lastSession: state.lastSession,
       }),
     }
   )

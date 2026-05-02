@@ -188,7 +188,17 @@ export default function StagexPanel() {
   const iframeReady = useRef(false);
   const { settings } = useChordStore();
   const tr = useT();
-  const [curView, setCurView] = useState<string>('Editor');
+  // Restore the last Stagex sub-view (Editor / Setup / Preferences / Export)
+  // from the persisted session. The iframe's internal view is switched to
+  // match below in handleLoad, after the iframe finishes loading.
+  const [curView, setCurView] = useState<string>(() => {
+    const saved = useChordStore.getState().lastSession?.stagexView;
+    return saved || 'Editor';
+  });
+
+  useEffect(() => {
+    useChordStore.getState().setLastSession({ stagexView: curView });
+  }, [curView]);
 
   /* ── Glassmorphism bottom nav state ─────────────────────── */
   const stageNavRef    = useRef<HTMLDivElement | null>(null);
@@ -338,15 +348,21 @@ export default function StagexPanel() {
         };
       } catch {}
 
-      const defView = settings.defaultStageView;
+      // Prefer the last-visited view from the session over the user's
+      // pinned default — session continuity wins. If neither is set, the
+      // iframe loads its native default ('Editor').
+      const savedStageView = useChordStore.getState().lastSession?.stagexView;
+      const defView = savedStageView || settings.defaultStageView;
       if (defView && defView !== 'Editor') {
         setTimeout(() => {
           try {
             const win = iframe.contentWindow as StageWin;
-            if (defView === 'Setup') {
+            if (defView === 'Setup' || defView === 'SetupHub') {
               win?.switchView?.('SetupHub');
-            } else if (defView === 'Preferences') {
+            } else if (defView === 'Preferences' || defView === 'Assistant') {
               win?.switchView?.('Assistant');
+            } else if (defView === 'Export') {
+              win?.switchView?.('Export');
             }
           } catch {}
         }, 200);

@@ -94,8 +94,27 @@ export default function App() {
     };
   }, []);
 
-  // On first mount: apply startupApp preference
+  // On first mount: restore the last session if we have one, otherwise
+  // fall back to the user's `startupApp` preference (which itself defaults
+  // to 'hub'). This satisfies "fallback to home if no data exists" without
+  // forcing existing users who pinned a startup app to lose that pref on
+  // their very first launch after the upgrade — `lastSession.app` is
+  // seeded to 'hub' for fresh installs so the legacy behavior matches.
   useEffect(() => {
+    const validApps: readonly AppKey[] = ['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex'] as const;
+    const saved = useChordStore.getState().lastSession?.app;
+    const restoredApp: AppKey | null = saved && validApps.includes(saved) ? saved : null;
+
+    if (restoredApp) {
+      prevAppMode.current = restoredApp;
+      updateSettings({ appMode: restoredApp });
+      // Sub-app screens (activePanel for chords, vocalexTab, stagexView,
+      // drumexTab, groovex view+song) are already persisted by their own
+      // stores / lastSession fields and re-applied where the components
+      // mount, so we deliberately do NOT override them here.
+      return;
+    }
+
     const startApp = settings.startupApp ?? 'hub';
     if (startApp === 'drums') {
       prevAppMode.current = 'drums';

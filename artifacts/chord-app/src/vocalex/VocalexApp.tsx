@@ -65,11 +65,25 @@ function IconTakes({ active }: { active: boolean }) {
 export default function VocalexApp() {
   const { settings } = useChordStore();
   const t = useT();
-  const [activeTab, setActiveTab] = useState<VocalexPanel>('practice');
-  const [visibleTab, setVisibleTab] = useState<VocalexPanel>('practice');
+  // Restore last-visited Vocalex tab so a refresh / app-switch lands the
+  // user where they left off. Falls back to 'practice' for fresh installs
+  // or if the persisted value is somehow corrupted / out-of-schema.
+  const initialVocalexTab: VocalexPanel = (() => {
+    const saved = useChordStore.getState().lastSession?.vocalexTab;
+    return saved === 'practice' || saved === 'pitch' || saved === 'vocalLab' || saved === 'takes'
+      ? saved
+      : 'practice';
+  })();
+  const [activeTab, setActiveTab] = useState<VocalexPanel>(initialVocalexTab);
+  const [visibleTab, setVisibleTab] = useState<VocalexPanel>(initialVocalexTab);
   const [exitingTab, setExitingTab] = useState<VocalexPanel | null>(null);
   const [slideDir, setSlideDir] = useState<'right' | 'left'>('right');
-  const prevTab = useRef<VocalexPanel>('practice');
+  const prevTab = useRef<VocalexPanel>(initialVocalexTab);
+
+  // Persist the active tab on every change so cold-start can resume here.
+  useEffect(() => {
+    useChordStore.getState().setLastSession({ vocalexTab: activeTab });
+  }, [activeTab]);
 
   const appKey = 'vocalex' as AppKey;
   const activeVis = settings.perApp?.[appKey] ?? { theme: 'dark' as const, accentColor: 'blue' as const, amoledMode: false };

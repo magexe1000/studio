@@ -1598,10 +1598,17 @@ export default function DrumEditor() {
   // ── State ────────────────────────────────────────────────────────────────
   const [inEditor,       setInEditor]       = useState(false);
   const [activeTab,      setActiveTab]      = useState<DrumTab>(() => {
+    // Session restore wins over pinned default — last visited tab first.
+    const last = useChordStore.getState().lastSession?.drumexTab;
+    if (last === 'songs' || last === 'patterns' || last === 'prefs') return last;
     const s = useChordStore.getState().settings;
     const dt = s.defaultDrumTab;
     return (dt === 'songs' || dt === 'patterns' || dt === 'prefs') ? dt : 'songs';
   });
+  // Persist the active Drumex tab on every change.
+  useEffect(() => {
+    useChordStore.getState().setLastSession({ drumexTab: activeTab });
+  }, [activeTab]);
   const [playing, setPlaying]               = useState(false);
   const [looping, setLooping]               = useState(() => drumPrefs.loopPlayback);
   const [countingIn, setCountingIn]         = useState(false);
