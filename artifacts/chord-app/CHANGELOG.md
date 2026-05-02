@@ -17,6 +17,14 @@ Conventions:
 
 ---
 
+## 3.0.5
+
+- Sign in with Google now works on the phone — uses the native Google
+  account picker instead of the broken WebView redirect that showed
+  "Unable to process request due to missing initial state".
+- The app now asks for permission to send notifications on first launch,
+  so update alerts can reach you even when the app is closed.
+
 ## 3.0.4
 
 - Cloud sync now works on the phone — sign-in with Google and email/password

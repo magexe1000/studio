@@ -214,6 +214,44 @@ export async function notifyOtaAvailable(version: string): Promise<void> {
   }
 }
 
+/**
+ * Ask the user for permission to post system notifications, ONCE,
+ * at app launch. Called from main.tsx so the OS dialog appears the
+ * first time the user opens the app — they don't have to wait for an
+ * OTA update to be detected for the prompt to show.
+ *
+ *   - On NATIVE (Android APK): uses @capacitor/local-notifications.
+ *     Only prompts when the current state is 'prompt' or
+ *     'prompt-with-rationale'. If the user already granted or already
+ *     denied, this is a no-op (we don't re-prompt the same user).
+ *   - On WEB (PWA / browser): uses the standard Notification API,
+ *     same gate (only when state is 'default').
+ *   - All errors are swallowed — a failed permission check should never
+ *     block the app from booting.
+ */
+export async function ensureNotificationPermission(): Promise<void> {
+  if (isNative()) {
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const status = await LocalNotifications.checkPermissions();
+      if (status.display === 'prompt' || status.display === 'prompt-with-rationale') {
+        await LocalNotifications.requestPermissions();
+      }
+    } catch (err) {
+      console.warn('[notifications] permission request failed:', err);
+    }
+    return;
+  }
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  try {
+    if (Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+  } catch (err) {
+    console.warn('[notifications] web permission request failed:', err);
+  }
+}
+
 /** Stable, non-negative 31-bit hash. Java/Android-friendly notification id. */
 function hash31(s: string): number {
   let h = 0;

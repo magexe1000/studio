@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import ChangelogModal from "./components/ChangelogModal";
-import { notifyBundleReady } from "./lib/capgoUpdater";
+import { notifyBundleReady, ensureNotificationPermission } from "./lib/capgoUpdater";
 import "./index.css";
 
 // Tell the Capgo updater plugin that this bundle booted successfully.
@@ -11,6 +11,12 @@ import "./index.css";
 // slow first paint can't trip the rollback timer. Safe to call on
 // web (no-op outside a Capacitor native shell).
 void notifyBundleReady();
+
+// Ask for notification permission on first launch so the OS dialog
+// appears immediately — users don't have to wait for an OTA update to
+// be available for the system prompt to show. Fire-and-forget; the
+// dialog is asynchronous and we don't block React render on it.
+void ensureNotificationPermission();
 
 createRoot(document.getElementById("root")!).render(
   <>
