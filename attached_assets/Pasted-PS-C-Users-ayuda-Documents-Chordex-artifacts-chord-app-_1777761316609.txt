@@ -1,0 +1,56 @@
+PS C:\Users\ayuda\Documents\Chordex\artifacts\chord-app\android> cd C:\Users\ayuda\Documents\Chordex\artifacts\chord-app\android
+>> .\gradlew --stop
+>> .\gradlew assembleDebug
+Stopping Daemon(s)
+2 Daemons stopped
+Starting a Gradle Daemon, 2 stopped Daemons could not be reused, use --status for details
+
+> Configure project :app
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Task :capacitor-android:compileDebugJavaWithJavac
+Note: C:\Users\ayuda\Documents\Chordex\node_modules\.pnpm\@capacitor+android@6.2.1_@capacitor+core@6.2.1\node_modules\@capacitor\android\capacitor\src\main\java\com\getcapacitor\Bridge.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :capacitor-firebase-authentication:compileDebugJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: C:\Users\ayuda\Documents\Chordex\node_modules\.pnpm\@capacitor-firebase+authent_b2c58bccd0243963619262146c7f342d\node_modules\@capacitor-firebase\authentication\android\src\main\java\io\capawesome\capacitorjs\plugins\firebase\authentication\FirebaseAuthentication.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :capacitor-status-bar:compileDebugJavaWithJavac
+Note: C:\Users\ayuda\Documents\Chordex\node_modules\.pnpm\@capacitor+status-bar@6.0.3_@capacitor+core@6.2.1\node_modules\@capacitor\status-bar\android\src\main\java\com\capacitorjs\plugins\statusbar\StatusBar.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :capgo-capacitor-updater:compileDebugJavaWithJavac
+Note: C:\Users\ayuda\Documents\Chordex\node_modules\.pnpm\@capgo+capacitor-updater@6.43.5_@capacitor+core@6.2.1\node_modules\@capgo\capacitor-updater\android\src\main\java\ee\forgr\capacitor_updater\CapacitorUpdaterPlugin.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: C:\Users\ayuda\Documents\Chordex\node_modules\.pnpm\@capgo+capacitor-updater@6.43.5_@capacitor+core@6.2.1\node_modules\@capgo\capacitor-updater\android\src\main\java\ee\forgr\capacitor_updater\ShakeMenu.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :app:compileDebugJavaWithJavac FAILED
+C:\Users\ayuda\Documents\Chordex\artifacts\chord-app\android\app\src\main\java\com\chordex\app\OtaCheckWorker.java:39: error: cannot access ListenableFuture
+public class OtaCheckWorker extends Worker {
+       ^
+  class file for com.google.common.util.concurrent.ListenableFuture not found
+Note: C:\Users\ayuda\Documents\Chordex\artifacts\chord-app\android\app\src\main\java\com\chordex\app\MainActivity.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+1 error
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugJavaWithJavac'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
+> Run with --scan to get full insights.
+
+BUILD FAILED in 1m
+145 actionable tasks: 46 executed, 99 up-to-date

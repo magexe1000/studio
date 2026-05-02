@@ -224,4 +224,20 @@ patchFile(
   }
 );
 
+// ── 7. Ensure ListenableFuture stub is in app/build.gradle ──────────────
+// WorkManager 2.9's Worker base class exposes ListenableFuture in its
+// public API, so javac requires the class at compile time. Without this
+// stub the build fails with "cannot access ListenableFuture".
+patchFile(
+  path.join(androidDir, 'app/build.gradle'),
+  'app/build.gradle  (listenablefuture stub)',
+  (src) => {
+    if (src.includes('com.google.guava:listenablefuture')) return src;
+    return src.replace(
+      /(implementation "androidx\.work:work-runtime:[^"]+"\s*\n)/,
+      '$1    implementation "com.google.guava:listenablefuture:1.0"\n'
+    );
+  }
+);
+
 console.log('\nDone. Ready to build:\n  .\\gradlew.bat assembleDebug\n');
