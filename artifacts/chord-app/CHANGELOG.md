@@ -17,13 +17,17 @@ Conventions:
 
 ---
 
+## 3.0.6
+
+- Stability fix — reverted the native Google sign-in change that was
+  causing the app to crash on launch. Google sign-in is temporarily
+  disabled on Android; please sign in with email and password for now.
+- Notification permission prompt on first launch is preserved.
+
 ## 3.0.5
 
-- Sign in with Google now works on the phone — uses the native Google
-  account picker instead of the broken WebView redirect that showed
-  "Unable to process request due to missing initial state".
-- The app now asks for permission to send notifications on first launch,
-  so update alerts can reach you even when the app is closed.
+- (Withdrawn — caused the app to crash on launch on Android. Replaced
+  by 3.0.6.)
 
 ## 3.0.4
 
