@@ -69,7 +69,9 @@ export default function VocalexApp() {
   // user where they left off. Falls back to 'practice' for fresh installs
   // or if the persisted value is somehow corrupted / out-of-schema.
   const initialVocalexTab: VocalexPanel = (() => {
-    const saved = useChordStore.getState().lastSession?.vocalexTab;
+    const s = useChordStore.getState();
+    if (!s.settings.restoreLastSession) return 'practice';
+    const saved = s.lastSession?.vocalexTab;
     return saved === 'practice' || saved === 'pitch' || saved === 'vocalLab' || saved === 'takes'
       ? saved
       : 'practice';

@@ -618,6 +618,18 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
       </div>
       <GlobalHint />
 
+      {/* ── SESSION ── */}
+      <SectionHeader icon="history" title={t.hub.session} />
+      <div style={cardStyle}>
+        <SettingRow
+          label={t.hub.restoreLastSession}
+          desc={t.hub.restoreLastSessionDesc}
+        >
+          <Toggle value={settings.restoreLastSession} onChange={v => updateSettings({ restoreLastSession: v })} accentFrom={accent.from} accentTo={accent.to} />
+        </SettingRow>
+      </div>
+      <GlobalHint />
+
       {/* ── LANGUAGE ── */}
       <SectionHeader icon="language" title={t.settings.sections.language} />
       <div style={cardStyle}>

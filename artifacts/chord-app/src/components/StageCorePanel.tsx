@@ -192,8 +192,9 @@ export default function StagexPanel() {
   // from the persisted session. The iframe's internal view is switched to
   // match below in handleLoad, after the iframe finishes loading.
   const [curView, setCurView] = useState<string>(() => {
-    const saved = useChordStore.getState().lastSession?.stagexView;
-    return saved || 'Editor';
+    const s = useChordStore.getState();
+    const saved = s.settings.restoreLastSession ? s.lastSession?.stagexView : undefined;
+    return saved || s.settings.defaultStageView || 'Editor';
   });
 
   useEffect(() => {
@@ -349,9 +350,11 @@ export default function StagexPanel() {
       } catch {}
 
       // Prefer the last-visited view from the session over the user's
-      // pinned default — session continuity wins. If neither is set, the
-      // iframe loads its native default ('Editor').
-      const savedStageView = useChordStore.getState().lastSession?.stagexView;
+      // pinned default — but only when session restore is enabled. If
+      // disabled (or neither is set), use the pinned default; the iframe
+      // loads its native default ('Editor') if both are unset.
+      const s2 = useChordStore.getState();
+      const savedStageView = s2.settings.restoreLastSession ? s2.lastSession?.stagexView : undefined;
       const defView = savedStageView || settings.defaultStageView;
       if (defView && defView !== 'Editor') {
         setTimeout(() => {

@@ -1598,11 +1598,15 @@ export default function DrumEditor() {
   // ── State ────────────────────────────────────────────────────────────────
   const [inEditor,       setInEditor]       = useState(false);
   const [activeTab,      setActiveTab]      = useState<DrumTab>(() => {
-    // Session restore wins over pinned default — last visited tab first.
-    const last = useChordStore.getState().lastSession?.drumexTab;
-    if (last === 'songs' || last === 'patterns' || last === 'prefs') return last;
-    const s = useChordStore.getState().settings;
-    const dt = s.defaultDrumTab;
+    // Session restore wins over pinned default — but only when the user
+    // has enabled session restore. Otherwise fall back to the pinned
+    // default (or 'songs' if that's unset / out-of-schema).
+    const st = useChordStore.getState();
+    if (st.settings.restoreLastSession) {
+      const last = st.lastSession?.drumexTab;
+      if (last === 'songs' || last === 'patterns' || last === 'prefs') return last;
+    }
+    const dt = st.settings.defaultDrumTab;
     return (dt === 'songs' || dt === 'patterns' || dt === 'prefs') ? dt : 'songs';
   });
   // Persist the active Drumex tab on every change.

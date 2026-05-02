@@ -426,6 +426,9 @@ const translations = {
       themeDark: 'Dark',
       themeLight: 'Light',
       themeAuto: 'Auto',
+      session: 'Session',
+      restoreLastSession: 'Restore last session',
+      restoreLastSessionDesc: "When opening the app, return to where you left off — last app, tab and view. Off by default.",
     },
 
     /* ── Drum Editor ── */
@@ -1212,6 +1215,9 @@ const translations = {
       themeDark: 'Oscuro',
       themeLight: 'Claro',
       themeAuto: 'Auto',
+      session: 'Sesión',
+      restoreLastSession: 'Restaurar sesión anterior',
+      restoreLastSessionDesc: 'Al abrir la app, vuelve a donde lo dejaste — última app, pestaña y vista. Desactivado por defecto.',
     },
 
     /* ── Drum Editor ── */

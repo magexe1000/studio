@@ -98,6 +98,13 @@ export interface AppSettings {
   assistantProgressionTips: boolean;
   assistantConflictDetection: boolean;
   assistantLearning: boolean;
+  /**
+   * When true, opening the app restores the last visited app, sub-tab and
+   * sub-view (e.g. Stagex view, Drumex tab, Vocalex tab). When false (the
+   * default), every launch falls back to the user's startupApp preference
+   * and each sub-app's pinned default tab/view.
+   */
+  restoreLastSession: boolean;
   perApp: Record<AppKey, PerAppVisuals>;
 }
 
@@ -238,6 +245,7 @@ export const useChordStore = create<ChordStore>()(
         assistantProgressionTips: true,
         assistantConflictDetection: true,
         assistantLearning: true,
+        restoreLastSession: false,
         perApp: {
           hub:    { theme: 'dark', accentColor: 'blue', amoledMode: false },
           chords: { theme: 'dark', accentColor: 'blue', amoledMode: false },

@@ -110,7 +110,8 @@ export default function App() {
   // seeded to 'hub' for fresh installs so the legacy behavior matches.
   useEffect(() => {
     const validApps: readonly AppKey[] = ['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex'] as const;
-    const saved = useChordStore.getState().lastSession?.app;
+    const restoreEnabled = useChordStore.getState().settings.restoreLastSession;
+    const saved = restoreEnabled ? useChordStore.getState().lastSession?.app : undefined;
     const restoredApp: AppKey | null = saved && validApps.includes(saved) ? saved : null;
 
     if (restoredApp) {
