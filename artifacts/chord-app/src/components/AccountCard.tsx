@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   isFirebaseConfigured,
   signInGoogle,
@@ -270,16 +271,18 @@ type DangerZoneProps = {
   cardStyle: React.CSSProperties;
 };
 
+type DangerSheet = 'none' | 'signout' | 'delete';
+
 export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
   const tRoot = useT();
   const t = tRoot.hub.accountSection;
   const lang = useChordStore((s) => s.settings.language) ?? 'en';
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [showDelete, setShowDelete] = useState(false);
+  const [sheet, setSheet] = useState<DangerSheet>('none');
+  const [closing, setClosing] = useState(false);
   const [deleteEmail, setDeleteEmail] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => subscribeAuth(setUser), []);
 
@@ -288,10 +291,26 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
   const emailToConfirm = (user.email ?? '').trim().toLowerCase();
   const canDelete = !deleting && deleteEmail.trim().toLowerCase() === emailToConfirm && !!emailToConfirm;
 
+  function openSheet(s: DangerSheet) {
+    setErr(null);
+    setDeleteEmail('');
+    setClosing(false);
+    setSheet(s);
+  }
+
+  function closeSheet() {
+    setClosing(true);
+    setTimeout(() => {
+      setSheet('none');
+      setClosing(false);
+      setDeleteEmail('');
+      setErr(null);
+    }, 280);
+  }
+
   async function doSignOut() {
-    setBusy(true);
     try { await signOut(); }
-    finally { setBusy(false); }
+    catch { /* noop */ }
   }
 
   async function doDeleteAccount() {
@@ -300,14 +319,12 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
     try {
       await deleteCloudData();
       await deleteAccount();
-      setShowDelete(false);
-      setDeleteEmail('');
+      closeSheet();
     } catch (e) {
       const code = (e as { code?: string })?.code ?? '';
       if (code === 'auth/requires-recent-login') {
         setErr(t.deleteAccountReauth);
-        setShowDelete(false);
-        setDeleteEmail('');
+        closeSheet();
         try { await signOut(); } catch { /* noop */ }
       } else {
         setErr(prettyErr(e, lang));
@@ -317,11 +334,45 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
     }
   }
 
+  const sheetAnim = closing
+    ? 'sheet-down 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both'
+    : 'sheet-up 340ms cubic-bezier(0.34, 1.42, 0.64, 1) both';
+
+  const overlayAnim = closing
+    ? 'fade-out 280ms ease both'
+    : 'sync-fade-in 200ms ease both';
+
+  const overlayStyle: React.CSSProperties = {
+    position: 'fixed', inset: 0, zIndex: 9999,
+    animation: overlayAnim,
+  };
+
+  const backdropStyle: React.CSSProperties = {
+    position: 'absolute', inset: 0,
+    background: 'rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
+  };
+
+  const sheetStyle: React.CSSProperties = {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    background: 'var(--app-surface)',
+    borderRadius: '1.5rem 1.5rem 0 0',
+    padding: '0 0 max(28px, env(safe-area-inset-bottom)) 0',
+    animation: sheetAnim,
+  };
+
+  const dragPill = (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+      <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.3)' }} />
+    </div>
+  );
+
   return (
     <>
       <SyncAnimations />
 
-      {/* Red section header — matches SectionHeader style but in danger colour */}
+      {/* Red section header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 24, marginBottom: 12 }}>
         <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#ff6b6b' }}>warning</span>
         <p style={{
@@ -331,45 +382,79 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
         }}>{t.dangerZone}</p>
       </div>
 
-      {/* Card — same structure as every other settings card */}
+      {/* Card */}
       <div style={cardStyle}>
         <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.4 }}>
             {t.dangerZoneNote}
           </p>
-
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={doSignOut} disabled={busy} style={{ ...dangerOutlineBtn(), flex: 1 }}>
+            <button onClick={() => openSheet('signout')} style={{ ...dangerOutlineBtn(), flex: 1 }}>
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span>
               {t.signOut}
             </button>
-            {!showDelete && (
-              <button
-                onClick={() => { setShowDelete(true); setErr(null); setDeleteEmail(''); }}
-                disabled={busy}
-                style={{ ...dangerSolidBtn(), flex: 1 }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
-                {t.deleteAccount}
-              </button>
-            )}
+            <button onClick={() => openSheet('delete')} style={{ ...dangerSolidBtn(), flex: 1 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
+              {t.deleteAccount}
+            </button>
           </div>
+          {err && <p style={{ fontSize: 11, color: '#ff6b6b', margin: 0 }}>{err}</p>}
+        </div>
+      </div>
 
-          {showDelete && (
-            <div style={{
-              marginTop: 4, padding: 12, borderRadius: 10,
-              background: 'rgba(255,107,107,0.10)',
-              border: '1px solid rgba(255,107,107,0.3)',
-              display: 'flex', flexDirection: 'column', gap: 8,
-              animation: 'sync-fade-in 200ms ease',
-            }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#ff6b6b', margin: 0 }}>
+      {/* ── Sign-out bottom sheet ── */}
+      {sheet === 'signout' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <div style={{ padding: '8px 22px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)', margin: 0 }}>
+                {t.signOutConfirmTitle}
+              </p>
+              <button onClick={closeSheet} className="btn-smooth" style={{ color: 'var(--c-text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>close</span>
+              </button>
+            </div>
+            <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5, margin: '8px 22px 20px' }}>
+              {t.signOutConfirmBody}
+            </p>
+            <div style={{ display: 'flex', gap: 10, padding: '0 16px' }}>
+              <button onClick={closeSheet} style={{ ...secondaryBtn(), flex: 1, padding: '13px 0' }}>
+                {t.cancel}
+              </button>
+              <button
+                onClick={doSignOut}
+                style={{ ...dangerOutlineBtn(), flex: 1, padding: '13px 0' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span>
+                {t.signOut}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Delete-account bottom sheet ── */}
+      {sheet === 'delete' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <div style={{ padding: '8px 22px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: '#ff6b6b', margin: 0 }}>
                 {t.deleteAccountConfirmTitle}
               </p>
-              <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.4 }}>
+              <button onClick={closeSheet} className="btn-smooth" style={{ color: 'var(--c-text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>close</span>
+              </button>
+            </div>
+            <div style={{ padding: '8px 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5, margin: 0 }}>
                 {t.deleteAccountConfirmBody}
               </p>
-              <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0 }}>
+              <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: 0 }}>
                 {t.deleteAccountTypeEmail}: <strong style={{ color: 'var(--c-text-primary)' }}>{user.email}</strong>
               </p>
               <input
@@ -383,40 +468,32 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
                   borderColor: canDelete ? '#ff6b6b' : 'rgba(255,107,107,0.3)',
                 }}
               />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => { setShowDelete(false); setDeleteEmail(''); setErr(null); }}
-                  disabled={deleting}
-                  style={{ ...secondaryBtn(), flex: 1 }}
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  onClick={doDeleteAccount}
-                  disabled={!canDelete}
-                  style={{
-                    ...dangerSolidBtn(),
-                    flex: 1,
-                    opacity: canDelete ? 1 : 0.5,
-                    cursor: canDelete ? 'pointer' : 'not-allowed',
-                  }}
-                >
-                  {deleting ? (
-                    <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span>
-                  ) : (
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
-                  )}
-                  {t.deleteAccountFinal}
-                </button>
-              </div>
+              {err && <p style={{ fontSize: 11, color: '#ff6b6b', margin: 0 }}>{err}</p>}
             </div>
-          )}
-
-          {err && (
-            <p style={{ fontSize: 11, color: '#ff6b6b', margin: 0 }}>{err}</p>
-          )}
-        </div>
-      </div>
+            <div style={{ display: 'flex', gap: 10, padding: '0 16px' }}>
+              <button onClick={closeSheet} disabled={deleting} style={{ ...secondaryBtn(), flex: 1, padding: '13px 0' }}>
+                {t.cancel}
+              </button>
+              <button
+                onClick={doDeleteAccount}
+                disabled={!canDelete}
+                style={{
+                  ...dangerSolidBtn(), flex: 1, padding: '13px 0',
+                  opacity: canDelete ? 1 : 0.45,
+                  cursor: canDelete ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {deleting
+                  ? <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span>
+                  : <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
+                }
+                {t.deleteAccountFinal}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }
