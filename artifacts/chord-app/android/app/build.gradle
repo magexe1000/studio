@@ -40,6 +40,13 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    // Explicit dependency to guarantee GoogleSignIn is in the APK.
+    // The capacitor-firebase/authentication plugin transitively pulls
+    // play-services-auth, but in some build setups the class
+    // com.google.android.gms.auth.api.signin.GoogleSignIn fails to
+    // resolve at runtime (NoClassDefFoundError) unless declared here.
+    implementation "com.google.android.gms:play-services-auth:$playServicesAuthVersion"
+    implementation "com.google.firebase:firebase-auth:$firebaseAuthVersion"
 }
 
 apply from: 'capacitor.build.gradle'

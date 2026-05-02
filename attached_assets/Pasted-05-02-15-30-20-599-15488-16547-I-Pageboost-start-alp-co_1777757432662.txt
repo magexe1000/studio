@@ -1,0 +1,755 @@
+05-02 15:30:20.599 15488 16547 I Pageboost: start alp : com.chordex.app
+05-02 15:30:20.605  3805 11283 E pageboostd: alp start : app comchordexapp
+05-02 15:30:20.606  3805 11283 E pageboostd: comchordexapp, amt 0 scnt 0 fcnt 0
+05-02 15:30:20.606  3805 11283 E pageboostd: comchordexapp, amt 0 scnt 0 fcnt 0
+05-02 15:30:20.607  3805 11283 E pageboostd: alp end : app comchordexapp data_amount 0
+05-02 15:30:20.607 15488 15988 I Pageboost: alp for : com.chordex.app , 0
+05-02 15:30:20.636 15488 16021 I Pageboost: onAppLaunch : com.chordex.app
+05-02 15:30:20.638 15488 15988 I Pageboost: Record App IO : com.chordex.app pid 0
+05-02 15:30:20.639 16497 16655 D ShellStartingWindow: preload Icon com.chordex.app
+05-02 15:30:20.640 15488 16021 V WindowManager: Collecting in transition 1220: ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity, caller=com.android.server.wm.TransitionController.collect:7
+com.android.server.wm.ActivityStarter.startActivityUnchecked:98
+com.android.server.wm.ActivityStarter.executeRequest:3559 com.android.server.wm.ActivityStarter.execute:1752
+com.android.server.wm.ActivityTaskManagerService.startActivityAsUser:95
+05-02 15:30:20.640 15488 16021 D ActivityTaskManager: DesktopModeLaunchParamsModifier: task=null
+activity=ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t-1} task null, skipping
+05-02 15:30:20.640 15488 16021 D ActivityTaskManager: TaskLaunchParamsModifier:task=null
+activity=ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t-1} display-from-option=0 display-id=0
+task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea_d0@11495073
+05-02 15:30:20.641 15488 16021 D ActivityTaskManager: DesktopModeLaunchParamsModifier: task=null
+activity=ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t-1} task null, skipping
+05-02 15:30:20.641 15488 16021 D ActivityTaskManager: TaskLaunchParamsModifier:task=null
+activity=ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t-1} display-from-option=0 display-id=0
+task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea_d0@11495073
+inherit-from-source=fullscreen non-freeform-task-display-area display-area=DefaultTaskDisplayArea_d0@11495073
+default-portrait freeform-size-mismatch=Rect(81, 630 - 999, 1800)
+05-02 15:30:20.642 15488 16021 D ActivityTaskManager: DesktopModeLaunchParamsModifier: task=Task{51c7452 #594
+type=standard A=10530:com.chordex.app} activity=ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t-1}
+non-desktop, skipping
+05-02 15:30:20.642 15488 16021 D ActivityTaskManager: TaskLaunchParamsModifier:task=Task{51c7452 #594 type=standard
+A=10530:com.chordex.app} activity=ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t-1} display-from-option=0
+display-id=0 task-display-area-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea_d0@11495073
+inherit-from-source=fullscreen non-freeform-task-display-area display-area=DefaultTaskDisplayArea_d0@11495073
+default-portrait freeform-size-mismatch=Rect(81, 630 - 999, 1800)
+05-02 15:30:20.643 15488 16021 V WindowManager: Collecting in transition 1220: Task{51c7452 #594 type=standard
+A=10530:com.chordex.app}, caller=com.android.server.wm.Transition.collectExistenceChange:40
+com.android.server.wm.ActivityStarter.startActivityInner:293
+com.android.server.wm.ActivityStarter.startActivityUnchecked:111
+com.android.server.wm.ActivityStarter.executeRequest:3559 com.android.server.wm.ActivityStarter.execute:1752
+05-02 15:30:20.643   945  3000 I SurfaceFlinger: id=91739 createSurf, flag=84004, ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594}#91739
+05-02 15:30:20.643 15488 15552 I ActivityManager: Start proc 11287:com.chordex.app/u0a530 for activelaunch
+{com.chordex.app/com.chordex.app.MainActivity}
+05-02 15:30:20.643 15488 16021 V WindowManager: Add starting ActivityRecord{180015325 u0 com.chordex.app/.MainActivity
+t594}: startingData=SplashScreenStartingData{e9839e removeAfterTransaction= 0}
+05-02 15:30:20.643 15488 16021 V WindowManager: Added starting ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594}: startingWindow=null
+startingView=com.android.server.wm.StartingSurfaceController$StartingSurface@3bb5e7f
+05-02 15:30:20.644 15488 16021 V WindowManager: Collecting in transition 1220: ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594}, caller=com.android.server.wm.Transition.collectExistenceChange:40
+com.android.server.wm.ActivityStarter.handleStartResult:761
+com.android.server.wm.ActivityStarter.startActivityUnchecked:124
+com.android.server.wm.ActivityStarter.executeRequest:3559 com.android.server.wm.ActivityStarter.execute:1752
+05-02 15:30:20.644 15488 16021 V WindowManager:    ChangeInfo{7e63baa container=Task{51c7452 #594 type=standard
+A=10530:com.chordex.app} flags=0x0}
+05-02 15:30:20.644 15488 16021 V WindowManager:    ChangeInfo{2b1639b container=ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594} flags=0x0}
+05-02 15:30:20.644 15488 16021 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN
+cat=[android.intent.category.LAUNCHER] flg=0x10200000 xflg=0x4 cmp=com.chordex.app/.MainActivity
+bnds=[41,829][290,1117]} with LAUNCH_SINGLE_TASK from uid 10157 (sr=193321517) (BAL_ALLOW_VISIBLE_WINDOW) result code=0
+05-02 15:30:20.644 16497 16614 V WindowManagerShell: Transition requested (#1220): android.os.BinderProxy@3ec60fc
+TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=594 effectiveUid=10530 displayId=0
+isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER]
+flg=0x10200000 cmp=com.chordex.app/.MainActivity }
+baseActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity}
+topActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity} origActivity=null
+realActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity} numActivities=1 lastActiveTime=256011221
+supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 maxWidth=-1 maxHeight=-1
+defaultMinSize=220 desktopDefaultMinSize=304 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@1a4385}
+topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1
+lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 91 - 0, 0) topActivityInfo=ActivityInfo{99f75da
+com.chordex.app.MainActivity} launchCookies=[android.os.BinderProxy@f69ca0b] positionInParent=Point(0, 0)
+parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false
+locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false
+lastNonFullscreenBounds=Rect(81, 630 - 999, 1800) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9
+topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo {
+topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false
+isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false
+isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1
+topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2340)
+isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false
+topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}
+topActivityBounds=null topActivityInDisplayCompat=false singleTapFromLetterbox=false} topActivityMainWindowFrame=null
+originallySupportedMultiWindow=true hasWallpaper=false rootAffinity=10530:com.chordex.app isTopTaskInStage=false
+CoverLauncherWidgetTask=false LaunchedFromAppsCoverLauncherTask=false LaunchedFromMultistarCoverLauncherTask=false
+isAllowedSeamlessRotation=false isTopTransparentActivity=false isAliasManaged=false hasConfigChanged=false
+snappingGuideBounds=null isAiKeyRemoveAppTask=false lastDesktopWindowingBounds=null
+lastExternalDesktopWindowingBounds=null safeCutoutInsets=null}, pipChange = null, remoteTransition = RemoteTransition
+{ remoteTransition = android.window.IRemoteTransition$Stub$Proxy@b1c90e8, appThread =
+android.app.IApplicationThread$Stub$Proxy@ac09301, debugName = QuickstepLaunchflags =NONE }, displayChange = null,
+flags = 0, debugId = 1220 }
+05-02 15:30:20.645 16912  6834 I HoneySpace.SuggestedAppsRepositoryImpl: sendSuggestedAppsLaunchTarget:
+ComponentInfo{com.chordex.app/com.chordex.app.MainActivity}
+05-02 15:30:20.646 16912 16938 I HoneySpace.SALoggingUtils: SA Logging screenID: 201 eventId: 1001 detail:
+{PackageName=com.chordex.app, det=3} value: -1
+05-02 15:30:20.646 15488 16021 D WindowManager: prepareSync <SYNC_STATE_WAITING_FOR_DRAW>, mPrepareSyncSeqId=0,
+win=Window{6446876 u0 Splash Screen com.chordex.app}
+05-02 15:30:20.646   945  3000 I SurfaceFlinger: id=91740 createSurf, flag=84004, 6446876 Splash Screen
+com.chordex.app#91740
+05-02 15:30:20.646 15488 16021 V WindowManager: addWindow: ActivityRecord{180015325 u0 com.chordex.app/.MainActivity
+t594} startingWindow=Window{6446876 u0 Splash Screen com.chordex.app}
+05-02 15:30:20.646 16497 16654 I InsetsController: onStateChanged: host=Splash Screen com.chordex.app,
+from=android.view.ViewRootImpl.onInsetsStateChanged:3026, state=InsetsState: {mDisplayFrame=Rect(0, 0 - 1080, 2340),
+mDisplayCutout=DisplayCutout{insets=Rect(0, 91 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0}
+boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(511, 0 - 569, 91), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]}
+cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2340 physicalDisplayWidth=1080
+physicalDisplayHeight=2340 density={3.0} cutoutSpec={M 0,0 H -9.666666666666667 V 30.33333333333333 H
+9.666666666666667 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}},
+mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=95, center=Point(95, 95)},
+RoundedCorner{position=TopRight, radius=95, center=Point(985, 95)}, RoundedCorner{position=BottomRight, radius=95,
+center=Point(985, 2245)}, RoundedCorner{position=BottomLeft, radius=95, center=Point(95, 2245)}]}
+mRoundedCornerFrame=Rect(0, 0 - 1080, 2340), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(964, 0
+- 1080, 91) rotation=0}, mDisplayShape=DisplayShape{ spec=-311912193 displayWidth=1080 displayHeight=2340
+physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}, mSources= { InsetsSource: {98560001
+mType=navigationBars mFrame=[0,0][0,0] mVisible=true mFlags=SUPPRESS_SCRIM mSideHint=NONE mBoundingRects=null},
+InsetsSource: {98560004 mType=systemGestures mFrame=[0,0][78,2340] mVisible=true mFlags= mSideHint=LEFT
+mBoundingRects=null}, InsetsSource: {98560005 mType=mandatorySystemGestures mFrame=[0,2258][1080,2340] mVisible=true
+mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {98560006 mType=tappableElement mFrame=[0,0][0,0]
+mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {98560024 mType=systemGestures
+mFrame=[1002,0][1080,2340] mVisible=true mFlags= mSideHint=RIGHT mBoundingRects=null}, InsetsSource: {ba020000
+mType=statusBars mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource:
+{ba020005 mType=mandatorySystemGestures mFrame=[0,0][1080,123] mVisible=true mFlags= mSideHint=TOP
+mBoundingRects=null}, InsetsSource: {ba020006 mType=tappableElement mFrame=[0,0][1080,91] mVisible=true mFlags=
+mSideHint=TOP mBoundingRects=null}, InsetsSource: {27 mType=displayCutout mFrame=[0,0][1080,91] mVisible=true mFlags=
+mSideHint=TOP mBoundingRects=null} }
+05-02 15:30:20.647   945   945 I SurfaceFlinger: [ActivityRecord{180015325 u0 com.chordex.app/.MainActivity
+t594}#91739] attach to parent LayerHierarchy{RequestedLayerState{Task=594#91738 parentId=72860} 1 children}
+05-02 15:30:20.647   945   945 I SurfaceFlinger: [6446876 Splash Screen com.chordex.app#91740] attach to parent
+LayerHierarchy{RequestedLayerState{ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t594}#91739
+parentId=91738} 1 children}
+05-02 15:30:20.647 15488 16974 V WindowManager: Collecting in transition 1220: ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594}, caller=com.android.server.wm.TransitionController.collect:7
+com.android.server.wm.ActivityRecord.setVisibility:132 com.android.server.wm.EnsureActivitiesVisibleHelper.process:459
+com.android.server.wm.TaskFragment.updateActivityVisibilities:12
+com.android.server.wm.Task$$ExternalSyntheticLambda37.accept:37
+05-02 15:30:20.648 15488 16974 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.648 15488 16974 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.648 15488 17830 I WindowManager: Relayout Window{6446876 u0 Splash Screen com.chordex.app}:
+viewVisibility=0 req=1080x2340 ty=3 d0
+05-02 15:30:20.648   945  3000 I SurfaceFlinger: id=91741 createSurf, flag=44004, Splash Screen
+com.chordex.app$_16497#91741
+05-02 15:30:20.649 15488 17830 D WindowManager: makeSurface duration=1 name=Splash Screen com.chordex.app$_16497
+05-02 15:30:20.649 15488 17830 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.649 15488 17830 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.650 15488 17830 D WindowManager: rotationForOrientation, orientationSource=ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594}
+05-02 15:30:20.650 16497 16654 I InsetsController: onStateChanged: host=Splash Screen com.chordex.app,
+from=android.view.ViewRootImpl.onInsetsStateChanged:3026, state=InsetsState: {mDisplayFrame=Rect(0, 0 - 1080, 2340),
+mDisplayCutout=DisplayCutout{insets=Rect(0, 91 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0}
+boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(511, 0 - 569, 91), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]}
+cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2340 physicalDisplayWidth=1080
+physicalDisplayHeight=2340 density={3.0} cutoutSpec={M 0,0 H -9.666666666666667 V 30.33333333333333 H
+9.666666666666667 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}},
+mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=95, center=Point(95, 95)},
+RoundedCorner{position=TopRight, radius=95, center=Point(985, 95)}, RoundedCorner{position=BottomRight, radius=95,
+center=Point(985, 2245)}, RoundedCorner{position=BottomLeft, radius=95, center=Point(95, 2245)}]}
+mRoundedCornerFrame=Rect(0, 0 - 1080, 2340), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(964, 0
+- 1080, 91) rotation=0}, mDisplayShape=DisplayShape{ spec=-311912193 displayWidth=1080 displayHeight=2340
+physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}, mSources= { InsetsSource: {98560001
+mType=navigationBars mFrame=[0,0][0,0] mVisible=true mFlags=SUPPRESS_SCRIM mSideHint=NONE mBoundingRects=null},
+InsetsSource: {98560004 mType=systemGestures mFrame=[0,0][78,2340] mVisible=true mFlags= mSideHint=LEFT
+mBoundingRects=null}, InsetsSource: {98560005 mType=mandatorySystemGestures mFrame=[0,2258][1080,2340] mVisible=true
+mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {98560006 mType=tappableElement mFrame=[0,0][0,0]
+mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {98560024 mType=systemGestures
+mFrame=[1002,0][1080,2340] mVisible=true mFlags= mSideHint=RIGHT mBoundingRects=null}, InsetsSource: {ba020000
+mType=statusBars mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource:
+{ba020005 mType=mandatorySystemGestures mFrame=[0,0][1080,123] mVisible=true mFlags= mSideHint=TOP
+mBoundingRects=null}, InsetsSource: {ba020006 mType=tappableElement mFrame=[0,0][1080,91] mVisible=true mFlags=
+mSideHint=TOP mBoundingRects=null}, InsetsSource: {3 mType=ime mFrame=[0,0][0,0] mVisible=false mFlags= mSideHint=NONE
+mBoundingRects=null}, InsetsSource: {27 mType=displayCutout mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP
+mBoundingRects=null} }
+05-02 15:30:20.653 16912 16969 I HoneySpace.TopTaskUseCase: topTasks 594
+ComponentInfo{com.chordex.app/com.chordex.app.MainActivity}[displayId=0]
+05-02 15:30:20.654   945  3000 I SurfaceFlinger: [Splash Screen com.chordex.app$_16497#91741] setTransactionState with
+the first frame. bufferData(ID: 70854075492454, frameNumber: 1)
+05-02 15:30:20.654 15488 17830 D WindowManager: finishDrawingWindow: Window{6446876 u0 Splash Screen com.chordex.app}
+mDrawState=DRAW_PENDING seqId=0
+05-02 15:30:20.654 15488 17830 V WindowManager: Finishing drawing window Window{6446876 u0 Splash Screen
+com.chordex.app}: mDrawState=DRAW_PENDING
+05-02 15:30:20.654 15488 17830 V WindowManager: Draw state now committed in Window{6446876 u0 Splash Screen
+com.chordex.app}
+05-02 15:30:20.654 15488 15541 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.655 15488 15541 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.655 15488 15541 V WindowManager: performShowLocked: mDrawState=HAS_DRAWN in Window{6446876 u0 Splash
+Screen com.chordex.app}
+05-02 15:30:20.655 15488 15541 D WindowManagerServiceExt: updateTaskbarTargetIfNeeded:
+cn=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity} occludesParent=true isInSplitScreenMode=false
+05-02 15:30:20.655 15488 15541 D ChangeTransitionController:    ChangeInfo{7e63baa container=Task{51c7452 #594
+type=standard A=10530:com.chordex.app} flags=0x0}
+05-02 15:30:20.655 15488 15541 D ChangeTransitionController:    ChangeInfo{2b1639b container=ActivityRecord{180015325
+u0 com.chordex.app/.MainActivity t594} flags=0x0}
+05-02 15:30:20.655 15488 15541 V WindowManager: Start calculating TransitionInfo based on participants: {Task{51c7452
+#594 type=standard A=10530:com.chordex.app}, WallpaperWindowToken{98c8725 showWhenLocked=true}_<lock>,
+ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t594}, ActivityRecord{193321517 u0
+com.sec.android.app.launcher/.activities.LauncherActivity t383}, WallpaperWindowToken{fa8e9be
+showWhenLocked=false}_<system>}
+05-02 15:30:20.655 15488 15541 V WindowManager:   Final targets: [ChangeInfo{7e63baa container=Task{51c7452 #594
+type=standard A=10530:com.chordex.app} flags=0x10}, ChangeInfo{fdce35a container=Task{29afaaa #1 type=home}
+flags=0x10}, ChangeInfo{8f5db26 container=WallpaperWindowToken{fa8e9be showWhenLocked=false}_<system> flags=0x0}]
+05-02 15:30:20.655 15488 15541 I SurfaceControlRegistry: show, t=StartTransaction_SyncId<1220>
+sc=ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t594},
+caller=android.view.SurfaceControl$Transaction.show:3557 com.android.server.wm.Transition.onTransactionReady:2048
+com.android.server.wm.BLASTSyncEngine$SyncGroup.finishNow:240
+com.android.server.wm.BLASTSyncEngine.onSurfacePlacement:263
+com.android.server.wm.RootWindowContainer.performSurfacePlacementNoTrace:1083
+com.android.server.wm.WindowSurfacePlacer.performSurfacePlacement:166
+05-02 15:30:20.655   945   945 I SurfaceFlinger: [Splash Screen com.chordex.app$_16497#91741] attach to parent
+LayerHierarchy{RequestedLayerState{6446876 Splash Screen com.chordex.app#91740 parentId=91739} 1 children}
+05-02 15:30:20.656 15488 15541 V WindowManager:         {WCT{RemoteToken{b5601bd Task{51c7452 #594 type=standard
+A=10530:com.chordex.app}}} m=OPEN f=NONE leash=Surface(name=Task=594)/@0xed81367 sb=Rect(0, 0 - 1080, 2340) eb=Rect(0,
+0 - 1080, 2340) epz=Point(1080, 2340) d=0 taskParent=-1 inset=Rect(0, 91 - 0, 0) dim=true},
+05-02 15:30:20.656 15488 15541 D InsetsSourceProvider: updateControlForTarget: control=InsetsSourceControl: {ba020000
+mType=statusBars initiallyVisible mSurfacePosition=Point(0, 0) mInsetsHint=Insets{left=0, top=91, right=0, bottom=0}},
+target=Window{6446876 u0 Splash Screen com.chordex.app},
+from=com.android.server.wm.InsetsStateController.onControlTargetChanged:83
+com.android.server.wm.InsetsPolicy.updateBarControlTarget:212
+com.android.server.wm.DisplayPolicy.updateSystemBarAttributes:262
+com.android.server.wm.DisplayPolicy.finishPostLayoutPolicyLw:17
+com.android.server.wm.RootWindowContainer.applySurfaceChangesTransaction$1:195
+05-02 15:30:20.656 15488 15537 V WindowManager: Sent Transition (#1220) createdAt=05-02 15:30:20.639 via
+request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=594 effectiveUid=10530 displayId=0
+isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER]
+flg=0x10200000 cmp=com.chordex.app/.MainActivity }
+baseActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity}
+topActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity} origActivity=null
+realActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity} numActivities=1 lastActiveTime=256011221
+supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 maxWidth=-1 maxHeight=-1
+defaultMinSize=220 desktopDefaultMinSize=304 token=WCT{RemoteToken{b5601bd Task{51c7452 #594 type=standard
+A=10530:com.chordex.app}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false
+launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 91 - 0, 0)
+topActivityInfo=ActivityInfo{265fcb9 com.chordex.app.MainActivity} launchCookies=[android.os.BinderProxy@88328fe]
+positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false
+isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false
+isActivityStackTransparent=false lastNonFullscreenBounds=Rect(81, 630 - 999, 1800) capturedLink=null
+capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0
+appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false
+isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false
+topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1
+topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1
+topActivityAppBounds=Rect(0, 0 - 1080, 2340) isUserFullscreenOverrideEnabled=false
+isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null
+cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive} topActivityBounds=null
+topActivityInDisplayCompat=false singleTapFromLetterbox=false} topActivityMainWindowFrame=null
+originallySupportedMultiWindow=true hasWallpaper=false rootAffinity=10530:com.chordex.app isTopTaskInStage=false
+CoverLauncherWidgetTask=false LaunchedFromAppsCoverLauncherTask=false LaunchedFromMultistarCoverLauncherTask=false
+isAllowedSeamlessRotation=false isTopTransparentActivity=false isAliasManaged=false hasConfigChanged=false
+snappingGuideBounds=null isAiKeyRemoveAppTask=false lastDesktopWindowingBounds=null
+lastExternalDesktopWindowingBounds=null safeCutoutInsets=null}, pipChange = null, remoteTransition = RemoteTransition
+{ remoteTransition = android.window.IRemoteTransition$Stub$Proxy@50cb2ac, appThread =
+android.app.IApplicationThread$Stub$Proxy@1e0ab75, debugName = QuickstepLaunchflags =NONE }, displayChange = null,
+flags = 0, debugId = 1220 }
+05-02 15:30:20.657 15488 15541 D InsetsSourceProvider: updateControlForTarget: control=InsetsSourceControl: {98560001
+mType=navigationBars initiallyVisible mSurfacePosition=Point(0, 2214) mInsetsHint=Insets{left=0, top=0, right=0,
+bottom=0}}, target=Window{6446876 u0 Splash Screen com.chordex.app},
+from=com.android.server.wm.InsetsStateController.onControlTargetChanged:83
+com.android.server.wm.InsetsPolicy.updateBarControlTarget:225
+com.android.server.wm.DisplayPolicy.updateSystemBarAttributes:262
+com.android.server.wm.DisplayPolicy.finishPostLayoutPolicyLw:17
+com.android.server.wm.RootWindowContainer.applySurfaceChangesTransaction$1:195
+05-02 15:30:20.657 15488 15541 D WindowManager: updateSystemBarAttributes: displayId=0, focusedCanBeNavColorWin=false,
+win=Window{6446876 u0 Splash Screen com.chordex.app}, navColorWin=null,
+caller=com.android.server.wm.DisplayPolicy.finishPostLayoutPolicyLw:17
+com.android.server.wm.RootWindowContainer.applySurfaceChangesTransaction$1:195
+com.android.server.wm.RootWindowContainer.performSurfacePlacementNoTrace:59
+05-02 15:30:20.657 15488 15541 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.657   945  1020 I SurfaceFlinger: id=91745 createSurf, flag=84000, 9594587 ActivityRecordInputSink
+com.chordex.app/.MainActivity#91745
+05-02 15:30:20.661 11287 11287 I com.chordex.app: Late-enabling -Xcheck:jni
+05-02 15:30:20.663 15488 15537 V WindowManager:         {WCT{RemoteToken{b5601bd Task{51c7452 #594 type=standard
+A=10530:com.chordex.app}}} m=OPEN f=NONE leash=Surface(name=Task=594)/@0xed81367 sb=Rect(0, 0 - 1080, 2340) eb=Rect(0,
+0 - 1080, 2340) epz=Point(1080, 2340) d=0 taskParent=-1 inset=Rect(0, 91 - 0, 0) dim=true},
+05-02 15:30:20.664   945   945 I SurfaceFlinger: RequestedLayer [6446876 Splash Screen com.chordex.app#91740] hidden!!
+flag  from(1) --> to(0)
+05-02 15:30:20.664   945   945 I SurfaceFlinger: RequestedLayer [Splash Screen com.chordex.app$_16497#91741] hidden!!
+flag  from(1) --> to(0)
+05-02 15:30:20.664   945   945 I SurfaceFlinger: RequestedLayer [ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594}#91739] hidden!! flag  from(1) --> to(0)
+05-02 15:30:20.664   945   945 I SurfaceFlinger: [9594587 ActivityRecordInputSink com.chordex.app/.MainActivity#91745]
+attach to parent LayerHierarchy{RequestedLayerState{ActivityRecord{180015325 u0 com.chordex.app/.MainActivity
+t594}#91739 parentId=91738} 2 children}
+05-02 15:30:20.666 15488 15541 I WindowManager: notifyInsetsControlChanged, removed=false, win=Window{6446876 u0
+Splash Screen com.chordex.app}, caller=com.android.server.wm.InsetsStateController$$ExternalSyntheticLambda1.run:137
+com.android.server.wm.WindowAnimator$$ExternalSyntheticLambda2.onTransactionCommitted:26
+android.view.SurfaceControl$Transaction$$ExternalSyntheticLambda4.run:0 android.os.Handler.handleCallback:995
+android.os.Handler.dispatchMessage:103 android.os.Looper.loopOnce:273
+05-02 15:30:20.667 16497 16654 I InsetsSourceConsumer: applyRequestedVisibilityToControl: visible=true,
+type=statusBars, host=Splash Screen com.chordex.app
+05-02 15:30:20.667 16497 16654 I InsetsSourceConsumer: applyRequestedVisibilityToControl: visible=true,
+type=navigationBars, host=Splash Screen com.chordex.app
+05-02 15:30:20.668 15488 15541 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.686 11287 11287 I com.chordex.app: Using CollectorTypeCMC GC.
+05-02 15:30:20.692   945   945 D SurfaceFlinger:        CLIENT |           70854075492454 | 00002100 | RGBA_8888    |
+  0.0   22.0 1080.0 2299.0 |   18  203  885 2033 | Splash Screen com.chordex.app$_16497#91741 (1)
+05-02 15:30:20.766 15488 17830 V WindowManager:    ChangeInfo{7e63baa container=Task{51c7452 #594 type=standard
+A=10530:com.chordex.app} flags=0x10}
+05-02 15:30:20.766 15488 17830 V WindowManager:    ChangeInfo{2b1639b container=ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594} flags=0x0}
+05-02 15:30:20.767 15488 17830 D ChangeTransitionController:    ChangeInfo{7e63baa container=Task{51c7452 #594
+type=standard A=10530:com.chordex.app} flags=0x10}
+05-02 15:30:20.767 15488 17830 D ChangeTransitionController:    ChangeInfo{2b1639b container=ActivityRecord{180015325
+u0 com.chordex.app/.MainActivity t594} flags=0x0}
+05-02 15:30:20.768 15488 15541 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.774 15488 15541 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.774 15488 17830 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.775 15488 17830 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.775   945   945 D SurfaceFlinger:        DEVICE |           70854075492454 | 00002100 | RGBA_8888    |
+  0.0    0.0 1080.0 2340.0 |    0    0 1080 2340 | Splash Screen com.chordex.app$_16497#91741 (1)
+05-02 15:30:20.775 15488 17955 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.775 15488 17955 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.781 15488 15541 D SurfaceComposerClient: setCornerRadius ## 6446876 Splash Screen com.chordex.app#91740
+cornerRadius=0.000000
+05-02 15:30:20.783   945   945 D SurfaceFlinger:        DEVICE |           70854075492454 | 00002100 | RGBA_8888    |
+  0.0    0.0 1080.0 2340.0 |    0    0 1080 2340 | Splash Screen com.chordex.app$_16497#91741 (1)
+05-02 15:30:20.795 11287 11287 D nativeloader: Configuring clns-9 for other apk
+/data/app/~~UoFwlgeBhWqGgoPYsHA0Rg==/com.chordex.app-94--hFOJS8LNj7gRy9bIew==/base.apk. target_sdk_version=35,
+uses_libraries=, library_path=/data/app/~~UoFwlgeBhWqGgoPYsHA0Rg==/com.chordex.app-94--hFOJS8LNj7gRy9bIew==/lib/arm64,
+permitted_path=/data:/mnt/expand:/data/user/0/com.chordex.app
+05-02 15:30:20.801 11287 11287 V GraphicsEnvironment: com.chordex.app is not listed in per-application setting
+05-02 15:30:20.801 11287 11287 V GraphicsEnvironment: com.chordex.app is not listed in ANGLE allowlist or settings,
+returning default
+05-02 15:30:20.855 15488 17830 D SGM:FgCheckThread: notifyAppCreated(), packageName: com.chordex.app, userId: 0,
+sendRet: true
+05-02 15:30:20.855 15488 15725 D SGM:FgCheckThread: onLooperPrepared(), msg: MSG_APP_CREATE, pkgName: com.chordex.app,
+userId: 0
+05-02 15:30:20.855 15488 17830 D SGM:FgCheckThread:   sendRunningComponentFocus(), pkgName: com.chordex.app, userId: 0
+05-02 15:30:20.855 15488 17830 D InputDispatcher: Focused application(0): ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594}
+05-02 15:30:20.856 15488 17830 D ActivityTaskManager: scheduleTopResumedActivityChanged, onTop=true,
+r=ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t594},
+caller=com.android.server.wm.ActivityTaskSupervisor.scheduleTopResumedActivityStateIfNeeded:18
+com.android.server.wm.ActivityTaskSupervisor.updateTopResumedActivityIfNeeded:54
+com.android.server.wm.TaskFragment.setResumedActivity:30 com.android.server.wm.ActivityRecord.setState:100
+com.android.server.wm.ActivityTaskSupervisor.realStartActivityLocked:477
+com.android.server.wm.RootWindowContainer.attachApplication:92
+05-02 15:30:20.856 15488 17830 D SGM:GameManager: identifyGamePackage. com.chordex.app, mCurrentUserId: 0,
+callingMethodInfo: com.samsung.android.game.IGameManagerService$Stub.onTransact(IGameManagerService.java:247)
+05-02 15:30:20.857 15488 15725 D SGM:FgCheckThread: onLooperPrepared(), msg: MSG_TASK_FOCUSED, pkgName:
+com.chordex.app, userId: 0
+05-02 15:30:20.857 15488 15725 D SGM:FgCheckThread:   handleTaskFocused(), pkgName: com.chordex.app, userID:0
+05-02 15:30:20.857 15488 17830 D GraphicsStatsService: requestRenderEngineFor(com.chordex.app)
+05-02 15:30:20.857 15488 15725 D SGM:FgCheckThread:   handleResume(). pkgName: com.chordex.app, userId: 0, category:
+non-game
+05-02 15:30:20.857 15488 15725 D SGM:FgCheckThread: notifyFocusInOut(). of pkg: com.chordex.app, type: 4,
+isSecGameFamily: false, userId: 0
+05-02 15:30:20.857 11287 11287 D ActivityThread: com.chordex.app will use render engine as VK
+05-02 15:30:20.859 15488 15538 D SGM:GameManager: identifyForegroundApp. com.chordex.app, mCurrentUserId: 0,
+callerUserId: 0
+05-02 15:30:20.859 15488 15538 D SGM:GameManager: identifyForegroundApp. com.chordex.app, mCurrentUserId: 0,
+callerUserId: 0
+05-02 15:30:20.868 15488 15540 D SGM:FgCheckThread: noteResumeComponent(), received pkgName: com.chordex.app, userId: 0
+05-02 15:30:20.868 15488 15725 D SGM:FgCheckThread: onLooperPrepared(), msg: MSG_APP_RESUME, pkgName: com.chordex.app,
+userid: 0
+05-02 15:30:20.868 17718 29921 I SDHMS:k : handleResumeComponent : put = com.chordex.app, userid = 0 instanceid
+=93887961
+05-02 15:30:20.868 15488 15540 D SGM:GameManager: identifyGamePackage. com.chordex.app, mCurrentUserId: 0,
+callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+05-02 15:30:20.868 15488 15540 D SGM:SemGameManager: isGamePackage(), pkgName=com.chordex.app, ret=false
+05-02 15:30:20.890 11287 11287 I com.chordex.app: hiddenapi: Accessing hidden method
+Landroid/view/View;->computeFitSystemWindows(Landroid/graphics/Rect;Landroid/graphics/Rect;)Z (runtime_flags=0,
+domain=platform, api=unsupported) from Landroidx/appcompat/widget/ViewUtils; (domain=app, TargetSdkVersion=35) using
+reflection: allowed
+05-02 15:30:20.890 11287 11287 I com.chordex.app: hiddenapi: Accessing hidden method
+Landroid/view/ViewGroup;->makeOptionalFitsSystemWindows()V (runtime_flags=0, domain=platform, api=unsupported) from
+Landroidx/appcompat/widget/ViewUtils; (domain=app, TargetSdkVersion=35) using reflection: allowed
+05-02 15:30:20.901 11287 11287 W com.chordex.app: Loading
+/data/app/~~9PiG6pwgBI0R65-_T2hgdg==/com.google.android.webview-ZpPERq8Dd7ZMaXJ5Ap0xfA==/oat/arm64/base.odex
+non-executable as it requires an image which we failed to load
+05-02 15:30:20.966 15488 15552 I ActivityManager: Start proc
+11345:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0i154 for
+{com.chordex.app/org.chromium.content.app.SandboxedProcessService0:0}
+05-02 15:30:20.966 15488 15552 I DynamicHiddenApp_BGProtectManager: check webview name :
+com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0check hostingname
+webview : {com.chordex.app/org.chromium.content.app.SandboxedProcessService0:0}
+05-02 15:30:20.991 15488 15808 D MdnieScenarioControlService:  packageName : com.chordex.app    className :
+com.chordex.app.MainActivity
+05-02 15:30:20.993 11287 11287 D ConnectivityManager: StackLog:
+[android.net.ConnectivityManager.sendRequestForNetwork(ConnectivityManager.java:4744)]
+[android.net.ConnectivityManager.registerDefaultNetworkCallbackForUid(ConnectivityManager.java:5469)]
+[android.net.ConnectivityManager.registerDefaultNetworkCallback(ConnectivityManager.java:5436)]
+[WV.vo1.e(chromium-SystemWebViewGoogle6432.aab-beta-777809613:37)]
+[WV.vo1.a(chromium-SystemWebViewGoogle6432.aab-beta-777809613:1)] [org.chromium.android_webview.AwContentsLifecycleNoti
+fier.onFirstWebViewCreated(chromium-SystemWebViewGoogle6432.aab-beta-777809613:19)] [J.N.JJ(Native Method)]
+[org.chromium.android_webview.AwContents.<init>(chromium-SystemWebViewGoogle6432.aab-beta-777809613:652)]
+[com.android.webview.chromium.r.run(chromium-SystemWebViewGoogle6432.aab-beta-777809613:230)]
+[WV.z43.run(chromium-SystemWebViewGoogle6432.aab-beta-777809613:13)]
+[org.chromium.base.task.PostTask.e(chromium-SystemWebViewGoogle6432.aab-beta-777809613:18)]
+[WV.a53.a(chromium-SystemWebViewGoogle6432.aab-beta-777809613:18)]
+[com.android.webview.chromium.WebViewChromiumFactoryProvider.a(chromium-SystemWebViewGoogle6432.aab-beta-777809613:3)]
+[com.android.webview.chromium.WebViewChromium.init(chromium-SystemWebViewGoogle6432.aab-beta-777809613:280)]
+[android.webkit.WebView.<init>(WebView.java:447)] [android.webkit.WebView.<init>(WebView.java:367)]
+[android.webkit.WebView.<init>(WebView.java:349)] [android.webkit.WebView.<init>(WebView.java:336)]
+[com.getcapacitor.CapacitorWebView.<init>(CapacitorWebView.java:17)]
+[java.lang.reflect.Constructor.newInstance0(Native Method)]
+[java.lang.reflect.Constructor.newInstance(Constructor.java:343)]
+[android.view.LayoutInflater.createView(LayoutInflater.java:759)]
+[android.view.LayoutInflater.createViewFromTag(LayoutInflater.java:911)]
+[android.view.LayoutInflater.createViewFromTag(LayoutInflater.java:866)]
+[android.view.LayoutInflater.rInflate(LayoutInflater.java:1028)]
+[android.view.LayoutInflater.rInflateChildren(LayoutInflater.java:989)]
+[android.view.LayoutInflater.inflate(LayoutInflater.java:577)]
+[android.view.LayoutInflater.inflate(LayoutInflater.java:468)]
+[android.view.LayoutInflater.inflate(LayoutInflater.java:419)]
+[androidx.appcompat.app.AppCompatDelegateImpl.setContentView(AppCompatDelegateImpl.java:775)]
+[androidx.appcompat.app.AppCompatActivity.setContentView(AppCompatActivity.java:197)]
+[com.getcapacitor.BridgeActivity.onCreate(BridgeActivity.java:28)]
+[com.chordex.app.MainActivity.onCreate(MainActivity.java:19)] [android.app.Activity.performCreate(Activity.java:9519)]
+[android.app.Activity.performCreate(Activity.java:9488)]
+[android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1524)]
+[android.app.ActivityThread.performLaunchActivity(ActivityThread.java:4692)]
+[android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:4941)]
+[android.app.servertransaction.LaunchActivityItem.execute(LaunchActivityItem.java:222)]
+[android.app.servertransaction.TransactionExecutor.executeNonLifecycleItem(TransactionExecutor.java:133)]
+[android.app.servertransaction.TransactionExecutor.executeTransactionItems(TransactionExecutor.java:103)]
+[android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:80)]
+[android.app.ActivityThread$H.handleMessage(ActivityThread.java:3150)]
+05-02 15:30:20.993 15488 16547 D ConnectivityService: requestNetwork for uid/pid:10530/11287 activeRequest: null
+callbackRequest: 13494 [NetworkRequest [ REQUEST id=13495, [ Capabilities:
+INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10530 RequestorUid: 10530 RequestorPkg:
+com.chordex.app UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647 isUidTracked: false declaredMethods:
+AVAIL|LOST|NC|LP
+05-02 15:30:20.993 15488 15792 D ConnectivityService:    accepting network in place of null for NetworkRequest [
+REQUEST id=13495, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10530
+RequestorUid: 10530 RequestorPkg: com.chordex.app UnderlyingNetworks: Null] ]
+05-02 15:30:20.994 15488 15781 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=13495, [ Capabilities:
+INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10530 RequestorUid: 10530 RequestorPkg:
+com.chordex.app UnderlyingNetworks: Null] ]
+05-02 15:30:20.994 11287 11287 D ConnectivityManager: StackLog:
+[android.net.ConnectivityManager.sendRequestForNetwork(ConnectivityManager.java:4744)]
+[android.net.ConnectivityManager.sendRequestForNetwork(ConnectivityManager.java:4912)]
+[android.net.ConnectivityManager.registerNetworkCallback(ConnectivityManager.java:5329)]
+[WV.vo1.e(chromium-SystemWebViewGoogle6432.aab-beta-777809613:86)]
+[WV.vo1.a(chromium-SystemWebViewGoogle6432.aab-beta-777809613:1)] [org.chromium.android_webview.AwContentsLifecycleNoti
+fier.onFirstWebViewCreated(chromium-SystemWebViewGoogle6432.aab-beta-777809613:19)] [J.N.JJ(Native Method)]
+[org.chromium.android_webview.AwContents.<init>(chromium-SystemWebViewGoogle6432.aab-beta-777809613:652)]
+[com.android.webview.chromium.r.run(chromium-SystemWebViewGoogle6432.aab-beta-777809613:230)]
+[WV.z43.run(chromium-SystemWebViewGoogle6432.aab-beta-777809613:13)]
+[org.chromium.base.task.PostTask.e(chromium-SystemWebViewGoogle6432.aab-beta-777809613:18)]
+[WV.a53.a(chromium-SystemWebViewGoogle6432.aab-beta-777809613:18)]
+[com.android.webview.chromium.WebViewChromiumFactoryProvider.a(chromium-SystemWebViewGoogle6432.aab-beta-777809613:3)]
+[com.android.webview.chromium.WebViewChromium.init(chromium-SystemWebViewGoogle6432.aab-beta-777809613:280)]
+[android.webkit.WebView.<init>(WebView.java:447)] [android.webkit.WebView.<init>(WebView.java:367)]
+[android.webkit.WebView.<init>(WebView.java:349)] [android.webkit.WebView.<init>(WebView.java:336)]
+[com.getcapacitor.CapacitorWebView.<init>(CapacitorWebView.java:17)]
+[java.lang.reflect.Constructor.newInstance0(Native Method)]
+[java.lang.reflect.Constructor.newInstance(Constructor.java:343)]
+[android.view.LayoutInflater.createView(LayoutInflater.java:759)]
+[android.view.LayoutInflater.createViewFromTag(LayoutInflater.java:911)]
+[android.view.LayoutInflater.createViewFromTag(LayoutInflater.java:866)]
+[android.view.LayoutInflater.rInflate(LayoutInflater.java:1028)]
+[android.view.LayoutInflater.rInflateChildren(LayoutInflater.java:989)]
+[android.view.LayoutInflater.inflate(LayoutInflater.java:577)]
+[android.view.LayoutInflater.inflate(LayoutInflater.java:468)]
+[android.view.LayoutInflater.inflate(LayoutInflater.java:419)]
+[androidx.appcompat.app.AppCompatDelegateImpl.setContentView(AppCompatDelegateImpl.java:775)]
+[androidx.appcompat.app.AppCompatActivity.setContentView(AppCompatActivity.java:197)]
+[com.getcapacitor.BridgeActivity.onCreate(BridgeActivity.java:28)]
+[com.chordex.app.MainActivity.onCreate(MainActivity.java:19)] [android.app.Activity.performCreate(Activity.java:9519)]
+[android.app.Activity.performCreate(Activity.java:9488)]
+[android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1524)]
+[android.app.ActivityThread.performLaunchActivity(ActivityThread.java:4692)]
+[android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:4941)]
+[android.app.servertransaction.LaunchActivityItem.execute(LaunchActivityItem.java:222)]
+[android.app.servertransaction.TransactionExecutor.executeNonLifecycleItem(TransactionExecutor.java:133)]
+[android.app.servertransaction.TransactionExecutor.executeTransactionItems(TransactionExecutor.java:103)]
+[android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:80)]
+[android.app.ActivityThread$H.handleMessage(ActivityThread.java:3150)]
+05-02 15:30:20.994 15488 15781 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=13495, [
+Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10530 RequestorUid: 10530
+RequestorPkg: com.chordex.app UnderlyingNetworks: Null] ]
+05-02 15:30:20.994 15488 15781 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=13495, [
+Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10530 RequestorUid: 10530
+RequestorPkg: com.chordex.app UnderlyingNetworks: Null] ]
+05-02 15:30:20.994 15488 15781 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=13495, [
+Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10530 RequestorUid: 10530
+RequestorPkg: com.chordex.app UnderlyingNetworks: Null] ]
+05-02 15:30:21.007 15488 15970 I AppsFilter: interaction: PackageSetting{982b3f4 com.chordex.app/10530} ->
+PackageSetting{233271d com.snapchat.android/10550} BLOCKED
+05-02 15:30:21.019 11287 11287 D Capacitor: Registering plugin instance: FirebaseAuthentication
+05-02 15:30:21.022 11287 11287 D AndroidRuntime: Shutting down VM
+05-02 15:30:21.023 11287 11287 E AndroidRuntime: FATAL EXCEPTION: main
+05-02 15:30:21.023 11287 11287 E AndroidRuntime: Process: com.chordex.app, PID: 11287
+05-02 15:30:21.023 11287 11287 E AndroidRuntime: java.lang.NoClassDefFoundError: Failed resolution of:
+Lcom/google/android/gms/auth/api/signin/GoogleSignIn;
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at io.capawesome.capacitorjs.plugins.firebase.authentication.handlers
+.GoogleAuthProviderHandler.buildGoogleSignInClient(GoogleAuthProviderHandler.java:123)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at io.capawesome.capacitorjs.plugins.firebase.authentication.handlers
+.GoogleAuthProviderHandler.buildGoogleSignInClient(GoogleAuthProviderHandler.java:107)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at io.capawesome.capacitorjs.plugins.firebase.authentication.handlers
+.GoogleAuthProviderHandler.<init>(GoogleAuthProviderHandler.java:36)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at io.capawesome.capacitorjs.plugins.firebase.authentication.Firebase
+Authentication.initAuthProviderHandlers(FirebaseAuthentication.java:935)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at
+io.capawesome.capacitorjs.plugins.firebase.authentication.FirebaseAuthentication.<init>(FirebaseAuthentication.java:68)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at io.capawesome.capacitorjs.plugins.firebase.authentication.Firebase
+AuthenticationPlugin.load(FirebaseAuthenticationPlugin.java:71)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.getcapacitor.PluginHandle.loadInstance(PluginHandle.java:115)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.getcapacitor.PluginHandle.load(PluginHandle.java:105)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.getcapacitor.PluginHandle.<init>(PluginHandle.java:65)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.getcapacitor.Bridge.registerPlugin(Bridge.java:685)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.getcapacitor.Bridge.registerAllPlugins(Bridge.java:641)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.getcapacitor.Bridge.<init>(Bridge.java:226)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.getcapacitor.Bridge.<init>(Unknown Source:0)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.getcapacitor.Bridge$Builder.create(Bridge.java:1560)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.getcapacitor.BridgeActivity.load(BridgeActivity.java:48)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.getcapacitor.BridgeActivity.onCreate(BridgeActivity.java:42)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.chordex.app.MainActivity.onCreate(MainActivity.java:19)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at android.app.Activity.performCreate(Activity.java:9519)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at android.app.Activity.performCreate(Activity.java:9488)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at
+android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1524)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at
+android.app.ActivityThread.performLaunchActivity(ActivityThread.java:4692)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at
+android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:4941)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at
+android.app.servertransaction.LaunchActivityItem.execute(LaunchActivityItem.java:222)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at
+android.app.servertransaction.TransactionExecutor.executeNonLifecycleItem(TransactionExecutor.java:133)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at
+android.app.servertransaction.TransactionExecutor.executeTransactionItems(TransactionExecutor.java:103)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at
+android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:80)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at
+android.app.ActivityThread$H.handleMessage(ActivityThread.java:3150)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at android.os.Handler.dispatchMessage(Handler.java:110)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at android.os.Looper.loopOnce(Looper.java:273)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at android.os.Looper.loop(Looper.java:363)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at android.app.ActivityThread.main(ActivityThread.java:10060)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at java.lang.reflect.Method.invoke(Native Method)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at
+com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:632)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:975)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime: Caused by: java.lang.ClassNotFoundException: Didn't find class
+"com.google.android.gms.auth.api.signin.GoogleSignIn" on path: DexPathList[[zip file "/data/app/~~UoFwlgeBhWqGgoPYsHA0R
+g==/com.chordex.app-94--hFOJS8LNj7gRy9bIew==/base.apk"],nativeLibraryDirectories=[/data/app/~~UoFwlgeBhWqGgoPYsHA0Rg==/
+com.chordex.app-94--hFOJS8LNj7gRy9bIew==/lib/arm64, /system/lib64, /system/system_ext/lib64]]
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at
+dalvik.system.BaseDexClassLoader.findClass(BaseDexClassLoader.java:259)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at java.lang.ClassLoader.loadClass(ClassLoader.java:642)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        at java.lang.ClassLoader.loadClass(ClassLoader.java:578)
+05-02 15:30:21.023 11287 11287 E AndroidRuntime:        ... 34 more
+05-02 15:30:21.028 15488 11379 W ActivityManager: crash : com.chordex.app,10530
+05-02 15:30:21.028 15488 16106 W ActivityTaskManager:   Force finishing activity com.chordex.app/.MainActivity
+05-02 15:30:21.028 15488 16106 V WindowManager: Collecting in transition 1221: Task{51c7452 #594 type=standard
+A=10530:com.chordex.app}, caller=com.android.server.wm.Transition.collectExistenceChange:40
+com.android.server.wm.Transition.collectClose:7 com.android.server.wm.ActivityRecord.finishIfPossible:50
+com.android.server.wm.ActivityRecord.finishIfPossible:1
+com.android.server.wm.RootWindowContainer$$ExternalSyntheticLambda34.accept:179
+05-02 15:30:21.028 15488 16106 D WindowManager: prepareSync <SYNC_STATE_WAITING_FOR_DRAW>, mPrepareSyncSeqId=0,
+win=Window{6446876 u0 Splash Screen com.chordex.app}
+05-02 15:30:21.028 15488 16106 D ActivityTaskManager: scheduleTopResumedActivityChanged, onTop=false,
+r=ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t594 f}},
+caller=com.android.server.wm.ActivityTaskSupervisor.scheduleTopResumedActivityStateLossIfNeeded:19
+com.android.server.wm.ActivityTaskSupervisor.updateTopResumedActivityIfNeeded:20
+com.android.server.wm.TaskDisplayArea.positionChildAt:252 com.android.server.wm.WindowContainer.positionChildAt:84
+com.android.server.wm.Task.positionChildAt:19 com.android.server.wm.Task.moveToFront:40
+05-02 15:30:21.028 15488 16106 V WindowManager: Collecting in transition 1221: ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594 f}}, caller=com.android.server.wm.TransitionController.collect:7
+com.android.server.wm.ActivityRecord.setVisibility:132 com.android.server.wm.ActivityRecord.finishIfPossible:87
+com.android.server.wm.ActivityRecord.finishIfPossible:1
+com.android.server.wm.RootWindowContainer$$ExternalSyntheticLambda34.accept:179
+05-02 15:30:21.029 16497 16614 V WindowManagerShell: Transition requested (#1221): android.os.BinderProxy@9e13fe2
+TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=594 effectiveUid=10530 displayId=0
+isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER]
+flg=0x10200000 cmp=com.chordex.app/.MainActivity }
+baseActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity}
+topActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity} origActivity=null
+realActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity} numActivities=1 lastActiveTime=256011432
+supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 maxWidth=-1 maxHeight=-1
+defaultMinSize=220 desktopDefaultMinSize=304 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@12b3f73}
+topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1
+lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 0 - 0, 0) topActivityInfo=ActivityInfo{2b13e30
+com.chordex.app.MainActivity} launchCookies=[android.os.BinderProxy@f69ca0b] positionInParent=Point(0, 0)
+parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true isTopActivityNoDisplay=false isSleeping=false
+locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false
+lastNonFullscreenBounds=Rect(81, 630 - 999, 1800) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9
+topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo {
+topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false
+isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false
+isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1
+topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2340)
+isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false
+topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}
+topActivityBounds=null topActivityInDisplayCompat=false singleTapFromLetterbox=false} topActivityMainWindowFrame=null
+originallySupportedMultiWindow=true hasWallpaper=false rootAffinity=10530:com.chordex.app isTopTaskInStage=false
+CoverLauncherWidgetTask=false LaunchedFromAppsCoverLauncherTask=false LaunchedFromMultistarCoverLauncherTask=false
+isAllowedSeamlessRotation=false isTopTransparentActivity=false isAliasManaged=false hasConfigChanged=false
+snappingGuideBounds=null isAiKeyRemoveAppTask=false lastDesktopWindowingBounds=null
+lastExternalDesktopWindowingBounds=null safeCutoutInsets=null}, pipChange = null, remoteTransition = null,
+displayChange = null, flags = 16, debugId = 1221 }
+05-02 15:30:21.049 15488 15541 I WindowManager: notifyInsetsControlChanged, removed=false, win=Window{6446876 u0
+Splash Screen com.chordex.app}, caller=com.android.server.wm.InsetsStateController$$ExternalSyntheticLambda1.run:137
+com.android.server.wm.WindowAnimator$$ExternalSyntheticLambda2.onTransactionCommitted:26
+android.view.SurfaceControl$Transaction$$ExternalSyntheticLambda4.run:0 android.os.Handler.handleCallback:995
+android.os.Handler.dispatchMessage:103 android.os.Looper.loopOnce:273
+05-02 15:30:21.060 15488 15970 I ActivityManager: Process com.chordex.app (pid 11287) has died: fg  TOP (157,1807)
+05-02 15:30:21.060 15488 15792 D ConnectivityService: releasing NetworkRequest [ REQUEST id=13495, [ Capabilities:
+INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10530 RequestorUid: 10530 RequestorPkg:
+com.chordex.app UnderlyingNetworks: Null] ] (release request)
+05-02 15:30:21.062 15488 15970 V WindowManager: Collecting in transition 1221: Task{51c7452 #594 type=standard
+A=10530:com.chordex.app}, caller=com.android.server.wm.Transition.collectClose:12
+com.android.server.wm.WindowProcessController.handleAppDied$1:465
+com.android.server.am.ActivityManagerService.handleAppDiedLocked:248
+com.android.server.am.ActivityManagerService.appDiedLocked:570
+com.android.server.am.ActivityManagerService$AppDeathRecipient.binderDied:17
+05-02 15:30:21.062 15488 15540 D SGM:FgCheckThread: getForegroundApp(), foregroundPkgName=com.chordex.app
+05-02 15:30:21.062 15488 15970 V WindowManager: Collecting in transition 1221: ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594 f}}, caller=com.android.server.wm.TransitionController.collect:7
+com.android.server.wm.ActivityRecord.onRemovedFromDisplay:258
+com.android.server.wm.ActivityRecord.removeFromHistory:173
+com.android.server.wm.WindowProcessController.handleAppDied$1:507
+com.android.server.am.ActivityManagerService.handleAppDiedLocked:248
+05-02 15:30:21.062 15488 15540 D SGM:FgCheckThread: pkgName: com.chordex.app is not in foreground
+05-02 15:30:21.066 15488 15970 D ChangeTransitionController:    ChangeInfo{5e078ab container=Task{51c7452 #594
+type=standard A=10530:com.chordex.app} flags=0x0}
+05-02 15:30:21.066 15488 15970 D ChangeTransitionController:    ChangeInfo{7ba72a1 container=ActivityRecord{180015325
+u0 com.chordex.app/.MainActivity t594 f} isExiting} flags=0x0}
+05-02 15:30:21.066 15488 15970 V WindowManager: Start calculating TransitionInfo based on participants: {Task{c2f9da
+#383 type=home I=com.sec.android.app.launcher/.activities.LauncherActivity}, Task{29afaaa #1 type=home}, Task{51c7452
+#594 type=standard A=10530:com.chordex.app}, ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t594 f}
+isExiting}, ActivityRecord{193321517 u0 com.sec.android.app.launcher/.activities.LauncherActivity t383},
+WallpaperWindowToken{fa8e9be showWhenLocked=false}_<system>}
+05-02 15:30:21.066 15488 15970 V WindowManager:   Final targets: [ChangeInfo{a5f3afa container=Task{29afaaa #1
+type=home} flags=0x30}, ChangeInfo{5e078ab container=Task{51c7452 #594 type=standard A=10530:com.chordex.app}
+flags=0x10}, ChangeInfo{2a26fb4 container=WallpaperWindowToken{fa8e9be showWhenLocked=false}_<system> flags=0x0}]
+05-02 15:30:21.067 15488 15970 V WindowManager:         {WCT{RemoteToken{b5601bd Task{51c7452 #594 type=standard
+A=10530:com.chordex.app}}} m=CLOSE f=NONE leash=Surface(name=Task=594)/@0xed81367 sb=Rect(0, 0 - 1080, 2340)
+eb=Rect(0, 0 - 1080, 2340) epz=Point(1080, 2340) d=0 taskParent=-1 inset=Rect(0, 0 - 0, 0) dim=true},
+05-02 15:30:21.070   945  1019 I SurfaceFlinger: Capture layer list:     Splash Screen
+com.chordex.app$_16497#91741(seamlessTransition:0)
+05-02 15:30:21.072   945  1024 D RenderEngine: [SEC_SF_EFFECTS] drawLayersInternal,1494, Rendering layer Splash Screen
+com.chordex.app$_16497#91741 at index 1
+05-02 15:30:21.073 16912 16912 I HoneySpace.AppCloseAnimationDelegate: findTargetValue [cookie-13668,
+pkgName-com.chordex.app]
+05-02 15:30:21.073 16912 16912 I HoneySpace.AppListFastRecyclerViewAdapter: findCloseTarget : 13668,
+ComponentInfo{com.chordex.app/com.chordex.app.MainActivity}
+05-02 15:30:21.073 16912 16912 I HoneySpace.AppCloseAnimationDelegate: findTargetView
+found:Value(view=com.honeyspace.ui.common.iconview.IconViewImpl{5eb0130 VFED..CL. ........ 0,576-249,864 #7f0a02ed
+app:id/icon} - Studio, visibility:0, alpha:1.0, badge:0, icon:152x152, iconAlpha:255, iconState:NONE, iconSize:182,
+forceHideBadge:false, isTransparent:false, x=0, y=2,
+component=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity}, isTargetShortcut=false),
+com.honeyspace.ui.common.iconview.IconViewImpl{5eb0130 VFED..CL. ........ 0,576-249,864 #7f0a02ed app:id/icon} -
+Studio, visibility:0, alpha:1.0, badge:0, icon:152x152, iconAlpha:255, iconState:NONE, iconSize:182,
+forceHideBadge:false, isTransparent:false, x=0, y=2
+05-02 15:30:21.075 15488 15537 V WindowManager: Sent Transition (#1221) createdAt=05-02 15:30:21.028 via
+request=TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=594 effectiveUid=10530
+displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER]
+flg=0x10200000 cmp=com.chordex.app/.MainActivity }
+baseActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity}
+topActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity} origActivity=null
+realActivity=ComponentInfo{com.chordex.app/com.chordex.app.MainActivity} numActivities=1 lastActiveTime=256011432
+supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 maxWidth=-1 maxHeight=-1
+defaultMinSize=220 desktopDefaultMinSize=304 token=WCT{RemoteToken{b5601bd Task{51c7452 #594 type=standard
+A=10530:com.chordex.app}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false
+launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 0 - 0, 0)
+topActivityInfo=ActivityInfo{265fcb9 com.chordex.app.MainActivity} launchCookies=[android.os.BinderProxy@88328fe]
+positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true
+isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false
+isActivityStackTransparent=false lastNonFullscreenBounds=Rect(81, 630 - 999, 1800) capturedLink=null
+capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0
+appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false
+isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false
+topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1
+topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1
+topActivityAppBounds=Rect(0, 0 - 1080, 2340) isUserFullscreenOverrideEnabled=false
+isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null
+cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive} topActivityBounds=null
+topActivityInDisplayCompat=false singleTapFromLetterbox=false} topActivityMainWindowFrame=null
+originallySupportedMultiWindow=true hasWallpaper=false rootAffinity=10530:com.chordex.app isTopTaskInStage=false
+CoverLauncherWidgetTask=false LaunchedFromAppsCoverLauncherTask=false LaunchedFromMultistarCoverLauncherTask=false
+isAllowedSeamlessRotation=false isTopTransparentActivity=false isAliasManaged=false hasConfigChanged=false
+snappingGuideBounds=null isAiKeyRemoveAppTask=false lastDesktopWindowingBounds=null
+lastExternalDesktopWindowingBounds=null safeCutoutInsets=null}, pipChange = null, remoteTransition = null,
+displayChange = null, flags = 16, debugId = 1221 }
+05-02 15:30:21.075 17718 17718 I SDHMS:PowerAnomaly:Gatherer:AppError: update AppError : uid=10530,
+pkg=com.chordex.app, errorType=crash
+05-02 15:30:21.075 15488 15537 V WindowManager:         {WCT{RemoteToken{b5601bd Task{51c7452 #594 type=standard
+A=10530:com.chordex.app}}} m=CLOSE f=NONE leash=Surface(name=Task=594)/@0xed81367 sb=Rect(0, 0 - 1080, 2340)
+eb=Rect(0, 0 - 1080, 2340) epz=Point(1080, 2340) d=0 taskParent=-1 inset=Rect(0, 0 - 0, 0) dim=true},
+05-02 15:30:21.076   945   945 D SurfaceFlinger:        DEVICE |           70854075492454 | 00002100 | RGBA_8888    |
+  0.0    0.0 1080.0 2340.0 |    0    0 1080 2340 | Splash Screen com.chordex.app$_16497#91741 (1)
+05-02 15:30:21.077 15488 15904 V WindowManager: Schedule remove starting ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594 f} isExiting} startingWindow=Window{6446876 u0 Splash Screen com.chordex.app}
+animate=true Callers=com.android.server.wm.ActivityRecord.onSyncTransactionCommitted:16
+com.android.server.wm.BLASTSyncEngine$SyncGroup$1CommitCallback.onCommitted:104
+com.android.server.wm.BLASTSyncEngine$SyncGroup$$ExternalSyntheticLambda0.onTransactionCommitted:8
+android.view.SurfaceControl$Transaction$$ExternalSyntheticLambda4.run:0
+com.android.server.SystemServerInitThreadPool$$ExternalSyntheticLambda0.execute:1
+05-02 15:30:21.081 15488 15970 I WindowManager: Relayout Window{6446876 u0 Splash Screen com.chordex.app}:
+viewVisibility=8 req=1080x2340 ty=3 d0
+05-02 15:30:21.084 15488 17294 D WindowManager: Starting window removed Window{6446876 u0 Splash Screen
+com.chordex.app}
+05-02 15:30:21.084 15488 17294 V WindowManager: Remove Window{6446876 u0 Splash Screen com.chordex.app}:
+mSurfaceControl=Surface(name=Splash Screen com.chordex.app$_16497)/@0xc950d77 mAnimatingExit=false mRemoveOnExit=false
+mHasSurface=true surfaceShowing=true animating=false app-animation=false
+callers=com.android.server.wm.Session.remove:16 android.view.IWindowSession$Stub.onTransact:804
+com.android.server.wm.Session.onTransact:1 android.os.Binder.execTransactInternal:1462
+android.os.Binder.execTransact:1401 <bottom of call stack>
+05-02 15:30:21.091 17718 17718 I SDHMS:PowerAnomaly:Analyzer:AppError: analyze app error : uid=10530,
+pkg=com.chordex.app, appErrorCount=4
+05-02 15:30:21.097   945   945 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{6446876 Splash Screen
+com.chordex.app#91740 z=2147483647} 1 children}] reparent to OffscreenRoot
+05-02 15:30:21.097   945   945 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{6446876 Splash Screen
+com.chordex.app#91740 z=2147483647} 1 children}] RelativeParent to null
+05-02 15:30:21.097   945   945 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{Splash Screen
+com.chordex.app$_16497#91741} no children}] reparent to OffscreenRoot
+05-02 15:30:21.097   945   945 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{Splash Screen
+com.chordex.app$_16497#91741} no children}] RelativeParent to null
+05-02 15:30:21.098   945  1020 I SurfaceFlinger: id=91741 Removed Splash Screen com.chordex.app$_16497#91741 (209)
+05-02 15:30:21.105   945   945 I SurfaceFlinger: destroyed Splash Screen com.chordex.app$_16497#91741
+05-02 15:30:21.106   945   945 I Layer   : id=91741 Destroyed Splash Screen com.chordex.app$_16497#91741
+05-02 15:30:21.528 15488 15540 W ActivityTaskManager: Activity top resumed state loss timeout for
+ActivityRecord{180015325 u0 com.chordex.app/.MainActivity t594 f} isExiting}
+05-02 15:30:21.783 15488 17829 V WindowManager:    ChangeInfo{5e078ab container=Task{51c7452 #594 type=standard
+A=10530:com.chordex.app} flags=0x10}
+05-02 15:30:21.783 15488 17829 V WindowManager:    ChangeInfo{7ba72a1 container=ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594 f} isExiting} flags=0x0}
+05-02 15:30:21.784   945  1020 I SurfaceFlinger: id=91745 Removed 9594587 ActivityRecordInputSink
+com.chordex.app/.MainActivity#91745 (207)
+05-02 15:30:21.785 15488 17829 D ChangeTransitionController:    ChangeInfo{5e078ab container=Task{51c7452 #594
+type=standard A=10530:com.chordex.app} flags=0x10}
+05-02 15:30:21.785 15488 17829 D ChangeTransitionController:    ChangeInfo{7ba72a1 container=ActivityRecord{180015325
+u0 com.chordex.app/.MainActivity t-1 f}} flags=0x0}
+05-02 15:30:21.790   945   945 I SurfaceFlinger: id=91740 Removed 6446876 Splash Screen com.chordex.app#91740 (208)
+05-02 15:30:21.797   945   945 I SurfaceFlinger: destroyed 6446876 Splash Screen com.chordex.app#91740
+05-02 15:30:21.797   945   945 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594}#91739} 1 children}] reparent to OffscreenRoot
+05-02 15:30:21.797   945   945 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594}#91739} 1 children}] RelativeParent to null
+05-02 15:30:21.797   945   945 I Layer   : id=91740 Destroyed 6446876 Splash Screen com.chordex.app#91740
+05-02 15:30:21.798   945   945 I SurfaceFlinger: id=91739 Removed ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594}#91739 (204)
+05-02 15:30:21.805   945   945 I SurfaceFlinger: destroyed 9594587 ActivityRecordInputSink
+com.chordex.app/.MainActivity#91745
+05-02 15:30:21.805   945   945 I SurfaceFlinger: destroyed ActivityRecord{180015325 u0 com.chordex.app/.MainActivity
+t594}#91739
+05-02 15:30:21.806   945   945 I Layer   : id=91745 Destroyed 9594587 ActivityRecordInputSink
+com.chordex.app/.MainActivity#91745
+05-02 15:30:21.806   945   945 I Layer   : id=91739 Destroyed ActivityRecord{180015325 u0
+com.chordex.app/.MainActivity t594}#91739
+05-02 15:30:25.942 15488 15988 I Pageboost: db update :com.chordex.app ret 1
