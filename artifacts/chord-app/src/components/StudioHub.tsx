@@ -6,7 +6,7 @@ import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import ApplyToSheet from './ApplyToSheet';
 import { playStudioChime } from '../lib/studioChime';
-import AccountCard from './AccountCard';
+import AccountCard, { AccountDangerZone } from './AccountCard';
 
 type HubTab = 'home' | 'settings';
 type TargetApp = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
@@ -683,6 +683,9 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
           />
         </SettingRow>
       </div>
+
+      {/* ── DANGER ZONE ── */}
+      <AccountDangerZone accent={accent} cardStyle={cardStyle} />
 
       {/* ── ABOUT ── */}
       <SectionHeader icon="info" title={t.settings.sections.about} />

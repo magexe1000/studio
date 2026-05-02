@@ -52,10 +52,6 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
   const [err, setErr] = useState<string | null>(null);
   const [sync, setSync] = useState(() => ({ signedIn: false, syncing: false, lastSyncedMs: null as number | null, error: null as string | null }));
   const [tick, setTick] = useState(0);
-  const [showDelete, setShowDelete] = useState(false);
-  const [deleteEmail, setDeleteEmail] = useState('');
-  const [deleting, setDeleting] = useState(false);
-  // Pulse the "synced" check briefly after a sync completes.
   const [justSynced, setJustSynced] = useState(false);
   const prevSyncing = useRef(false);
 
@@ -113,41 +109,10 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
     finally { setBusy(false); }
   }
 
-  async function doSignOut() {
-    setBusy(true);
-    try { await signOut(); }
-    finally { setBusy(false); }
-  }
-
   async function doSyncNow() {
     setBusy(true);
     try { await syncNow(); }
     finally { setBusy(false); }
-  }
-
-  async function doDeleteAccount() {
-    if (!user || deleting) return;
-    setDeleting(true); setErr(null);
-    try {
-      await deleteCloudData();
-      await deleteAccount();
-      setShowDelete(false);
-      setDeleteEmail('');
-    } catch (e) {
-      const code = (e as { code?: string })?.code ?? '';
-      if (code === 'auth/requires-recent-login') {
-        // Sign out so user can re-authenticate. Persist the message across
-        // the auth state transition (the signed-in branch unmounts immediately).
-        setErr(t.deleteAccountReauth);
-        setShowDelete(false);
-        setDeleteEmail('');
-        try { await signOut(); } catch { /* noop */ }
-      } else {
-        setErr(prettyErr(e, lang));
-      }
-    } finally {
-      setDeleting(false);
-    }
   }
 
   // ── Signed in ──
@@ -164,8 +129,6 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
           : sync.lastSyncedMs
             ? `${t.synced} · ${formatRelative(sync.lastSyncedMs, lang)}`
             : t.notSyncedYet;
-    const emailToConfirm = (user.email ?? '').trim().toLowerCase();
-    const canDelete = !deleting && deleteEmail.trim().toLowerCase() === emailToConfirm && !!emailToConfirm;
     return (
       <div style={cardStyle}>
         <SyncAnimations />
@@ -216,102 +179,6 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
           <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: 0, flex: 1, lineHeight: 1.4 }}>
             {t.syncedAppsNote}
           </p>
-        </div>
-
-        {/* ── Danger zone ── */}
-        <div style={{
-          margin: '6px 14px 14px',
-          padding: '12px 14px',
-          borderRadius: 14,
-          background: 'rgba(255,107,107,0.06)',
-          border: '1px solid rgba(255,107,107,0.22)',
-          display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#ff6b6b' }}>warning</span>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#ff6b6b', margin: 0 }}>{t.dangerZone}</p>
-          </div>
-          <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.4 }}>
-            {t.dangerZoneNote}
-          </p>
-
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={doSignOut} disabled={busy} style={{ ...dangerOutlineBtn(), flex: 1 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span>
-              {t.signOut}
-            </button>
-            {!showDelete && (
-              <button
-                onClick={() => { setShowDelete(true); setErr(null); setDeleteEmail(''); }}
-                disabled={busy}
-                style={{ ...dangerSolidBtn(), flex: 1 }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
-                {t.deleteAccount}
-              </button>
-            )}
-          </div>
-
-          {showDelete && (
-            <div style={{
-              marginTop: 4, padding: 12, borderRadius: 10,
-              background: 'rgba(255,107,107,0.10)',
-              border: '1px solid rgba(255,107,107,0.3)',
-              display: 'flex', flexDirection: 'column', gap: 8,
-              animation: 'sync-fade-in 200ms ease',
-            }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#ff6b6b', margin: 0 }}>
-                {t.deleteAccountConfirmTitle}
-              </p>
-              <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.4 }}>
-                {t.deleteAccountConfirmBody}
-              </p>
-              <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0 }}>
-                {t.deleteAccountTypeEmail}: <strong style={{ color: 'var(--c-text-primary)' }}>{user.email}</strong>
-              </p>
-              <input
-                value={deleteEmail}
-                onChange={(e) => setDeleteEmail(e.target.value)}
-                placeholder={user.email ?? ''}
-                autoComplete="off"
-                spellCheck={false}
-                style={{
-                  ...inputStyle(accent),
-                  borderColor: canDelete ? '#ff6b6b' : 'rgba(255,107,107,0.3)',
-                }}
-              />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => { setShowDelete(false); setDeleteEmail(''); setErr(null); }}
-                  disabled={deleting}
-                  style={{ ...secondaryBtn(), flex: 1 }}
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  onClick={doDeleteAccount}
-                  disabled={!canDelete}
-                  style={{
-                    ...dangerSolidBtn(),
-                    flex: 1,
-                    opacity: canDelete ? 1 : 0.5,
-                    cursor: canDelete ? 'pointer' : 'not-allowed',
-                  }}
-                >
-                  {deleting ? (
-                    <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span>
-                  ) : (
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
-                  )}
-                  {t.deleteAccountFinal}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {err && (
-            <p style={{ fontSize: 11, color: '#ff6b6b', margin: 0 }}>{err}</p>
-          )}
         </div>
       </div>
     );
@@ -392,6 +259,161 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
           <p style={{ fontSize: 12, color: '#ff6b6b', margin: 0 }}>{err}</p>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Standalone Danger Zone (rendered in StudioHub below Language) ────────────
+
+type DangerZoneProps = {
+  accent: { from: string; to: string; mid: string };
+  cardStyle: React.CSSProperties;
+};
+
+export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
+  const tRoot = useT();
+  const t = tRoot.hub.accountSection;
+  const lang = useChordStore((s) => s.settings.language) ?? 'en';
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteEmail, setDeleteEmail] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => subscribeAuth(setUser), []);
+
+  if (!isFirebaseConfigured || !user) return null;
+
+  const emailToConfirm = (user.email ?? '').trim().toLowerCase();
+  const canDelete = !deleting && deleteEmail.trim().toLowerCase() === emailToConfirm && !!emailToConfirm;
+
+  async function doSignOut() {
+    setBusy(true);
+    try { await signOut(); }
+    finally { setBusy(false); }
+  }
+
+  async function doDeleteAccount() {
+    if (!user || deleting) return;
+    setDeleting(true); setErr(null);
+    try {
+      await deleteCloudData();
+      await deleteAccount();
+      setShowDelete(false);
+      setDeleteEmail('');
+    } catch (e) {
+      const code = (e as { code?: string })?.code ?? '';
+      if (code === 'auth/requires-recent-login') {
+        setErr(t.deleteAccountReauth);
+        setShowDelete(false);
+        setDeleteEmail('');
+        try { await signOut(); } catch { /* noop */ }
+      } else {
+        setErr(prettyErr(e, lang));
+      }
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div style={cardStyle}>
+      <SyncAnimations />
+      <div style={{
+        margin: '14px 14px',
+        padding: '12px 14px',
+        borderRadius: 14,
+        background: 'rgba(255,107,107,0.06)',
+        border: '1px solid rgba(255,107,107,0.22)',
+        display: 'flex', flexDirection: 'column', gap: 10,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#ff6b6b' }}>warning</span>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#ff6b6b', margin: 0 }}>{t.dangerZone}</p>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.4 }}>
+          {t.dangerZoneNote}
+        </p>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={doSignOut} disabled={busy} style={{ ...dangerOutlineBtn(), flex: 1 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span>
+            {t.signOut}
+          </button>
+          {!showDelete && (
+            <button
+              onClick={() => { setShowDelete(true); setErr(null); setDeleteEmail(''); }}
+              disabled={busy}
+              style={{ ...dangerSolidBtn(), flex: 1 }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
+              {t.deleteAccount}
+            </button>
+          )}
+        </div>
+
+        {showDelete && (
+          <div style={{
+            marginTop: 4, padding: 12, borderRadius: 10,
+            background: 'rgba(255,107,107,0.10)',
+            border: '1px solid rgba(255,107,107,0.3)',
+            display: 'flex', flexDirection: 'column', gap: 8,
+            animation: 'sync-fade-in 200ms ease',
+          }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#ff6b6b', margin: 0 }}>
+              {t.deleteAccountConfirmTitle}
+            </p>
+            <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.4 }}>
+              {t.deleteAccountConfirmBody}
+            </p>
+            <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: 0 }}>
+              {t.deleteAccountTypeEmail}: <strong style={{ color: 'var(--c-text-primary)' }}>{user.email}</strong>
+            </p>
+            <input
+              value={deleteEmail}
+              onChange={(e) => setDeleteEmail(e.target.value)}
+              placeholder={user.email ?? ''}
+              autoComplete="off"
+              spellCheck={false}
+              style={{
+                ...inputStyle(accent),
+                borderColor: canDelete ? '#ff6b6b' : 'rgba(255,107,107,0.3)',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => { setShowDelete(false); setDeleteEmail(''); setErr(null); }}
+                disabled={deleting}
+                style={{ ...secondaryBtn(), flex: 1 }}
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={doDeleteAccount}
+                disabled={!canDelete}
+                style={{
+                  ...dangerSolidBtn(),
+                  flex: 1,
+                  opacity: canDelete ? 1 : 0.5,
+                  cursor: canDelete ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {deleting ? (
+                  <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span>
+                ) : (
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
+                )}
+                {t.deleteAccountFinal}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {err && (
+          <p style={{ fontSize: 11, color: '#ff6b6b', margin: 0 }}>{err}</p>
+        )}
+      </div>
     </div>
   );
 }
