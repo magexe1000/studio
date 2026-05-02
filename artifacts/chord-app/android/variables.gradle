@@ -13,11 +13,10 @@ ext {
     androidxJunitVersion = '1.1.5'
     androidxEspressoCoreVersion = '3.5.1'
     cordovaAndroidVersion = '10.1.1'
-    // Pinned for @capacitor-firebase/authentication. Without these the
-    // plugin's build.gradle falls back to whatever its internal default
-    // is, which has historically pulled in mismatched Firebase Auth +
-    // Play Services Auth versions and crashed on launch with
-    // "Default FirebaseApp is not initialized" or NoClassDefFoundError.
-    firebaseAuthVersion = '23.1.0'
-    playServicesAuthVersion = '21.2.0'
+    // Pinned to match @capacitor-firebase/authentication v6.3.1's
+    // internal strict constraints (the plugin's debugRuntimeClasspath
+    // pins these exact versions, so any override has to match — bumps
+    // come with a plugin upgrade).
+    firebaseAuthVersion = '22.3.1'
+    playServicesAuthVersion = '20.7.0'
 }
