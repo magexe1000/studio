@@ -8,9 +8,10 @@ import {
   stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX, emptyMeasure, DRUM_INSTRUMENTS,
   DEFAULT_VELOCITY, MIN_VELOCITY, MAX_VELOCITY, clampVelocity,
   SWING_MIN, SWING_MAX, SWING_PRESETS, clampSwing,
+  clampLoopRange,
   type DrumInstrument, type KitType, type HouseMic, type HouseCrashModel, type CymbalPack, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
-  type InstPlugin,
+  type InstPlugin, type LoopRange,
 } from '../store/useDrumStore';
 import {
   drumScheduler, samplePool, loadDrumSamples, loadHouseKit, houseKitPool,
@@ -1608,6 +1609,7 @@ export default function DrumEditor() {
   const [houseLoaded,  setHouseLoaded]      = useState(false);
   const [houseProgress, setHouseProgress]  = useState({ loaded: 0, total: 0 });
   const [showBpmPanel,   setShowBpmPanel]   = useState(false);
+  const [showLoopPanel,  setShowLoopPanel]  = useState(false);
   const [showHamburger,     setShowHamburger]     = useState(false);
   const [hamburgerClosing,  setHamburgerClosing]  = useState(false);
   const [showSoundCharacter, setShowSoundCharacter] = useState(false);
@@ -1784,6 +1786,14 @@ export default function DrumEditor() {
       rows.push(pattern.measures.slice(i, i + measuresPerRow));
     return rows;
   }, [pattern.measures, measuresPerRow]);
+
+  // ── Smart loop range (clamped against current bar count) ─────────────────
+  // Always derive a valid range; `loopActive` gates visual + audio behavior.
+  const effectiveLoop = useMemo<LoopRange>(
+    () => clampLoopRange(pattern.loopRange, pattern.measures.length),
+    [pattern.loopRange, pattern.measures.length],
+  );
+  const loopActive = effectiveLoop.enabled && pattern.measures.length > 0;
 
   // ── Landscape auto-fill: ensure enough empty measures to fill one row ───
   useEffect(() => {
@@ -2897,8 +2907,15 @@ export default function DrumEditor() {
                         const menuOpen  = openBarMenu === m.id;
                         const isFlash   = flashBarId  === m.id;
                         return (
-                          <div key={mi} style={{ width: MEASURE_W, flexShrink: 0, display: 'flex', alignItems: 'center', paddingLeft: 6, paddingRight: 2, borderLeft: mi > 0 ? `1px solid ${barColor}` : 'none', gap: 4, position: 'relative', background: isFlash ? `${accent.from}22` : 'transparent', transition: 'background 400ms' }}>
-                            <span style={{ color: 'var(--c-text-primary)', fontSize: 10, fontWeight: 700, fontFamily: 'Manrope, sans-serif', opacity: 0.65, flexShrink: 0 }}>{globalM + 1}</span>
+                          <div key={mi} style={{ width: MEASURE_W, flexShrink: 0, display: 'flex', alignItems: 'center', paddingLeft: 6, paddingRight: 2, borderLeft: mi > 0 ? `1px solid ${barColor}` : 'none', gap: 4, position: 'relative', background: isFlash ? `${accent.from}22` : (loopActive && globalM >= effectiveLoop.startBar && globalM <= effectiveLoop.endBar ? `${accent.from}1a` : 'transparent'), transition: 'background 400ms' }}>
+                            {/* Loop range bracket markers — small ▸ at startBar, ◂ at endBar */}
+                            {loopActive && globalM === effectiveLoop.startBar && (
+                              <span aria-hidden style={{ position: 'absolute', top: 2, left: 2, fontSize: 8, fontWeight: 900, color: accent.from, lineHeight: 1, pointerEvents: 'none' }}>▸</span>
+                            )}
+                            {loopActive && globalM === effectiveLoop.endBar && (
+                              <span aria-hidden style={{ position: 'absolute', top: 2, right: 2, fontSize: 8, fontWeight: 900, color: accent.from, lineHeight: 1, pointerEvents: 'none' }}>◂</span>
+                            )}
+                            <span style={{ color: loopActive && globalM >= effectiveLoop.startBar && globalM <= effectiveLoop.endBar ? accent.from : 'var(--c-text-primary)', fontSize: 10, fontWeight: 700, fontFamily: 'Manrope, sans-serif', opacity: loopActive && globalM >= effectiveLoop.startBar && globalM <= effectiveLoop.endBar ? 0.95 : 0.65, flexShrink: 0 }}>{globalM + 1}</span>
                             <svg
                               style={{ position: 'absolute', bottom: 0, left: 0, width: MEASURE_W, height: 13, pointerEvents: 'none' }}
                               viewBox={`0 0 ${MEASURE_W} 13`}
@@ -3008,6 +3025,109 @@ export default function DrumEditor() {
                 <button onClick={() => setShowClearConfirm(s => !s)} title="Clear pattern" className="btn-smooth"
                   style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: showClearConfirm ? 'rgba(239,68,68,0.18)' : (isAmoled ? 'rgba(4,4,4,0.92)' : isLight ? 'rgba(220,220,224,0.92)' : 'rgba(14,14,16,0.88)'), backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: showClearConfirm ? '0 2px 12px rgba(239,68,68,0.3)' : (isLight ? '0 2px 12px rgba(0,0,0,0.12)' : '0 2px 12px rgba(0,0,0,0.55)'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: showClearConfirm ? '1.5px solid rgba(239,68,68,0.4)' : (isLight ? '1.5px solid rgba(0,0,0,0.12)' : '1.5px solid rgba(255,255,255,0.08)'), transition: 'all 160ms' }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+              </div>
+              {/* ── Smart Loop button + popover ─────────────────────────── */}
+              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {showLoopPanel && (() => {
+                  const barCount = pattern.measures.length;
+                  const lr       = effectiveLoop;
+                  const enabled  = lr.enabled;
+                  const setLR    = (next: Partial<LoopRange>) => {
+                    const merged = clampLoopRange({ ...lr, ...next }, barCount);
+                    updatePattern(pattern.id, { loopRange: merged });
+                  };
+                  const presets: { id: string; label: string; bars: number | 'full' }[] = [
+                    { id: '1bar',  label: '1 Bar',  bars: 1 },
+                    { id: '2bars', label: '2 Bars', bars: 2 },
+                    { id: 'full',  label: 'Full',   bars: 'full' },
+                  ];
+                  const applyPreset = (bars: number | 'full') => {
+                    pushUndo();
+                    if (bars === 'full') {
+                      setLR({ startBar: 0, endBar: Math.max(0, barCount - 1), enabled: true });
+                    } else {
+                      const span = Math.min(bars, barCount);
+                      const start = Math.min(lr.startBar, Math.max(0, barCount - span));
+                      setLR({ startBar: start, endBar: start + span - 1, enabled: true });
+                    }
+                  };
+                  const isPresetActive = (bars: number | 'full') => {
+                    if (!enabled) return false;
+                    if (bars === 'full') return lr.startBar === 0 && lr.endBar === barCount - 1;
+                    return (lr.endBar - lr.startBar + 1) === bars;
+                  };
+                  const dimIfDisabled: React.CSSProperties = enabled ? {} : { opacity: 0.42, pointerEvents: 'none' };
+                  return (
+                    <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', right: 0, background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.96)' : 'rgba(18,18,22,0.96)'), border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)', borderRadius: 14, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.50)', whiteSpace: 'nowrap', animation: 'drumHamburgerIn 160ms cubic-bezier(0.22,1,0.36,1)', minWidth: 232 }}>
+                      {/* Header: label + on/off toggle */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-secondary)', letterSpacing: '0.06em', textTransform: 'uppercase', flex: 1 }}>Smart Loop</span>
+                        <button
+                          onClick={() => { pushUndo(); setLR({ enabled: !enabled }); }}
+                          aria-pressed={enabled}
+                          aria-label="Toggle smart loop"
+                          style={{ width: 40, height: 22, borderRadius: 11, background: enabled ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(128,128,128,0.20)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 200ms', flexShrink: 0 }}
+                        >
+                          <div style={{ position: 'absolute', top: 2, left: enabled ? 20 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 200ms cubic-bezier(0.4, 0, 0.2, 1)' }} />
+                        </button>
+                      </div>
+                      {/* Bar range row */}
+                      <div style={{ height: 1, background: 'rgba(128,128,128,0.18)', margin: '2px -4px' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...dimIfDisabled }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', minWidth: 38 }}>Bars</span>
+                        {/* Start bar -/+ */}
+                        <button onPointerDown={() => pushUndo()} onClick={() => setLR({ startBar: Math.max(0, lr.startBar - 1) })}
+                          style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 800, lineHeight: 1 }}>−</button>
+                        <span style={{ color: accent.from, fontSize: 13, fontWeight: 800, fontFamily: 'Manrope, sans-serif', minWidth: 18, textAlign: 'center' }}>{lr.startBar + 1}</span>
+                        <button onPointerDown={() => pushUndo()} onClick={() => setLR({ startBar: Math.min(lr.endBar, lr.startBar + 1) })}
+                          style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 800, lineHeight: 1 }}>+</button>
+                        <span style={{ color: 'var(--c-text-muted)', fontSize: 11, fontWeight: 700, padding: '0 2px' }}>–</span>
+                        {/* End bar -/+ */}
+                        <button onPointerDown={() => pushUndo()} onClick={() => setLR({ endBar: Math.max(lr.startBar, lr.endBar - 1) })}
+                          style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 800, lineHeight: 1 }}>−</button>
+                        <span style={{ color: accent.from, fontSize: 13, fontWeight: 800, fontFamily: 'Manrope, sans-serif', minWidth: 18, textAlign: 'center' }}>{lr.endBar + 1}</span>
+                        <button onPointerDown={() => pushUndo()} onClick={() => setLR({ endBar: Math.min(barCount - 1, lr.endBar + 1) })}
+                          style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 800, lineHeight: 1 }}>+</button>
+                      </div>
+                      {/* Preset chips */}
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                        {presets.map(p => {
+                          const active = isPresetActive(p.bars);
+                          const tooBig = typeof p.bars === 'number' && p.bars > barCount;
+                          return (
+                            <button
+                              key={p.id}
+                              disabled={tooBig}
+                              onClick={() => applyPreset(p.bars)}
+                              style={{
+                                height: 24, padding: '0 10px', borderRadius: 7,
+                                background: active ? `${accent.from}26` : 'rgba(128,128,128,0.10)',
+                                border: active ? `1px solid ${accent.from}66` : '1px solid rgba(128,128,128,0.14)',
+                                color: active ? accent.from : 'var(--c-text-secondary)',
+                                fontSize: 10, fontWeight: 700, fontFamily: 'Manrope, sans-serif',
+                                letterSpacing: '0.03em', cursor: tooBig ? 'not-allowed' : 'pointer',
+                                opacity: tooBig ? 0.35 : 1, transition: 'all 140ms',
+                              }}
+                            >{p.label}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+                <button
+                  onClick={() => setShowLoopPanel(s => !s)}
+                  title="Smart loop"
+                  aria-label="Smart loop"
+                  className="btn-smooth"
+                  style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: loopActive ? `${accent.from}26` : (showLoopPanel ? `${accent.from}18` : (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)'))), boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.10)' : '0 2px 12px rgba(0,0,0,0.50)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', cursor: 'pointer', transition: 'all 160ms', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: loopActive ? `1.5px solid ${accent.from}88` : (showLoopPanel ? `1.5px solid ${accent.from}66` : (isLight ? '1.5px solid rgba(0,0,0,0.10)' : '1.5px solid rgba(255,255,255,0.08)')) }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={loopActive ? accent.from : 'var(--c-text-secondary)'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 1l4 4-4 4" />
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                    <path d="M7 23l-4-4 4-4" />
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                  </svg>
                 </button>
               </div>
               <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

@@ -1798,9 +1798,33 @@ class DrumScheduler {
     this._scheduled.push({ step, time });
   }
 
+  // ── Smart-loop bounds ──────────────────────────────────────────────────
+  // Returns the active section-loop bounds (in steps), or null when no
+  // section loop is in effect (invalid range, disabled, etc.). Computed
+  // fresh per tick so live edits to pattern.loopRange take effect without
+  // restarting playback.
+  private subLoopBounds(): { startStep: number; endStepExc: number } | null {
+    const p = this._pattern;
+    if (!p) return null;
+    const lr = p.loopRange;
+    if (!lr || !lr.enabled) return null;
+    const lastBar = p.measures.length - 1;
+    if (lastBar < 0) return null;
+    if (lr.startBar < 0 || lr.endBar < lr.startBar || lr.endBar > lastBar) return null;
+    const spm = stepsPerMeasure(p);
+    return { startStep: lr.startBar * spm, endStepExc: (lr.endBar + 1) * spm };
+  }
+
   private doTick() {
     if (!this._playing || !_ctx) return;
     const now = _ctx.currentTime;
+
+    // Hoist loop bounds: stable for the duration of this tick (the user can
+    // toggle/adjust between ticks but not within a single while-iteration).
+    const sub = this.subLoopBounds();
+    // Smart loop forces wrap regardless of global _looping — the very intent
+    // of enabling a section loop is "play this bit on repeat".
+    const shouldLoop = sub !== null || this._looping;
 
     while (this._nextStepTime < now + (this._lowLatency ? LOOKAHEAD_S_LOW : LOOKAHEAD_S)) {
       // Apply swing only to the audible time — the underlying grid
@@ -1809,8 +1833,14 @@ class DrumScheduler {
       this.scheduleNote(this._currentStep, playTime);
       this._nextStepTime += this.secPerStep();
       this._currentStep++;
-      if (this._currentStep >= this._totalSteps) {
-        if (this._looping) this._currentStep = 0;
+      // If we're inside (or past) a section loop, wrap at its end; otherwise
+      // wrap at the full pattern length. This lets a user enable smart-loop
+      // mid-playback from outside the range — playback reaches the range
+      // naturally and only then starts looping inside it (no audio jump).
+      const insideSub = sub !== null && this._currentStep > sub.startStep;
+      const wrapAt    = insideSub ? sub.endStepExc : this._totalSteps;
+      if (this._currentStep >= wrapAt) {
+        if (shouldLoop) this._currentStep = sub !== null ? sub.startStep : 0;
         else { this._playing = false; break; }
       }
     }
@@ -1843,7 +1873,18 @@ class DrumScheduler {
     this._looping    = loop;
     this._kitType    = kitType ?? null;
     this._totalSteps = stepsPerMeasure(pattern) * pattern.measures.length;
-    this._currentStep = 0;
+    // If a section loop is enabled, start at its first step so the user
+    // hears the looped region immediately on play.
+    {
+      const lr = pattern.loopRange;
+      const spm = stepsPerMeasure(pattern);
+      const lastBar = pattern.measures.length - 1;
+      if (lr && lr.enabled && lr.startBar >= 0 && lr.endBar >= lr.startBar && lr.endBar <= lastBar) {
+        this._currentStep = lr.startBar * spm;
+      } else {
+        this._currentStep = 0;
+      }
+    }
     this._playing     = true;
     this._scheduled   = [];
     this.onStep?.(0, 0, 0);

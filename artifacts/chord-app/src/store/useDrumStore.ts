@@ -195,6 +195,17 @@ export interface GrooveEntry {
   measures: DrumMeasure[];
   savedAt: number;
 }
+// ── Smart Loop (section loop) ───────────────────────────────────────────────
+// A bar-indexed [startBar, endBar] inclusive range. When enabled, the
+// scheduler wraps playback at endBar+1 → startBar instead of looping the
+// full pattern. Indices are clamped at runtime so out-of-range values from
+// stale data fall back gracefully to no-op (full pattern loops).
+export interface LoopRange {
+  startBar: number;   // 0-based, inclusive
+  endBar:   number;   // 0-based, inclusive
+  enabled:  boolean;
+}
+
 export interface DrumPattern {
   id: string;
   name: string;
@@ -207,6 +218,20 @@ export interface DrumPattern {
   // time by `(swing/100) * stepDur / 3`. Optional → undefined === 0 (straight),
   // so existing patterns persisted before swing existed keep their feel.
   swing?: number;
+  // Per-pattern smart loop range. Optional / undefined === full pattern.
+  loopRange?: LoopRange;
+}
+
+export function defaultLoopRange(): LoopRange {
+  return { startBar: 0, endBar: 0, enabled: false };
+}
+
+export function clampLoopRange(lr: LoopRange | undefined, barCount: number): LoopRange {
+  const maxBar = Math.max(0, barCount - 1);
+  if (!lr) return { startBar: 0, endBar: maxBar, enabled: false };
+  const start = Math.max(0, Math.min(Math.floor(lr.startBar), maxBar));
+  const end   = Math.max(start, Math.min(Math.floor(lr.endBar), maxBar));
+  return { startBar: start, endBar: end, enabled: !!lr.enabled };
 }
 
 // ── Swing / groove ──────────────────────────────────────────────────────────
@@ -346,7 +371,7 @@ interface DrumStore {
   duplicatePattern: (id: string) => string;
   deletePattern:    (id: string) => void;
   renamePattern:    (id: string, name: string) => void;
-  updatePattern:    (id: string, patch: Partial<Pick<DrumPattern, 'bpm' | 'timeSignature' | 'subdivision' | 'measures' | 'swing'>>) => void;
+  updatePattern:    (id: string, patch: Partial<Pick<DrumPattern, 'bpm' | 'timeSignature' | 'subdivision' | 'measures' | 'swing' | 'loopRange'>>) => void;
   setActivePattern: (id: string) => void;
 
   toggleHit:       (patternId: string, measureId: string, instrument: DrumInstrument, step: number) => void;
@@ -570,7 +595,13 @@ export const useDrumStore = create<DrumStore>()(
           patterns: s.patterns.map(p => {
             if (p.id !== patternId) return p;
             const measures = p.measures.filter(m => m.id !== measureId);
-            return { ...p, measures: measures.length > 0 ? measures : [emptyMeasure()] };
+            const finalMeasures = measures.length > 0 ? measures : [emptyMeasure()];
+            // Re-clamp loopRange so deleting a bar inside the active section
+            // loop never leaves stale out-of-range indices in storage / UI.
+            const loopRange = p.loopRange
+              ? clampLoopRange(p.loopRange, finalMeasures.length)
+              : p.loopRange;
+            return { ...p, measures: finalMeasures, loopRange };
           }),
         }));
       },
