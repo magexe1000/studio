@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.10';
+export const APP_VERSION = '3.0.11';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -54,14 +54,15 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "What's new",
     items: [
-      'Faster updates — Studio now checks for new versions every time you bring the app back to the foreground, and again every few minutes while it stays open.',
-      'Background notifications — once you reinstall this APK, the phone will check on its own every ~15 minutes and post an update notification even with the app closed.',
+      'Cleaner update flow — after installing an update, the changelog opens automatically instead of asking you to tap a button to see what changed.',
+      'Refreshed changelog screen — lighter, more minimal layout. No more wall of cards.',
     ],
   },
   {
     heading: 'Fixes',
     items: [
-      'Removed the long stall after the very first launch where the update banner could take a minute to appear.',
+      'Your language no longer resets to Spanish after every update. Whatever you pick stays.',
+      'Fixed avatar picker showing icon names as huge text instead of the actual icons.',
     ],
   },
 ];

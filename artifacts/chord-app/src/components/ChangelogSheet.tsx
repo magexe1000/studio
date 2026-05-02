@@ -1,6 +1,14 @@
 /**
- * ChangelogSheet — Metrolist-style bottom sheet that lists the release
- * notes for a single version.
+ * ChangelogSheet — bottom sheet that lists release notes for one version.
+ *
+ * Studio's own minimalist take (deliberately not a Metrolist clone):
+ *   • Slim drag handle, no decorative squiggle, no chunky cards.
+ *   • Header is a single tight line: version pill on the left, date on
+ *     the right, nothing else competing for attention.
+ *   • Sections are flush text blocks separated by hairlines, with the
+ *     section title as a small all-caps label and bullets as soft dots.
+ *   • The accent colour appears only as a tiny dot on each bullet and
+ *     a subtle tint on the version pill — nothing screams.
  *
  * Behaviour:
  *   • Slides up from the bottom of the viewport with a soft overshoot.
@@ -96,7 +104,6 @@ export default function ChangelogSheet({
   if (!mounted) return null;
 
   const beginDrag = (clientY: number) => {
-    // Only allow swipe-to-dismiss when the inner scroller is at the top.
     if (scrollRef.current && scrollRef.current.scrollTop > 0) return;
     dragStartY.current = clientY;
     dragStartT.current = performance.now();
@@ -120,9 +127,7 @@ export default function ChangelogSheet({
     }
   };
 
-  const overlayOpacity = closing
-    ? 0
-    : Math.max(0, 1 - drag / 380);
+  const overlayOpacity = closing ? 0 : Math.max(0, 1 - drag / 380);
 
   const sheetTransform = closing
     ? 'translateY(100%)'
@@ -148,7 +153,7 @@ export default function ChangelogSheet({
         onClick={onClose}
         style={{
           position: 'absolute', inset: 0,
-          background: 'rgba(0,0,0,0.6)',
+          background: 'rgba(0,0,0,0.55)',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
           opacity: overlayOpacity,
@@ -171,10 +176,10 @@ export default function ChangelogSheet({
           position: 'relative',
           width: '100%',
           maxWidth: 520,
-          maxHeight: '88vh',
+          maxHeight: '86vh',
           background: 'var(--app-surface)',
-          borderRadius: '24px 24px 0 0',
-          boxShadow: '0 -20px 60px rgba(0,0,0,0.5)',
+          borderRadius: '22px 22px 0 0',
+          boxShadow: '0 -16px 48px rgba(0,0,0,0.45)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -187,87 +192,89 @@ export default function ChangelogSheet({
           touchAction: 'pan-y',
         }}
       >
-        {/* Drag handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', flexShrink: 0 }}>
+        {/* Drag handle — smaller and quieter than the Metrolist one. */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 6px', flexShrink: 0 }}>
           <div style={{
-            width: 44, height: 4, borderRadius: 999,
-            background: 'rgba(180,180,180,0.45)',
+            width: 36, height: 3.5, borderRadius: 999,
+            background: 'rgba(160,160,160,0.35)',
           }} />
         </div>
 
-        {/* Header */}
+        {/* Header — one tight line. Version pill anchored left, date
+            anchored right. No squiggle, no big title block. */}
         <div style={{
-          padding: '14px 24px 10px',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-          flexShrink: 0,
+          padding: '10px 22px 14px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12, flexShrink: 0,
         }}>
-          <h2 style={{
-            margin: 0,
-            fontFamily: 'Manrope', fontWeight: 800,
-            fontSize: 32, letterSpacing: '-0.02em',
-            color: 'var(--c-text-primary)',
-          }}>
-            {t.hub.changelogTitle ?? 'Changelog'}
-          </h2>
-          <Squiggle color={accent.from} />
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            width: '100%', marginTop: 6,
-          }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <span style={{
-              fontFamily: 'Manrope', fontWeight: 700, fontSize: 12,
-              padding: '5px 10px', borderRadius: 999,
-              background: `${accent.from}26`,
+              fontFamily: 'Manrope', fontWeight: 800, fontSize: 22,
+              letterSpacing: '-0.02em',
+              color: 'var(--c-text-primary)',
+            }}>
+              v{version}
+            </span>
+            <span style={{
+              fontFamily: 'Inter', fontSize: 11, fontWeight: 600,
+              padding: '3px 8px', borderRadius: 999,
+              background: `${accent.from}22`,
               color: accent.from,
-              letterSpacing: '0.01em',
-            }}>v{version}</span>
-            <span style={{
-              fontFamily: 'Inter', fontSize: 12,
-              color: 'var(--c-text-muted)',
-            }}>{date}</span>
+              letterSpacing: '0.02em',
+              textTransform: 'uppercase',
+            }}>
+              {t.hub.changelogTitle ?? 'Changelog'}
+            </span>
           </div>
+          <span style={{
+            fontFamily: 'Inter', fontSize: 12,
+            color: 'var(--c-text-muted)',
+          }}>{date}</span>
         </div>
 
-        {/* Scrollable content */}
+        {/* Hairline separating header from body. */}
+        <div style={{
+          height: 1,
+          background: 'rgba(128,128,128,0.16)',
+          flexShrink: 0,
+        }} />
+
+        {/* Scrollable content — flush text blocks, no boxed cards. */}
         <div
           ref={scrollRef}
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '6px 16px 12px',
+            padding: '18px 22px 16px',
             WebkitOverflowScrolling: 'touch',
           }}
         >
           {sections.map((sec, i) => (
             <section key={i} style={{
-              background: 'rgba(128,128,128,0.07)',
-              border: '1px solid rgba(128,128,128,0.12)',
-              borderRadius: 18,
-              padding: '18px 18px 14px',
-              marginBottom: 12,
+              marginBottom: i === sections.length - 1 ? 0 : 22,
             }}>
               <h3 style={{
-                margin: '0 0 12px',
-                textAlign: 'center',
-                fontFamily: 'Manrope', fontWeight: 800, fontSize: 18,
-                color: 'var(--c-text-primary)',
-                letterSpacing: '-0.01em',
-              }}>{sec.heading}</h3>
+                margin: '0 0 10px',
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 11,
+                color: 'var(--c-text-muted)',
+                letterSpacing: '0.10em',
+                textTransform: 'uppercase',
+              }}>
+                {sec.heading}
+              </h3>
               <ul style={{
                 listStyle: 'none', padding: 0, margin: 0,
-                display: 'flex', flexDirection: 'column',
+                display: 'flex', flexDirection: 'column', gap: 10,
               }}>
                 {sec.items.map((line, j) => (
                   <li key={j} style={{
-                    display: 'flex', gap: 10,
-                    padding: '10px 0',
-                    borderTop: j === 0 ? 'none' : '1px solid rgba(128,128,128,0.10)',
-                    fontFamily: 'Inter', fontSize: 14, lineHeight: 1.5,
+                    display: 'flex', gap: 12,
+                    fontFamily: 'Inter', fontSize: 14, lineHeight: 1.55,
                     color: 'var(--c-text-secondary)',
                   }}>
                     <span style={{
                       flexShrink: 0,
-                      width: 5, height: 5, borderRadius: '50%',
+                      width: 4, height: 4, borderRadius: '50%',
                       marginTop: 9,
                       background: accent.from,
                     }} />
@@ -288,25 +295,5 @@ export default function ChangelogSheet({
       `}</style>
     </div>,
     document.body,
-  );
-}
-
-function Squiggle({ color }: { color: string }) {
-  // A short repeating wavy line, tinted with the current accent.
-  return (
-    <svg
-      width="180" height="14" viewBox="0 0 180 14"
-      style={{ display: 'block' }}
-      aria-hidden="true"
-    >
-      <path
-        d="M0 7 Q 7.5 0, 15 7 T 30 7 T 45 7 T 60 7 T 75 7 T 90 7 T 105 7 T 120 7 T 135 7 T 150 7 T 165 7 T 180 7"
-        fill="none"
-        stroke={color}
-        strokeOpacity="0.55"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }

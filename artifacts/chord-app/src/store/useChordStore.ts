@@ -688,11 +688,13 @@ export const useChordStore = create<ChordStore>()(
             }
           }
         }
+        // NOTE: a previous v5 migration unconditionally rewrote
+        // `settings.language = 'es'`, which silently undid every user's
+        // language pick after each OTA update. Removed permanently —
+        // the language is now whatever the user last chose, period.
         if (fromVersion < 5) {
-          if (s.settings && typeof s.settings === 'object') {
-            const settings = s.settings as Record<string, unknown>;
-            settings.language = 'es';
-          }
+          // intentionally no-op; left as a marker so older builds with
+          // a stored persist version of 4 still bump cleanly through to 6+.
         }
         if (fromVersion < 6) {
           if (s.settings && typeof s.settings === 'object') {

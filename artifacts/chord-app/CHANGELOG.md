@@ -17,6 +17,20 @@ Conventions:
 
 ---
 
+## 3.0.11
+
+- The post-update screen no longer asks you to tap "View changes" —
+  the changelog now opens automatically right after an update,
+  showing the version and its bullet list at the top.
+- Refreshed the changelog sheet with Studio's own minimal style
+  (lighter header, hairline divider, flush text instead of cards).
+- Avatar picker icons render as actual icons again, not as huge raw
+  text like "SENTIMENT_VER…".
+- Your chosen language is finally preserved across updates instead
+  of silently resetting to Spanish.
+
+---
+
 ## 3.0.10
 
 - Faster updates: Studio now re-checks for new versions every time
