@@ -7445,8 +7445,18 @@ function _doAutoArrange() {
   const rows = Array.from({ length: 5 }, () =>
     ({ left: [], center: [], right: [], edges: [], spread: [] })
   );
+  // Lead-vocal detection: any mic-type element whose label/name hints at the
+  // lead/main vocal goes to row 4 (downstage) center, ahead of the band.
+  // Spec: "Lead vocal → center front". Other mics keep their default spread.
+  const _isMicType = (t) => /\bMic\b|Microphone/i.test(t || '');
+  const _isLeadVocal = (el) => {
+    if (!_isMicType(el.type)) return false;
+    const txt = `${el.label || ''} ${el.name || ''}`.toLowerCase();
+    return /\b(lead|main|vox|vocal|singer)\b/.test(txt);
+  };
   state.elements.forEach(el => {
-    const zone = _ARRANGE_ZONES[el.type] || { row: 2, side: 'spread' };
+    let zone = _ARRANGE_ZONES[el.type] || { row: 2, side: 'spread' };
+    if (_isLeadVocal(el)) zone = { row: 4, side: 'center' };
     el._zone = zone;
     rows[zone.row][zone.side].push(el);
   });

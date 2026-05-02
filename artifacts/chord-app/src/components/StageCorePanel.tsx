@@ -595,16 +595,19 @@ export default function StagexPanel() {
 
             {(
               [
-                { label: tr.stagex.toolMeasure, icon: 'straighten',   fn: () => callIframe('scActivateMeasure')   },
-                { label: tr.stagex.toolZones,   icon: 'grid_4x4',     fn: () => callIframe('scToggleZones')       },
-                { label: 'Live mode',           icon: 'visibility',   fn: () => callIframe('toggleGigMode')       },
-                { label: tr.stagex.toolHistory, icon: 'history',      fn: () => callIframe('openTimelinePanel')   },
-              ] as { label: string; icon: string; fn: () => void }[]
-            ).map(({ label, icon, fn }) => (
+                { label: 'Auto arrange',        icon: 'auto_fix_high', fn: () => callIframe('_doAutoArrange'),     testid: 'btn-auto-arrange' },
+                { label: tr.stagex.toolMeasure, icon: 'straighten',    fn: () => callIframe('scActivateMeasure')   },
+                { label: tr.stagex.toolZones,   icon: 'grid_4x4',      fn: () => callIframe('scToggleZones')       },
+                { label: 'Live mode',           icon: 'visibility',    fn: () => callIframe('toggleGigMode')       },
+                { label: tr.stagex.toolHistory, icon: 'history',       fn: () => callIframe('openTimelinePanel')   },
+              ] as { label: string; icon: string; fn: () => void; testid?: string }[]
+            ).map(({ label, icon, fn, testid }) => (
               <button
                 key={label}
                 onClick={fn}
                 title={label}
+                aria-label={label}
+                data-testid={testid}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 32, height: 32,
