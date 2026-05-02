@@ -47,8 +47,13 @@ function run(cmd, args, extraEnv = {}) {
   }
 }
 
-console.log('release-gh-pages: → pnpm build');
-run('pnpm', ['build']);
+// CRITICAL: Vite reads VITE_OTA_BASE_URL at build time and bakes the
+// resolved value into the JS bundle that ships inside the APK. Without
+// this the native OTA checker has nowhere to look and silently disables
+// itself — the banner never appears on the phone. We set it here so a
+// release-time rebuild always has the right URL pinned.
+console.log('release-gh-pages: → pnpm build (with VITE_OTA_BASE_URL pinned)');
+run('pnpm', ['build'], { VITE_OTA_BASE_URL: otaBase });
 
 console.log('release-gh-pages: → publish-bundle.mjs (mirroring into ../../docs)');
 run('node', ['scripts/publish-bundle.mjs'], {
