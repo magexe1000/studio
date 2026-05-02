@@ -8,6 +8,8 @@ import { analyzeAudio, type VocalAnalysis, type AnalysisLabels } from './vocalAn
 import { useT } from '../lib/useT';
 import { setVocalexBack } from './headerBack';
 import { createAudioContext } from '../lib/audioContextOptions';
+import HarmonizerSheet from './HarmonizerSheet';
+import { clearTakeCache } from './harmonyEngine';
 
 function formatDuration(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -61,11 +63,17 @@ export default function TakesPanel() {
 
   const handleDelete = useCallback(async (id: string) => {
     await dbDeleteTake(id);
+    clearTakeCache(id);
     setTakes(prev => prev.filter(t => t.id !== id));
     if (view.mode === 'detail' && view.takeId === id) {
       setView({ mode: 'list' });
     }
   }, [view]);
+
+  const handleSaveBounce = useCallback(async (newTake: TakeRecord) => {
+    await saveTake(newTake);
+    await loadTakes();
+  }, [loadTakes]);
 
   if (view.mode === 'recording') {
     return <RecordingView onComplete={handleRecordingComplete} onCancel={() => setView({ mode: 'list' })} />;
@@ -74,7 +82,7 @@ export default function TakesPanel() {
   if (view.mode === 'detail') {
     const take = takes.find(t => t.id === view.takeId);
     if (!take) return <div style={{ padding: 24, color: 'var(--vx-text-2)' }}>{t.vocalex.takeNotFound}</div>;
-    return <TakeDetailView take={take} onBack={() => setView({ mode: 'list' })} onDelete={handleDelete} />;
+    return <TakeDetailView take={take} onBack={() => setView({ mode: 'list' })} onDelete={handleDelete} onSaveBounce={handleSaveBounce} />;
   }
 
   return (
@@ -607,8 +615,9 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
   );
 }
 
-function TakeDetailView({ take, onBack, onDelete }: {
+function TakeDetailView({ take, onBack, onDelete, onSaveBounce }: {
   take: TakeRecord; onBack: () => void; onDelete: (id: string) => void;
+  onSaveBounce: (newTake: TakeRecord) => Promise<void>;
 }) {
   const t = useT();
   const [playing, setPlaying] = useState(false);
@@ -616,6 +625,7 @@ function TakeDetailView({ take, onBack, onDelete }: {
   const [analysis, setAnalysis] = useState<VocalAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showHarmonizer, setShowHarmonizer] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const urlRef = useRef<string | null>(null);
@@ -725,7 +735,28 @@ function TakeDetailView({ take, onBack, onDelete }: {
   return (
     <div style={{ padding: '16px 20px', minHeight: '100%' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <button
+          data-testid="open-harmonizer-btn"
+          onClick={() => {
+            if (audioRef.current && !audioRef.current.paused) {
+              audioRef.current.pause();
+              if (rafRef.current) cancelAnimationFrame(rafRef.current);
+              setPlaying(false);
+            }
+            setShowHarmonizer(true);
+          }}
+          style={{
+            background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.25)',
+            cursor: 'pointer', color: '#007aff',
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 14px', borderRadius: 9999,
+            fontFamily: 'Manrope, sans-serif', fontSize: 13, fontWeight: 700,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>graphic_eq</span>
+          Harmonize
+        </button>
         <button
           onClick={() => setShowDeleteConfirm(true)}
           style={{
@@ -738,6 +769,19 @@ function TakeDetailView({ take, onBack, onDelete }: {
           {t.vocalex.deleteTake}
         </button>
       </div>
+
+      {showHarmonizer && (
+        <HarmonizerSheet
+          take={take}
+          accent="#007aff"
+          onClose={() => setShowHarmonizer(false)}
+          onBounce={async (newTake) => {
+            await onSaveBounce(newTake);
+            setShowHarmonizer(false);
+            onBack();
+          }}
+        />
+      )}
 
       {/* Delete confirmation */}
       {showDeleteConfirm && (
