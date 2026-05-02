@@ -295,6 +295,7 @@ const translations = {
         storageValue: 'Local stored',
         instrumentsValue: 'Guitar · Piano · Bass',
         chordLibraryValue: '200+ Chords',
+        changelog: 'Changelog',
         footer: 'By Mag, With Love.',
       },
       language: {
@@ -358,6 +359,12 @@ const translations = {
     hub: {
       studio: 'Studio',
       byChordex: 'by Mag',
+      changelogTitle: 'Changelog',
+      justUpdatedTitle: 'Updated',
+      justUpdatedFromTo: 'You are now on {to}, from {from}.',
+      justUpdatedNowOn: 'You are now on {to} ({version}).',
+      gotIt: 'Got it',
+      viewChanges: 'View changes',
       chordexDesc: 'Chord library & songs',
       drumexDesc: 'Drum sheet editor',
       stagexDesc: 'Stage plot & tech rider',
@@ -1091,6 +1098,7 @@ const translations = {
         storageValue: 'Guardado localmente',
         instrumentsValue: 'Guitarra · Piano · Bajo',
         chordLibraryValue: 'Más de 200 acordes',
+        changelog: 'Registro de cambios',
         footer: 'By Mag, With Love.',
       },
       language: {
@@ -1151,6 +1159,12 @@ const translations = {
     hub: {
       studio: 'Studio',
       byChordex: 'by Mag',
+      changelogTitle: 'Novedades',
+      justUpdatedTitle: 'Actualizado',
+      justUpdatedFromTo: 'Ahora estás en {to}, desde {from}.',
+      justUpdatedNowOn: 'Ahora estás en {to} ({version}).',
+      gotIt: 'Listo',
+      viewChanges: 'Ver cambios',
       chordexDesc: 'Biblioteca de acordes y canciones',
       drumexDesc: 'Editor de ritmos',
       stagexDesc: 'Diagrama de escenario y rider',

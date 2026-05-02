@@ -311,7 +311,6 @@ export default function UpdateIndicator({
         <UpdateModal
           fromLabel={APP_VERSION_LABEL}
           toVersion={ota.remoteVersion ?? '—'}
-          changelog={ota.changelog}
           mandatory={ota.mandatory}
           downloadUrl={ota.downloadUrl}
           accentFrom={accentFrom}
@@ -349,7 +348,6 @@ export default function UpdateIndicator({
 function UpdateModal({
   fromLabel,
   toVersion,
-  changelog,
   mandatory,
   downloadUrl,
   accentFrom,
@@ -359,7 +357,6 @@ function UpdateModal({
 }: {
   fromLabel: string;
   toVersion: string;
-  changelog: string | null;
   mandatory: boolean;
   downloadUrl: string | null;
   accentFrom: string;
@@ -504,26 +501,6 @@ function UpdateModal({
         >
           Version {toVersion} is ready. You're on {fromLabel}.
         </p>
-
-        {changelog && (
-          <div
-            style={{
-              marginTop: 18,
-              padding: 14,
-              background: 'rgba(128,128,128,0.08)',
-              borderRadius: 12,
-              fontSize: 12,
-              color: 'var(--c-text-secondary)',
-              fontFamily: 'Inter',
-              lineHeight: 1.6,
-              whiteSpace: 'pre-wrap',
-              maxHeight: 220,
-              overflowY: 'auto',
-            }}
-          >
-            {changelog}
-          </div>
-        )}
 
         {mandatory && (
           <p

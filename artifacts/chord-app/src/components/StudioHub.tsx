@@ -7,6 +7,7 @@ import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } fr
 import ApplyToSheet from './ApplyToSheet';
 import UpdateIndicator from './UpdateIndicator';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
+import ChangelogSheet from './ChangelogSheet';
 
 // AccountCard pulls Firebase (auth + firestore). Lazy-load it so Firebase
 // stays out of the initial bundle graph; only fetched when Settings tab opens.
@@ -392,6 +393,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
   // Pending change for the ApplyToSheet
   const [pending, setPending] = useState<Partial<PerAppVisuals> | null>(null);
   const [showSheet, setShowSheet] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
 
   function requestChange(patch: Partial<PerAppVisuals>) {
     setPending(patch);
@@ -673,8 +675,27 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
               <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{value}</span>
             </div>
           ))}
+          <button
+            type="button"
+            onClick={() => setChangelogOpen(true)}
+            style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              width: '100%', padding: 0, margin: 0,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', textAlign: 'left',
+            }}
+          >
+            <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>
+              {t.settings.about.changelog ?? 'Changelog'}
+            </span>
+            <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-secondary)' }}>
+              chevron_right
+            </span>
+          </button>
         </div>
       </div>
+
+      <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
 
       <div style={{ padding: '28px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
         <div style={{ width: '32px', height: '2px', borderRadius: '9999px', background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`, marginBottom: '4px' }} />

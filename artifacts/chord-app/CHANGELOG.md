@@ -17,6 +17,17 @@ Conventions:
 
 ---
 
+## 3.0.9
+
+- New: the changelog is now a slick bottom sheet (Metrolist style) —
+  swipe down to dismiss, or tap outside.
+- New: open the changelog any time from Settings → About → Changelog.
+- The "you just updated" screen is now lighter and only shows the
+  version number; tap "View changes" to read the full changelog.
+- The "update available" prompt no longer shows a wall of release
+  notes — it only confirms the version being offered. Read the
+  details after the update lands.
+
 ## 3.0.8
 
 - New: pick an icon (person, face, headphones, music note...) as your

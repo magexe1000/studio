@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.8';
+export const APP_VERSION = '3.0.9';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -33,16 +33,45 @@ export const APP_VERSION_TAG = 'Beta';
 /** Human-readable label rendered in Settings → About. */
 export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
+/** Release date for the CURRENT bundle, shown alongside the version pill
+ *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
+export const APP_VERSION_DATE = '2026-05-02';
+
 /**
  * Changelog for the CURRENT release — shown to the user the first
- * time they launch the app after pulling this bundle. Keep entries
- * short, user-facing, and bullet-style.
+ * time they launch the app after pulling this bundle, and from the
+ * Settings → About → Changelog row at any time. Each section is a
+ * heading + bullet list rendered Metrolist-style in `ChangelogSheet`.
  */
-export const APP_CHANGELOG = [
-  'Session persistence — the app remembers where you left off.',
-  'Studio Project — chord, drum, vocal and stage data now flow through a single project.',
-  'Update notifications — Studio now tells you when a new version is available.',
+export interface ChangelogSection {
+  /** Short uppercase header (e.g. "What's new", "Fixes"). */
+  heading: string;
+  /** Plain user-facing bullets. Keep each line short. */
+  items: string[];
+}
+
+export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
+  {
+    heading: "What's new",
+    items: [
+      'Pick a profile icon — tap your avatar to choose from a set of person, face and music icons.',
+      'New changelog screen — opens as a bottom sheet you can swipe down to close.',
+      'Changelog is now reachable any time from Settings → About.',
+    ],
+  },
+  {
+    heading: 'Fixes',
+    items: [
+      'Cloud sync no longer gets stuck on "Syncing…" when the local database takes too long.',
+      'A broken Google profile photo now falls back to your initials instead of a broken image.',
+      'The "you just updated" screen is now lighter and only shows the version number — open the changelog from Settings to read the details.',
+    ],
+  },
 ];
+
+/** Backwards-compatible flat bullet list (kept so any old caller still
+ *  works). New UI should use `APP_CHANGELOG_SECTIONS`. */
+export const APP_CHANGELOG = APP_CHANGELOG_SECTIONS.flatMap((s) => s.items);
 
 /**
  * Parsed semver shape. Build metadata (everything after `+`) is
@@ -170,14 +199,18 @@ export function useAppVersion(): {
   version: string;
   label: string;
   tag: string;
+  date: string;
   changelog: string[];
+  sections: ChangelogSection[];
 } {
   return useMemo(
     () => ({
       version: APP_VERSION,
       label: APP_VERSION_LABEL,
       tag: APP_VERSION_TAG,
+      date: APP_VERSION_DATE,
       changelog: APP_CHANGELOG,
+      sections: APP_CHANGELOG_SECTIONS,
     }),
     [],
   );
