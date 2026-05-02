@@ -298,11 +298,7 @@ function _scBuildPlot(instruments) {
     const W = (canvas && canvas.offsetWidth  > 50) ? canvas.offsetWidth  : (state.canvasW || 900);
     const H = (canvas && canvas.offsetHeight > 50) ? canvas.offsetHeight : (state.canvasH || 506);
 
-    const ICON_W  = 70;
-    const PAD_X   = Math.max(ICON_W * 0.8, W * 0.07);
-    const ROW_Y   = [0.10, 0.28, 0.52, 0.74, 0.90]; // upstage → downstage
-
-    // ── Create elements ────────────────────────────────────────────────────────
+    // ── Create elements (positions overwritten by the shared placer below) ────
     const newEls = [];
     instruments.forEach((inst, idx) => {
       const libItem = allLibItems.find(i => i.type === inst.type) ||
@@ -313,7 +309,7 @@ function _scBuildPlot(instruments) {
         name: libItem.name,
         label: ((libItem.nameKey && typeof T === 'function' ? T(libItem.nameKey) : null) || libItem.name).toUpperCase(),
         icon: libItem.icon, type: libItem.type,
-        x: W / 2, y: H / 2,           // will be overwritten below
+        x: W / 2, y: H / 2,           // overwritten by _smartPlaceElements
         rotation: 0, scale: 100,
         channelId: 'CH-' + chNum, source: 'SL01', output: 'FOH',
         phantom: false, notes: '', color: libItem.color || '#7aafff', roles: [],
@@ -322,45 +318,10 @@ function _scBuildPlot(instruments) {
       state.elements.push(el);
     });
 
-    // ── Zone-based placement (same logic as _doAutoArrange) ───────────────────
-    const ZONES = (typeof _ARRANGE_ZONES !== 'undefined') ? _ARRANGE_ZONES : {};
-    const rows = Array.from({ length: 5 }, () =>
-      ({ left: [], center: [], right: [], spread: [], edges: [] }));
-
-    newEls.forEach(el => {
-      const zone = ZONES[el.type] || { row: 2, side: 'spread' };
-      rows[zone.row][zone.side].push(el);
-    });
-
-    function placeGroup(group, xFrom, xTo, y) {
-      if (!group.length) return;
-      const n = group.length;
-      const step = Math.max(ICON_W * 1.15, (xTo - xFrom) / Math.max(n, 1));
-      const total = step * (n - 1);
-      const startX = Math.max(xFrom, (xFrom + xTo) / 2 - total / 2);
-      group.forEach((el, i) => {
-        el.x = Math.max(PAD_X, Math.min(W - PAD_X, startX + i * step));
-        el.y = y;
-      });
+    // ── Anchor-based placement (shared with the toolbar's Auto-Arrange) ──────
+    if (typeof _smartPlaceElements === 'function') {
+      _smartPlaceElements(newEls, W, H);
     }
-
-    rows.forEach((sides, rowIdx) => {
-      const baseY = ROW_Y[rowIdx] * H;
-      placeGroup(sides.spread,  PAD_X,     W - PAD_X, baseY);
-      placeGroup(sides.center,  W * 0.35,  W * 0.65,  baseY);
-      placeGroup(sides.left,    PAD_X,     W * 0.42,  baseY);
-      placeGroup(sides.right,   W * 0.58,  W - PAD_X, baseY);
-      sides.edges.forEach((el, i) => {
-        el.x = i % 2 === 0 ? PAD_X : W - PAD_X;
-        el.y = baseY;
-      });
-    });
-
-    // Clamp to canvas bounds
-    newEls.forEach(el => {
-      el.x = Math.max(PAD_X * 0.5, Math.min(W - PAD_X * 0.5, el.x || W / 2));
-      el.y = Math.max(ICON_W * 0.5, Math.min(H - ICON_W * 0.5, el.y || H / 2));
-    });
 
     // ── Render ─────────────────────────────────────────────────────────────────
     if (typeof renderElements === 'function') renderElements();

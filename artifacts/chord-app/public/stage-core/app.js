@@ -7420,114 +7420,93 @@ function autoArrangeElements() {
   );
 }
 
-function _doAutoArrange() {
-  pushHistory();
-  const canvas = document.getElementById('stage-canvas');
-  const W = canvas ? canvas.offsetWidth  : (state.canvasW || 900);
-  const H = canvas ? canvas.offsetHeight : (state.canvasH || 506);
-
-  const ICON_W   = 70;   // element bounding width
-  const PAD_X    = Math.max(ICON_W * 0.8, W * 0.07);  // side padding
-  const MIN_SEP  = ICON_W * 1.1; // minimum center-to-center distance
-  const SUB_OFF  = H * 0.045;    // Y stagger for sub-groups sharing a row
+// Shared anchor-based placement used by both _doAutoArrange (toolbar button)
+// and _scBuildPlot (AI assistant). Items are anchored to natural stage
+// positions (left ~18%, center 50%, right ~82%) and fan out around the
+// anchor when several share a side, instead of being centered inside an
+// inner third — which made everything look bunched toward the middle.
+function _smartPlaceElements(elements, W, H) {
+  const ICON_W = 70;
+  const PAD_X  = Math.max(ICON_W * 0.8, W * 0.07);
+  const MIN_SEP = ICON_W * 1.15;
+  const SUB_OFF = H * 0.045;
 
   // Row Y fractions — well-spread for a real stage
   const ROW_Y = [0.08, 0.26, 0.50, 0.73, 0.91];
 
-  // Collect old positions for animation
-  const oldPos = {};
-  state.elements.forEach(el => {
-    const dom = document.getElementById('elem-' + el.id);
-    if (dom) oldPos[el.id] = { x: parseFloat(dom.style.left), y: parseFloat(dom.style.top) };
-  });
+  // Side anchors as fractions of W. Push left/right outward so single
+  // items land near the edges of the stage, not inside an inner third.
+  const ANCHOR = { left: 0.18, center: 0.50, right: 0.82 };
 
   // Bucket elements into rows
   const rows = Array.from({ length: 5 }, () =>
     ({ left: [], center: [], right: [], edges: [], spread: [] })
   );
+
   // Lead-vocal detection: any mic-type element whose label/name hints at the
   // lead/main vocal goes to row 4 (downstage) center, ahead of the band.
-  // Spec: "Lead vocal → center front". Other mics keep their default spread.
   const _isMicType = (t) => /\bMic\b|Microphone/i.test(t || '');
   const _isLeadVocal = (el) => {
     if (!_isMicType(el.type)) return false;
     const txt = `${el.label || ''} ${el.name || ''}`.toLowerCase();
     return /\b(lead|main|vox|vocal|singer)\b/.test(txt);
   };
-  state.elements.forEach(el => {
+  elements.forEach(el => {
     let zone = _ARRANGE_ZONES[el.type] || { row: 2, side: 'spread' };
     if (_isLeadVocal(el)) zone = { row: 4, side: 'center' };
-    el._zone = zone;
     rows[zone.row][zone.side].push(el);
   });
 
-  // Helper: evenly space a group across [xFrom, xTo], all at the given Y
-  function placeGroup(group, xFrom, xTo, y) {
+  // Place a side group: fan items out symmetrically around an anchor X,
+  // clamped so the whole group stays inside [PAD_X, W - PAD_X].
+  function placeAnchored(group, anchorX, y) {
     if (!group.length) return;
     const n = group.length;
-    if (n === 1) {
-      group[0].x = (xFrom + xTo) / 2;
-      group[0].y = y;
-      return;
-    }
-    // Desired step between centers
-    const span  = xTo - xFrom;
-    const step  = Math.max(MIN_SEP, span / (n - 1));
-    // If step * (n-1) > span, the group is wider than the zone — center it
-    const totalW = step * (n - 1);
-    const start  = (xFrom + xTo) / 2 - totalW / 2;
-    group.forEach((el, i) => {
-      el.x = Math.max(PAD_X, Math.min(W - PAD_X, start + i * step));
-      el.y = y;
-    });
+    if (n === 1) { group[0].x = anchorX; group[0].y = y; return; }
+    const totalW = MIN_SEP * (n - 1);
+    let startX = anchorX - totalW / 2;
+    if (startX < PAD_X) startX = PAD_X;
+    if (startX + totalW > W - PAD_X) startX = W - PAD_X - totalW;
+    group.forEach((el, i) => { el.x = startX + i * MIN_SEP; el.y = y; });
+  }
+
+  // Place a 'spread' group across the full usable stage width.
+  function placeSpread(group, y) {
+    if (!group.length) return;
+    const n = group.length;
+    if (n === 1) { group[0].x = W / 2; group[0].y = y; return; }
+    const usable = W - 2 * PAD_X;
+    const step = usable / (n - 1);
+    group.forEach((el, i) => { el.x = PAD_X + i * step; el.y = y; });
   }
 
   rows.forEach((sides, rowIdx) => {
     const baseY = ROW_Y[rowIdx] * H;
 
-    // ── Edges: outermost positions, alternating L/R ──────────────────
-    const nEdge = sides.edges.length;
+    // ── Edges: alternate left / right at the outermost positions ──────
     sides.edges.forEach((el, i) => {
-      const frac = nEdge === 1 ? 0.5 : i / (nEdge - 1);
-      el.x = Math.max(PAD_X, Math.min(W - PAD_X, PAD_X + frac * (W - 2 * PAD_X)));
+      el.x = i % 2 === 0 ? PAD_X : W - PAD_X;
       el.y = baseY;
     });
 
-    // ── Spread: full usable width ─────────────────────────────────────
-    placeGroup(sides.spread, PAD_X, W - PAD_X, baseY);
+    // ── Spread: items use the full stage width ────────────────────────
+    placeSpread(sides.spread, baseY);
 
-    // ── Left / Center / Right — partition canvas into thirds with smart fallback
-    const hasL = sides.left.length > 0;
-    const hasC = sides.center.length > 0;
-    const hasR = sides.right.length > 0;
-    const activeZones = (hasL ? 1 : 0) + (hasC ? 1 : 0) + (hasR ? 1 : 0);
-
-    if (activeZones === 0) return; // nothing to place
-
-    // Divide canvas into equal thirds between the active zones
-    const usable    = W - 2 * PAD_X;
-    const zoneW     = usable / Math.max(activeZones, 1);
-    let   zoneStart = PAD_X;
-
-    // Assign X ranges in L → C → R order, skipping absent groups
-    const zones = [];
-    if (hasL) { zones.push({ group: sides.left,   from: zoneStart, to: zoneStart + zoneW }); zoneStart += zoneW; }
-    if (hasC) { zones.push({ group: sides.center, from: zoneStart, to: zoneStart + zoneW }); zoneStart += zoneW; }
-    if (hasR) { zones.push({ group: sides.right,  from: zoneStart, to: zoneStart + zoneW }); }
-
-    // Sub-row Y stagger: if L/C/R coexist with spread in the same row, offset slightly
+    // ── L / C / R via anchor placement. If a row also has spread items,
+    // nudge L/C/R up slightly so they don't overlap the spread row.
     const yOff = sides.spread.length > 0 ? -SUB_OFF : 0;
+    placeAnchored(sides.left,   W * ANCHOR.left,   baseY + yOff);
+    placeAnchored(sides.center, W * ANCHOR.center, baseY + yOff);
+    placeAnchored(sides.right,  W * ANCHOR.right,  baseY + yOff);
 
-    zones.forEach(({ group, from, to }) => placeGroup(group, from, to, baseY + yOff));
-
-    // ── Collision nudge: push any pair closer than MIN_SEP apart ─────
+    // ── Collision nudge: push any same-row pair closer than MIN_SEP ──
     const allInRow = [
       ...sides.left, ...sides.center, ...sides.right, ...sides.spread, ...sides.edges
     ].filter(el => el.x !== undefined);
     allInRow.sort((a, b) => a.x - b.x);
     for (let i = 1; i < allInRow.length; i++) {
       const prev = allInRow[i - 1], curr = allInRow[i];
-      if (curr.y !== prev.y) continue; // different sub-rows — no collision
+      if (curr.y !== prev.y) continue;
       const dx = curr.x - prev.x;
       if (dx < MIN_SEP) {
         const push = (MIN_SEP - dx) / 2;
@@ -7537,12 +7516,29 @@ function _doAutoArrange() {
     }
   });
 
-  // Clamp everything to canvas bounds
-  state.elements.forEach(el => {
+  // Final clamp inside the canvas
+  elements.forEach(el => {
     el.x = Math.max(PAD_X * 0.6, Math.min(W - PAD_X * 0.6, el.x || W / 2));
     el.y = Math.max(ICON_W * 0.6, Math.min(H - ICON_W * 0.6, el.y || H / 2));
-    delete el._zone;
   });
+}
+
+
+function _doAutoArrange() {
+  pushHistory();
+  const canvas = document.getElementById('stage-canvas');
+  const W = canvas ? canvas.offsetWidth  : (state.canvasW || 900);
+  const H = canvas ? canvas.offsetHeight : (state.canvasH || 506);
+
+  // Collect old positions for the smooth animation pass
+  const oldPos = {};
+  state.elements.forEach(el => {
+    const dom = document.getElementById('elem-' + el.id);
+    if (dom) oldPos[el.id] = { x: parseFloat(dom.style.left), y: parseFloat(dom.style.top) };
+  });
+
+  // New anchor-based placement (shared with the AI assistant's _scBuildPlot)
+  _smartPlaceElements(state.elements, W, H);
 
   // Render at final positions
   renderAll();
