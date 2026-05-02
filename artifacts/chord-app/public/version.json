@@ -1,5 +1,5 @@
 {
-  "version": "3.0.2",
-  "changelog": "• First over-the-air update test ride: bundles now download and install on the phone without going through the Play Store or reinstalling the APK.\n• Update banner pulses in the top-right corner until you tap \"Update\".\n• Download progress bar appears while the new bundle is fetched.",
+  "version": "3.0.3",
+  "changelog": "• Session persistence — the app remembers where you left off.\n• Studio Project — chord, drum, vocal and stage data now flow through a single project.\n• Update notifications — Studio now tells you when a new version is available.",
   "mandatory": false
 }
