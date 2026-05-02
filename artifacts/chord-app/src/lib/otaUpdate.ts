@@ -24,6 +24,7 @@
 
 import { useEffect, useState } from 'react';
 import { APP_VERSION, compareSemver, normalizeSemver } from './appVersion';
+import { isNative } from './capgoUpdater';
 
 const LAST_SEEN_KEY = 'studio:lastSeenVersion';
 const FETCH_TIMEOUT_MS = 6000;
@@ -32,6 +33,13 @@ export interface RemoteVersionInfo {
   version: string;
   changelog?: string;
   mandatory?: boolean;
+  /**
+   * Absolute URL to a Capgo-compatible zip of the new bundle. Only
+   * present in releases published with `scripts/publish-bundle.mjs`.
+   * Used by the Capgo updater on native (Android APK). Web ignores it
+   * — service-worker reload handles bundle swaps in the browser.
+   */
+  downloadUrl?: string;
 }
 
 export interface OtaState {
@@ -43,6 +51,8 @@ export interface OtaState {
   changelog: string | null;
   /** Server-provided "users must update" flag. */
   mandatory: boolean;
+  /** Absolute URL to the Capgo bundle zip, if the server published one. */
+  downloadUrl: string | null;
   /** True until the first fetch resolves (used to gate UI shimmer). */
   loading: boolean;
 }
@@ -52,17 +62,44 @@ const INITIAL_STATE: OtaState = {
   remoteVersion: null,
   changelog: null,
   mandatory: false,
+  downloadUrl: null,
   loading: true,
 };
 
 /**
- * Resolve the URL of `version.json`. Uses Vite's BASE_URL so the file
- * works regardless of the artifact mount path (e.g. `/artifacts/chord-app/`).
+ * Resolve the URL of `version.json`. Two modes:
+ *
+ *   • On WEB / PWA we fetch from `<base>version.json` (relative to
+ *     Vite's BASE_URL) — the same origin that served the page.
+ *   • On NATIVE (Android APK) the page is loaded from
+ *     `capacitor://localhost`, so a relative URL would just hit the
+ *     bundled file. We need an ABSOLUTE remote URL instead. Set
+ *     `VITE_OTA_BASE_URL` at build time to your deployed public URL
+ *     (e.g. `https://studio.example.com`) and this function will
+ *     prepend it on native.
+ *
+ * Cache-bust on every call so a stale CDN entry never hides a release.
  */
-function versionJsonUrl(): string {
-  const base = import.meta.env.BASE_URL || '/';
-  // Cache-bust so a stale CDN entry never hides a new release.
-  return `${base}version.json?t=${Date.now()}`;
+function versionJsonUrl(): string | null {
+  const remoteBase = (import.meta.env.VITE_OTA_BASE_URL as string | undefined)?.replace(/\/$/, '');
+  const localBase = import.meta.env.BASE_URL || '/';
+  if (isNative()) {
+    // On the APK the local bundle path resolves to the OLD bundled
+    // version.json — useless for OTA. We MUST go off-device. If the
+    // build was produced without VITE_OTA_BASE_URL (i.e. someone
+    // forgot to set it before `cap sync`), fail loudly here instead
+    // of silently pointing at the local copy and reporting "no update".
+    if (!remoteBase) {
+      console.error(
+        '[ota] VITE_OTA_BASE_URL is not set — OTA update checks are disabled on native. ' +
+          'Rebuild with VITE_OTA_BASE_URL=https://your-deployment.example.com.',
+      );
+      return null;
+    }
+    return `${remoteBase}/version.json?t=${Date.now()}`;
+  }
+  // Web / PWA / dev preview / iframe — same-origin works.
+  return `${localBase}version.json?t=${Date.now()}`;
 }
 
 /**
@@ -72,12 +109,14 @@ function versionJsonUrl(): string {
 export async function fetchRemoteVersion(
   signal?: AbortSignal,
 ): Promise<RemoteVersionInfo | null> {
+  const url = versionJsonUrl();
+  if (!url) return null; // native without VITE_OTA_BASE_URL — see versionJsonUrl
   const ctrl = signal ? null : new AbortController();
   const sig = signal ?? ctrl!.signal;
   const timer = ctrl ? setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS) : null;
 
   try {
-    const res = await fetch(versionJsonUrl(), {
+    const res = await fetch(url, {
       method: 'GET',
       cache: 'no-store',
       signal: sig,
@@ -91,6 +130,10 @@ export async function fetchRemoteVersion(
       version: obj.version,
       changelog: typeof obj.changelog === 'string' ? obj.changelog : undefined,
       mandatory: obj.mandatory === true,
+      downloadUrl:
+        typeof obj.downloadUrl === 'string' && /^https?:\/\//.test(obj.downloadUrl)
+          ? obj.downloadUrl
+          : undefined,
     };
   } catch {
     return null;
@@ -114,6 +157,7 @@ export async function checkForUpdate(): Promise<OtaState> {
     remoteVersion: remote.version,
     changelog: remote.changelog ?? null,
     mandatory: remote.mandatory === true,
+    downloadUrl: remote.downloadUrl ?? null,
     loading: false,
   };
 }
@@ -141,6 +185,7 @@ export function useOtaUpdate(): OtaState {
         remoteVersion: remote.version,
         changelog: remote.changelog ?? null,
         mandatory: remote.mandatory === true,
+        downloadUrl: remote.downloadUrl ?? null,
         loading: false,
       });
     })();

@@ -177,6 +177,9 @@ importers:
       '@capacitor/status-bar':
         specifier: ^6.0.1
         version: 6.0.3(@capacitor/core@6.2.1)
+      '@capgo/capacitor-updater':
+        specifier: ^6.43.5
+        version: 6.43.5(@capacitor/core@6.2.1)
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
@@ -755,6 +758,11 @@ packages:
 
   '@capacitor/status-bar@6.0.3':
     resolution: {integrity: sha512-nFlgSmtx6Zwaw0tEvZgQsWHBeOfWWB/AvEoCApopLT4mHkBVoSrwkLvy2PjZs5wxCbsmqvQczr3XCyTwaDZVQg==}
+    peerDependencies:
+      '@capacitor/core': ^6.0.0
+
+  '@capgo/capacitor-updater@6.43.5':
+    resolution: {integrity: sha512-v//kbgGUPX4Y5dNTjUucCk3ki+KlPjv6i7C6QzjT5RaX6bzJ+LLl+EjCvgbNd1nuqWrIz9OfNm0ULZW5bVADlw==}
     peerDependencies:
       '@capacitor/core': ^6.0.0
 
@@ -2978,6 +2986,7 @@ packages:
   '@xmldom/xmldom@0.8.12':
     resolution: {integrity: sha512-9k/gHF6n/pAi/9tqr3m3aqkuiNosYTurLLUtc7xQ9sxB/wm7WPygCv8GYa6mS0fLJEHhqMC1ATYhz++U/lRHqg==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   accepts@2.0.0:
     resolution: {integrity: sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng==}
@@ -5507,6 +5516,10 @@ snapshots:
       '@capacitor/core': 6.2.1
 
   '@capacitor/status-bar@6.0.3(@capacitor/core@6.2.1)':
+    dependencies:
+      '@capacitor/core': 6.2.1
+
+  '@capgo/capacitor-updater@6.43.5(@capacitor/core@6.2.1)':
     dependencies:
       '@capacitor/core': 6.2.1
 

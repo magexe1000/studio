@@ -12,7 +12,8 @@
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "android:patch": "node patch-android.cjs",
-    "android:sync": "npx cap sync android && node patch-android.cjs"
+    "android:sync": "npx cap sync android && node patch-android.cjs",
+    "bundle:publish": "node scripts/publish-bundle.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.1",
@@ -36,6 +37,7 @@
     "@capacitor/filesystem": "^6.0.1",
     "@capacitor/share": "^6.0.1",
     "@capacitor/status-bar": "^6.0.1",
+    "@capgo/capacitor-updater": "^6.43.5",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",
     "@soundtouchjs/audio-worklet": "^1.0.9",

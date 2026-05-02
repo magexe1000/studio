@@ -29,6 +29,7 @@
 import { useState, useEffect } from 'react';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
+import { applyUpdate, isNative } from '../lib/capgoUpdater';
 
 /** How long the full banner stays visible before auto-minimizing. */
 const BANNER_AUTO_MINIMIZE_MS = 6000;
@@ -226,6 +227,7 @@ export default function UpdateIndicator({
           toVersion={ota.remoteVersion ?? '—'}
           changelog={ota.changelog}
           mandatory={ota.mandatory}
+          downloadUrl={ota.downloadUrl}
           accentFrom={accentFrom}
           accentTo={accentTo}
           onClose={() => {
@@ -255,6 +257,7 @@ function UpdateModal({
   toVersion,
   changelog,
   mandatory,
+  downloadUrl,
   accentFrom,
   accentTo,
   onClose,
@@ -263,15 +266,76 @@ function UpdateModal({
   toVersion: string;
   changelog: string | null;
   mandatory: boolean;
+  downloadUrl: string | null;
   accentFrom: string;
   accentTo: string;
   onClose: () => void;
 }) {
+  // Reload-button state machine: idle → downloading (with %) → done/failed.
+  // On native we drive Capgo's download() and surface progress; on web we
+  // fall through to the legacy service-worker reload immediately.
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+  const canCapgoUpdate = isNative() && !!downloadUrl && toVersion !== '—';
+
+  const handleReload = async () => {
+    // Re-entrancy guard — between the fast double-tap and React
+    // committing `disabled={downloading}` there is a frame where a
+    // second click can still slip through. Refuse it explicitly.
+    if (downloading) return;
+    setErrMsg(null);
+    if (canCapgoUpdate) {
+      setDownloading(true);
+      setProgress(0);
+      const res = await applyUpdate({
+        url: downloadUrl!,
+        version: toVersion,
+        onProgress: (p) => setProgress(p),
+      });
+      // On success, Capgo will reload the WebView itself, so we never
+      // get here. If we DO get here, something went wrong.
+      setDownloading(false);
+      if (!res.ok) {
+        setErrMsg(res.error ?? 'Update failed');
+        return;
+      }
+      // Belt-and-braces — Capgo should have reloaded already.
+      onClose();
+      return;
+    }
+    // On NATIVE without a downloadUrl, "reloading" would just rerun
+    // the same bundled JS — surface that explicitly instead of
+    // pretending an update happened.
+    if (isNative()) {
+      setErrMsg(
+        "Update available but the server didn't publish a download link. Try again later.",
+      );
+      return;
+    }
+    // Web fallback: clear caches + reload, the existing flow.
+    onClose();
+    try {
+      if ('caches' in window) {
+        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+      }
+    } catch {
+      /* ignore */
+    }
+    setTimeout(() => window.location.reload(), 120);
+  };
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      onClick={onClose}
+      onClick={() => {
+        // Refuse backdrop dismissal mid-download — losing the modal
+        // would orphan the in-flight request and leave the user with
+        // no progress indicator or error surface.
+        if (downloading) return;
+        onClose();
+      }}
       style={{
         position: 'fixed',
         inset: 0,
@@ -377,10 +441,62 @@ function UpdateModal({
           </p>
         )}
 
+        {/* Download progress bar — only visible while a Capgo download
+            is in flight. Sits between the changelog and the buttons so
+            the user sees forward motion without any layout jump. */}
+        {downloading && (
+          <div style={{ marginTop: 18 }}>
+            <div
+              style={{
+                height: 6,
+                borderRadius: 999,
+                background: 'rgba(128,128,128,0.18)',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${Math.round(progress * 100)}%`,
+                  height: '100%',
+                  background: `linear-gradient(90deg, ${accentFrom}, ${accentTo})`,
+                  transition: 'width 220ms ease',
+                }}
+              />
+            </div>
+            <p
+              style={{
+                margin: '8px 0 0',
+                fontSize: 11,
+                color: 'var(--c-text-muted)',
+                fontFamily: 'Inter',
+                textAlign: 'center',
+              }}
+            >
+              Downloading update… {Math.round(progress * 100)}%
+            </p>
+          </div>
+        )}
+
+        {errMsg && !downloading && (
+          <p
+            style={{
+              margin: '14px 0 0',
+              fontSize: 11,
+              color: '#f87171',
+              fontFamily: 'Inter',
+              fontWeight: 600,
+              textAlign: 'center',
+            }}
+          >
+            {errMsg}
+          </p>
+        )}
+
         <div style={{ display: 'flex', gap: 8, marginTop: 22 }}>
           <button
             type="button"
             onClick={onClose}
+            disabled={downloading}
             style={{
               flex: 1,
               padding: '11px 14px',
@@ -391,28 +507,16 @@ function UpdateModal({
               fontFamily: 'Manrope',
               fontWeight: 700,
               fontSize: 13,
-              cursor: 'pointer',
+              cursor: downloading ? 'not-allowed' : 'pointer',
+              opacity: downloading ? 0.5 : 1,
             }}
           >
             Later
           </button>
           <button
             type="button"
-            onClick={() => {
-              onClose();
-              // Reload triggers the service worker / browser to pull
-              // the new bundle. Belt-and-braces: clear caches first if
-              // the API is available so a stale shell can't pin us
-              // to the old version.
-              try {
-                if ('caches' in window) {
-                  caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
-                }
-              } catch {
-                /* ignore */
-              }
-              setTimeout(() => window.location.reload(), 120);
-            }}
+            onClick={handleReload}
+            disabled={downloading}
             style={{
               flex: 1,
               padding: '11px 14px',
@@ -423,11 +527,16 @@ function UpdateModal({
               fontFamily: 'Manrope',
               fontWeight: 800,
               fontSize: 13,
-              cursor: 'pointer',
+              cursor: downloading ? 'wait' : 'pointer',
               boxShadow: `0 6px 18px ${accentTo}44`,
+              opacity: downloading ? 0.85 : 1,
             }}
           >
-            Reload
+            {downloading
+              ? 'Updating…'
+              : canCapgoUpdate
+                ? 'Download & install'
+                : 'Reload'}
           </button>
         </div>
       </div>
