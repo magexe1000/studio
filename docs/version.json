@@ -1,6 +1,6 @@
 {
-  "version": "3.0.9",
-  "changelog": "• New: the changelog is now a slick bottom sheet (Metrolist style) — swipe down to dismiss, or tap outside.\n• New: open the changelog any time from Settings → About → Changelog.\n• The \"you just updated\" screen is now lighter and only shows the version number; tap \"View changes\" to read the full changelog.\n• The \"update available\" prompt no longer shows a wall of release notes — it only confirms the version being offered. Read the details after the update lands.",
+  "version": "3.0.12",
+  "changelog": "• Updates are detected almost immediately. Studio now reads the version manifest from `raw.githubusercontent.com` (which refreshes within seconds of a push) instead of waiting on the GitHub Pages CDN, which used to take 2–3 minutes to flush.\n• In-app version polling tightened from every 5 minutes to every 1 minute while the app is open. Also re-checks on window focus, on page show, and whenever the network comes back online.\n• Native background worker now races the same set of URLs and picks the highest semver, so the system notification fires sooner too.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.9.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.12.zip"
 }
