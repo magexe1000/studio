@@ -7,6 +7,7 @@ import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, INSTRUMENT_NAME, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS, CYMBAL_PACKS,
   stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX, emptyMeasure, DRUM_INSTRUMENTS,
   DEFAULT_VELOCITY, MIN_VELOCITY, MAX_VELOCITY, clampVelocity,
+  SWING_MIN, SWING_MAX, SWING_PRESETS, clampSwing,
   type DrumInstrument, type KitType, type HouseMic, type HouseCrashModel, type CymbalPack, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
   type InstPlugin,
@@ -3010,15 +3011,65 @@ export default function DrumEditor() {
                 </button>
               </div>
               <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {showBpmPanel && (
-                  <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', right: 0, background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.96)' : 'rgba(18,18,22,0.96)'), border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)', borderRadius: 14, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.50)', whiteSpace: 'nowrap', animation: 'drumHamburgerIn 160ms cubic-bezier(0.22,1,0.36,1)' }}>
-                    {([-10, -1, +1, +10] as const).map(d => (
-                      <button key={d} onClick={() => adjustBpm(d)} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700 }}>{d > 0 ? `+${d}` : d}</button>
-                    ))}
-                    <div style={{ width: 1, height: 24, background: 'rgba(128,128,128,0.2)', margin: '0 2px' }} />
-                    <span style={{ color: accent.from, fontSize: 16, fontWeight: 800, minWidth: 36, textAlign: 'center' }}>{pattern.bpm}</span>
-                  </div>
-                )}
+                {showBpmPanel && (() => {
+                  const swing = pattern.swing ?? 0;
+                  const presetLabels: Record<typeof SWING_PRESETS[number]['id'], string> = {
+                    tight:  'Tight',
+                    groove: 'Groove',
+                    funky:  'Funky',
+                  };
+                  return (
+                    <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', right: 0, background: isAmoled ? 'rgba(0,0,0,0.97)' : (isLight ? 'rgba(255,255,255,0.96)' : 'rgba(18,18,22,0.96)'), border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)', borderRadius: 14, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.50)', whiteSpace: 'nowrap', animation: 'drumHamburgerIn 160ms cubic-bezier(0.22,1,0.36,1)' }}>
+                      {/* BPM row */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {([-10, -1, +1, +10] as const).map(d => (
+                          <button key={d} onClick={() => adjustBpm(d)} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.14)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700 }}>{d > 0 ? `+${d}` : d}</button>
+                        ))}
+                        <div style={{ width: 1, height: 24, background: 'rgba(128,128,128,0.2)', margin: '0 2px' }} />
+                        <span style={{ color: accent.from, fontSize: 16, fontWeight: 800, minWidth: 36, textAlign: 'center' }}>{pattern.bpm}</span>
+                      </div>
+                      {/* Swing row — label, slider, value, preset chips */}
+                      <div style={{ height: 1, background: 'rgba(128,128,128,0.18)', margin: '2px -4px' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', minWidth: 38 }}>Swing</span>
+                        <input
+                          type="range"
+                          min={SWING_MIN}
+                          max={SWING_MAX}
+                          step={1}
+                          value={swing}
+                          onPointerDown={() => pushUndo()}
+                          onChange={e => updatePattern(pattern.id, { swing: clampSwing(Number(e.target.value)) })}
+                          aria-label="Swing"
+                          style={{
+                            width: 132, height: 22, accentColor: accent.from,
+                            cursor: 'pointer', verticalAlign: 'middle',
+                          }}
+                        />
+                        <span style={{ color: swing > 0 ? accent.from : 'var(--c-text-muted)', fontSize: 13, fontWeight: 800, fontFamily: 'Manrope, sans-serif', minWidth: 34, textAlign: 'right' }}>{swing}%</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                        {SWING_PRESETS.map(p => {
+                          const active = swing === p.value;
+                          return (
+                            <button
+                              key={p.id}
+                              onClick={() => { pushUndo(); updatePattern(pattern.id, { swing: p.value }); }}
+                              style={{
+                                height: 24, padding: '0 10px', borderRadius: 7,
+                                background: active ? `${accent.from}26` : 'rgba(128,128,128,0.10)',
+                                border: active ? `1px solid ${accent.from}66` : '1px solid rgba(128,128,128,0.14)',
+                                color: active ? accent.from : 'var(--c-text-secondary)',
+                                fontSize: 10, fontWeight: 700, fontFamily: 'Manrope, sans-serif',
+                                letterSpacing: '0.03em', cursor: 'pointer', transition: 'all 140ms',
+                              }}
+                            >{presetLabels[p.id]}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
                 <button onClick={() => setShowBpmPanel(s => !s)} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')), boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.10)' : '0 2px 12px rgba(0,0,0,0.50)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', cursor: 'pointer', transition: 'all 160ms', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: showBpmPanel ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.10)' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <path d="M9 4h6l1.5 12H7.5L9 4Z" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinejoin="round" />

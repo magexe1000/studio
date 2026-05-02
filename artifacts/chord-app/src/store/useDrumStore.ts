@@ -203,6 +203,23 @@ export interface DrumPattern {
   subdivision: 8 | 16;
   measures: DrumMeasure[];
   mutedInstruments?: DrumInstrument[];
+  // Per-pattern swing/groove (0–60 %). Off-beat steps are pushed forward in
+  // time by `(swing/100) * stepDur / 3`. Optional → undefined === 0 (straight),
+  // so existing patterns persisted before swing existed keep their feel.
+  swing?: number;
+}
+
+// ── Swing / groove ──────────────────────────────────────────────────────────
+export const SWING_MIN = 0;
+export const SWING_MAX = 60;
+export const SWING_PRESETS: { id: 'tight' | 'groove' | 'funky'; value: number }[] = [
+  { id: 'tight',  value: 0  },
+  { id: 'groove', value: 18 },
+  { id: 'funky',  value: 40 },
+];
+export function clampSwing(v: number): number {
+  if (!Number.isFinite(v)) return 0;
+  return Math.max(SWING_MIN, Math.min(SWING_MAX, Math.round(v)));
 }
 
 export interface DrumSong {
@@ -220,7 +237,7 @@ export interface DrumSong {
 function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 export function emptyMeasure(): DrumMeasure { return { id: `m-${uid()}`, hits: {} }; }
 function defaultPattern(): DrumPattern {
-  return { id: `p-${uid()}`, name: 'Pattern 1', bpm: 120, timeSignature: [4, 4], subdivision: 16, measures: [emptyMeasure()] };
+  return { id: `p-${uid()}`, name: 'Pattern 1', bpm: 120, timeSignature: [4, 4], subdivision: 16, measures: [emptyMeasure()], swing: 0 };
 }
 
 export function stepsPerMeasure(p: DrumPattern): number {
@@ -329,7 +346,7 @@ interface DrumStore {
   duplicatePattern: (id: string) => string;
   deletePattern:    (id: string) => void;
   renamePattern:    (id: string, name: string) => void;
-  updatePattern:    (id: string, patch: Partial<Pick<DrumPattern, 'bpm' | 'timeSignature' | 'subdivision' | 'measures'>>) => void;
+  updatePattern:    (id: string, patch: Partial<Pick<DrumPattern, 'bpm' | 'timeSignature' | 'subdivision' | 'measures' | 'swing'>>) => void;
   setActivePattern: (id: string) => void;
 
   toggleHit:       (patternId: string, measureId: string, instrument: DrumInstrument, step: number) => void;
@@ -438,6 +455,7 @@ export const useDrumStore = create<DrumStore>()(
           timeSignature: src?.timeSignature ?? [4, 4],
           subdivision: src?.subdivision ?? 16,
           measures: [emptyMeasure()],
+          swing: src?.swing ?? 0,
         };
         set(st => ({ patterns: [...st.patterns, p], activePatternId: p.id }));
         return p.id;

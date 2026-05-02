@@ -1751,6 +1751,17 @@ class DrumScheduler {
     return (60 / this._pattern.bpm) / spBeat;
   }
 
+  // ── Swing offset ────────────────────────────────────────────────────────
+  // Off-beat steps (odd indices) are pushed forward by (swing/100) * stepDur/3.
+  // At swing 100 this would be a full triplet shuffle; we cap the UI at 60,
+  // giving a max shift of 0.2 * stepDur — a noticeable but musical groove.
+  // Downbeats (even indices) are never shifted, so the pulse stays locked.
+  private swingShift(stepIdx: number): number {
+    const sw = this._pattern?.swing ?? 0;
+    if (sw <= 0 || stepIdx % 2 === 0) return 0;
+    return (sw / 100) * (this.secPerStep() / 3);
+  }
+
   private scheduleNote(step: number, time: number) {
     if (!this._pattern || !_masterGain) return;
     const spm  = stepsPerMeasure(this._pattern);
@@ -1792,7 +1803,10 @@ class DrumScheduler {
     const now = _ctx.currentTime;
 
     while (this._nextStepTime < now + (this._lowLatency ? LOOKAHEAD_S_LOW : LOOKAHEAD_S)) {
-      this.scheduleNote(this._currentStep, this._nextStepTime);
+      // Apply swing only to the audible time — the underlying grid
+      // (_nextStepTime) stays straight so downbeats never drift.
+      const playTime = this._nextStepTime + this.swingShift(this._currentStep);
+      this.scheduleNote(this._currentStep, playTime);
       this._nextStepTime += this.secPerStep();
       this._currentStep++;
       if (this._currentStep >= this._totalSteps) {
