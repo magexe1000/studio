@@ -200,6 +200,13 @@ export default function BottomNav() {
     <nav
       ref={navRef}
       className="glass-nav fixed w-[90%] max-w-md flex justify-around items-center px-2 py-1.5"
+      // When hidden (e.g. inside the song-preset editor or a full-screen
+      // popup), also strip the bar from the accessibility tree so it doesn't
+      // appear in screen-reader / aria snapshots — purely visual translation
+      // would otherwise leave a "ghost" nav for assistive tech.
+      aria-hidden={navHidden || undefined}
+      // @ts-expect-error – `inert` is valid HTML but missing from React types in this version
+      inert={navHidden ? '' : undefined}
       style={{
         bottom: 'max(10px, env(safe-area-inset-bottom))',
         left: '50%',
@@ -211,6 +218,7 @@ export default function BottomNav() {
           : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
         zIndex: 50,
         overflow: 'hidden',
+        pointerEvents: navHidden ? 'none' : 'auto',
         transform: navHidden
           ? 'translateX(-50%) translateY(calc(100% + 32px))'
           : 'translateX(-50%) translateY(0)',
