@@ -22,12 +22,16 @@
  * accepts a version from any other source.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { APP_VERSION, compareSemver, normalizeSemver } from './appVersion';
 import { isNative, notifyOtaAvailable } from './capgoUpdater';
+import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 
 const LAST_SEEN_KEY = 'studio:lastSeenVersion';
 const FETCH_TIMEOUT_MS = 6000;
+/** How often to re-check for updates while the app is open and visible.
+ *  Five minutes is a balance between freshness and battery/network. */
+const FOREGROUND_POLL_MS = 5 * 60 * 1000;
 
 export interface RemoteVersionInfo {
   version: string;
@@ -163,42 +167,124 @@ export async function checkForUpdate(): Promise<OtaState> {
 }
 
 /**
- * React hook: fetches once on mount, returns OTA state. Aborts on
- * unmount so a slow server response doesn't update an unmounted tree.
+ * React hook: returns OTA state and aggressively refreshes it.
+ *
+ * Originally we only fetched ONCE on mount, which meant a user who left
+ * the app open all day never saw a release shipped during that day, and
+ * a user who background/foregrounded only saw a fresh check on cold
+ * start. This version checks:
+ *
+ *  1. Immediately on mount.
+ *  2. Every time the app comes back to the foreground:
+ *      - Capacitor `App.appStateChange` (`isActive: true`) on native.
+ *      - `document.visibilitychange` → `document.visibilityState ===
+ *        'visible'` on web/PWA.
+ *  3. On a 5-minute interval while the app is visible. The interval is
+ *     paused when the document goes hidden (no point burning battery
+ *     polling in the background — the native WorkManager worker handles
+ *     "while truly closed" coverage).
+ *
+ * All listeners are torn down on unmount. Concurrent fetches are
+ * collapsed via the `inFlight` ref so a quick visibility flap doesn't
+ * stack three identical requests.
  */
 export function useOtaUpdate(): OtaState {
   const [state, setState] = useState<OtaState>(INITIAL_STATE);
+  const inFlight = useRef(false);
+  const mounted = useRef(true);
 
   useEffect(() => {
+    mounted.current = true;
     const ctrl = new AbortController();
-    let cancelled = false;
-    (async () => {
-      const remote = await fetchRemoteVersion(ctrl.signal);
-      if (cancelled) return;
-      if (!remote) {
-        setState({ ...INITIAL_STATE, loading: false });
-        return;
+
+    const runCheck = async () => {
+      if (inFlight.current) return;
+      inFlight.current = true;
+      try {
+        const remote = await fetchRemoteVersion(ctrl.signal);
+        if (!mounted.current) return;
+        if (!remote) {
+          setState((prev) =>
+            prev.loading ? { ...INITIAL_STATE, loading: false } : prev,
+          );
+          return;
+        }
+        const cmp = compareSemver(remote.version, APP_VERSION);
+        setState({
+          updateAvailable: cmp > 0,
+          remoteVersion: remote.version,
+          changelog: remote.changelog ?? null,
+          mandatory: remote.mandatory === true,
+          downloadUrl: remote.downloadUrl ?? null,
+          loading: false,
+        });
+        // Fire an OS-level notification with the version number. This is
+        // intentionally fire-and-forget: it dedups internally per version,
+        // and a failure to surface a notification must never block the
+        // in-app update banner from showing.
+        if (cmp > 0) {
+          void notifyOtaAvailable(remote.version);
+        }
+      } finally {
+        inFlight.current = false;
       }
-      const cmp = compareSemver(remote.version, APP_VERSION);
-      setState({
-        updateAvailable: cmp > 0,
-        remoteVersion: remote.version,
-        changelog: remote.changelog ?? null,
-        mandatory: remote.mandatory === true,
-        downloadUrl: remote.downloadUrl ?? null,
-        loading: false,
-      });
-      // Fire an OS-level notification with the version number. This is
-      // intentionally fire-and-forget: it dedups internally per version,
-      // and a failure to surface a notification must never block the
-      // in-app update banner from showing.
-      if (cmp > 0) {
-        void notifyOtaAvailable(remote.version);
+    };
+
+    // Mark our currently running bundle so the native background worker
+    // has a baseline even before the user has dismissed any banner.
+    void nativeSet(NATIVE_PREFS.OTA_INSTALLED, APP_VERSION);
+
+    // 1. Initial check on mount.
+    void runCheck();
+
+    // 2a. Web: visibility transitions → re-check on becoming visible.
+    const onVisibility = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        void runCheck();
       }
-    })();
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibility);
+    }
+
+    // 2b. Native (Capacitor): listen for the app coming back to the
+    //     foreground. This fires even when visibilitychange does not.
+    let nativeListener: { remove: () => Promise<void> } | undefined;
+    if (isNative()) {
+      void (async () => {
+        try {
+          const { App } = await import('@capacitor/app');
+          nativeListener = await App.addListener('appStateChange', (s) => {
+            if (s.isActive) void runCheck();
+          });
+        } catch {
+          /* plugin unavailable — visibilitychange path still works */
+        }
+      })();
+    }
+
+    // 3. Periodic foreground poll. Uses a self-rescheduling timeout so
+    //    the next tick is always exactly POLL_MS after the previous
+    //    completion (no thundering herd if a fetch is slow).
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    const schedulePoll = () => {
+      pollTimer = setTimeout(async () => {
+        if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+          await runCheck();
+        }
+        if (mounted.current) schedulePoll();
+      }, FOREGROUND_POLL_MS);
+    };
+    schedulePoll();
+
     return () => {
-      cancelled = true;
+      mounted.current = false;
       ctrl.abort();
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibility);
+      }
+      if (pollTimer) clearTimeout(pollTimer);
+      if (nativeListener) void nativeListener.remove().catch(() => {});
     };
   }, []);
 

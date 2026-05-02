@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.9';
+export const APP_VERSION = '3.0.10';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -54,17 +54,14 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "What's new",
     items: [
-      'Pick a profile icon — tap your avatar to choose from a set of person, face and music icons.',
-      'New changelog screen — opens as a bottom sheet you can swipe down to close.',
-      'Changelog is now reachable any time from Settings → About.',
+      'Faster updates — Studio now checks for new versions every time you bring the app back to the foreground, and again every few minutes while it stays open.',
+      'Background notifications — once you reinstall this APK, the phone will check on its own every ~15 minutes and post an update notification even with the app closed.',
     ],
   },
   {
     heading: 'Fixes',
     items: [
-      'Cloud sync no longer gets stuck on "Syncing…" when the local database takes too long.',
-      'A broken Google profile photo now falls back to your initials instead of a broken image.',
-      'The "you just updated" screen is now lighter and only shows the version number — open the changelog from Settings to read the details.',
+      'Removed the long stall after the very first launch where the update banner could take a minute to appear.',
     ],
   },
 ];

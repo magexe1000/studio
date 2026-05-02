@@ -17,6 +17,18 @@ Conventions:
 
 ---
 
+## 3.0.10
+
+- Faster updates: Studio now re-checks for new versions every time
+  you bring the app back to the foreground, plus once every 5 minutes
+  while it stays open.
+- Background notifications: a tiny Android worker checks every ~15
+  minutes and posts a system notification when a new bundle is
+  available — even if the app is closed. (Requires one APK reinstall
+  to activate; future updates remain over-the-air.)
+
+---
+
 ## 3.0.9
 
 - New: the changelog is now a slick bottom sheet (Metrolist style) —

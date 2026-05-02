@@ -148,30 +148,57 @@ const mainActivityContent =
 import android.os.Build;
 import android.os.Bundle;
 import android.view.WindowManager;
+
+import androidx.work.Constraints;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+
 import com.getcapacitor.BridgeActivity;
+
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends BridgeActivity {
 
+    private static final String OTA_WORK_NAME = "studio_ota_check";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Dismiss the Android 12+ splash screen immediately so the app
-        // animation plays right away without a separate launch screen.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             getSplashScreen().setOnExitAnimationListener(
                 splashScreenView -> splashScreenView.remove()
             );
         }
         super.onCreate(savedInstanceState);
-        // Status bar must always be visible — never allow fullscreen mode.
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        scheduleOtaBackgroundCheck();
     }
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
-            // Re-assert non-fullscreen if anything tried to change it.
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        }
+    }
+
+    private void scheduleOtaBackgroundCheck() {
+        try {
+            Constraints constraints = new Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build();
+            PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(
+                    OtaCheckWorker.class, 15, TimeUnit.MINUTES)
+                .setConstraints(constraints)
+                .build();
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                OTA_WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                request
+            );
+        } catch (Exception e) {
+            android.util.Log.w("MainActivity", "OTA background work failed to schedule: " + e.getMessage());
         }
     }
 }
@@ -179,9 +206,22 @@ public class MainActivity extends BridgeActivity {
 
 if (fs.existsSync(mainActivityPath)) {
   fs.writeFileSync(mainActivityPath, mainActivityContent, 'utf8');
-  console.log('  FIXED MainActivity.java  (status bar always visible)');
+  console.log('  FIXED MainActivity.java  (status bar + OTA background worker)');
 } else {
   console.warn('  SKIP  MainActivity.java  — file not found (run cap sync first)');
 }
+
+// ── 6. Ensure WorkManager dependency is in app/build.gradle ─────────────
+patchFile(
+  path.join(androidDir, 'app/build.gradle'),
+  'app/build.gradle  (androidx.work dependency)',
+  (src) => {
+    if (src.includes('androidx.work:work-runtime')) return src;
+    return src.replace(
+      /(implementation "com\.google\.firebase:firebase-auth:\$firebaseAuthVersion"\s*\n)/,
+      '$1    implementation "androidx.work:work-runtime:2.9.1"\n'
+    );
+  }
+);
 
 console.log('\nDone. Ready to build:\n  .\\gradlew.bat assembleDebug\n');

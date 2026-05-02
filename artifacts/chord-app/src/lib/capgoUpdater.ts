@@ -25,6 +25,7 @@
  */
 
 import { Capacitor } from '@capacitor/core';
+import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 
 /** True only inside a Capacitor-wrapped native shell (Android APK). */
 export function isNative(): boolean {
@@ -114,6 +115,10 @@ function writeNotifiedVersion(v: string): void {
   } catch {
     /* quota / privacy mode — silently ignore */
   }
+  // Mirror to native SharedPreferences so the Android WorkManager
+  // background worker (`OtaCheckWorker.java`) doesn't fire a duplicate
+  // OS notification for a version the user has already seen in-app.
+  void nativeSet(NATIVE_PREFS.OTA_REMOTE_SEEN, v);
 }
 
 /**
