@@ -10,6 +10,7 @@ import StudioHub from './components/StudioHub';
 import { attachSyncEngine, requestFlush } from './lib/sync';
 import { subscribeAccountState, type AccountState } from './lib/accountStatus';
 import PendingDeletionScreen from './components/PendingDeletionScreen';
+import { useStudioSync } from './lib/useStudioSync';
 const stagexImport  = () => import('./components/StageCorePanel');
 const libraryImport = () => import('./panels/LibraryPanel');
 const chordImport   = () => import('./panels/ChordPanel');
@@ -40,6 +41,13 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
+
+  // Mount the cross-app data bridge. Mirrors each app's active selection
+  // (Chordex preset, Drumex pattern) into the active StudioProject —
+  // imperative push helpers in lib/studioBridge handle Vocalex / Stagex.
+  // Adds zero startup cost (single subscribe per app store) and zero
+  // coupling (no app store knows about any other).
+  useStudioSync();
 
   // Subscribe to combined auth + soft-delete status. While in `pending` we
   // overlay a lockdown screen with a countdown + Restore button.
