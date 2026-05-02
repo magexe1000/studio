@@ -56,6 +56,7 @@ const distDir = path.join(root, 'dist/public');
 const bundlesDir = path.join(distDir, 'bundles');
 const versionJsonPath = path.join(distDir, 'version.json');
 const appVersionPath = path.join(root, 'src/lib/appVersion.ts');
+const changelogPath = path.join(root, 'CHANGELOG.md');
 
 // ── Read version from the source of truth ─────────────────────────────
 const src = fs.readFileSync(appVersionPath, 'utf8');
@@ -65,6 +66,88 @@ if (!versionMatch) {
   process.exit(1);
 }
 const version = versionMatch[1];
+
+// ── Pull the matching section out of CHANGELOG.md ─────────────────────
+//
+// The changelog is the SOURCE OF TRUTH for what each release contains.
+// We parse the section whose heading matches the current APP_VERSION
+// and ship its bullet list as version.json's `changelog` field.
+//
+// Format expected (see CHANGELOG.md for the full spec):
+//   ## 3.0.3
+//   - first change
+//   - second change
+//
+//   ## 3.0.2
+//   - ...
+//
+// Resolution rules:
+//   - Heading match is exact ("## X.Y.Z" — no "v" prefix).
+//   - Body extends from the heading down to the next "## " or EOF.
+//   - We strip the leading "- " from each bullet and normalize to "• "
+//     so the in-app modal renders bullets consistently with prior
+//     hand-written entries.
+//   - If no matching section exists, we WARN and fall back to the
+//     generic "Version X.Y.Z" string. The release still goes out so a
+//     forgotten changelog entry doesn't block a hot-fix, but the log
+//     line makes the omission impossible to miss.
+function readChangelogForVersion(v) {
+  if (!fs.existsSync(changelogPath)) {
+    console.warn(`publish-bundle: ⚠ CHANGELOG.md not found — using generic message.`);
+    return `Version ${v}`;
+  }
+  const text = fs.readFileSync(changelogPath, 'utf8');
+  // Escape regex metachars in the version string (defensive — in
+  // practice semver only uses [0-9.] but a typo'd suffix shouldn't
+  // explode the regex).
+  const esc = v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // JS regex doesn't have \Z (end-of-string anchor). Use a negative
+  // lookahead `(?![\s\S])` instead so the LAST section in the file
+  // (which has no `## ` after it) still matches.
+  const re = new RegExp(
+    `^##\\s+${esc}\\s*$([\\s\\S]*?)(?=^##\\s+|(?![\\s\\S]))`,
+    'm',
+  );
+  const match = text.match(re);
+  if (!match) {
+    console.warn(
+      `publish-bundle: ⚠ no \`## ${v}\` section in CHANGELOG.md — using generic message.`,
+    );
+    console.warn('  Add an entry to CHANGELOG.md before the next release so the modal');
+    console.warn('  shows the actual changes shipped in this bundle.');
+    return `Version ${v}`;
+  }
+  // Pull bullets only (lines that start with "- "). Multi-line bullets
+  // (continuation indented under a "- ") get joined back onto the
+  // bullet so the modal renders them as one paragraph each.
+  const lines = match[1].split('\n');
+  const bullets = [];
+  let current = null;
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (/^\s*-\s+/.test(line)) {
+      if (current) bullets.push(current);
+      current = '• ' + line.replace(/^\s*-\s+/, '').trim();
+    } else if (/^\s+\S/.test(line) && current) {
+      // Continuation of the previous bullet.
+      current += ' ' + line.trim();
+    } else if (line.trim() === '' && current) {
+      bullets.push(current);
+      current = null;
+    }
+    // Anything else (stray prose, blank lines before any bullet) is ignored.
+  }
+  if (current) bullets.push(current);
+  if (bullets.length === 0) {
+    console.warn(
+      `publish-bundle: ⚠ section \`## ${v}\` has no bullets — using generic message.`,
+    );
+    return `Version ${v}`;
+  }
+  return bullets.join('\n');
+}
+
+const changelog = readChangelogForVersion(version);
 
 // ── Sanity-check the build output ─────────────────────────────────────
 if (!fs.existsSync(distDir)) {
@@ -112,7 +195,15 @@ console.log(`publish-bundle: ✓ created ${path.relative(root, zipPath)} (${size
 const otaBase = (process.env.OTA_BASE_URL ?? '').trim().replace(/\/$/, '');
 const existing = fs.existsSync(versionJsonPath)
   ? JSON.parse(fs.readFileSync(versionJsonPath, 'utf8'))
-  : { version, changelog: `Version ${version}`, mandatory: false };
+  : { mandatory: false };
+
+// Always re-stamp version + changelog from the source of truth. The
+// previous behaviour of preserving whatever was already in version.json
+// meant the changelog drifted across releases (it was hand-edited once
+// and never updated again). Now every release writes the matching
+// section from CHANGELOG.md, so the modal always shows the changes
+// the user is actually about to receive.
+existing.changelog = changelog;
 
 if (!otaBase) {
   // Strip any stale downloadUrl from a prior run — otherwise the APK
