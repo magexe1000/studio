@@ -1,0 +1,147 @@
+Fix and stabilize the sync system so it no longer gets stuck in an infinite "syncing" state or ends in errors. The sync feature must be reliable, fast, and actually functional.
+
+IMPORTANT:
+Do NOT apply superficial fixes. Debug the root cause and rebuild the sync flow if necessary.
+
+---
+
+1. ROOT CAUSE ANALYSIS
+
+---
+
+* Identify why sync gets stuck:
+
+  * unresolved promises
+  * missing await
+  * failed network requests not handled
+  * infinite loading state
+  * race conditions
+  * state not updating after completion
+
+* Log:
+
+  * start of sync
+  * success
+  * failure
+  * timeout
+
+---
+
+2. SYNC FLOW REBUILD (IF NEEDED)
+
+---
+
+Create a clear sync lifecycle:
+
+1. idle
+2. syncing
+3. success
+4. error
+
+* Ensure state always exits "syncing"
+* Never allow infinite loading
+
+---
+
+3. TIMEOUT PROTECTION
+
+---
+
+* Add timeout (e.g. 5–10 seconds max)
+* If exceeded:
+
+  * cancel operation
+  * set state to "error"
+  * show retry option
+
+---
+
+4. ERROR HANDLING
+
+---
+
+* Catch ALL errors:
+
+  * network failure
+  * invalid response
+  * server issues
+
+* Display:
+
+  * simple message ("Sync failed")
+  * retry button
+
+---
+
+5. RETRY SYSTEM
+
+---
+
+* Allow manual retry
+* Reset state cleanly before retry
+* Optional: auto-retry once
+
+---
+
+6. UI STATE FIXES
+
+---
+
+* "Syncing..." indicator must:
+
+  * appear only during active sync
+  * disappear on success OR failure
+
+* Add states:
+
+  * success → brief confirmation (e.g. "Synced")
+  * error → clear feedback
+
+---
+
+7. DATA VALIDATION
+
+---
+
+* Ensure data is correctly:
+
+  * sent
+  * received
+  * stored
+
+* Prevent partial syncs
+
+---
+
+8. PERFORMANCE
+
+---
+
+* Avoid blocking UI
+* Use async properly
+* Prevent duplicate sync calls
+
+---
+
+9. CLEANUP
+
+---
+
+* Remove:
+
+  * duplicate sync triggers
+  * unused promises
+  * conflicting states
+
+---
+
+## GOAL
+
+The sync system must:
+
+* never get stuck
+* always resolve (success or error)
+* allow retry
+* feel fast and reliable
+
+No infinite loading. No silent failures. Fully functional.

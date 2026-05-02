@@ -109,7 +109,25 @@ export const KIT_INSTRUMENTS: Record<KitType, DrumInstrument[]> = {
   house:   ['hihat-closed','snare','kick','crash','tom-high','tom-mid','tom-floor'],
 };
 
-export interface DrumHit { step: number; length: number; variation?: NoteVariation; }
+// Per-step velocity (MIDI 0–127). 100 is neutral / "no scaling". Optional so
+// existing patterns persisted before velocity existed keep working — undefined
+// is treated as DEFAULT_VELOCITY at playback time.
+export const MIN_VELOCITY = 1;
+export const MAX_VELOCITY = 127;
+export const DEFAULT_VELOCITY = 100;
+// Newly placed notes get a velocity in this range (rather than always 100), so
+// freshly drawn patterns don't sound robotic out of the box.
+export const NEW_NOTE_VELOCITY_MIN = 85;
+export const NEW_NOTE_VELOCITY_MAX = 110;
+export function randomNewNoteVelocity(): number {
+  return Math.round(NEW_NOTE_VELOCITY_MIN + Math.random() * (NEW_NOTE_VELOCITY_MAX - NEW_NOTE_VELOCITY_MIN));
+}
+export function clampVelocity(v: number): number {
+  if (!Number.isFinite(v)) return DEFAULT_VELOCITY;
+  return Math.max(MIN_VELOCITY, Math.min(MAX_VELOCITY, Math.round(v)));
+}
+
+export interface DrumHit { step: number; length: number; variation?: NoteVariation; velocity?: number; }
 export interface DrumMeasure { id: string; hits: Partial<Record<DrumInstrument, DrumHit[]>>; }
 
 export const GROOVE_TAGS = ['Rock', 'Trap', 'Jazz', 'Funk', 'Fill', 'Intro', 'Outro', 'Loop', 'Latin'] as const;
@@ -269,6 +287,8 @@ export interface DrumPrefs {
   gridLinesEmphasis:    boolean;
   // Cymbal
   randomVariations:     boolean;
+  // Dynamics
+  humanizeVelocity:     boolean;  // non-destructive ±jitter applied at playback time
 }
 
 export const DEFAULT_DRUM_PREFS: DrumPrefs = {
@@ -284,6 +304,7 @@ export const DEFAULT_DRUM_PREFS: DrumPrefs = {
   highlightActiveInst:  true,
   gridLinesEmphasis:    true,
   randomVariations:     true,
+  humanizeVelocity:     true,
 };
 
 interface DrumStore {
@@ -313,6 +334,7 @@ interface DrumStore {
 
   toggleHit:       (patternId: string, measureId: string, instrument: DrumInstrument, step: number) => void;
   simpleToggleHit: (patternId: string, measureId: string, instrument: DrumInstrument, step: number) => void;
+  setHitVelocity:  (patternId: string, measureId: string, instrument: DrumInstrument, step: number, velocity: number) => void;
   addMeasure:      (patternId: string) => string;
   deleteMeasure:   (patternId: string, measureId: string) => void;
   clearMeasure:       (patternId: string, measureId: string) => void;
@@ -461,7 +483,7 @@ export const useDrumStore = create<DrumStore>()(
                 const existing = hits.find(h => h.step === step);
                 const varList  = INST_VARIATIONS[instrument] ?? ['normal'];
                 if (!existing) {
-                  const newHit: DrumHit = { step, length: 1, variation: 'normal' };
+                  const newHit: DrumHit = { step, length: 1, variation: 'normal', velocity: randomNewNoteVelocity() };
                   return { ...m, hits: { ...m.hits, [instrument]: [...hits, newHit].sort((a, b) => a.step - b.step) } };
                 }
                 const curVar  = existing.variation ?? 'normal';
@@ -491,8 +513,28 @@ export const useDrumStore = create<DrumStore>()(
                 if (existing) {
                   return { ...m, hits: { ...m.hits, [instrument]: hits.filter(h => h !== existing) } };
                 }
-                const newHit = { step, length: 1, variation: 'normal' as const };
+                const newHit: DrumHit = { step, length: 1, variation: 'normal', velocity: randomNewNoteVelocity() };
                 return { ...m, hits: { ...m.hits, [instrument]: [...hits, newHit].sort((a, b) => a.step - b.step) } };
+              }),
+            };
+          }),
+        }));
+      },
+
+      setHitVelocity: (patternId, measureId, instrument, step, velocity) => {
+        const v = clampVelocity(velocity);
+        set(s => ({
+          patterns: s.patterns.map(p => {
+            if (p.id !== patternId) return p;
+            return {
+              ...p,
+              measures: p.measures.map(m => {
+                if (m.id !== measureId) return m;
+                const hits = m.hits[instrument] ?? [];
+                const existing = hits.find(h => h.step === step);
+                if (!existing || existing.velocity === v) return m;
+                const updated: DrumHit = { ...existing, velocity: v };
+                return { ...m, hits: { ...m.hits, [instrument]: hits.map(h => h === existing ? updated : h) } };
               }),
             };
           }),
@@ -733,7 +775,7 @@ export const useDrumStore = create<DrumStore>()(
     }),
     {
       name: 'chordex-drums',
-      version: 12,
+      version: 13,
       partialize: (state) => { const { instFX: _fx, ...rest } = state; return rest as typeof state; },
       migrate: (state: unknown, _version: number) => {
         const s = state as {

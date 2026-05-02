@@ -113,6 +113,7 @@ export default function DrumPrefsPanel() {
           {row('loopPlayback', dp.loopPlayback, dp.loopPlaybackDesc)}
           {row('metronome', dp.metronome, dp.metronomeDesc)}
           {row('countIn', dp.countIn, dp.countInDesc)}
+          {row('humanizeVelocity', dp.humanizeVelocity, dp.humanizeVelocityDesc)}
         </div>
 
         <SectionHeader icon="touch_app" title={dp.interaction} />

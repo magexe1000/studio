@@ -6,6 +6,7 @@ import { useT } from '../lib/useT';
 import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, INSTRUMENT_NAME, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS, CYMBAL_PACKS,
   stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX, emptyMeasure, DRUM_INSTRUMENTS,
+  DEFAULT_VELOCITY, MIN_VELOCITY, MAX_VELOCITY, clampVelocity,
   type DrumInstrument, type KitType, type HouseMic, type HouseCrashModel, type CymbalPack, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
   type InstPlugin,
@@ -14,7 +15,7 @@ import {
   drumScheduler, samplePool, loadDrumSamples, loadHouseKit, houseKitPool,
   setHouseKitMic, setHouseInstVelOverrides, HOUSE_VEL_CONFIGS, HOUSE_INST_LABELS,
   setHouseCrashModel as audioSetHouseCrashModel,
-  setCymbalPackAudio, setRandomVariations,
+  setCymbalPackAudio, setRandomVariations, setHumanizeVelocity,
   KIT_DEFAULTS, getSoundForVariation, setInstFXMap, setInstPluginMap,
   getAudioCtx,
   type SampleStatus, type HouseInstName,
@@ -252,29 +253,35 @@ const NoteHead = memo(function NoteHead({ inst, variation, r, color }: {
   return <CircleHead r={r} color={color} />;
 });
 
+// A cell's hit info: variation + velocity (0–127). Replaces what used to be
+// just a NoteVariation so the row can render velocity bars without a second
+// store lookup.
+export interface HitInfo { variation: NoteVariation; velocity: number; }
+
 // Stable empty map — prevents creating a new reference each render for muted rows
-const EMPTY_HIT_MAP: Map<number, NoteVariation> = new Map();
+const EMPTY_HIT_MAP: Map<number, HitInfo> = new Map();
 
 // ── Instrument row SVG ─────────────────────────────────────────────────────
 interface RowProps {
   inst: DrumInstrument;
   mStartIdx: number;
-  rowMeasures: { id: string; hits: Partial<Record<DrumInstrument, { step: number; length: number; variation?: NoteVariation }[]>> }[];
+  rowMeasures: { id: string; hits: Partial<Record<DrumInstrument, { step: number; length: number; variation?: NoteVariation; velocity?: number }[]>> }[];
   spm: number;
   stepsPerBeat: number;
   STEP_W: number;
   MEASURE_W: number;
-  hitMap: Map<number, NoteVariation>;
+  hitMap: Map<number, HitInfo>;
   noteColor: string;
   staffColor: string;
   barColor: string;
   altBg: string;
   showVariations: boolean;
   gridEmphasis: boolean;
+  accentFrom: string;
 }
 const InstrumentRow = memo(({
   inst, mStartIdx, rowMeasures, spm, stepsPerBeat, STEP_W, MEASURE_W,
-  hitMap, noteColor, staffColor, barColor, altBg, showVariations, gridEmphasis,
+  hitMap, noteColor, staffColor, barColor, altBg, showVariations, gridEmphasis, accentFrom,
 }: RowProps) => {
   const totalW     = rowMeasures.length * MEASURE_W;
   const defaultNoteY = NOTE_YF[inst] * ROW_H;
@@ -314,13 +321,41 @@ const InstrumentRow = memo(({
         <line key={mi} x1={mi * MEASURE_W} y1={0} x2={mi * MEASURE_W} y2={ROW_H} stroke={barColor} strokeWidth={mi === 0 ? 1.5 : 1.2} />
       ))}
       <line x1={totalW} y1={0} x2={totalW} y2={ROW_H} stroke={barColor} strokeWidth={1.5} />
+      {/* Velocity bars — thin accent-tinted bar at the bottom of each active
+          cell, width proportional to velocity. Drawn before noteheads so the
+          notation always reads on top. */}
+      {rowMeasures.map((_, mi) =>
+        Array.from({ length: spm }, (__, s) => {
+          const globalStep = (mStartIdx + mi) * spm + s;
+          const info = hitMap.get(globalStep);
+          if (!info) return null;
+          const cellW   = STEP_W - 3;
+          const frac    = Math.max(0.06, Math.min(1, info.velocity / MAX_VELOCITY));
+          const w       = cellW * frac;
+          const x       = (mi * spm + s) * STEP_W + (STEP_W - w) / 2;
+          // Subtle: blends in for low velocity, more vivid for hard hits.
+          const op      = 0.32 + frac * 0.45;
+          return (
+            <rect
+              key={`v-${mi}-${s}`}
+              x={x} y={ROW_H - 2.4}
+              width={w} height={1.4}
+              rx={0.7}
+              fill={accentFrom}
+              opacity={op}
+              pointerEvents="none"
+            />
+          );
+        })
+      )}
       {/* Note heads */}
       {rowMeasures.map((_, mi) =>
         Array.from({ length: spm }, (__, s) => {
           const globalStep = (mStartIdx + mi) * spm + s;
-          if (!hitMap.has(globalStep)) return null;
+          const info = hitMap.get(globalStep);
+          if (!info) return null;
           // showVariations=false → all notes look identical (normal)
-          const rawVariation = hitMap.get(globalStep) ?? 'normal';
+          const rawVariation = info.variation;
           const variation: NoteVariation = showVariations ? rawVariation : 'normal';
 
           // Pedal HH sits at the bottom; ride hits on the cymbal row sit slightly lower
@@ -1507,7 +1542,7 @@ export default function DrumEditor() {
     soundMap, volumeMap, masterVolume,
     kitType, activeInstruments,
     setKitType, toggleInstrument, setMasterVolume, setVolumeForInstrument,
-    toggleHit, simpleToggleHit, addMeasure, deleteMeasure, clearMeasure, duplicateMeasure, updatePattern,
+    toggleHit, simpleToggleHit, setHitVelocity, addMeasure, deleteMeasure, clearMeasure, duplicateMeasure, updatePattern,
     addBlankPattern, duplicatePattern, deletePattern, renamePattern, setActivePattern,
     drumSongs, saveDrumSong, createBlankDrumSong, loadDrumSong, deleteDrumSong, updateDrumSong,
     restorePatterns, insertMeasureAfter, togglePatternMute, importDrumSong,
@@ -1634,6 +1669,7 @@ export default function DrumEditor() {
   useEffect(() => { audioSetHouseCrashModel(houseCrashModel); }, [houseCrashModel]);
   useEffect(() => { setCymbalPackAudio(cymbalPack); }, [cymbalPack]);
   useEffect(() => { setRandomVariations(drumPrefs.randomVariations); }, [drumPrefs.randomVariations]);
+  useEffect(() => { setHumanizeVelocity(drumPrefs.humanizeVelocity); }, [drumPrefs.humanizeVelocity]);
 
   // ── Quick mixer sheet + export modal + import modal ──────────────────────
   const [showMixerSheet,    setShowMixerSheet]    = useState(false);
@@ -1758,13 +1794,16 @@ export default function DrumEditor() {
     }
   }, [isLandscape, inEditor, measuresPerRow, pattern.measures.length, pattern.id]);
 
-  // ── Hit maps (step → variation) ──────────────────────────────────────────
+  // ── Hit maps (step → { variation, velocity }) ────────────────────────────
   const allHitMaps = useMemo(() => {
-    const map = new Map<DrumInstrument, Map<number, NoteVariation>>();
+    const map = new Map<DrumInstrument, Map<number, HitInfo>>();
     visibleInsts.forEach(inst => {
-      const m2 = new Map<number, NoteVariation>();
+      const m2 = new Map<number, HitInfo>();
       pattern.measures.forEach((m, mIdx) => {
-        m.hits[inst]?.forEach(h => m2.set(mIdx * spm + h.step, h.variation ?? 'normal'));
+        m.hits[inst]?.forEach(h => m2.set(mIdx * spm + h.step, {
+          variation: h.variation ?? 'normal',
+          velocity: typeof h.velocity === 'number' ? h.velocity : DEFAULT_VELOCITY,
+        }));
       });
       map.set(inst, m2);
     });
@@ -2934,7 +2973,7 @@ export default function DrumEditor() {
                               <span style={{ fontSize: 6.5, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-muted)', opacity: 0.55, letterSpacing: '0.02em', whiteSpace: 'normal', lineHeight: 1.35, marginTop: 1, width: '100%', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{varList.join(' · ')}</span>
                             )}
                           </div>
-                          <InstrumentRow inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures} spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W} hitMap={hitMap} noteColor={noteColor} staffColor={staffColor} barColor={barColor} altBg={altBg} showVariations={drumPrefs.showNoteVariations} gridEmphasis={drumPrefs.gridLinesEmphasis} />
+                          <InstrumentRow inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures} spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W} hitMap={hitMap} noteColor={noteColor} staffColor={staffColor} barColor={barColor} altBg={altBg} showVariations={drumPrefs.showNoteVariations} gridEmphasis={drumPrefs.gridLinesEmphasis} accentFrom={accent.from} />
                         </div>
                       );
                     })}

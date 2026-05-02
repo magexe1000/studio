@@ -32,6 +32,31 @@ function getVolMultForVariation(variation: NoteVariation): number {
   return 1.0;
 }
 
+// ── Per-step velocity (MIDI 0–127) ──────────────────────────────────────────
+// Velocity is converted to a linear gain factor by dividing by 100 (so 100 is
+// neutral, 127 ≈ +27% boost, 60 ≈ -40%). This sits on top of the variation
+// multiplier above, so an "accent" at velocity 60 still feels softer than a
+// "normal" at 127, matching how real drummers vary articulation independently
+// from how hard they hit. Humanize jitter (when enabled) is added on top at
+// scheduling time so it stays non-destructive — the stored velocity never
+// changes.
+const VELOCITY_NEUTRAL = 100;
+const HUMANIZE_VEL_JITTER = 7; // ± in MIDI units per hit
+
+let _humanizeVelocity = false;
+export function setHumanizeVelocity(on: boolean): void { _humanizeVelocity = on; }
+
+function getVelocityGain(rawVelocity: number | undefined): number {
+  const base = (typeof rawVelocity === 'number' && Number.isFinite(rawVelocity))
+    ? rawVelocity
+    : VELOCITY_NEUTRAL;
+  const jitter = _humanizeVelocity
+    ? (Math.random() * 2 - 1) * HUMANIZE_VEL_JITTER
+    : 0;
+  const v = Math.max(1, Math.min(127, base + jitter));
+  return v / VELOCITY_NEUTRAL;
+}
+
 // ── Kit definitions ───────────────────────────────────────────────────────────
 export const KIT_DEFAULTS: Record<KitType, {
   label:       string;
@@ -1745,8 +1770,11 @@ class DrumScheduler {
       const variation = hit.variation ?? 'normal';
       const soundId   = getSoundForVariation(inst, variation, this._soundMap, kitDefs);
       const volMult   = getVolMultForVariation(variation);
+      const velGain   = getVelocityGain(hit.velocity);
       const baseVol   = (this._volMap[inst] ?? 1) * this._masterVol;
-      const vol       = Math.min(baseVol * volMult, 1.0);
+      // Cap at 1.2 (was 1.0) so a high-velocity accent can still bloom slightly
+      // above unity without clipping the master bus.
+      const vol       = Math.min(baseVol * volMult * velGain, 1.2);
 
       // Flam: play a soft grace note ~20 ms before the main hit
       if (variation === 'flam') {
