@@ -7,10 +7,10 @@ import {
   registerEmail,
   signOut,
   subscribeAuth,
-  deleteAccount,
   type AuthUser,
 } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, deleteCloudData } from '../lib/sync';
+import { subscribeSyncStatus, syncNow } from '../lib/sync';
+import { scheduleAccountDeletion } from '../lib/accountStatus';
 import { useT } from '../lib/useT';
 import { useChordStore } from '../store/useChordStore';
 
@@ -317,18 +317,14 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
     if (!user || deleting) return;
     setDeleting(true); setErr(null);
     try {
-      await deleteCloudData();
-      await deleteAccount();
+      // Soft-delete: schedule removal, keep all data intact for 7 days,
+      // then sign the user out. Re-signing in shows the lockdown / restore
+      // screen with a countdown.
+      await scheduleAccountDeletion(user.uid);
       closeSheet();
+      try { await signOut(); } catch { /* noop */ }
     } catch (e) {
-      const code = (e as { code?: string })?.code ?? '';
-      if (code === 'auth/requires-recent-login') {
-        setErr(t.deleteAccountReauth);
-        closeSheet();
-        try { await signOut(); } catch { /* noop */ }
-      } else {
-        setErr(prettyErr(e, lang));
-      }
+      setErr(prettyErr(e, lang));
     } finally {
       setDeleting(false);
     }

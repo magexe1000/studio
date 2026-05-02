@@ -1,0 +1,118 @@
+Implement a soft-delete account system with a 7-day grace period before permanent deletion.
+
+GOAL:
+When a user deletes their account, it should not be immediately removed. Instead, it enters a "pending deletion" state for 7 days, during which the user can log back in and restore it.
+
+---
+
+1. ACCOUNT DELETION FLOW
+
+---
+
+When the user selects "Delete Account":
+
+* Do NOT delete the account immediately
+
+* Update user record with:
+
+  * status: "pending_deletion"
+  * deletionScheduledAt: current timestamp + 7 days
+
+* Log the deletion request
+
+* Immediately log the user out
+
+---
+
+2. LOGIN BEHAVIOR DURING GRACE PERIOD
+
+---
+
+If a user tries to log in and their account is in "pending_deletion":
+
+* Allow login
+
+* Show a warning screen:
+  "Your account is scheduled for deletion in X days"
+
+* Provide a button:
+  "Restore Account"
+
+---
+
+3. RESTORE ACCOUNT
+
+---
+
+If user clicks "Restore Account":
+
+* Set:
+
+  * status: "active"
+  * deletionScheduledAt: null
+
+* Remove deletion flags
+
+* Continue normal app access
+
+---
+
+4. PERMANENT DELETION
+
+---
+
+Create a background job (or periodic check) that:
+
+* Runs on app start or interval
+* Checks all users with status "pending_deletion"
+* If current date >= deletionScheduledAt:
+
+  * Permanently delete user data:
+
+    * account
+    * projects
+    * associated data
+
+---
+
+5. DATA SAFETY
+
+---
+
+* During grace period, user data must remain intact
+* Do NOT partially delete anything before final deletion
+* Ensure no data leaks or orphan records
+
+---
+
+6. EDGE CASES
+
+---
+
+* If user logs in multiple times → always show remaining time
+* If system time changes → rely on server time if possible
+* If user restores account → cancel deletion completely
+
+---
+
+7. UI REQUIREMENTS
+
+---
+
+* Keep UI minimal and clean
+* Show countdown (e.g. "6 days remaining")
+* Add confirmation dialog before initiating deletion
+
+---
+
+## CONSTRAINTS
+
+* Do not break existing authentication system
+* Keep logic modular
+* Ensure performance is not impacted
+
+---
+
+## GOAL
+
+Create a safe and reversible account deletion system that gives users a 7-day recovery window before permanent removal.

@@ -400,6 +400,13 @@ const translations = {
         deleteAccountFinal: 'Delete forever',
         deleteAccountReauth: 'For your security, please sign in again before deleting your account.',
         deleteAccountSuccess: 'Account deleted',
+        pendingTitle: 'Account scheduled for deletion',
+        pendingUntil: 'Final removal on',
+        pendingBody: (email: string) =>
+          `Your account ${email ? `(${email}) ` : ''}and all your data will be permanently deleted when the timer runs out. Sign back in any time before then to restore everything.`,
+        pendingFooter: (days: number) =>
+          `You have ${days} days from the moment you requested deletion. Restoring cancels the timer immediately.`,
+        restoreAccount: 'Restore account',
       },
       profile: 'Profile',
       yourName: 'Your name',
@@ -1165,6 +1172,13 @@ const translations = {
         deleteAccountFinal: 'Eliminar para siempre',
         deleteAccountReauth: 'Por seguridad, inicia sesión de nuevo antes de eliminar tu cuenta.',
         deleteAccountSuccess: 'Cuenta eliminada',
+        pendingTitle: 'Cuenta programada para eliminación',
+        pendingUntil: 'Eliminación definitiva el',
+        pendingBody: (email: string) =>
+          `Tu cuenta ${email ? `(${email}) ` : ''}y todos tus datos se eliminarán permanentemente cuando termine el contador. Vuelve a iniciar sesión antes para restaurar todo.`,
+        pendingFooter: (days: number) =>
+          `Tienes ${days} días desde el momento en que solicitaste la eliminación. Restaurar cancela el contador al instante.`,
+        restoreAccount: 'Restaurar cuenta',
       },
       profile: 'Perfil',
       yourName: 'Tu nombre',

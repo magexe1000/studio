@@ -8,6 +8,8 @@ import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 import StudioHub from './components/StudioHub';
 import { attachSyncEngine, requestFlush } from './lib/sync';
+import { subscribeAccountState, type AccountState } from './lib/accountStatus';
+import PendingDeletionScreen from './components/PendingDeletionScreen';
 const stagexImport  = () => import('./components/StageCorePanel');
 const libraryImport = () => import('./panels/LibraryPanel');
 const chordImport   = () => import('./panels/ChordPanel');
@@ -38,6 +40,11 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
+
+  // Subscribe to combined auth + soft-delete status. While in `pending` we
+  // overlay a lockdown screen with a countdown + Restore button.
+  const [accountState, setAccountState] = useState<AccountState>({ phase: 'unknown' });
+  useEffect(() => subscribeAccountState(setAccountState), []);
 
   // Boot the cloud sync engine once. It listens for sign-in changes and
   // pushes/pulls Chordex/Drumex/StageX state. Also bridges localStorage
@@ -415,6 +422,17 @@ export default function App() {
     const t = setTimeout(() => setExitingPanel(null), durMs + 20);
     return () => clearTimeout(t);
   }, [activePanel, durMs]);
+
+  // ── Account scheduled for deletion: lockdown overlay ───────────────────
+  if (accountState.phase === 'pending') {
+    return (
+      <PendingDeletionScreen
+        phase="pending"
+        user={accountState.user}
+        scheduledAtMs={accountState.scheduledAtMs}
+      />
+    );
+  }
 
   // ── Hub mode: show the Studio Hub ────────────────────────────────────────
   if (settings.appMode === 'hub') {
