@@ -9,16 +9,29 @@
  *
  * Inputs (env vars):
  *   OTA_BASE_URL   — required for native OTA. The PUBLIC URL of the
- *                    deployment that will host the bundle, e.g.
- *                    `https://chordex.replit.app`. The script writes
- *                    `${OTA_BASE_URL}/bundles/bundle-X.Y.Z.zip` into
- *                    `version.json`. If unset, the script still zips
- *                    the bundle but logs a warning and leaves
+ *                    static host that will serve the bundle, e.g.
+ *                    `https://magexe1000.github.io/Chordex` (GitHub
+ *                    Pages) or `https://chordex.replit.app`. The
+ *                    script writes `${OTA_BASE_URL}/bundles/bundle-X.Y.Z.zip`
+ *                    into `version.json`. If unset, the script still
+ *                    zips the bundle but logs a warning and leaves
  *                    `downloadUrl` blank — useful for dry runs.
+ *
+ *   OTA_OUTPUT_DIR — optional. When set, the script ALSO copies the
+ *                    finished `version.json` and the bundle zip into
+ *                    `${OTA_OUTPUT_DIR}/version.json` and
+ *                    `${OTA_OUTPUT_DIR}/bundles/bundle-X.Y.Z.zip`.
+ *                    Use this to drop a Pages-ready release straight
+ *                    into your `docs/` folder (or any static host's
+ *                    publish dir) so all you have to do afterwards
+ *                    is `git add docs && git commit && git push`.
+ *                    Path is resolved relative to the chord-app
+ *                    package root.
  *
  * Outputs:
  *   dist/public/bundles/bundle-<version>.zip
  *   dist/public/version.json   (overwritten with downloadUrl appended)
+ *   ${OTA_OUTPUT_DIR}/...      (mirror copy, only when env var set)
  *
  * Implementation notes:
  *   - The zip is created with the system `zip` command. Replit's
@@ -120,3 +133,29 @@ existing.version = version;
 
 fs.writeFileSync(versionJsonPath, JSON.stringify(existing, null, 2) + '\n', 'utf8');
 console.log(`publish-bundle: ✓ wrote ${path.relative(root, versionJsonPath)}`);
+
+// ── Optional mirror to a static-host publish dir (e.g. ./docs) ────────
+const mirrorDir = (process.env.OTA_OUTPUT_DIR ?? '').trim();
+if (mirrorDir) {
+  const absMirror = path.resolve(root, mirrorDir);
+  const mirrorBundlesDir = path.join(absMirror, 'bundles');
+  fs.mkdirSync(mirrorBundlesDir, { recursive: true });
+
+  // Copy (not move) the zip — keep dist/public intact so any local
+  // PWA/preview still works.
+  const mirrorZipPath = path.join(mirrorBundlesDir, zipName);
+  fs.copyFileSync(zipPath, mirrorZipPath);
+
+  // Copy version.json AFTER it has been re-stamped above.
+  const mirrorVersionJson = path.join(absMirror, 'version.json');
+  fs.copyFileSync(versionJsonPath, mirrorVersionJson);
+
+  // Friendly relative paths in the log so the developer can see
+  // exactly what to `git add`.
+  const repoRoot = path.resolve(root, '../..');
+  const relMirror = path.relative(repoRoot, absMirror);
+  console.log(`publish-bundle: ✓ mirrored release into ${relMirror}/`);
+  console.log(`publish-bundle:   - ${path.relative(repoRoot, mirrorVersionJson)}`);
+  console.log(`publish-bundle:   - ${path.relative(repoRoot, mirrorZipPath)}`);
+  console.log(`publish-bundle: → next: \`git add ${relMirror} && git commit -m "ota ${version}" && git push\``);
+}
