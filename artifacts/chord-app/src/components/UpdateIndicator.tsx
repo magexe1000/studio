@@ -28,7 +28,7 @@
 
 import { useState, useEffect } from 'react';
 import { useOtaUpdate } from '../lib/otaUpdate';
-import { APP_VERSION_LABEL } from '../lib/appVersion';
+import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
 import { applyUpdate, isNative } from '../lib/capgoUpdater';
 
 /** How long the full banner stays visible before auto-minimizing. */
@@ -36,6 +36,33 @@ const BANNER_AUTO_MINIMIZE_MS = 6000;
 
 /** Session flag so the banner shows at most once per page session. */
 const BANNER_SHOWN_KEY = 'studio:updateBannerShown';
+
+/**
+ * localStorage key recording the latest version the user has
+ * explicitly dismissed (via "Later" in the modal). When the remote
+ * version equals this, we render nothing — the pill is no longer
+ * "always there nagging". A NEWER remote version surfaces a fresh
+ * banner.
+ */
+const DISMISSED_VERSION_KEY = 'studio:dismissedUpdateVersion';
+
+function readDismissedVersion(): string | null {
+  try {
+    const raw = localStorage.getItem(DISMISSED_VERSION_KEY);
+    // Reject anything that isn't a strictly-valid semver. Without
+    // this, a corrupted/tampered value would feed compareSemver
+    // garbage, which returns 0 ("equal"), permanently suppressing
+    // the indicator. A parse failure → treat as "no prior dismissal"
+    // and let the user see the banner again.
+    if (!raw || normalizeSemver(raw) === null) return null;
+    return raw;
+  } catch {
+    return null;
+  }
+}
+function writeDismissedVersion(v: string): void {
+  try { localStorage.setItem(DISMISSED_VERSION_KEY, v); } catch { /* quota / privacy */ }
+}
 
 type Phase = 'banner' | 'pill';
 
@@ -68,6 +95,10 @@ export default function UpdateIndicator({
   // Tiny entrance flag — start at translateY(-16px)/opacity 0 on first
   // paint, then flip on next frame so the CSS transition runs.
   const [entered, setEntered] = useState(false);
+  // Version the user has explicitly dismissed via "Later". Re-read on
+  // mount; updated locally when the modal's Later button fires so we
+  // can hide immediately without a remount.
+  const [dismissedVersion, setDismissedVersion] = useState<string | null>(readDismissedVersion);
 
   useEffect(() => {
     // Defer one frame so the initial style commits, then transition in.
@@ -87,9 +118,27 @@ export default function UpdateIndicator({
 
   if (ota.loading || !ota.updateAvailable) return null;
 
+  // Hide entirely if the user has already dismissed THIS exact version
+  // (or a newer one). A future remote bump will exceed the dismissed
+  // marker and the banner will surface again.
+  if (
+    dismissedVersion &&
+    ota.remoteVersion &&
+    compareSemver(dismissedVersion, ota.remoteVersion) >= 0
+  ) {
+    return null;
+  }
+
   const minimize = () => {
     setPhase('pill');
     markBannerShown();
+  };
+
+  const dismissForever = () => {
+    if (ota.remoteVersion) {
+      writeDismissedVersion(ota.remoteVersion);
+      setDismissedVersion(ota.remoteVersion);
+    }
   };
 
   const isBanner = phase === 'banner';
@@ -159,9 +208,13 @@ export default function UpdateIndicator({
           className="material-symbols-outlined"
           style={{
             fontSize: 18,
-            color: accentTo,
+            // Banner phase: tinted with accent (matches the gradient).
+            // Pill phase: theme-aware foreground (white on dark themes,
+            // black on light themes) so the icon always reads cleanly
+            // against any per-app accent.
+            color: isBanner ? accentTo : 'var(--c-text-primary)',
             flexShrink: 0,
-            transition: 'transform 520ms cubic-bezier(0.34, 1.15, 0.64, 1)',
+            transition: 'transform 520ms cubic-bezier(0.34, 1.15, 0.64, 1), color 380ms ease',
           }}
         >
           download
@@ -230,10 +283,18 @@ export default function UpdateIndicator({
           downloadUrl={ota.downloadUrl}
           accentFrom={accentFrom}
           accentTo={accentTo}
-          onClose={() => {
+          onLater={() => {
+            // "Later" = stop nagging me about THIS version. Persist
+            // the dismissal and unmount the indicator. A future
+            // higher remote version will resurface it.
             setOpen(false);
-            // If the user opened the modal directly from the banner,
-            // collapse to the pill on close — they've seen the message.
+            dismissForever();
+          }}
+          onClose={() => {
+            // Backdrop / programmatic close (no explicit dismissal).
+            // Collapse the banner to the pill if needed but keep the
+            // pill visible so the user can come back to it.
+            setOpen(false);
             if (phase === 'banner') {
               setPhase('pill');
               markBannerShown();
@@ -261,6 +322,7 @@ function UpdateModal({
   accentFrom,
   accentTo,
   onClose,
+  onLater,
 }: {
   fromLabel: string;
   toVersion: string;
@@ -269,7 +331,10 @@ function UpdateModal({
   downloadUrl: string | null;
   accentFrom: string;
   accentTo: string;
+  /** Backdrop / soft-close. Pill stays visible. */
   onClose: () => void;
+  /** Explicit "Later" button. Persists per-version dismissal. */
+  onLater: () => void;
 }) {
   // Reload-button state machine: idle → downloading (with %) → done/failed.
   // On native we drive Capgo's download() and surface progress; on web we
@@ -495,7 +560,7 @@ function UpdateModal({
         <div style={{ display: 'flex', gap: 8, marginTop: 22 }}>
           <button
             type="button"
-            onClick={onClose}
+            onClick={onLater}
             disabled={downloading}
             style={{
               flex: 1,
@@ -532,11 +597,7 @@ function UpdateModal({
               opacity: downloading ? 0.85 : 1,
             }}
           >
-            {downloading
-              ? 'Updating…'
-              : canCapgoUpdate
-                ? 'Download & install'
-                : 'Reload'}
+            {downloading ? 'Updating…' : 'Update'}
           </button>
         </div>
       </div>
