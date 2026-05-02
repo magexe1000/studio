@@ -1,0 +1,20 @@
+✗ Build failed in 1.43s
+error during build:
+[vite]: Rollup failed to resolve import "@capacitor/preferences" from "C:/Users/ayuda/Documents/Chordex/artifacts/chord-app/src/lib/nativePrefs.ts".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteLog (file:///C:/Users/ayuda/Documents/Chordex/node_modules/.pnpm/vite@7.3.2_@types+node@25.3_c373a534d96a187d1d51fc2c1d515988/node_modules/vite/dist/node/chunks/config.js:33639:57)
+    at file:///C:/Users/ayuda/Documents/Chordex/node_modules/.pnpm/vite@7.3.2_@types+node@25.3_c373a534d96a187d1d51fc2c1d515988/node_modules/vite/dist/node/chunks/config.js:33673:73
+    at onwarn (file:///C:/Users/ayuda/Documents/Chordex/node_modules/.pnpm/@vitejs+plugin-react@5.1.4__65fc41b1f656920bf767895722197712/node_modules/@vitejs/plugin-react/dist/index.js:76:7)
+    at file:///C:/Users/ayuda/Documents/Chordex/node_modules/.pnpm/vite@7.3.2_@types+node@25.3_c373a534d96a187d1d51fc2c1d515988/node_modules/vite/dist/node/chunks/config.js:33673:28
+    at onRollupLog (file:///C:/Users/ayuda/Documents/Chordex/node_modules/.pnpm/vite@7.3.2_@types+node@25.3_c373a534d96a187d1d51fc2c1d515988/node_modules/vite/dist/node/chunks/config.js:33668:63)
+    at onLog (file:///C:/Users/ayuda/Documents/Chordex/node_modules/.pnpm/vite@7.3.2_@types+node@25.3_c373a534d96a187d1d51fc2c1d515988/node_modules/vite/dist/node/chunks/config.js:33471:4)
+    at file:///C:/Users/ayuda/Documents/Chordex/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:20981:32
+    at Object.logger [as onLog] (file:///C:/Users/ayuda/Documents/Chordex/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:22968:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///C:/Users/ayuda/Documents/Chordex/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:21712:26)
+    at ModuleLoader.resolveDynamicImport (file:///C:/Users/ayuda/Documents/Chordex/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:21770:58)
+ ELIFECYCLE  Command failed with exit code 1.
+C:\Users\ayuda\Documents\Chordex\artifacts\chord-app:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/chord-app@0.0.0 release:gh-pages: `node scripts/release-gh-pages.mjs`
+Exit status 1
