@@ -1,13 +1,19 @@
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useNavHidden, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import ApplyToSheet from './ApplyToSheet';
-import AccountCard, { AccountDangerZone } from './AccountCard';
 import UpdateIndicator from './UpdateIndicator';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
+
+// AccountCard pulls Firebase (auth + firestore). Lazy-load it so Firebase
+// stays out of the initial bundle graph; only fetched when Settings tab opens.
+const AccountCard = lazy(() => import('./AccountCard'));
+const AccountDangerZone = lazy(() =>
+  import('./AccountCard').then(m => ({ default: m.AccountDangerZone }))
+);
 
 type HubTab = 'home' | 'settings';
 type TargetApp = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
@@ -431,7 +437,9 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
 
       {/* ── Account ── */}
       <p style={sectionLabel}>{t.hub.account}</p>
-      <AccountCard accent={accent} cardStyle={cardStyle} rowStyle={rowStyle} />
+      <Suspense fallback={<div style={{ ...cardStyle, padding: '20px', minHeight: 64 }} />}>
+        <AccountCard accent={accent} cardStyle={cardStyle} rowStyle={rowStyle} />
+      </Suspense>
 
       {/* ── Profile ── */}
       <p style={sectionLabel}>{t.hub.profile}</p>
@@ -648,7 +656,9 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
       </div>
 
       {/* ── DANGER ZONE ── */}
-      <AccountDangerZone accent={accent} cardStyle={cardStyle} />
+      <Suspense fallback={null}>
+        <AccountDangerZone accent={accent} cardStyle={cardStyle} />
+      </Suspense>
 
       {/* ── ABOUT ── */}
       <SectionHeader icon="info" title={t.settings.sections.about} />
