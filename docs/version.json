@@ -1,6 +1,6 @@
 {
-  "version": "3.0.6",
-  "changelog": "• Stability fix — reverted the native Google sign-in change that was causing the app to crash on launch. Google sign-in is temporarily disabled on Android; please sign in with email and password for now.\n• Notification permission prompt on first launch is preserved.",
+  "version": "3.0.8",
+  "changelog": "• New: pick an icon (person, face, headphones, music note...) as your profile picture. Tap your avatar in the account card to open the picker. Stored on this device — switch back to your Google photo any time.\n• Fix: cloud sync sometimes got stuck on \"Syncing…\" forever when the Vocalex local database took too long to respond. The snapshot step is now time-bounded so a slow read can no longer wedge the engine.\n• Photo failures now fall back to your initials gradient instead of showing a broken-image placeholder.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.6.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.8.zip"
 }
