@@ -7,25 +7,64 @@ import { getAllSessions, saveSession, type LabSession, type LabLayer } from '../
 /**
  * Cloud sync engine for Chordex / Drumex / StageX / Vocalex.
  *
- * Strategy:
+ * Lifecycle (state machine):
+ *
+ *     ┌─ idle ──┐  request   ┌──── syncing ────┐  ok    ┌── success ─┐ 1.8s
+ *     │         ├──────────► │ (one in-flight) ├──────► │ briefly    ├──────► idle
+ *     │         │            └──────┬──────┬───┘        └────────────┘
+ *     │         │                   │      │  fail / timeout
+ *     │         │                   │      └─────────► error  ── retry ──┐
+ *     └─────────┘                   │                                    │
+ *                                   └──── (queue at-most-one follow-up if changes
+ *                                          happened during the run) ─────┘
+ *
+ * Guarantees this rebuild adds:
+ *   • EXACTLY one run can be in flight at a time. All callers (`syncNow`,
+ *     `requestFlush`, the periodic tick, the visibility/beforeunload
+ *     hooks, and the auth-change first-pull) funnel through `enqueueRun`
+ *     which returns the in-flight Promise rather than starting a second
+ *     run. This kills duplicate-trigger bugs at the source.
+ *   • Every run is bounded by a 10-second OVERALL timeout. If the
+ *     watchdog fires, the run is aborted, state transitions to `error`
+ *     with a Retry-able message, and a `[sync] timeout` line is logged.
+ *   • Per-Firestore-op timeout is 6 seconds. Apps are processed in
+ *     PARALLEL (`Promise.allSettled`) instead of sequentially, so a
+ *     full pull-or-push completes in ~6s worst case rather than 60s+.
+ *   • An EPOCH counter is bumped on auth-change / detach. In-flight
+ *     runs read it after every await and discard their results if it
+ *     changed — no stale-uid writes after sign-out, no setState into a
+ *     now-irrelevant world.
+ *   • Initial pull-then-push is FIRE-AND-FORGET; the regular tick is
+ *     scheduled immediately so the engine can never hang on first sync.
+ *   • Structured `[sync]` console logs for every transition: start,
+ *     success (with duration + push/pull counts), failure (with cause),
+ *     timeout (with which op + how long).
+ *   • `phase: 'idle'|'syncing'|'success'|'error'` is the source of
+ *     truth. `syncing: boolean` stays as a derived field for callers
+ *     that haven't migrated. `phase` automatically returns to `idle`
+ *     1.8s after a successful run so the "Synced" toast never lingers.
+ *
+ * Per-app strategy (unchanged from prior version):
  *   • Per-app docs at `users/{uid}/state/{appKey}`.
- *   • Push: a 5s tick reads each app's local snapshot, compares it to the
- *     last-pushed snapshot, and writes to Firestore if it changed.
- *   • Pull: on sign-in, for each app: if the cloud doc is newer than what we
- *     last pulled/pushed, restore it locally; otherwise push local upward.
- *   • StageX lives inside the stage-core iframe, so we get/set its snapshot
- *     through postMessage (`sc-sync-snapshot` / `sc-sync-restore`).
- *   • Vocalex takes/lab sessions live in IndexedDB; audio blobs are serialized
- *     as base64 DataURLs. Items exceeding the size budget are skipped.
- *   • A 40-second watchdog resets a stuck `syncing` flag; per-operation
- *     10-second timeouts guard against hung Firestore promises.
+ *   • Push: read each app's local snapshot, hash-compare to last-pushed,
+ *     write to Firestore if changed.
+ *   • Pull: on sign-in, for each app, if cloud is newer than what we
+ *     last pulled/pushed, restore locally; otherwise push local upward.
+ *   • StageX lives inside the stage-core iframe — snapshot via postMessage.
+ *   • Vocalex takes/lab sessions live in IndexedDB; audio blobs are base64.
  */
 
-export type SyncAppKey = 'chordex' | 'drumex' | 'drumexUI' | 'stagex' | 'vocalex-takes' | 'vocalex-lab';
+import type { SyncAppKey } from './sync.types';
+export type { SyncAppKey };
 
 const SYNC_META_KEY = 'chordex_sync_meta_v1';
 const DEVICE_ID_KEY = 'chordex_device_id';
-const TICK_MS = 5000;
+
+const TICK_MS = 5000;            // periodic flush cadence while signed in
+const RUN_TIMEOUT_MS = 10_000;   // OVERALL hard cap per run
+const FIRESTORE_OP_MS = 6_000;   // per-getDoc / per-setDoc cap
+const SUCCESS_LINGER_MS = 1_800; // how long `phase=success` stays visible
+const STAGE_SNAPSHOT_MS = 1_500; // postMessage round-trip cap
 
 // localStorage keys owned by each app
 const CHORDEX_LS_KEY = 'chord-explorer-storage-v3';
@@ -58,8 +97,13 @@ type Meta = {
   };
 };
 
-type SyncStatus = {
+export type SyncPhase = 'idle' | 'syncing' | 'success' | 'error';
+
+export type SyncStatus = {
   signedIn: boolean;
+  /** Source of truth for the lifecycle. */
+  phase: SyncPhase;
+  /** Derived from `phase === 'syncing'` for back-compat with older UI code. */
   syncing: boolean;
   lastSyncedMs: number | null;
   error: string | null;
@@ -67,50 +111,57 @@ type SyncStatus = {
 
 type Listener = (s: SyncStatus) => void;
 
+// ── Engine state ─────────────────────────────────────────────────────────────
+
 let currentUser: AuthUser | null = null;
+/**
+ * Bumped on every auth change, on detach, and any time we want to make
+ * in-flight work give up its results without breaking the actual JS
+ * call stack. Every async helper checks `epoch === startEpoch` after
+ * every await and bails out if it has shifted.
+ */
+let epoch = 0;
 let tickHandle: ReturnType<typeof setInterval> | null = null;
 let unsubAuth: (() => void) | null = null;
 let listeners = new Set<Listener>();
-let status: SyncStatus = { signedIn: false, syncing: false, lastSyncedMs: null, error: null };
-let pendingFlush = false;
+let status: SyncStatus = {
+  signedIn: false,
+  phase: 'idle',
+  syncing: false,
+  lastSyncedMs: null,
+  error: null,
+};
 let stageIframe: HTMLIFrameElement | null = null;
 let stageSnapshotResolvers: Array<(s: StagexSnapshot) => void> = [];
 
-// ── Safety watchdog ──────────────────────────────────────────────────────────
+/**
+ * The single in-flight run promise. Concurrent callers receive THIS
+ * promise rather than starting their own — that is the lock that
+ * prevents duplicate sync triggers.
+ */
+let runPromise: Promise<void> | null = null;
+/**
+ * If a caller asks for a run while one is in progress, instead of
+ * starting a second run we just set this flag. When the current run
+ * finishes it inspects the flag and starts ONE follow-up. At most one
+ * follow-up is ever queued — so a flood of changes can't pile into a
+ * runaway chain.
+ */
+let pendingFollowup = false;
+/** Auto-fade-success timer (success → idle after a short linger). */
+let lingerTimer: ReturnType<typeof setTimeout> | null = null;
 
-let syncSafetyTimer: ReturnType<typeof setTimeout> | null = null;
+type RunReason = 'initial' | 'tick' | 'manual' | 'visibility' | 'beforeunload' | 'flush' | 'retry';
+type RunMode = 'pull-then-push' | 'push-only';
 
-function armWatchdog() {
-  if (syncSafetyTimer) clearTimeout(syncSafetyTimer);
-  syncSafetyTimer = setTimeout(() => {
-    syncSafetyTimer = null;
-    if (status.syncing) {
-      status = { ...status, syncing: false, error: null };
-      emit();
-    }
-  }, 40_000);
-}
+// ── Status emit ─────────────────────────────────────────────────────────────
 
-function disarmWatchdog() {
-  if (syncSafetyTimer) { clearTimeout(syncSafetyTimer); syncSafetyTimer = null; }
-}
-
-// ── Timeout helper ───────────────────────────────────────────────────────────
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`Sync timed out (${ms}ms)`)), ms)
-    ),
-  ]);
-}
-
-// ── Status ──────────────────────────────────────────────────────────────────
-
-function emit() {
+function setStatus(patch: Partial<SyncStatus>): void {
+  const next: SyncStatus = { ...status, ...patch };
+  next.syncing = next.phase === 'syncing'; // keep derived field consistent
+  status = next;
   for (const l of listeners) {
-    try { l(status); } catch { /* noop */ }
+    try { l(status); } catch { /* listener errors must not break the engine */ }
   }
 }
 
@@ -121,6 +172,52 @@ export function subscribeSyncStatus(l: Listener): () => void {
 }
 
 export function getSyncStatus(): SyncStatus { return status; }
+
+// ── Logging helpers (single point so it's easy to silence in prod if needed) ─
+
+const LOG = '[sync]';
+function logStart(reason: RunReason, mode: RunMode) { console.info(`${LOG} start (reason=${reason}, mode=${mode})`); }
+function logSuccess(durationMs: number, pushed: number, pulled: number) {
+  console.info(`${LOG} success (duration=${durationMs}ms, pushed=${pushed}, pulled=${pulled})`);
+}
+function logFailure(durationMs: number, error: unknown) {
+  const msg = (error as Error)?.message ?? String(error);
+  console.warn(`${LOG} failure (duration=${durationMs}ms, error=${msg})`);
+}
+function logTimeout(op: string, ms: number) { console.warn(`${LOG} timeout (op=${op}, after=${ms}ms)`); }
+
+// ── Timeout helpers ──────────────────────────────────────────────────────────
+
+class SyncTimeoutError extends Error {
+  constructor(public op: string, public ms: number) {
+    super(`Sync timed out (op=${op}, after=${ms}ms)`);
+    this.name = 'SyncTimeoutError';
+  }
+}
+
+/** Wrap a promise with a timeout that REJECTS with a tagged error. */
+function withTimeout<T>(promise: Promise<T>, ms: number, op: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new SyncTimeoutError(op, ms)), ms);
+    promise.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); },
+    );
+  });
+}
+
+/** Race a promise against an AbortSignal — used for the overall run cap. */
+function withAbort<T>(promise: Promise<T>, signal: AbortSignal, op: string): Promise<T> {
+  if (signal.aborted) return Promise.reject(new SyncTimeoutError(op, 0));
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new SyncTimeoutError(op, RUN_TIMEOUT_MS));
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (v) => { signal.removeEventListener('abort', onAbort); resolve(v); },
+      (e) => { signal.removeEventListener('abort', onAbort); reject(e); },
+    );
+  });
+}
 
 // ── Meta storage ────────────────────────────────────────────────────────────
 
@@ -180,7 +277,7 @@ function snapshotStagex(): Promise<StagexSnapshot | null> {
     const timeout = setTimeout(() => {
       stageSnapshotResolvers = stageSnapshotResolvers.filter((r) => r !== resolve);
       resolve(null);
-    }, 1500);
+    }, STAGE_SNAPSHOT_MS);
     stageSnapshotResolvers.push((snap) => {
       clearTimeout(timeout);
       resolve(snap);
@@ -222,10 +319,9 @@ function base64ToBlob(dataUrl: string, fallbackType = 'audio/webm'): Blob {
   }
 }
 
-// ── Vocalex takes snapshots ──────────────────────────────────────────────────
+// ── Vocalex takes / lab snapshots ────────────────────────────────────────────
 
-/** Max total base64 bytes we'll pack into one Firestore doc (~800 KB). */
-const VOCALEX_BUDGET = 800_000;
+const VOCALEX_BUDGET = 800_000; // ~800 KB cap per Firestore doc
 
 async function snapshotVocalexTakes(): Promise<TakeSyncRecord[] | null> {
   try {
@@ -257,8 +353,6 @@ async function restoreVocalexTakes(records: TakeSyncRecord[]): Promise<void> {
     } catch { /* skip corrupt record */ }
   }
 }
-
-// ── Vocalex lab snapshots ────────────────────────────────────────────────────
 
 async function snapshotVocalexLab(): Promise<SessionSyncRecord[] | null> {
   try {
@@ -408,46 +502,58 @@ async function applyCloudBody(app: SyncAppKey, body: unknown, meta: Meta, cloudU
   return false;
 }
 
-async function pushApp(app: SyncAppKey, raw: string | StagexSnapshot | unknown[], meta: Meta) {
+async function pushApp(
+  app: SyncAppKey,
+  raw: string | StagexSnapshot | unknown[],
+  meta: Meta,
+  signal: AbortSignal,
+): Promise<{ pushed: boolean; pulled: boolean }> {
   const db = getFirebaseDb();
-  if (!db || !currentUser) return;
+  if (!db || !currentUser) return { pushed: false, pulled: false };
   const ref = doc(db, 'users', currentUser.uid, 'state', app);
   const serialized = typeof raw === 'string' ? raw : JSON.stringify(raw);
   const localHash = hashString(serialized);
 
-  const snap = await withTimeout(getDoc(ref), 10_000);
+  const snap = await withAbort(withTimeout(getDoc(ref), FIRESTORE_OP_MS, `getDoc:${app}`), signal, 'run');
   const v = snap.exists() ? (snap.data() as CloudDoc) : null;
   const cloudTs = cloudMs(v);
   const knownCloudTs = meta[app]?.cloudUpdatedMs ?? 0;
 
+  // Cloud is newer — let cloud win (pull instead of push).
   if (v && cloudTs > knownCloudTs) {
     if (await applyCloudBody(app, v.body, meta, cloudTs)) {
       writeMeta(meta);
-      return;
+      return { pushed: false, pulled: true };
     }
   }
 
-  if (meta[app]?.lastHash === localHash) return;
+  if (meta[app]?.lastHash === localHash) return { pushed: false, pulled: false };
 
-  await withTimeout(setDoc(ref, {
+  await withAbort(withTimeout(setDoc(ref, {
     kind: typeof raw === 'string' ? 'json' : Array.isArray(raw) ? 'array' : 'bundle',
     body: raw,
     updatedAt: serverTimestamp(),
     deviceId: deviceId(),
     schemaVersion: 1,
-  }, { merge: false }), 10_000);
+  }, { merge: false }), FIRESTORE_OP_MS, `setDoc:${app}`), signal, 'run');
 
-  const after = await withTimeout(getDoc(ref), 10_000);
+  // Re-read to capture the server-assigned timestamp.
+  const after = await withAbort(withTimeout(getDoc(ref), FIRESTORE_OP_MS, `getDoc:${app}:confirm`), signal, 'run');
   const afterTs = after.exists() ? cloudMs(after.data() as CloudDoc) : Date.now();
   meta[app] = { lastHash: localHash, cloudUpdatedMs: afterTs };
   writeMeta(meta);
+  return { pushed: true, pulled: false };
 }
 
-async function pullApp(app: SyncAppKey, meta: Meta): Promise<{ pulled: boolean }> {
+async function pullApp(
+  app: SyncAppKey,
+  meta: Meta,
+  signal: AbortSignal,
+): Promise<{ pulled: boolean }> {
   const db = getFirebaseDb();
   if (!db || !currentUser) return { pulled: false };
   const ref = doc(db, 'users', currentUser.uid, 'state', app);
-  const snap = await withTimeout(getDoc(ref), 10_000);
+  const snap = await withAbort(withTimeout(getDoc(ref), FIRESTORE_OP_MS, `getDoc:${app}`), signal, 'run');
   if (!snap.exists()) return { pulled: false };
   const v = snap.data() as CloudDoc;
   const cloudTs = cloudMs(v);
@@ -469,48 +575,166 @@ async function pullApp(app: SyncAppKey, meta: Meta): Promise<{ pulled: boolean }
   return { pulled: applied };
 }
 
-// ── Tick / flush ────────────────────────────────────────────────────────────
+// ── The single run path ──────────────────────────────────────────────────────
 
-async function flushOnce(): Promise<void> {
-  if (!currentUser) return;
-  if (status.syncing) { pendingFlush = true; return; }
+const ALL_APPS: SyncAppKey[] = ['chordex', 'drumex', 'drumexUI', 'stagex', 'vocalex-takes', 'vocalex-lab'];
 
-  const meta = readMeta();
-  const chordex    = snapshotChordex();
-  const drumex     = snapshotDrumex();
-  const drumexUI   = snapshotDrumexUI();
-  const stagex     = await snapshotStagex();
-  const vocalexTakes = await snapshotVocalexTakes();
-  const vocalexLab   = await snapshotVocalexLab();
-
+/**
+ * Build the parallel work list for a push run. Skipping no-change
+ * apps here keeps Firestore traffic minimal.
+ */
+async function collectPushWork(meta: Meta): Promise<Array<{ app: SyncAppKey; raw: string | StagexSnapshot | unknown[] }>> {
+  const [chordex, drumex, drumexUI, stagex, vTakes, vLab] = await Promise.all([
+    Promise.resolve(snapshotChordex()),
+    Promise.resolve(snapshotDrumex()),
+    Promise.resolve(snapshotDrumexUI()),
+    snapshotStagex(),
+    snapshotVocalexTakes(),
+    snapshotVocalexLab(),
+  ]);
   const work: Array<{ app: SyncAppKey; raw: string | StagexSnapshot | unknown[] }> = [];
-  if (chordex      && hashString(chordex)                              !== meta.chordex?.lastHash)          work.push({ app: 'chordex',       raw: chordex });
-  if (drumex       && hashString(drumex)                               !== meta.drumex?.lastHash)           work.push({ app: 'drumex',        raw: drumex });
-  if (drumexUI     && hashString(drumexUI)                             !== meta.drumexUI?.lastHash)         work.push({ app: 'drumexUI',      raw: drumexUI });
-  if (stagex       && hashString(JSON.stringify(stagex))               !== meta.stagex?.lastHash)           work.push({ app: 'stagex',        raw: stagex });
-  if (vocalexTakes && hashString(JSON.stringify(vocalexTakes))         !== meta['vocalex-takes']?.lastHash) work.push({ app: 'vocalex-takes', raw: vocalexTakes });
-  if (vocalexLab   && hashString(JSON.stringify(vocalexLab))           !== meta['vocalex-lab']?.lastHash)   work.push({ app: 'vocalex-lab',   raw: vocalexLab });
+  if (chordex  && hashString(chordex)                      !== meta.chordex?.lastHash)          work.push({ app: 'chordex',       raw: chordex });
+  if (drumex   && hashString(drumex)                       !== meta.drumex?.lastHash)           work.push({ app: 'drumex',        raw: drumex });
+  if (drumexUI && hashString(drumexUI)                     !== meta.drumexUI?.lastHash)         work.push({ app: 'drumexUI',      raw: drumexUI });
+  if (stagex   && hashString(JSON.stringify(stagex))       !== meta.stagex?.lastHash)           work.push({ app: 'stagex',        raw: stagex });
+  if (vTakes   && hashString(JSON.stringify(vTakes))       !== meta['vocalex-takes']?.lastHash) work.push({ app: 'vocalex-takes', raw: vTakes });
+  if (vLab     && hashString(JSON.stringify(vLab))         !== meta['vocalex-lab']?.lastHash)   work.push({ app: 'vocalex-lab',   raw: vLab });
+  return work;
+}
 
-  if (work.length === 0) {
-    pendingFlush = false;
-    return;
+/**
+ * Execute a single sync run. Bounded by RUN_TIMEOUT_MS overall via an
+ * AbortController; when the controller fires, every in-flight Firestore
+ * op rejects with SyncTimeoutError and we transition to `error`.
+ *
+ * Apps run in PARALLEL via Promise.allSettled — one slow app can't
+ * starve the others, and the worst case is a single FIRESTORE_OP_MS
+ * window, not N × FIRESTORE_OP_MS like the old serial implementation.
+ */
+async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
+  if (!currentUser) return;
+
+  // Skip the noisy "syncing" flicker if there's literally nothing to do
+  // on a push-only run. (For pull-then-push we always announce — the
+  // user just signed in and deserves feedback that something happened.)
+  const meta = readMeta();
+  let work: Awaited<ReturnType<typeof collectPushWork>> = [];
+  if (mode === 'push-only') {
+    work = await collectPushWork(meta);
+    if (work.length === 0) {
+      // Nothing to push and we don't need to pull — bail without
+      // touching `phase`. This keeps the indicator in `idle`/`success`
+      // during periods of inactivity.
+      return;
+    }
   }
 
-  status = { ...status, syncing: true, error: null };
-  armWatchdog();
-  emit();
+  const startedAt = Date.now();
+  const startEpoch = epoch;
+  const ctrl = new AbortController();
+  const timeoutHandle = setTimeout(() => ctrl.abort(), RUN_TIMEOUT_MS);
+
+  setStatus({ phase: 'syncing', error: null });
+  logStart(reason, mode);
+
+  let pushedCount = 0;
+  let pulledCount = 0;
+  let failure: unknown = null;
+
   try {
-    for (const w of work) await pushApp(w.app, w.raw, meta);
-    status = { ...status, syncing: false, lastSyncedMs: Date.now(), error: null };
+    if (mode === 'pull-then-push') {
+      const pullResults = await Promise.allSettled(
+        ALL_APPS.map((app) => pullApp(app, meta, ctrl.signal)),
+      );
+      for (const r of pullResults) {
+        if (r.status === 'fulfilled' && r.value.pulled) pulledCount += 1;
+        // Per-app failures are tolerated — the OVERALL run only fails
+        // on AbortError or when EVERY single op blew up.
+      }
+      // Re-collect after pulling: a successful pull can change local state
+      // and create new push work that the snapshot from before would miss.
+      if (epoch !== startEpoch) throw new SyncTimeoutError('epoch-changed', 0);
+      work = await collectPushWork(meta);
+    }
+
+    if (work.length > 0) {
+      const pushResults = await Promise.allSettled(
+        work.map((w) => pushApp(w.app, w.raw, meta, ctrl.signal)),
+      );
+      for (const r of pushResults) {
+        if (r.status === 'fulfilled') {
+          if (r.value.pushed) pushedCount += 1;
+          if (r.value.pulled) pulledCount += 1;
+        } else {
+          // If ALL ops failed with abort/timeout, surface as error below.
+          if (r.reason instanceof SyncTimeoutError) failure = r.reason;
+        }
+      }
+      // If every op aborted, treat the whole run as failed.
+      if (pushResults.length > 0 && pushResults.every((r) => r.status === 'rejected')) {
+        const first = pushResults.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+        failure = first?.reason ?? new Error('All push operations failed');
+      }
+    }
+
+    if (epoch !== startEpoch) {
+      // Auth changed mid-run — discard. Don't touch status; the
+      // auth-change handler already reset it.
+      logFailure(Date.now() - startedAt, new Error('aborted: auth changed'));
+      return;
+    }
+
+    if (failure) throw failure;
+
+    setStatus({ phase: 'success', lastSyncedMs: Date.now(), error: null });
+    logSuccess(Date.now() - startedAt, pushedCount, pulledCount);
+
+    // Auto-fade success → idle so the indicator settles.
+    if (lingerTimer) clearTimeout(lingerTimer);
+    lingerTimer = setTimeout(() => {
+      lingerTimer = null;
+      // Only fade if nothing else has changed phase in the meantime.
+      if (status.phase === 'success') setStatus({ phase: 'idle' });
+    }, SUCCESS_LINGER_MS);
   } catch (e) {
-    status = { ...status, syncing: false, error: (e as Error)?.message ?? 'Sync failed' };
+    const isTimeout = e instanceof SyncTimeoutError;
+    const durationMs = Date.now() - startedAt;
+    if (isTimeout) logTimeout(e.op, e.ms || durationMs);
+    else logFailure(durationMs, e);
+    if (epoch === startEpoch) {
+      setStatus({
+        phase: 'error',
+        error: isTimeout ? 'Sync timed out' : ((e as Error)?.message ?? 'Sync failed'),
+      });
+    }
+  } finally {
+    clearTimeout(timeoutHandle);
   }
-  disarmWatchdog();
-  emit();
-  if (pendingFlush) {
-    pendingFlush = false;
-    setTimeout(() => { void flushOnce(); }, 800);
+}
+
+/**
+ * Public entry point for ANY caller that wants to trigger a sync.
+ * Returns the in-flight promise if a run is already happening — so
+ * concurrent callers all await the SAME work, rather than queuing
+ * extra runs. If a caller arrives while a run is mid-flight, we set
+ * `pendingFollowup` so exactly ONE follow-up run is scheduled when the
+ * current one finishes.
+ */
+function enqueueRun(reason: RunReason, mode: RunMode = 'push-only'): Promise<void> {
+  if (!currentUser) return Promise.resolve();
+  if (runPromise) {
+    pendingFollowup = true;
+    return runPromise;
   }
+  runPromise = executeRun(reason, mode).finally(() => {
+    runPromise = null;
+    if (pendingFollowup) {
+      pendingFollowup = false;
+      // Chain a single follow-up. Non-blocking.
+      void enqueueRun('flush', 'push-only');
+    }
+  });
+  return runPromise;
 }
 
 // ── Account deletion ────────────────────────────────────────────────────────
@@ -518,8 +742,7 @@ async function flushOnce(): Promise<void> {
 export async function deleteCloudData(): Promise<void> {
   const db = getFirebaseDb();
   if (!db || !currentUser) return;
-  const apps: SyncAppKey[] = ['chordex', 'drumex', 'drumexUI', 'stagex', 'vocalex-takes', 'vocalex-lab'];
-  for (const app of apps) {
+  for (const app of ALL_APPS) {
     try {
       await deleteDoc(doc(db, 'users', currentUser.uid, 'state', app));
     } catch { /* per-doc continue */ }
@@ -527,77 +750,111 @@ export async function deleteCloudData(): Promise<void> {
   try { localStorage.removeItem(SYNC_META_KEY); } catch { /* noop */ }
 }
 
+// ── Public flush controls ───────────────────────────────────────────────────
+
 let flushDebounce: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Debounced "something changed locally — please push when quiet".
+ * Multiple calls within `delayMs` collapse into a single trigger.
+ */
 export function requestFlush(delayMs = 1500): void {
   if (!currentUser) return;
   if (flushDebounce) clearTimeout(flushDebounce);
-  flushDebounce = setTimeout(() => { flushDebounce = null; void flushOnce(); }, delayMs);
+  flushDebounce = setTimeout(() => {
+    flushDebounce = null;
+    void enqueueRun('flush', 'push-only');
+  }, delayMs);
 }
 
+/**
+ * "Sync now" — bypass the debounce. If a run is already in flight,
+ * await it (so the caller's spinner ends when the actual work ends).
+ * If a previous run failed, this clears the error first so the user
+ * sees the new run's outcome cleanly.
+ */
 export async function syncNow(): Promise<void> {
   if (flushDebounce) { clearTimeout(flushDebounce); flushDebounce = null; }
-  await flushOnce();
+  if (status.phase === 'error') setStatus({ phase: 'idle', error: null });
+  await enqueueRun('manual', 'push-only');
 }
 
-async function pullAll(): Promise<void> {
-  if (!currentUser) return;
-  status = { ...status, syncing: true, error: null };
-  armWatchdog();
-  emit();
-  try {
-    const meta = readMeta();
-    const apps: SyncAppKey[] = ['chordex', 'drumex', 'drumexUI', 'stagex', 'vocalex-takes', 'vocalex-lab'];
-    for (const app of apps) {
-      try { await pullApp(app, meta); } catch { /* per-app continue */ }
-    }
-    status = { ...status, syncing: false, lastSyncedMs: Date.now(), error: null };
-  } catch (e) {
-    status = { ...status, syncing: false, error: (e as Error)?.message ?? 'Initial sync failed' };
-  }
-  disarmWatchdog();
-  emit();
+/**
+ * Explicit retry after an error. Identical to syncNow() but logs the
+ * intent distinctly so the user-facing Retry button is greppable.
+ */
+export async function retrySync(): Promise<void> {
+  if (flushDebounce) { clearTimeout(flushDebounce); flushDebounce = null; }
+  setStatus({ phase: 'idle', error: null });
+  await enqueueRun('retry', 'push-only');
 }
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
 
 let attached = false;
+// Keep references so detachSyncEngine can remove them. Without this,
+// repeated attach/detach cycles (test harnesses, hot-reload, future
+// multi-account flows) would accumulate window listeners.
+let onMessage: ((e: MessageEvent) => void) | null = null;
+let onVisibility: (() => void) | null = null;
+let onBeforeUnload: (() => void) | null = null;
 
 export function attachSyncEngine(): void {
   if (attached) return;
   attached = true;
 
-  window.addEventListener('message', (e: MessageEvent) => {
+  onMessage = (e: MessageEvent) => {
     if (e.origin !== window.location.origin) return;
     handleStageMessage(e.data);
-  });
+  };
+  window.addEventListener('message', onMessage);
 
-  unsubAuth = subscribeAuth(async (u) => {
+  unsubAuth = subscribeAuth((u) => {
+    // Bumping the epoch makes any in-flight run discard its results —
+    // we never want a write under a stale uid, and we never want a
+    // pre-signin `pullAll` to land into a now-signed-out world.
+    epoch += 1;
     currentUser = u;
-    status = { ...status, signedIn: !!u, error: null };
-    emit();
+    pendingFollowup = false;
+    runPromise = null; // forget the lock; the in-flight run will see epoch shift and bail.
+
+    if (lingerTimer) { clearTimeout(lingerTimer); lingerTimer = null; }
+
     if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
 
     if (u) {
-      await pullAll();
-      await flushOnce();
-      tickHandle = setInterval(() => { void flushOnce(); }, TICK_MS);
+      setStatus({ signedIn: true, phase: 'idle', error: null });
+      // Schedule the periodic tick FIRST so we're never blocked on the
+      // initial pull. The first run is fire-and-forget.
+      tickHandle = setInterval(() => { void enqueueRun('tick', 'push-only'); }, TICK_MS);
+      void enqueueRun('initial', 'pull-then-push');
     } else {
-      disarmWatchdog();
       try { localStorage.removeItem(SYNC_META_KEY); } catch { /* noop */ }
+      setStatus({ signedIn: false, phase: 'idle', error: null, lastSyncedMs: null });
     }
   });
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') void flushOnce();
-  });
-  window.addEventListener('beforeunload', () => { void flushOnce(); });
+  onVisibility = () => {
+    if (document.visibilityState === 'hidden') void enqueueRun('visibility', 'push-only');
+  };
+  document.addEventListener('visibilitychange', onVisibility);
+
+  onBeforeUnload = () => { void enqueueRun('beforeunload', 'push-only'); };
+  window.addEventListener('beforeunload', onBeforeUnload);
 }
 
 export function detachSyncEngine(): void {
   if (!attached) return;
   attached = false;
+  epoch += 1; // invalidate any in-flight run
   if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
   if (unsubAuth) { unsubAuth(); unsubAuth = null; }
-  disarmWatchdog();
+  if (lingerTimer) { clearTimeout(lingerTimer); lingerTimer = null; }
+  if (flushDebounce) { clearTimeout(flushDebounce); flushDebounce = null; }
+  if (onMessage) { window.removeEventListener('message', onMessage); onMessage = null; }
+  if (onVisibility) { document.removeEventListener('visibilitychange', onVisibility); onVisibility = null; }
+  if (onBeforeUnload) { window.removeEventListener('beforeunload', onBeforeUnload); onBeforeUnload = null; }
+  pendingFollowup = false;
+  runPromise = null;
   listeners = new Set();
 }

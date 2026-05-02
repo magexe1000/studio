@@ -9,7 +9,7 @@ import {
   subscribeAuth,
   type AuthUser,
 } from '../lib/auth';
-import { subscribeSyncStatus, syncNow } from '../lib/sync';
+import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus } from '../lib/sync';
 import { scheduleAccountDeletion } from '../lib/accountStatus';
 import { useT } from '../lib/useT';
 import { useChordStore } from '../store/useChordStore';
@@ -51,10 +51,14 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [sync, setSync] = useState(() => ({ signedIn: false, syncing: false, lastSyncedMs: null as number | null, error: null as string | null }));
+  const [sync, setSync] = useState<SyncStatus>(() => ({
+    signedIn: false,
+    phase: 'idle',
+    syncing: false,
+    lastSyncedMs: null,
+    error: null,
+  }));
   const [tick, setTick] = useState(0);
-  const [justSynced, setJustSynced] = useState(false);
-  const prevSyncing = useRef(false);
 
   useEffect(() => subscribeAuth(setUser), []);
   useEffect(() => subscribeSyncStatus(setSync), []);
@@ -62,16 +66,6 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
     const id = setInterval(() => setTick((x) => x + 1), 30000);
     return () => clearInterval(id);
   }, []);
-  useEffect(() => {
-    const wasSyncing = prevSyncing.current;
-    prevSyncing.current = sync.syncing;
-    if (wasSyncing && !sync.syncing && !sync.error) {
-      setJustSynced(true);
-      const id = setTimeout(() => setJustSynced(false), 1800);
-      return () => clearTimeout(id);
-    }
-    return undefined;
-  }, [sync.syncing, sync.error]);
   // Touch tick so eslint sees we use it (drives relative-time refresh)
   void tick;
 
@@ -116,15 +110,29 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
     finally { setBusy(false); }
   }
 
+  async function doRetry() {
+    setBusy(true);
+    try { await retrySync(); }
+    finally { setBusy(false); }
+  }
+
   // ── Signed in ──
   if (user) {
     const initial = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
-    const iconName = sync.syncing ? 'sync' : sync.error ? 'sync_problem' : 'cloud_done';
-    const iconColor = sync.syncing ? accent.from : sync.error ? '#ff6b6b' : justSynced ? accent.from : 'var(--c-text-secondary)';
-    const statusText = sync.syncing
+    // Phase-driven UI: the engine is the single source of truth for which
+    // visual state we should be in. We never derive "just synced" from a
+    // ref-tracked transition any more — the engine fires `phase=success`
+    // for SUCCESS_LINGER_MS then auto-fades to `idle`.
+    const phase = sync.phase;
+    const justSynced = phase === 'success';
+    const isSyncing = phase === 'syncing';
+    const isError = phase === 'error';
+    const iconName = isSyncing ? 'sync' : isError ? 'sync_problem' : 'cloud_done';
+    const iconColor = isSyncing ? accent.from : isError ? '#ff6b6b' : justSynced ? accent.from : 'var(--c-text-secondary)';
+    const statusText = isSyncing
       ? t.syncing
-      : sync.error
-        ? t.syncError
+      : isError
+        ? t.syncFailed
         : justSynced
           ? t.syncedJustNow
           : sync.lastSyncedMs
@@ -156,7 +164,7 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
 
         <div style={{ ...rowStyle, alignItems: 'center', gap: 10 }}>
           <span
-            className={`material-symbols-outlined sync-icon ${sync.syncing ? 'sync-spin' : justSynced ? 'sync-pop' : ''}`}
+            className={`material-symbols-outlined sync-icon ${isSyncing ? 'sync-spin' : justSynced ? 'sync-pop' : ''}`}
             style={{ fontSize: 18, color: iconColor, transition: 'color 250ms ease' }}
           >
             {iconName}
@@ -165,15 +173,23 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-primary)', margin: 0 }}>
               {statusText}
             </p>
-            {sync.error && (
+            {isError && sync.error && (
               <p style={{ fontSize: 10, color: '#ff6b6b', margin: '2px 0 0' }}>{sync.error}</p>
             )}
           </div>
-          <button
-            onClick={doSyncNow}
-            disabled={busy || sync.syncing}
-            style={pillBtn(accent, false)}
-          >{t.syncNow}</button>
+          {isError ? (
+            <button
+              onClick={doRetry}
+              disabled={busy}
+              style={pillBtn(accent, true)}
+            >{t.retry}</button>
+          ) : (
+            <button
+              onClick={doSyncNow}
+              disabled={busy || isSyncing}
+              style={pillBtn(accent, false)}
+            >{t.syncNow}</button>
+          )}
         </div>
 
         <div style={{ ...rowStyle }}>
