@@ -11,14 +11,40 @@ import {
   persistentMultipleTabManager,
   type Firestore,
 } from 'firebase/firestore';
+// Committed public client config — these keys are safe to ship in the
+// JS bundle (Firebase web client keys identify the project, they don't
+// grant access; access control lives in Firestore Security Rules).
+// See firebase.config.json for the full security note.
+import bundledConfig from '../../firebase.config.json';
 
+// Two-layer config resolution:
+//   1. Env vars (VITE_FIREBASE_*) take priority. This lets a build
+//      target a different Firebase project (staging, a fork) without
+//      touching the committed JSON.
+//   2. Fall back to the committed JSON. This is what makes the APK
+//      builds "just work" on a fresh machine — the previous behaviour
+//      required the developer to manually export six env vars before
+//      every release, and forgetting any one of them produced the
+//      "Cloud sync is not configured for this build" error inside
+//      Settings → Account on the phone.
+const env = import.meta.env;
+function pick(envValue: string | undefined, fallback: string | undefined): string | undefined {
+  const v = (envValue ?? '').trim();
+  return v ? v : fallback;
+}
 const config = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string | undefined,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID as string | undefined,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET as string | undefined,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string | undefined,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID as string | undefined,
+  apiKey: pick(env.VITE_FIREBASE_API_KEY as string | undefined, bundledConfig.apiKey),
+  authDomain: pick(env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined, bundledConfig.authDomain),
+  projectId: pick(env.VITE_FIREBASE_PROJECT_ID as string | undefined, bundledConfig.projectId),
+  storageBucket: pick(
+    env.VITE_FIREBASE_STORAGE_BUCKET as string | undefined,
+    bundledConfig.storageBucket,
+  ),
+  messagingSenderId: pick(
+    env.VITE_FIREBASE_MESSAGING_SENDER_ID as string | undefined,
+    bundledConfig.messagingSenderId,
+  ),
+  appId: pick(env.VITE_FIREBASE_APP_ID as string | undefined, bundledConfig.appId),
 };
 
 export const isFirebaseConfigured = Boolean(

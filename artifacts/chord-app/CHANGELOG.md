@@ -17,6 +17,12 @@ Conventions:
 
 ---
 
+## 3.0.4
+
+- Cloud sync now works on the phone — sign-in with Google and email/password
+  no longer shows "Cloud sync is not configured for this build". The Firebase
+  config is now bundled with the app, so a fresh APK build always has it.
+
 ## 3.0.3
 
 - Update banner now appears centered on the screen and smoothly morphs

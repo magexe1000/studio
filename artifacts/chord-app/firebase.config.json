@@ -1,0 +1,9 @@
+{
+  "_comment": "Public Firebase web client config. These keys are SAFE TO COMMIT — Firebase web client keys are designed to ship in the JS bundle that runs in users' browsers; they identify the project to Google services but do NOT grant access. All access control lives in Firestore Security Rules and Firebase Auth provider settings on the Firebase console. See https://firebase.google.com/docs/projects/api-keys for the official guidance. Env vars (VITE_FIREBASE_*) take priority if set — useful for swapping projects per environment without editing this file.",
+  "apiKey": "AIzaSyAsNSkWg41_g78MkKcqQA8Sj3j506Az1OQ",
+  "authDomain": "studio-30f44.firebaseapp.com",
+  "projectId": "studio-30f44",
+  "storageBucket": "studio-30f44.firebasestorage.app",
+  "messagingSenderId": "355186993352",
+  "appId": "1:355186993352:web:7c76f1957cb3cac5d1ddfd"
+}
