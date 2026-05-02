@@ -1,6 +1,6 @@
 {
-  "version": "3.0.5",
-  "changelog": "• Sign in with Google now works on the phone — uses the native Google account picker instead of the broken WebView redirect that showed \"Unable to process request due to missing initial state\".\n• The app now asks for permission to send notifications on first launch, so update alerts can reach you even when the app is closed.",
+  "version": "3.0.6",
+  "changelog": "• Stability fix — reverted the native Google sign-in change that was causing the app to crash on launch. Google sign-in is temporarily disabled on Android; please sign in with email and password for now.\n• Notification permission prompt on first launch is preserved.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.5.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.6.zip"
 }
