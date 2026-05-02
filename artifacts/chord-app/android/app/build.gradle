@@ -57,7 +57,7 @@ dependencies {
     // though our subclass never references it directly. Without this the
     // build fails with "cannot access ListenableFuture". The :1.0 stub is
     // the official Google-recommended fix and is ~1 KB.
-    implementation "com.google.guava:listenablefuture:1.0"
+    implementation "com.google.guava:guava:33.2.1-android"
 }
 
 apply from: 'capacitor.build.gradle'
