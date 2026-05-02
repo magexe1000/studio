@@ -40,10 +40,18 @@ public class OtaCheckWorker extends Worker {
 
     private static final String TAG = "OtaCheckWorker";
 
-    /** URL of the self-hosted version manifest. Single production
-     *  endpoint — adjust here if we ever host the bundle elsewhere. */
-    private static final String VERSION_URL =
-        "https://magexe1000.github.io/Chordex/version.json";
+    /** URLs of the self-hosted version manifest, in priority order.
+     *
+     *  raw.githubusercontent.com is the FAST PATH — it serves the file
+     *  within seconds of a `git push`, while GitHub Pages (Fastly CDN)
+     *  can take 2–3 minutes to flush. We try raw first; if it fails
+     *  (private repo, network blocked, branch rename), we fall back to
+     *  the Pages URL. Whichever returns a higher semver wins. */
+    private static final String[] VERSION_URLS = new String[] {
+        "https://raw.githubusercontent.com/magexe1000/Chordex/main/docs/version.json",
+        "https://raw.githubusercontent.com/magexe1000/Chordex/master/docs/version.json",
+        "https://magexe1000.github.io/Chordex/version.json",
+    };
 
     /** Capacitor's default SharedPreferences group used by the
      *  {@code @capacitor/preferences} plugin. Must match the JS side. */
@@ -95,16 +103,31 @@ public class OtaCheckWorker extends Worker {
         }
     }
 
-    /** Fetch the JSON manifest and pull out the {@code version} field. */
+    /** Fetch the JSON manifest and pull out the {@code version} field.
+     *  Tries each URL in {@link #VERSION_URLS} in order; the first one
+     *  that responds with a parseable semver wins. We do NOT race them
+     *  in parallel here (the worker runs at most once every 15 min, so
+     *  the latency budget is generous and serial is simpler). */
     private String fetchRemoteVersion() {
+        String best = null;
+        for (String base : VERSION_URLS) {
+            String v = fetchOne(base);
+            if (v == null) continue;
+            if (best == null || compareSemver(v, best) > 0) best = v;
+        }
+        return best;
+    }
+
+    private String fetchOne(String base) {
         HttpURLConnection conn = null;
         try {
-            URL url = new URL(VERSION_URL + "?t=" + System.currentTimeMillis());
+            URL url = new URL(base + "?t=" + System.currentTimeMillis());
             conn = (HttpURLConnection) url.openConnection();
             conn.setConnectTimeout(8000);
             conn.setReadTimeout(8000);
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Cache-Control", "no-cache");
+            conn.setRequestProperty("Pragma", "no-cache");
             int code = conn.getResponseCode();
             if (code < 200 || code >= 300) return null;
             StringBuilder body = new StringBuilder();

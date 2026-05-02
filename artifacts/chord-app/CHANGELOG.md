@@ -17,6 +17,20 @@ Conventions:
 
 ---
 
+## 3.0.12
+
+- Updates are detected almost immediately. Studio now reads the
+  version manifest from `raw.githubusercontent.com` (which refreshes
+  within seconds of a push) instead of waiting on the GitHub Pages
+  CDN, which used to take 2–3 minutes to flush.
+- In-app version polling tightened from every 5 minutes to every 1
+  minute while the app is open. Also re-checks on window focus, on
+  page show, and whenever the network comes back online.
+- Native background worker now races the same set of URLs and picks
+  the highest semver, so the system notification fires sooner too.
+
+---
+
 ## 3.0.11
 
 - The post-update screen no longer asks you to tap "View changes" —

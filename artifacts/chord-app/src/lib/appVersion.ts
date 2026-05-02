@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.11';
+export const APP_VERSION = '3.0.12';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -54,15 +54,14 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "What's new",
     items: [
-      'Cleaner update flow — after installing an update, the changelog opens automatically instead of asking you to tap a button to see what changed.',
-      'Refreshed changelog screen — lighter, more minimal layout. No more wall of cards.',
+      'Updates appear almost instantly — Studio now reads the version manifest from a faster source that refreshes within seconds of a release, instead of waiting 2–3 minutes for the CDN to catch up.',
+      'In-app version checks every minute (down from every 5) while the app is open, plus extra checks on focus and when the network reconnects.',
     ],
   },
   {
     heading: 'Fixes',
     items: [
-      'Your language no longer resets to Spanish after every update. Whatever you pick stays.',
-      'Fixed avatar picker showing icon names as huge text instead of the actual icons.',
+      'No more closing and reopening Studio four times to see a new version banner.',
     ],
   },
 ];

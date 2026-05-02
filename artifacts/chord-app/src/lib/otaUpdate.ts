@@ -30,8 +30,11 @@ import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 const LAST_SEEN_KEY = 'studio:lastSeenVersion';
 const FETCH_TIMEOUT_MS = 6000;
 /** How often to re-check for updates while the app is open and visible.
- *  Five minutes is a balance between freshness and battery/network. */
-const FOREGROUND_POLL_MS = 5 * 60 * 1000;
+ *  60 s — short enough that a release is detected the first time the
+ *  user touches the phone after publishing, long enough to be invisible
+ *  on battery. The native WorkManager worker (`OtaCheckWorker.java`)
+ *  handles the background path. */
+const FOREGROUND_POLL_MS = 60 * 1000;
 
 export interface RemoteVersionInfo {
   version: string;
@@ -71,59 +74,97 @@ const INITIAL_STATE: OtaState = {
 };
 
 /**
- * Resolve the URL of `version.json`. Two modes:
+ * Resolve every URL we should try in order to discover the latest
+ * `version.json`. We return a LIST so a slow/stale CDN can be raced
+ * against a fast/fresh origin — `fetchRemoteVersion` takes the first
+ * one that responds successfully.
  *
- *   • On WEB / PWA we fetch from `<base>version.json` (relative to
- *     Vite's BASE_URL) — the same origin that served the page.
- *   • On NATIVE (Android APK) the page is loaded from
- *     `capacitor://localhost`, so a relative URL would just hit the
- *     bundled file. We need an ABSOLUTE remote URL instead. Set
- *     `VITE_OTA_BASE_URL` at build time to your deployed public URL
- *     (e.g. `https://studio.example.com`) and this function will
- *     prepend it on native.
+ * Sources in priority order:
  *
- * Cache-bust on every call so a stale CDN entry never hides a release.
+ *   1. `VITE_OTA_VERSION_URL` (explicit override) — if set, it's the
+ *      ONLY source we try. Lets ops point at any custom endpoint
+ *      (e.g. a small Cloudflare worker).
+ *   2. raw.githubusercontent.com (DERIVED, fast path) — when
+ *      `VITE_OTA_BASE_URL` looks like `https://USER.github.io/REPO`,
+ *      the source files live in the same repo's `docs/` folder. The
+ *      raw.githubusercontent.com endpoint serves them within seconds
+ *      of a push, vs. GitHub Pages' Fastly which can take 2–3 minutes
+ *      to flush. This is the difference between "instant" and
+ *      "user reloads four times before the banner shows".
+ *   3. `<VITE_OTA_BASE_URL>/version.json` (fallback) — the actual
+ *      Pages URL, in case the repo is private or the raw endpoint is
+ *      blocked.
+ *   4. `<BASE_URL>version.json` on web — same-origin, no auth needed.
+ *
+ * Every URL is cache-busted with a unique `?t=` query and fetched with
+ * `cache: 'no-store'` so neither the browser nor Fastly can hand us a
+ * stale entry.
  */
-function versionJsonUrl(): string | null {
-  const remoteBase = (import.meta.env.VITE_OTA_BASE_URL as string | undefined)?.replace(/\/$/, '');
-  const localBase = import.meta.env.BASE_URL || '/';
-  if (isNative()) {
-    // On the APK the local bundle path resolves to the OLD bundled
-    // version.json — useless for OTA. We MUST go off-device. If the
-    // build was produced without VITE_OTA_BASE_URL (i.e. someone
-    // forgot to set it before `cap sync`), fail loudly here instead
-    // of silently pointing at the local copy and reporting "no update".
-    if (!remoteBase) {
-      console.error(
-        '[ota] VITE_OTA_BASE_URL is not set — OTA update checks are disabled on native. ' +
-          'Rebuild with VITE_OTA_BASE_URL=https://your-deployment.example.com.',
-      );
-      return null;
-    }
-    return `${remoteBase}/version.json?t=${Date.now()}`;
+function versionJsonUrls(): string[] {
+  const t = Date.now();
+  const override = (import.meta.env.VITE_OTA_VERSION_URL as string | undefined)?.trim();
+  if (override) {
+    const sep = override.includes('?') ? '&' : '?';
+    return [`${override}${sep}t=${t}`];
   }
-  // Web / PWA / dev preview / iframe — same-origin works.
-  return `${localBase}version.json?t=${Date.now()}`;
+
+  const remoteBase = (import.meta.env.VITE_OTA_BASE_URL as string | undefined)?.replace(/\/$/, '');
+  const urls: string[] = [];
+
+  if (remoteBase) {
+    // GitHub Pages → derive a sibling raw.githubusercontent URL.
+    // Match both `https://USER.github.io/REPO` and `https://USER.github.io`
+    // (user/organization site). The repo for a project site IS the path
+    // segment; for a user site it's `USER.github.io`.
+    const m = remoteBase.match(/^https:\/\/([^.]+)\.github\.io(?:\/([^/?#]+))?$/i);
+    if (m) {
+      const user = m[1];
+      const repo = m[2] ?? `${user}.github.io`;
+      // The publish script writes to `docs/`, served by Pages from the
+      // repo root. So the source file is at `docs/version.json` on the
+      // default branch. We try `main` first, fall back to `master`.
+      urls.push(
+        `https://raw.githubusercontent.com/${user}/${repo}/main/docs/version.json?t=${t}`,
+        `https://raw.githubusercontent.com/${user}/${repo}/master/docs/version.json?t=${t}`,
+      );
+    }
+    urls.push(`${remoteBase}/version.json?t=${t}`);
+  }
+
+  // Web / PWA / dev preview / iframe — same-origin always works.
+  if (!isNative()) {
+    const localBase = import.meta.env.BASE_URL || '/';
+    urls.push(`${localBase}version.json?t=${t}`);
+  }
+
+  if (urls.length === 0 && isNative()) {
+    console.error(
+      '[ota] VITE_OTA_BASE_URL is not set — OTA update checks are disabled on native. ' +
+        'Rebuild with VITE_OTA_BASE_URL=https://your-deployment.example.com.',
+    );
+  }
+
+  return urls;
 }
 
 /**
- * Fetch the remote version manifest. Resolves to `null` on any failure
- * (network, abort, malformed JSON, missing required fields). Never throws.
+ * Try one specific URL. Returns the parsed manifest, or `null` for any
+ * failure (HTTP error, abort, malformed JSON, missing required field).
+ * Never throws.
  */
-export async function fetchRemoteVersion(
-  signal?: AbortSignal,
+async function fetchOne(
+  url: string,
+  signal: AbortSignal,
 ): Promise<RemoteVersionInfo | null> {
-  const url = versionJsonUrl();
-  if (!url) return null; // native without VITE_OTA_BASE_URL — see versionJsonUrl
-  const ctrl = signal ? null : new AbortController();
-  const sig = signal ?? ctrl!.signal;
-  const timer = ctrl ? setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS) : null;
-
   try {
     const res = await fetch(url, {
       method: 'GET',
       cache: 'no-store',
-      signal: sig,
+      signal,
+      // Best-effort revalidation hints — Fastly/CloudFront honor these,
+      // some proxies ignore them. The query-string cache buster is the
+      // real safeguard.
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
     });
     if (!res.ok) return null;
     const json = (await res.json()) as unknown;
@@ -141,6 +182,38 @@ export async function fetchRemoteVersion(
     };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Fetch the remote version manifest. Tries every URL returned by
+ * `versionJsonUrls()` IN PARALLEL and returns whichever response
+ * reports the HIGHEST semver. Racing in parallel (vs. sequentially)
+ * means the slow GH-Pages CDN can never be the bottleneck — the
+ * faster raw.githubusercontent endpoint will almost always win, and
+ * if the repo is private and that 404s, the Pages fallback still
+ * resolves on its own clock.
+ *
+ * Resolves to `null` only when EVERY source failed. Never throws.
+ */
+export async function fetchRemoteVersion(
+  signal?: AbortSignal,
+): Promise<RemoteVersionInfo | null> {
+  const urls = versionJsonUrls();
+  if (urls.length === 0) return null;
+
+  const ctrl = signal ? null : new AbortController();
+  const sig = signal ?? ctrl!.signal;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS) : null;
+
+  try {
+    const results = await Promise.all(urls.map((u) => fetchOne(u, sig)));
+    let best: RemoteVersionInfo | null = null;
+    for (const r of results) {
+      if (!r) continue;
+      if (!best || compareSemver(r.version, best.version) > 0) best = r;
+    }
+    return best;
   } finally {
     if (timer) clearTimeout(timer);
   }
@@ -238,13 +311,24 @@ export function useOtaUpdate(): OtaState {
     void runCheck();
 
     // 2a. Web: visibility transitions → re-check on becoming visible.
+    //     Also listen for `focus` and `pageshow` (back/forward cache),
+    //     because some Android WebViews fire neither visibilitychange
+    //     nor appStateChange when the user swipes away the keyboard or
+    //     dismisses a system dialog. The runCheck dedup means stacking
+    //     these listeners costs nothing.
     const onVisibility = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         void runCheck();
       }
     };
+    const onFocus = () => { void runCheck(); };
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', onVisibility);
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', onFocus);
+      window.addEventListener('pageshow', onFocus);
+      window.addEventListener('online', onFocus);
     }
 
     // 2b. Native (Capacitor): listen for the app coming back to the
@@ -282,6 +366,11 @@ export function useOtaUpdate(): OtaState {
       ctrl.abort();
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', onVisibility);
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', onFocus);
+        window.removeEventListener('pageshow', onFocus);
+        window.removeEventListener('online', onFocus);
       }
       if (pollTimer) clearTimeout(pollTimer);
       if (nativeListener) void nativeListener.remove().catch(() => {});
