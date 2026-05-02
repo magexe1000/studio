@@ -1,6 +1,6 @@
 {
-  "version": "3.0.8",
-  "changelog": "• New: pick an icon (person, face, headphones, music note...) as your profile picture. Tap your avatar in the account card to open the picker. Stored on this device — switch back to your Google photo any time.\n• Fix: cloud sync sometimes got stuck on \"Syncing…\" forever when the Vocalex local database took too long to respond. The snapshot step is now time-bounded so a slow read can no longer wedge the engine.\n• Photo failures now fall back to your initials gradient instead of showing a broken-image placeholder.",
+  "version": "3.0.9",
+  "changelog": "• New: the changelog is now a slick bottom sheet (Metrolist style) — swipe down to dismiss, or tap outside.\n• New: open the changelog any time from Settings → About → Changelog.\n• The \"you just updated\" screen is now lighter and only shows the version number; tap \"View changes\" to read the full changelog.\n• The \"update available\" prompt no longer shows a wall of release notes — it only confirms the version being offered. Read the details after the update lands.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.8.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.9.zip"
 }
