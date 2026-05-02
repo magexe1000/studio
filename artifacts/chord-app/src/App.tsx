@@ -7,7 +7,6 @@ import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 import StudioHub from './components/StudioHub';
-import { useStudioSync } from './lib/useStudioSync';
 
 // Account state is intentionally typed inline so we don't pull
 // `lib/accountStatus` (and its Firebase dependencies) into the main
@@ -62,13 +61,6 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
-
-  // Mount the cross-app data bridge. Mirrors each app's active selection
-  // (Chordex preset, Drumex pattern) into the active StudioProject —
-  // imperative push helpers in lib/studioBridge handle Vocalex / Stagex.
-  // Adds zero startup cost (single subscribe per app store) and zero
-  // coupling (no app store knows about any other).
-  useStudioSync();
 
   // Subscribe to combined auth + soft-delete status. While in `pending` we
   // overlay a lockdown screen with a countdown + Restore button.
