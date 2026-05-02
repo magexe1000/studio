@@ -65,6 +65,16 @@ export default defineConfig({
             if (id.includes("/jspdf/")) return "jspdf";
             if (id.includes("/@capacitor/")) return "capacitor";
             if (id.includes("/@fontsource/")) return "fonts";
+            // Isolate the entire Firebase SDK into its own chunk so it
+            // never gets pulled into the main bundle. App.tsx loads
+            // lib/sync and lib/accountStatus via dynamic import after
+            // first paint, so this chunk should only download for
+            // users who actually use cloud sync.
+            if (
+              id.includes("/firebase/") ||
+              id.includes("/@firebase/")
+            )
+              return "firebase";
           }
         },
       },

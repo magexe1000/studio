@@ -5,7 +5,11 @@
 @import "@fontsource/manrope/800.css";
 @import "@fontsource/inter/400.css";
 @import "@fontsource/inter/700.css";
-@import "material-symbols/outlined.css";
+/* Material Symbols font is loaded dynamically (subsetted) via a <link>
+   in index.html — only the icons actually used by the app are fetched
+   (~10–30 KB) instead of the full 3.8 MB local woff2. The
+   .material-symbols-outlined class lower in this file provides the
+   element styling; the @font-face comes from Google Fonts. */
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));

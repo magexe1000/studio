@@ -7,10 +7,17 @@ import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 import StudioHub from './components/StudioHub';
-import { attachSyncEngine, requestFlush } from './lib/sync';
-import { subscribeAccountState, type AccountState } from './lib/accountStatus';
-import PendingDeletionScreen from './components/PendingDeletionScreen';
 import { useStudioSync } from './lib/useStudioSync';
+
+// Account state is intentionally typed inline so we don't pull
+// `lib/accountStatus` (and its Firebase dependencies) into the main
+// bundle just for a type. The full module is dynamic-imported below.
+type AccountState =
+  | { phase: 'unknown' }
+  | { phase: 'signedOut' }
+  | { phase: 'active'; user: { uid: string; email: string | null; displayName: string | null; photoURL: string | null } }
+  | { phase: 'pending'; user: { uid: string; email: string | null; displayName: string | null; photoURL: string | null }; scheduledAtMs: number };
+
 const stagexImport  = () => import('./components/StageCorePanel');
 const libraryImport = () => import('./panels/LibraryPanel');
 const chordImport   = () => import('./panels/ChordPanel');
@@ -31,9 +38,23 @@ const GroovexApp = lazy(groovexImport);
 const vocalexImport = () => import('./vocalex/VocalexApp');
 const VocalexApp = lazy(vocalexImport);
 
-const preloadAll = () => { chordImport(); libraryImport(); songsImport(); settingsImport(); drumImport(); stagexImport(); groovexImport(); vocalexImport(); };
-if (typeof requestIdleCallback === 'function') requestIdleCallback(preloadAll);
-else setTimeout(preloadAll, 200);
+// Lockdown screen is only ever rendered when the user has scheduled
+// account deletion, which requires an active sign-in. Lazy so first
+// paint never pays for it.
+const PendingDeletionScreen = lazy(() => import('./components/PendingDeletionScreen'));
+
+// Smart preload: instead of eagerly fetching every panel chunk on idle
+// (which used to push ~500 KB of JS the user may never visit), preload
+// only the chunks the user is most likely to land on next based on
+// their startup preference and last session.
+function schedulePreload(picks: Array<() => Promise<unknown>>) {
+  const run = () => { for (const p of picks) { try { p(); } catch { /* noop */ } } };
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(run, { timeout: 2000 });
+  } else {
+    setTimeout(run, 600);
+  }
+}
 
 // Ordered left-to-right (matches nav order) — used to compute slide direction
 const NAV_ORDER = ['songs', 'library', 'chord', 'settings'] as const;
@@ -51,8 +72,29 @@ export default function App() {
 
   // Subscribe to combined auth + soft-delete status. While in `pending` we
   // overlay a lockdown screen with a countdown + Restore button.
+  //
+  // Defer the subscription itself until after first paint via idle
+  // callback, then dynamic-import the account-status module. This keeps
+  // the firebase-auth + firestore SDK out of the main bundle and out of
+  // the critical path for users who never sign in.
   const [accountState, setAccountState] = useState<AccountState>({ phase: 'unknown' });
-  useEffect(() => subscribeAccountState(setAccountState), []);
+  useEffect(() => {
+    let cancelled = false;
+    let unsub: (() => void) | null = null;
+    const start = () => {
+      if (cancelled) return;
+      import('./lib/accountStatus').then(({ subscribeAccountState }) => {
+        if (cancelled) return;
+        unsub = subscribeAccountState((s) => setAccountState(s as AccountState));
+      }).catch(() => { /* firebase not configured / offline */ });
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(start, { timeout: 1500 });
+    } else {
+      setTimeout(start, 200);
+    }
+    return () => { cancelled = true; unsub?.(); };
+  }, []);
 
   // Whenever we leave the lockdown screen (e.g. user tapped Restore), force
   // the bottom nav back into a clean visible state. The lockdown screen
@@ -66,10 +108,23 @@ export default function App() {
   // Boot the cloud sync engine once. It listens for sign-in changes and
   // pushes/pulls Chordex/Drumex/StageX state. Also bridges localStorage
   // restores back into the in-memory zustand stores.
+  //
+  // Lazy-loaded after first paint so the Firebase SDK (firestore + auth,
+  // ~150 KB minified) never lands in the main bundle. Until the engine
+  // is attached, store changes are buffered into a tiny `pendingFlush`
+  // flag and a single `requestFlush` call is fired right after attach.
   useEffect(() => {
-    attachSyncEngine();
-
     let cancelled = false;
+    let unsubChord: (() => void) | null = null;
+    let unsubDrum: (() => void) | null = null;
+    let requestFlushFn: ((delayMs?: number) => void) | null = null;
+    let pendingFlush = false;
+
+    const flushIfReady = () => {
+      if (requestFlushFn) requestFlushFn();
+      else pendingFlush = true;
+    };
+
     const onRehydrate = async (e: Event) => {
       const detail = (e as CustomEvent<{ key?: string }>).detail;
       try {
@@ -83,22 +138,38 @@ export default function App() {
     };
     window.addEventListener('chordex:storage-rehydrate', onRehydrate as EventListener);
 
-    // Push when the global Chord store changes (covers all per-app visuals,
-    // settings, favorites, presets, custom chords, history).
-    const unsubChord = useChordStore.subscribe(() => requestFlush());
-
-    // Push when the Drum store changes. Lazy-load to avoid pulling it on Hub-only sessions.
-    let unsubDrum: (() => void) | null = null;
+    // Subscribe to store changes immediately so no edits are lost while
+    // we wait for the sync engine to load — they just get coalesced into
+    // a single flush once it's ready.
+    unsubChord = useChordStore.subscribe(() => flushIfReady());
     void import('./store/useDrumStore').then(({ useDrumStore }) => {
       if (cancelled) return;
-      unsubDrum = useDrumStore.subscribe(() => requestFlush());
+      unsubDrum = useDrumStore.subscribe(() => flushIfReady());
     });
+
+    const startSync = () => {
+      if (cancelled) return;
+      import('./lib/sync').then(({ attachSyncEngine, requestFlush }) => {
+        if (cancelled) return;
+        attachSyncEngine();
+        requestFlushFn = requestFlush;
+        if (pendingFlush) {
+          pendingFlush = false;
+          requestFlush();
+        }
+      }).catch(() => { /* firebase not configured / offline */ });
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(startSync, { timeout: 2500 });
+    } else {
+      setTimeout(startSync, 400);
+    }
 
     return () => {
       cancelled = true;
       window.removeEventListener('chordex:storage-rehydrate', onRehydrate as EventListener);
-      unsubChord();
-      if (unsubDrum) unsubDrum();
+      unsubChord?.();
+      unsubDrum?.();
     };
   }, []);
 
@@ -146,6 +217,22 @@ export default function App() {
       const tab = settings.defaultTab ?? 'library';
       if (tab !== 'library') setActivePanel(tab);
     }
+
+    // Smart preload: warm the chunk(s) the user is most likely to land
+    // on next, instead of fetching every panel up-front. Hub-only users
+    // pay nothing extra; users who pinned a startup app get that app's
+    // chunk pre-warmed during browser idle time.
+    const targetApp: AppKey = (restoredApp ?? (startApp as AppKey));
+    const picks: Array<() => Promise<unknown>> = [];
+    if (targetApp === 'drums') picks.push(drumImport);
+    else if (targetApp === 'stage') picks.push(stagexImport);
+    else if (targetApp === 'groovex') picks.push(groovexImport);
+    else if (targetApp === 'vocalex') picks.push(vocalexImport);
+    else if (targetApp === 'chords') picks.push(libraryImport, chordImport);
+    // For 'hub' (the default) we preload nothing — the user hasn't
+    // chosen a destination yet and we don't want to spend their
+    // bandwidth speculatively.
+    if (picks.length) schedulePreload(picks);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -463,11 +550,13 @@ export default function App() {
   // ── Account scheduled for deletion: lockdown overlay ───────────────────
   if (accountState.phase === 'pending') {
     return (
-      <PendingDeletionScreen
-        phase="pending"
-        user={accountState.user}
-        scheduledAtMs={accountState.scheduledAtMs}
-      />
+      <Suspense fallback={null}>
+        <PendingDeletionScreen
+          phase="pending"
+          user={accountState.user}
+          scheduledAtMs={accountState.scheduledAtMs}
+        />
+      </Suspense>
     );
   }
 
