@@ -13,6 +13,13 @@ import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus } from '../lib
 import { scheduleAccountDeletion } from '../lib/accountStatus';
 import { useT } from '../lib/useT';
 import { useChordStore } from '../store/useChordStore';
+import {
+  AVATAR_ICONS,
+  getUserAvatar,
+  setUserAvatar,
+  subscribeUserAvatar,
+  type AvatarIcon,
+} from '../lib/userAvatar';
 
 type Props = {
   accent: { from: string; to: string; mid: string };
@@ -59,9 +66,23 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
     error: null,
   }));
   const [tick, setTick] = useState(0);
+  const [avatarIcon, setAvatarIcon] = useState<AvatarIcon | null>(null);
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerClosing, setPickerClosing] = useState(false);
 
   useEffect(() => subscribeAuth(setUser), []);
   useEffect(() => subscribeSyncStatus(setSync), []);
+  // Reset photo-failed flag when the user (or photo URL) changes so a
+  // fresh sign-in gets a new shot at loading the picture.
+  useEffect(() => { setPhotoFailed(false); }, [user?.uid, user?.photoURL]);
+  // Hydrate the per-uid avatar choice and listen for picker changes
+  // from anywhere in the app.
+  useEffect(() => {
+    const refresh = () => setAvatarIcon(getUserAvatar(user?.uid ?? null));
+    refresh();
+    return subscribeUserAvatar(refresh);
+  }, [user?.uid]);
   useEffect(() => {
     const id = setInterval(() => setTick((x) => x + 1), 30000);
     return () => clearInterval(id);
@@ -142,16 +163,37 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
       <div style={cardStyle}>
         <SyncAnimations />
         <div style={{ ...rowStyle, alignItems: 'center', gap: 12 }}>
-          {user.photoURL ? (
-            <img src={user.photoURL} alt="" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-          ) : (
-            <div style={{
+          <button
+            type="button"
+            onClick={() => { setPickerClosing(false); setPickerOpen(true); }}
+            aria-label={t.avatarPickerTitle}
+            style={{
               width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
-              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+              padding: 0, border: 'none', cursor: 'pointer',
+              background: avatarIcon || !user.photoURL || photoFailed
+                ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
+                : 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: '#fff', fontWeight: 800, fontSize: 18,
-            }}>{initial}</div>
-          )}
+              overflow: 'hidden', position: 'relative',
+            }}
+          >
+            {avatarIcon ? (
+              <span className="material-symbols-outlined" style={{ fontSize: 26, color: '#fff' }}>
+                {avatarIcon}
+              </span>
+            ) : user.photoURL && !photoFailed ? (
+              <img
+                src={user.photoURL}
+                alt=""
+                referrerPolicy="no-referrer"
+                onError={() => setPhotoFailed(true)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <span>{initial}</span>
+            )}
+          </button>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {user.displayName || user.email}
@@ -197,6 +239,24 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
             {t.syncedAppsNote}
           </p>
         </div>
+
+        {pickerOpen && createPortal(
+          <AvatarPickerSheet
+            accent={accent}
+            currentIcon={avatarIcon}
+            hasGooglePhoto={!!user.photoURL && !photoFailed}
+            t={t}
+            closing={pickerClosing}
+            onPick={(icon) => {
+              setUserAvatar(user.uid, icon);
+            }}
+            onClose={() => {
+              setPickerClosing(true);
+              setTimeout(() => { setPickerOpen(false); setPickerClosing(false); }, 280);
+            }}
+          />,
+          document.body,
+        )}
       </div>
     );
   }
@@ -623,4 +683,144 @@ function inputStyle(accent: { from: string }): React.CSSProperties {
     transition: 'border-color 200ms ease',
     accentColor: accent.from,
   };
+}
+
+// ── Avatar picker bottom sheet ───────────────────────────────────────────────
+
+type AvatarPickerSheetProps = {
+  accent: { from: string; to: string; mid: string };
+  currentIcon: AvatarIcon | null;
+  hasGooglePhoto: boolean;
+  closing: boolean;
+  t: ReturnType<typeof useT>['hub']['accountSection'];
+  onPick: (icon: AvatarIcon | null) => void;
+  onClose: () => void;
+};
+
+function AvatarPickerSheet({ accent, currentIcon, hasGooglePhoto, closing, t, onPick, onClose }: AvatarPickerSheetProps) {
+  const sheetAnim = closing
+    ? 'sheet-down 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both'
+    : 'sheet-up 340ms cubic-bezier(0.34, 1.42, 0.64, 1) both';
+  const overlayAnim = closing ? 'fade-out 280ms ease both' : 'sync-fade-in 200ms ease both';
+
+  const overlayStyle: React.CSSProperties = {
+    position: 'fixed', inset: 0, zIndex: 9999, animation: overlayAnim,
+  };
+  const backdropStyle: React.CSSProperties = {
+    position: 'absolute', inset: 0,
+    background: 'rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
+  };
+  const sheetStyle: React.CSSProperties = {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    background: 'var(--app-surface)',
+    borderRadius: '1.5rem 1.5rem 0 0',
+    padding: '0 0 max(28px, env(safe-area-inset-bottom)) 0',
+    animation: sheetAnim,
+  };
+
+  return (
+    <div style={overlayStyle}>
+      <SheetAnimations />
+      <div style={backdropStyle} onClick={onClose} />
+      <div style={sheetStyle}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+          <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.3)' }} />
+        </div>
+        <div style={{ padding: '6px 22px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)', margin: 0 }}>
+            {t.avatarPickerTitle}
+          </p>
+          <button
+            onClick={onClose}
+            style={{ color: 'var(--c-text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+            aria-label="close"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>close</span>
+          </button>
+        </div>
+        <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5, margin: '4px 22px 14px' }}>
+          {t.avatarPickerSubtitle}
+        </p>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 10,
+          padding: '0 16px 12px',
+        }}>
+          {AVATAR_ICONS.map((icon) => {
+            const selected = currentIcon === icon;
+            return (
+              <button
+                key={icon}
+                onClick={() => { onPick(icon); onClose(); }}
+                style={{
+                  aspectRatio: '1 / 1',
+                  borderRadius: 14,
+                  border: selected ? `2px solid ${accent.from}` : '1px solid rgba(128,128,128,0.18)',
+                  background: selected
+                    ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
+                    : 'rgba(128,128,128,0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', padding: 0,
+                  transition: 'transform 150ms ease, background 200ms ease',
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{
+                    fontSize: 30,
+                    color: selected ? '#fff' : 'var(--c-text-primary)',
+                  }}
+                >
+                  {icon}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ padding: '4px 16px 4px', display: 'flex', gap: 10 }}>
+          <button
+            onClick={() => { onPick(null); onClose(); }}
+            style={{
+              flex: 1, padding: '12px 14px', borderRadius: 12,
+              fontSize: 13, fontWeight: 700,
+              background: !currentIcon
+                ? `${accent.from}1f`
+                : 'rgba(128,128,128,0.10)',
+              border: !currentIcon
+                ? `1px solid ${accent.from}55`
+                : '1px solid rgba(128,128,128,0.18)',
+              color: !currentIcon ? accent.from : 'var(--c-text-primary)',
+              fontFamily: 'Manrope', cursor: 'pointer',
+            }}
+          >
+            {hasGooglePhoto ? t.avatarUseGooglePhoto : t.avatarUseInitial}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SheetAnimations() {
+  return (
+    <style>{`
+      @keyframes sheet-up {
+        from { transform: translateY(100%); }
+        to   { transform: translateY(0); }
+      }
+      @keyframes sheet-down {
+        from { transform: translateY(0); }
+        to   { transform: translateY(100%); }
+      }
+      @keyframes fade-out {
+        from { opacity: 1; }
+        to   { opacity: 0; }
+      }
+    `}</style>
+  );
 }

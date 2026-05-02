@@ -17,6 +17,18 @@ Conventions:
 
 ---
 
+## 3.0.8
+
+- New: pick an icon (person, face, headphones, music note...) as your
+  profile picture. Tap your avatar in the account card to open the
+  picker. Stored on this device — switch back to your Google photo any
+  time.
+- Fix: cloud sync sometimes got stuck on "Syncing…" forever when the
+  Vocalex local database took too long to respond. The snapshot step
+  is now time-bounded so a slow read can no longer wedge the engine.
+- Photo failures now fall back to your initials gradient instead of
+  showing a broken-image placeholder.
+
 ## 3.0.7
 
 - Sign in with Google is back on the phone — uses the native Google

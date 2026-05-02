@@ -323,9 +323,32 @@ function base64ToBlob(dataUrl: string, fallbackType = 'audio/webm'): Blob {
 
 const VOCALEX_BUDGET = 800_000; // ~800 KB cap per Firestore doc
 
+/**
+ * Race a promise against a short timeout. If the source rejects OR the
+ * timer fires first, resolve to `null` rather than rejecting — the
+ * caller's snapshot pipeline treats `null` as "no data this round" and
+ * carries on. Used to defend against IndexedDB calls that can wedge
+ * indefinitely on Android WebView (we've seen `getAll` never resolve
+ * when the store was opened mid-upgrade), which previously left the
+ * sync engine stuck on `phase: 'syncing'` forever because nothing in
+ * `collectPushWork` was bounded.
+ */
+function softTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise<T | null>((resolve) => {
+    const t = setTimeout(() => resolve(null), ms);
+    p.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      () => { clearTimeout(t); resolve(null); },
+    );
+  });
+}
+
+const INDEXEDDB_SNAPSHOT_MS = 4_000;
+
 async function snapshotVocalexTakes(): Promise<TakeSyncRecord[] | null> {
   try {
-    const takes = await getAllTakes();
+    const takes = await softTimeout(getAllTakes(), INDEXEDDB_SNAPSHOT_MS);
+    if (!takes) return null;
     if (takes.length === 0) return null;
     const records: TakeSyncRecord[] = [];
     let totalSize = 0;
@@ -356,7 +379,8 @@ async function restoreVocalexTakes(records: TakeSyncRecord[]): Promise<void> {
 
 async function snapshotVocalexLab(): Promise<SessionSyncRecord[] | null> {
   try {
-    const sessions = await getAllSessions();
+    const sessions = await softTimeout(getAllSessions(), INDEXEDDB_SNAPSHOT_MS);
+    if (!sessions) return null;
     if (sessions.length === 0) return null;
     const records: SessionSyncRecord[] = [];
     let totalSize = 0;
