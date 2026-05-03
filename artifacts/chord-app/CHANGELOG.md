@@ -17,6 +17,10 @@ Conventions:
 
 ---
 
+## 3.0.23
+
+- OTA self-test 3.0.23. Final confirmation — if you see this modal, OTA is working end-to-end.
+
 ## 3.0.22
 
 - OTA self-test 3.0.22. Second confirmation that over-the-air updates are reaching the device cleanly.

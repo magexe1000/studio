@@ -1,6 +1,6 @@
 {
-  "version": "3.0.22",
-  "changelog": "• OTA self-test 3.0.22. Second confirmation that over-the-air updates are reaching the device cleanly.",
+  "version": "3.0.23",
+  "changelog": "• OTA self-test 3.0.23. Final confirmation — if you see this modal, OTA is working end-to-end.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.22.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.23.zip"
 }

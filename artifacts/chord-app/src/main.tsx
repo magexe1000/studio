@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import ChangelogModal from "./components/ChangelogModal";
 import UpdateIndicator from "./components/UpdateIndicator";
+import OtaDebugStrip from "./components/OtaDebugStrip";
 import { notifyBundleReady, ensureNotificationPermission } from "./lib/capgoUpdater";
 import "./index.css";
 
@@ -29,6 +30,7 @@ createRoot(document.getElementById("root")!).render(
         modal once per remote version so the user can't miss a release
         even when the OS notification opens the app into a sub-app. */}
     <UpdateIndicator accentFrom="#7c3aed" accentTo="#a855f7" />
+    <OtaDebugStrip />
   </>,
 );
 
