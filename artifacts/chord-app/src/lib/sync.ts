@@ -61,8 +61,8 @@ const SYNC_META_KEY = 'chordex_sync_meta_v1';
 const DEVICE_ID_KEY = 'chordex_device_id';
 
 const TICK_MS = 60_000;          // periodic safety-net flush while signed in
-const RUN_TIMEOUT_MS = 30_000;   // OVERALL hard cap per run (long-polling needs more headroom)
-const FIRESTORE_OP_MS = 15_000;  // per-getDoc / per-setDoc cap (long-polling first request can be slow)
+const RUN_TIMEOUT_MS = 60_000;   // OVERALL hard cap per run — generous for slow mobile + long-polling warmup
+const FIRESTORE_OP_MS = 25_000;  // per-getDoc / per-setDoc cap — covers cold long-polling + Vocalex blob payloads
 const SUCCESS_LINGER_MS = 1_200; // how long `phase=success` stays visible
 const SYNCING_DEBOUNCE_MS = 600; // delay before showing spinner — quick runs stay invisible
 const STAGE_SNAPSHOT_MS = 1_500; // postMessage round-trip cap

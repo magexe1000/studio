@@ -49,20 +49,28 @@ const BANNER_SHOWN_KEY = 'studio:updateBannerShown';
  */
 const DISMISSED_VERSION_KEY = 'studio:dismissedUpdateVersion';
 
-/** localStorage key recording the latest version for which we have
- *  already auto-opened the update modal. Prevents repeat pop-ups on
- *  every foreground / poll cycle. A newer remote version resets it. */
+/** sessionStorage key recording the latest version for which we have
+ *  already auto-opened the update modal IN THIS SESSION. Using
+ *  sessionStorage (not localStorage) is intentional: every cold start
+ *  the user gets a fresh shot at the modal until they actually tap
+ *  Update or explicitly dismiss via "Later". This avoids the failure
+ *  mode where a transient miss (app in background when detected, slow
+ *  network, etc.) permanently suppresses the modal for that version. */
 const AUTO_OPENED_VERSION_KEY = 'studio:autoOpenedUpdateVersion';
 
 function readAutoOpenedVersion(): string | null {
   try {
-    const raw = localStorage.getItem(AUTO_OPENED_VERSION_KEY);
+    const raw = sessionStorage.getItem(AUTO_OPENED_VERSION_KEY);
     if (!raw || normalizeSemver(raw) === null) return null;
     return raw;
   } catch { return null; }
 }
 function writeAutoOpenedVersion(v: string): void {
-  try { localStorage.setItem(AUTO_OPENED_VERSION_KEY, v); } catch { /* ignore */ }
+  try { sessionStorage.setItem(AUTO_OPENED_VERSION_KEY, v); } catch { /* ignore */ }
+  // Also wipe any legacy localStorage value so older installs that
+  // had this key persisted forever (causing the "modal never opens
+  // again" bug) get unstuck on first launch of the new bundle.
+  try { localStorage.removeItem(AUTO_OPENED_VERSION_KEY); } catch { /* ignore */ }
 }
 
 function readDismissedVersion(): string | null {

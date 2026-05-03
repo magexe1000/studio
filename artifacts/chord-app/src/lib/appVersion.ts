@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.18';
+export const APP_VERSION = '3.0.19';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -36,7 +36,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
 export const APP_VERSION_DATE = '2026-05-03';
-// 3.0.18 bumped same day as 3.0.17 — extended sync timeouts for long-polling.
+// 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -56,7 +56,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
-      'Cloud sync now waits longer before giving up. The previous 6-second cap was too tight for the new long-polling transport on slower mobile connections, causing "Sync timed out" errors. Per-operation cap raised to 15 seconds and overall run cap to 30 seconds.',
+      'Cloud sync now waits up to 25 seconds per step and 60 seconds overall, so slow mobile connections and large Vocalex recordings sync reliably.',
+      'The "update available" modal now reappears on every cold start until you actually update, so a missed prompt is no longer a dead end.',
     ],
   },
 ];

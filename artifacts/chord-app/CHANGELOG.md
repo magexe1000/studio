@@ -17,6 +17,13 @@ Conventions:
 
 ---
 
+## 3.0.19
+
+- Sync timeouts further extended (60 s overall, 25 s per operation) to handle slow mobile connections, long-polling cold starts, and large Vocalex audio payloads without giving up.
+- Fixes the OTA "update available" modal getting permanently suppressed after a single missed prompt. The auto-open marker now lives in sessionStorage, so every cold start gets a fresh shot at the modal until the user actually updates.
+
+---
+
 ## 3.0.18
 
 - Cloud sync now waits longer before giving up. The previous 6-second cap was too tight for the new long-polling transport on slower mobile connections, causing "Sync timed out" errors. Per-operation cap raised to 15 seconds and overall run cap to 30 seconds.
