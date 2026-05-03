@@ -133,10 +133,52 @@ export default function App() {
     // Subscribe to store changes immediately so no edits are lost while
     // we wait for the sync engine to load — they just get coalesced into
     // a single flush once it's ready.
-    unsubChord = useChordStore.subscribe(() => flushIfReady());
+    //
+    // CRITICAL: only flush when the *persisted* slices change. Plain
+    // `useChordStore.subscribe(fn)` fires on EVERY state change, including
+    // transient UI state like `selectedChordId`, `activePanel`,
+    // `multiSelectChords`, `isMultiChordMode`, `activePresetId` — none of
+    // which are written to localStorage and none of which need to be
+    // synced. Subscribing without a selector caused the cloud-sync
+    // indicator to spin almost continuously while the user was just
+    // browsing chords. We compare a hash of the persisted snapshot and
+    // only flush on actual changes.
+    let lastChordSig: string | null = null;
+    unsubChord = useChordStore.subscribe((s) => {
+      // Cheap signature: same fields as `partialize` in the store.
+      const sig =
+        (s.favorites?.length ?? 0) + '|' +
+        (s.recentChords?.length ?? 0) + '|' +
+        (s.progressions?.length ?? 0) + '|' +
+        (s.currentProgressionChords?.length ?? 0) + '|' +
+        (s.presets?.length ?? 0) + '|' +
+        (s.customChords?.length ?? 0) + '|' +
+        // settings + transpositions + chordUsage + lastSession can change
+        // shape, so JSON-stringify them. They're small.
+        JSON.stringify(s.settings) + '|' +
+        JSON.stringify(s.transpositions) + '|' +
+        JSON.stringify(s.chordUsage) + '|' +
+        JSON.stringify(s.lastSession) + '|' +
+        // Length-based for the array fields above is enough to catch
+        // adds/removes; for content edits we re-hash favorites/progressions.
+        JSON.stringify(s.favorites) + '|' +
+        JSON.stringify(s.progressions) + '|' +
+        JSON.stringify(s.presets) + '|' +
+        JSON.stringify(s.customChords);
+      if (sig === lastChordSig) return;
+      lastChordSig = sig;
+      flushIfReady();
+    });
     void import('./store/useDrumStore').then(({ useDrumStore }) => {
       if (cancelled) return;
-      unsubDrum = useDrumStore.subscribe(() => flushIfReady());
+      let lastDrumSig: string | null = null;
+      unsubDrum = useDrumStore.subscribe((s) => {
+        // Drum store is smaller; full JSON snapshot is fine here.
+        const sig = JSON.stringify(s);
+        if (sig === lastDrumSig) return;
+        lastDrumSig = sig;
+        flushIfReady();
+      });
     });
 
     const startSync = () => {

@@ -17,6 +17,25 @@ Conventions:
 
 ---
 
+## 3.0.13
+
+- Cloud sync no longer spins almost constantly. The indicator was
+  firing on every interaction (clicking a chord, switching tabs)
+  because the sync engine was listening to *all* in-memory state
+  changes — including UI state that never gets saved. Studio now
+  only triggers a sync when something that actually gets persisted
+  changes (favorites, progressions, presets, settings, custom
+  chords, etc.).
+- Quick background syncs (the common case) no longer flash the
+  spinner at all. The "Syncing…" state only appears if the round
+  trip takes more than ~600 ms, so you'll mostly see "Synced" with
+  no flicker.
+- Background safety-net poll relaxed from every 5 seconds to every
+  60 seconds. Real edits still flush right away thanks to the
+  store subscription.
+
+---
+
 ## 3.0.12
 
 - Updates are detected almost immediately. Studio now reads the

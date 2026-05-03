@@ -60,10 +60,11 @@ export type { SyncAppKey };
 const SYNC_META_KEY = 'chordex_sync_meta_v1';
 const DEVICE_ID_KEY = 'chordex_device_id';
 
-const TICK_MS = 5000;            // periodic flush cadence while signed in
+const TICK_MS = 60_000;          // periodic safety-net flush while signed in
 const RUN_TIMEOUT_MS = 10_000;   // OVERALL hard cap per run
 const FIRESTORE_OP_MS = 6_000;   // per-getDoc / per-setDoc cap
-const SUCCESS_LINGER_MS = 1_800; // how long `phase=success` stays visible
+const SUCCESS_LINGER_MS = 1_200; // how long `phase=success` stays visible
+const SYNCING_DEBOUNCE_MS = 600; // delay before showing spinner — quick runs stay invisible
 const STAGE_SNAPSHOT_MS = 1_500; // postMessage round-trip cap
 
 // localStorage keys owned by each app
@@ -658,7 +659,25 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
   const ctrl = new AbortController();
   const timeoutHandle = setTimeout(() => ctrl.abort(), RUN_TIMEOUT_MS);
 
-  setStatus({ phase: 'syncing', error: null });
+  // Defer the visible "syncing" state. Most pushes complete in well under
+  // 600ms (one getDoc + one setDoc on a warm connection), and flashing the
+  // spinner for that brief window felt like the indicator was always
+  // spinning. We only commit to `phase=syncing` if the run is still going
+  // when the timer fires.
+  //
+  // The `runDone` flag is the safety net: even though `clearTimeout` in
+  // `finally` cancels the pending callback in the common case, a callback
+  // already dequeued from the macrotask queue can still execute after the
+  // run completes. Checking `runDone` inside the timer guarantees we
+  // never flip back to `syncing` after a `success`/`idle`/`error` setStatus.
+  let syncingShown = false;
+  let runDone = false;
+  const showSyncingHandle = setTimeout(() => {
+    if (runDone) return;
+    if (epoch !== startEpoch) return;
+    syncingShown = true;
+    setStatus({ phase: 'syncing', error: null });
+  }, SYNCING_DEBOUNCE_MS);
   logStart(reason, mode);
 
   let pushedCount = 0;
@@ -710,16 +729,20 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
 
     if (failure) throw failure;
 
-    setStatus({ phase: 'success', lastSyncedMs: Date.now(), error: null });
+    // Only flash the green "Synced" pop if we actually made the spinner
+    // visible. Background runs that never showed `syncing` should slide
+    // straight to `idle` with an updated `lastSyncedMs` — no UI flicker.
+    if (syncingShown) {
+      setStatus({ phase: 'success', lastSyncedMs: Date.now(), error: null });
+      if (lingerTimer) clearTimeout(lingerTimer);
+      lingerTimer = setTimeout(() => {
+        lingerTimer = null;
+        if (status.phase === 'success') setStatus({ phase: 'idle' });
+      }, SUCCESS_LINGER_MS);
+    } else {
+      setStatus({ phase: 'idle', lastSyncedMs: Date.now(), error: null });
+    }
     logSuccess(Date.now() - startedAt, pushedCount, pulledCount);
-
-    // Auto-fade success → idle so the indicator settles.
-    if (lingerTimer) clearTimeout(lingerTimer);
-    lingerTimer = setTimeout(() => {
-      lingerTimer = null;
-      // Only fade if nothing else has changed phase in the meantime.
-      if (status.phase === 'success') setStatus({ phase: 'idle' });
-    }, SUCCESS_LINGER_MS);
   } catch (e) {
     const isTimeout = e instanceof SyncTimeoutError;
     const durationMs = Date.now() - startedAt;
@@ -732,7 +755,9 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
       });
     }
   } finally {
+    runDone = true;
     clearTimeout(timeoutHandle);
+    clearTimeout(showSyncingHandle);
   }
 }
 

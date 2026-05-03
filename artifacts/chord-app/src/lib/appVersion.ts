@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.12';
+export const APP_VERSION = '3.0.13';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -36,6 +36,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
 export const APP_VERSION_DATE = '2026-05-02';
+// Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -52,16 +53,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "What's new",
-    items: [
-      'Updates appear almost instantly — Studio now reads the version manifest from a faster source that refreshes within seconds of a release, instead of waiting 2–3 minutes for the CDN to catch up.',
-      'In-app version checks every minute (down from every 5) while the app is open, plus extra checks on focus and when the network reconnects.',
-    ],
-  },
-  {
     heading: 'Fixes',
     items: [
-      'No more closing and reopening Studio four times to see a new version banner.',
+      'The cloud sync indicator no longer spins almost constantly while you are using the app. Studio now only triggers a sync when something that actually gets saved changes (favorites, progressions, presets, settings…), instead of on every chord click or tab change.',
+      'The sync icon stays still for quick background syncs and only shows the spinner if a sync is genuinely taking longer than expected.',
+      'Background safety-net sync runs every minute now (instead of every 5 seconds), so the indicator stays calm.',
     ],
   },
 ];
