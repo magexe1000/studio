@@ -1,6 +1,6 @@
 {
-  "version": "3.0.12",
-  "changelog": "• Updates are detected almost immediately. Studio now reads the version manifest from `raw.githubusercontent.com` (which refreshes within seconds of a push) instead of waiting on the GitHub Pages CDN, which used to take 2–3 minutes to flush.\n• In-app version polling tightened from every 5 minutes to every 1 minute while the app is open. Also re-checks on window focus, on page show, and whenever the network comes back online.\n• Native background worker now races the same set of URLs and picks the highest semver, so the system notification fires sooner too.",
+  "version": "3.0.13",
+  "changelog": "• Cloud sync no longer spins almost constantly. The indicator was firing on every interaction (clicking a chord, switching tabs) because the sync engine was listening to *all* in-memory state changes — including UI state that never gets saved. Studio now only triggers a sync when something that actually gets persisted changes (favorites, progressions, presets, settings, custom chords, etc.).\n• Quick background syncs (the common case) no longer flash the spinner at all. The \"Syncing…\" state only appears if the round trip takes more than ~600 ms, so you'll mostly see \"Synced\" with no flicker.\n• Background safety-net poll relaxed from every 5 seconds to every 60 seconds. Real edits still flush right away thanks to the store subscription.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.12.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.13.zip"
 }
