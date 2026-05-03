@@ -1,6 +1,6 @@
 {
-  "version": "3.0.21",
-  "changelog": "• OTA self-test 3.0.21. If you can read this on your phone, the over-the-air update flow is working end-to-end.",
+  "version": "3.0.22",
+  "changelog": "• OTA self-test 3.0.22. Second confirmation that over-the-air updates are reaching the device cleanly.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.21.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.22.zip"
 }

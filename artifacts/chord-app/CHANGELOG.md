@@ -17,6 +17,10 @@ Conventions:
 
 ---
 
+## 3.0.22
+
+- OTA self-test 3.0.22. Second confirmation that over-the-air updates are reaching the device cleanly.
+
 ## 3.0.21
 
 - OTA self-test 3.0.21. If you can read this on your phone, the over-the-air update flow is working end-to-end.
