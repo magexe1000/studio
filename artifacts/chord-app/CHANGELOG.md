@@ -17,6 +17,10 @@ Conventions:
 
 ---
 
+## 3.0.24
+
+- OTA self-test 3.0.24. Tests the CORS preflight fix — if the banner appears, OTA detection is fully working.
+
 ## 3.0.23
 
 - OTA self-test 3.0.23. Final confirmation — if you see this modal, OTA is working end-to-end.

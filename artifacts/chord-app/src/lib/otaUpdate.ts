@@ -161,10 +161,13 @@ async function fetchOne(
       method: 'GET',
       cache: 'no-store',
       signal,
-      // Best-effort revalidation hints — Fastly/CloudFront honor these,
-      // some proxies ignore them. The query-string cache buster is the
-      // real safeguard.
-      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+      // NOTE: do NOT add Cache-Control / Pragma headers here. They are
+      // NOT in the CORS-safelisted request-header list, so they would
+      // upgrade this simple GET to a preflighted OPTIONS request —
+      // raw.githubusercontent.com does not respond to OPTIONS for
+      // arbitrary paths, and the fetch silently fails with a CORS
+      // error. The `?t=Date.now()` cache buster on the URL is enough
+      // to defeat browser/CDN caching without triggering preflight.
     });
     if (!res.ok) return null;
     const json = (await res.json()) as unknown;

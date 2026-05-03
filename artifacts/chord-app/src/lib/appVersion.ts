@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.23';
+export const APP_VERSION = '3.0.24';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,7 +56,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
-      'OTA self-test 3.0.23. Final confirmation — if you see this modal, OTA is working end-to-end.',
+      'OTA self-test 3.0.24. Tests the CORS preflight fix — if the banner appears, OTA detection is fully working.',
     ],
   },
 ];

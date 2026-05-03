@@ -1,6 +1,6 @@
 {
-  "version": "3.0.23",
-  "changelog": "• OTA self-test 3.0.23. Final confirmation — if you see this modal, OTA is working end-to-end.",
+  "version": "3.0.24",
+  "changelog": "• OTA self-test 3.0.24. Tests the CORS preflight fix — if the banner appears, OTA detection is fully working.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.23.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.24.zip"
 }
