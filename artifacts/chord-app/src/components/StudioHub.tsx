@@ -5,7 +5,6 @@ import { useNavHidden, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import ApplyToSheet from './ApplyToSheet';
-import UpdateIndicator from './UpdateIndicator';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
 
@@ -290,9 +289,8 @@ export default function StudioHub() {
       {/* ── Bottom nav ── */}
       <HubNav tab={tab} setTab={setTab} accent={accent} />
 
-      {/* ── Floating top-right update indicator (only renders when a
-          newer version.json has been published — otherwise no DOM) ── */}
-      <UpdateIndicator accentFrom={accent.from} accentTo={accent.to} />
+      {/* UpdateIndicator is now hoisted to AppShell so it appears on
+          every screen, not just the Hub. */}
     </div>
   );
 }

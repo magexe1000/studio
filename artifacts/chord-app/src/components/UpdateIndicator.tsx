@@ -49,6 +49,22 @@ const BANNER_SHOWN_KEY = 'studio:updateBannerShown';
  */
 const DISMISSED_VERSION_KEY = 'studio:dismissedUpdateVersion';
 
+/** localStorage key recording the latest version for which we have
+ *  already auto-opened the update modal. Prevents repeat pop-ups on
+ *  every foreground / poll cycle. A newer remote version resets it. */
+const AUTO_OPENED_VERSION_KEY = 'studio:autoOpenedUpdateVersion';
+
+function readAutoOpenedVersion(): string | null {
+  try {
+    const raw = localStorage.getItem(AUTO_OPENED_VERSION_KEY);
+    if (!raw || normalizeSemver(raw) === null) return null;
+    return raw;
+  } catch { return null; }
+}
+function writeAutoOpenedVersion(v: string): void {
+  try { localStorage.setItem(AUTO_OPENED_VERSION_KEY, v); } catch { /* ignore */ }
+}
+
 function readDismissedVersion(): string | null {
   try {
     const raw = localStorage.getItem(DISMISSED_VERSION_KEY);
@@ -119,6 +135,25 @@ export default function UpdateIndicator({
     return () => window.clearTimeout(t);
   }, [ota.updateAvailable, phase]);
 
+  // Auto-OPEN the update modal once per remote version. Without this,
+  // when the OS notification opens the app into a sub-app the user
+  // would have to spot a tiny pulsing dot in the corner, miss it, and
+  // never trigger the update. The modal makes the prompt impossible
+  // to miss. We only fire it once per remote version (tracked in
+  // localStorage) so it doesn't pop on every poll/foreground cycle,
+  // and we respect "Later" dismissals.
+  useEffect(() => {
+    if (!ota.updateAvailable || !ota.remoteVersion) return;
+    if (
+      dismissedVersion &&
+      compareSemver(dismissedVersion, ota.remoteVersion) >= 0
+    ) return;
+    const already = readAutoOpenedVersion();
+    if (already && compareSemver(already, ota.remoteVersion) >= 0) return;
+    writeAutoOpenedVersion(ota.remoteVersion);
+    setOpen(true);
+  }, [ota.updateAvailable, ota.remoteVersion, dismissedVersion]);
+
   if (ota.loading || !ota.updateAvailable) return null;
 
   // Hide entirely if the user has already dismissed THIS exact version
@@ -166,7 +201,7 @@ export default function UpdateIndicator({
             : 'Update available'
         }
         style={{
-          position: 'absolute',
+          position: 'fixed',
           top: 'calc(env(safe-area-inset-top) + 14px)',
           // Anchor the RIGHT edge: 50% of viewport while centered,
           // 14px from corner once minimized. Both values are length

@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import ChangelogModal from "./components/ChangelogModal";
+import UpdateIndicator from "./components/UpdateIndicator";
 import { notifyBundleReady, ensureNotificationPermission } from "./lib/capgoUpdater";
 import "./index.css";
 
@@ -24,6 +25,10 @@ createRoot(document.getElementById("root")!).render(
     {/* Global post-update changelog overlay — mounted as a root sibling
         so it surfaces regardless of which sub-app the user lands in. */}
     <ChangelogModal />
+    {/* Global OTA update indicator — same reasoning. Auto-opens its
+        modal once per remote version so the user can't miss a release
+        even when the OS notification opens the app into a sub-app. */}
+    <UpdateIndicator accentFrom="#7c3aed" accentTo="#a855f7" />
   </>,
 );
 

@@ -17,6 +17,26 @@ Conventions:
 
 ---
 
+## 3.0.18
+
+- Cloud sync now waits longer before giving up. The previous 6-second cap was too tight for the new long-polling transport on slower mobile connections, causing "Sync timed out" errors. Per-operation cap raised to 15 seconds and overall run cap to 30 seconds.
+
+---
+
+## 3.0.17
+
+- Cloud sync no longer fails with "client is offline" on Android. The app now uses long-polling for Firestore from the start, which reliably works inside the Capacitor WebView.
+
+---
+
+## 3.0.16
+
+- The update notification now actually works: tapping it opens a clear "Update available" dialog with the version and an Update button, instead of opening Studio with no visible prompt.
+- The update indicator now appears on every screen (Hub, Drumex, Stage, Groovex, Vocalex, Chordex), not only on the Hub.
+- Fixed the GitHub Pages publish script so the web version of Studio loads instead of returning 404.
+
+---
+
 ## 3.0.15
 
 - Fixed the GitHub Pages deployment so the web version of Studio

@@ -98,9 +98,15 @@ function init() {
   // in-memory cache so sync still works (just without offline reads
   // surviving a reload). The fallback keeps the long-polling fix in
   // place, which is the more important half of this change.
+  // Why experimentalForceLongPolling instead of autoDetect?
+  // On Android WebView (Capacitor APK), the autodetect probe itself
+  // sometimes fails with "Failed to get document because the client is
+  // offline" before it can fall back. Forcing long polling from the
+  // start skips the broken probe entirely. Cost: one extra round-trip
+  // per request (~50-100ms). Benefit: sync actually works.
   try {
     _db = initializeFirestore(_app, {
-      experimentalAutoDetectLongPolling: true,
+      experimentalForceLongPolling: true,
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager(),
       }),
@@ -111,7 +117,7 @@ function init() {
       err,
     );
     _db = initializeFirestore(_app, {
-      experimentalAutoDetectLongPolling: true,
+      experimentalForceLongPolling: true,
       localCache: memoryLocalCache(),
     });
   }
