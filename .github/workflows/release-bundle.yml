@@ -1,6 +1,8 @@
 name: Release OTA bundle
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       note:
@@ -18,28 +20,64 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
+          fetch-depth: 2
+
+      - name: Skip if push is bot or only docs/native changes
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual run, proceeding."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${{ github.actor }}" = "github-actions[bot]" ]; then
+            echo "Skipping: triggered by bot's own docs/ commit."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only HEAD^ HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE '^artifacts/chord-app/(android/|patch-android\.cjs|capacitor\.config)'; then
+            echo "::warning::Native Android files changed in this push. Skipping OTA release — rebuild and ship the APK manually."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! echo "$CHANGED" | grep -qE '^artifacts/chord-app/'; then
+            echo "No chord-app changes in this push. Skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - uses: pnpm/action-setup@v4
+        if: steps.gate.outputs.skip != 'true'
         with:
           version: 10.26.1
 
       - uses: actions/setup-node@v4
+        if: steps.gate.outputs.skip != 'true'
         with:
           node-version: 24
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        if: steps.gate.outputs.skip != 'true'
+        run: pnpm install --frozen-lockfile
 
       - name: Build OTA bundle
+        if: steps.gate.outputs.skip != 'true'
         env:
           OTA_BASE_URL: https://magexe1000.github.io/Chordex
         run: pnpm --filter @workspace/chord-app run release:gh-pages
 
       - name: Read built version
         id: version
+        if: steps.gate.outputs.skip != 'true'
         run: echo "version=$(node -p "require('./docs/version.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Commit and push docs/
+        if: steps.gate.outputs.skip != 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

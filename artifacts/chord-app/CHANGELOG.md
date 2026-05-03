@@ -17,6 +17,15 @@ Conventions:
 
 ---
 
+## 3.0.14
+
+- Republished the 3.0.13 sync indicator fix under a new version
+  number so devices that didn't pick up 3.0.13 (because the prior
+  version was already marked seen on the device) get a fresh
+  update banner.
+
+---
+
 ## 3.0.13
 
 - Cloud sync no longer spins almost constantly. The indicator was
