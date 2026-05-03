@@ -1,6 +1,6 @@
 {
-  "version": "3.0.13",
-  "changelog": "• Cloud sync no longer spins almost constantly. The indicator was firing on every interaction (clicking a chord, switching tabs) because the sync engine was listening to *all* in-memory state changes — including UI state that never gets saved. Studio now only triggers a sync when something that actually gets persisted changes (favorites, progressions, presets, settings, custom chords, etc.).\n• Quick background syncs (the common case) no longer flash the spinner at all. The \"Syncing…\" state only appears if the round trip takes more than ~600 ms, so you'll mostly see \"Synced\" with no flicker.\n• Background safety-net poll relaxed from every 5 seconds to every 60 seconds. Real edits still flush right away thanks to the store subscription.",
+  "version": "3.0.14",
+  "changelog": "• Republished the 3.0.13 sync indicator fix under a new version number so devices that didn't pick up 3.0.13 (because the prior version was already marked seen on the device) get a fresh update banner.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.13.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.14.zip"
 }
