@@ -1,6 +1,6 @@
 {
-  "version": "3.0.14",
-  "changelog": "• Republished the 3.0.13 sync indicator fix under a new version number so devices that didn't pick up 3.0.13 (because the prior version was already marked seen on the device) get a fresh update banner.",
+  "version": "3.0.15",
+  "changelog": "• Fixed the GitHub Pages deployment so the web version of Studio loads instead of returning a 404. The release script now mirrors the entire built app (HTML, assets, icons) into the published folder, not just the OTA bundle zip.\n• Republishing this version forces every device to re-evaluate the OTA banner, including phones that had stale \"already seen\" markers from earlier 3.0.13 / 3.0.14 attempts.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.14.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.15.zip"
 }
