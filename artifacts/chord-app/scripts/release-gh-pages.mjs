@@ -52,8 +52,30 @@ function run(cmd, args, extraEnv = {}) {
 // this the native OTA checker has nowhere to look and silently disables
 // itself — the banner never appears on the phone. We set it here so a
 // release-time rebuild always has the right URL pinned.
-console.log('release-gh-pages: → pnpm build (with VITE_OTA_BASE_URL pinned)');
-run('pnpm', ['build'], { VITE_OTA_BASE_URL: otaBase });
+//
+// ALSO CRITICAL: when serving from GitHub Pages at a project subpath
+// (e.g. https://USER.github.io/REPO), Vite must build with
+// `base: "/REPO/"` so every asset URL in the emitted index.html is
+// rewritten from `/assets/foo.js` → `/REPO/assets/foo.js`. Without
+// this the splash screen renders (it's inline in index.html) but every
+// downstream chunk 404s and the page stays gray. We derive the basePath
+// from OTA_BASE_URL automatically so the release script remains a
+// single source of truth.
+let basePath = '/';
+try {
+  const u = new URL(otaBase);
+  // u.pathname is `/REPO` for `https://user.github.io/REPO`, or `/`
+  // for a user/org root site. Trailing slash MUST be present so
+  // Vite emits `/REPO/assets/...` not `/REPOassets/...`.
+  basePath = u.pathname.endsWith('/') ? u.pathname : `${u.pathname}/`;
+} catch {
+  basePath = '/';
+}
+console.log(`release-gh-pages: → pnpm build (BASE_PATH=${basePath}, VITE_OTA_BASE_URL=${otaBase})`);
+run('pnpm', ['build'], {
+  VITE_OTA_BASE_URL: otaBase,
+  BASE_PATH: basePath,
+});
 
 console.log('release-gh-pages: → publish-bundle.mjs (mirroring into ../../docs)');
 run('node', ['scripts/publish-bundle.mjs'], {
