@@ -1,210 +1,153 @@
-/**
- * Single source of truth for the Studio app version.
- *
- * Every consumer (Settings UI, OTA checker, debug tools, analytics)
- * MUST import from this module. Never hardcode a version string
- * elsewhere — duplication leads to settings showing one version while
- * the OTA system compares against another, which silently breaks
- * update notifications.
- *
- * The `public/version.json` file shipped alongside the bundle is
- * generated from `APP_VERSION` at build time by
- * `scripts/sync-version.mjs` (wired in via the `prebuild` npm hook),
- * so the freshly-deployed bundle and its companion manifest are
- * always in lockstep.
- *
- * Bump `APP_VERSION` on every release. Bump `APP_CHANGELOG` to describe
- * what the user just received — that's the text shown in the
- * post-update modal on the first launch after the bundle is updated.
- *
- * Version format: strict semver (`MAJOR.MINOR.PATCH[-PRERELEASE]`).
- * The "Beta" label is presentation only — `APP_VERSION` itself stays
- * pure semver so comparisons are unambiguous.
- */
+<!DOCTYPE html>
+<html lang="en">
 
-import { useMemo } from 'react';
-
-/** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.14';
-
-/** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
-export const APP_VERSION_TAG = 'Beta';
-
-/** Human-readable label rendered in Settings → About. */
-export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
-
-/** Release date for the CURRENT bundle, shown alongside the version pill
- *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-03';
-// Note: keep ISO-8601. Bump together with APP_VERSION on each release.
-
-/**
- * Changelog for the CURRENT release — shown to the user the first
- * time they launch the app after pulling this bundle, and from the
- * Settings → About → Changelog row at any time. Each section is a
- * heading + bullet list rendered Metrolist-style in `ChangelogSheet`.
- */
-export interface ChangelogSection {
-  /** Short uppercase header (e.g. "What's new", "Fixes"). */
-  heading: string;
-  /** Plain user-facing bullets. Keep each line short. */
-  items: string[];
-}
-
-export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
-  {
-    heading: 'Fixes',
-    items: [
-      'The cloud sync indicator no longer spins almost constantly while you are using the app. Studio now only triggers a sync when something that actually gets saved changes (favorites, progressions, presets, settings…), instead of on every chord click or tab change.',
-      'The sync icon stays still for quick background syncs and only shows the spinner if a sync is genuinely taking longer than expected.',
-      'Background safety-net sync runs every minute now (instead of every 5 seconds), so the indicator stays calm.',
-    ],
-  },
-];
-
-/** Backwards-compatible flat bullet list (kept so any old caller still
- *  works). New UI should use `APP_CHANGELOG_SECTIONS`. */
-export const APP_CHANGELOG = APP_CHANGELOG_SECTIONS.flatMap((s) => s.items);
-
-/**
- * Parsed semver shape. Build metadata (everything after `+`) is
- * discarded — semver §10 says it has no precedence — but pre-release
- * identifiers are preserved so they can be compared per §11.
- */
-interface ParsedSemver {
-  major: number;
-  minor: number;
-  patch: number;
-  /** `null` for a release, e.g. "3.0.0". String for a prerelease, e.g. "beta.2". */
-  prerelease: string | null;
-}
-
-/**
- * STRICT semver parser. Rejects leading zeros, missing parts, and
- * malformed input. Accepts a leading `v` (common in tag names) and
- * strips any `+build` metadata. Returns `null` on any parse failure
- * so callers can treat un-parseable input as "no comparison possible".
- *
- * Examples:
- *   "3.0.0"      → { 3, 0, 0, null }
- *   "v3.0.0"     → { 3, 0, 0, null }
- *   "3.0.0-beta" → { 3, 0, 0, "beta" }
- *   "3.0.0+abc"  → { 3, 0, 0, null }   (build metadata stripped)
- *   "01.2.3"     → null                 (leading zero)
- *   "3"          → null                 (incomplete)
- *   "3.0"        → null                 (incomplete)
- *   "garbage"    → null
- */
-export function parseSemver(raw: string | null | undefined): ParsedSemver | null {
-  if (!raw || typeof raw !== 'string') return null;
-  let s = raw.trim();
-  if (s.startsWith('v') || s.startsWith('V')) s = s.slice(1);
-  // Per semver.org: numeric identifiers must NOT have leading zeros.
-  // Pre-release: dot-separated identifiers, each [0-9A-Za-z-]+.
-  const m = s.match(
-    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/,
-  );
-  if (!m) return null;
-  // Per semver §9: a pre-release numeric identifier MUST NOT include
-  // leading zeros. Reject e.g. "1.2.3-01" or "1.2.3-alpha.001".
-  if (m[4]) {
-    for (const id of m[4].split('.')) {
-      if (/^\d+$/.test(id) && id.length > 1 && id.startsWith('0')) return null;
+<head>
+  <title>Run this app to see the results here.</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans">
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #1c2333;
+      font-family: "IBM Plex Sans", "sans";
+      color: #f5f9fc;
     }
-  }
-  return {
-    major: Number(m[1]),
-    minor: Number(m[2]),
-    patch: Number(m[3]),
-    prerelease: m[4] ?? null,
-  };
-}
 
-/**
- * Convenience: returns just the [major, minor, patch] tuple, or `null`.
- * Pre-release info is dropped — callers that care about prerelease
- * precedence should use `parseSemver` + `compareSemver` directly.
- */
-export function normalizeSemver(raw: string | null | undefined): [number, number, number] | null {
-  const p = parseSemver(raw);
-  return p ? [p.major, p.minor, p.patch] : null;
-}
-
-/**
- * Compare two semver strings. Returns -1 / 0 / +1 like Array.sort.
- * Returns 0 if either side fails to parse — i.e. an un-parseable
- * remote version is treated as "no update", never as a downgrade.
- *
- * Pre-release precedence per semver §11:
- *   - A version WITHOUT prerelease has HIGHER precedence than one WITH.
- *     ("3.0.0" > "3.0.0-beta" — the release supersedes the beta.)
- *   - Two prereleases compare identifier-by-identifier:
- *     numeric vs numeric → numeric;
- *     numeric vs alphanumeric → numeric is lower;
- *     alphanumeric vs alphanumeric → ASCII;
- *     fewer fields → lower precedence (when all prior fields equal).
- */
-export function compareSemver(a: string, b: string): -1 | 0 | 1 {
-  const pa = parseSemver(a);
-  const pb = parseSemver(b);
-  if (!pa || !pb) return 0;
-  if (pa.major !== pb.major) return pa.major > pb.major ? 1 : -1;
-  if (pa.minor !== pb.minor) return pa.minor > pb.minor ? 1 : -1;
-  if (pa.patch !== pb.patch) return pa.patch > pb.patch ? 1 : -1;
-  // Same M.m.p — pre-release rules apply.
-  if (pa.prerelease === null && pb.prerelease === null) return 0;
-  if (pa.prerelease === null) return 1; // release > prerelease
-  if (pb.prerelease === null) return -1;
-  return comparePrerelease(pa.prerelease, pb.prerelease);
-}
-
-function comparePrerelease(a: string, b: string): -1 | 0 | 1 {
-  const ai = a.split('.');
-  const bi = b.split('.');
-  const len = Math.max(ai.length, bi.length);
-  for (let i = 0; i < len; i++) {
-    const xa = ai[i];
-    const xb = bi[i];
-    // Fewer fields = lower precedence (semver §11.4.4).
-    if (xa === undefined) return -1;
-    if (xb === undefined) return 1;
-    const na = /^\d+$/.test(xa) ? Number(xa) : null;
-    const nb = /^\d+$/.test(xb) ? Number(xb) : null;
-    if (na !== null && nb !== null) {
-      if (na !== nb) return na > nb ? 1 : -1;
-    } else if (na !== null) {
-      return -1; // numeric identifier always < alphanumeric
-    } else if (nb !== null) {
-      return 1;
-    } else {
-      if (xa !== xb) return xa > xb ? 1 : -1;
+    .title-box {
+      font-size: 12px;
+      inline-size: max-content;
     }
-  }
-  return 0;
-}
 
-/**
- * React hook returning the current app version. Memoised because the
- * version is constant for the lifetime of the page — we never want a
- * re-render to look like "the version changed".
- */
-export function useAppVersion(): {
-  version: string;
-  label: string;
-  tag: string;
-  date: string;
-  changelog: string[];
-  sections: ChangelogSection[];
-} {
-  return useMemo(
-    () => ({
-      version: APP_VERSION,
-      label: APP_VERSION_LABEL,
-      tag: APP_VERSION_TAG,
-      date: APP_VERSION_DATE,
-      changelog: APP_CHANGELOG,
-      sections: APP_CHANGELOG_SECTIONS,
-    }),
-    [],
-  );
-}
+    .err-box {
+      padding: 1em;
+      max-width: 30em;
+      width: 100vw;
+    }
+
+    .message {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    @media (max-width: 500px) {
+      .message {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+
+    .ascii {
+      font-size: 6px;
+      text-align: center;
+      opacity: .8;
+    }
+
+    .console {
+      background-color: #0e1628;
+      color: #fff;
+      font-family: "IBM Plex Sans", "sans";
+      padding: 1em;
+      margin: 1em;
+    }
+
+    .footer {
+      margin: 1em;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .link-icon {
+      margin-right: 20px;
+      margin-top: 4px;
+    }
+
+    a {
+      color: #c2c8cc;
+    }
+  </style>
+
+  <script>
+    var reload_timeout = setTimeout(function () {
+      window.location.reload();
+    }, 60000);
+  </script>
+</head>
+
+<body>
+  <div class="err-box">
+    <div class="message">
+      <pre class="ascii">
+
+                                  -%%%%%%%%%%%##**++==---::....                                     
+                                  *@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%%%%%%%##*+=--::...              
+                                  #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%#*######******##*****+           
+                                 .#@%**+++**##%%@@@@@@@@@@@@@@@@@@%#*#*******************:          
+                                 .#@#*+.-*######%%%%#**+++++=+#@@%%#*#####***************+          
+                                 .#@#*=:=***####%%%%%%%%%%%%%#%@@%##*####*****************:         
+                                 .%@#*--+****######%%%%%%%%%%%@@@%##*#####***************+:         
+                                 :%@##-=+****########%%%%%%%%%@@@%##*####****************+.         
+                                 :%@#*-===+++**########%%%%%%@@@@%#**#####**************+*.         
+                                 :@@#*-====++++**###########%%@@@%#*######**************+*          
+                                 -@@#*--====+++++++*****#####%@@@%#*#######*************++          
+                                 -@@#*--======++++++++++*****#@@%%#*#####***************++          
+                                 -@%#*--========+++++++++++++#@@%%#*######**************++          
+                                 =@%#*--=================+===#@@%%#*##*****************++=          
+                                 =@%#*---====================#@@%#**#####*#************++=          
+                                 =@%#*----===================%@@%#*########************++-          
+                                 +@%%@#*+====================@@@%#*######*************+++-          
+                                 +@@@@@@@@@%%*==============-@@@%#*###*#**************+++:          
+                                 +@@@@@@@@@@@@@@@@@@@#+======@@@%#**##****************+++:          
+                                 *@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%%***#****************++++.          
+                                 *@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%%********************++++.          
+                                 *@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%%*******************+++++           
+                                 *@@@@@@@@@@@@@##@@@@@@@@@@@@@@%#******************+++++=           
+                                 #@%%@@@@@@@@@@@@@%#-:=*#%%@@@@%#*****************++++++=           
+                                .#@@@@@@@@@@@@@@@@@@@@@%=::*@@@%#*****************++++++=           
+                                 +##%%@@@@@@@@@@@@@@@@@@@@@@@@@%*****************++++++=-           
+                    .*%#*#%##:     .:+####%%%@@@@@@@@@@@@@@@@@@%*****************+++=+==-           
+                .:*@%##+**++%%#%%*-:.-++===**##%%%@@@@@@@@@@@@@%***************+++=+=+==:           
+              -*%%%##%*#+*****+#**##%%%#*=======++*##%%%%@@@@@%#************++*++++++-.             
+           -%@@#%#**+#+##+**=#*+#*+#+##+#%@@#+=========+####%%##*********+++++++++:.                
+       .=%@@@@##*+*#+##*+#+##***+**+**+#*+#**#%%@#++======-==+*=--=****++*+**+=:                 .:.
+     .*@@@@@@@%*##*###**+#***#+*#**#*+#***#=*+*#**%%%%#*+=====::++*****+***-:                    :. 
+      +%@@@@@@@@@@########**#+#*+**+#*+*#*+#*+##+**+####%@@@#====++*****:                       ::  
+       -*##%@@@@@@@@@%########*+#+*#*+*#+#*****=#*+*#****%@@@@@@#-=+=:                         :-   
+         .:=*#%%@@@@@@@@@@%#########+*+##*+**+###******%@@@@@@%#*:......                      ::    
+              .*##%%@@@@@@@@@@%###*+####+*%%####****#@@@@@@@##**=--=-==++++.               .-=.     
+                 .-+#%%@@@@@@@@@@@%###*+##*=+##***%@@@@@@%#**+-.:..   ..:-==:         .:--:.        
+                     .-*#%%@@@@@@@@@@@%##**%%%%%@@@@@@@%#**+: .:=#**==-+---:.:----::::.             
+                         :+##%%@@@@@@@@@@@@@@@@@@@@@@##**+-. :#@#####***+--=.                       
+                            .-+#%%%@@@@@@@@@@@@@@@%#**+-. .+@@@@@@@@%%%@@@%-                        
+                                .:*##%%@@@@@@@@@%#**+: .=%@@@@@@@@@@@@@@##*=                        
+                                    .-*##%%@@@#**+=. .*@@@@@@@@@@@@@@%#*****.                       
+                                        :=*##**+-.   =@@@@@@@@@@@@@%#****+-.                        
+                                           .::.      +@@@@@@@@@@@#****+-.                           
+                                                      :+#%@@@@@#***+=.                              
+
+        </pre>
+      <div class="title-box">
+        <h1>Run this app to see the results here.</h1>
+      </div>
+    </div>
+    <div class="footer">
+      <div class="link-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M6.66668 8.66666C6.95298 9.04942 7.31825 9.36612 7.73771 9.59529C8.15717 9.82446 8.62102 9.96074 9.09778 9.99489C9.57454 10.029 10.0531 9.96024 10.5009 9.79319C10.9487 9.62613 11.3554 9.36471 11.6933 9.02666L13.6933 7.02666C14.3005 6.39799 14.6365 5.55598 14.6289 4.68199C14.6213 3.808 14.2708 2.97196 13.6527 2.35394C13.0347 1.73591 12.1987 1.38535 11.3247 1.37775C10.4507 1.37016 9.60869 1.70614 8.98001 2.31333L7.83334 3.45333M9.33334 7.33333C9.04704 6.95058 8.68177 6.63388 8.26231 6.4047C7.84285 6.17553 7.37901 6.03925 6.90224 6.00511C6.42548 5.97096 5.94695 6.03975 5.49911 6.20681C5.05128 6.37387 4.6446 6.63528 4.30668 6.97333L2.30668 8.97333C1.69948 9.602 1.3635 10.444 1.3711 11.318C1.37869 12.192 1.72926 13.028 2.34728 13.6461C2.96531 14.2641 3.80135 14.6147 4.67534 14.6222C5.54933 14.6298 6.39134 14.2939 7.02001 13.6867L8.16001 12.5467"
+            stroke="#C2C8CC" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <div class="repl-links">
+        <a href="https://replit.com">Go to Replit</a>
+      </div>
+      <div></div>
+    </div>
+  </div>
+</body>
+
+</html>

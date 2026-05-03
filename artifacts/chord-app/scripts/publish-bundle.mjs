@@ -235,6 +235,28 @@ if (mirrorDir) {
   const mirrorBundlesDir = path.join(absMirror, 'bundles');
   fs.mkdirSync(mirrorBundlesDir, { recursive: true });
 
+  // Mirror the ENTIRE built PWA (index.html, assets, icons, manifest…)
+  // into the static-host publish dir so GitHub Pages can serve the web
+  // version of the app, not just the OTA bundle zip. Without this the
+  // Pages URL 404s for everything except `version.json` and the bundle
+  // zips, which makes browser-based testing impossible AND breaks the
+  // PWA install path. Skip the `bundles/` subtree (mirrored separately
+  // below) so we don't recurse a 50 MB zip into the diff.
+  function copyTree(srcRoot, dstRoot, skip = new Set()) {
+    for (const entry of fs.readdirSync(srcRoot, { withFileTypes: true })) {
+      if (skip.has(entry.name)) continue;
+      const s = path.join(srcRoot, entry.name);
+      const d = path.join(dstRoot, entry.name);
+      if (entry.isDirectory()) {
+        fs.mkdirSync(d, { recursive: true });
+        copyTree(s, d, skip);
+      } else if (entry.isFile()) {
+        fs.copyFileSync(s, d);
+      }
+    }
+  }
+  copyTree(distDir, absMirror, new Set(['bundles', 'version.json']));
+
   // Copy (not move) the zip — keep dist/public intact so any local
   // PWA/preview still works.
   const mirrorZipPath = path.join(mirrorBundlesDir, zipName);

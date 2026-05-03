@@ -17,6 +17,18 @@ Conventions:
 
 ---
 
+## 3.0.15
+
+- Fixed the GitHub Pages deployment so the web version of Studio
+  loads instead of returning a 404. The release script now mirrors
+  the entire built app (HTML, assets, icons) into the published
+  folder, not just the OTA bundle zip.
+- Republishing this version forces every device to re-evaluate the
+  OTA banner, including phones that had stale "already seen"
+  markers from earlier 3.0.13 / 3.0.14 attempts.
+
+---
+
 ## 3.0.14
 
 - Republished the 3.0.13 sync indicator fix under a new version
