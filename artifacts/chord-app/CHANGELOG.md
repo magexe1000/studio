@@ -17,6 +17,12 @@ Conventions:
 
 ---
 
+## 3.0.20
+
+- Test release to verify the OTA update flow end-to-end. No functional changes vs. 3.0.19.
+
+---
+
 ## 3.0.19
 
 - Sync timeouts further extended (60 s overall, 25 s per operation) to handle slow mobile connections, long-polling cold starts, and large Vocalex audio payloads without giving up.

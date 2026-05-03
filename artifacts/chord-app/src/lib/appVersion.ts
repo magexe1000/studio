@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.19';
+export const APP_VERSION = '3.0.20';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,8 +56,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
-      'Cloud sync now waits up to 25 seconds per step and 60 seconds overall, so slow mobile connections and large Vocalex recordings sync reliably.',
-      'The "update available" modal now reappears on every cold start until you actually update, so a missed prompt is no longer a dead end.',
+      'Test release to verify the OTA update flow end-to-end. No functional changes vs. 3.0.19.',
     ],
   },
 ];

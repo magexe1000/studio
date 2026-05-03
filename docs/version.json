@@ -1,6 +1,6 @@
 {
-  "version": "3.0.19",
-  "changelog": "• Sync timeouts further extended (60 s overall, 25 s per operation) to handle slow mobile connections, long-polling cold starts, and large Vocalex audio payloads without giving up.\n• Fixes the OTA \"update available\" modal getting permanently suppressed after a single missed prompt. The auto-open marker now lives in sessionStorage, so every cold start gets a fresh shot at the modal until the user actually updates.",
+  "version": "3.0.20",
+  "changelog": "• Test release to verify the OTA update flow end-to-end. No functional changes vs. 3.0.19.",
   "mandatory": false,
-  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.19.zip"
+  "downloadUrl": "https://magexe1000.github.io/Chordex/bundles/bundle-3.0.20.zip"
 }
