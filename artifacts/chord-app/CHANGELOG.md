@@ -17,6 +17,10 @@ Conventions:
 
 ---
 
+## 3.0.21
+
+- OTA self-test 3.0.21. If you can read this on your phone, the over-the-air update flow is working end-to-end.
+
 ## 3.0.20
 
 - Test release to verify the OTA update flow end-to-end. No functional changes vs. 3.0.19.

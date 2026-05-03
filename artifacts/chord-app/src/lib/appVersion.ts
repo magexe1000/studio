@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.20';
+export const APP_VERSION = '3.0.21';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,7 +56,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
-      'Test release to verify the OTA update flow end-to-end. No functional changes vs. 3.0.19.',
+      'OTA self-test 3.0.21. If you can read this on your phone, the over-the-air update flow is working end-to-end.',
     ],
   },
 ];
