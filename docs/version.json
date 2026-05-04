@@ -1,6 +1,6 @@
 {
-  "version": "3.0.35",
-  "changelog": "• Cloud sync now connects more reliably on mobile networks — switched to auto-detect transport with a 30 s handshake window.\n• When the connection drops mid-sync, the indicator no longer shows a scary \"Sync failed\" error — it silently retries when the network is back.",
+  "version": "3.0.36",
+  "changelog": "• Sync timeouts raised so Firestore's first-connection handshake can complete (35 s overall, 25 s per call).\n• Timeouts during sync are now treated as silent retries instead of \"Sync timed out\" errors.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.35/bundle-3.0.35.zip"
+  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.36/bundle-3.0.36.zip"
 }

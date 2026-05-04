@@ -61,8 +61,8 @@ const SYNC_META_KEY = 'chordex_sync_meta_v1';
 const DEVICE_ID_KEY = 'chordex_device_id';
 
 const TICK_MS = 60_000;          // periodic safety-net flush while signed in
-const RUN_TIMEOUT_MS = 15_000;   // OVERALL hard cap per run — keeps the spinner from sitting on a wedged Firestore connection
-const FIRESTORE_OP_MS = 8_000;   // per-getDoc / per-setDoc cap — long enough for cold long-polling, short enough that the user notices a real failure
+const RUN_TIMEOUT_MS = 35_000;   // OVERALL hard cap per run — needs to comfortably exceed the 30 s long-poll handshake window so the first sync after app launch can complete
+const FIRESTORE_OP_MS = 25_000;  // per-getDoc / per-setDoc cap — must exceed Firestore's 30 s handshake on first call; subsequent calls return in <1 s once the transport is established
 const SUCCESS_LINGER_MS = 1_200; // how long `phase=success` stays visible
 const SYNCING_DEBOUNCE_MS = 600; // delay before showing spinner — quick runs stay invisible
 const STAGE_SNAPSHOT_MS = 1_500; // postMessage round-trip cap
@@ -772,15 +772,17 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
     if (isTimeout) logTimeout(e.op, e.ms || durationMs);
     else logFailure(durationMs, e);
     if (epoch === startEpoch) {
-      if (isOffline) {
-        // Soft-fail: keep last successful sync time, don't show error.
-        // The 60s tick (and visibility/beforeunload triggers) will
-        // retry automatically as soon as the radio is back.
+      // Treat both true offline AND timeouts as soft failures. A
+      // timeout in this code path almost always means "the network
+      // didn't answer in time" — same user-visible reality as offline,
+      // and the next tick will retry. Showing "Sync timed out" as a
+      // hard error trains the user to ignore the indicator.
+      if (isOffline || isTimeout) {
         setStatus({ phase: 'idle', error: null });
       } else {
         setStatus({
           phase: 'error',
-          error: isTimeout ? 'Sync timed out' : (errMsg || 'Sync failed'),
+          error: errMsg || 'Sync failed',
         });
       }
     }

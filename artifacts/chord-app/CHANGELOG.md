@@ -17,6 +17,11 @@ Conventions:
 
 ---
 
+## 3.0.36
+
+- Sync timeouts raised so Firestore's first-connection handshake can complete (35 s overall, 25 s per call).
+- Timeouts during sync are now treated as silent retries instead of "Sync timed out" errors.
+
 ## 3.0.35
 
 - Cloud sync now connects more reliably on mobile networks — switched to auto-detect transport with a 30 s handshake window.
