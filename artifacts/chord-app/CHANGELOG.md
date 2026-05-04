@@ -19,6 +19,7 @@ Conventions:
 
 ## 3.0.37
 
+- App switcher redesigned: trigger pill expands horizontally to the right into a floating glass pill with every app icon. Horizontally swipe-scrollable (`scroll-snap`), measured against viewport so it never touches the side wall. Spring-easing on open, calm ease on close.
 - Drum samples are now stored once on the device after first launch (Capacitor `Filesystem.Directory.Data`). Future OTA bundles can omit the ~38 MB drums tree, shrinking releases from ~53 MB to ~5 MB.
 - This release is the **transitional** one: it still SHIPS the drum tree so the seeder has a source. After it installs, future releases can publish with `OTA_SLIM=1`.
 - New `scripts/build-audio-manifest.mjs` (wired into `prebuild`) emits `public/audio-manifest.json` listing every drum file. Consumed by `src/lib/assetCache.ts` on first native launch.

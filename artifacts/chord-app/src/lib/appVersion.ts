@@ -56,6 +56,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
+      'New app switcher: tap your app name and a horizontal pill slides out with all the Studio apps — swipe through them and tap to switch.',
       'Drum samples are now stored once on your device after the first launch — future updates download in seconds instead of minutes.',
       'Cloud sync now connects more reliably on mobile networks and silently retries when the connection drops, instead of showing scary errors.',
     ],
