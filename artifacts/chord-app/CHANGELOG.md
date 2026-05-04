@@ -17,6 +17,10 @@ Conventions:
 
 ---
 
+## 3.0.27
+
+- OTA round-trip test on the fresh 3.0.26 APK — if you see this changelog the entire pipeline works.
+
 ## 3.0.26
 
 - Bumps past 3.0.25 to recover users whose old "Later" tap permanently hid the indicator.

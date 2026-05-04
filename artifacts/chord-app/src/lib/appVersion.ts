@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.26';
+export const APP_VERSION = '3.0.27';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,8 +56,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
-      'Bumps past 3.0.25 to recover users whose old "Later" tap permanently hid the indicator.',
-      'All 3.0.25 fixes carried forward: themed accent, light/dark, persistent corner pill, raw.github bundle URL.',
+      'OTA round-trip test on the fresh 3.0.26 APK — if you see this changelog the entire pipeline works.',
     ],
   },
 ];
