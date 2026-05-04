@@ -217,8 +217,25 @@ if (!otaBase) {
   console.warn('  The web PWA will still update via service-worker reload, but the');
   console.warn('  Android APK will NOT be able to fetch this bundle.');
 } else {
-  existing.downloadUrl = `${otaBase}/bundles/${zipName}`;
-  console.log(`publish-bundle: ✓ downloadUrl = ${existing.downloadUrl}`);
+  // When OTA is hosted on GitHub Pages, the bundle .zip can be 50+ MB
+  // which (a) triggers GitHub's >50MB warning on push and (b) hits the
+  // Pages CDN's slow propagation — users can see the new version.json
+  // for several minutes before Pages serves the matching bundle, which
+  // surfaces as a "Failed to download" error in Capgo. raw.github
+  // serves the file the instant `git push` returns, has the same CORS
+  // policy, and supports up to 100MB per file. Auto-rewrite the
+  // bundle URL (NOT version.json — that one stays on Pages so the
+  // existing CORS-clean fetch path keeps working) to raw.github.
+  const ghPages = otaBase.match(/^https:\/\/([^.]+)\.github\.io(?:\/([^/?#]+))?$/i);
+  if (ghPages) {
+    const user = ghPages[1];
+    const repo = ghPages[2] ?? `${user}.github.io`;
+    existing.downloadUrl = `https://raw.githubusercontent.com/${user}/${repo}/main/docs/bundles/${zipName}`;
+    console.log(`publish-bundle: ✓ downloadUrl = ${existing.downloadUrl} (raw.github bypass)`);
+  } else {
+    existing.downloadUrl = `${otaBase}/bundles/${zipName}`;
+    console.log(`publish-bundle: ✓ downloadUrl = ${existing.downloadUrl}`);
+  }
 }
 
 // Always re-stamp the version field so a manually-edited version.json
