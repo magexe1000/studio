@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.36';
+export const APP_VERSION = '3.0.37';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,8 +56,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
-      'Cloud sync now connects more reliably on mobile networks — switched to auto-detect transport with a 30 s handshake window, and gave each Firestore call enough time to complete that handshake on the first try.',
-      'When the connection drops or times out mid-sync, the indicator no longer shows a scary error — it silently retries when the network is back.',
+      'Drum samples are now stored once on your device after the first launch — future updates download in seconds instead of minutes.',
+      'Cloud sync now connects more reliably on mobile networks and silently retries when the connection drops, instead of showing scary errors.',
     ],
   },
 ];

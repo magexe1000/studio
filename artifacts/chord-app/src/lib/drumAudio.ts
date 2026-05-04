@@ -3,6 +3,7 @@ import { DRUM_INSTRUMENTS, stepsPerMeasure } from '../store/useDrumStore';
 import { getPlugin } from './drumPlugins';
 import type { InstPlugin } from './drumPlugins';
 import { createAudioContext } from './audioContextOptions';
+import { drumAssetUrl } from './assetCache';
 
 // ── Variation → sound/volume helpers ─────────────────────────────────────────
 
@@ -678,9 +679,10 @@ class HouseKitPool {
           // when OH is selected, giving full-bodied punch while toms/snare stay OH.
           const loadMic = (name === 'kick' && mic === 'oh') ? 'blend' : mic;
           const key = this._key(name, loadMic, vel, rr);
-          const url = `/drums/realistic/${name}/${loadMic}/${vel}_${rr}.opus`;
+          const path = `/drums/realistic/${name}/${loadMic}/${vel}_${rr}.opus`;
           tasks.push((async () => {
             try {
+              const url = await drumAssetUrl(path);
               const resp = await fetch(url, { cache: 'force-cache' });
               if (!resp.ok) return;
               const ab  = await resp.arrayBuffer();
@@ -754,7 +756,8 @@ class CymbalPool {
     let loaded = 0;
     await Promise.all(files.map(name => (async () => {
       try {
-        const resp = await fetch(`${base}/${name}.wav`, { cache: 'force-cache' });
+        const url = await drumAssetUrl(`${base}/${name}.wav`);
+        const resp = await fetch(url, { cache: 'force-cache' });
         if (!resp.ok) return;
         const buf = await ctx.decodeAudioData(await resp.arrayBuffer());
         this._buffers.set(name, buf);

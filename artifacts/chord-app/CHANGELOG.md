@@ -17,6 +17,12 @@ Conventions:
 
 ---
 
+## 3.0.37
+
+- Drum samples are now stored once on the device after first launch (Capacitor `Filesystem.Directory.Data`). Future OTA bundles can omit the ~38 MB drums tree, shrinking releases from ~53 MB to ~5 MB.
+- This release is the **transitional** one: it still SHIPS the drum tree so the seeder has a source. After it installs, future releases can publish with `OTA_SLIM=1`.
+- New `scripts/build-audio-manifest.mjs` (wired into `prebuild`) emits `public/audio-manifest.json` listing every drum file. Consumed by `src/lib/assetCache.ts` on first native launch.
+
 ## 3.0.36
 
 - Sync timeouts raised so Firestore's first-connection handshake can complete (35 s overall, 25 s per call).

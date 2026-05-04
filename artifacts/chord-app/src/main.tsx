@@ -3,6 +3,7 @@ import App from "./App";
 import ChangelogModal from "./components/ChangelogModal";
 import UpdateIndicator from "./components/UpdateIndicator";
 import { notifyBundleReady, ensureNotificationPermission } from "./lib/capgoUpdater";
+import { seedAudioAssets } from "./lib/assetCache";
 import "./index.css";
 
 // Tell the Capgo updater plugin that this bundle booted successfully.
@@ -18,6 +19,12 @@ void notifyBundleReady();
 // be available for the system prompt to show. Fire-and-forget; the
 // dialog is asynchronous and we don't block React render on it.
 void ensureNotificationPermission();
+
+// Kick off the drum-sample seed in the background. On the very first
+// native launch (and after any future APK reinstall) this copies the
+// ~38 MB drums tree from the bundle into the persistent Data dir so
+// future OTA bundles don't have to ship it. No-op on web. Idempotent.
+void seedAudioAssets();
 
 createRoot(document.getElementById("root")!).render(
   <>

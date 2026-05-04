@@ -201,10 +201,23 @@ await new Promise((resolve, reject) => {
   output.on('error', reject);
   archive.on('error', reject);
   archive.pipe(output);
+  // OTA_SLIM=1 excludes the drum-sample tree from the bundle. The
+  // samples are seeded into the device's Data dir on first launch
+  // (see src/lib/assetCache.ts) so they don't need to ride along on
+  // every OTA — shrinks normal releases from ~53 MB to ~5 MB.
+  // The audio-manifest.json must stay in the bundle so the seeder
+  // (running in OLDER versions, before they get this slim build) can
+  // still find it on the first slim install.
+  const slim = process.env.OTA_SLIM === '1';
+  const ignore = ['bundles/**', 'version.json'];
+  if (slim) {
+    ignore.push('drums/**');
+    console.log('publish-bundle: → OTA_SLIM=1 — excluding drums/** from bundle');
+  }
   archive.glob('**/*', {
     cwd: bundleSourceDir,
     dot: false,
-    ignore: ['bundles/**', 'version.json'],
+    ignore,
   });
   archive.finalize();
 });
