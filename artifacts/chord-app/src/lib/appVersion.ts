@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.25';
+export const APP_VERSION = '3.0.26';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,10 +56,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
-      'Update banner now uses the Studio accent color you chose in settings (no more hardcoded purple).',
-      'Adapts to light and dark themes automatically.',
-      '"Later" no longer hides the indicator forever — it collapses to the corner dot and stays there until you update or a newer version arrives.',
-      'Removed the diagnostic strip used to debug the previous OTA detection bug.',
+      'Bumps past 3.0.25 to recover users whose old "Later" tap permanently hid the indicator.',
+      'All 3.0.25 fixes carried forward: themed accent, light/dark, persistent corner pill, raw.github bundle URL.',
     ],
   },
 ];

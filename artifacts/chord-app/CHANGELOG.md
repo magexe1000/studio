@@ -17,6 +17,11 @@ Conventions:
 
 ---
 
+## 3.0.26
+
+- Bumps past 3.0.25 to recover users whose old "Later" tap permanently hid the indicator.
+- All 3.0.25 fixes carried forward: themed accent, light/dark, persistent corner pill, raw.github bundle URL.
+
 ## 3.0.25
 
 - Update banner now uses the Studio accent color you chose in settings (no more hardcoded purple).

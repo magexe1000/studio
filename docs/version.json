@@ -1,6 +1,6 @@
 {
-  "version": "3.0.25",
-  "changelog": "• Update banner now uses the Studio accent color you chose in settings (no more hardcoded purple).\n• Adapts to light and dark themes automatically.\n• \"Later\" no longer hides the indicator forever — it collapses to the corner dot and stays there until you update or a newer version arrives.\n• Removed the diagnostic strip used to debug the previous OTA detection bug.",
+  "version": "3.0.26",
+  "changelog": "• Bumps past 3.0.25 to recover users whose old \"Later\" tap permanently hid the indicator.\n• All 3.0.25 fixes carried forward: themed accent, light/dark, persistent corner pill, raw.github bundle URL.",
   "mandatory": false,
-  "downloadUrl": "https://raw.githubusercontent.com/magexe1000/Chordex/main/docs/bundles/bundle-3.0.25.zip"
+  "downloadUrl": "https://raw.githubusercontent.com/magexe1000/Chordex/main/docs/bundles/bundle-3.0.26.zip"
 }
