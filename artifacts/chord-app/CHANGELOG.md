@@ -17,6 +17,11 @@ Conventions:
 
 ---
 
+## 3.0.35
+
+- Cloud sync now connects more reliably on mobile networks — switched to auto-detect transport with a 30 s handshake window.
+- When the connection drops mid-sync, the indicator no longer shows a scary "Sync failed" error — it silently retries when the network is back.
+
 ## 3.0.34
 
 - Account sync no longer spins forever — tighter timeouts, bounded restores, and a safety net so the cloud icon always returns to a normal state.

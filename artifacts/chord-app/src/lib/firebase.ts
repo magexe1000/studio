@@ -98,15 +98,27 @@ function init() {
   // in-memory cache so sync still works (just without offline reads
   // surviving a reload). The fallback keeps the long-polling fix in
   // place, which is the more important half of this change.
-  // Why experimentalForceLongPolling instead of autoDetect?
-  // On Android WebView (Capacitor APK), the autodetect probe itself
-  // sometimes fails with "Failed to get document because the client is
-  // offline" before it can fall back. Forcing long polling from the
-  // start skips the broken probe entirely. Cost: one extra round-trip
-  // per request (~50-100ms). Benefit: sync actually works.
+  // Transport selection — third attempt:
+  //
+  //   1. Default WebChannel: failed on Capacitor WebView with
+  //      "Failed to get document because the client is offline".
+  //   2. experimentalForceLongPolling: also failing for some users.
+  //      Forcing the slow path doesn't help if the slow path itself
+  //      can't establish the long-poll handshake.
+  //   3. experimentalAutoDetectLongPolling + a generous
+  //      experimentalLongPollingOptions.timeoutSeconds: probes both
+  //      transports and uses whichever works. The extended timeout
+  //      gives flaky mobile networks a real chance to complete the
+  //      initial handshake before the SDK gives up and decides it's
+  //      "offline". Default is 30s but we set it explicitly so the
+  //      change is visible to anyone reading this code.
+  const firestoreOpts = {
+    experimentalAutoDetectLongPolling: true,
+    experimentalLongPollingOptions: { timeoutSeconds: 30 },
+  } as const;
   try {
     _db = initializeFirestore(_app, {
-      experimentalForceLongPolling: true,
+      ...firestoreOpts,
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager(),
       }),
@@ -117,7 +129,7 @@ function init() {
       err,
     );
     _db = initializeFirestore(_app, {
-      experimentalForceLongPolling: true,
+      ...firestoreOpts,
       localCache: memoryLocalCache(),
     });
   }

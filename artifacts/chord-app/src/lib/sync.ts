@@ -755,14 +755,34 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
     logSuccess(Date.now() - startedAt, pushedCount, pulledCount);
   } catch (e) {
     const isTimeout = e instanceof SyncTimeoutError;
+    const errMsg = (e as Error)?.message ?? '';
+    const errCode = (e as { code?: string })?.code ?? '';
+    // Detect "we just don't have network right now" cases. Firestore
+    // throws with code 'unavailable' or message containing "offline"
+    // when its connection can't be established. This is NOT a real
+    // failure — the user's Wi-Fi might be flaky, the app might have
+    // resumed before the radio came back, or Firestore's long-poll
+    // handshake might have lost a packet. Surfacing this as a scary
+    // "Sync failed" error trains users to ignore the indicator.
+    // Instead we silently return to idle and let the next tick retry.
+    const isOffline =
+      errCode === 'unavailable' ||
+      /offline|unavailable|network|fetch failed/i.test(errMsg);
     const durationMs = Date.now() - startedAt;
     if (isTimeout) logTimeout(e.op, e.ms || durationMs);
     else logFailure(durationMs, e);
     if (epoch === startEpoch) {
-      setStatus({
-        phase: 'error',
-        error: isTimeout ? 'Sync timed out' : ((e as Error)?.message ?? 'Sync failed'),
-      });
+      if (isOffline) {
+        // Soft-fail: keep last successful sync time, don't show error.
+        // The 60s tick (and visibility/beforeunload triggers) will
+        // retry automatically as soon as the radio is back.
+        setStatus({ phase: 'idle', error: null });
+      } else {
+        setStatus({
+          phase: 'error',
+          error: isTimeout ? 'Sync timed out' : (errMsg || 'Sync failed'),
+        });
+      }
     }
   } finally {
     runDone = true;
