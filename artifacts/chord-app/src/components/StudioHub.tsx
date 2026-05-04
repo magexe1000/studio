@@ -7,6 +7,7 @@ import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } fr
 import ApplyToSheet from './ApplyToSheet';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
+import { useOtaUpdate } from '../lib/otaUpdate';
 
 // AccountCard pulls Firebase (auth + firestore). Lazy-load it so Firebase
 // stays out of the initial bundle graph; only fetched when Settings tab opens.
@@ -174,8 +175,10 @@ export default function StudioHub() {
   const { settings, updateSettings } = useChordStore();
   const t = useT();
   const lang = settings.language ?? 'en';
-  const hubAccentKey = settings.perApp?.hub?.accentColor ?? settings.accentColor;
-  const accent = ACCENT_COLORS[hubAccentKey];
+  const hubAccentKey = settings.perApp?.hub?.accentColor ?? settings.accentColor ?? 'blue';
+  const accent = hubAccentKey === 'custom'
+    ? { from: `hsl(${settings.customAccentHue ?? 220}, 75%, 65%)`, mid: `hsl(${settings.customAccentHue ?? 220}, 80%, 55%)`, to: `hsl(${((settings.customAccentHue ?? 220) + 25) % 360}, 85%, 42%)` }
+    : (ACCENT_COLORS[hubAccentKey] ?? ACCENT_COLORS.blue);
   const isHubLight = (settings.perApp?.hub?.theme ?? settings.theme ?? 'dark') === 'light';
 
   const [tab, setTab]     = useState<HubTab>('home');
@@ -211,7 +214,7 @@ export default function StudioHub() {
     }}>
 
       {/* ── Main scrollable content ── */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: tab === 'home' ? 'hidden' : 'auto', overflowX: 'hidden' }}>
 
         {/* ── HOME TAB ── */}
         {tab === 'home' && (
@@ -355,27 +358,260 @@ function AppRow({
 }
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
+
+type SettingsPageId = 'main' | 'appearance' | 'language' | 'storage' | 'privacy' | 'about' | 'ai-assistant' | 'updater';
+
+function formatHour(h: number): string {
+  if (h === 0) return '12 am';
+  if (h < 12) return `${h} am`;
+  if (h === 12) return '12 pm';
+  return `${h - 12} pm`;
+}
+
+const HUB_SETTINGS_CSS = `
+  @keyframes hub-slide-in {
+    from { transform: translateX(32px); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
+  @keyframes hub-slide-back {
+    from { transform: translateX(-24px); opacity: 0; }
+    to   { transform: translateX(0);     opacity: 1; }
+  }
+  @keyframes hub-row-fade {
+    from { transform: translateY(7px); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+  }
+  @keyframes hub-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  input[type=range].hue-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 28px;
+    border-radius: 14px;
+    outline: none;
+    cursor: pointer;
+    display: block;
+    width: 100%;
+  }
+  input[type=range].hue-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid rgba(0,0,0,0.18);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    cursor: pointer;
+  }
+  input[type=range].hue-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid rgba(0,0,0,0.18);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    cursor: pointer;
+    border: none;
+  }
+`;
+
+function SettingsNavRow({
+  icon, iconColor, title, desc, onPress,
+  last = false, placeholder = false, delay = 0, badge,
+}: {
+  icon: string; iconColor?: string; title: string; desc?: string;
+  onPress: () => void; last?: boolean; placeholder?: boolean; delay?: number; badge?: string;
+}) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <button
+      onClick={placeholder ? () => {} : onPress}
+      onPointerDown={() => !placeholder && setPressed(true)}
+      onPointerUp={() => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
+      onPointerCancel={() => setPressed(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 14,
+        width: '100%', padding: '13px 16px',
+        background: pressed ? 'rgba(128,128,128,0.06)' : 'transparent',
+        border: 'none',
+        outline: 'none',
+        WebkitTapHighlightColor: 'transparent',
+        borderBottom: last ? 'none' : '1px solid rgba(128,128,128,0.07)',
+        cursor: placeholder ? 'default' : 'pointer',
+        textAlign: 'left',
+        transform: pressed ? 'scale(0.977)' : 'scale(1)',
+        transition: 'background 100ms ease, transform 140ms cubic-bezier(0.34,1.15,0.64,1)',
+        boxSizing: 'border-box',
+        opacity: placeholder ? 0.38 : 1,
+        animation: `hub-row-fade 380ms ease ${delay}ms both`,
+        transformOrigin: 'center center',
+      }}
+    >
+      <div style={{
+        width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+        background: iconColor ? `${iconColor}20` : 'rgba(128,128,128,0.10)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        border: `1px solid ${iconColor ? iconColor + '28' : 'transparent'}`,
+      }}>
+        <span className="material-symbols-outlined" style={{
+          fontSize: 18,
+          color: iconColor ?? 'var(--c-text-secondary)',
+          fontVariationSettings: "'FILL' 1",
+        }}>{icon}</span>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.01em', fontFamily: 'Manrope' }}>{title}</p>
+        {desc && <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '2px 0 0', fontWeight: 500, fontFamily: 'Inter', lineHeight: 1.3 }}>{desc}</p>}
+      </div>
+      {badge && (
+        <span style={{
+          fontSize: 10, fontWeight: 700, fontFamily: 'Manrope',
+          padding: '3px 7px', borderRadius: 999,
+          background: 'rgba(128,128,128,0.12)',
+          color: 'var(--c-text-secondary)',
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+          flexShrink: 0,
+        }}>{badge}</span>
+      )}
+      {!placeholder && (
+        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0, opacity: 0.45 }}>chevron_right</span>
+      )}
+    </button>
+  );
+}
+
+function SettingsSectionLabel({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  return (
+    <p style={{
+      fontSize: 11, fontWeight: 700,
+      color: 'var(--c-text-secondary)',
+      letterSpacing: '0.18em',
+      textTransform: 'uppercase',
+      margin: '22px 0 8px 4px',
+      fontFamily: 'Manrope',
+      animation: `hub-row-fade 380ms ease ${delay}ms both`,
+    }}>{children}</p>
+  );
+}
+
+function SettingsSubHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 32, paddingBottom: 16, animation: 'hub-row-fade 300ms ease both' }}>
+      <button
+        onClick={onBack}
+        onPointerDown={() => setPressed(true)}
+        onPointerUp={() => setPressed(false)}
+        onPointerLeave={() => setPressed(false)}
+        onPointerCancel={() => setPressed(false)}
+        style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: 'rgba(128,128,128,0.10)',
+          border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+          color: 'var(--c-text-primary)',
+          flexShrink: 0,
+          transform: pressed ? 'scale(0.91)' : 'scale(1)',
+          transition: 'transform 130ms cubic-bezier(0.34,1.15,0.64,1)',
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
+      </button>
+      <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>{title}</p>
+    </div>
+  );
+}
+
 function GlobalHint() {
   const t = useT();
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 5,
-      margin: '6px 4px 0',
-    }}>
-      <span className="material-symbols-outlined" style={{
-        fontSize: 13, color: 'var(--c-text-secondary)',
-        fontVariationSettings: "'FILL' 1",
-        flexShrink: 0,
-      }}>public</span>
-      <p style={{
-        margin: 0,
-        fontSize: 11, fontWeight: 600,
-        color: 'var(--c-text-secondary)',
-        fontFamily: 'Inter',
-        letterSpacing: '0.01em',
-      }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 5, margin: '6px 4px 0' }}>
+      <span className="material-symbols-outlined" style={{ fontSize: 13, color: 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 1", flexShrink: 0 }}>public</span>
+      <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Inter', letterSpacing: '0.01em' }}>
         {t.hub.appliesToAll}
       </p>
+    </div>
+  );
+}
+
+function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
+  style: React.CSSProperties;
+  cardStyle: React.CSSProperties;
+  accent: { from: string; to: string; mid: string };
+  onBack: () => void;
+}) {
+  const ota = useOtaUpdate();
+
+  const statusColor = ota.loading
+    ? 'var(--c-text-secondary)'
+    : ota.updateAvailable ? '#f59e0b' : '#4ade80';
+
+  const statusLabel = ota.loading
+    ? 'Checking for updates…'
+    : ota.updateAvailable
+      ? `Update available — ${ota.remoteVersion}`
+      : 'You\'re up to date';
+
+  return (
+    <div style={style}>
+      <style>{HUB_SETTINGS_CSS}</style>
+      <SettingsSubHeader title="Updater" onBack={onBack} />
+
+      <SettingsSectionLabel>Version</SettingsSectionLabel>
+      <div style={cardStyle}>
+        <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>Installed</span>
+          <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{APP_VERSION_LABEL}</span>
+        </div>
+        <div style={{ padding: '15px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>Latest</span>
+          <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>
+            {ota.loading ? '—' : (ota.remoteVersion ?? '—')}
+          </span>
+        </div>
+      </div>
+
+      <SettingsSectionLabel delay={50}>Status</SettingsSectionLabel>
+      <div style={cardStyle}>
+        <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: ota.updateAvailable && ota.downloadUrl ? '1px solid rgba(128,128,128,0.07)' : 'none' }}>
+          {ota.loading
+            ? <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0, animation: 'hub-spin 1s linear infinite' }}>refresh</span>
+            : <div style={{ width: 9, height: 9, borderRadius: '50%', background: statusColor, flexShrink: 0, boxShadow: `0 0 8px ${statusColor}88` }} />
+          }
+          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)', flex: 1 }}>{statusLabel}</span>
+        </div>
+        {ota.updateAvailable && ota.downloadUrl && (
+          <a
+            href={ota.downloadUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '0 16px 16px', marginTop: 12, padding: '13px', borderRadius: 12, background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)', textDecoration: 'none', boxShadow: `0 4px 16px ${accent.to}44` }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>download</span>
+            Download {ota.remoteVersion}
+          </a>
+        )}
+      </div>
+
+      <SettingsSectionLabel delay={80}>Update Mode</SettingsSectionLabel>
+      <div style={cardStyle}>
+        <div style={{ padding: '15px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accent.from}20`, border: `1px solid ${accent.from}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, fontVariationSettings: "'FILL' 1" }}>download</span>
+          </div>
+          <div>
+            <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)', margin: '0 0 4px' }}>OTA — Automatic</p>
+            <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 11, margin: 0, lineHeight: 1.55 }}>
+              Studio checks for updates every 60 s while open. New bundles apply on the next launch — no reinstall needed.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -384,68 +620,364 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
   const { settings, updateSettings, updatePerApp } = useChordStore();
   const t = useT();
   const [name, setName] = useState(settings.hubUserName ?? '');
+  const [page, setPage] = useState<SettingsPageId>('main');
+  const [pageKey, setPageKey] = useState(0);
+  const [slideDir, setSlideDir] = useState<'forward' | 'back'>('forward');
 
-  // Per-app appearance — read hub's current visuals
   const hubVis: PerAppVisuals = settings.perApp?.hub ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
-
-  // Pending change for the ApplyToSheet
   const [pending, setPending] = useState<Partial<PerAppVisuals> | null>(null);
   const [showSheet, setShowSheet] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
 
-  function requestChange(patch: Partial<PerAppVisuals>) {
-    setPending(patch);
-    setShowSheet(true);
-  }
-  function handleApply(apps: AppKey[]) {
-    if (pending) updatePerApp(apps, pending);
-    setPending(null);
-    setShowSheet(false);
-  }
-  function handleClose() {
-    setPending(null);
-    setShowSheet(false);
-  }
+  function requestChange(patch: Partial<PerAppVisuals>) { setPending(patch); setShowSheet(true); }
+  function handleApply(apps: AppKey[]) { if (pending) updatePerApp(apps, pending); setPending(null); setShowSheet(false); }
+  function handleClose() { setPending(null); setShowSheet(false); }
+
+  function navigate(to: SettingsPageId) { setSlideDir('forward'); setPage(to); setPageKey(k => k + 1); }
+  function goBack() { setSlideDir('back'); setPage('main'); setPageKey(k => k + 1); }
+
+  const goBackRef = useRef(goBack);
+  useEffect(() => { goBackRef.current = goBack; });
+  useEffect(() => {
+    if (page === 'main') return;
+    let startX = 0, startY = 0;
+    const onStart = (e: TouchEvent) => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; };
+    const onEnd = (e: TouchEvent) => {
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = Math.abs(e.changedTouches[0].clientY - startY);
+      if (startX < 40 && dx > 60 && dy < 80) goBackRef.current();
+    };
+    document.addEventListener('touchstart', onStart, { passive: true });
+    document.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchend', onEnd);
+    };
+  }, [page]);
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--app-surface)',
-    borderRadius: '1.5rem',
+    borderRadius: '1.25rem',
     overflow: 'hidden',
     transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+    border: '1px solid rgba(128,128,128,0.07)',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
   };
 
-  const sectionLabel: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: 'var(--c-text-secondary)',
-    letterSpacing: '0.18em', textTransform: 'uppercase',
-    margin: '24px 0 8px 4px',
+  const slideAnim = slideDir === 'forward' ? 'hub-slide-in' : 'hub-slide-back';
+  const subStyle: React.CSSProperties = {
+    padding: '0 20px',
+    paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)',
+    animation: `${slideAnim} 300ms cubic-bezier(0.25,0.46,0.45,0.94) both`,
   };
 
-  const rowStyle: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    gap: 12, padding: '15px 18px',
-    borderBottom: '1px solid rgba(128,128,128,0.07)',
-  };
+  /* ── APPEARANCE ─────────────────────────────────────────────────── */
+  if (page === 'appearance') {
+    return (
+      <div key={pageKey}>
+        <div style={subStyle}>
+        <style>{HUB_SETTINGS_CSS}</style>
+        <SettingsSubHeader title={t.settings.sections.appearance} onBack={goBack} />
 
+        <SettingsSectionLabel>Theme</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+              {([
+                { value: 'system', label: t.settings.rows.themeSystem, icon: 'brightness_auto', amoled: false },
+                { value: 'light',  label: t.settings.rows.themeLight,  icon: 'light_mode',      amoled: false },
+                { value: 'dark',   label: t.settings.rows.themeDark,   icon: 'dark_mode',        amoled: false },
+                { value: 'dark',   label: t.hub.amoled,                icon: 'contrast',          amoled: true  },
+              ] as { value: Theme; label: string; icon: string; amoled: boolean }[]).map((opt, i) => {
+                const isActive = opt.amoled
+                  ? hubVis.amoledMode
+                  : hubVis.theme === opt.value && !hubVis.amoledMode;
+                return (
+                  <button key={i}
+                    onClick={() => { if (opt.amoled) requestChange({ theme: 'dark', amoledMode: true }); else requestChange({ theme: opt.value, amoledMode: false }); }}
+                    className="btn-smooth"
+                    style={{
+                      padding: '12px 6px', borderRadius: 12,
+                      background: isActive ? `${accent.from}22` : 'var(--app-surface-high)',
+                      border: `1.5px solid ${isActive ? accent.from + '66' : 'transparent'}`,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                      transition: 'background 200ms ease, border-color 200ms ease', cursor: 'pointer',
+                    }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 22, color: isActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease' }}>{opt.icon}</span>
+                    <p style={{ color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease', margin: 0 }}>{opt.label}</p>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Dynamic theme — full-width row */}
+            {(() => {
+              const isDynActive = hubVis.theme === 'dynamic' && !hubVis.amoledMode;
+              return (
+                <button
+                  onClick={() => requestChange({ theme: 'dynamic' as Theme, amoledMode: false })}
+                  className="btn-smooth"
+                  style={{
+                    width: '100%', marginTop: 8, padding: '11px 14px', borderRadius: 12,
+                    background: isDynActive ? `${accent.from}22` : 'var(--app-surface-high)',
+                    border: `1.5px solid ${isDynActive ? accent.from + '66' : 'transparent'}`,
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    transition: 'background 200ms ease, border-color 200ms ease', cursor: 'pointer',
+                  }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 22, color: isDynActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isDynActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease', flexShrink: 0 }}>schedule</span>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ color: isDynActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', margin: 0, transition: 'color 200ms ease' }}>Dynamic</p>
+                    <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 10.5, margin: '2px 0 0', opacity: 0.75 }}>{`Light ${formatHour(settings.dynamicLightStart ?? 7)} – ${formatHour(settings.dynamicLightEnd ?? 20)} · Dark at night`}</p>
+                  </div>
+                </button>
+              );
+            })()}
+            {hubVis.theme === 'dynamic' && !hubVis.amoledMode && (() => {
+              const lStart = settings.dynamicLightStart ?? 7;
+              const lEnd   = settings.dynamicLightEnd   ?? 20;
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '8px 0 4px' }}>
+                  {([
+                    { label: 'Light from', val: lStart, onDec: () => updateSettings({ dynamicLightStart: Math.max(0, lStart - 1) }), onInc: () => updateSettings({ dynamicLightStart: Math.min(lEnd - 1, lStart + 1) }) },
+                    { label: 'Dark from',  val: lEnd,   onDec: () => updateSettings({ dynamicLightEnd: Math.max(lStart + 1, lEnd - 1) }), onInc: () => updateSettings({ dynamicLightEnd: Math.min(23, lEnd + 1) }) },
+                  ] as { label: string; val: number; onDec: () => void; onInc: () => void }[]).map(({ label, val, onDec, onInc }) => (
+                    <div key={label} style={{ background: `${accent.from}12`, borderRadius: 12, padding: '10px 12px' }}>
+                      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: 'var(--c-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>{label}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                        <button onClick={onDec} className="btn-smooth" style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(128,128,128,0.12)', border: 'none', outline: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-secondary)' }}>remove</span>
+                        </button>
+                        <span style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14, color: 'var(--c-text-primary)', minWidth: 40, textAlign: 'center' }}>{formatHour(val)}</span>
+                        <button onClick={onInc} className="btn-smooth" style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(128,128,128,0.12)', border: 'none', outline: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-secondary)' }}>add</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+          <div style={{ padding: '14px 16px 12px' }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-secondary)', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px', fontFamily: 'Manrope' }}>{t.settings.rows.accentColor}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+              {COLOR_OPTIONS.map(c => {
+                const isActive = hubVis.accentColor === c.id;
+                return (
+                  <button key={c.id} onClick={() => requestChange({ accentColor: c.id as PerAppVisuals['accentColor'] })} className="btn-smooth"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 12, background: isActive ? `${c.to}22` : 'var(--app-surface-high)', border: `1.5px solid ${isActive ? c.to + '66' : 'transparent'}`, transition: 'background-color 200ms ease, border-color 200ms ease' }}>
+                    <span style={{ width: 16, height: 16, borderRadius: '50%', background: `linear-gradient(135deg, ${c.from}, ${c.to})`, flexShrink: 0, boxShadow: isActive ? `0 0 8px ${c.to}55` : 'none', transition: 'box-shadow 200ms ease', display: 'block' }} />
+                    <span style={{ color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease' }}>{t.settings.colors[c.id]}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Custom accent color */}
+            {(() => {
+              const isCustom = hubVis.accentColor === 'custom';
+              const hue = settings.customAccentHue ?? 220;
+              return (
+                <>
+                  <button
+                    onClick={() => requestChange({ accentColor: 'custom' })}
+                    className="btn-smooth"
+                    style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 12, background: isCustom ? `hsla(${hue}, 75%, 65%, 0.13)` : 'var(--app-surface-high)', border: `1.5px solid ${isCustom ? `hsla(${hue}, 75%, 65%, 0.4)` : 'transparent'}`, transition: 'background-color 200ms ease, border-color 200ms ease', outline: 'none', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}>
+                    <span style={{ width: 16, height: 16, borderRadius: '50%', background: `linear-gradient(135deg, hsl(${hue}, 75%, 65%), hsl(${(hue + 25) % 360}, 85%, 42%))`, flexShrink: 0, display: 'block', boxShadow: isCustom ? `0 0 8px hsla(${hue}, 75%, 55%, 0.5)` : 'none', transition: 'box-shadow 200ms ease' }} />
+                    <span style={{ color: isCustom ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease' }}>Custom</span>
+                  </button>
+                  {isCustom && (
+                    <div style={{ marginTop: 10 }}>
+                      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: 'var(--c-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 8px' }}>Color</p>
+                      <input
+                        type="range" className="hue-slider"
+                        min={0} max={359} value={hue}
+                        onChange={e => updateSettings({ customAccentHue: Number(e.target.value) })}
+                        style={{ background: 'linear-gradient(to right, hsl(0,80%,60%), hsl(30,80%,60%), hsl(60,80%,60%), hsl(90,80%,60%), hsl(120,80%,60%), hsl(150,80%,60%), hsl(180,80%,60%), hsl(210,80%,60%), hsl(240,80%,60%), hsl(270,80%,60%), hsl(300,80%,60%), hsl(330,80%,60%), hsl(360,80%,60%))' }}
+                      />
+                      <div style={{ height: 24, borderRadius: 8, marginTop: 8, background: `linear-gradient(135deg, hsl(${hue}, 75%, 65%), hsl(${(hue + 25) % 360}, 85%, 42%))`, boxShadow: `0 2px 8px hsla(${hue}, 70%, 55%, 0.4)` }} />
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>
+
+        <SettingsSectionLabel delay={50}>Animations & Motion</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <SettingRow label={t.settings.rows.animSpeed} desc={t.settings.rows.animSpeedDesc}>
+            <SegmentedControl<AnimationSpeed> value={settings.animationSpeed} options={[{ value: 'fast', label: t.settings.rows.fast }, { value: 'normal', label: t.settings.rows.normal }, { value: 'reduced', label: t.settings.rows.off }]} onChange={v => updateSettings({ animationSpeed: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+        </div>
+        <GlobalHint />
+
+        <SettingsSectionLabel delay={80}>Display</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <SettingRow label={t.settings.rows.density} desc={t.settings.rows.densityDesc}>
+            <SegmentedControl<DisplayDensity> value={settings.displayDensity} options={[{ value: 'compact', label: t.settings.rows.compact }, { value: 'comfortable', label: t.settings.rows.normal }, { value: 'spacious', label: t.settings.rows.airy }]} onChange={v => updateSettings({ displayDensity: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+          <SettingRow label={t.settings.rows.fontSize} desc={t.settings.rows.fontSizeDesc}>
+            <SegmentedControl<'small' | 'medium' | 'large'> value={settings.fontSize} options={[{ value: 'small', label: 'S' }, { value: 'medium', label: 'M' }, { value: 'large', label: 'L' }]} onChange={v => updateSettings({ fontSize: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+        </div>
+        <GlobalHint />
+
+        <SettingsSectionLabel delay={110}>Feedback & Performance</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <SettingRow label={t.settings.rows.haptic} desc={t.settings.rows.hapticDesc}>
+            <Toggle value={settings.hapticFeedback} onChange={v => updateSettings({ hapticFeedback: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+          <SettingRow label="High refresh rate" desc="Keeps animations at your display's max rate (90/120Hz). May increase battery use.">
+            <Toggle value={settings.highRefreshRate} onChange={v => updateSettings({ highRefreshRate: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+          <SettingRow label="Low latency mode" desc="Faster audio response across all apps.">
+            <Toggle value={settings.lowLatencyMode} onChange={v => updateSettings({ lowLatencyMode: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+          <SettingRow label="Performance mode" desc="Disables blur and heavy animations for older devices.">
+            <Toggle value={settings.performanceMode} onChange={v => updateSettings({ performanceMode: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+        </div>
+        </div>
+        <ApplyToSheet show={showSheet} onApply={handleApply} onClose={handleClose} />
+      </div>
+    );
+  }
+
+  /* ── LANGUAGE ───────────────────────────────────────────────────── */
+  if (page === 'language') {
+    return (
+      <div key={pageKey} style={subStyle}>
+        <style>{HUB_SETTINGS_CSS}</style>
+        <SettingsSubHeader title={t.settings.sections.language} onBack={goBack} />
+        <div style={cardStyle}>
+          <SettingRow label={t.settings.language.label} desc={t.settings.language.desc}>
+            <SegmentedControl<'en' | 'es'> value={settings.language} options={[{ value: 'en', label: t.settings.language.en }, { value: 'es', label: t.settings.language.es }]} onChange={v => updateSettings({ language: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── STORAGE ────────────────────────────────────────────────────── */
+  if (page === 'storage') {
+    return (
+      <div key={pageKey} style={subStyle}>
+        <style>{HUB_SETTINGS_CSS}</style>
+        <SettingsSubHeader title="Storage & Session" onBack={goBack} />
+        <SettingsSectionLabel>Data</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{t.settings.about.storage}</span>
+            <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{t.settings.about.storageValue}</span>
+          </div>
+          <SettingRow label={t.hub.restoreLastSession} desc={t.hub.restoreLastSessionDesc}>
+            <Toggle value={settings.restoreLastSession} onChange={v => updateSettings({ restoreLastSession: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── PRIVACY ────────────────────────────────────────────────────── */
+  if (page === 'privacy') {
+    return (
+      <div key={pageKey} style={subStyle}>
+        <style>{HUB_SETTINGS_CSS}</style>
+        <SettingsSubHeader title="Privacy & Security" onBack={goBack} />
+        <SettingsSectionLabel>Account Controls</SettingsSectionLabel>
+        <Suspense fallback={null}>
+          <AccountDangerZone accent={accent} cardStyle={cardStyle} />
+        </Suspense>
+      </div>
+    );
+  }
+
+  /* ── AI ASSISTANT ───────────────────────────────────────────────── */
+  if (page === 'ai-assistant') {
+    return (
+      <div key={pageKey} style={subStyle}>
+        <style>{HUB_SETTINGS_CSS}</style>
+        <SettingsSubHeader title="AI Assistant" onBack={goBack} />
+
+        <SettingsSectionLabel>Intelligence</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <SettingRow label="Chord Assistant" desc="Smart chord suggestions and progression analysis">
+            <Toggle value={settings.chordAssistant} onChange={v => updateSettings({ chordAssistant: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '14px 4px 0', padding: '12px 14px', borderRadius: 12, background: 'rgba(128,128,128,0.06)', border: '1px solid rgba(128,128,128,0.09)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 15, color: 'var(--c-text-secondary)', flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+          <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 11.5, margin: 0, lineHeight: 1.6 }}>
+            More AI features — smart suggestions, progression tips, and conflict detection — are coming in a future update.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── UPDATER ─────────────────────────────────────────────────────── */
+  if (page === 'updater') {
+    return (
+      <HubUpdaterPage
+        key={pageKey}
+        style={subStyle}
+        cardStyle={cardStyle}
+        accent={accent}
+        onBack={goBack}
+      />
+    );
+  }
+
+  /* ── ABOUT ──────────────────────────────────────────────────────── */
+  if (page === 'about') {
+    return (
+      <div key={pageKey} style={subStyle}>
+        <style>{HUB_SETTINGS_CSS}</style>
+        <SettingsSubHeader title={t.settings.sections.about} onBack={goBack} />
+        <div style={cardStyle}>
+          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {([
+              { label: t.settings.about.version, value: APP_VERSION_LABEL },
+              { label: t.settings.about.storage, value: t.settings.about.storageValue },
+            ] as { label: string; value: string }[]).map(({ label, value }) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{label}</span>
+                <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ padding: '28px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 32, height: 2, borderRadius: 999, background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`, marginBottom: 4 }} />
+          <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>{t.settings.about.footer}</p>
+        </div>
+        <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
+      </div>
+    );
+  }
+
+  /* ── MAIN PAGE ──────────────────────────────────────────────────── */
   return (
-    <div style={{ padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
+    <div key={pageKey} style={{ padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
+      <style>{HUB_SETTINGS_CSS}</style>
 
-      {/* Page title */}
-      <div style={{ paddingTop: 32, paddingBottom: 8 }}>
-        <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em' }}>{t.hub.settingsTitle}</p>
+      {/* Title */}
+      <div style={{ paddingTop: 32, paddingBottom: 8, animation: 'hub-row-fade 350ms ease both' }}>
+        <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>{t.hub.settingsTitle}</p>
         <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>{t.hub.settingsSubtitle}</p>
       </div>
 
-      {/* ── Account ── */}
-      <p style={sectionLabel}>{t.hub.account}</p>
+      {/* Account */}
+      <SettingsSectionLabel delay={20}>{t.hub.account}</SettingsSectionLabel>
       <Suspense fallback={<div style={{ ...cardStyle, padding: '20px', minHeight: 64 }} />}>
-        <AccountCard accent={accent} cardStyle={cardStyle} rowStyle={rowStyle} />
+        <AccountCard accent={accent} cardStyle={cardStyle} rowStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)' }} />
       </Suspense>
 
-      {/* ── Profile ── */}
-      <p style={sectionLabel}>{t.hub.profile}</p>
-      <div style={cardStyle}>
-        <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', margin: '0 0 8px' }}>{t.hub.yourName}</p>
+      {/* Profile */}
+      <SettingsSectionLabel delay={40}>{t.hub.profile}</SettingsSectionLabel>
+      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 50ms both' }}>
+        <div style={{ padding: '15px 18px' }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', margin: '0 0 8px', fontFamily: 'Manrope' }}>{t.hub.yourName}</p>
           <input
             value={name}
             onChange={e => setName(e.target.value)}
@@ -458,8 +990,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
               borderRadius: 12, padding: '11px 14px',
               fontSize: 14, fontWeight: 500,
               color: 'var(--c-text-primary)',
-              fontFamily: 'Manrope',
-              outline: 'none',
+              fontFamily: 'Manrope', outline: 'none',
               transition: 'border-color 200ms ease',
             }}
             onFocus={e => { e.currentTarget.style.borderColor = accent.from; }}
@@ -468,240 +999,41 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
         </div>
       </div>
 
-      {/* ── APPEARANCE ── */}
-      <SectionHeader icon="palette" title={t.settings.sections.appearance} />
-
-      {/* Theme + AMOLED + Accent — single card */}
+      {/* Interface */}
+      <SettingsSectionLabel delay={70}>Interface</SettingsSectionLabel>
       <div style={cardStyle}>
-
-        {/* Theme + AMOLED — 2×2 grid */}
-        <div style={{ padding: 'var(--density-pad) var(--density-pad) 16px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' }}>
-            {([
-              { value: 'system', label: t.settings.rows.themeSystem, icon: 'brightness_auto', amoled: false },
-              { value: 'light',  label: t.settings.rows.themeLight,  icon: 'light_mode',      amoled: false },
-              { value: 'dark',   label: t.settings.rows.themeDark,   icon: 'dark_mode',        amoled: false },
-              { value: 'dark',   label: t.hub.amoled,                 icon: 'contrast',          amoled: true  },
-            ] as { value: Theme; label: string; icon: string; amoled: boolean }[]).map((opt, i) => {
-              const isActive = opt.amoled
-                ? hubVis.amoledMode
-                : hubVis.theme === opt.value && !hubVis.amoledMode;
-              return (
-                <button key={i}
-                  onClick={() => {
-                    if (opt.amoled) requestChange({ theme: 'dark', amoledMode: true });
-                    else requestChange({ theme: opt.value, amoledMode: false });
-                  }}
-                  className="btn-smooth"
-                  style={{
-                    padding: '12px 6px', borderRadius: '12px',
-                    background: isActive ? `${accent.from}22` : 'var(--app-surface-high)',
-                    border: `1.5px solid ${isActive ? accent.from + '66' : 'transparent'}`,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-                    transition: 'background 200ms ease, border-color 200ms ease, opacity 200ms ease',
-                    cursor: 'pointer',
-                  }}>
-                  <span className="material-symbols-outlined" style={{
-                    fontSize: '22px',
-                    color: isActive ? accent.from : 'var(--c-text-secondary)',
-                    fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
-                    transition: 'color 200ms ease',
-                  }}>{opt.icon}</span>
-                  <p style={{
-                    color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
-                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)',
-                    transition: 'color 200ms ease',
-                  }}>{opt.label}</p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Accent Color */}
-        <div style={{ padding: 'var(--density-pad) var(--density-pad) 16px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--density-card-gap)' }}>
-            {COLOR_OPTIONS.map(c => {
-              const isActive = hubVis.accentColor === c.id;
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => requestChange({ accentColor: c.id as PerAppVisuals['accentColor'] })}
-                  className="btn-smooth"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    padding: '10px 12px', borderRadius: '12px',
-                    background: isActive ? `${c.to}22` : 'var(--app-surface-high)',
-                    border: `1.5px solid ${isActive ? c.to + '66' : 'transparent'}`,
-                    transition: 'background-color 200ms ease, border-color 200ms ease',
-                  }}
-                >
-                  <span style={{
-                    width: '16px', height: '16px', borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${c.from}, ${c.to})`,
-                    flexShrink: 0,
-                    boxShadow: isActive ? `0 0 8px ${c.to}55` : 'none',
-                    transition: 'box-shadow 200ms ease',
-                    display: 'block',
-                  }} />
-                  <span style={{ color: isActive ? '#e7e5e4' : '#acabaa', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease' }}>{t.settings.colors[c.id]}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
+        <SettingsNavRow icon="palette" iconColor={accent.from} title={t.settings.sections.appearance} desc="Theme, colors, display & performance" onPress={() => navigate('appearance')} last delay={80} />
       </div>
 
-      <ApplyToSheet show={showSheet} onApply={handleApply} onClose={handleClose} />
-
-      {/* ── ANIMATIONS ── */}
-      <SectionHeader icon="animation" title={t.settings.sections.animations} />
+      {/* Content & Language */}
+      <SettingsSectionLabel delay={100}>Content & Language</SettingsSectionLabel>
       <div style={cardStyle}>
-        <SettingRow label={t.settings.rows.animSpeed} desc={t.settings.rows.animSpeedDesc}>
-          <SegmentedControl<AnimationSpeed>
-            value={settings.animationSpeed}
-            options={[{ value: 'fast', label: t.settings.rows.fast }, { value: 'normal', label: t.settings.rows.normal }, { value: 'reduced', label: t.settings.rows.off }]}
-            onChange={v => updateSettings({ animationSpeed: v })}
-            accentFrom={accent.from}
-            accentTo={accent.to}
-          />
-        </SettingRow>
-      </div>
-      <GlobalHint />
-
-      {/* ── DISPLAY ── */}
-      <SectionHeader icon="dashboard" title={t.settings.sections.display} />
-      <div style={cardStyle}>
-        <SettingRow label={t.settings.rows.density} desc={t.settings.rows.densityDesc}>
-          <SegmentedControl<DisplayDensity>
-            value={settings.displayDensity}
-            options={[{ value: 'compact', label: t.settings.rows.compact }, { value: 'comfortable', label: t.settings.rows.normal }, { value: 'spacious', label: t.settings.rows.airy }]}
-            onChange={v => updateSettings({ displayDensity: v })}
-            accentFrom={accent.from}
-            accentTo={accent.to}
-          />
-        </SettingRow>
-        <SettingRow label={t.settings.rows.fontSize} desc={t.settings.rows.fontSizeDesc}>
-          <SegmentedControl<'small' | 'medium' | 'large'>
-            value={settings.fontSize}
-            options={[{ value: 'small', label: 'S' }, { value: 'medium', label: 'M' }, { value: 'large', label: 'L' }]}
-            onChange={v => updateSettings({ fontSize: v })}
-            accentFrom={accent.from}
-            accentTo={accent.to}
-          />
-        </SettingRow>
-      </div>
-      <GlobalHint />
-
-      {/* ── FEEDBACK ── */}
-      <SectionHeader icon="vibration" title={t.settings.sections.feedback} />
-      <div style={cardStyle}>
-        <SettingRow label={t.settings.rows.haptic} desc={t.settings.rows.hapticDesc}>
-          <Toggle value={settings.hapticFeedback} onChange={v => updateSettings({ hapticFeedback: v })} accentFrom={accent.from} accentTo={accent.to} />
-        </SettingRow>
+        <SettingsNavRow icon="language" iconColor={accent.from} title={t.settings.sections.language} desc="App display language" onPress={() => navigate('language')} delay={110} />
+        <SettingsNavRow icon="auto_awesome" iconColor={accent.from} title="AI Assistant" desc="Smart chord suggestions and analysis" onPress={() => navigate('ai-assistant')} last delay={120} />
       </div>
 
-      {/* ── PERFORMANCE ── */}
-      <SectionHeader icon="speed" title="Performance" />
+      {/* Storage & Data */}
+      <SettingsSectionLabel delay={170}>Storage & Data</SettingsSectionLabel>
       <div style={cardStyle}>
-        <SettingRow
-          label="High refresh rate"
-          desc="Keeps animations running at your display's max refresh rate (90/120Hz). May increase battery use."
-        >
-          <Toggle value={settings.highRefreshRate} onChange={v => updateSettings({ highRefreshRate: v })} accentFrom={accent.from} accentTo={accent.to} />
-        </SettingRow>
-        <SettingRow
-          label="Low latency mode"
-          desc="Faster audio response across all apps (drums, chords, vocals, stage). Trades a bit of stability for snap."
-        >
-          <Toggle value={settings.lowLatencyMode} onChange={v => updateSettings({ lowLatencyMode: v })} accentFrom={accent.from} accentTo={accent.to} />
-        </SettingRow>
-        <SettingRow
-          label="Performance mode"
-          desc="Disables blur effects, heavy shadows and non-essential animations across all apps for smoother performance on older devices."
-        >
-          <Toggle value={settings.performanceMode} onChange={v => updateSettings({ performanceMode: v })} accentFrom={accent.from} accentTo={accent.to} />
-        </SettingRow>
-      </div>
-      <GlobalHint />
-
-      {/* ── SESSION ── */}
-      <SectionHeader icon="history" title={t.hub.session} />
-      <div style={cardStyle}>
-        <SettingRow
-          label={t.hub.restoreLastSession}
-          desc={t.hub.restoreLastSessionDesc}
-        >
-          <Toggle value={settings.restoreLastSession} onChange={v => updateSettings({ restoreLastSession: v })} accentFrom={accent.from} accentTo={accent.to} />
-        </SettingRow>
-      </div>
-      <GlobalHint />
-
-      {/* ── LANGUAGE ── */}
-      <SectionHeader icon="language" title={t.settings.sections.language} />
-      <div style={cardStyle}>
-        <SettingRow label={t.settings.language.label} desc={t.settings.language.desc}>
-          <SegmentedControl<'en' | 'es'>
-            value={settings.language}
-            options={[
-              { value: 'en', label: t.settings.language.en },
-              { value: 'es', label: t.settings.language.es },
-            ]}
-            onChange={v => updateSettings({ language: v })}
-            accentFrom={accent.from}
-            accentTo={accent.to}
-          />
-        </SettingRow>
+        <SettingsNavRow icon="save" iconColor={accent.from} title="Storage & Session" desc={t.settings.about.storageValue} onPress={() => navigate('storage')} last delay={180} />
       </div>
 
-      {/* ── DANGER ZONE ── */}
-      <Suspense fallback={null}>
-        <AccountDangerZone accent={accent} cardStyle={cardStyle} />
-      </Suspense>
-
-      {/* ── ABOUT ── */}
-      <SectionHeader icon="info" title={t.settings.sections.about} />
+      {/* System & About */}
+      <SettingsSectionLabel delay={200}>System & About</SettingsSectionLabel>
       <div style={cardStyle}>
-        <div style={{ padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {[
-            { label: t.settings.about.version, value: APP_VERSION_LABEL              },
-            { label: t.settings.about.storage, value: t.settings.about.storageValue },
-          ].map(({ label, value }) => (
-            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{label}</span>
-              <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{value}</span>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => setChangelogOpen(true)}
-            style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              width: '100%', padding: 0, margin: 0,
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', textAlign: 'left',
-            }}
-          >
-            <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>
-              {t.settings.about.changelog ?? 'Changelog'}
-            </span>
-            <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-secondary)' }}>
-              chevron_right
-            </span>
-          </button>
-        </div>
+        <SettingsNavRow icon="download" iconColor={accent.from} title="Updater" desc="OTA update system" badge="Auto" onPress={() => navigate('updater')} delay={210} />
+        <SettingsNavRow icon="history" iconColor={accent.from} title="Changelog" desc="What's new in this version" onPress={() => setChangelogOpen(true)} delay={220} />
+        <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last delay={230} />
       </div>
 
       <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
 
-      <div style={{ padding: '28px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-        <div style={{ width: '32px', height: '2px', borderRadius: '9999px', background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`, marginBottom: '4px' }} />
+      <div style={{ padding: '28px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 32, height: 2, borderRadius: 999, background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`, marginBottom: 4 }} />
         <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>
           {t.settings.about.footer}
         </p>
       </div>
-
     </div>
   );
 }

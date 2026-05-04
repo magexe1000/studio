@@ -1,3 +1,4 @@
+﻿import \{ useBackHandler \} from '../lib/backStack';
 import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
@@ -102,7 +103,7 @@ export default function VocalexApp() {
     setExitingTab(prevTab.current);
     setVisibleTab(activeTab);
     prevTab.current = activeTab;
-    // Always show the nav when switching tabs — some panels (e.g. pitch) are not scrollable.
+    // Always show the nav when switching tabs â€” some panels (e.g. pitch) are not scrollable.
     setNavHidden(false);
     const ti = setTimeout(() => setExitingTab(null), durMs + 20);
     return () => clearTimeout(ti);
@@ -132,6 +133,30 @@ export default function VocalexApp() {
   const navHidden = useNavHidden();
   const [headerBack, setHeaderBack] = useState<(() => void) | null>(null);
   useEffect(() => subscribeVocalexBack(fn => setHeaderBack(() => fn)), []);
+
+  useBackHandler('nested', () => \{
+    if (headerBack) \{ headerBack(); return true; \}
+    return false;
+  \}, [headerBack]);
+
+  const headerBackRef = useRef(headerBack);
+  useEffect(() => \{ headerBackRef.current = headerBack; \}, [headerBack]);
+  useEffect(() => \{
+    if (!headerBack) return;
+    let startX = 0, startY = 0;
+    const onStart = (e: TouchEvent) => \{ startX = e.touches[0].clientX; startY = e.touches[0].clientY; \};
+    const onEnd = (e: TouchEvent) => \{
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = Math.abs(e.changedTouches[0].clientY - startY);
+      if (startX < 40 && dx > 60 && dy < 80) headerBackRef.current?.();
+    \};
+    document.addEventListener('touchstart', onStart, \{ passive: true \});
+    document.addEventListener('touchend', onEnd, \{ passive: true \});
+    return () => \{
+      document.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchend', onEnd);
+    \};
+  \}, [headerBack]);
   const stretchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pill, setPill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const [pressedPanel, setPressedPanel] = useState<VocalexPanel | null>(null);

@@ -449,12 +449,19 @@ export default function App() {
 
       activeVis.amoledMode ? root.classList.add('amoled') : root.classList.remove('amoled');
 
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      const isDaytime  = h >= lightStart && h < lightEnd;
+
       root.classList.remove('light', 'theme-system');
       if (activeVis.theme === 'light') root.classList.add('light');
       else if (activeVis.theme === 'system') root.classList.add('theme-system');
+      else if (activeVis.theme === 'dynamic' && isDaytime) root.classList.add('light');
 
       const isLight = activeVis.theme === 'light' ||
-        (activeVis.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
+        (activeVis.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches) ||
+        (activeVis.theme === 'dynamic' && isDaytime);
       const color = activeVis.amoledMode ? (isLight ? '#ffffff' : '#000000') : (isLight ? '#f5f5f5' : '#111116');
       let tag = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
       if (!tag) {
@@ -479,7 +486,21 @@ export default function App() {
     } else {
       applyTheme();
     }
-  }, [activeVis.theme, activeVis.amoledMode]);
+  }, [activeVis.theme, activeVis.amoledMode, settings.dynamicLightStart, settings.dynamicLightEnd]);
+
+  // Re-apply dynamic theme every minute so it flips at the configured times
+  useEffect(() => {
+    if (activeVis.theme !== 'dynamic') return;
+    const id = setInterval(() => {
+      const s = useChordStore.getState().settings;
+      const h = new Date().getHours();
+      const isDaytime = h >= (s.dynamicLightStart ?? 7) && h < (s.dynamicLightEnd ?? 20);
+      const root = document.documentElement;
+      root.classList.remove('light');
+      if (isDaytime) root.classList.add('light');
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [activeVis.theme]);
 
   // Keep the native Android status bar in sync with the active theme
   useStatusBar(activeVis.theme, activeVis.amoledMode);

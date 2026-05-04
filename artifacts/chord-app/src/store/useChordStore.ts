@@ -2,9 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Chord, Instrument } from '../data/chords';
 
-export type Theme = 'dark' | 'light' | 'system';
+export type Theme = 'dark' | 'light' | 'system' | 'dynamic';
 export type ActivePanel = 'library' | 'chord' | 'settings' | 'songs';
-export type AccentColor = 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'teal';
+export type AccentColor = 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'teal' | 'custom';
 export type AppKey = 'hub' | 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
 
 export interface PerAppVisuals {
@@ -106,6 +106,9 @@ export interface AppSettings {
    */
   restoreLastSession: boolean;
   perApp: Record<AppKey, PerAppVisuals>;
+  customAccentHue: number;
+  dynamicLightStart: number;
+  dynamicLightEnd: number;
 }
 
 interface ChordStore {
@@ -199,6 +202,7 @@ export const ACCENT_COLORS: Record<AccentColor, { from: string; to: string; mid:
   orange: { from: '#fb923c', to: '#ea580c', mid: '#f97316' },
   pink:   { from: '#f472b6', to: '#db2777', mid: '#ec4899' },
   teal:   { from: '#2dd4bf', to: '#0891b2', mid: '#14b8a6' },
+  custom: { from: '#6ea8fe', to: '#0d6efd', mid: '#4188fc' },
 };
 
 export const useChordStore = create<ChordStore>()(
@@ -229,7 +233,7 @@ export const useChordStore = create<ChordStore>()(
         liveModeAnimations: true,
         liveModeDiagram: false,
         liveChordSize: 100,
-        language: 'es',
+        language: 'en',
         preferFlats: false,
         defaultTab: 'library',
         defaultDrumTab: 'songs',
@@ -246,6 +250,9 @@ export const useChordStore = create<ChordStore>()(
         assistantConflictDetection: true,
         assistantLearning: true,
         restoreLastSession: false,
+        customAccentHue: 220,
+        dynamicLightStart: 7,
+        dynamicLightEnd: 20,
         perApp: {
           hub:    { theme: 'dark', accentColor: 'blue', amoledMode: false },
           chords: { theme: 'dark', accentColor: 'blue', amoledMode: false },
@@ -643,7 +650,7 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
-      version: 6,
+      version: 7,
       migrate: (stored: unknown, fromVersion: number) => {
         const s = stored as Record<string, unknown>;
         if (fromVersion < 1) {
@@ -714,6 +721,17 @@ export const useChordStore = create<ChordStore>()(
             // old installs don't carry dead config forever.
             if ('hubChimeEnabled' in settings) {
               delete (settings as Record<string, unknown>).hubChimeEnabled;
+            }
+          }
+        }
+        if (fromVersion < 7) {
+          // Switch the default language from 'es' to 'en'. Only resets users
+          // who still have the old hardcoded default — anyone who explicitly
+          // chose a different language keeps their choice.
+          if (s.settings && typeof s.settings === 'object') {
+            const settings = s.settings as Record<string, unknown>;
+            if (settings.language === 'es') {
+              settings.language = 'en';
             }
           }
         }

@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.45';
+export const APP_VERSION = '3.0.48';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,8 +56,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "What's new",
     items: [
-      'App-switcher pill restored: chips start from the left, tap to select.',
-      'Fixed pill opening with Chordex incorrectly centered.',
+      'Theme picker Apply To sheet now appears instantly without requiring a scroll.',
+      'Storage & Session and Updater icons fixed — now render correctly.',
+      'Swipe right from the left edge to go back on any Settings sub-page.',
+      'Dynamic theme added — light from 7 am to 8 pm, dark at night, checks every minute.',
     ],
   },
 ];
