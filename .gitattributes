@@ -2,3 +2,14 @@ attached_assets/Chordex_1775017750861.zip filter=lfs diff=lfs merge=lfs -text
 attached_assets/Snare_(1)_1775238211554.rar filter=lfs diff=lfs merge=lfs -text
 attached_assets/Toms_(2)_1775238435127.rar filter=lfs diff=lfs merge=lfs -text
 attached_assets/Toms_(3)_1775238461419.rar filter=lfs diff=lfs merge=lfs -text
+docs/bundles/bundle-3.0.13.zip filter=lfs diff=lfs merge=lfs -text
+artifacts/api-server/public/dl/v15/bundle-3.0.15.zip filter=lfs diff=lfs merge=lfs -text
+artifacts/api-server/public/dl/v15/docs-pwa.tar.gz filter=lfs diff=lfs merge=lfs -text
+docs/bundles/bundle-3.0.15.zip filter=lfs diff=lfs merge=lfs -text
+artifacts/api-server/public/dl/v16/bundle-3.0.16.zip filter=lfs diff=lfs merge=lfs -text
+artifacts/api-server/public/dl/v16/docs-pwa.tar.gz filter=lfs diff=lfs merge=lfs -text
+docs/bundles/bundle-3.0.16.zip filter=lfs diff=lfs merge=lfs -text
+
+# Auto-resolve docs/ merge conflicts in favor of the local (newly-built) version.
+# Requires: git config merge.ours.driver true  (run once per clone).
+docs/** merge=ours
