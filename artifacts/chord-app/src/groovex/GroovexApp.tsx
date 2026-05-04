@@ -3,6 +3,7 @@ import { useGroovexStore, type GroovexView } from './useGroovexStore';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
+import { useBackHandler } from '../lib/backStack';
 
 const GroovexLibrary = lazy(() => import('./GroovexLibrary'));
 const GroovexPlayer = lazy(() => import('./GroovexPlayer'));
@@ -18,6 +19,18 @@ export default function GroovexApp() {
       window.dispatchEvent(new Event('studio-hub-return'));
     }
   }
+
+  useBackHandler('nested', () => {
+    if (view === 'player') {
+      setView('library');
+      return true;
+    }
+    if (view === 'preferences') {
+      setView('library');
+      return true;
+    }
+    return false;
+  }, [view]);
 
   return (
     <div className="groovex-root" style={{
