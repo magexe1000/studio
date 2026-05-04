@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.41';
+export const APP_VERSION = '3.0.45';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,9 +56,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "What's new",
     items: [
-      'App now defaults to English for new installs.',
-      'About section storage now shows "Local & Cloud".',
-      'Faster startup: splash screen clears sooner and font DNS resolves earlier.',
+      'App-switcher pill restored: chips start from the left, tap to select.',
+      'Fixed pill opening with Chordex incorrectly centered.',
     ],
   },
 ];

@@ -3,40 +3,13 @@
  *
  * Visual model:
  *   Closed → [logo  Chordex  ▾]                       (compact pill)
- *   Open   →             [⮕ Chordex · Drumex · Stagex … ⮐]
- *                          ↑
- *                          └ floating glass pill of "chip" buttons,
- *                            screen-centered horizontally, vertically
- *                            aligned to where the trigger sits.
- *
- *   On open the trigger's logo, label AND chevron all collapse away
- *   (max-width + opacity → 0). The trigger fully disappears so the
- *   centered chip pill becomes the only focal element. Outside-tap
- *   or Esc closes.
- *
- * Why screen-centered (instead of "right of trigger" like before):
- *   The user wanted the trigger logo to vanish on open. With the
- *   trigger gone, anchoring the pill to the trigger's left edge
- *   leaves it offset to one side and visually unbalanced. Centering
- *   on the viewport gives the pill the "popover floats into the
- *   middle of the screen" feel iOS uses for similar switchers.
- *
- * Animations:
- *   - Open uses a spring/overshoot easing (`cubic-bezier(0.34,1.56,
- *     0.64,1)`) for a bouncy "snap" into place.
- *   - Close uses a flat ease-in so dismiss feels intentional.
- *   - Chips fade + translate in with a tiny stagger after the pill
- *     finishes growing, so they read as content arriving rather
- *     than rubber-banding with the container.
- *
- * Edge handling:
- *   - The chip pill's max width is `min(420 px, viewport − 32 px)`
- *     so it never touches the side wall, even on narrow phones.
- *     If chips would still overflow, the inner row scrolls instead
- *     of clipping.
+ *   Open   →  [Chordex · Drumex · Stagex … ]
+ *              floating glass pill, screen-centered horizontally,
+ *              chips start from the left — tap one to switch app.
  */
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChordexLogo, DrumexLogo, StudioLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 
@@ -44,15 +17,14 @@ type AppValue = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
 
 export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: number }) {
   const { settings, updateSettings } = useChordStore();
-  const [open, setOpen] = useState(false);
-  // Vertical anchor for the centered pill — measured from the trigger
-  // every time we open. We don't track horizontal because the pill
-  // is centered on the viewport.
-  const [anchorY, setAnchorY] = useState<number>(0);
+  const [open, setOpen]         = useState(false);
+  const [anchorY, setAnchorY]   = useState<number>(0);
   const [maxPillWidth, setMaxPillWidth] = useState(360);
+
   const wrapRef    = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const scrollRef  = useRef<HTMLDivElement>(null);
+  const pillRef    = useRef<HTMLDivElement>(null);
 
   // ── Theme-aware colors ────────────────────────────────────────────
   const appKey = settings.appMode ?? 'chords';
@@ -79,11 +51,10 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent | TouchEvent) => {
-      // The pill is rendered outside `wrapRef` (position:fixed, body-
-      // level visually), but it's still a descendant in the DOM tree
-      // — so contains() correctly excludes both the trigger and the
-      // pill from "outside" taps.
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      const insideTrigger = wrapRef.current?.contains(target) ?? false;
+      const insidePill    = pillRef.current?.contains(target) ?? false;
+      if (!insideTrigger && !insidePill) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', close);
@@ -104,34 +75,18 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
       if (!t) return;
       const rect = t.getBoundingClientRect();
       setAnchorY(rect.top + rect.height / 2);
-      // Centered pill is bounded by viewport with 16 px of breathing
-      // room on each side. Cap at 420 px so it doesn't stretch to
-      // absurd widths on tablets — chips read better in a compact row.
       const room = window.innerWidth - 32;
       setMaxPillWidth(Math.max(180, Math.min(420, room)));
     };
     update();
     window.addEventListener('resize', update);
     window.addEventListener('orientationchange', update);
-    // The trigger sits inside scrollable panels — keep the anchor
-    // following the trigger if the user scrolls while the menu is up
-    // (rare but happens when keyboard pushes layout).
     window.addEventListener('scroll', update, { passive: true });
     return () => {
       window.removeEventListener('resize', update);
       window.removeEventListener('orientationchange', update);
       window.removeEventListener('scroll', update);
     };
-  }, [open]);
-
-  // ── On open, scroll the active chip into view (centered) ──────────
-  useEffect(() => {
-    if (!open) return;
-    const t = setTimeout(() => {
-      const el = scrollRef.current?.querySelector<HTMLElement>('[data-active="true"]');
-      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }, 240);
-    return () => clearTimeout(t);
   }, [open]);
 
   const currentMode = (settings.appMode ?? 'chords') as AppValue | 'hub';
@@ -153,7 +108,6 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
     window.dispatchEvent(new CustomEvent('studio-hub-return'));
   };
 
-  // Active app label/icon for the trigger.
   const ACTIVE_LABEL: Record<string, string> = {
     chords: 'Chordex', drums: 'Drumex', stage: 'Stagex', groovex: 'Groovex', vocalex: 'Vocalex',
   };
@@ -165,14 +119,10 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
     currentMode === 'vocalex' ? VocalexLogo :
                                 ChordexLogo;
 
-  // Easings.
-  const SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)';   // bouncy
-  const SMOOTH = 'cubic-bezier(0.4, 0, 0.2, 1)';        // calm
-
-  // Per-chip arrival stagger so they read as content arriving.
+  const SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+  const SMOOTH = 'cubic-bezier(0.4, 0, 0.2, 1)';
   const chipDelay = (i: number): number => open ? 140 + i * 32 : 0;
 
-  // All chips in render order: 5 apps + Hub at the end.
   const ALL_CHIPS: { key: string; label: string; Icon: React.FC<{ size?: number }>; onClick: () => void; isActive: boolean }[] = [
     ...OPTIONS.map(opt => ({
       key: opt.value,
@@ -190,30 +140,21 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
     },
   ];
 
-  // Shared transition for the three trigger children that collapse on open.
-  // max-width + opacity together produce a clean horizontal squeeze.
   const collapseTransition = open
     ? `max-width 240ms ${SMOOTH}, opacity 160ms ${SMOOTH}, transform 220ms ${SMOOTH}`
     : `max-width 320ms ${SPRING} 80ms, opacity 220ms ${SMOOTH} 140ms, transform 320ms ${SPRING} 80ms`;
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', display: 'inline-flex', verticalAlign: 'middle' }}>
-      {/* Self-contained: hide the WebKit scrollbar inside the swipe row. */}
       <style>{`
         .app-mode-swipe::-webkit-scrollbar { display: none; }
       `}</style>
 
-      {/* ── Trigger pill (always in flow). When open, ALL three children
-          (logo, label, chevron) collapse so the trigger fully vanishes
-          and the centered chip pill stands alone. */}
       <button
         ref={triggerRef}
         onClick={() => setOpen(o => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        // When open, trigger is invisible; suppress hit-testing so a
-        // tap on the now-empty trigger area doesn't accidentally toggle
-        // and fight with outside-tap dismiss.
         style={{
           display: 'flex', alignItems: 'center', gap: open ? 0 : 6,
           background: 'transparent', border: 'none', cursor: 'pointer',
@@ -223,7 +164,6 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
           transition: `gap 280ms ${open ? SMOOTH : SPRING}`,
         }}
       >
-        {/* Logo — collapses on open. */}
         <span style={{
           display: 'inline-flex', overflow: 'hidden',
           maxWidth: open ? 0 : size + 4,
@@ -234,7 +174,6 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
           <ActiveIcon size={size} />
         </span>
 
-        {/* Label — collapses on open. */}
         <span style={{
           display: 'inline-block', overflow: 'hidden', whiteSpace: 'nowrap',
           maxWidth: open ? 0 : 120,
@@ -245,10 +184,6 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
           letterSpacing: '-0.02em', color: resolvedColor,
         }}>{activeLabel}</span>
 
-        {/* Chevron — also collapses so the trigger area is fully empty
-            when the pill is open. (When closed, it rotates 180° on open
-            briefly during the open animation, then is hidden by the
-            collapse — gives a tiny "spinning shrink" cue.) */}
         <span style={{
           display: 'inline-block', overflow: 'hidden',
           maxWidth: open ? 0 : 12,
@@ -260,17 +195,15 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
         }}>▾</span>
       </button>
 
-      {/* ── Floating chip pill — centered on viewport, anchored
-          vertically to the (now invisible) trigger. */}
+      {createPortal(
       <div
+        ref={pillRef}
         role="menu"
         aria-hidden={!open}
         style={{
           position: 'fixed',
           top: anchorY,
           left: '50%',
-          // Center the pill on its own width, then add a tiny scale
-          // for the bouncy entrance.
           transform: open
             ? 'translate(-50%, -50%) scale(1)'
             : 'translate(-50%, -50%) scale(0.55)',
@@ -301,18 +234,16 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
             overflowX: 'auto',
-            scrollSnapType: 'x mandatory',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             WebkitOverflowScrolling: 'touch',
             overscrollBehavior: 'contain',
-            padding: '0 2px',
           }}
         >
           {ALL_CHIPS.map((chip, i) => {
-            const activeBg = `${accent.from}1f`;
+            const activeBg     = `${accent.from}1f`;
             const activeBorder = `${accent.from}55`;
-            const chipColor = chip.isActive ? accent.from : idleChipFg;
+            const chipColor    = chip.isActive ? accent.from : idleChipFg;
             return (
               <button
                 key={chip.key}
@@ -321,7 +252,7 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
                 aria-label={chip.label}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
-                  flexShrink: 0, scrollSnapAlign: 'center',
+                  flexShrink: 0,
                   height: 30, padding: '0 12px 0 9px', borderRadius: 999,
                   background: chip.isActive ? activeBg : idleChipBg,
                   border: `1px solid ${chip.isActive ? activeBorder : chipBorder}`,
@@ -350,6 +281,7 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
           })}
         </div>
       </div>
+      , document.body)}
     </div>
   );
 }

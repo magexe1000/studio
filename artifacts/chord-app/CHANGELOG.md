@@ -17,6 +17,28 @@ Conventions:
 
 ---
 
+## 3.0.45
+
+- App-switcher pill restored to tap-to-select; chips start from the left edge.
+- Fixed pill opening with Chordex auto-scrolled to center instead of showing from the left.
+
+## 3.0.44
+
+- App-switcher pill completely redesigned as a snap picker: swipe between apps, the centered chip glows as a pre-selection, and releasing commits the switch — no tap needed.
+- Fixed pill glitch caused by broken scroll spacers.
+- Center spotlight indicator always shows which app slot is active.
+
+## 3.0.43
+
+- App-switcher pill chip row now snaps one chip at a time with native momentum physics.
+- Active app chip automatically scrolls to the center of the pill when it opens.
+
+## 3.0.42
+
+- App-switcher pill now appears perfectly centered on screen in all panels — fixed a rendering issue caused by CSS containment.
+- Fixed tapping a chip in the app-switcher pill not switching apps.
+- Library scrolling is now smoother and more fluid, with GPU-accelerated compositing.
+
 ## 3.0.41
 
 - App now defaults to English for new installs; existing users previously on the default Spanish are automatically switched.
