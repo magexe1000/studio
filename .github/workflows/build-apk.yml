@@ -1,4 +1,4 @@
-name: Build Android APK
+﻿name: Build Android APK
 
 on:
   workflow_dispatch:
@@ -9,34 +9,46 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10.26.1
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
       - name: Build web assets
+        env:
+          VITE_OTA_BASE_URL: https://magexe1000.github.io/Chordex
         run: pnpm --filter @workspace/chord-app run build
+
       - name: Capacitor sync
         working-directory: artifacts/chord-app
         run: pnpm exec cap sync android
+
       - name: Make gradlew executable
         working-directory: artifacts/chord-app/android
         run: chmod +x gradlew
+
       - name: Build debug APK
         working-directory: artifacts/chord-app/android
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: ./gradlew assembleDebug --no-daemon --stacktrace
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
