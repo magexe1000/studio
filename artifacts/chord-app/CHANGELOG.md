@@ -17,6 +17,10 @@ Conventions:
 
 ---
 
+## 3.0.38
+
+- Re-release of 3.0.37 with bumped version so the OTA channel re-delivers the pill app switcher and drum-cache changes that didn't reach all devices.
+
 ## 3.0.37
 
 - App switcher redesigned: trigger pill expands horizontally to the right into a floating glass pill with every app icon. Horizontally swipe-scrollable (`scroll-snap`), measured against viewport so it never touches the side wall. Spring-easing on open, calm ease on close.
