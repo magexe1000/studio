@@ -17,6 +17,12 @@ Conventions:
 
 ---
 
+## 3.0.41
+
+- App now defaults to English for new installs; existing users previously on the default Spanish are automatically switched.
+- About section storage label updated to "Local & Cloud".
+- Faster startup: splash screen clears 400 ms sooner, DNS prefetch added for font CDN, audio DSP libraries split into a separate lazy chunk.
+
 ## 3.0.40
 
 - App switcher v3: trigger fully collapses on open (logo + label + chevron all hide) and the chip pill is now `position:fixed` and screen-centered horizontally, vertically anchored to the trigger. Spring on open, smooth on close.

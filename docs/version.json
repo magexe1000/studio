@@ -1,6 +1,6 @@
 {
-  "version": "3.0.40",
-  "changelog": "• App switcher v3: trigger fully collapses on open (logo + label + chevron all hide) and the chip pill is now `position:fixed` and screen-centered horizontally, vertically anchored to the trigger. Spring on open, smooth on close.\n• First **slim** OTA bundle — `OTA_SLIM=1` excludes the drum-sample tree (~38 MB). Should drop bundle size from ~53 MB to ~5 MB. Requires the seed from 3.0.37+ to have run on the device.",
+  "version": "3.0.41",
+  "changelog": "• App now defaults to English for new installs; existing users previously on the default Spanish are automatically switched.\n• About section storage label updated to \"Local & Cloud\".\n• Faster startup: splash screen clears 400 ms sooner, DNS prefetch added for font CDN, audio DSP libraries split into a separate lazy chunk.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.40/bundle-3.0.40.zip"
+  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.41/bundle-3.0.41.zip"
 }
