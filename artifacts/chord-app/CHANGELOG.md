@@ -17,6 +17,15 @@ Conventions:
 
 ---
 
+## 3.0.32
+
+- "Up to date" pill now disappears with a pure, ultra-smooth fade — no more sliding or scaling.
+- When an update is available, the corner pill's download arrow gently bounces to draw your eye.
+
+## 3.0.31
+
+- The "Up to date" pill now fades out smoothly instead of spinning.
+
 ## 3.0.30
 
 - Update indicator now shows a "Checking…" spinner on every launch and a green "Up to date" check that spins away when nothing new is available.

@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.30';
+export const APP_VERSION = '3.0.32';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,7 +56,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
-      'Update indicator now shows a "Checking…" spinner on every launch and a green "Up to date" check that spins away when nothing new is available.',
+      '"Up to date" pill now disappears with a pure, ultra-smooth fade — no more sliding or scaling.',
+      'When an update is available, the corner pill\'s download arrow gently bounces to draw your eye.',
     ],
   },
 ];

@@ -171,7 +171,7 @@ export default function UpdateIndicator({
     }
     setCheckPhase('ok');
     const tFade = window.setTimeout(() => setCheckPhase('fading'), 1600);
-    const tGone = window.setTimeout(() => setCheckPhase('gone'), 1600 + 720);
+    const tGone = window.setTimeout(() => setCheckPhase('gone'), 1600 + 920);
     return () => {
       window.clearTimeout(tFade);
       window.clearTimeout(tGone);
@@ -216,15 +216,7 @@ export default function UpdateIndicator({
             fontWeight: 700,
             letterSpacing: '-0.005em',
             opacity: entered && !fading ? 1 : 0,
-            transform: [
-              entered ? 'translateY(0)' : 'translateY(-12px)',
-              fading ? 'scale(0.2) rotate(360deg)' : 'scale(1) rotate(0deg)',
-            ].join(' '),
-            transformOrigin: 'center',
-            transition: [
-              'opacity 700ms ease',
-              'transform 700ms cubic-bezier(0.55, 0, 0.7, 0.4)',
-            ].join(', '),
+            transition: 'opacity 900ms cubic-bezier(0.4, 0, 0.2, 1)',
             pointerEvents: 'none',
             willChange: 'transform, opacity',
           }}
@@ -352,7 +344,11 @@ export default function UpdateIndicator({
             fontSize: 18,
             color: isBanner ? cTo : 'var(--c-text-primary)',
             flexShrink: 0,
-            transition: 'transform 520ms cubic-bezier(0.34, 1.15, 0.64, 1), color 380ms ease',
+            transition: 'color 380ms ease',
+            // Gentle "download bounce" while in pill mode — the arrow
+            // slides down a touch, fades, and resets, suggesting an
+            // available download without being distracting.
+            animation: isBanner ? undefined : 'pill-download-bounce 1.6s ease-in-out infinite',
           }}
         >
           download
@@ -433,6 +429,12 @@ export default function UpdateIndicator({
         @keyframes pill-pulse {
           0%, 100% { box-shadow: 0 4px 14px ${tint(19)}; }
           50%      { box-shadow: 0 4px 14px ${tint(19)}, 0 0 0 6px ${tint(12)}; }
+        }
+        @keyframes pill-download-bounce {
+          0%   { transform: translateY(-3px); opacity: 0.55; }
+          45%  { transform: translateY(2px);  opacity: 1; }
+          60%  { transform: translateY(2px);  opacity: 1; }
+          100% { transform: translateY(-3px); opacity: 0.55; }
         }
       `}</style>
     </>

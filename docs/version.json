@@ -1,6 +1,6 @@
 {
-  "version": "3.0.30",
-  "changelog": "• Update indicator now shows a \"Checking…\" spinner on every launch and a green \"Up to date\" check that spins away when nothing new is available.",
+  "version": "3.0.32",
+  "changelog": "• \"Up to date\" pill now disappears with a pure, ultra-smooth fade — no more sliding or scaling.\n• When an update is available, the corner pill's download arrow gently bounces to draw your eye.",
   "mandatory": false,
-  "downloadUrl": "https://raw.githubusercontent.com/magexe1000/Chordex/main/docs/bundles/bundle-3.0.30.zip"
+  "downloadUrl": "https://raw.githubusercontent.com/magexe1000/Chordex/main/docs/bundles/bundle-3.0.32.zip"
 }
