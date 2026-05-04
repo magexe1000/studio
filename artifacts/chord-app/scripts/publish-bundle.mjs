@@ -167,6 +167,26 @@ const zipPath = path.join(bundlesDir, zipName);
 // can't leave us with a half-written zip.
 if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
 
+// Allow the orchestrator (release-gh-pages.mjs) to point us at a
+// DIFFERENT directory containing a clean (no-BASE_PATH) build for the
+// OTA zip — while leaving `distDir` itself as the Pages-flavoured
+// build (with `/Chordex/` baked into asset URLs). Without this the
+// OTA bundle would carry the Pages base path and every asset request
+// inside the native WebView would 404 → the dreaded "all gray"
+// post-update screen.
+const bundleSourceDir = (process.env.BUNDLE_SOURCE_DIR ?? '').trim()
+  ? path.resolve(root, process.env.BUNDLE_SOURCE_DIR.trim())
+  : distDir;
+if (bundleSourceDir !== distDir) {
+  if (!fs.existsSync(path.join(bundleSourceDir, 'index.html'))) {
+    console.error(
+      `publish-bundle: ✗ BUNDLE_SOURCE_DIR=${bundleSourceDir} has no index.html.`,
+    );
+    process.exit(1);
+  }
+  console.log(`publish-bundle: → zipping from ${path.relative(root, bundleSourceDir)} (snapshot)`);
+}
+
 // Use archiver (pure-Node, cross-platform) so this script runs on
 // Windows dev machines as well as Replit/Linux/Mac without needing
 // the system `zip` binary. Archive paths are rooted at the bundle's
@@ -181,7 +201,7 @@ await new Promise((resolve, reject) => {
   archive.on('error', reject);
   archive.pipe(output);
   archive.glob('**/*', {
-    cwd: distDir,
+    cwd: bundleSourceDir,
     dot: false,
     ignore: ['bundles/**', 'version.json'],
   });

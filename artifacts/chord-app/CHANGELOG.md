@@ -17,6 +17,15 @@ Conventions:
 
 ---
 
+## 3.0.29
+
+- Stale-bundle guard — installing a newer APK now resets Capgo to the bundled assets so the device actually runs the version you just installed.
+- Same dual-build OTA fix from 3.0.28.
+
+## 3.0.28
+
+- Fixes the "all gray" screen after OTA update — release script now does two builds (one clean for the bundle, one with /Chordex/ prefix for Pages).
+
 ## 3.0.27
 
 - OTA round-trip test on the fresh 3.0.26 APK — if you see this changelog the entire pipeline works.

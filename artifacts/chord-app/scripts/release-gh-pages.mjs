@@ -1,25 +1,35 @@
 #!/usr/bin/env node
 /**
- * release-gh-pages — cross-platform orchestrator that runs `pnpm build`
- * followed by `publish-bundle.mjs`, mirroring the result into
- * `../../docs/` so it can be committed and served by GitHub Pages.
+ * release-gh-pages — cross-platform orchestrator that produces BOTH a
+ * GitHub Pages deployment (under `docs/`) AND a Capgo OTA bundle zip.
  *
- * Why a JS wrapper instead of a one-line npm script?
- *   - The previous script used POSIX inline env-var syntax
- *     (`OTA_BASE_URL=foo node ...`) which fails on Windows cmd/PowerShell.
- *   - Spawning Node here lets us set env vars and run subcommands
- *     identically on every OS, with no `cross-env` dependency needed.
+ * The two artifacts have CONTRADICTORY base-path requirements:
+ *
+ *   - GitHub Pages serves the project at `https://USER.github.io/REPO/`,
+ *     so every asset URL emitted in `index.html` must be prefixed with
+ *     `/REPO/` (Vite's `base` option). Without this, Pages 404s every
+ *     chunk and the page renders the inline splash forever.
+ *
+ *   - The OTA bundle is unpacked into the native WebView's local file
+ *     root. There is NO `/REPO/` segment in that root — assets must
+ *     resolve at `/assets/...`. If a `/REPO/`-flavoured build ships in
+ *     the bundle, every asset 404s after Capgo swaps the bundle in and
+ *     the user sees the post-update "all gray" screen.
+ *
+ * Solution: build TWICE.
+ *
+ *   1. Build with NO BASE_PATH → clean. Snapshot to `dist/_ota_snapshot/`.
+ *   2. Build with BASE_PATH=/REPO/ → Pages-flavoured. This is `dist/public/`.
+ *   3. Run publish-bundle pointed at the snapshot for the zip, but at
+ *      `dist/public/` for the docs/ mirror — so the docs site has the
+ *      Pages prefix and the bundle does not.
  *
  * Usage:
  *   $env:OTA_BASE_URL = "https://USER.github.io/REPO"   # PowerShell
  *   pnpm release:gh-pages
- *
- *   OTA_BASE_URL=https://USER.github.io/REPO pnpm release:gh-pages   # bash
- *
- * The OTA_BASE_URL env var MUST be set — without it the published
- * bundle has no absolute download URL and the APK can't fetch it.
  */
 import { spawnSync } from 'node:child_process';
+import { cpSync, rmSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -47,40 +57,60 @@ function run(cmd, args, extraEnv = {}) {
   }
 }
 
-// CRITICAL: Vite reads VITE_OTA_BASE_URL at build time and bakes the
-// resolved value into the JS bundle that ships inside the APK. Without
-// this the native OTA checker has nowhere to look and silently disables
-// itself — the banner never appears on the phone. We set it here so a
-// release-time rebuild always has the right URL pinned.
-//
-// ALSO CRITICAL: when serving from GitHub Pages at a project subpath
-// (e.g. https://USER.github.io/REPO), Vite must build with
-// `base: "/REPO/"` so every asset URL in the emitted index.html is
-// rewritten from `/assets/foo.js` → `/REPO/assets/foo.js`. Without
-// this the splash screen renders (it's inline in index.html) but every
-// downstream chunk 404s and the page stays gray. We derive the basePath
-// from OTA_BASE_URL automatically so the release script remains a
-// single source of truth.
+// Derive `/REPO/` from the OTA base URL so the same script works for
+// any user/repo combination. A trailing slash is required so Vite
+// emits `/REPO/assets/...` not `/REPOassets/...`.
 let basePath = '/';
 try {
   const u = new URL(otaBase);
-  // u.pathname is `/REPO` for `https://user.github.io/REPO`, or `/`
-  // for a user/org root site. Trailing slash MUST be present so
-  // Vite emits `/REPO/assets/...` not `/REPOassets/...`.
   basePath = u.pathname.endsWith('/') ? u.pathname : `${u.pathname}/`;
 } catch {
   basePath = '/';
 }
-console.log(`release-gh-pages: → pnpm build (BASE_PATH=${basePath}, VITE_OTA_BASE_URL=${otaBase})`);
+
+const distDir         = path.join(pkgRoot, 'dist', 'public');
+const snapshotDir     = path.join(pkgRoot, 'dist', '_ota_snapshot');
+
+// ── PASS 1: clean build for the OTA bundle ────────────────────────────
+console.log(
+  `release-gh-pages: → PASS 1 — clean build (no BASE_PATH) for OTA bundle`,
+);
+run('pnpm', ['build'], {
+  VITE_OTA_BASE_URL: otaBase,
+  // Explicitly clear BASE_PATH in case the shell already had one set.
+  BASE_PATH: '/',
+});
+
+// Snapshot the clean dist/public to a sibling dir BEFORE pass 2
+// overwrites it with the Pages-flavoured build.
+if (existsSync(snapshotDir)) rmSync(snapshotDir, { recursive: true, force: true });
+console.log(`release-gh-pages: → snapshotting clean build to ${path.relative(pkgRoot, snapshotDir)}`);
+cpSync(distDir, snapshotDir, { recursive: true });
+
+// ── PASS 2: Pages-flavoured build (with BASE_PATH) for docs/ ──────────
+console.log(
+  `release-gh-pages: → PASS 2 — BASE_PATH=${basePath} build for GitHub Pages`,
+);
 run('pnpm', ['build'], {
   VITE_OTA_BASE_URL: otaBase,
   BASE_PATH: basePath,
 });
 
-console.log('release-gh-pages: → publish-bundle.mjs (mirroring into ../../docs)');
+// ── PASS 3: zip from snapshot, mirror Pages build to docs/ ────────────
+console.log(
+  'release-gh-pages: → publish-bundle (zip from snapshot, mirror Pages build to ../../docs)',
+);
 run('node', ['scripts/publish-bundle.mjs'], {
   OTA_BASE_URL: otaBase,
   OTA_OUTPUT_DIR: '../../docs',
+  // Tell publish-bundle to zip the CLEAN snapshot for the OTA bundle.
+  // The version.json + docs mirror still come from dist/public (the
+  // Pages build) so the published web site keeps its `/REPO/` prefix.
+  BUNDLE_SOURCE_DIR: 'dist/_ota_snapshot',
 });
+
+// Clean up snapshot — keeps `dist/` tidy and avoids confusion next time.
+console.log('release-gh-pages: → cleaning up snapshot dir');
+rmSync(snapshotDir, { recursive: true, force: true });
 
 console.log('release-gh-pages: ✓ done.');

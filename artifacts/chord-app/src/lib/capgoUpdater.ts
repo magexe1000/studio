@@ -26,6 +26,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { nativeSet, NATIVE_PREFS } from './nativePrefs';
+import { APP_VERSION, compareSemver } from './appVersion';
 
 /** True only inside a Capacitor-wrapped native shell (Android APK). */
 export function isNative(): boolean {
@@ -49,6 +50,37 @@ export async function notifyBundleReady(): Promise<void> {
   if (!isNative()) return;
   try {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+
+    // STALE-BUNDLE GUARD ───────────────────────────────────────────────
+    // When the user installs a NEWER APK over a device that already has
+    // an OLDER Capgo bundle persisted in app data, Capgo will keep
+    // serving the persisted (older) bundle on next boot — so the user
+    // sees the version they thought they just upgraded past. Detect
+    // this and roll back to the APK's bundled assets so the freshly
+    // installed APK actually runs.
+    try {
+      const active = await CapacitorUpdater.current();
+      // `current()` returns `{ bundle: { version, id, ... }, native }`.
+      // The "builtin" bundle reports id "builtin" — never reset that.
+      const activeVer = active?.bundle?.version;
+      const activeId  = active?.bundle?.id;
+      if (
+        activeId &&
+        activeId !== 'builtin' &&
+        typeof activeVer === 'string' &&
+        compareSemver(APP_VERSION, activeVer) > 0
+      ) {
+        console.warn(
+          `[capgo] APK ${APP_VERSION} is newer than active bundle ${activeVer} — resetting to builtin.`,
+        );
+        await CapacitorUpdater.reset();
+        // reset() reloads to builtin, so anything below this won't run.
+        return;
+      }
+    } catch (err) {
+      console.warn('[capgo] stale-bundle guard skipped:', err);
+    }
+
     await CapacitorUpdater.notifyAppReady();
   } catch (err) {
     console.warn('[capgo] notifyAppReady failed (continuing):', err);

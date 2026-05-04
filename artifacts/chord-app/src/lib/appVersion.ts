@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.27';
+export const APP_VERSION = '3.0.29';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,7 +56,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
-      'OTA round-trip test on the fresh 3.0.26 APK — if you see this changelog the entire pipeline works.',
+      'Stale-bundle guard — installing a newer APK now resets Capgo to the bundled assets so the device actually runs the version you just installed.',
+      'Same dual-build OTA fix from 3.0.28.',
     ],
   },
 ];
