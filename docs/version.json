@@ -1,6 +1,6 @@
 {
-  "version": "3.0.45",
-  "changelog": "• App-switcher pill restored to tap-to-select; chips start from the left edge.\n• Fixed pill opening with Chordex auto-scrolled to center instead of showing from the left.",
+  "version": "3.0.46",
+  "changelog": "Version 3.0.46",
   "mandatory": false,
-  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.45/bundle-3.0.45.zip"
+  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.46/bundle-3.0.46.zip"
 }
