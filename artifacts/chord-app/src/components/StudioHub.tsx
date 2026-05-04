@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
+import { useBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useNavHidden, useScrollHide } from '../lib/navScroll';
@@ -638,6 +639,12 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
 
   const goBackRef = useRef(goBack);
   useEffect(() => { goBackRef.current = goBack; });
+
+  useBackHandler('nested', () => {
+    if (page !== 'main') { goBack(); return true; }
+    return false;
+  }, [page]);
+
   useEffect(() => {
     if (page === 'main') return;
     let startX = 0, startY = 0;

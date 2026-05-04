@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.48';
+export const APP_VERSION = '3.0.49';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-04';
+export const APP_VERSION_DATE = '2026-05-04'; // 3.0.49
 // 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
@@ -56,10 +56,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "What's new",
     items: [
-      'Theme picker Apply To sheet now appears instantly without requiring a scroll.',
-      'Storage & Session and Updater icons fixed — now render correctly.',
-      'Swipe right from the left edge to go back on any Settings sub-page.',
-      'Dynamic theme added — light from 7 am to 8 pm, dark at night, checks every minute.',
+      'Back gesture now works in all Settings sub-pages (Android back button + swipe from left edge).',
+      'Back gesture now works inside Vocalex panels with a drill-down view.',
     ],
   },
 ];

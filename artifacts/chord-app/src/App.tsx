@@ -5,6 +5,7 @@ import BottomNav from './components/BottomNav';
 import { ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
+import { initPredictiveBack } from './lib/predictiveBack';
 import { useStatusBar } from './lib/useStatusBar';
 import StudioHub from './components/StudioHub';
 
@@ -322,6 +323,15 @@ export default function App() {
       capRemove?.();
       if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
     };
+  }, []);
+
+  // ── Predictive Back Gesture (Android 14+) ───────────────────────────────
+  // Loads the native plugin once on mount. No-ops silently on web/iOS and
+  // Android < 14. The plugin sends backStarted / backProgressed / backCancelled
+  // events that predictiveBack.ts converts into CSS vars + a dim overlay,
+  // giving a live visual response to the back swipe gesture.
+  useEffect(() => {
+    void initPredictiveBack();
   }, []);
 
   // ── Hub-return exit animation ────────────────────────────────────────────
