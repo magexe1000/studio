@@ -91,7 +91,7 @@ export async function initPredictiveBack(): Promise<void> {
   _inited = true;
 
   try {
-    const { PredictiveBack } = await import('../plugins/PredictiveBack');
+    const { PredictiveBack } = await import(/* @vite-ignore */ '../plugins/PredictiveBack');
     const overlay = createDimOverlay();
     let cancelTimer: ReturnType<typeof setTimeout> | null = null;
 
