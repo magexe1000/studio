@@ -17,6 +17,13 @@ Conventions:
 
 ---
 
+## 3.0.25
+
+- Update banner now uses the Studio accent color you chose in settings (no more hardcoded purple).
+- Adapts to light and dark themes automatically.
+- "Later" no longer hides the indicator forever — it collapses to the corner dot and stays there until you update or a newer version arrives.
+- Removed the diagnostic strip used to debug the previous OTA detection bug.
+
 ## 3.0.24
 
 - OTA self-test 3.0.24. Tests the CORS preflight fix — if the banner appears, OTA detection is fully working.

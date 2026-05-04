@@ -7,26 +7,25 @@
  *     "Version X.Y.Z available" with a minimize button. Stays for
  *     ~6 seconds (or until the user taps minimize), then…
  *  2. PILL — smoothly morphs into a small circular badge that travels
- *     to the top-right corner. The element's right edge slides from
- *     the viewport center to `right: 14px` while the width contracts;
- *     border-radius eases from 14 → 999, producing a single fluid
- *     "rectangle becomes a circle and tucks itself away" motion.
+ *     to the top-right corner. Tapping the pill re-opens the modal.
+ *     The pill STAYS VISIBLE FOREVER until the user actually updates
+ *     (or a newer remote version replaces this one). "Later" only
+ *     suppresses the auto-opening of the modal — it does NOT hide
+ *     the pill, so the user always has a one-tap path back.
  *
- * Why the right-edge anchor trick:
- *   The morph animates `right: 50%` → `right: 14px` and
- *   `transform: translateX(50%)` → `translateX(0)` together. Both are
- *   interpolatable CSS values, so a single transition handles both
- *   the centering and the shrink — no JS measurement, no layout
- *   thrash, GPU-accelerated end-to-end.
+ * Theme integration:
+ *   The indicator pulls its accent from the Studio-wide theme variables
+ *   `--accent-from` / `--accent-to` set on <html> by App.tsx. Whatever
+ *   accent color the user picked in Studio settings (blue, purple, etc.)
+ *   automatically tints the banner / pill / modal. The `accentFrom`
+ *   and `accentTo` props are kept as fallbacks for the rare boot frame
+ *   where the CSS vars haven't been written yet.
  *
- * The banner-shown flag is stored in sessionStorage so the user only
- * sees the full banner once per session — subsequent navigations
- * within the same session render the pill directly. A hard reload
- * (or the next day's session) plays the banner again.
- *
- * Lives inside StudioHub. Sub-apps deliberately don't show this —
- * when the user is inside Drumex / etc. they're focused on a task
- * and shouldn't be interrupted.
+ * Skip-version semantics:
+ *   The OTA detector always reports the LATEST remote version. A user
+ *   on 3.0.21 with 3.0.24 published will be offered 3.0.24 directly —
+ *   they never have to walk through 3.0.22 / 3.0.23. The Capgo bundle
+ *   download is also a single shot to the newest manifest.
  */
 
 import { useState, useEffect } from 'react';
@@ -41,22 +40,21 @@ const BANNER_AUTO_MINIMIZE_MS = 6000;
 const BANNER_SHOWN_KEY = 'studio:updateBannerShown';
 
 /**
- * localStorage key recording the latest version the user has
- * explicitly dismissed (via "Later" in the modal). When the remote
- * version equals this, we render nothing — the pill is no longer
- * "always there nagging". A NEWER remote version surfaces a fresh
- * banner.
+ * localStorage key recording the latest version for which the user
+ * tapped "Later". This SUPPRESSES the auto-open of the modal so we
+ * stop nagging — but the corner pill remains visible so they can tap
+ * it whenever they decide they're ready. A NEWER remote version
+ * resets this and the modal auto-opens once again.
  */
-const DISMISSED_VERSION_KEY = 'studio:dismissedUpdateVersion';
+const LATER_VERSION_KEY = 'studio:laterUpdateVersion';
 
 /** sessionStorage key recording the latest version for which we have
- *  already auto-opened the update modal IN THIS SESSION. Using
- *  sessionStorage (not localStorage) is intentional: every cold start
- *  the user gets a fresh shot at the modal until they actually tap
- *  Update or explicitly dismiss via "Later". This avoids the failure
- *  mode where a transient miss (app in background when detected, slow
- *  network, etc.) permanently suppresses the modal for that version. */
+ *  already auto-opened the update modal IN THIS SESSION. */
 const AUTO_OPENED_VERSION_KEY = 'studio:autoOpenedUpdateVersion';
+
+/** Legacy key from before "Later" stopped hiding the pill. We wipe
+ *  it on mount so old installs aren't stuck with a hidden indicator. */
+const LEGACY_DISMISSED_KEY = 'studio:dismissedUpdateVersion';
 
 function readAutoOpenedVersion(): string | null {
   try {
@@ -67,28 +65,21 @@ function readAutoOpenedVersion(): string | null {
 }
 function writeAutoOpenedVersion(v: string): void {
   try { sessionStorage.setItem(AUTO_OPENED_VERSION_KEY, v); } catch { /* ignore */ }
-  // Also wipe any legacy localStorage value so older installs that
-  // had this key persisted forever (causing the "modal never opens
-  // again" bug) get unstuck on first launch of the new bundle.
   try { localStorage.removeItem(AUTO_OPENED_VERSION_KEY); } catch { /* ignore */ }
 }
 
-function readDismissedVersion(): string | null {
+function readLaterVersion(): string | null {
   try {
-    const raw = localStorage.getItem(DISMISSED_VERSION_KEY);
-    // Reject anything that isn't a strictly-valid semver. Without
-    // this, a corrupted/tampered value would feed compareSemver
-    // garbage, which returns 0 ("equal"), permanently suppressing
-    // the indicator. A parse failure → treat as "no prior dismissal"
-    // and let the user see the banner again.
+    const raw = localStorage.getItem(LATER_VERSION_KEY);
     if (!raw || normalizeSemver(raw) === null) return null;
     return raw;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
-function writeDismissedVersion(v: string): void {
-  try { localStorage.setItem(DISMISSED_VERSION_KEY, v); } catch { /* quota / privacy */ }
+function writeLaterVersion(v: string): void {
+  try { localStorage.setItem(LATER_VERSION_KEY, v); } catch { /* quota / privacy */ }
+}
+function clearLegacyDismissed(): void {
+  try { localStorage.removeItem(LEGACY_DISMISSED_KEY); } catch { /* ignore */ }
 }
 
 type Phase = 'banner' | 'pill';
@@ -113,22 +104,22 @@ export default function UpdateIndicator({
   accentFrom,
   accentTo,
 }: {
+  /** Boot-frame fallback only — actual color comes from --accent-from. */
   accentFrom: string;
+  /** Boot-frame fallback only — actual color comes from --accent-to. */
   accentTo: string;
 }) {
   const ota = useOtaUpdate();
   const [phase, setPhase] = useState<Phase>(readInitialPhase);
   const [open, setOpen] = useState(false);
-  // Tiny entrance flag — start at translateY(-16px)/opacity 0 on first
-  // paint, then flip on next frame so the CSS transition runs.
   const [entered, setEntered] = useState(false);
-  // Version the user has explicitly dismissed via "Later". Re-read on
-  // mount; updated locally when the modal's Later button fires so we
-  // can hide immediately without a remount.
-  const [dismissedVersion, setDismissedVersion] = useState<string | null>(readDismissedVersion);
+  const [laterVersion, setLaterVersion] = useState<string | null>(readLaterVersion);
+
+  // Wipe the legacy "dismissed forever" key on mount so users who tapped
+  // Later in a previous build aren't stuck without an indicator.
+  useEffect(() => { clearLegacyDismissed(); }, []);
 
   useEffect(() => {
-    // Defer one frame so the initial style commits, then transition in.
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
   }, []);
@@ -143,63 +134,57 @@ export default function UpdateIndicator({
     return () => window.clearTimeout(t);
   }, [ota.updateAvailable, phase]);
 
-  // Auto-OPEN the update modal once per remote version. Without this,
-  // when the OS notification opens the app into a sub-app the user
-  // would have to spot a tiny pulsing dot in the corner, miss it, and
-  // never trigger the update. The modal makes the prompt impossible
-  // to miss. We only fire it once per remote version (tracked in
-  // localStorage) so it doesn't pop on every poll/foreground cycle,
-  // and we respect "Later" dismissals.
+  // Auto-OPEN the update modal once per remote version, UNLESS the
+  // user has already tapped "Later" for that exact version (or newer).
   useEffect(() => {
     if (!ota.updateAvailable || !ota.remoteVersion) return;
     if (
-      dismissedVersion &&
-      compareSemver(dismissedVersion, ota.remoteVersion) >= 0
+      laterVersion &&
+      compareSemver(laterVersion, ota.remoteVersion) >= 0
     ) return;
     const already = readAutoOpenedVersion();
     if (already && compareSemver(already, ota.remoteVersion) >= 0) return;
     writeAutoOpenedVersion(ota.remoteVersion);
     setOpen(true);
-  }, [ota.updateAvailable, ota.remoteVersion, dismissedVersion]);
+  }, [ota.updateAvailable, ota.remoteVersion, laterVersion]);
 
   if (ota.loading || !ota.updateAvailable) return null;
-
-  // Hide entirely if the user has already dismissed THIS exact version
-  // (or a newer one). A future remote bump will exceed the dismissed
-  // marker and the banner will surface again.
-  if (
-    dismissedVersion &&
-    ota.remoteVersion &&
-    compareSemver(dismissedVersion, ota.remoteVersion) >= 0
-  ) {
-    return null;
-  }
 
   const minimize = () => {
     setPhase('pill');
     markBannerShown();
   };
 
-  const dismissForever = () => {
+  const handleLater = () => {
+    // Stop auto-opening the modal for this version, but KEEP the
+    // pill visible in the corner so the user always has a one-tap
+    // path back to update.
+    setOpen(false);
     if (ota.remoteVersion) {
-      writeDismissedVersion(ota.remoteVersion);
-      setDismissedVersion(ota.remoteVersion);
+      writeLaterVersion(ota.remoteVersion);
+      setLaterVersion(ota.remoteVersion);
     }
+    setPhase('pill');
+    markBannerShown();
   };
 
   const isBanner = phase === 'banner';
 
+  // Use theme CSS vars when available (Studio user-chosen accent),
+  // fall back to the props during the brief boot frame before App.tsx
+  // has written them. Wrapping in `var(--name, fallback)` makes the
+  // swap atomic and cross-fades correctly when the user changes their
+  // accent in Studio settings.
+  const cFrom = `var(--accent-from, ${accentFrom})`;
+  const cTo   = `var(--accent-to, ${accentTo})`;
+  // For tinted backgrounds we need an alpha-mixed version. color-mix
+  // is supported on every Android Chrome WebView ≥ 111 (we ship Capgo
+  // on a far newer baseline) so we can mix the live CSS var directly.
+  const tint  = (pct: number) => `color-mix(in srgb, ${cTo} ${pct}%, transparent)`;
+  const tintFrom = (pct: number) => `color-mix(in srgb, ${cFrom} ${pct}%, transparent)`;
+
   return (
     <>
-      {/* Single morphing element: banner ↔ pill. The position trick
-          keeps the right edge as the morph anchor so the element can
-          smoothly slide from the screen center to the top-right
-          corner WITHOUT any "left/auto" non-interpolatable gaps:
-            - banner: right: 50% + translateX(50%)  → centered
-            - pill:   right: 14px + translateX(0)   → corner
-          Both halves of that pair animate as plain numeric CSS, so
-          the entire morph (position + size + radius) is one fluid
-          GPU-accelerated transition. */}
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -211,52 +196,37 @@ export default function UpdateIndicator({
         style={{
           position: 'fixed',
           top: 'calc(env(safe-area-inset-top) + 14px)',
-          // Anchor the RIGHT edge: 50% of viewport while centered,
-          // 14px from corner once minimized. Both values are length
-          // units so the browser can interpolate smoothly between them.
           right: isBanner ? '50%' : '14px',
           zIndex: 60,
-          // Width/height morph. Width contracts; the right edge stays
-          // pinned to wherever `right` currently points.
           width: isBanner ? 'min(360px, calc(100vw - 28px))' : 38,
           height: isBanner ? 52 : 38,
           padding: isBanner ? '0 12px 0 14px' : 0,
           borderRadius: isBanner ? 16 : 999,
-          // Layout
           display: 'flex',
           alignItems: 'center',
           gap: isBanner ? 10 : 0,
           justifyContent: isBanner ? 'flex-start' : 'center',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
-          // Visuals
-          background: `linear-gradient(135deg, ${accentFrom}38, ${accentTo}38)`,
-          border: `1px solid ${accentTo}66`,
+          background: `linear-gradient(135deg, ${tintFrom(22)}, ${tint(22)})`,
+          border: `1px solid ${tint(40)}`,
           color: 'var(--c-text-primary)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
           boxShadow: isBanner
-            ? `0 16px 40px ${accentTo}40, inset 0 0 0 1px ${accentTo}22`
-            : `0 4px 14px ${accentTo}30`,
-          // Text
+            ? `0 16px 40px ${tint(25)}, inset 0 0 0 1px ${tint(13)}`
+            : `0 4px 14px ${tint(19)}`,
           fontFamily: 'Manrope, sans-serif',
           fontSize: 13,
           fontWeight: 700,
           letterSpacing: '-0.005em',
           textAlign: 'left',
           cursor: 'pointer',
-          // Entrance fades + drops from above; morph slides the
-          // right-edge anchor (translateX 50% → 0) from screen-center
-          // to top-right. Both transforms are combined so a single
-          // `transform` transition drives the whole motion.
           opacity: entered ? 1 : 0,
           transform: [
             isBanner ? 'translateX(50%)' : 'translateX(0)',
             entered ? 'translateY(0)' : 'translateY(-16px)',
           ].join(' '),
-          // Slightly longer + more pronounced overshoot for the morph
-          // so the "rectangle → circle that tucks into the corner"
-          // motion reads as deliberate and luxurious, not snappy.
           transition: [
             'right 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
             'width 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
@@ -264,15 +234,13 @@ export default function UpdateIndicator({
             'padding 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
             'border-radius 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
             'gap 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
-            'background 620ms ease',
+            'background 380ms ease',
+            'border-color 380ms ease',
             'box-shadow 620ms ease',
             'opacity 380ms ease',
             'transform 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
           ].join(', '),
           animation: isBanner ? undefined : 'pill-pulse 2.6s ease-in-out infinite',
-          // willChange hints to the compositor so the morph stays on
-          // the GPU even on lower-end Androids — without it some
-          // devices fall back to layout-driven animation and stutter.
           willChange: 'right, width, height, transform, border-radius',
         }}
       >
@@ -280,11 +248,7 @@ export default function UpdateIndicator({
           className="material-symbols-outlined"
           style={{
             fontSize: 18,
-            // Banner phase: tinted with accent (matches the gradient).
-            // Pill phase: theme-aware foreground (white on dark themes,
-            // black on light themes) so the icon always reads cleanly
-            // against any per-app accent.
-            color: isBanner ? accentTo : 'var(--c-text-primary)',
+            color: isBanner ? cTo : 'var(--c-text-primary)',
             flexShrink: 0,
             transition: 'transform 520ms cubic-bezier(0.34, 1.15, 0.64, 1), color 380ms ease',
           }}
@@ -292,9 +256,6 @@ export default function UpdateIndicator({
           download
         </span>
 
-        {/* Text label — fades + slides out as the element morphs to a circle.
-            Shows the version number so the user knows exactly what they're
-            being offered before they tap through to the modal. */}
         <span
           style={{
             flex: 1,
@@ -311,9 +272,6 @@ export default function UpdateIndicator({
             : 'New update available'}
         </span>
 
-        {/* Minimize affordance — only meaningful in banner phase. We
-            keep the element mounted but collapse it so the morph
-            doesn't have to add/remove a child mid-transition. */}
         <span
           role="button"
           tabIndex={isBanner ? 0 : -1}
@@ -356,19 +314,10 @@ export default function UpdateIndicator({
           toVersion={ota.remoteVersion ?? '—'}
           mandatory={ota.mandatory}
           downloadUrl={ota.downloadUrl}
-          accentFrom={accentFrom}
-          accentTo={accentTo}
-          onLater={() => {
-            // "Later" = stop nagging me about THIS version. Persist
-            // the dismissal and unmount the indicator. A future
-            // higher remote version will resurface it.
-            setOpen(false);
-            dismissForever();
-          }}
+          accentFrom={cFrom}
+          accentTo={cTo}
+          onLater={handleLater}
           onClose={() => {
-            // Backdrop / programmatic close (no explicit dismissal).
-            // Collapse the banner to the pill if needed but keep the
-            // pill visible so the user can come back to it.
             setOpen(false);
             if (phase === 'banner') {
               setPhase('pill');
@@ -380,8 +329,8 @@ export default function UpdateIndicator({
 
       <style>{`
         @keyframes pill-pulse {
-          0%, 100% { box-shadow: 0 4px 14px ${accentTo}30; }
-          50%      { box-shadow: 0 4px 14px ${accentTo}30, 0 0 0 6px ${accentTo}1f; }
+          0%, 100% { box-shadow: 0 4px 14px ${tint(19)}; }
+          50%      { box-shadow: 0 4px 14px ${tint(19)}, 0 0 0 6px ${tint(12)}; }
         }
       `}</style>
     </>
@@ -404,23 +353,15 @@ function UpdateModal({
   downloadUrl: string | null;
   accentFrom: string;
   accentTo: string;
-  /** Backdrop / soft-close. Pill stays visible. */
   onClose: () => void;
-  /** Explicit "Later" button. Persists per-version dismissal. */
   onLater: () => void;
 }) {
-  // Reload-button state machine: idle → downloading (with %) → done/failed.
-  // On native we drive Capgo's download() and surface progress; on web we
-  // fall through to the legacy service-worker reload immediately.
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const canCapgoUpdate = isNative() && !!downloadUrl && toVersion !== '—';
 
   const handleReload = async () => {
-    // Re-entrancy guard — between the fast double-tap and React
-    // committing `disabled={downloading}` there is a frame where a
-    // second click can still slip through. Refuse it explicitly.
     if (downloading) return;
     setErrMsg(null);
     if (canCapgoUpdate) {
@@ -431,27 +372,20 @@ function UpdateModal({
         version: toVersion,
         onProgress: (p) => setProgress(p),
       });
-      // On success, Capgo will reload the WebView itself, so we never
-      // get here. If we DO get here, something went wrong.
       setDownloading(false);
       if (!res.ok) {
         setErrMsg(res.error ?? 'Update failed');
         return;
       }
-      // Belt-and-braces — Capgo should have reloaded already.
       onClose();
       return;
     }
-    // On NATIVE without a downloadUrl, "reloading" would just rerun
-    // the same bundled JS — surface that explicitly instead of
-    // pretending an update happened.
     if (isNative()) {
       setErrMsg(
         "Update available but the server didn't publish a download link. Try again later.",
       );
       return;
     }
-    // Web fallback: clear caches + reload, the existing flow.
     onClose();
     try {
       if ('caches' in window) {
@@ -468,9 +402,6 @@ function UpdateModal({
       role="dialog"
       aria-modal="true"
       onClick={() => {
-        // Refuse backdrop dismissal mid-download — losing the modal
-        // would orphan the in-flight request and leave the user with
-        // no progress indicator or error surface.
         if (downloading) return;
         onClose();
       }}
@@ -496,7 +427,7 @@ function UpdateModal({
           background: 'var(--app-surface)',
           borderRadius: 22,
           padding: 24,
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: '1px solid rgba(128,128,128,0.18)',
           boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
           animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
         }}
@@ -559,9 +490,6 @@ function UpdateModal({
           </p>
         )}
 
-        {/* Download progress bar — only visible while a Capgo download
-            is in flight. Sits between the changelog and the buttons so
-            the user sees forward motion without any layout jump. */}
         {downloading && (
           <div style={{ marginTop: 18 }}>
             <div
@@ -636,7 +564,7 @@ function UpdateModal({
             onClick={handleReload}
             disabled={downloading}
             style={{
-              flex: 1,
+              flex: 2,
               padding: '11px 14px',
               borderRadius: 12,
               background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
@@ -646,11 +574,11 @@ function UpdateModal({
               fontWeight: 800,
               fontSize: 13,
               cursor: downloading ? 'wait' : 'pointer',
-              boxShadow: `0 6px 18px ${accentTo}44`,
+              boxShadow: `0 8px 22px color-mix(in srgb, ${accentTo} 35%, transparent)`,
               opacity: downloading ? 0.85 : 1,
             }}
           >
-            {downloading ? 'Updating…' : 'Update'}
+            {downloading ? 'Downloading…' : 'Update now'}
           </button>
         </div>
       </div>
@@ -658,8 +586,8 @@ function UpdateModal({
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes rise-in {
-          from { opacity: 0; transform: translateY(12px) scale(0.98); }
-          to   { opacity: 1; transform: translateY(0)    scale(1); }
+          from { opacity: 0; transform: translateY(12px) scale(0.96); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
     </div>
