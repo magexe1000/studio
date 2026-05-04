@@ -148,7 +148,109 @@ export default function UpdateIndicator({
     setOpen(true);
   }, [ota.updateAvailable, ota.remoteVersion, laterVersion]);
 
-  if (ota.loading || !ota.updateAvailable) return null;
+  // CHECK-STATUS PILL ─────────────────────────────────────────────────
+  // When there's NO update available we still want the user to see that
+  // the app actually checked. Phases:
+  //   'checking'  — spinner + "Checking…" while ota.loading is true
+  //   'ok'        — green check + "Up to date" for ~1.6 s
+  //   'fading'    — spins 360° while shrinking + fading away (~700 ms)
+  //   'gone'      — unmounted
+  // If an update IS available, this whole branch is skipped and the
+  // existing banner/pill flow takes over.
+  const [checkPhase, setCheckPhase] = useState<
+    'checking' | 'ok' | 'fading' | 'gone'
+  >('checking');
+  useEffect(() => {
+    if (ota.updateAvailable) {
+      setCheckPhase('gone');
+      return;
+    }
+    if (ota.loading) {
+      setCheckPhase('checking');
+      return;
+    }
+    setCheckPhase('ok');
+    const tFade = window.setTimeout(() => setCheckPhase('fading'), 1600);
+    const tGone = window.setTimeout(() => setCheckPhase('gone'), 1600 + 720);
+    return () => {
+      window.clearTimeout(tFade);
+      window.clearTimeout(tGone);
+    };
+  }, [ota.loading, ota.updateAvailable]);
+
+  if (!ota.updateAvailable) {
+    if (checkPhase === 'gone') return null;
+    const fading = checkPhase === 'fading';
+    const isOk   = checkPhase === 'ok' || fading;
+    const cFrom = `var(--accent-from, ${accentFrom})`;
+    const cTo   = `var(--accent-to, ${accentTo})`;
+    const tint  = (pct: number) =>
+      `color-mix(in srgb, ${cTo} ${pct}%, transparent)`;
+    const tintFrom = (pct: number) =>
+      `color-mix(in srgb, ${cFrom} ${pct}%, transparent)`;
+    return (
+      <>
+        <div
+          aria-live="polite"
+          aria-label={isOk ? 'App is up to date' : 'Checking for updates'}
+          style={{
+            position: 'fixed',
+            top: 'calc(env(safe-area-inset-top) + 14px)',
+            right: 14,
+            zIndex: 60,
+            height: 32,
+            padding: '0 12px 0 10px',
+            borderRadius: 999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            whiteSpace: 'nowrap',
+            background: `linear-gradient(135deg, ${tintFrom(18)}, ${tint(18)})`,
+            border: `1px solid ${tint(32)}`,
+            color: 'var(--c-text-primary)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            boxShadow: `0 4px 14px ${tint(15)}`,
+            fontFamily: 'Manrope, sans-serif',
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: '-0.005em',
+            opacity: entered && !fading ? 1 : 0,
+            transform: [
+              entered ? 'translateY(0)' : 'translateY(-12px)',
+              fading ? 'scale(0.2) rotate(360deg)' : 'scale(1) rotate(0deg)',
+            ].join(' '),
+            transformOrigin: 'center',
+            transition: [
+              'opacity 700ms ease',
+              'transform 700ms cubic-bezier(0.55, 0, 0.7, 0.4)',
+            ].join(', '),
+            pointerEvents: 'none',
+            willChange: 'transform, opacity',
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{
+              fontSize: 16,
+              color: isOk ? '#22c55e' : cTo,
+              animation: isOk ? undefined : 'check-spin 1s linear infinite',
+              transition: 'color 280ms ease',
+            }}
+          >
+            {isOk ? 'check_circle' : 'progress_activity'}
+          </span>
+          <span>{isOk ? 'Up to date' : 'Checking\u2026'}</span>
+        </div>
+        <style>{`
+          @keyframes check-spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+          }
+        `}</style>
+      </>
+    );
+  }
 
   const minimize = () => {
     setPhase('pill');

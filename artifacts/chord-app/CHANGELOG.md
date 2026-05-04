@@ -17,6 +17,10 @@ Conventions:
 
 ---
 
+## 3.0.30
+
+- Update indicator now shows a "Checking…" spinner on every launch and a green "Up to date" check that spins away when nothing new is available.
+
 ## 3.0.29
 
 - Stale-bundle guard — installing a newer APK now resets Capgo to the bundled assets so the device actually runs the version you just installed.

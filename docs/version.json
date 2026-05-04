@@ -1,6 +1,6 @@
 {
-  "version": "3.0.29",
-  "changelog": "• Stale-bundle guard — installing a newer APK now resets Capgo to the bundled assets so the device actually runs the version you just installed.\n• Same dual-build OTA fix from 3.0.28.",
+  "version": "3.0.30",
+  "changelog": "• Update indicator now shows a \"Checking…\" spinner on every launch and a green \"Up to date\" check that spins away when nothing new is available.",
   "mandatory": false,
-  "downloadUrl": "https://raw.githubusercontent.com/magexe1000/Chordex/main/docs/bundles/bundle-3.0.29.zip"
+  "downloadUrl": "https://raw.githubusercontent.com/magexe1000/Chordex/main/docs/bundles/bundle-3.0.30.zip"
 }
