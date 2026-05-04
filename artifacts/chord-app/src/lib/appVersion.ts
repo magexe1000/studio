@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.39';
+export const APP_VERSION = '3.0.40';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,9 +56,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
-      'App switcher polish: tapping your app name now hides the text and slides out a swipeable pill with icon + name chips for every Studio app — bouncy on open, smooth on close.',
-      'Drum samples are now stored once on your device after the first launch — future updates download in seconds instead of minutes.',
-      'Cloud sync now connects more reliably on mobile networks and silently retries when the connection drops, instead of showing scary errors.',
+      'App switcher refined: when you open it, the current app fully tucks away and the pill pops in centered on screen — bouncy on open, smooth on close.',
+      'Updates are now much smaller and faster to download from now on (drum samples kept on your device).',
     ],
   },
 ];

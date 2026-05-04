@@ -17,6 +17,11 @@ Conventions:
 
 ---
 
+## 3.0.40
+
+- App switcher v3: trigger fully collapses on open (logo + label + chevron all hide) and the chip pill is now `position:fixed` and screen-centered horizontally, vertically anchored to the trigger. Spring on open, smooth on close.
+- First **slim** OTA bundle — `OTA_SLIM=1` excludes the drum-sample tree (~38 MB). Should drop bundle size from ~53 MB to ~5 MB. Requires the seed from 3.0.37+ to have run on the device.
+
 ## 3.0.39
 
 - App switcher v2: trigger label collapses on open so the trigger shrinks to just the logo. The floating pill now shows full chips (icon + name) for every app, swipe-scrollable with snap. Spring/bouncy on open, smooth on close, with per-chip stagger.
