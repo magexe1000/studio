@@ -61,11 +61,12 @@ const SYNC_META_KEY = 'chordex_sync_meta_v1';
 const DEVICE_ID_KEY = 'chordex_device_id';
 
 const TICK_MS = 60_000;          // periodic safety-net flush while signed in
-const RUN_TIMEOUT_MS = 60_000;   // OVERALL hard cap per run — generous for slow mobile + long-polling warmup
-const FIRESTORE_OP_MS = 25_000;  // per-getDoc / per-setDoc cap — covers cold long-polling + Vocalex blob payloads
+const RUN_TIMEOUT_MS = 15_000;   // OVERALL hard cap per run — keeps the spinner from sitting on a wedged Firestore connection
+const FIRESTORE_OP_MS = 8_000;   // per-getDoc / per-setDoc cap — long enough for cold long-polling, short enough that the user notices a real failure
 const SUCCESS_LINGER_MS = 1_200; // how long `phase=success` stays visible
 const SYNCING_DEBOUNCE_MS = 600; // delay before showing spinner — quick runs stay invisible
 const STAGE_SNAPSHOT_MS = 1_500; // postMessage round-trip cap
+const RESTORE_OP_MS = 5_000;     // soft-cap on local IndexedDB restores so a wedged store can't pin `phase=syncing` forever
 
 // localStorage keys owned by each app
 const CHORDEX_LS_KEY = 'chord-explorer-storage-v3';
@@ -545,8 +546,14 @@ async function pushApp(
   const knownCloudTs = meta[app]?.cloudUpdatedMs ?? 0;
 
   // Cloud is newer — let cloud win (pull instead of push).
+  // Bound the local restore: IndexedDB writes can wedge on Android
+  // WebView mid-upgrade and we never want them to pin the spinner.
   if (v && cloudTs > knownCloudTs) {
-    if (await applyCloudBody(app, v.body, meta, cloudTs)) {
+    const applied = await softTimeout(
+      applyCloudBody(app, v.body, meta, cloudTs),
+      RESTORE_OP_MS,
+    );
+    if (applied) {
       writeMeta(meta);
       return { pushed: false, pulled: true };
     }
@@ -595,9 +602,12 @@ async function pullApp(
     return { pulled: false };
   }
 
-  const applied = await applyCloudBody(app, v.body, meta, cloudTs);
+  const applied = await softTimeout(
+    applyCloudBody(app, v.body, meta, cloudTs),
+    RESTORE_OP_MS,
+  );
   if (applied) writeMeta(meta);
-  return { pulled: applied };
+  return { pulled: applied === true };
 }
 
 // ── The single run path ──────────────────────────────────────────────────────
@@ -758,6 +768,14 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
     runDone = true;
     clearTimeout(timeoutHandle);
     clearTimeout(showSyncingHandle);
+    // SAFETY NET — under no circumstances may we exit with the UI
+    // stuck on `phase=syncing`. Without this guard, an unhandled throw
+    // anywhere above (e.g. a corrupt CloudDoc body that escapes the
+    // restore handlers) leaves the spinner rotating forever because
+    // nothing else will ever advance the state machine.
+    if (epoch === startEpoch && status.phase === 'syncing') {
+      setStatus({ phase: 'idle', error: null });
+    }
   }
 }
 

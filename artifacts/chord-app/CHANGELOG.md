@@ -17,6 +17,15 @@ Conventions:
 
 ---
 
+## 3.0.34
+
+- Account sync no longer spins forever — tighter timeouts, bounded restores, and a safety net so the cloud icon always returns to a normal state.
+
+## 3.0.33
+
+- Update check no longer hangs — returns as soon as ANY source responds (instead of waiting for the slowest one).
+- "Up to date" pill now appears only once per session, not every minute when the background check runs.
+
 ## 3.0.32
 
 - "Up to date" pill now disappears with a pure, ultra-smooth fade — no more sliding or scaling.

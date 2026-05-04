@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.32';
+export const APP_VERSION = '3.0.34';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,8 +56,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: 'Fixes',
     items: [
-      '"Up to date" pill now disappears with a pure, ultra-smooth fade — no more sliding or scaling.',
-      'When an update is available, the corner pill\'s download arrow gently bounces to draw your eye.',
+      'Account sync no longer spins forever — tighter timeouts, bounded restores, and a safety net so the cloud icon always returns to a normal state.',
     ],
   },
 ];
