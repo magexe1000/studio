@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="ringFill" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#E0A848"/>
+      <stop offset="100%" stop-color="#7A4C18"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Drop shadow -->
+  <ellipse cx="100" cy="193" rx="80" ry="7" fill="#00000028"/>
+
+  <!-- Outer ring -->
+  <circle cx="100" cy="96" r="86" fill="url(#ringFill)"/>
+
+  <!-- Ring inner rim line -->
+  <circle cx="100" cy="96" r="86" fill="none" stroke="#C48838" stroke-width="3" opacity="0.5"/>
+  <circle cx="100" cy="96" r="78" fill="none" stroke="#8B5C20" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Open center -->
+  <circle cx="100" cy="96" r="58" fill="#1E0C02"/>
+  <!-- Center depth hint -->
+  <circle cx="100" cy="96" r="58" fill="none" stroke="#3A1E08" stroke-width="4"/>
+
+  <!-- ── Jingle slots cut into ring at 4 positions ── -->
+  <!-- Slot openings (dark cutouts) -->
+  <rect x="86" y="8"  width="28" height="22" rx="3" fill="#1E0C02"/>
+  <rect x="86" y="166" width="28" height="22" rx="3" fill="#1E0C02"/>
+  <rect x="8"  y="82" width="22" height="28" rx="3" fill="#1E0C02"/>
+  <rect x="170" y="82" width="22" height="28" rx="3" fill="#1E0C02"/>
+
+  <!-- Jingle pairs — top slot -->
+  <ellipse cx="93"  cy="19" rx="5.5" ry="7" fill="#C8D2D8"/>
+  <ellipse cx="107" cy="19" rx="5.5" ry="7" fill="#A0AAAF"/>
+  <ellipse cx="93"  cy="19" rx="5.5" ry="7" fill="none" stroke="#8898A0" stroke-width="1"/>
+  <ellipse cx="107" cy="19" rx="5.5" ry="7" fill="none" stroke="#8898A0" stroke-width="1"/>
+
+  <!-- Jingle pairs — bottom slot -->
+  <ellipse cx="93"  cy="177" rx="5.5" ry="7" fill="#C8D2D8"/>
+  <ellipse cx="107" cy="177" rx="5.5" ry="7" fill="#A0AAAF"/>
+  <ellipse cx="93"  cy="177" rx="5.5" ry="7" fill="none" stroke="#8898A0" stroke-width="1"/>
+  <ellipse cx="107" cy="177" rx="5.5" ry="7" fill="none" stroke="#8898A0" stroke-width="1"/>
+
+  <!-- Jingle pairs — left slot -->
+  <ellipse cx="19" cy="91"  rx="7" ry="5.5" fill="#C8D2D8"/>
+  <ellipse cx="19" cy="105" rx="7" ry="5.5" fill="#A0AAAF"/>
+  <ellipse cx="19" cy="91"  rx="7" ry="5.5" fill="none" stroke="#8898A0" stroke-width="1"/>
+  <ellipse cx="19" cy="105" rx="7" ry="5.5" fill="none" stroke="#8898A0" stroke-width="1"/>
+
+  <!-- Jingle pairs — right slot -->
+  <ellipse cx="181" cy="91"  rx="7" ry="5.5" fill="#C8D2D8"/>
+  <ellipse cx="181" cy="105" rx="7" ry="5.5" fill="#A0AAAF"/>
+  <ellipse cx="181" cy="91"  rx="7" ry="5.5" fill="none" stroke="#8898A0" stroke-width="1"/>
+  <ellipse cx="181" cy="105" rx="7" ry="5.5" fill="none" stroke="#8898A0" stroke-width="1"/>
+
+  <!-- Inner ring highlight arc -->
+  <path d="M 48 60 A 58 58 0 0 1 152 60" stroke="#E4B858" stroke-width="2.5" fill="none" opacity="0.45"/>
+</svg>
