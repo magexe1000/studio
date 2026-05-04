@@ -107,6 +107,10 @@ run('node', ['scripts/publish-bundle.mjs'], {
   // The version.json + docs mirror still come from dist/public (the
   // Pages build) so the published web site keeps its `/REPO/` prefix.
   BUNDLE_SOURCE_DIR: 'dist/_ota_snapshot',
+  // Upload the zip as a GitHub Release asset instead of committing it
+  // into docs/bundles/. Keeps the repo small as releases pile up.
+  // Set USE_GH_RELEASES=0 to fall back to the legacy raw.github path.
+  USE_GH_RELEASES: process.env.USE_GH_RELEASES ?? '1',
 });
 
 // Clean up snapshot — keeps `dist/` tidy and avoids confusion next time.

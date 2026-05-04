@@ -2,5 +2,5 @@
   "version": "3.0.34",
   "changelog": "• Account sync no longer spins forever — tighter timeouts, bounded restores, and a safety net so the cloud icon always returns to a normal state.",
   "mandatory": false,
-  "downloadUrl": "https://raw.githubusercontent.com/magexe1000/Chordex/main/docs/bundles/bundle-3.0.34.zip"
+  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.34/bundle-3.0.34.zip"
 }

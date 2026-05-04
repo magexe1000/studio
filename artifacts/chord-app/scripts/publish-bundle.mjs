@@ -47,6 +47,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import archiver from 'archiver';
 
@@ -237,17 +238,78 @@ if (!otaBase) {
   console.warn('  The web PWA will still update via service-worker reload, but the');
   console.warn('  Android APK will NOT be able to fetch this bundle.');
 } else {
-  // When OTA is hosted on GitHub Pages, the bundle .zip can be 50+ MB
-  // which (a) triggers GitHub's >50MB warning on push and (b) hits the
-  // Pages CDN's slow propagation — users can see the new version.json
-  // for several minutes before Pages serves the matching bundle, which
-  // surfaces as a "Failed to download" error in Capgo. raw.github
-  // serves the file the instant `git push` returns, has the same CORS
-  // policy, and supports up to 100MB per file. Auto-rewrite the
-  // bundle URL (NOT version.json — that one stays on Pages so the
-  // existing CORS-clean fetch path keeps working) to raw.github.
+  // Three possible bundle-hosting strategies:
+  //
+  //   1. USE_GH_RELEASES=1  → upload zip as a GitHub Release asset
+  //      (recommended for ongoing development; keeps the repo small
+  //      because release assets don't live in git history at all).
+  //   2. GitHub Pages base   → fall back to raw.githubusercontent
+  //      (legacy path; the zip is committed to docs/bundles/).
+  //   3. Anything else       → assume the bundle is reachable at
+  //      `${OTA_BASE_URL}/bundles/${zipName}` (e.g. self-hosted CDN).
+  const useReleases = process.env.USE_GH_RELEASES === '1';
   const ghPages = otaBase.match(/^https:\/\/([^.]+)\.github\.io(?:\/([^/?#]+))?$/i);
-  if (ghPages) {
+
+  if (useReleases) {
+    if (!ghPages && !process.env.GITHUB_REPO) {
+      console.error('publish-bundle: ✗ USE_GH_RELEASES=1 but cannot derive owner/repo.');
+      console.error('  Either point OTA_BASE_URL at a https://USER.github.io/REPO URL,');
+      console.error('  or set GITHUB_REPO=USER/REPO explicitly.');
+      process.exit(1);
+    }
+    let user, repo;
+    if (process.env.GITHUB_REPO) {
+      [user, repo] = process.env.GITHUB_REPO.split('/');
+    } else {
+      user = ghPages[1];
+      repo = ghPages[2] ?? `${user}.github.io`;
+    }
+    const tag = `v${version}`;
+    const slug = `${user}/${repo}`;
+
+    // Does a release with this tag already exist? If yes, just upload
+    // (with --clobber so re-runs are idempotent). If no, create it
+    // first with the changelog as the body, then upload the zip.
+    const view = spawnSync('gh', ['release', 'view', tag, '-R', slug], {
+      stdio: 'pipe',
+      shell: process.platform === 'win32',
+    });
+    if (view.status !== 0) {
+      console.log(`publish-bundle: → creating GitHub Release ${tag} on ${slug}`);
+      // Write the release notes to a temp file and pass --notes-file
+      // instead of --notes. Inline --notes is parsed by the shell and
+      // any special character in the changelog (em-dash, bullets,
+      // backticks, parentheses) can blow up cmd / PowerShell quoting.
+      // A file sidesteps the entire shell-quoting problem.
+      const notesPath = path.join(root, 'dist', `release-notes-${version}.txt`);
+      fs.writeFileSync(notesPath, changelog, 'utf8');
+      const create = spawnSync(
+        'gh',
+        ['release', 'create', tag, '-R', slug, '--title', tag, '--notes-file', notesPath],
+        { stdio: 'inherit', shell: process.platform === 'win32' },
+      );
+      try { fs.unlinkSync(notesPath); } catch { /* noop */ }
+      if (create.status !== 0) {
+        console.error(`publish-bundle: ✗ \`gh release create\` failed (exit ${create.status}).`);
+        console.error('  Is the GitHub CLI installed and authenticated?  Try: gh auth status');
+        process.exit(create.status ?? 1);
+      }
+    } else {
+      console.log(`publish-bundle: → release ${tag} already exists; uploading asset`);
+    }
+    const upload = spawnSync(
+      'gh',
+      ['release', 'upload', tag, zipPath, '-R', slug, '--clobber'],
+      { stdio: 'inherit', shell: process.platform === 'win32' },
+    );
+    if (upload.status !== 0) {
+      console.error(`publish-bundle: ✗ \`gh release upload\` failed (exit ${upload.status}).`);
+      process.exit(upload.status ?? 1);
+    }
+    existing.downloadUrl = `https://github.com/${slug}/releases/download/${tag}/${zipName}`;
+    console.log(`publish-bundle: ✓ downloadUrl = ${existing.downloadUrl} (GitHub Release)`);
+  } else if (ghPages) {
+    // Legacy: zip lives in docs/bundles/, fetched via raw.githubusercontent.
     const user = ghPages[1];
     const repo = ghPages[2] ?? `${user}.github.io`;
     existing.downloadUrl = `https://raw.githubusercontent.com/${user}/${repo}/main/docs/bundles/${zipName}`;
@@ -294,10 +356,18 @@ if (mirrorDir) {
   }
   copyTree(distDir, absMirror, new Set(['bundles', 'version.json']));
 
-  // Copy (not move) the zip — keep dist/public intact so any local
-  // PWA/preview still works.
-  const mirrorZipPath = path.join(mirrorBundlesDir, zipName);
-  fs.copyFileSync(zipPath, mirrorZipPath);
+  // When uploading to GitHub Releases we deliberately SKIP mirroring
+  // the zip into docs/bundles/. That's the whole point of the GH
+  // Releases path — the zip stays out of git history so the repo
+  // never grows by tens of MB per release. version.json (a few hundred
+  // bytes) is the only OTA file that still ships through Pages.
+  if (process.env.USE_GH_RELEASES !== '1') {
+    // Copy (not move) the zip — keep dist/public intact so any local
+    // PWA/preview still works.
+    const mirrorZipPath = path.join(mirrorBundlesDir, zipName);
+    fs.copyFileSync(zipPath, mirrorZipPath);
+    console.log(`publish-bundle:   - ${path.relative(path.resolve(root, '../..'), mirrorZipPath)}`);
+  }
 
   // Copy version.json AFTER it has been re-stamped above.
   const mirrorVersionJson = path.join(absMirror, 'version.json');
@@ -309,6 +379,5 @@ if (mirrorDir) {
   const relMirror = path.relative(repoRoot, absMirror);
   console.log(`publish-bundle: ✓ mirrored release into ${relMirror}/`);
   console.log(`publish-bundle:   - ${path.relative(repoRoot, mirrorVersionJson)}`);
-  console.log(`publish-bundle:   - ${path.relative(repoRoot, mirrorZipPath)}`);
   console.log(`publish-bundle: → next: \`git add ${relMirror} && git commit -m "ota ${version}" && git push\``);
 }
