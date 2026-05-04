@@ -17,6 +17,10 @@ Conventions:
 
 ---
 
+## 3.0.39
+
+- App switcher v2: trigger label collapses on open so the trigger shrinks to just the logo. The floating pill now shows full chips (icon + name) for every app, swipe-scrollable with snap. Spring/bouncy on open, smooth on close, with per-chip stagger.
+
 ## 3.0.38
 
 - Re-release of 3.0.37 with bumped version so the OTA channel re-delivers the pill app switcher and drum-cache changes that didn't reach all devices.

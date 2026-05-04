@@ -1,31 +1,36 @@
 /**
- * AppModeMenuLogo — the trigger that lives in every panel header and
- * lets the user jump between Studio apps (Chordex, Drumex, Stagex,
- * Groovex, Vocalex) and the Studio Hub.
+ * AppModeMenuLogo — app switcher pill that lives in every panel header.
  *
- * Visual model: a "pill" that grows horizontally to the right. The
- * trigger always shows the current app's logo + name. Tapping it
- * reveals a second floating pill — also rounded, glassy, blurred —
- * that contains every app icon plus a Studio Hub button. The icons
- * are horizontally swipe-scrollable with `scroll-snap`, so on narrow
- * phones the user can flick through them; tap to switch.
+ * Visual model:
+ *   Closed → [logo  Chordex  ▾]                      (compact pill)
+ *   Open   → [logo] [⮕ Chordex · Drumex · Stagex … ⮐]
+ *               ↑      ↑
+ *               │      └ floating glass pill of "chip" buttons. Each
+ *               │        chip shows the app's icon AND name. The row
+ *               │        is horizontally swipe-scrollable with
+ *               │        scroll-snap so flicking through apps feels
+ *               │        native on touch.
+ *               │
+ *               └ when opening, the trigger's text label collapses
+ *                 away (animated max-width + opacity) so the trigger
+ *                 shrinks to just the logo. This makes room for the
+ *                 chip pill to slide out next to it without crowding
+ *                 the header on narrow phones.
  *
- * Why a separate floating pill (instead of expanding the trigger
- * itself):
- *   - Trigger stays in normal flex flow → header layout doesn't jump
- *     when the menu opens/closes.
- *   - The expansion is a single absolutely-positioned element that
- *     can be animated independently with transform + opacity.
+ * Animations:
+ *   - Open uses a spring-y overshoot (`cubic-bezier(0.34,1.56,0.64,1)`)
+ *     for a "bounce into place" feel.
+ *   - Close uses a calm ease-in so dismiss feels intentional, not
+ *     spring-loaded.
+ *   - Chips fade + translate in with a small stagger after the pill
+ *     finishes growing, so they read as content arriving rather than
+ *     stretching with the container.
  *
- * Why measure available width on every open:
- *   - The trigger's distance from the right edge changes with
- *     orientation, font size, and per-panel header layout. We cap
- *     the floating pill's max width to whatever fits with a small
- *     safety margin from the screen edge — never lets the pill
- *     touch the side wall.
- *
- * Animations: open uses a soft overshoot easing for a "snap into
- * place" feel; close uses a flatter ease-in for a calm dismiss.
+ * Edge handling:
+ *   - The chip pill's max width is measured against the trigger's
+ *     distance to the right edge of the viewport (with a 16 px safety
+ *     gap), so it never touches the side wall. If chips would overflow,
+ *     the inner row scrolls instead of clipping.
  */
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
@@ -37,7 +42,7 @@ type AppValue = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
 export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: number }) {
   const { settings, updateSettings } = useChordStore();
   const [open, setOpen] = useState(false);
-  const [maxPillWidth, setMaxPillWidth] = useState(280);
+  const [maxPillWidth, setMaxPillWidth] = useState(320);
   const wrapRef    = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const scrollRef  = useRef<HTMLDivElement>(null);
@@ -59,9 +64,9 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
 
   const borderColor = isLight ? 'rgba(0,0,0,0.08)'  : 'rgba(255,255,255,0.08)';
   const bgColor     = isLight ? 'rgba(252,252,253,0.98)' : 'rgba(18,18,22,0.96)';
-  const divider     = isLight ? 'rgba(0,0,0,0.10)'  : 'rgba(255,255,255,0.10)';
-  const idleIconBg  = isLight ? 'rgba(0,0,0,0.04)'  : 'rgba(255,255,255,0.05)';
-  const idleIconFg  = isLight ? 'rgba(0,0,0,0.55)'  : 'rgba(220,220,225,0.78)';
+  const idleChipBg  = isLight ? 'rgba(0,0,0,0.04)'  : 'rgba(255,255,255,0.05)';
+  const idleChipFg  = isLight ? 'rgba(0,0,0,0.62)'  : 'rgba(225,225,230,0.85)';
+  const chipBorder  = isLight ? 'rgba(0,0,0,0.06)'  : 'rgba(255,255,255,0.06)';
 
   // ── Outside click / Esc dismiss ───────────────────────────────────
   useEffect(() => {
@@ -80,18 +85,21 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
     };
   }, [open]);
 
-  // ── Measure available room so the pill never touches the right wall.
-  // Recomputed on open and on resize/orientation change.
+  // ── Measure room from trigger to right edge so the chip pill never
+  // touches the side wall. Recomputed on open and on viewport changes.
   useLayoutEffect(() => {
     if (!open) return;
     const update = () => {
       const t = triggerRef.current;
       if (!t) return;
       const rect = t.getBoundingClientRect();
-      const SAFETY_RIGHT = 16;            // breathing room from screen edge
-      const GAP_FROM_TRIGGER = 8;         // gap between trigger and floating pill
-      const room = window.innerWidth - rect.right - SAFETY_RIGHT - GAP_FROM_TRIGGER;
-      setMaxPillWidth(Math.max(140, Math.min(360, room)));
+      const SAFETY_RIGHT = 16;
+      const GAP_FROM_TRIGGER = 8;
+      // After the label collapses the trigger shrinks; budget against
+      // the icon-only width (~28 px) instead of the current rect.right.
+      const triggerLeft = rect.left;
+      const room = window.innerWidth - triggerLeft - 28 - SAFETY_RIGHT - GAP_FROM_TRIGGER;
+      setMaxPillWidth(Math.max(160, Math.min(420, room)));
     };
     update();
     window.addEventListener('resize', update);
@@ -102,16 +110,13 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
     };
   }, [open]);
 
-  // ── On open, scroll the active icon into view (centered) so the user
-  // sees their current selection inside the swipe row.
+  // ── On open, scroll the active chip into view (centered) ──────────
   useEffect(() => {
     if (!open) return;
-    // Wait for the open transition to roughly finish before scrolling
-    // — scrollIntoView during a scaleX animation gets clipped.
     const t = setTimeout(() => {
       const el = scrollRef.current?.querySelector<HTMLElement>('[data-active="true"]');
       el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }, 180);
+    }, 220);
     return () => clearTimeout(t);
   }, [open]);
 
@@ -134,7 +139,7 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
     window.dispatchEvent(new CustomEvent('studio-hub-return'));
   };
 
-  // Active app's display bits for the trigger.
+  // Active app label/icon for the trigger.
   const ACTIVE_LABEL: Record<string, string> = {
     chords: 'Chordex', drums: 'Drumex', stage: 'Stagex', groovex: 'Groovex', vocalex: 'Vocalex',
   };
@@ -146,66 +151,104 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
     currentMode === 'vocalex' ? VocalexLogo :
                                 ChordexLogo;
 
-  // Easings: spring-y for open, calm for close.
-  const OPEN_EASE  = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
-  const CLOSE_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+  // Easings.
+  const SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)';   // bouncy
+  const SMOOTH = 'cubic-bezier(0.4, 0, 0.2, 1)';        // calm
+
+  // Render-time helper for chip stagger (later chips arrive a bit later).
+  const chipDelay = (i: number): number => open ? 120 + i * 32 : 0;
+
+  // All chips in render order: 5 apps + Hub at the end.
+  const ALL_CHIPS: { key: string; label: string; Icon: React.FC<{ size?: number }>; onClick: () => void; isActive: boolean; isHub?: boolean }[] = [
+    ...OPTIONS.map(opt => ({
+      key: opt.value,
+      label: opt.label,
+      Icon: opt.Icon,
+      onClick: () => select(opt.value),
+      isActive: currentMode === opt.value,
+    })),
+    {
+      key: 'hub',
+      label: 'Studio Hub',
+      Icon: StudioLogo,
+      onClick: goToHub,
+      isActive: false,
+      isHub: true,
+    },
+  ];
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', display: 'inline-flex', verticalAlign: 'middle' }}>
-      {/* Local style for hiding the WebKit scrollbar inside the swipe row.
-          Inlined here so this component is fully self-contained. */}
+      {/* Self-contained: hide WebKit scrollbar inside the swipe row. */}
       <style>{`
         .app-mode-swipe::-webkit-scrollbar { display: none; }
       `}</style>
 
-      {/* ── Trigger pill (always in flow) ───────────────────────────── */}
+      {/* ── Trigger pill (always in flow). When open, the text label
+          collapses (max-width → 0, opacity → 0) so the trigger
+          shrinks to just the logo, leaving room for the chip pill. */}
       <button
         ref={triggerRef}
         onClick={() => setOpen(o => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
         style={{
-          display: 'flex', alignItems: 'center', gap: 6,
+          display: 'flex', alignItems: 'center', gap: open ? 2 : 6,
           background: 'transparent', border: 'none', cursor: 'pointer',
           padding: '4px 6px 4px 0', margin: '-4px 0',
           color: resolvedColor,
-          // Subtle transform feedback when open so the trigger feels
-          // "linked" to the floating pill that just appeared.
-          transform: open ? 'translateX(-1px)' : 'translateX(0)',
-          transition: `transform 240ms ${open ? OPEN_EASE : CLOSE_EASE}`,
+          transition: `gap 280ms ${open ? SPRING : SMOOTH}`,
         }}
       >
-        <ActiveIcon size={size} />
+        {/* Logo — gets a tiny bouncy scale when toggling. */}
         <span style={{
+          display: 'inline-flex',
+          transform: open ? 'scale(1.06)' : 'scale(1)',
+          transition: `transform 320ms ${SPRING}`,
+        }}>
+          <ActiveIcon size={size} />
+        </span>
+
+        {/* Label that collapses when open. max-width animation gives
+            a clean horizontal "swipe-away" of the text without any
+            layout flicker. */}
+        <span style={{
+          display: 'inline-block', overflow: 'hidden', whiteSpace: 'nowrap',
+          maxWidth: open ? 0 : 100,
+          opacity:  open ? 0 : 1,
+          transform: open ? 'translateX(-4px)' : 'translateX(0)',
+          transition: open
+            ? `max-width 260ms ${SMOOTH}, opacity 160ms ${SMOOTH}, transform 220ms ${SMOOTH}`
+            : `max-width 320ms ${SPRING} 80ms, opacity 220ms ${SMOOTH} 120ms, transform 320ms ${SPRING} 80ms`,
           fontSize: 13, fontWeight: 700, fontFamily: 'Manrope',
           letterSpacing: '-0.02em', color: resolvedColor,
         }}>{activeLabel}</span>
+
+        {/* Chevron rotates 180° on open. */}
         <span style={{
-          fontSize: 9, opacity: 0.45, marginLeft: -3, color: resolvedColor,
+          fontSize: 9, opacity: 0.45, marginLeft: -2, color: resolvedColor,
           display: 'inline-block',
           transform: open ? 'rotate(-180deg)' : 'rotate(0deg)',
-          transition: `transform 280ms ${OPEN_EASE}`,
+          transition: `transform 320ms ${SPRING}`,
         }}>▾</span>
       </button>
 
-      {/* ── Floating expansion pill — slides in from the trigger ────── */}
+      {/* ── Floating chip pill — slides out from the trigger ────────── */}
       <div
         role="menu"
         aria-hidden={!open}
         style={{
           position: 'absolute',
           top: '50%', left: '100%',
-          // Translate Y to center vertically; X grows the gap as it opens
-          // so it visually "pops out" from the trigger.
           transform: open
             ? 'translate(8px, -50%) scaleX(1)'
-            : 'translate(-4px, -50%) scaleX(0.18)',
+            : 'translate(-6px, -50%) scaleX(0.2)',
           transformOrigin: 'left center',
           opacity: open ? 1 : 0,
           pointerEvents: open ? 'auto' : 'none',
           transition: open
-            ? `transform 360ms ${OPEN_EASE}, opacity 220ms ease 60ms`
-            : `transform 240ms ${CLOSE_EASE}, opacity 180ms ease`,
+            ? `transform 420ms ${SPRING}, opacity 220ms ease 60ms`
+            : `transform 240ms ${SMOOTH}, opacity 180ms ease`,
           background: bgColor,
           border: `1px solid ${borderColor}`,
           borderRadius: 999,
@@ -221,80 +264,61 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
           willChange: 'transform, opacity',
         }}
       >
-        {/* Swipeable horizontal icon row.
-            overflow-x: auto + scroll-snap gives the native, momentum
-            "flick through apps" feel the user asked for. The internal
-            container is what scrolls — the outer pill stays fixed. */}
         <div
           ref={scrollRef}
           className="app-mode-swipe"
           style={{
-            display: 'flex', alignItems: 'center', gap: 2,
+            display: 'flex', alignItems: 'center', gap: 4,
             overflowX: 'auto',
             scrollSnapType: 'x mandatory',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             WebkitOverflowScrolling: 'touch',
-            // Stagger reveal: icons fade up just after the pill finishes growing.
-            transition: `opacity 200ms ease ${open ? '120ms' : '0ms'}`,
-            opacity: open ? 1 : 0,
-            // overscrollBehavior keeps the page from scrolling when the
-            // user flicks past the last icon.
             overscrollBehavior: 'contain',
             padding: '0 2px',
           }}
         >
-          {OPTIONS.map(opt => {
-            const isActive = currentMode === opt.value;
+          {ALL_CHIPS.map((chip, i) => {
+            const activeBg = `${accent.from}1f`;
+            const activeBorder = `${accent.from}55`;
+            const chipColor = chip.isActive ? accent.from : idleChipFg;
             return (
               <button
-                key={opt.value}
-                data-active={isActive}
-                onClick={() => select(opt.value)}
-                title={opt.label}
-                aria-label={opt.label}
+                key={chip.key}
+                data-active={chip.isActive}
+                onClick={chip.onClick}
+                aria-label={chip.label}
                 style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  width: 30, height: 30, borderRadius: 999, flexShrink: 0,
-                  scrollSnapAlign: 'center',
-                  background: isActive ? `${accent.from}22` : idleIconBg,
-                  border: `1px solid ${isActive ? `${accent.from}55` : 'transparent'}`,
-                  color: isActive ? accent.from : idleIconFg,
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  flexShrink: 0, scrollSnapAlign: 'center',
+                  height: 30, padding: '0 12px 0 9px', borderRadius: 999,
+                  background: chip.isActive ? activeBg : idleChipBg,
+                  border: `1px solid ${chip.isActive ? activeBorder : chipBorder}`,
+                  color: chipColor,
                   cursor: 'pointer',
-                  transition: 'background 180ms, color 180ms, border-color 180ms, transform 180ms',
-                  // Subtle pop on the active one so it stands out in the row.
-                  transform: isActive ? 'scale(1.06)' : 'scale(1)',
+                  whiteSpace: 'nowrap',
+                  // Per-chip arrival animation: each chip pops in with a
+                  // tiny stagger after the pill finishes its scaleX growth.
+                  opacity: open ? 1 : 0,
+                  transform: open ? 'translateY(0) scale(1)' : 'translateY(4px) scale(0.92)',
+                  transition: open
+                    ? `opacity 240ms ${SMOOTH} ${chipDelay(i)}ms, transform 360ms ${SPRING} ${chipDelay(i)}ms, background 180ms ${SMOOTH}, color 180ms ${SMOOTH}, border-color 180ms ${SMOOTH}`
+                    : `opacity 140ms ${SMOOTH}, transform 200ms ${SMOOTH}, background 180ms ${SMOOTH}, color 180ms ${SMOOTH}`,
                 }}
               >
-                <opt.Icon size={14} />
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 18, height: 18, color: chipColor,
+                }}>
+                  <chip.Icon size={13} />
+                </span>
+                <span style={{
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 11.5,
+                  letterSpacing: '-0.01em', color: chipColor,
+                }}>{chip.label}</span>
               </button>
             );
           })}
-
-          {/* Divider before Hub — visually separates app switcher from
-              navigation back to the Studio home. */}
-          <div style={{
-            width: 1, height: 16, background: divider,
-            margin: '0 4px', flexShrink: 0,
-          }} />
-
-          <button
-            onClick={goToHub}
-            title="Studio Hub"
-            aria-label="Studio Hub"
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 30, height: 30, borderRadius: 999, flexShrink: 0,
-              scrollSnapAlign: 'center',
-              background: idleIconBg,
-              border: '1px solid transparent',
-              color: idleIconFg,
-              cursor: 'pointer',
-              transition: 'background 180ms, color 180ms',
-            }}
-          >
-            <StudioLogo size={13} />
-          </button>
         </div>
       </div>
     </div>
