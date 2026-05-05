@@ -31,6 +31,7 @@ import {
   APP_VERSION,
   APP_VERSION_DATE,
   APP_CHANGELOG_SECTIONS,
+  getChangelogSections,
   type ChangelogSection,
 } from '../lib/appVersion';
 import { useT } from '../lib/useT';
@@ -54,12 +55,15 @@ export default function ChangelogSheet({
   onClose,
   version = APP_VERSION,
   date = APP_VERSION_DATE,
-  sections = APP_CHANGELOG_SECTIONS,
+  sections,
 }: Props) {
   const t = useT();
   const { settings } = useChordStore();
   const accentKey = settings.perApp?.hub?.accentColor ?? settings.accentColor ?? 'blue';
   const accent = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
+  // v3.0.55 — pick localized changelog when caller didn't override it.
+  const renderSections: ChangelogSection[] = sections ?? getChangelogSections(settings.language ?? 'en');
+  void APP_CHANGELOG_SECTIONS; // keep import compatibility for any consumer relying on the re-export shape
 
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -249,9 +253,9 @@ export default function ChangelogSheet({
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          {sections.map((sec, i) => (
+          {renderSections.map((sec, i) => (
             <section key={i} style={{
-              marginBottom: i === sections.length - 1 ? 0 : 22,
+              marginBottom: i === renderSections.length - 1 ? 0 : 22,
             }}>
               <h3 style={{
                 margin: '0 0 10px',

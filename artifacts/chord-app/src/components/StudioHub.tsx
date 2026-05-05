@@ -286,7 +286,7 @@ export default function StudioHub() {
 
         {/* ── SETTINGS TAB ── */}
         {tab === 'settings' && (
-          <HubSettings accent={accent} />
+          <HubSettings accent={accent} scrollRef={scrollRef} />
         )}
       </div>
 
@@ -570,6 +570,7 @@ function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
         checkNow: 'Buscar ahora',
         howItWorks: 'Cómo funciona',
         howItWorksBody: 'Las actualizaciones OTA se descargan en segundo plano y se aplican al reabrir la app — sin reinstalar.',
+        title: 'Actualizaciones',
       }
     : {
         version: 'Version',
@@ -590,6 +591,7 @@ function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
         checkNow: 'Check now',
         howItWorks: 'How it works',
         howItWorksBody: 'OTA updates download in the background and apply on the next launch — no reinstall needed.',
+        title: 'Updater',
       };
 
   const statusColor = ota.loading
@@ -605,7 +607,7 @@ function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
   return (
     <div style={style}>
       <style>{HUB_SETTINGS_CSS}</style>
-      <SettingsSubHeader title="Updater" onBack={onBack} />
+      <SettingsSubHeader title={L.title} onBack={onBack} />
 
       <SettingsSectionLabel>{L.version}</SettingsSectionLabel>
       <div style={cardStyle}>
@@ -683,7 +685,7 @@ function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
   );
 }
 
-function HubSettings({ accent }: { accent: { from: string; to: string; mid: string } }) {
+function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string; mid: string }; scrollRef?: React.RefObject<HTMLDivElement | null> }) {
   const { settings, updateSettings, updatePerApp } = useChordStore();
   const t = useT();
   const [name, setName] = useState(settings.hubUserName ?? '');
@@ -700,8 +702,41 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
   function handleApply(apps: AppKey[]) { if (pending) updatePerApp(apps, pending); setPending(null); setShowSheet(false); }
   function handleClose() { setPending(null); setShowSheet(false); }
 
-  function navigate(to: SettingsPageId) { setSlideDir('forward'); setPage(to); setPageKey(k => k + 1); }
-  function goBack() { setSlideDir('back'); setPage('main'); setPageKey(k => k + 1); }
+  // Scroll-position memory per sub-page. Without this, navigating
+  // Settings → About → back resets the outer scroll container to the
+  // top because the rendered content shrunk while in About and then
+  // grew again on return — the browser clamps scrollTop and we lose
+  // the user's place. We snapshot the current scrollTop right before
+  // any page change and restore it on the next paint after the new
+  // page is in the DOM.
+  const pageScrollPositions = useRef<Record<string, number>>({});
+  const pendingRestoreRef = useRef<string | null>(null);
+  function snapshotScroll(forPage: SettingsPageId) {
+    const el = scrollRef?.current;
+    if (el) pageScrollPositions.current[forPage] = el.scrollTop;
+  }
+  useLayoutEffect(() => {
+    const target = pendingRestoreRef.current;
+    if (target === null) return;
+    const el = scrollRef?.current;
+    if (el) el.scrollTop = pageScrollPositions.current[target] ?? 0;
+    pendingRestoreRef.current = null;
+  }, [page, pageKey, scrollRef]);
+
+  function navigate(to: SettingsPageId) {
+    snapshotScroll(page);
+    pendingRestoreRef.current = to;
+    setSlideDir('forward');
+    setPage(to);
+    setPageKey(k => k + 1);
+  }
+  function goBack() {
+    snapshotScroll(page);
+    pendingRestoreRef.current = 'main';
+    setSlideDir('back');
+    setPage('main');
+    setPageKey(k => k + 1);
+  }
 
   const goBackRef = useRef(goBack);
   useEffect(() => { goBackRef.current = goBack; });
@@ -752,7 +787,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={t.settings.sections.appearance} onBack={goBack} />
 
-        <SettingsSectionLabel>Theme</SettingsSectionLabel>
+        <SettingsSectionLabel>{(t.hub as { studioSettings?: { themeSection?: string } }).studioSettings?.themeSection ?? 'Theme'}</SettingsSectionLabel>
         <div style={cardStyle}>
           <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
@@ -798,8 +833,13 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
                   }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 22, color: isDynActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isDynActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease', flexShrink: 0 }}>schedule</span>
                   <div style={{ textAlign: 'left' }}>
-                    <p style={{ color: isDynActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', margin: 0, transition: 'color 200ms ease' }}>Dynamic</p>
-                    <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 10.5, margin: '2px 0 0', opacity: 0.75 }}>{`Light ${formatHour(settings.dynamicLightStart ?? 7)} – ${formatHour(settings.dynamicLightEnd ?? 20)} · Dark at night`}</p>
+                    <p style={{ color: isDynActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', margin: 0, transition: 'color 200ms ease' }}>{(t.hub as { studioSettings?: { dynamic?: string } }).studioSettings?.dynamic ?? 'Dynamic'}</p>
+                    <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 10.5, margin: '2px 0 0', opacity: 0.75 }}>{
+                      (t.hub as { studioSettings?: { dynamicHelper?: (a: string, b: string) => string } }).studioSettings?.dynamicHelper?.(
+                        formatHour(settings.dynamicLightStart ?? 7),
+                        formatHour(settings.dynamicLightEnd ?? 20),
+                      ) ?? `Light ${formatHour(settings.dynamicLightStart ?? 7)} – ${formatHour(settings.dynamicLightEnd ?? 20)} · Dark at night`
+                    }</p>
                   </div>
                 </button>
               );
@@ -810,8 +850,8 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '8px 0 4px' }}>
                   {([
-                    { label: 'Light from', val: lStart, onDec: () => updateSettings({ dynamicLightStart: Math.max(0, lStart - 1) }), onInc: () => updateSettings({ dynamicLightStart: Math.min(lEnd - 1, lStart + 1) }) },
-                    { label: 'Dark from',  val: lEnd,   onDec: () => updateSettings({ dynamicLightEnd: Math.max(lStart + 1, lEnd - 1) }), onInc: () => updateSettings({ dynamicLightEnd: Math.min(23, lEnd + 1) }) },
+                    { label: (t.hub as { studioSettings?: { lightFrom?: string } }).studioSettings?.lightFrom ?? 'Light from', val: lStart, onDec: () => updateSettings({ dynamicLightStart: Math.max(0, lStart - 1) }), onInc: () => updateSettings({ dynamicLightStart: Math.min(lEnd - 1, lStart + 1) }) },
+                    { label: (t.hub as { studioSettings?: { darkFrom?: string } }).studioSettings?.darkFrom ?? 'Dark from',  val: lEnd,   onDec: () => updateSettings({ dynamicLightEnd: Math.max(lStart + 1, lEnd - 1) }), onInc: () => updateSettings({ dynamicLightEnd: Math.min(23, lEnd + 1) }) },
                   ] as { label: string; val: number; onDec: () => void; onInc: () => void }[]).map(({ label, val, onDec, onInc }) => (
                     <div key={label} style={{ background: `${accent.from}12`, borderRadius: 12, padding: '10px 12px' }}>
                       <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: 'var(--c-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>{label}</p>
@@ -839,7 +879,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
                   <button key={c.id} onClick={() => requestChange({ accentColor: c.id as PerAppVisuals['accentColor'] })} className="btn-smooth"
                     style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 12, background: isActive ? `${c.to}22` : 'var(--app-surface-high)', border: `1.5px solid ${isActive ? c.to + '66' : 'transparent'}`, transition: 'background-color 200ms ease, border-color 200ms ease' }}>
                     <span style={{ width: 16, height: 16, borderRadius: '50%', background: `linear-gradient(135deg, ${c.from}, ${c.to})`, flexShrink: 0, boxShadow: isActive ? `0 0 8px ${c.to}55` : 'none', transition: 'box-shadow 200ms ease', display: 'block' }} />
-                    <span style={{ color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease' }}>{t.settings.colors[c.id]}</span>
+                    <span style={{ color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease' }}>{(t.settings.colors as Record<string, string>)[c.id]}</span>
                   </button>
                 );
               })}
@@ -855,11 +895,11 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
                     className="btn-smooth"
                     style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 12, background: isCustom ? `hsla(${hue}, 75%, 65%, 0.13)` : 'var(--app-surface-high)', border: `1.5px solid ${isCustom ? `hsla(${hue}, 75%, 65%, 0.4)` : 'transparent'}`, transition: 'background-color 200ms ease, border-color 200ms ease', outline: 'none', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}>
                     <span style={{ width: 16, height: 16, borderRadius: '50%', background: `linear-gradient(135deg, hsl(${hue}, 75%, 65%), hsl(${(hue + 25) % 360}, 85%, 42%))`, flexShrink: 0, display: 'block', boxShadow: isCustom ? `0 0 8px hsla(${hue}, 75%, 55%, 0.5)` : 'none', transition: 'box-shadow 200ms ease' }} />
-                    <span style={{ color: isCustom ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease' }}>Custom</span>
+                    <span style={{ color: isCustom ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease' }}>{(t.hub as { studioSettings?: { custom?: string } }).studioSettings?.custom ?? 'Custom'}</span>
                   </button>
                   {isCustom && (
                     <div style={{ marginTop: 10 }}>
-                      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: 'var(--c-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 8px' }}>Color</p>
+                      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: 'var(--c-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 8px' }}>{(t.hub as { studioSettings?: { colorLabel?: string } }).studioSettings?.colorLabel ?? 'Color'}</p>
                       <input
                         type="range" className="hue-slider"
                         min={0} max={359} value={hue}
@@ -875,7 +915,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
           </div>
         </div>
 
-        <SettingsSectionLabel delay={50}>Animations & Motion</SettingsSectionLabel>
+        <SettingsSectionLabel delay={50}>{(t.hub as { studioSettings?: { animationsMotion?: string } }).studioSettings?.animationsMotion ?? 'Animations & Motion'}</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingRow label={t.settings.rows.animSpeed} desc={t.settings.rows.animSpeedDesc}>
             <SegmentedControl<AnimationSpeed> value={settings.animationSpeed} options={[{ value: 'fast', label: t.settings.rows.fast }, { value: 'normal', label: t.settings.rows.normal }, { value: 'reduced', label: t.settings.rows.off }]} onChange={v => updateSettings({ animationSpeed: v })} accentFrom={accent.from} accentTo={accent.to} />
@@ -883,7 +923,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
         </div>
         <GlobalHint />
 
-        <SettingsSectionLabel delay={80}>Display</SettingsSectionLabel>
+        <SettingsSectionLabel delay={80}>{(t.hub as { studioSettings?: { display?: string } }).studioSettings?.display ?? 'Display'}</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingRow label={t.settings.rows.density} desc={t.settings.rows.densityDesc}>
             <SegmentedControl<DisplayDensity> value={settings.displayDensity} options={[{ value: 'compact', label: t.settings.rows.compact }, { value: 'comfortable', label: t.settings.rows.normal }, { value: 'spacious', label: t.settings.rows.airy }]} onChange={v => updateSettings({ displayDensity: v })} accentFrom={accent.from} accentTo={accent.to} />
@@ -894,18 +934,18 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
         </div>
         <GlobalHint />
 
-        <SettingsSectionLabel delay={110}>Feedback & Performance</SettingsSectionLabel>
+        <SettingsSectionLabel delay={110}>{(t.hub as { studioSettings?: { feedbackPerformance?: string } }).studioSettings?.feedbackPerformance ?? 'Feedback & Performance'}</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingRow label={t.settings.rows.haptic} desc={t.settings.rows.hapticDesc}>
             <Toggle value={settings.hapticFeedback} onChange={v => updateSettings({ hapticFeedback: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
-          <SettingRow label="High refresh rate" desc="Keeps animations at your display's max rate (90/120Hz). May increase battery use.">
+          <SettingRow label={(t.hub as { studioSettings?: { highRefresh?: string } }).studioSettings?.highRefresh ?? 'High refresh rate'} desc={(t.hub as { studioSettings?: { highRefreshDesc?: string } }).studioSettings?.highRefreshDesc ?? "Keeps animations at your display's max rate (90/120Hz). May increase battery use."}>
             <Toggle value={settings.highRefreshRate} onChange={v => updateSettings({ highRefreshRate: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
-          <SettingRow label="Low latency mode" desc="Faster audio response across all apps.">
+          <SettingRow label={(t.hub as { studioSettings?: { lowLatency?: string } }).studioSettings?.lowLatency ?? 'Low latency mode'} desc={(t.hub as { studioSettings?: { lowLatencyDesc?: string } }).studioSettings?.lowLatencyDesc ?? 'Faster audio response across all apps.'}>
             <Toggle value={settings.lowLatencyMode} onChange={v => updateSettings({ lowLatencyMode: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
-          <SettingRow label="Performance mode" desc="Disables blur and heavy animations for older devices.">
+          <SettingRow label={(t.hub as { studioSettings?: { performanceMode?: string } }).studioSettings?.performanceMode ?? 'Performance mode'} desc={(t.hub as { studioSettings?: { performanceModeDesc?: string } }).studioSettings?.performanceModeDesc ?? 'Disables blur and heavy animations for older devices.'}>
             <Toggle value={settings.performanceMode} onChange={v => updateSettings({ performanceMode: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
         </div>
@@ -935,8 +975,8 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
     return (
       <div key={pageKey} style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
-        <SettingsSubHeader title="Storage & Session" onBack={goBack} />
-        <SettingsSectionLabel>Data</SettingsSectionLabel>
+        <SettingsSubHeader title={(t.hub as { studioSettings?: { storageSession?: string } }).studioSettings?.storageSession ?? 'Storage & Session'} onBack={goBack} />
+        <SettingsSectionLabel>{(t.hub as { studioSettings?: { data?: string } }).studioSettings?.data ?? 'Data'}</SettingsSectionLabel>
         <div style={cardStyle}>
           <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{t.settings.about.storage}</span>
@@ -955,8 +995,8 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
     return (
       <div key={pageKey} style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
-        <SettingsSubHeader title="Privacy & Security" onBack={goBack} />
-        <SettingsSectionLabel>Account Controls</SettingsSectionLabel>
+        <SettingsSubHeader title={(t.hub as { studioSettings?: { privacySecurity?: string } }).studioSettings?.privacySecurity ?? 'Privacy & Security'} onBack={goBack} />
+        <SettingsSectionLabel>{(t.hub as { studioSettings?: { accountControls?: string } }).studioSettings?.accountControls ?? 'Account Controls'}</SettingsSectionLabel>
         <Suspense fallback={null}>
           <AccountDangerZone accent={accent} cardStyle={cardStyle} />
         </Suspense>
@@ -969,11 +1009,11 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
     return (
       <div key={pageKey} style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
-        <SettingsSubHeader title="AI Assistant" onBack={goBack} />
+        <SettingsSubHeader title={(t.hub as { studioSettings?: { aiAssistant?: string } }).studioSettings?.aiAssistant ?? 'AI Assistant'} onBack={goBack} />
 
-        <SettingsSectionLabel>Intelligence</SettingsSectionLabel>
+        <SettingsSectionLabel>{(t.hub as { studioSettings?: { intelligence?: string } }).studioSettings?.intelligence ?? 'Intelligence'}</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingRow label="Chord Assistant" desc="Smart chord suggestions and progression analysis">
+          <SettingRow label={t.settings.rows.chordAssistant ?? 'Chord Assistant'} desc={(t.hub as { studioSettings?: { chordAssistantDesc?: string } }).studioSettings?.chordAssistantDesc ?? 'Smart chord suggestions and progression analysis'}>
             <Toggle value={settings.chordAssistant} onChange={v => updateSettings({ chordAssistant: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
         </div>
@@ -981,7 +1021,7 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '14px 4px 0', padding: '12px 14px', borderRadius: 12, background: 'rgba(128,128,128,0.06)', border: '1px solid rgba(128,128,128,0.09)' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 15, color: 'var(--c-text-secondary)', flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
           <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 11.5, margin: 0, lineHeight: 1.6 }}>
-            More AI features — smart suggestions, progression tips, and conflict detection — are coming in a future update.
+            {(t.hub as { studioSettings?: { aiHint?: string } }).studioSettings?.aiHint ?? 'More AI features — smart suggestions, progression tips, and conflict detection — are coming in a future update.'}
           </p>
         </div>
       </div>
@@ -1007,8 +1047,8 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
     const subAppLogos: { key: string; node: React.ReactNode; label: string }[] = [
       { key: 'chordex', label: 'Chordex', node: <ChordexLogo size={34} /> },
       { key: 'drumex',  label: 'Drumex',  node: <DrumexLogo size={34} /> },
-      { key: 'stagex',  label: 'StageX',  node: <StagexLogoIcon size={34} /> },
-      { key: 'groovex', label: 'GrooveX', node: <GroovexLogo size={34} /> },
+      { key: 'stagex',  label: 'Stagex',  node: <StagexLogoIcon size={34} /> },
+      { key: 'groovex', label: 'Groovex', node: <GroovexLogo size={34} /> },
       { key: 'vocalex', label: 'Vocalex', node: <VocalexLogo size={34} /> },
     ];
     return (
@@ -1030,12 +1070,11 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
             width: 112,
             height: 112,
             borderRadius: 28,
-            background: `linear-gradient(135deg, ${accent.from}22, ${accent.to}22)`,
+            background: `linear-gradient(135deg, ${accent.from}1a, ${accent.to}1a)`,
             border: `1px solid ${accent.from}33`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: `0 12px 40px ${accent.to}33`,
           }}>
             <StudioLogo size={88} />
           </div>
@@ -1132,29 +1171,29 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
       </div>
 
       {/* Interface */}
-      <SettingsSectionLabel delay={70}>Interface</SettingsSectionLabel>
+      <SettingsSectionLabel delay={70}>{(t.hub as { studioSettings?: { interface?: string } }).studioSettings?.interface ?? 'Interface'}</SettingsSectionLabel>
       <div style={cardStyle}>
-        <SettingsNavRow icon="palette" iconColor={accent.from} title={t.settings.sections.appearance} desc="Theme, colors, display & performance" onPress={() => navigate('appearance')} last delay={80} />
+        <SettingsNavRow icon="palette" iconColor={accent.from} title={t.settings.sections.appearance} desc={(t.hub as { studioSettings?: { appearanceDesc?: string } }).studioSettings?.appearanceDesc ?? 'Theme, colors, display & performance'} onPress={() => navigate('appearance')} last delay={80} />
       </div>
 
       {/* Content & Language */}
-      <SettingsSectionLabel delay={100}>Content & Language</SettingsSectionLabel>
+      <SettingsSectionLabel delay={100}>{(t.hub as { studioSettings?: { contentLanguage?: string } }).studioSettings?.contentLanguage ?? 'Content & Language'}</SettingsSectionLabel>
       <div style={cardStyle}>
-        <SettingsNavRow icon="language" iconColor={accent.from} title={t.settings.sections.language} desc="App display language" onPress={() => navigate('language')} delay={110} />
-        <SettingsNavRow icon="auto_awesome" iconColor={accent.from} title="AI Assistant" desc="Smart chord suggestions and analysis" onPress={() => navigate('ai-assistant')} last delay={120} />
+        <SettingsNavRow icon="language" iconColor={accent.from} title={t.settings.sections.language} desc={(t.hub as { studioSettings?: { languageDesc?: string } }).studioSettings?.languageDesc ?? 'App display language'} onPress={() => navigate('language')} delay={110} />
+        <SettingsNavRow icon="auto_awesome" iconColor={accent.from} title={(t.hub as { studioSettings?: { aiAssistant?: string } }).studioSettings?.aiAssistant ?? 'AI Assistant'} desc={(t.hub as { studioSettings?: { aiAssistantDesc?: string } }).studioSettings?.aiAssistantDesc ?? 'Smart chord suggestions and analysis'} onPress={() => navigate('ai-assistant')} last delay={120} />
       </div>
 
       {/* Storage & Data */}
-      <SettingsSectionLabel delay={170}>Storage & Data</SettingsSectionLabel>
+      <SettingsSectionLabel delay={170}>{(t.hub as { studioSettings?: { storageData?: string } }).studioSettings?.storageData ?? 'Storage & Data'}</SettingsSectionLabel>
       <div style={cardStyle}>
-        <SettingsNavRow icon="save" iconColor={accent.from} title="Storage & Session" desc={t.settings.about.storageValue} onPress={() => navigate('storage')} last delay={180} />
+        <SettingsNavRow icon="save" iconColor={accent.from} title={(t.hub as { studioSettings?: { storageSession?: string } }).studioSettings?.storageSession ?? 'Storage & Session'} desc={t.settings.about.storageValue} onPress={() => navigate('storage')} last delay={180} />
       </div>
 
       {/* System & About */}
-      <SettingsSectionLabel delay={200}>System & About</SettingsSectionLabel>
+      <SettingsSectionLabel delay={200}>{(t.hub as { studioSettings?: { systemAbout?: string } }).studioSettings?.systemAbout ?? 'System & About'}</SettingsSectionLabel>
       <div style={cardStyle}>
-        <SettingsNavRow icon="download" iconColor={accent.from} title="Updater" desc="OTA update system" badge="Auto" onPress={() => navigate('updater')} delay={210} />
-        <SettingsNavRow icon="history" iconColor={accent.from} title="Changelog" desc="What's new in this version" onPress={() => setChangelogOpen(true)} delay={220} />
+        <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'OTA update system'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={210} />
+        <SettingsNavRow icon="history" iconColor={accent.from} title={(t.hub as { studioSettings?: { changelog?: string } }).studioSettings?.changelog ?? 'Changelog'} desc={(t.hub as { studioSettings?: { changelogDesc?: string } }).studioSettings?.changelogDesc ?? "What's new in this version"} onPress={() => setChangelogOpen(true)} delay={220} />
         <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last delay={230} />
       </div>
 
