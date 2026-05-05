@@ -578,7 +578,7 @@ export default function LibraryPanel() {
           <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', marginBottom: '14px' }}>
             {mainTab === 'explore'
               ? t.library.subtitle
-              : 'Real songs, iconic progressions, filtered by genre.'}
+              : (t.library as { discoverSubtitle?: string }).discoverSubtitle ?? 'Real songs, iconic progressions, filtered by genre.'}
           </p>
 
           {/* Explore / Discover switcher */}
@@ -632,7 +632,7 @@ export default function LibraryPanel() {
       )}
 
       {/* ── Scrollable body ── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ willChange: 'transform', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'], overscrollBehavior: 'contain' }}>
        <div key={mainTab} className="library-tab-fade">
 
         {/* ══ EXPLORE: Search results ══ */}
@@ -791,7 +791,7 @@ export default function LibraryPanel() {
                   type="text"
                   value={discoverQuery}
                   onChange={e => setDiscoverQuery(e.target.value)}
-                  placeholder="Search songs or artists…"
+                  placeholder={(t.library as { discoverSearchPlaceholder?: string }).discoverSearchPlaceholder ?? 'Search songs or artists…'}
                   className="flex-1 bg-transparent outline-none"
                   style={{
                     color: 'var(--c-text-primary)',
@@ -848,7 +848,10 @@ export default function LibraryPanel() {
             {/* Song count */}
             <div className="px-5 mb-3">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
-                {Math.min(discoverLimit, discoverSongs.length)} / {discoverSongs.length} song{discoverSongs.length !== 1 ? 's' : ''}
+                {((t.library as { songCount?: (s: number, t: number) => string }).songCount?.(
+                  Math.min(discoverLimit, discoverSongs.length),
+                  discoverSongs.length,
+                ) ?? `${Math.min(discoverLimit, discoverSongs.length)} / ${discoverSongs.length} song${discoverSongs.length !== 1 ? 's' : ''}`)}
                 {activeGenre ? ` · ${GENRE_META[activeGenre].label}` : ''}
                 {discoverQuery.trim() ? ` · "${discoverQuery.trim()}"` : ''}
               </p>
@@ -859,14 +862,14 @@ export default function LibraryPanel() {
               {discoverSongs.length === 0 && (
                 <div className="py-12 flex flex-col items-center gap-3" style={{ color: 'var(--c-text-secondary)' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '40px', opacity: 0.4 }}>search_off</span>
-                  <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '15px', color: 'var(--c-text-primary)' }}>No songs found</p>
+                  <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '15px', color: 'var(--c-text-primary)' }}>{(t.library as { noSongsFound?: string }).noSongsFound ?? 'No songs found'}</p>
                   <p style={{ fontFamily: 'Inter', fontSize: '13px', textAlign: 'center', maxWidth: '220px' }}>
-                    Try a different search term or clear the filter.
+                    {(t.library as { noSongsHint?: string }).noSongsHint ?? 'Try a different search term or clear the filter.'}
                   </p>
                   <button onClick={() => { setDiscoverQuery(''); setActiveGenre(null); }}
                     className="btn-smooth mt-2 px-5 py-2 rounded-full font-bold text-xs"
                     style={{ background: accent.from, color: '#0d0e0f', fontFamily: 'Manrope' }}>
-                    Clear search
+                    {(t.library as { clearSearch?: string }).clearSearch ?? 'Clear search'}
                   </button>
                 </div>
               )}
@@ -936,12 +939,12 @@ export default function LibraryPanel() {
                     <div className="flex gap-3 mt-3">
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
                         style={{ background: 'var(--app-surface-low)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
-                        Key of {song.key}
+                        {(t.library as { keyOf?: (k: string) => string }).keyOf?.(song.key) ?? `Key of ${song.key}`}
                       </span>
                       {song.bpm && (
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
                           style={{ background: 'var(--app-surface-low)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
-                          {song.bpm} BPM
+                          {(t.library as { bpmShort?: (n: number) => string }).bpmShort?.(song.bpm) ?? `${song.bpm} BPM`}
                         </span>
                       )}
                     </div>
@@ -967,7 +970,7 @@ export default function LibraryPanel() {
                     }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>expand_more</span>
-                    Load {Math.min(DISCOVER_PAGE_SIZE, discoverSongs.length - discoverLimit)} more
+                    {(t.library as { loadMore?: (n: number) => string }).loadMore?.(Math.min(DISCOVER_PAGE_SIZE, discoverSongs.length - discoverLimit)) ?? `Load ${Math.min(DISCOVER_PAGE_SIZE, discoverSongs.length - discoverLimit)} more`}
                   </button>
                 </div>
               )}

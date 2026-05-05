@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.53';
+export const APP_VERSION = '3.0.55';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-05'; // 3.0.53
+export const APP_VERSION_DATE = '2026-05-05'; // 3.0.55
 // 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
@@ -56,19 +56,35 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixes",
     items: [
-      'Cloud sync indicator now correctly shows "Synced" instead of being stuck on "Waiting to sync…" forever — even on flaky networks and silent push-only ticks.',
-      'After signing in, the app shows your previous sync time immediately rather than waiting for a full round-trip.',
-    ],
-  },
-  {
-    heading: "What's new",
-    items: [
-      'Updater settings: turn update notifications on/off, toggle automatic checks, and check for updates manually.',
-      'Optional "What\'s new" sheet on launch after every update.',
-      'Redesigned About screen with a proper Studio identity and the family of sub-app logos.',
+      'App switcher pill no longer cuts off the leftmost or rightmost chip text ("Stagex").',
+      'The Hub chip is now labeled simply "Hub" instead of "Studio Hub".',
+      'Library → Discover screen is now fully translated to Spanish.',
+      'Hub Settings section headers and descriptions are now translated to Spanish.',
+      'Changelog content is now available in Spanish based on your language preference.',
     ],
   },
 ];
+
+/** Spanish version of the current changelog — picked at render time
+ *  by `ChangelogSheet` based on `settings.language`. */
+export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
+  {
+    heading: "Correcciones",
+    items: [
+      'La barra para cambiar de app ya no recorta el texto del primer ni del último chip ("Stagex").',
+      'El chip del Hub ahora se llama simplemente "Hub" en lugar de "Studio Hub".',
+      'La pantalla Biblioteca → Descubrir ya está completamente traducida al español.',
+      'Los encabezados y descripciones de Ajustes del Hub ahora están traducidos al español.',
+      'El registro de cambios ya está disponible en español según tu preferencia de idioma.',
+    ],
+  },
+];
+
+/** Returns the changelog sections for the requested language, falling
+ *  back to English when no localized version is available. */
+export function getChangelogSections(lang: string | undefined | null): ChangelogSection[] {
+  return lang === 'es' ? APP_CHANGELOG_SECTIONS_ES : APP_CHANGELOG_SECTIONS;
+}
 
 /** Backwards-compatible flat bullet list (kept so any old caller still
  *  works). New UI should use `APP_CHANGELOG_SECTIONS`. */

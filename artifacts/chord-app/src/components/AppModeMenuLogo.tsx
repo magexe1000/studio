@@ -133,7 +133,7 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
     })),
     {
       key: 'hub',
-      label: 'Studio Hub',
+      label: 'Hub',
       Icon: StudioLogo,
       onClick: goToHub,
       isActive: false,
@@ -226,8 +226,18 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
           maxWidth: maxPillWidth,
           zIndex: 9999,
           willChange: 'transform, opacity',
+          overflow: 'hidden',
         }}
       >
+        {/*
+          v3.0.55 — leftmost/rightmost chip text was being clipped by the
+          pill's rounded edges. We give the scroll viewport horizontal
+          padding (so the first/last chip sit clear of the rounded
+          corners), match scroll-snap padding so wheel/touch scrolls land
+          inside the visible area, and add a subtle edge fade so chips
+          drift gracefully into the rounded corners instead of being
+          chopped off mid-letter.
+        */}
         <div
           ref={scrollRef}
           className="app-mode-swipe"
@@ -238,6 +248,10 @@ export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: n
             msOverflowStyle: 'none',
             WebkitOverflowScrolling: 'touch',
             overscrollBehavior: 'contain',
+            padding: '0 4px',
+            scrollPaddingInline: 8,
+            maskImage: 'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
           }}
         >
           {ALL_CHIPS.map((chip, i) => {
