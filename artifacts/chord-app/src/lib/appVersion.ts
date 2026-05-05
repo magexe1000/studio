@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.50';
+export const APP_VERSION = '3.0.51';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-04'; // 3.0.50
+export const APP_VERSION_DATE = '2026-05-05'; // 3.0.51
 // 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
@@ -54,10 +54,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "What's new",
+    heading: "Fixes",
     items: [
-      'Back gesture now works across the entire app — Settings, Vocalex, and Groovex (Player and Preferences).',
-      'Android back button and left-edge swipe now navigate up correctly inside every sub-app.',
+      'Google sign-in now shows a clear, useful message when it fails instead of just "10:".',
+      'Email sign-in is highlighted as the working alternative when Google rejects the build (so cloud sync works while the SHA-1 is being registered in Firebase).',
+      'Better error messages for all Google Sign-In failure modes (cancelled, network, internal error).',
     ],
   },
 ];

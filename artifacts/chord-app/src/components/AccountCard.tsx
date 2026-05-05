@@ -582,6 +582,49 @@ function prettyErr(e: unknown, lang: string): string {
   if (code === 'auth/invalid-email') return es ? 'Email no válido' : 'Invalid email';
   if (code === 'auth/network-request-failed') return es ? 'Sin conexión' : 'Network error';
   if (code === 'auth/unauthorized-domain') return es ? 'Este dominio no está autorizado en Firebase' : 'This domain is not authorized in Firebase';
+  // ── Native Google Sign-In codes (Capacitor plugin → GoogleSignInStatusCodes) ──
+  if (code === 'auth/native-developer-error') {
+    return es
+      ? 'Esta build de la app no está autorizada por Google. La huella SHA-1 de esta APK no está registrada en Firebase. Mientras tanto, regístrate o inicia sesión con email aquí abajo — el sync funciona igual.'
+      : 'This build is not authorised by Google. The APK\'s SHA-1 fingerprint is not registered in Firebase. In the meantime, sign in with email below — sync works the same way.';
+  }
+  if (code === 'auth/native-sign-in-failed') {
+    return es
+      ? 'Google rechazó el inicio de sesión. Revisa que tengas Google Play Services al día e intenta de nuevo, o usa email.'
+      : 'Google rejected the sign-in. Make sure Google Play Services is up to date and retry, or use email.';
+  }
+  if (code === 'auth/native-internal-error') {
+    return es ? 'Error interno de Google Sign-In. Intenta de nuevo en un momento.' : 'Google Sign-In internal error. Try again in a moment.';
+  }
+  if (code === 'auth/native-sign-in-currently-in-progress') {
+    return es ? 'Ya hay un inicio de sesión en curso.' : 'A sign-in is already in progress.';
+  }
+  // Last-ditch: any bare "<status>:" leaking from a path that bypassed
+  // auth.ts's normaliser (older code paths, third-party plugins).
+  // Common Google Sign-In status codes: 7, 8, 10, 12500, 12501, 12502.
+  if (/^\s*10[:\s]/.test(msg) || /DEVELOPER_ERROR/i.test(msg)) {
+    return es
+      ? 'Esta build no está autorizada por Google (SHA-1 no registrado en Firebase). Usa email para entrar — el sync funciona igual.'
+      : 'This build is not authorised by Google (SHA-1 not registered in Firebase). Sign in with email — sync works the same way.';
+  }
+  if (/^\s*12501[:\s]/.test(msg)) {
+    // User cancelled — silent, but if it leaks, show something neutral.
+    return es ? 'Cancelado' : 'Cancelled';
+  }
+  if (/^\s*12500[:\s]/.test(msg) || /SIGN_IN_FAILED/i.test(msg)) {
+    return es
+      ? 'Google rechazó el inicio de sesión. Revisa Google Play Services o usa email.'
+      : 'Google rejected the sign-in. Check Google Play Services or use email.';
+  }
+  if (/^\s*7[:\s]/.test(msg)) {
+    return es ? 'Sin conexión a Google' : 'Network error reaching Google';
+  }
+  if (/^\s*8[:\s]/.test(msg) || /INTERNAL_ERROR/i.test(msg)) {
+    return es ? 'Error interno de Google Sign-In. Intenta de nuevo.' : 'Google Sign-In internal error. Try again.';
+  }
+  if (/^\s*12502[:\s]/.test(msg)) {
+    return es ? 'Ya hay un inicio de sesión en curso.' : 'A sign-in is already in progress.';
+  }
   return msg;
 }
 

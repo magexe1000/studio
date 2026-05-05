@@ -73,7 +73,54 @@ export async function signInGoogle(): Promise<void> {
     const { FirebaseAuthentication } = await import(
       '@capacitor-firebase/authentication'
     );
-    const result = await FirebaseAuthentication.signInWithGoogle();
+    let result: Awaited<ReturnType<typeof FirebaseAuthentication.signInWithGoogle>>;
+    try {
+      result = await FirebaseAuthentication.signInWithGoogle();
+    } catch (e: unknown) {
+      // Native Google Sign-In failures arrive here as either a Capacitor
+      // PluginException (no `code` property — message is the raw status
+      // code from GoogleSignInStatusCodes, e.g. "10:" for DEVELOPER_ERROR,
+      // "12500:" for SIGN_IN_FAILED, "12501:" for SIGN_IN_CANCELLED,
+      // "7:" for NETWORK_ERROR) or as a structured error from the
+      // plugin's Kotlin layer. We normalise both shapes into a
+      // Firebase-style `code` so AccountCard's `prettyErr` can show a
+      // useful message instead of dumping the raw "10:" at the user.
+      const raw = e as { code?: string | number; message?: string; errorMessage?: string };
+      const msg = String(raw.message ?? raw.errorMessage ?? '');
+      const codeStr = String(raw.code ?? '');
+      // Pull a leading numeric status code out of either field.
+      const numMatch = msg.match(/^(\d+)[:\s]/) || codeStr.match(/^(\d+)$/);
+      const num = numMatch ? Number(numMatch[1]) : NaN;
+      // Diagnostic — surfaced in adb logcat so we can see what the user
+      // actually hit when they report "10:" with no other info.
+      console.warn('[auth] native Google sign-in failed', {
+        message: msg,
+        code: codeStr,
+        parsed: num,
+        raw: e,
+      });
+      let normalisedCode = '';
+      if (num === 10 || /DEVELOPER_ERROR/i.test(msg)) {
+        normalisedCode = 'auth/native-developer-error';
+      } else if (num === 12501 || /SIGN_IN_CANCELLED|cancel/i.test(msg)) {
+        // User backed out — silent return, same as web popup-closed-by-user.
+        return;
+      } else if (num === 12500 || /SIGN_IN_FAILED/i.test(msg)) {
+        normalisedCode = 'auth/native-sign-in-failed';
+      } else if (num === 7 || /NETWORK_ERROR|network/i.test(msg)) {
+        normalisedCode = 'auth/network-request-failed';
+      } else if (num === 8 || /INTERNAL_ERROR/i.test(msg)) {
+        normalisedCode = 'auth/native-internal-error';
+      } else if (num === 12502) {
+        normalisedCode = 'auth/native-sign-in-currently-in-progress';
+      }
+      if (normalisedCode) {
+        const wrapped = new Error(msg || normalisedCode) as Error & { code: string };
+        wrapped.code = normalisedCode;
+        throw wrapped;
+      }
+      throw e;
+    }
     if (!result.credential?.idToken) {
       throw new Error('Google sign-in returned no idToken');
     }

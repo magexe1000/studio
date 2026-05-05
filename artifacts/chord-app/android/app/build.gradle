@@ -16,7 +16,31 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Pinned debug signing config so the SHA-1 fingerprint of every
+    // build is identical, regardless of which machine/CI runner produced
+    // it. Without this, Android falls back to ~/.android/debug.keystore
+    // (auto-generated per machine) and the SHA-1 changes on every fresh
+    // GitHub Actions runner — which breaks Google Sign-In with
+    // DEVELOPER_ERROR (status 10) the moment a different runner picks
+    // up the build, because Firebase only accepts the SHA-1 it knows
+    // about.
+    //
+    // The keystore is checked into the repo at app/debug.keystore. It
+    // is a DEBUG keystore (Android's well-known default password
+    // "android"), so checking it in is safe — its only purpose is
+    // identity stability for development builds.
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

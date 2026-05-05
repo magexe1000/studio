@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "355186993352-5qjsibeopmbs9tttb23nh85qla72smlg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.chordex.app",
+            "certificate_hash": "9ed36d19dedf725a6d9881d15268fafe9b37f6d1"
+          }
+        },
+        {
           "client_id": "355186993352-p1kkmo4rrr9hs13lotqr2hl2g6f0chm8.apps.googleusercontent.com",
           "client_type": 3
         }
