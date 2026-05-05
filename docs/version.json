@@ -1,6 +1,6 @@
 {
-  "version": "3.0.55",
-  "changelog": "Version 3.0.55",
+  "version": "3.0.56",
+  "changelog": "• Cloud sync no longer gets stuck on \"Syncing\" or \"Waiting to sync…\" — guaranteed to escape that state within 25 seconds.\n• Sync per-operation timeout tightened from 25 s to 12 s for faster recovery on flaky networks.\n• Library → Discover song descriptions now fully translated to Spanish (200+ songs).\n• Library → Discover genre filter chips now display in Spanish (\"Rock Inglés\", \"Rock en Español\", etc.).\n• Stagex: removed the duplicated Auto-arrange button from the top toolbar. The vertical sidebar button now triggers Auto-arrange directly (no confirmation dialog).\n• Stagex: Live-mode (eye) button moved out of the top toolbar to float above the blue + FAB. It hides when the + menu opens so it never overlaps the element chips, and the icon now toggles between `visibility` / `visibility_off` to reflect state.",
   "mandatory": false,
-  "downloadUrl": "https://raw.githubusercontent.com/magexe1000/Chordex/main/docs/bundles/bundle-3.0.55.zip"
+  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.56/bundle-3.0.56.zip"
 }
