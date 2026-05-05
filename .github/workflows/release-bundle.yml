@@ -69,6 +69,7 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         env:
           OTA_BASE_URL: https://magexe1000.github.io/Chordex
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm --filter @workspace/chord-app run release:gh-pages
 
       - name: Read built version

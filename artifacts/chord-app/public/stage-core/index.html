@@ -2295,7 +2295,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
         <button onclick="zoomOut()" class="sc-vtool-btn" title="Zoom Out">
           <span class="material-symbols-outlined" style="font-size:17px;">zoom_out</span>
         </button>
-        <!-- Live Mode (eye) moved to top toolbar in StageCorePanel.tsx -->
+        <!-- Live Mode (eye) now floats above the blue + FAB in StageCorePanel.tsx (v3.0.56) -->
         <div class="sc-vtool-sep"></div>
         <!-- Toggle group -->
         <button id="btn-grid" onclick="toggleGrid()" class="sc-vtool-btn is-active" title="Toggle Grid">
@@ -2312,7 +2312,12 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
         </button>
         <div class="sc-vtool-sep"></div>
         <!-- Action group -->
-        <button onclick="autoArrangeElements()" class="sc-vtool-btn" title="Auto-arrange elements"
+        <!-- v3.0.56: onclick switched from `autoArrangeElements()` (which prompts
+             a confirm dialog and bails on empty stage) to `_doAutoArrange()`
+             (direct, no prompt) — matching the behaviour of the React top-toolbar
+             auto-arrange button which has been removed in v3.0.56. The icon stays
+             the same so the visual position in the vertical sidebar is unchanged. -->
+        <button onclick="_doAutoArrange()" class="sc-vtool-btn" title="Auto-arrange elements"
           onmouseover="this.style.color='#c5ffc9';this.style.background='rgba(197,255,201,0.08)'"
           onmouseout="this.style.color='#767575';this.style.background=''">
           <span class="material-symbols-outlined" style="font-size:17px;">auto_fix_high</span>

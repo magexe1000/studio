@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.55';
+export const APP_VERSION = '3.0.56';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-05'; // 3.0.55
+export const APP_VERSION_DATE = '2026-05-05'; // 3.0.56
 // 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
@@ -56,11 +56,12 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixes",
     items: [
-      'App switcher pill no longer cuts off the leftmost or rightmost chip text ("Stagex").',
-      'The Hub chip is now labeled simply "Hub" instead of "Studio Hub".',
-      'Library → Discover screen is now fully translated to Spanish.',
-      'Hub Settings section headers and descriptions are now translated to Spanish.',
-      'Changelog content is now available in Spanish based on your language preference.',
+      'Cloud sync no longer gets stuck on "Syncing" or "Waiting to sync…" — the indicator is now guaranteed to escape that state within 25 seconds, even on flaky networks or wedged Firestore handshakes.',
+      'Faster sync: the per-operation timeout was tightened from 25 s to 12 s, so a slow handshake clears in half the time.',
+      'Library → Discover song descriptions are now fully translated to Spanish (all 200+ songs).',
+      'Library → Discover genre filter chips ("Rock Inglés", "Rock en Español", "Jazz", "Yacht Rock", etc.) now display in Spanish.',
+      'Stagex: removed the duplicated Auto-arrange button from the top toolbar. The vertical sidebar button now triggers Auto-arrange directly, with no extra confirmation step.',
+      'Stagex: the Live-mode (eye) button moved out of the top toolbar and now floats just above the blue + button, where it belongs. It hides automatically when the + menu opens so it never overlaps the element chips, and the eye icon now toggles between visibility / visibility_off so its state is always obvious.',
     ],
   },
 ];
@@ -71,11 +72,12 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Correcciones",
     items: [
-      'La barra para cambiar de app ya no recorta el texto del primer ni del último chip ("Stagex").',
-      'El chip del Hub ahora se llama simplemente "Hub" en lugar de "Studio Hub".',
-      'La pantalla Biblioteca → Descubrir ya está completamente traducida al español.',
-      'Los encabezados y descripciones de Ajustes del Hub ahora están traducidos al español.',
-      'El registro de cambios ya está disponible en español según tu preferencia de idioma.',
+      'La sincronización en la nube ya no se queda atascada en "Sincronizando" ni en "Esperando para sincronizar…"; ahora el indicador siempre sale de ese estado en 25 segundos como máximo, incluso con red inestable.',
+      'Sincronización más rápida: el límite por operación bajó de 25 s a 12 s, así un saludo lento se resuelve en la mitad del tiempo.',
+      'Las descripciones de las canciones en Biblioteca → Descubrir ya están totalmente traducidas al español (más de 200 canciones).',
+      'Los filtros de género en Descubrir ("Rock Inglés", "Rock en Español", "Jazz", "Yacht Rock", etc.) ahora se muestran en español.',
+      'Stagex: se eliminó el botón duplicado de Auto-organizar de la barra superior. El botón de la barra vertical ahora ejecuta Auto-organizar directamente, sin paso extra de confirmación.',
+      'Stagex: el botón del ojito (Modo en vivo) salió de la barra superior y ahora flota justo arriba del botón azul +, donde corresponde. Se oculta solo cuando se abre el menú del + para no sobreponerse con los elementos, y el ícono ahora cambia entre visibility / visibility_off para que siempre se vea su estado.',
     ],
   },
 ];

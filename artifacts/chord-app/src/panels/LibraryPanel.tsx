@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { getAllChords, searchChords, getChordById, type ChordType } from '../data/chords';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { SONGS, GENRE_META, type Genre } from '../data/progressions';
+import { SPANISH_DESCRIPTIONS } from '../data/progressionsEs';
 import { useScrollHide } from '../lib/navScroll';
 import ChordDiagram from '../components/ChordDiagram';
 import { useT } from '../lib/useT';
@@ -475,6 +476,23 @@ export default function LibraryPanel() {
   const showDefault = !showSearch && !showType;
   const goBack      = () => setActiveType(null);
 
+  // Pull current language so Discover descriptions can be shown in
+  // Spanish when applicable. Fallback chain: Spanish map → English
+  // description → empty. Search also matches against the localized
+  // description so es users can search using Spanish words.
+  const language = useChordStore(s => s.settings.language);
+  const isSpanish = language === 'es';
+  const describe = useCallback(
+    (songId: string, fallback: string): string =>
+      (isSpanish && SPANISH_DESCRIPTIONS[songId]) || fallback,
+    [isSpanish],
+  );
+  const localizedGenre = useCallback(
+    (g: Genre, fallback: string): string =>
+      ((t.library as { genres?: Record<string, string> }).genres?.[g]) ?? fallback,
+    [t.library],
+  );
+
   const discoverSongs = useMemo(() => {
     let songs = activeGenre ? SONGS.filter(s => s.genre === activeGenre) : SONGS;
     if (discoverQuery.trim()) {
@@ -482,11 +500,12 @@ export default function LibraryPanel() {
       songs = songs.filter(s =>
         s.title.toLowerCase().includes(q) ||
         s.artist.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q)
+        s.description.toLowerCase().includes(q) ||
+        describe(s.id, s.description).toLowerCase().includes(q)
       );
     }
     return songs;
-  }, [activeGenre, discoverQuery]);
+  }, [activeGenre, discoverQuery, describe]);
 
   const [showScrollTop, setShowScrollTop] = useState(false);
   useEffect(() => {
@@ -838,7 +857,7 @@ export default function LibraryPanel() {
                         border: isActive ? `1px solid ${meta.color}55` : '1px solid rgba(72,72,72,0.15)',
                         transition: 'background 200ms ease, color 200ms ease, border-color 200ms ease',
                       }}>
-                      {meta.label}
+                      {localizedGenre(key as Genre, meta.label)}
                     </button>
                   );
                 })}
@@ -852,7 +871,7 @@ export default function LibraryPanel() {
                   Math.min(discoverLimit, discoverSongs.length),
                   discoverSongs.length,
                 ) ?? `${Math.min(discoverLimit, discoverSongs.length)} / ${discoverSongs.length} song${discoverSongs.length !== 1 ? 's' : ''}`)}
-                {activeGenre ? ` · ${GENRE_META[activeGenre].label}` : ''}
+                {activeGenre ? ` · ${localizedGenre(activeGenre, GENRE_META[activeGenre].label)}` : ''}
                 {discoverQuery.trim() ? ` · "${discoverQuery.trim()}"` : ''}
               </p>
             </div>
@@ -902,7 +921,7 @@ export default function LibraryPanel() {
                           fontFamily: 'Manrope',
                           border: `1px solid ${meta.color}33`,
                         }}>
-                        {meta.label}
+                        {localizedGenre(song.genre, meta.label)}
                       </span>
                     </div>
 
@@ -930,9 +949,9 @@ export default function LibraryPanel() {
                       {song.progressionLabel}
                     </p>
 
-                    {/* Description */}
+                    {/* Description (localized — Spanish when language is es) */}
                     <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', lineHeight: '1.5' }}>
-                      {song.description}
+                      {describe(song.id, song.description)}
                     </p>
 
                     {/* Key + BPM */}

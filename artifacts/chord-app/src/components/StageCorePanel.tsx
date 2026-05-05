@@ -614,10 +614,13 @@ export default function StagexPanel() {
 
             {(
               [
-                { label: 'Auto arrange',        icon: 'auto_fix_high', fn: () => callIframe('_doAutoArrange'),     testid: 'btn-auto-arrange' },
+                // v3.0.56: Auto-arrange removed from top toolbar — its
+                // function moved into the iframe vertical sidebar slot
+                // that already shows `auto_fix_high`. Live mode (eye)
+                // moved out of the top toolbar to a floating button
+                // anchored above the blue + (FAB) below.
                 { label: tr.stagex.toolMeasure, icon: 'straighten',    fn: () => callIframe('scActivateMeasure')   },
                 { label: tr.stagex.toolZones,   icon: 'grid_4x4',      fn: () => callIframe('scToggleZones')       },
-                { label: 'Live mode',           icon: 'visibility',    fn: () => callIframe('toggleGigMode')       },
                 { label: tr.stagex.toolHistory, icon: 'history',       fn: () => callIframe('openTimelinePanel')   },
               ] as { label: string; icon: string; fn: () => void; testid?: string }[]
             ).map(({ label, icon, fn, testid }) => (
@@ -725,6 +728,78 @@ export default function StagexPanel() {
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', display: 'block', backgroundColor: stageBg }}
           allow="clipboard-write"
         />
+
+        {/*
+          ── Live mode (eye) — floating button above the blue + FAB ──
+          v3.0.56: moved here from the top toolbar so it lives near the
+          FAB it relates to. Hidden whenever the FAB chip menu is open
+          so the chips fanning upward don't overlap it. Stays visible
+          in live mode itself so the user can tap it to exit.
+
+          The icon is driven by the `liveMode` state mirrored from the
+          iframe via the `sc-live-mode` postMessage — `visibility_off`
+          in live mode, `visibility` otherwise.
+
+          Position math: stacks 8 px above the FAB. FAB sits at
+          bottom = 14 (landscape) or 90 (portrait), right = 14, size 50.
+          So this button sits at bottom = FAB_bottom + 50 + 8.
+        */}
+        {curView === 'Editor' && (
+          <button
+            onClick={() => callIframe('toggleGigMode')}
+            onTouchEnd={(e) => { e.preventDefault(); callIframe('toggleGigMode'); }}
+            aria-label={liveMode ? tr.stagex.exitLiveMode : tr.stagex.enterLiveMode}
+            title={liveMode ? tr.stagex.exitLiveMode : tr.stagex.enterLiveMode}
+            data-testid="btn-live-mode"
+            style={{
+              position: 'absolute',
+              bottom: (isLandscapeEditor ? 14 : 90) + 50 + 8,
+              right: 14 + (50 - 44) / 2, // center 44 px button under the 50 px FAB
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: liveMode
+                ? 'rgba(255, 68, 68, 0.18)'
+                : (isLight ? 'rgba(255,255,255,0.92)' : 'rgba(20,20,24,0.78)'),
+              border: liveMode
+                ? '1px solid rgba(255, 68, 68, 0.45)'
+                : (isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)'),
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              boxShadow: liveMode
+                ? '0 4px 16px rgba(255,68,68,0.30), 0 2px 6px rgba(0,0,0,0.25)'
+                : (isLight ? '0 4px 14px rgba(0,0,0,0.10)' : '0 4px 14px rgba(0,0,0,0.32)'),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 19,
+              padding: 0,
+              WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation',
+              // Hide whenever the + chip menu is open (chips fan upward
+              // from the FAB and would overlap), or when the prop panel
+              // is occupying landscape canvas, or when bottom nav is
+              // hidden via scroll-down (matches FAB behavior).
+              opacity: fabOpen ? 0 : (isLandscapeEditor && propPanelOpen) ? 0 : (stageNavHidden && !isLandscapeEditor && !liveMode) ? 0 : 1,
+              pointerEvents: fabOpen ? 'none' as const : (isLandscapeEditor && propPanelOpen) ? 'none' as const : 'auto' as const,
+              visibility: fabOpen ? 'hidden' as const : (isLandscapeEditor && propPanelOpen) ? 'hidden' as const : 'visible' as const,
+              transition: 'opacity 220ms cubic-bezier(0.4,0,0.2,1), background 200ms ease, border-color 200ms ease, box-shadow 200ms ease',
+            }}
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{
+                color: liveMode ? '#ff4444' : (isLight ? 'rgba(0,0,0,0.65)' : 'rgba(220,225,235,0.85)'),
+                fontSize: 20,
+                lineHeight: 1,
+                transition: 'color 200ms ease',
+              }}
+            >
+              {liveMode ? 'visibility_off' : 'visibility'}
+            </span>
+          </button>
+        )}
 
         {curView === 'Editor' && (
           <button

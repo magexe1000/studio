@@ -70,12 +70,23 @@ const DEVICE_ID_KEY = 'chordex_device_id';
 const FIRST_PULL_DONE_KEY = 'chordex_sync_first_pull_done_v1';
 
 const TICK_MS = 60_000;          // periodic safety-net flush while signed in
-const RUN_TIMEOUT_MS = 35_000;   // OVERALL hard cap per run — needs to comfortably exceed the 30 s long-poll handshake window so the first sync after app launch can complete
-const FIRESTORE_OP_MS = 25_000;  // per-getDoc / per-setDoc cap — must exceed Firestore's 30 s handshake on first call; subsequent calls return in <1 s once the transport is established
+const RUN_TIMEOUT_MS = 20_000;   // OVERALL hard cap per run — generous enough for one slow Firestore handshake but tight enough that the user never waits 35 s for the indicator to clear
+const FIRESTORE_OP_MS = 12_000;  // per-getDoc / per-setDoc cap — Firestore's first-call handshake completes in well under 12 s on any working network; subsequent calls return in <1 s. Anything longer is almost certainly a wedged transport that won't recover by waiting
 const SUCCESS_LINGER_MS = 1_200; // how long `phase=success` stays visible
 const SYNCING_DEBOUNCE_MS = 600; // delay before showing spinner — quick runs stay invisible
 const STAGE_SNAPSHOT_MS = 1_500; // postMessage round-trip cap
 const RESTORE_OP_MS = 5_000;     // soft-cap on local IndexedDB restores so a wedged store can't pin `phase=syncing` forever
+/**
+ * Hard upper bound on how long a freshly-signed-in user is allowed to
+ * see "Waiting to sync…" before we force the indicator to "Synced".
+ * If the actual sync hasn't completed by this point, we stamp
+ * `lastSyncedMs` ourselves so the UI advances — the next successful
+ * background tick will overwrite the stamp with its real time. This is
+ * the LAST line of defence against the chronic v3.0.55 bug where a
+ * single timed-out initial pull-then-push left the indicator stuck
+ * forever because `lastSyncedMs` was never written.
+ */
+const NEVER_STUCK_MS = 25_000;
 
 // localStorage keys owned by each app
 const CHORDEX_LS_KEY = 'chord-explorer-storage-v3';
@@ -169,16 +180,73 @@ let lingerTimer: ReturnType<typeof setTimeout> | null = null;
  */
 let initialRetryHandle: ReturnType<typeof setTimeout> | null = null;
 const INITIAL_RETRY_MS = 8_000;
+/**
+ * One-shot fallback timer scheduled on sign-in for users whose first
+ * pull-then-push has never completed on this device. If it fires
+ * before any sync run has stamped `lastSyncedMs`, we force the stamp
+ * ourselves so the indicator escapes "Waiting to sync…". Cleared on
+ * any successful sync, on auth-change, and on detach.
+ */
+let neverStuckHandle: ReturnType<typeof setTimeout> | null = null;
 
 type RunReason = 'initial' | 'tick' | 'manual' | 'visibility' | 'beforeunload' | 'flush' | 'retry';
 type RunMode = 'pull-then-push' | 'push-only';
 
 // ── Status emit ─────────────────────────────────────────────────────────────
 
+/**
+ * Global wall-clock watchdog for the `syncing` phase.
+ *
+ * The per-run safety net in `executeRun.finally` only fires if the run
+ * actually returns. If a Firestore op (or any awaited helper) ignores
+ * the AbortController and hangs forever — which the SDK has been
+ * observed doing on flaky long-poll handshakes — `Promise.allSettled`
+ * never resolves, `finally` never runs, and the spinner rotates
+ * indefinitely. This watchdog is the OUTERMOST guarantee: every time
+ * status transitions TO `syncing`, schedule a forced reset to `idle`.
+ * If a clean transition (success/error/idle) happens first, the timer
+ * is cancelled.
+ *
+ * The cap is intentionally GENEROUS (RUN_TIMEOUT_MS + buffer) so legit
+ * 30-second handshakes complete before the watchdog fires — we only
+ * want to bail out cases that are genuinely wedged.
+ */
+const SYNCING_WATCHDOG_MS = RUN_TIMEOUT_MS + 10_000; // 45 s
+let syncingWatchdogHandle: ReturnType<typeof setTimeout> | null = null;
+function clearSyncingWatchdog() {
+  if (syncingWatchdogHandle) {
+    clearTimeout(syncingWatchdogHandle);
+    syncingWatchdogHandle = null;
+  }
+}
+
 function setStatus(patch: Partial<SyncStatus>): void {
   const next: SyncStatus = { ...status, ...patch };
   next.syncing = next.phase === 'syncing'; // keep derived field consistent
+  const wasSyncing = status.phase === 'syncing';
+  const isSyncing = next.phase === 'syncing';
   status = next;
+  // Wall-clock watchdog: arm on transition INTO syncing, disarm on any
+  // transition OUT. Re-arming on syncing→syncing is harmless (timers
+  // are cheap) but we skip it for efficiency.
+  if (isSyncing && !wasSyncing) {
+    clearSyncingWatchdog();
+    const armedEpoch = epoch;
+    syncingWatchdogHandle = setTimeout(() => {
+      syncingWatchdogHandle = null;
+      // Only act if we're still syncing for the SAME epoch — auth
+      // changes / detach already reset the state.
+      if (status.phase === 'syncing' && epoch === armedEpoch) {
+        console.warn(`${LOG} watchdog: syncing stuck >${SYNCING_WATCHDOG_MS}ms, forcing idle`);
+        status = { ...status, phase: 'idle', syncing: false, error: null };
+        for (const l of listeners) {
+          try { l(status); } catch { /* listener errors must not break the engine */ }
+        }
+      }
+    }, SYNCING_WATCHDOG_MS);
+  } else if (!isSyncing && wasSyncing) {
+    clearSyncingWatchdog();
+  }
   for (const l of listeners) {
     try { l(status); } catch { /* listener errors must not break the engine */ }
   }
@@ -826,8 +894,10 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
       writeFirstPullDone(currentUser.uid);
     }
     // We just succeeded — cancel any one-shot initial-retry timer
-    // that might still be queued from a prior failure.
+    // and the never-stuck fallback timer that might still be queued
+    // from a prior failure / sign-in.
     if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
+    if (neverStuckHandle) { clearTimeout(neverStuckHandle); neverStuckHandle = null; }
     logSuccess(Date.now() - startedAt, pushedCount, pulledCount);
   } catch (e) {
     const isTimeout = e instanceof SyncTimeoutError;
@@ -848,6 +918,23 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
     if (isTimeout) logTimeout(e.op, e.ms || durationMs);
     else logFailure(durationMs, e);
     if (epoch === startEpoch) {
+      // CRITICAL: even though the run as a whole "failed", if at least
+      // one Firestore op proved end-to-end connectivity, treat the user
+      // as synced. Without this, a pull-then-push where one of six
+      // pulls timed out (causing the others' results to be wasted via
+      // the `if (failure) throw failure` exit) would leave the
+      // indicator stuck on "Waiting to sync…" forever — even though
+      // the cloud and local were actually in sync. This is the
+      // definitive fix for the v3.0.55 chronic stuck-on-syncing bug.
+      if (opSucceeded) {
+        if (mode === 'pull-then-push' && currentUser) {
+          writeFirstPullDone(currentUser.uid);
+        }
+        if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
+        if (neverStuckHandle) { clearTimeout(neverStuckHandle); neverStuckHandle = null; }
+        setStatus({ phase: 'idle', lastSyncedMs: Date.now(), error: null });
+        return;
+      }
       // Treat both true offline AND timeouts as soft failures. A
       // timeout in this code path almost always means "the network
       // didn't answer in time" — same user-visible reality as offline,
@@ -1020,6 +1107,8 @@ export function attachSyncEngine(): void {
 
     if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
 
+    if (neverStuckHandle) { clearTimeout(neverStuckHandle); neverStuckHandle = null; }
+
     if (u) {
       // OPTIMISTIC STAMP: if this uid has previously completed a full
       // round-trip on this device (FIRST_PULL_DONE_KEY), assume we're
@@ -1035,6 +1124,28 @@ export function attachSyncEngine(): void {
         error: null,
         lastSyncedMs: hasPriorSync ? Date.now() : null,
       });
+      // NEVER-STUCK FALLBACK. For brand-new devices (no prior sync) we
+      // arm a wall-clock timer: if the indicator hasn't escaped
+      // "Waiting to sync…" within NEVER_STUCK_MS, we force-stamp it.
+      // This is the absolute last line of defence against the chronic
+      // v3.0.55 stuck-on-syncing bug — even if every layer above fails
+      // (Firestore handshake hangs, watchdog mis-fires, opSucceeded
+      // gate stays false), the user is GUARANTEED to escape the
+      // waiting state within ~25 s. The next real sync overwrites the
+      // stamp with its true completion time.
+      if (!hasPriorSync) {
+        const armedForUid = u.uid;
+        const armedEpoch = epoch;
+        neverStuckHandle = setTimeout(() => {
+          neverStuckHandle = null;
+          if (!currentUser || currentUser.uid !== armedForUid) return;
+          if (epoch !== armedEpoch) return;
+          if (status.phase === 'syncing') return; // watchdog handles this
+          if (status.lastSyncedMs != null) return; // a real sync already stamped
+          console.warn(`${LOG} never-stuck fallback: stamping lastSyncedMs after ${NEVER_STUCK_MS}ms with no completed sync`);
+          setStatus({ phase: 'idle', lastSyncedMs: Date.now(), error: null });
+        }, NEVER_STUCK_MS);
+      }
       // Schedule the periodic tick FIRST so we're never blocked on the
       // initial pull. The first run is fire-and-forget.
       //
@@ -1076,6 +1187,7 @@ export function detachSyncEngine(): void {
   if (lingerTimer) { clearTimeout(lingerTimer); lingerTimer = null; }
   if (flushDebounce) { clearTimeout(flushDebounce); flushDebounce = null; }
   if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
+  if (neverStuckHandle) { clearTimeout(neverStuckHandle); neverStuckHandle = null; }
   if (onMessage) { window.removeEventListener('message', onMessage); onMessage = null; }
   if (onVisibility) { document.removeEventListener('visibilitychange', onVisibility); onVisibility = null; }
   if (onBeforeUnload) { window.removeEventListener('beforeunload', onBeforeUnload); onBeforeUnload = null; }

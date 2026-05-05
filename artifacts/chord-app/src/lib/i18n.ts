@@ -69,6 +69,19 @@ const translations = {
       keyOf: (k: string) => `Key of ${k}`,
       bpmShort: (n: number) => `${n} BPM`,
       loadMore: (n: number) => `Load ${n} more`,
+      /* Genre filter chips — added v3.0.56 */
+      genres: {
+        'english-rock': 'English Rock',
+        'spanish-rock': 'Spanish Rock',
+        'yacht-rock':   'Yacht Rock',
+        'blues':        'Blues',
+        'jazz':         'Jazz',
+        'pop':          'Pop',
+        'folk':         'Folk',
+        'latin':        'Latin',
+        'hard-rock':    'Hard Rock',
+        'r-and-b':      'R&B / Soul',
+      },
     },
 
     /* ── Chord Panel ── */
@@ -843,6 +856,8 @@ const translations = {
       toolPresets: 'Presets',
       toolExport: 'Export to PDF',
       addInstrument: 'Add instrument',
+      enterLiveMode: 'Live mode',
+      exitLiveMode: 'Exit live mode',
       showNav: 'Show navigation',
       hideNav: 'Hide navigation',
       pdfSheetTitle: 'Export PDF',
@@ -926,6 +941,19 @@ const translations = {
       keyOf: (k: string) => `Tonalidad de ${k}`,
       bpmShort: (n: number) => `${n} BPM`,
       loadMore: (n: number) => `Cargar ${n} más`,
+      /* Filtros de género — agregado en v3.0.56 */
+      genres: {
+        'english-rock': 'Rock Inglés',
+        'spanish-rock': 'Rock en Español',
+        'yacht-rock':   'Yacht Rock',
+        'blues':        'Blues',
+        'jazz':         'Jazz',
+        'pop':          'Pop',
+        'folk':         'Folk',
+        'latin':        'Latino',
+        'hard-rock':    'Hard Rock',
+        'r-and-b':      'R&B / Soul',
+      },
     },
 
     chord: {
@@ -1694,6 +1722,8 @@ const translations = {
       toolPresets: 'Presets',
       toolExport: 'Exportar PDF',
       addInstrument: 'Agregar instrumento',
+      enterLiveMode: 'Modo en vivo',
+      exitLiveMode: 'Salir del modo en vivo',
       showNav: 'Mostrar navegación',
       hideNav: 'Ocultar navegación',
       pdfSheetTitle: 'Exportar PDF',

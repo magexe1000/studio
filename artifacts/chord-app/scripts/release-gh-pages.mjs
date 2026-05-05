@@ -110,7 +110,7 @@ run('node', ['scripts/publish-bundle.mjs'], {
   // Upload the zip as a GitHub Release asset instead of committing it
   // into docs/bundles/. Keeps the repo small as releases pile up.
   // Set USE_GH_RELEASES=0 to fall back to the legacy raw.github path.
-  USE_GH_RELEASES: process.env.USE_GH_RELEASES ?? '0',
+  USE_GH_RELEASES: process.env.USE_GH_RELEASES ?? '1',
 });
 
 // Clean up snapshot — keeps `dist/` tidy and avoids confusion next time.
