@@ -59,6 +59,15 @@ export type { SyncAppKey };
 
 const SYNC_META_KEY = 'chordex_sync_meta_v1';
 const DEVICE_ID_KEY = 'chordex_device_id';
+/**
+ * Per-uid record of whether the FIRST pull-then-push run after sign-in
+ * has ever completed cleanly. Until it has, we keep promoting periodic
+ * ticks (which would otherwise be push-only) to pull-then-push, so a
+ * device that signed in while offline / on a flaky handshake still
+ * eventually pulls the cloud state instead of being stuck on
+ * "Waiting to sync…" forever.
+ */
+const FIRST_PULL_DONE_KEY = 'chordex_sync_first_pull_done_v1';
 
 const TICK_MS = 60_000;          // periodic safety-net flush while signed in
 const RUN_TIMEOUT_MS = 35_000;   // OVERALL hard cap per run — needs to comfortably exceed the 30 s long-poll handshake window so the first sync after app launch can complete
@@ -152,6 +161,14 @@ let runPromise: Promise<void> | null = null;
 let pendingFollowup = false;
 /** Auto-fade-success timer (success → idle after a short linger). */
 let lingerTimer: ReturnType<typeof setTimeout> | null = null;
+/**
+ * One-shot retry scheduled when the initial pull-then-push fails so
+ * the user doesn't have to wait a full TICK_MS (60s) before another
+ * full sync is attempted. Kept in a module-level handle so we can
+ * cancel it on auth-change / detach.
+ */
+let initialRetryHandle: ReturnType<typeof setTimeout> | null = null;
+const INITIAL_RETRY_MS = 8_000;
 
 type RunReason = 'initial' | 'tick' | 'manual' | 'visibility' | 'beforeunload' | 'flush' | 'retry';
 type RunMode = 'pull-then-push' | 'push-only';
@@ -232,6 +249,26 @@ function readMeta(): Meta {
 
 function writeMeta(m: Meta) {
   try { localStorage.setItem(SYNC_META_KEY, JSON.stringify(m)); } catch { /* noop */ }
+}
+
+function readFirstPullDone(uid: string): boolean {
+  try {
+    const raw = localStorage.getItem(FIRST_PULL_DONE_KEY);
+    if (!raw) return false;
+    const set = JSON.parse(raw) as string[];
+    return Array.isArray(set) && set.includes(uid);
+  } catch { return false; }
+}
+
+function writeFirstPullDone(uid: string): void {
+  try {
+    const raw = localStorage.getItem(FIRST_PULL_DONE_KEY);
+    const set: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+    if (!set.includes(uid)) {
+      set.push(uid);
+      localStorage.setItem(FIRST_PULL_DONE_KEY, JSON.stringify(set));
+    }
+  } catch { /* noop */ }
 }
 
 function deviceId(): string {
@@ -693,6 +730,17 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
   let pushedCount = 0;
   let pulledCount = 0;
   let failure: unknown = null;
+  /**
+   * Did at least one Firestore op (pull getDoc or push setDoc) actually
+   * succeed end-to-end? We use this to gate `writeFirstPullDone` so the
+   * "first sync done" flag truly means "we proved connectivity," not
+   * just "no exception escaped the run." Without this, a pull-then-push
+   * where every getDoc timed out (Promise.allSettled swallows rejections)
+   * and there happened to be no push work would silently mark the uid as
+   * done and demote future ticks to push-only — which is exactly the
+   * stuck-on-"Waiting to sync…" failure mode we're trying to fix.
+   */
+  let opSucceeded = false;
 
   try {
     if (mode === 'pull-then-push') {
@@ -700,7 +748,10 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
         ALL_APPS.map((app) => pullApp(app, meta, ctrl.signal)),
       );
       for (const r of pullResults) {
-        if (r.status === 'fulfilled' && r.value.pulled) pulledCount += 1;
+        if (r.status === 'fulfilled') {
+          opSucceeded = true; // proof we round-tripped to Firestore
+          if (r.value.pulled) pulledCount += 1;
+        }
         // Per-app failures are tolerated — the OVERALL run only fails
         // on AbortError or when EVERY single op blew up.
       }
@@ -716,6 +767,7 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
       );
       for (const r of pushResults) {
         if (r.status === 'fulfilled') {
+          opSucceeded = true; // proof we round-tripped to Firestore
           if (r.value.pushed) pushedCount += 1;
           if (r.value.pulled) pulledCount += 1;
         } else {
@@ -752,6 +804,19 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
     } else {
       setStatus({ phase: 'idle', lastSyncedMs: Date.now(), error: null });
     }
+    // Mark this uid as having completed at least one full pull-then-push
+    // cycle — but ONLY if at least one Firestore op actually succeeded.
+    // This is the critical gate: a pull-then-push where every single
+    // getDoc timed out and no push work existed would otherwise reach
+    // this success path with `opSucceeded=false` and incorrectly demote
+    // future ticks to push-only, recreating the original "stuck on
+    // Waiting to sync…" bug.
+    if (mode === 'pull-then-push' && currentUser && opSucceeded) {
+      writeFirstPullDone(currentUser.uid);
+    }
+    // We just succeeded — cancel any one-shot initial-retry timer
+    // that might still be queued from a prior failure.
+    if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
     logSuccess(Date.now() - startedAt, pushedCount, pulledCount);
   } catch (e) {
     const isTimeout = e instanceof SyncTimeoutError;
@@ -784,6 +849,30 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
           phase: 'error',
           error: errMsg || 'Sync failed',
         });
+      }
+      // The initial pull-then-push is the only run that hydrates a
+      // brand-new device with cloud state. If it fails (timeout or
+      // offline), schedule ONE quick retry in INITIAL_RETRY_MS instead
+      // of waiting a full TICK_MS for the next push-only sweep — and
+      // make that retry a pull-then-push too so the device actually
+      // catches up. Any subsequent failures fall back to the normal
+      // 60 s tick.
+      if (mode === 'pull-then-push' && currentUser && !readFirstPullDone(currentUser.uid)) {
+        // Capture uid at SCHEDULING time so a sign-out + sign-in (with a
+        // different uid) before the timer fires can't cause this retry
+        // to run for the wrong user. The auth-change handler already
+        // clears `initialRetryHandle`, but that race isn't airtight —
+        // a callback already dequeued from the macrotask queue can
+        // still execute. The uid check inside the callback makes it
+        // safe regardless.
+        const scheduledForUid = currentUser.uid;
+        if (initialRetryHandle) clearTimeout(initialRetryHandle);
+        initialRetryHandle = setTimeout(() => {
+          initialRetryHandle = null;
+          if (currentUser && currentUser.uid === scheduledForUid) {
+            void enqueueRun('retry', 'pull-then-push');
+          }
+        }, INITIAL_RETRY_MS);
       }
     }
   } finally {
@@ -861,21 +950,28 @@ export function requestFlush(delayMs = 1500): void {
  * await it (so the caller's spinner ends when the actual work ends).
  * If a previous run failed, this clears the error first so the user
  * sees the new run's outcome cleanly.
+ *
+ * Manual sync is ALWAYS pull-then-push: when the user taps the button
+ * they want a true round-trip, not just a local push. This also gives
+ * them a working escape hatch when the automatic initial pull failed
+ * — without it, the user could be stuck on "Waiting to sync…" forever
+ * because every periodic tick was push-only.
  */
 export async function syncNow(): Promise<void> {
   if (flushDebounce) { clearTimeout(flushDebounce); flushDebounce = null; }
   if (status.phase === 'error') setStatus({ phase: 'idle', error: null });
-  await enqueueRun('manual', 'push-only');
+  await enqueueRun('manual', 'pull-then-push');
 }
 
 /**
  * Explicit retry after an error. Identical to syncNow() but logs the
  * intent distinctly so the user-facing Retry button is greppable.
+ * Also pull-then-push for the same reason as syncNow.
  */
 export async function retrySync(): Promise<void> {
   if (flushDebounce) { clearTimeout(flushDebounce); flushDebounce = null; }
   setStatus({ phase: 'idle', error: null });
-  await enqueueRun('retry', 'push-only');
+  await enqueueRun('retry', 'pull-then-push');
 }
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
@@ -911,11 +1007,26 @@ export function attachSyncEngine(): void {
 
     if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
 
+    if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
+
     if (u) {
       setStatus({ signedIn: true, phase: 'idle', error: null });
       // Schedule the periodic tick FIRST so we're never blocked on the
       // initial pull. The first run is fire-and-forget.
-      tickHandle = setInterval(() => { void enqueueRun('tick', 'push-only'); }, TICK_MS);
+      //
+      // Tick mode is ADAPTIVE: if this uid has never completed a full
+      // pull-then-push (because the initial run timed out or the user
+      // signed in while offline), we keep promoting ticks to
+      // pull-then-push. Once the first round-trip succeeds we revert
+      // to cheap push-only ticks. This is what stops a device from
+      // being stuck on "Waiting to sync…" forever — the next tick
+      // after coming back online will actually pull cloud state.
+      tickHandle = setInterval(() => {
+        const mode: RunMode = currentUser && !readFirstPullDone(currentUser.uid)
+          ? 'pull-then-push'
+          : 'push-only';
+        void enqueueRun('tick', mode);
+      }, TICK_MS);
       void enqueueRun('initial', 'pull-then-push');
     } else {
       try { localStorage.removeItem(SYNC_META_KEY); } catch { /* noop */ }
@@ -940,6 +1051,7 @@ export function detachSyncEngine(): void {
   if (unsubAuth) { unsubAuth(); unsubAuth = null; }
   if (lingerTimer) { clearTimeout(lingerTimer); lingerTimer = null; }
   if (flushDebounce) { clearTimeout(flushDebounce); flushDebounce = null; }
+  if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
   if (onMessage) { window.removeEventListener('message', onMessage); onMessage = null; }
   if (onVisibility) { document.removeEventListener('visibilitychange', onVisibility); onVisibility = null; }
   if (onBeforeUnload) { window.removeEventListener('beforeunload', onBeforeUnload); onBeforeUnload = null; }

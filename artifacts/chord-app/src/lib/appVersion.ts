@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.51';
+export const APP_VERSION = '3.0.52';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-05'; // 3.0.51
+export const APP_VERSION_DATE = '2026-05-05'; // 3.0.52
 // 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
@@ -56,9 +56,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixes",
     items: [
-      'Google sign-in now shows a clear, useful message when it fails instead of just "10:".',
-      'Email sign-in is highlighted as the working alternative when Google rejects the build (so cloud sync works while the SHA-1 is being registered in Firebase).',
-      'Better error messages for all Google Sign-In failure modes (cancelled, network, internal error).',
+      'Cloud sync no longer gets stuck on "Waiting to sync…" — devices that miss the first round-trip retry quickly and keep retrying full pull-then-push until they actually catch up.',
+      'Tapping "Sync" now does a full pull AND push (used to be push only), so you can manually pull your data from the cloud when needed.',
+      'After a failed first sync, a fast retry runs in 8 s instead of waiting a full minute.',
     ],
   },
 ];

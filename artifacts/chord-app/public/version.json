@@ -1,5 +1,1 @@
-{
-  "version": "3.0.51",
-  "changelog": "Version 3.0.51 — Clearer Google sign-in errors + email fallback",
-  "mandatory": false
-}
+{"version":"3.0.52","changelog":"Version 3.0.52 — Cloud sync reliability: faster retries + manual Sync now does a full round-trip","mandatory":false}
