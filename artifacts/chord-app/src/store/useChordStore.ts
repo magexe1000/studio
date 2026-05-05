@@ -105,6 +105,12 @@ export interface AppSettings {
    * and each sub-app's pinned default tab/view.
    */
   restoreLastSession: boolean;
+  /** Show OS-level notification when a new OTA bundle is available. */
+  otaNotifications: boolean;
+  /** Periodically auto-check for OTA updates while the app is open. */
+  otaAutoCheck: boolean;
+  /** Show the "What's new" changelog sheet on the first launch after an update. */
+  otaShowChangelog: boolean;
   perApp: Record<AppKey, PerAppVisuals>;
   customAccentHue: number;
   dynamicLightStart: number;
@@ -250,6 +256,9 @@ export const useChordStore = create<ChordStore>()(
         assistantConflictDetection: true,
         assistantLearning: true,
         restoreLastSession: false,
+        otaNotifications: true,
+        otaAutoCheck: true,
+        otaShowChangelog: true,
         customAccentHue: 220,
         dynamicLightStart: 7,
         dynamicLightEnd: 20,

@@ -22,10 +22,11 @@
  * accepts a version from any other source.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { APP_VERSION, compareSemver, normalizeSemver } from './appVersion';
 import { isNative, notifyOtaAvailable } from './capgoUpdater';
 import { nativeSet, NATIVE_PREFS } from './nativePrefs';
+import { useChordStore } from '../store/useChordStore';
 
 const LAST_SEEN_KEY = 'studio:lastSeenVersion';
 const FETCH_TIMEOUT_MS = 6000;
@@ -264,46 +265,94 @@ export async function checkForUpdate(): Promise<OtaState> {
  * collapsed via the `inFlight` ref so a quick visibility flap doesn't
  * stack three identical requests.
  */
-export function useOtaUpdate(): OtaState {
+export interface UseOtaUpdateResult extends OtaState {
+  /** Force a fresh check right now (used by the manual "Check now" button). */
+  checkNow: () => Promise<void>;
+}
+
+export function useOtaUpdate(): UseOtaUpdateResult {
   const [state, setState] = useState<OtaState>(INITIAL_STATE);
   const inFlight = useRef(false);
   const mounted = useRef(true);
+  // Read user toggles. We pull primitives so this hook re-runs only when
+  // these specific flags change, not on every settings update.
+  const otaAutoCheck = useChordStore((s) => s.settings.otaAutoCheck ?? true);
+  const otaNotifications = useChordStore((s) => s.settings.otaNotifications ?? true);
+  // Mirror the latest values into refs so the long-lived listeners
+  // installed in the mount effect always see fresh values without
+  // needing to re-mount the listeners (which would cancel in-flight
+  // fetches every time the user toggled a switch).
+  const autoCheckRef = useRef(otaAutoCheck);
+  const notificationsRef = useRef(otaNotifications);
+  useEffect(() => { autoCheckRef.current = otaAutoCheck; }, [otaAutoCheck]);
+  useEffect(() => { notificationsRef.current = otaNotifications; }, [otaNotifications]);
+
+  // Stable abort controller for manual checks. Recreated on each call
+  // so a previous slow request can be cancelled cleanly when the user
+  // hits "Check now" again.
+  const manualCtrl = useRef<AbortController | null>(null);
+
+  const runCheckImpl = useCallback(async (signal: AbortSignal, isManual: boolean) => {
+    // The `inFlight` flag deduplicates background triggers (visibility,
+    // focus, online, periodic poll) so a quick flap doesn't stack
+    // identical requests. A MANUAL check, however, must NEVER be
+    // silently dropped — the user just tapped the button and expects
+    // visible feedback. We bypass the gate for manual calls; the
+    // resulting overlap with an in-flight auto-check is harmless
+    // because both writes go through the same `setState` reducer and
+    // the final value wins.
+    if (inFlight.current && !isManual) return;
+    inFlight.current = true;
+    if (isManual) {
+      setState((prev) => ({ ...prev, loading: true }));
+    }
+    try {
+      const remote = await fetchRemoteVersion(signal);
+      if (!mounted.current) return;
+      if (!remote) {
+        setState((prev) =>
+          prev.loading ? { ...INITIAL_STATE, loading: false } : { ...prev, loading: false },
+        );
+        return;
+      }
+      const cmp = compareSemver(remote.version, APP_VERSION);
+      setState({
+        updateAvailable: cmp > 0,
+        remoteVersion: remote.version,
+        changelog: remote.changelog ?? null,
+        mandatory: remote.mandatory === true,
+        downloadUrl: remote.downloadUrl ?? null,
+        loading: false,
+      });
+      // Fire an OS-level notification with the version number. This is
+      // intentionally fire-and-forget: it dedups internally per version,
+      // and a failure to surface a notification must never block the
+      // in-app update banner from showing. Suppressed when the user has
+      // turned OTA notifications off.
+      if (cmp > 0 && notificationsRef.current) {
+        void notifyOtaAvailable(remote.version);
+      }
+    } finally {
+      inFlight.current = false;
+    }
+  }, []);
+
+  const checkNow = useCallback(async () => {
+    if (manualCtrl.current) manualCtrl.current.abort();
+    const ctrl = new AbortController();
+    manualCtrl.current = ctrl;
+    await runCheckImpl(ctrl.signal, true);
+  }, [runCheckImpl]);
 
   useEffect(() => {
     mounted.current = true;
     const ctrl = new AbortController();
 
     const runCheck = async () => {
-      if (inFlight.current) return;
-      inFlight.current = true;
-      try {
-        const remote = await fetchRemoteVersion(ctrl.signal);
-        if (!mounted.current) return;
-        if (!remote) {
-          setState((prev) =>
-            prev.loading ? { ...INITIAL_STATE, loading: false } : prev,
-          );
-          return;
-        }
-        const cmp = compareSemver(remote.version, APP_VERSION);
-        setState({
-          updateAvailable: cmp > 0,
-          remoteVersion: remote.version,
-          changelog: remote.changelog ?? null,
-          mandatory: remote.mandatory === true,
-          downloadUrl: remote.downloadUrl ?? null,
-          loading: false,
-        });
-        // Fire an OS-level notification with the version number. This is
-        // intentionally fire-and-forget: it dedups internally per version,
-        // and a failure to surface a notification must never block the
-        // in-app update banner from showing.
-        if (cmp > 0) {
-          void notifyOtaAvailable(remote.version);
-        }
-      } finally {
-        inFlight.current = false;
-      }
+      // Honor the user's auto-check toggle. The MANUAL "Check now"
+      // button bypasses this via `checkNow`.
+      if (!autoCheckRef.current) return;
+      await runCheckImpl(ctrl.signal, false);
     };
 
     // Mark our currently running bundle so the native background worker
@@ -377,10 +426,14 @@ export function useOtaUpdate(): OtaState {
       }
       if (pollTimer) clearTimeout(pollTimer);
       if (nativeListener) void nativeListener.remove().catch(() => {});
+      if (manualCtrl.current) {
+        manualCtrl.current.abort();
+        manualCtrl.current = null;
+      }
     };
-  }, []);
+  }, [runCheckImpl]);
 
-  return state;
+  return { ...state, checkNow };
 }
 
 /* ──────────────────────────────────────────────────────────────────── *
@@ -448,19 +501,27 @@ export function usePostUpdateChangelog(): {
 } {
   const [show, setShow] = useState(false);
   const [fromVersion, setFromVersion] = useState<string | null>(null);
+  const showChangelog = useChordStore((s) => s.settings.otaShowChangelog ?? true);
 
   useEffect(() => {
     const { justUpdated, from } = detectJustUpdated();
     if (justUpdated) {
-      setFromVersion(from);
-      setShow(true);
+      // Even when the user has opted out of the auto-shown sheet, we
+      // still want to advance lastSeen so the modal doesn't "build up"
+      // and surface the next time they re-enable the toggle.
+      if (showChangelog) {
+        setFromVersion(from);
+        setShow(true);
+      } else {
+        writeLastSeen(APP_VERSION);
+      }
     } else if (from === null) {
       // First install — record current version so future updates
       // produce a clean diff against this baseline.
       writeLastSeen(APP_VERSION);
     }
     // If `from >= APP_VERSION`, do nothing — already up to date.
-  }, []);
+  }, [showChangelog]);
 
   const dismiss = () => {
     writeLastSeen(APP_VERSION);

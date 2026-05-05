@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.52';
+export const APP_VERSION = '3.0.53';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-05'; // 3.0.52
+export const APP_VERSION_DATE = '2026-05-05'; // 3.0.53
 // 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
@@ -56,9 +56,16 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixes",
     items: [
-      'Cloud sync no longer gets stuck on "Waiting to sync…" — devices that miss the first round-trip retry quickly and keep retrying full pull-then-push until they actually catch up.',
-      'Tapping "Sync" now does a full pull AND push (used to be push only), so you can manually pull your data from the cloud when needed.',
-      'After a failed first sync, a fast retry runs in 8 s instead of waiting a full minute.',
+      'Cloud sync indicator now correctly shows "Synced" instead of being stuck on "Waiting to sync…" forever — even on flaky networks and silent push-only ticks.',
+      'After signing in, the app shows your previous sync time immediately rather than waiting for a full round-trip.',
+    ],
+  },
+  {
+    heading: "What's new",
+    items: [
+      'Updater settings: turn update notifications on/off, toggle automatic checks, and check for updates manually.',
+      'Optional "What\'s new" sheet on launch after every update.',
+      'Redesigned About screen with a proper Studio identity and the family of sub-app logos.',
     ],
   },
 ];

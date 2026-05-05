@@ -547,45 +547,105 @@ function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
   onBack: () => void;
 }) {
   const ota = useOtaUpdate();
+  const { settings, updateSettings } = useChordStore();
+  const lang = settings.language ?? 'en';
+
+  const L = lang === 'es'
+    ? {
+        version: 'Versión',
+        installed: 'Instalada',
+        latest: 'Última',
+        status: 'Estado',
+        checking: 'Buscando actualizaciones…',
+        updateAvailable: (v: string) => `Actualización disponible — ${v}`,
+        upToDate: 'Estás al día',
+        download: (v: string) => `Descargar ${v}`,
+        controls: 'Controles',
+        notifTitle: 'Notificaciones de actualización',
+        notifDesc: 'Recibe un aviso del sistema cuando haya un bundle nuevo.',
+        autoTitle: 'Comprobación automática',
+        autoDesc: 'Studio comprueba cada 60 s mientras la app está abierta.',
+        changelogTitle: 'Mostrar novedades tras actualizar',
+        changelogDesc: 'Abre la hoja de cambios la primera vez tras instalar una nueva versión.',
+        checkNow: 'Buscar ahora',
+        howItWorks: 'Cómo funciona',
+        howItWorksBody: 'Las actualizaciones OTA se descargan en segundo plano y se aplican al reabrir la app — sin reinstalar.',
+      }
+    : {
+        version: 'Version',
+        installed: 'Installed',
+        latest: 'Latest',
+        status: 'Status',
+        checking: 'Checking for updates…',
+        updateAvailable: (v: string) => `Update available — ${v}`,
+        upToDate: "You're up to date",
+        download: (v: string) => `Download ${v}`,
+        controls: 'Controls',
+        notifTitle: 'Update notifications',
+        notifDesc: 'Get a system notification when a new bundle is ready.',
+        autoTitle: 'Automatic checks',
+        autoDesc: 'Studio checks every 60 s while the app is open.',
+        changelogTitle: "Show what's new after updating",
+        changelogDesc: 'Open the changelog sheet the first time you launch after installing a new version.',
+        checkNow: 'Check now',
+        howItWorks: 'How it works',
+        howItWorksBody: 'OTA updates download in the background and apply on the next launch — no reinstall needed.',
+      };
 
   const statusColor = ota.loading
     ? 'var(--c-text-secondary)'
     : ota.updateAvailable ? '#f59e0b' : '#4ade80';
 
   const statusLabel = ota.loading
-    ? 'Checking for updates…'
+    ? L.checking
     : ota.updateAvailable
-      ? `Update available — ${ota.remoteVersion}`
-      : 'You\'re up to date';
+      ? L.updateAvailable(ota.remoteVersion ?? '')
+      : L.upToDate;
 
   return (
     <div style={style}>
       <style>{HUB_SETTINGS_CSS}</style>
       <SettingsSubHeader title="Updater" onBack={onBack} />
 
-      <SettingsSectionLabel>Version</SettingsSectionLabel>
+      <SettingsSectionLabel>{L.version}</SettingsSectionLabel>
       <div style={cardStyle}>
         <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>Installed</span>
+          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.installed}</span>
           <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{APP_VERSION_LABEL}</span>
         </div>
         <div style={{ padding: '15px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>Latest</span>
+          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.latest}</span>
           <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>
             {ota.loading ? '—' : (ota.remoteVersion ?? '—')}
           </span>
         </div>
       </div>
 
-      <SettingsSectionLabel delay={50}>Status</SettingsSectionLabel>
+      <SettingsSectionLabel delay={50}>{L.status}</SettingsSectionLabel>
       <div style={cardStyle}>
-        <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: ota.updateAvailable && ota.downloadUrl ? '1px solid rgba(128,128,128,0.07)' : 'none' }}>
+        <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
           {ota.loading
             ? <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0, animation: 'hub-spin 1s linear infinite' }}>refresh</span>
             : <div style={{ width: 9, height: 9, borderRadius: '50%', background: statusColor, flexShrink: 0, boxShadow: `0 0 8px ${statusColor}88` }} />
           }
           <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)', flex: 1 }}>{statusLabel}</span>
         </div>
+        <button
+          type="button"
+          onClick={() => { void ota.checkNow(); }}
+          disabled={ota.loading}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            width: '100%', padding: '14px 18px', border: 'none', background: 'transparent',
+            color: ota.loading ? 'var(--c-text-secondary)' : accent.from,
+            fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
+            cursor: ota.loading ? 'default' : 'pointer',
+            borderBottom: ota.updateAvailable && ota.downloadUrl ? '1px solid rgba(128,128,128,0.07)' : 'none',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span>
+          {L.checkNow}
+        </button>
         {ota.updateAvailable && ota.downloadUrl && (
           <a
             href={ota.downloadUrl}
@@ -594,23 +654,29 @@ function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '0 16px 16px', marginTop: 12, padding: '13px', borderRadius: 12, background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)', textDecoration: 'none', boxShadow: `0 4px 16px ${accent.to}44` }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>download</span>
-            Download {ota.remoteVersion}
+            {L.download(ota.remoteVersion ?? '')}
           </a>
         )}
       </div>
 
-      <SettingsSectionLabel delay={80}>Update Mode</SettingsSectionLabel>
+      <SettingsSectionLabel delay={80}>{L.controls}</SettingsSectionLabel>
       <div style={cardStyle}>
-        <div style={{ padding: '15px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accent.from}20`, border: `1px solid ${accent.from}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, fontVariationSettings: "'FILL' 1" }}>download</span>
-          </div>
-          <div>
-            <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)', margin: '0 0 4px' }}>OTA — Automatic</p>
-            <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 11, margin: 0, lineHeight: 1.55 }}>
-              Studio checks for updates every 60 s while open. New bundles apply on the next launch — no reinstall needed.
-            </p>
-          </div>
+        <SettingRow label={L.notifTitle} desc={L.notifDesc}>
+          <Toggle value={settings.otaNotifications ?? true} onChange={v => updateSettings({ otaNotifications: v })} accentFrom={accent.from} accentTo={accent.to} />
+        </SettingRow>
+        <SettingRow label={L.autoTitle} desc={L.autoDesc}>
+          <Toggle value={settings.otaAutoCheck ?? true} onChange={v => updateSettings({ otaAutoCheck: v })} accentFrom={accent.from} accentTo={accent.to} />
+        </SettingRow>
+        <SettingRow label={L.changelogTitle} desc={L.changelogDesc}>
+          <Toggle value={settings.otaShowChangelog ?? true} onChange={v => updateSettings({ otaShowChangelog: v })} accentFrom={accent.from} accentTo={accent.to} />
+        </SettingRow>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '14px 4px 0', padding: '12px 14px', borderRadius: 12, background: 'rgba(128,128,128,0.06)', border: '1px solid rgba(128,128,128,0.09)' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 15, color: 'var(--c-text-secondary)', flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1" }}>cloud_download</span>
+        <div>
+          <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 12.5, margin: '0 0 3px' }}>{L.howItWorks}</p>
+          <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 11.5, margin: 0, lineHeight: 1.55 }}>{L.howItWorksBody}</p>
         </div>
       </div>
     </div>
@@ -937,23 +1003,82 @@ function HubSettings({ accent }: { accent: { from: string; to: string; mid: stri
 
   /* ── ABOUT ──────────────────────────────────────────────────────── */
   if (page === 'about') {
+    const lang = settings.language ?? 'en';
+    const subAppLogos: { key: string; node: React.ReactNode; label: string }[] = [
+      { key: 'chordex', label: 'Chordex', node: <ChordexLogo size={34} /> },
+      { key: 'drumex',  label: 'Drumex',  node: <DrumexLogo size={34} /> },
+      { key: 'stagex',  label: 'StageX',  node: <StagexLogoIcon size={34} /> },
+      { key: 'groovex', label: 'GrooveX', node: <GroovexLogo size={34} /> },
+      { key: 'vocalex', label: 'Vocalex', node: <VocalexLogo size={34} /> },
+    ];
     return (
       <div key={pageKey} style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={t.settings.sections.about} onBack={goBack} />
+
+        {/* Hero — giant Studio logo + name */}
+        <div style={{
+          ...cardStyle,
+          padding: '36px 20px 28px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 16,
+          textAlign: 'center',
+        }}>
+          <div style={{
+            width: 112,
+            height: 112,
+            borderRadius: 28,
+            background: `linear-gradient(135deg, ${accent.from}22, ${accent.to}22)`,
+            border: `1px solid ${accent.from}33`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: `0 12px 40px ${accent.to}33`,
+          }}>
+            <StudioLogo size={88} />
+          </div>
+          <div>
+            <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 32, letterSpacing: '-0.03em', color: 'var(--c-text-primary)', lineHeight: 1.1 }}>Studio</p>
+            <p style={{ margin: '6px 0 0', fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', letterSpacing: '0.04em' }}>{APP_VERSION_LABEL}</p>
+          </div>
+        </div>
+
+        {/* Sub-app family */}
+        <SettingsSectionLabel delay={40}>{lang === 'es' ? 'Familia' : 'Family'}</SettingsSectionLabel>
         <div style={cardStyle}>
-          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {([
-              { label: t.settings.about.version, value: APP_VERSION_LABEL },
-              { label: t.settings.about.storage, value: t.settings.about.storageValue },
-            ] as { label: string; value: string }[]).map(({ label, value }) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{label}</span>
-                <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{value}</span>
+          <div style={{
+            padding: '18px 14px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: 8,
+          }}>
+            {subAppLogos.map(({ key, node, label }) => (
+              <div key={key} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6,
+              }}>
+                <div style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 12,
+                  background: 'rgba(128,128,128,0.07)',
+                  border: '1px solid rgba(128,128,128,0.10)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {node}
+                </div>
+                <span style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: 600, color: 'var(--c-text-secondary)', letterSpacing: '0.02em' }}>{label}</span>
               </div>
             ))}
           </div>
         </div>
+
         <div style={{ padding: '28px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 32, height: 2, borderRadius: 999, background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`, marginBottom: 4 }} />
           <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>{t.settings.about.footer}</p>

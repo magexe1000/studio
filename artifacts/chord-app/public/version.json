@@ -1,1 +1,5 @@
-{"version":"3.0.52","changelog":"Version 3.0.52 — Cloud sync reliability: faster retries + manual Sync now does a full round-trip","mandatory":false}
+{
+  "version": "3.0.53",
+  "changelog": "Version 3.0.53",
+  "mandatory": false
+}

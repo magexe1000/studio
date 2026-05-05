@@ -694,9 +694,20 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
   if (mode === 'push-only') {
     work = await collectPushWork(meta);
     if (work.length === 0) {
-      // Nothing to push and we don't need to pull — bail without
-      // touching `phase`. This keeps the indicator in `idle`/`success`
-      // during periods of inactivity.
+      // Nothing to push and we don't need to pull. If this device has
+      // ever completed a successful round-trip for this uid, treat the
+      // no-op as proof the engine is healthy and stamp `lastSyncedMs`
+      // so the indicator advances from "Waiting to sync…" to "Synced".
+      // Without this stamp, a brand-new install whose first sync fired
+      // before any local data existed would appear stuck on
+      // "Esperando para sincronizar…" forever.
+      if (currentUser && readFirstPullDone(currentUser.uid)) {
+        setStatus({
+          phase: 'idle',
+          error: null,
+          lastSyncedMs: status.lastSyncedMs ?? Date.now(),
+        });
+      }
       return;
     }
   }
@@ -1010,7 +1021,20 @@ export function attachSyncEngine(): void {
     if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
 
     if (u) {
-      setStatus({ signedIn: true, phase: 'idle', error: null });
+      // OPTIMISTIC STAMP: if this uid has previously completed a full
+      // round-trip on this device (FIRST_PULL_DONE_KEY), assume we're
+      // still in sync and show "Synced just now" immediately. This kills
+      // the "Esperando para sincronizar…" flash that otherwise persists
+      // until the next pull-then-push completes — which on a flaky
+      // network can be 8 s, 60 s, or never. The next successful run
+      // will overwrite this stamp with its real completion time.
+      const hasPriorSync = readFirstPullDone(u.uid);
+      setStatus({
+        signedIn: true,
+        phase: 'idle',
+        error: null,
+        lastSyncedMs: hasPriorSync ? Date.now() : null,
+      });
       // Schedule the periodic tick FIRST so we're never blocked on the
       // initial pull. The first run is fire-and-forget.
       //
