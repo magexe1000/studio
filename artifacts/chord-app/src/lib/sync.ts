@@ -662,6 +662,13 @@ async function pushApp(
       writeMeta(meta);
       return { pushed: false, pulled: true };
     }
+    // CRITICAL (v3.0.57 data-loss fix): cloud has data we couldn't
+    // restore locally. DO NOT fall through and push the local state —
+    // that would clobber the user's cloud data with our empty defaults
+    // (the exact uninstall/reinstall data-loss bug). Throw so the
+    // caller marks this app's run as failed and the next sync round
+    // can retry the restore. Cloud data stays intact.
+    throw new SyncTimeoutError(`pull-during-push:${app}`, RESTORE_OP_MS);
   }
 
   if (meta[app]?.lastHash === localHash) return { pushed: false, pulled: false };
@@ -711,8 +718,16 @@ async function pullApp(
     applyCloudBody(app, v.body, meta, cloudTs),
     RESTORE_OP_MS,
   );
-  if (applied) writeMeta(meta);
-  return { pulled: applied === true };
+  if (applied) {
+    writeMeta(meta);
+    return { pulled: true };
+  }
+  // CRITICAL (v3.0.57 data-loss fix): cloud has data but we couldn't
+  // restore it locally. Throw so executeRun marks this app's pull as
+  // failed and SKIPS the subsequent push for this app — otherwise our
+  // empty local state would overwrite the user's cloud data on the
+  // very next push phase.
+  throw new SyncTimeoutError(`pull-failed:${app}`, RESTORE_OP_MS);
 }
 
 // ── The single run path ──────────────────────────────────────────────────────
@@ -822,22 +837,34 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
   let opSucceeded = false;
 
   try {
+    /**
+     * Apps whose pull threw (cloud had data we couldn't restore).
+     * We MUST skip pushing these on the same run — otherwise our empty
+     * local state would clobber the user's cloud data. The exact
+     * uninstall/reinstall data-loss bug fixed in v3.0.57.
+     */
+    const failedPullApps = new Set<SyncAppKey>();
     if (mode === 'pull-then-push') {
       const pullResults = await Promise.allSettled(
         ALL_APPS.map((app) => pullApp(app, meta, ctrl.signal)),
       );
-      for (const r of pullResults) {
+      pullResults.forEach((r, i) => {
         if (r.status === 'fulfilled') {
           opSucceeded = true; // proof we round-tripped to Firestore
           if (r.value.pulled) pulledCount += 1;
+        } else {
+          // Track which app's pull failed so we don't push over its cloud doc.
+          failedPullApps.add(ALL_APPS[i]);
         }
-        // Per-app failures are tolerated — the OVERALL run only fails
-        // on AbortError or when EVERY single op blew up.
-      }
+      });
       // Re-collect after pulling: a successful pull can change local state
       // and create new push work that the snapshot from before would miss.
       if (epoch !== startEpoch) throw new SyncTimeoutError('epoch-changed', 0);
       work = await collectPushWork(meta);
+      // CRITICAL: never push for an app whose pull failed this round.
+      if (failedPullApps.size > 0) {
+        work = work.filter((w) => !failedPullApps.has(w.app));
+      }
     }
 
     if (work.length > 0) {

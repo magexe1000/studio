@@ -1,4 +1,40 @@
-export type Language = 'en' | 'es';
+/**
+ * Supported UI languages.
+ *
+ * v3.0.57: expanded from {en,es} to 9 languages. New entries are
+ * "partial" translations — they only override the most user-visible
+ * strings (nav, settings, language picker, sync status, common
+ * buttons). Anything not translated falls back to English via the
+ * deep-merge in `useT()`. This keeps the file manageable while still
+ * delivering a localized experience for the screens users see most.
+ */
+export type Language = 'en' | 'es' | 'de' | 'fr' | 'zh' | 'pt' | 'it' | 'ja' | 'ko';
+
+/**
+ * Detect the device's preferred language from `navigator.language`.
+ * Returns one of our supported languages, or 'en' as a safe default.
+ *
+ * Used at fresh-install time as the default for `settings.language`,
+ * so a German phone gets German UI without the user having to dive
+ * into Settings first. Existing users keep whatever they had picked —
+ * this only kicks in when there's no persisted setting yet.
+ */
+export function detectDeviceLanguage(): Language {
+  try {
+    const raw = (typeof navigator !== 'undefined' && navigator.language)
+      ? navigator.language.toLowerCase()
+      : 'en';
+    if (raw.startsWith('es')) return 'es';
+    if (raw.startsWith('de')) return 'de';
+    if (raw.startsWith('fr')) return 'fr';
+    if (raw.startsWith('zh')) return 'zh';
+    if (raw.startsWith('pt')) return 'pt';
+    if (raw.startsWith('it')) return 'it';
+    if (raw.startsWith('ja')) return 'ja';
+    if (raw.startsWith('ko')) return 'ko';
+  } catch { /* noop */ }
+  return 'en';
+}
 
 const translations = {
   en: {
@@ -327,6 +363,13 @@ const translations = {
         desc: 'Change the app display language',
         en: 'English',
         es: 'Español',
+        de: 'Deutsch',
+        fr: 'Français',
+        zh: '中文',
+        pt: 'Português',
+        it: 'Italiano',
+        ja: '日本語',
+        ko: '한국어',
       },
     },
 
@@ -1196,6 +1239,13 @@ const translations = {
         desc: 'Cambia el idioma de la app',
         en: 'English',
         es: 'Español',
+        de: 'Deutsch',
+        fr: 'Français',
+        zh: '中文',
+        pt: 'Português',
+        it: 'Italiano',
+        ja: '日本語',
+        ko: '한국어',
       },
     },
 
@@ -1743,4 +1793,361 @@ const translations = {
 } as const;
 
 export type Translations = typeof translations.en;
+
+/**
+ * Recursively-partial overrides for the 7 languages added in v3.0.57.
+ * Each entry only needs to contain the strings actually translated —
+ * `useT()` deep-merges the override on top of the English base, so any
+ * missing key transparently falls back to English.
+ *
+ * Translations focus on the most user-visible surfaces: navigation,
+ * settings sections + language picker, account/sync status, and the
+ * common buttons. Less-visible technical strings (chord-quality
+ * descriptions, builder internals, etc.) still show in English until
+ * a future release expands coverage.
+ */
+// Widen literal string types so partial translations can use any string —
+// the base `translations` object uses `as const`, which would otherwise
+// force overrides to match the exact English wording (defeating the
+// whole point of translation).
+type WidenStrings<T> =
+  T extends string ? string :
+  T extends number ? number :
+  T extends boolean ? boolean :
+  T extends (...args: infer A) => infer R ? (...args: A) => R :
+  T extends object ? { -readonly [K in keyof T]: WidenStrings<T[K]> } :
+  T;
+type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T[K]> } : T;
+
+export const partialOverrides: { [K in Language]?: DeepPartial<WidenStrings<Translations>> } = {
+  /* ─────────────────── DEUTSCH ─────────────────── */
+  de: {
+    nav: { songs: 'Lieder', library: 'Bibliothek', chords: 'Akkorde', settings: 'Einstellungen' },
+    library: {
+      title: 'Bibliothek',
+      tabExplore: 'Erkunden',
+      tabDiscover: 'Entdecken',
+      searchPlaceholder: 'Akkorde suchen...',
+      recent: 'Zuletzt',
+      saved: 'Gespeichert',
+      allGenres: 'Alle Genres',
+      backToCategories: 'Kategorien',
+    },
+    hub: {
+      account: 'Konto',
+      accountSection: {
+        title: 'Konto',
+        signedIn: 'Angemeldet',
+        syncing: 'Synchronisierung…',
+        syncError: 'Synchronisation pausiert — tippe auf Erneut versuchen',
+        syncFailed: 'Synchronisation fehlgeschlagen',
+        retry: 'Erneut versuchen',
+        lastSynced: 'Zuletzt synchronisiert',
+        notSyncedYet: 'Warten auf Synchronisation…',
+        syncNow: 'Synchronisieren',
+        signOut: 'Abmelden',
+        cancel: 'Abbrechen',
+        signIn: 'Anmelden',
+        register: 'Konto erstellen',
+        synced: 'Synchronisiert',
+        syncedJustNow: 'Gerade synchronisiert',
+        dangerZone: 'Gefahrenzone',
+        deleteAccount: 'Konto löschen',
+        continueGoogle: 'Mit Google fortfahren',
+        continueEmail: 'Mit E-Mail fortfahren',
+      },
+    },
+    settings: {
+      sections: { language: 'Sprache', appearance: 'Design', about: 'Über' },
+      language: {
+        label: 'Sprache',
+        desc: 'Anzeigesprache der App ändern',
+        en: 'English', es: 'Español', de: 'Deutsch', fr: 'Français', zh: '中文', pt: 'Português', it: 'Italiano', ja: '日本語', ko: '한국어',
+      },
+    },
+  },
+
+  /* ─────────────────── FRANÇAIS ─────────────────── */
+  fr: {
+    nav: { songs: 'Chansons', library: 'Bibliothèque', chords: 'Accords', settings: 'Paramètres' },
+    library: {
+      title: 'Bibliothèque',
+      tabExplore: 'Explorer',
+      tabDiscover: 'Découvrir',
+      searchPlaceholder: 'Rechercher des accords...',
+      recent: 'Récents',
+      saved: 'Enregistrés',
+      allGenres: 'Tous les genres',
+      backToCategories: 'Catégories',
+    },
+    hub: {
+      account: 'Compte',
+      accountSection: {
+        title: 'Compte',
+        signedIn: 'Connecté',
+        syncing: 'Synchronisation…',
+        syncError: 'Synchronisation en pause — touchez Réessayer',
+        syncFailed: 'Échec de la synchronisation',
+        retry: 'Réessayer',
+        lastSynced: 'Dernière synchronisation',
+        notSyncedYet: 'En attente de synchronisation…',
+        syncNow: 'Synchroniser',
+        signOut: 'Se déconnecter',
+        cancel: 'Annuler',
+        signIn: 'Se connecter',
+        register: 'Créer un compte',
+        synced: 'Synchronisé',
+        syncedJustNow: 'Synchronisé à l\'instant',
+        dangerZone: 'Zone sensible',
+        deleteAccount: 'Supprimer le compte',
+        continueGoogle: 'Continuer avec Google',
+        continueEmail: 'Continuer avec e-mail',
+      },
+    },
+    settings: {
+      sections: { language: 'Langue', appearance: 'Thème', about: 'À propos' },
+      language: {
+        label: 'Langue',
+        desc: 'Changer la langue d\'affichage',
+        en: 'English', es: 'Español', de: 'Deutsch', fr: 'Français', zh: '中文', pt: 'Português', it: 'Italiano', ja: '日本語', ko: '한국어',
+      },
+    },
+  },
+
+  /* ─────────────────── 中文 (简体) ─────────────────── */
+  zh: {
+    nav: { songs: '歌曲', library: '曲库', chords: '和弦', settings: '设置' },
+    library: {
+      title: '曲库',
+      tabExplore: '浏览',
+      tabDiscover: '发现',
+      searchPlaceholder: '搜索和弦...',
+      recent: '最近',
+      saved: '已保存',
+      allGenres: '所有风格',
+      backToCategories: '分类',
+    },
+    hub: {
+      account: '账号',
+      accountSection: {
+        title: '账号',
+        signedIn: '已登录',
+        syncing: '同步中…',
+        syncError: '同步已暂停 — 点击重试',
+        syncFailed: '同步失败',
+        retry: '重试',
+        lastSynced: '上次同步',
+        notSyncedYet: '等待同步…',
+        syncNow: '立即同步',
+        signOut: '退出登录',
+        cancel: '取消',
+        signIn: '登录',
+        register: '创建账号',
+        synced: '已同步',
+        syncedJustNow: '刚刚已同步',
+        dangerZone: '危险操作',
+        deleteAccount: '删除账号',
+        continueGoogle: '使用 Google 继续',
+        continueEmail: '使用邮箱继续',
+      },
+    },
+    settings: {
+      sections: { language: '语言', appearance: '主题', about: '关于' },
+      language: {
+        label: '语言',
+        desc: '更改应用显示语言',
+        en: 'English', es: 'Español', de: 'Deutsch', fr: 'Français', zh: '中文', pt: 'Português', it: 'Italiano', ja: '日本語', ko: '한국어',
+      },
+    },
+  },
+
+  /* ─────────────────── PORTUGUÊS ─────────────────── */
+  pt: {
+    nav: { songs: 'Músicas', library: 'Biblioteca', chords: 'Acordes', settings: 'Preferências' },
+    library: {
+      title: 'Biblioteca',
+      tabExplore: 'Explorar',
+      tabDiscover: 'Descobrir',
+      searchPlaceholder: 'Pesquisar acordes...',
+      recent: 'Recentes',
+      saved: 'Salvos',
+      allGenres: 'Todos os gêneros',
+      backToCategories: 'Categorias',
+    },
+    hub: {
+      account: 'Conta',
+      accountSection: {
+        title: 'Conta',
+        signedIn: 'Conectado',
+        syncing: 'Sincronizando…',
+        syncError: 'Sincronização pausada — toque em Tentar novamente',
+        syncFailed: 'Falha na sincronização',
+        retry: 'Tentar novamente',
+        lastSynced: 'Última sincronização',
+        notSyncedYet: 'Aguardando sincronização…',
+        syncNow: 'Sincronizar',
+        signOut: 'Sair',
+        cancel: 'Cancelar',
+        signIn: 'Entrar',
+        register: 'Criar conta',
+        synced: 'Sincronizado',
+        syncedJustNow: 'Sincronizado agora',
+        dangerZone: 'Zona de risco',
+        deleteAccount: 'Excluir conta',
+        continueGoogle: 'Continuar com Google',
+        continueEmail: 'Continuar com e-mail',
+      },
+    },
+    settings: {
+      sections: { language: 'Idioma', appearance: 'Tema', about: 'Sobre' },
+      language: {
+        label: 'Idioma',
+        desc: 'Alterar o idioma do aplicativo',
+        en: 'English', es: 'Español', de: 'Deutsch', fr: 'Français', zh: '中文', pt: 'Português', it: 'Italiano', ja: '日本語', ko: '한국어',
+      },
+    },
+  },
+
+  /* ─────────────────── ITALIANO ─────────────────── */
+  it: {
+    nav: { songs: 'Brani', library: 'Libreria', chords: 'Accordi', settings: 'Impostazioni' },
+    library: {
+      title: 'Libreria',
+      tabExplore: 'Esplora',
+      tabDiscover: 'Scopri',
+      searchPlaceholder: 'Cerca accordi...',
+      recent: 'Recenti',
+      saved: 'Salvati',
+      allGenres: 'Tutti i generi',
+      backToCategories: 'Categorie',
+    },
+    hub: {
+      account: 'Account',
+      accountSection: {
+        title: 'Account',
+        signedIn: 'Accesso effettuato',
+        syncing: 'Sincronizzazione…',
+        syncError: 'Sincronizzazione in pausa — tocca Riprova',
+        syncFailed: 'Sincronizzazione fallita',
+        retry: 'Riprova',
+        lastSynced: 'Ultima sincronizzazione',
+        notSyncedYet: 'In attesa di sincronizzazione…',
+        syncNow: 'Sincronizza',
+        signOut: 'Esci',
+        cancel: 'Annulla',
+        signIn: 'Accedi',
+        register: 'Crea account',
+        synced: 'Sincronizzato',
+        syncedJustNow: 'Sincronizzato adesso',
+        dangerZone: 'Zona pericolosa',
+        deleteAccount: 'Elimina account',
+        continueGoogle: 'Continua con Google',
+        continueEmail: 'Continua con e-mail',
+      },
+    },
+    settings: {
+      sections: { language: 'Lingua', appearance: 'Tema', about: 'Informazioni' },
+      language: {
+        label: 'Lingua',
+        desc: 'Cambia la lingua dell\'app',
+        en: 'English', es: 'Español', de: 'Deutsch', fr: 'Français', zh: '中文', pt: 'Português', it: 'Italiano', ja: '日本語', ko: '한국어',
+      },
+    },
+  },
+
+  /* ─────────────────── 日本語 ─────────────────── */
+  ja: {
+    nav: { songs: '曲', library: 'ライブラリ', chords: 'コード', settings: '設定' },
+    library: {
+      title: 'ライブラリ',
+      tabExplore: '探す',
+      tabDiscover: '発見',
+      searchPlaceholder: 'コードを検索...',
+      recent: '最近',
+      saved: '保存済み',
+      allGenres: 'すべてのジャンル',
+      backToCategories: 'カテゴリー',
+    },
+    hub: {
+      account: 'アカウント',
+      accountSection: {
+        title: 'アカウント',
+        signedIn: 'サインイン中',
+        syncing: '同期中…',
+        syncError: '同期が一時停止 — 再試行をタップ',
+        syncFailed: '同期に失敗しました',
+        retry: '再試行',
+        lastSynced: '前回の同期',
+        notSyncedYet: '同期を待っています…',
+        syncNow: '今すぐ同期',
+        signOut: 'サインアウト',
+        cancel: 'キャンセル',
+        signIn: 'サインイン',
+        register: 'アカウントを作成',
+        synced: '同期済み',
+        syncedJustNow: '同期しました',
+        dangerZone: '危険な操作',
+        deleteAccount: 'アカウントを削除',
+        continueGoogle: 'Googleで続行',
+        continueEmail: 'メールで続行',
+      },
+    },
+    settings: {
+      sections: { language: '言語', appearance: 'テーマ', about: 'アプリについて' },
+      language: {
+        label: '言語',
+        desc: 'アプリの表示言語を変更',
+        en: 'English', es: 'Español', de: 'Deutsch', fr: 'Français', zh: '中文', pt: 'Português', it: 'Italiano', ja: '日本語', ko: '한국어',
+      },
+    },
+  },
+
+  /* ─────────────────── 한국어 ─────────────────── */
+  ko: {
+    nav: { songs: '노래', library: '라이브러리', chords: '코드', settings: '설정' },
+    library: {
+      title: '라이브러리',
+      tabExplore: '둘러보기',
+      tabDiscover: '발견',
+      searchPlaceholder: '코드 검색...',
+      recent: '최근',
+      saved: '저장됨',
+      allGenres: '모든 장르',
+      backToCategories: '카테고리',
+    },
+    hub: {
+      account: '계정',
+      accountSection: {
+        title: '계정',
+        signedIn: '로그인됨',
+        syncing: '동기화 중…',
+        syncError: '동기화 일시중지됨 — 다시 시도하려면 탭하세요',
+        syncFailed: '동기화 실패',
+        retry: '다시 시도',
+        lastSynced: '마지막 동기화',
+        notSyncedYet: '동기화 대기 중…',
+        syncNow: '지금 동기화',
+        signOut: '로그아웃',
+        cancel: '취소',
+        signIn: '로그인',
+        register: '계정 만들기',
+        synced: '동기화됨',
+        syncedJustNow: '방금 동기화됨',
+        dangerZone: '위험 구역',
+        deleteAccount: '계정 삭제',
+        continueGoogle: 'Google로 계속',
+        continueEmail: '이메일로 계속',
+      },
+    },
+    settings: {
+      sections: { language: '언어', appearance: '테마', about: '정보' },
+      language: {
+        label: '언어',
+        desc: '앱 표시 언어 변경',
+        en: 'English', es: 'Español', de: 'Deutsch', fr: 'Français', zh: '中文', pt: 'Português', it: 'Italiano', ja: '日本語', ko: '한국어',
+      },
+    },
+  },
+};
+
 export default translations;

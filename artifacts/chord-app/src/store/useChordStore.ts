@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Chord, Instrument } from '../data/chords';
+import { detectDeviceLanguage, type Language as I18nLanguage } from '../lib/i18n';
 
 export type Theme = 'dark' | 'light' | 'system' | 'dynamic';
 export type ActivePanel = 'library' | 'chord' | 'settings' | 'songs';
@@ -12,7 +13,9 @@ export interface PerAppVisuals {
   accentColor: AccentColor;
   amoledMode: boolean;
 }
-export type Language = 'en' | 'es';
+// Re-exported from i18n.ts so the store and the translation system always
+// agree on the supported language set. v3.0.57 added: de, fr, zh, pt, it, ja, ko.
+export type Language = I18nLanguage;
 export type AnimationSpeed = 'normal' | 'fast' | 'reduced';
 export type DisplayDensity = 'compact' | 'comfortable' | 'spacious';
 
@@ -239,7 +242,11 @@ export const useChordStore = create<ChordStore>()(
         liveModeAnimations: true,
         liveModeDiagram: false,
         liveChordSize: 100,
-        language: 'en',
+        // v3.0.57: default to the device's language on a fresh install.
+        // Existing installs keep whatever the user already had — the
+        // persist `merge` step overwrites this default with the saved
+        // value, so this only matters when there's no persisted state.
+        language: detectDeviceLanguage(),
         preferFlats: false,
         defaultTab: 'library',
         defaultDrumTab: 'songs',
@@ -659,7 +666,7 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
-      version: 7,
+      version: 8,
       migrate: (stored: unknown, fromVersion: number) => {
         const s = stored as Record<string, unknown>;
         if (fromVersion < 1) {
@@ -743,6 +750,11 @@ export const useChordStore = create<ChordStore>()(
               settings.language = 'en';
             }
           }
+        }
+        if (fromVersion < 8) {
+          // v3.0.57: 7 new languages added. No-op for existing users —
+          // they keep whatever they had picked. New installs get device
+          // language via the initial state in the store. Marker only.
         }
         return s;
       },

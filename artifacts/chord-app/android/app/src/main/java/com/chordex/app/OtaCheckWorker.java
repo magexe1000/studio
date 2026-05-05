@@ -58,8 +58,13 @@ public class OtaCheckWorker extends Worker {
     private static final String PREFS_FILE = "CapacitorStorage";
 
     /** Keys mirrored from {@code src/lib/nativePrefs.ts → NATIVE_PREFS}. */
-    private static final String KEY_REMOTE_SEEN = "studio_ota.remote_seen";
-    private static final String KEY_INSTALLED   = "studio_ota.installed_version";
+    private static final String KEY_REMOTE_SEEN          = "studio_ota.remote_seen";
+    private static final String KEY_INSTALLED            = "studio_ota.installed_version";
+    /** "true" / "false" — when "false", the user has explicitly
+     *  silenced update notifications via Settings → Updater. We must
+     *  NEVER post a system notification in that case, even with the
+     *  app fully closed. JS mirrors this on every toggle change. */
+    private static final String KEY_NOTIFICATIONS_ENABLED = "studio_ota.notifications_enabled";
 
     private static final String CHANNEL_ID   = "studio_ota_updates";
     private static final String CHANNEL_NAME = "Studio updates";
@@ -89,6 +94,17 @@ public class OtaCheckWorker extends Worker {
             if (installed != null && compareSemver(remote, installed) <= 0) {
                 // User is current — silently update the seen marker so
                 // we don't post on the next tick either.
+                prefs.edit().putString(KEY_REMOTE_SEEN, remote).apply();
+                return Result.success();
+            }
+
+            // Honor the user's "Update notifications" toggle. When
+            // explicitly set to "false", stay silent — but still
+            // advance the seen marker so we don't accumulate a backlog
+            // of "missed" notifications that all fire the moment the
+            // user re-enables the toggle.
+            String notifEnabled = prefs.getString(KEY_NOTIFICATIONS_ENABLED, "true");
+            if ("false".equalsIgnoreCase(notifEnabled)) {
                 prefs.edit().putString(KEY_REMOTE_SEEN, remote).apply();
                 return Result.success();
             }
@@ -174,15 +190,20 @@ public class OtaCheckWorker extends Worker {
             pi = PendingIntent.getActivity(ctx, 0, launch, flags);
         }
 
-        // Resolve the app's launcher icon so we never reference a
-        // drawable that doesn't exist (which silently drops the post).
-        int icon;
-        try {
-            icon = ctx.getPackageManager()
-                .getApplicationInfo(ctx.getPackageName(), 0).icon;
-            if (icon == 0) icon = android.R.drawable.stat_sys_download_done;
-        } catch (PackageManager.NameNotFoundException e) {
-            icon = android.R.drawable.stat_sys_download_done;
+        // v3.0.57: Use a dedicated info-style notification icon ("i" in
+        // a circle) instead of the launcher icon. Android tints status-
+        // bar icons to white, so the colored launcher icon was rendering
+        // as an unrecognizable blob. Falls back to the launcher icon
+        // only if the dedicated drawable is missing.
+        int icon = R.drawable.ic_notification_info;
+        if (icon == 0) {
+            try {
+                icon = ctx.getPackageManager()
+                    .getApplicationInfo(ctx.getPackageName(), 0).icon;
+                if (icon == 0) icon = android.R.drawable.stat_sys_download_done;
+            } catch (PackageManager.NameNotFoundException e) {
+                icon = android.R.drawable.stat_sys_download_done;
+            }
         }
 
         NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CHANNEL_ID)

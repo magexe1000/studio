@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.56';
+export const APP_VERSION = '3.0.57';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-05'; // 3.0.56
+export const APP_VERSION_DATE = '2026-05-05'; // 3.0.57
 // 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
@@ -54,14 +54,17 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
+    heading: "What's new",
+    items: [
+      'Studio now speaks 9 languages and auto-detects your phone\'s language on first launch: English, Spanish, German, French, Chinese, Portuguese, Italian, Japanese and Korean. You can switch any time from Settings → Language.',
+      'Sync status now shows a clear green check ✓ once your data is safely backed up — much easier to see at a glance.',
+    ],
+  },
+  {
     heading: "Fixes",
     items: [
-      'Cloud sync no longer gets stuck on "Syncing" or "Waiting to sync…" — the indicator is now guaranteed to escape that state within 25 seconds, even on flaky networks or wedged Firestore handshakes.',
-      'Faster sync: the per-operation timeout was tightened from 25 s to 12 s, so a slow handshake clears in half the time.',
-      'Library → Discover song descriptions are now fully translated to Spanish (all 200+ songs).',
-      'Library → Discover genre filter chips ("Rock Inglés", "Rock en Español", "Jazz", "Yacht Rock", etc.) now display in Spanish.',
-      'Stagex: removed the duplicated Auto-arrange button from the top toolbar. The vertical sidebar button now triggers Auto-arrange directly, with no extra confirmation step.',
-      'Stagex: the Live-mode (eye) button moved out of the top toolbar and now floats just above the blue + button, where it belongs. It hides automatically when the + menu opens so it never overlaps the element chips, and the eye icon now toggles between visibility / visibility_off so its state is always obvious.',
+      'CRITICAL data-loss fix: uninstalling and reinstalling Studio no longer wipes your songs, presets, and progressions. Previously, on a fresh install the empty local state could overwrite your cloud backup before the restore had finished — that bug is now closed for good.',
+      'Update notifications: the duplicated in-app "Update available" banner with the launcher-icon glyph is gone. Only the one system notification with the proper "i" info icon now fires, and it shows whether or not the app is open.',
     ],
   },
 ];
@@ -70,14 +73,17 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
+    heading: "Novedades",
+    items: [
+      'Studio ahora habla 9 idiomas y detecta solo el idioma de tu teléfono al abrir por primera vez: inglés, español, alemán, francés, chino, portugués, italiano, japonés y coreano. Puedes cambiarlo cuando quieras desde Ajustes → Idioma.',
+      'El estado de sincronización ahora muestra una palomita verde ✓ cuando tus datos están a salvo en la nube — mucho más fácil de ver de un vistazo.',
+    ],
+  },
+  {
     heading: "Correcciones",
     items: [
-      'La sincronización en la nube ya no se queda atascada en "Sincronizando" ni en "Esperando para sincronizar…"; ahora el indicador siempre sale de ese estado en 25 segundos como máximo, incluso con red inestable.',
-      'Sincronización más rápida: el límite por operación bajó de 25 s a 12 s, así un saludo lento se resuelve en la mitad del tiempo.',
-      'Las descripciones de las canciones en Biblioteca → Descubrir ya están totalmente traducidas al español (más de 200 canciones).',
-      'Los filtros de género en Descubrir ("Rock Inglés", "Rock en Español", "Jazz", "Yacht Rock", etc.) ahora se muestran en español.',
-      'Stagex: se eliminó el botón duplicado de Auto-organizar de la barra superior. El botón de la barra vertical ahora ejecuta Auto-organizar directamente, sin paso extra de confirmación.',
-      'Stagex: el botón del ojito (Modo en vivo) salió de la barra superior y ahora flota justo arriba del botón azul +, donde corresponde. Se oculta solo cuando se abre el menú del + para no sobreponerse con los elementos, y el ícono ahora cambia entre visibility / visibility_off para que siempre se vea su estado.',
+      'CRÍTICO: arreglado el bug que borraba tus canciones, presets y progresiones al desinstalar y reinstalar Studio. Antes, en una instalación nueva el estado vacío local podía sobrescribir tu copia en la nube antes de que la restauración terminara — eso ya quedó cerrado por completo.',
+      'Notificaciones de actualización: se quitó la notificación duplicada que aparecía con el icono raro al abrir la app. Ahora solo aparece una notificación del sistema con el ícono correcto de "i" de información, esté o no abierta la app.',
     ],
   },
 ];

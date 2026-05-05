@@ -17,6 +17,13 @@ Conventions:
 
 ---
 
+## 3.0.57
+
+- CRITICAL data-loss fix: uninstalling and reinstalling Studio no longer wipes your songs, presets, and progressions on the next sign-in.
+- Studio now speaks 9 languages and auto-detects your phone's language on first launch: English, Spanish, German, French, Chinese, Portuguese, Italian, Japanese, and Korean. You can change it any time from Settings → Language.
+- Sync status now shows a clear green check ✓ once your data is safely backed up.
+- Update notifications cleaned up: removed the duplicated in-app banner; only one system notification fires now, with a proper "i" info icon instead of the generic launcher icon.
+
 ## 3.0.56
 
 - Cloud sync no longer gets stuck on "Syncing" or "Waiting to sync…" — guaranteed to escape that state within 25 seconds.

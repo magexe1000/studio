@@ -148,8 +148,25 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
     const justSynced = phase === 'success';
     const isSyncing = phase === 'syncing';
     const isError = phase === 'error';
-    const iconName = isSyncing ? 'sync' : isError ? 'sync_problem' : 'cloud_done';
-    const iconColor = isSyncing ? accent.from : isError ? '#ff6b6b' : justSynced ? accent.from : 'var(--c-text-secondary)';
+    // v3.0.57: When sync is healthy (just synced OR previously synced and
+    // sitting idle), show a green check_circle to make "everything is
+    // backed up" visually obvious — much friendlier than the neutral
+    // cloud icon, which read as ambient/inactive.
+    const isHealthySynced = !isSyncing && !isError && (justSynced || sync.lastSyncedMs != null);
+    const iconName = isSyncing
+      ? 'sync'
+      : isError
+        ? 'sync_problem'
+        : isHealthySynced
+          ? 'check_circle'
+          : 'cloud_off';
+    const iconColor = isSyncing
+      ? accent.from
+      : isError
+        ? '#ff6b6b'
+        : isHealthySynced
+          ? '#10b981'
+          : 'var(--c-text-secondary)';
     const statusText = isSyncing
       ? t.syncing
       : isError

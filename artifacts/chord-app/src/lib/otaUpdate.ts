@@ -285,7 +285,15 @@ export function useOtaUpdate(): UseOtaUpdateResult {
   const autoCheckRef = useRef(otaAutoCheck);
   const notificationsRef = useRef(otaNotifications);
   useEffect(() => { autoCheckRef.current = otaAutoCheck; }, [otaAutoCheck]);
-  useEffect(() => { notificationsRef.current = otaNotifications; }, [otaNotifications]);
+  useEffect(() => {
+    notificationsRef.current = otaNotifications;
+    // Mirror the toggle to native SharedPreferences so the Android
+    // background worker (`OtaCheckWorker.java`) honors it too. Without
+    // this, the in-app notifications respect the toggle but the
+    // background worker — which is what surfaces notifications when
+    // the app is fully closed — keeps firing regardless.
+    void nativeSet(NATIVE_PREFS.OTA_NOTIFICATIONS_ENABLED, otaNotifications ? 'true' : 'false');
+  }, [otaNotifications]);
 
   // Stable abort controller for manual checks. Recreated on each call
   // so a previous slow request can be cancelled cleanly when the user
@@ -324,14 +332,13 @@ export function useOtaUpdate(): UseOtaUpdateResult {
         downloadUrl: remote.downloadUrl ?? null,
         loading: false,
       });
-      // Fire an OS-level notification with the version number. This is
-      // intentionally fire-and-forget: it dedups internally per version,
-      // and a failure to surface a notification must never block the
-      // in-app update banner from showing. Suppressed when the user has
-      // turned OTA notifications off.
-      if (cmp > 0 && notificationsRef.current) {
-        void notifyOtaAvailable(remote.version);
-      }
+      // v3.0.57: Removed the in-app local notification (notifyOtaAvailable).
+      // It duplicated the system notification posted by the WorkManager
+      // background worker (OtaCheckWorker.java), so the user saw two
+      // notifications for the same update — one with the proper info
+      // icon and one with the generic launcher icon. The background
+      // worker handles all OS-level notifications now; the in-app
+      // banner (UpdateIndicator) is the in-app surface.
     } finally {
       inFlight.current = false;
     }
