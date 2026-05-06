@@ -16,7 +16,8 @@ type AccountState =
   | { phase: 'unknown' }
   | { phase: 'signedOut' }
   | { phase: 'active'; user: { uid: string; email: string | null; displayName: string | null; photoURL: string | null } }
-  | { phase: 'pending'; user: { uid: string; email: string | null; displayName: string | null; photoURL: string | null }; scheduledAtMs: number };
+  | { phase: 'pending'; user: { uid: string; email: string | null; displayName: string | null; photoURL: string | null }; scheduledAtMs: number }
+  | { phase: 'disabled'; user: { uid: string; email: string | null; displayName: string | null; photoURL: string | null } };
 
 const stagexImport  = () => import('./components/StageCorePanel');
 const libraryImport = () => import('./panels/LibraryPanel');
@@ -42,6 +43,7 @@ const VocalexApp = lazy(vocalexImport);
 // account deletion, which requires an active sign-in. Lazy so first
 // paint never pays for it.
 const PendingDeletionScreen = lazy(() => import('./components/PendingDeletionScreen'));
+const DisabledAccountScreen = lazy(() => import('./components/DisabledAccountScreen'));
 
 // Smart preload: instead of eagerly fetching every panel chunk on idle
 // (which used to push ~500 KB of JS the user may never visit), preload
@@ -95,7 +97,7 @@ export default function App() {
   // any stale `hidden` flag from a previous session would persist and the
   // user would land on the Hub without a visible nav bar.
   useEffect(() => {
-    if (accountState.phase !== 'pending') resetNav();
+    if (accountState.phase !== 'pending' && accountState.phase !== 'disabled') resetNav();
   }, [accountState.phase]);
 
   // Boot the cloud sync engine once. It listens for sign-in changes and
@@ -621,6 +623,15 @@ export default function App() {
           user={accountState.user}
           scheduledAtMs={accountState.scheduledAtMs}
         />
+      </Suspense>
+    );
+  }
+
+  // ── Account disabled ─────────────────────────────────────────────────────
+  if (accountState.phase === 'disabled') {
+    return (
+      <Suspense fallback={null}>
+        <DisabledAccountScreen user={accountState.user} />
       </Suspense>
     );
   }

@@ -7,10 +7,15 @@ import {
   registerEmail,
   signOut,
   subscribeAuth,
+  updateDisplayName,
+  sendPasswordReset,
+  sendVerificationEmail,
+  isEmailVerified,
+  getSignInProviders,
   type AuthUser,
 } from '../lib/auth';
 import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus } from '../lib/sync';
-import { scheduleAccountDeletion } from '../lib/accountStatus';
+import { scheduleAccountDeletion, disableAccount } from '../lib/accountStatus';
 import { useT } from '../lib/useT';
 import { useChordStore } from '../store/useChordStore';
 import {
@@ -25,6 +30,7 @@ type Props = {
   accent: { from: string; to: string; mid: string };
   cardStyle: React.CSSProperties;
   rowStyle: React.CSSProperties;
+  onAccountSettings?: () => void;
 };
 
 type Mode = 'idle' | 'email-signin' | 'email-register';
@@ -47,7 +53,7 @@ function formatRelative(ms: number | null, lang: string): string {
   return `${Math.floor(sec / 86400)}d ago`;
 }
 
-export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
+export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSettings }: Props) {
   const tRoot = useT();
   const t = tRoot.hub.accountSection;
   const lang = useChordStore((s) => s.settings.language) ?? 'en';
@@ -219,6 +225,22 @@ export default function AccountCard({ accent, cardStyle, rowStyle }: Props) {
               {user.displayName ? user.email : t.signedIn}
             </p>
           </div>
+          {onAccountSettings && (
+            <button
+              type="button"
+              onClick={onAccountSettings}
+              aria-label="Account settings"
+              style={{
+                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                padding: 0, border: '1px solid rgba(128,128,128,0.15)',
+                background: 'rgba(128,128,128,0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', color: 'var(--c-text-secondary)',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>settings</span>
+            </button>
+          )}
         </div>
 
         <div style={{ ...rowStyle, alignItems: 'center', gap: 10 }}>
@@ -863,6 +885,648 @@ function AvatarPickerSheet({ accent, currentIcon, hasGooglePhoto, closing, t, on
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Reusable sheet header ────────────────────────────────────────────────────
+function SheetHeader({ title, onClose, titleColor }: {
+  title: string; onClose: () => void; accent?: { from: string; to: string }; titleColor?: string;
+}) {
+  return (
+    <div style={{ padding: '6px 22px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: titleColor ?? 'var(--c-text-primary)', margin: 0 }}>
+        {title}
+      </p>
+      <button
+        onClick={onClose}
+        style={{ color: 'var(--c-text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+        aria-label="close"
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>close</span>
+      </button>
+    </div>
+  );
+}
+
+// ── Account Settings Page ────────────────────────────────────────────────────
+type AccountActiveSheet = 'none' | 'signout' | 'disable' | 'delete' | 'editname' | 'password' | 'verifyemail';
+
+export function AccountSettingsPage({ accent, cardStyle, onBack }: {
+  accent: { from: string; to: string; mid: string };
+  cardStyle: React.CSSProperties;
+  onBack: () => void;
+}) {
+  const tRoot = useT();
+  const t = tRoot.hub.accountSection;
+  const lang = useChordStore((s) => s.settings.language) ?? 'en';
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [avatarIcon, setAvatarIcon] = useState<AvatarIcon | null>(null);
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerClosing, setPickerClosing] = useState(false);
+  const [sheet, setSheet] = useState<AccountActiveSheet>('none');
+  const [sheetClosing, setSheetClosing] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => subscribeAuth(setUser), []);
+  useEffect(() => {
+    const refresh = () => setAvatarIcon(getUserAvatar(user?.uid ?? null));
+    refresh();
+    return subscribeUserAvatar(refresh);
+  }, [user?.uid]);
+  useEffect(() => { setPhotoFailed(false); }, [user?.uid, user?.photoURL]);
+
+  if (!user || !isFirebaseConfigured) return null;
+
+  const initial = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
+  const providers = getSignInProviders();
+  const isEmailUser = providers.includes('password');
+  const isGoogleUser = providers.includes('google.com');
+  const emailVerified = isEmailVerified();
+  const emailToConfirm = (user.email ?? '').trim().toLowerCase();
+
+  const L = lang === 'es' ? {
+    profile: 'Perfil',
+    displayName: 'Nombre de usuario',
+    email: 'Email',
+    signInMethod: 'Inicio de sesión',
+    google: 'Google',
+    emailPass: 'Email',
+    emailVerified: 'Email verificado',
+    emailNotVerified: 'Email sin verificar',
+    security: 'Seguridad',
+    changePassword: 'Cambiar contraseña',
+    changePasswordDesc: 'Te enviaremos un enlace de restablecimiento',
+    verifyEmail: 'Verificar email',
+    verifyEmailDesc: 'Te enviaremos un email de verificación',
+    session: 'Sesión',
+    signOut: t.signOut,
+    signOutDesc: 'Cerrar sesión en este dispositivo',
+    dangerZone: t.dangerZone,
+    disableAccount: 'Deshabilitar cuenta',
+    disableAccountDesc: 'Desactiva tu cuenta temporalmente',
+    deleteAccount: t.deleteAccount,
+    deleteAccountDesc: 'Eliminar permanentemente',
+    signOutTitle: t.signOutConfirmTitle,
+    signOutBody: t.signOutConfirmBody,
+    editNameTitle: 'Editar nombre',
+    namePlaceholder: 'Tu nombre',
+    saveBtn: 'Guardar',
+    passwordTitle: 'Cambiar contraseña',
+    passwordBody: (email: string) => `Te enviaremos un enlace a ${email}`,
+    sendBtn: 'Enviar enlace',
+    verifyTitle: 'Verificar email',
+    verifyBody: (email: string) => `Te enviaremos verificación a ${email}`,
+    sendVerifyBtn: 'Enviar verificación',
+    disableTitle: '¿Deshabilitar cuenta?',
+    disableBody: 'Tu cuenta quedará deshabilitada. Podrás reactivarla al volver a iniciar sesión.',
+    disableTypeEmail: 'Escribe tu email para confirmar',
+    disableBtn: 'Deshabilitar',
+    deleteTitle: t.deleteAccountConfirmTitle,
+    deleteBody: t.deleteAccountConfirmBody,
+    deleteTypeEmail: t.deleteAccountTypeEmail,
+    deleteBtn: t.deleteAccountFinal,
+    cancel: t.cancel,
+    nameSaved: 'Nombre actualizado',
+    passwordResetSent: 'Email de restablecimiento enviado',
+    verificationSent: 'Email de verificación enviado',
+  } : {
+    profile: 'Profile',
+    displayName: 'Display name',
+    email: 'Email',
+    signInMethod: 'Sign-in method',
+    google: 'Google',
+    emailPass: 'Email & password',
+    emailVerified: 'Email verified',
+    emailNotVerified: 'Email not verified',
+    security: 'Security',
+    changePassword: 'Change password',
+    changePasswordDesc: "We'll send a reset link to your inbox",
+    verifyEmail: 'Verify email',
+    verifyEmailDesc: "We'll send a verification link",
+    session: 'Session',
+    signOut: t.signOut,
+    signOutDesc: 'Sign out of this device',
+    dangerZone: t.dangerZone,
+    disableAccount: 'Disable account',
+    disableAccountDesc: 'Temporarily deactivate your account',
+    deleteAccount: t.deleteAccount,
+    deleteAccountDesc: 'Permanently remove your account',
+    signOutTitle: t.signOutConfirmTitle,
+    signOutBody: t.signOutConfirmBody,
+    editNameTitle: 'Edit display name',
+    namePlaceholder: 'Your name',
+    saveBtn: 'Save',
+    passwordTitle: 'Change password',
+    passwordBody: (email: string) => `We'll send a reset link to ${email}`,
+    sendBtn: 'Send reset link',
+    verifyTitle: 'Verify your email',
+    verifyBody: (email: string) => `We'll send a verification link to ${email}`,
+    sendVerifyBtn: 'Send verification',
+    disableTitle: 'Disable account?',
+    disableBody: 'Your account will be disabled. You can re-enable it by signing back in.',
+    disableTypeEmail: 'Type your email to confirm',
+    disableBtn: 'Disable account',
+    deleteTitle: t.deleteAccountConfirmTitle,
+    deleteBody: t.deleteAccountConfirmBody,
+    deleteTypeEmail: t.deleteAccountTypeEmail,
+    deleteBtn: t.deleteAccountFinal,
+    cancel: t.cancel,
+    nameSaved: 'Display name updated',
+    passwordResetSent: 'Password reset email sent',
+    verificationSent: 'Verification email sent',
+  };
+
+  function openSheet(s: AccountActiveSheet) {
+    setErr(null);
+    setEmailInput('');
+    setNameInput(user?.displayName ?? '');
+    setSheetClosing(false);
+    setSheet(s);
+  }
+
+  function closeSheet() {
+    setSheetClosing(true);
+    setTimeout(() => { setSheet('none'); setSheetClosing(false); setEmailInput(''); setErr(null); }, 280);
+  }
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  async function doSignOut() {
+    try { await signOut(); }
+    catch { /* noop */ }
+  }
+
+  async function doDisable() {
+    if (!user || busy) return;
+    setBusy(true); setErr(null);
+    try {
+      await disableAccount(user.uid);
+      closeSheet();
+      try { await signOut(); } catch { /* noop */ }
+    } catch (e) {
+      setErr(prettyErr(e, lang));
+    } finally { setBusy(false); }
+  }
+
+  async function doDelete() {
+    if (!user || busy) return;
+    setBusy(true); setErr(null);
+    try {
+      await scheduleAccountDeletion(user.uid);
+      closeSheet();
+      try { await signOut(); } catch { /* noop */ }
+    } catch (e) {
+      setErr(prettyErr(e, lang));
+    } finally { setBusy(false); }
+  }
+
+  async function doSaveName() {
+    if (!user || busy) return;
+    setBusy(true); setErr(null);
+    try {
+      await updateDisplayName(nameInput);
+      closeSheet();
+      showToast(L.nameSaved);
+    } catch (e) {
+      setErr(prettyErr(e, lang));
+    } finally { setBusy(false); }
+  }
+
+  async function doSendPasswordReset() {
+    if (!user?.email || busy) return;
+    setBusy(true); setErr(null);
+    try {
+      await sendPasswordReset(user.email);
+      closeSheet();
+      showToast(L.passwordResetSent);
+    } catch (e) {
+      setErr(prettyErr(e, lang));
+    } finally { setBusy(false); }
+  }
+
+  async function doSendVerification() {
+    if (busy) return;
+    setBusy(true); setErr(null);
+    try {
+      await sendVerificationEmail();
+      closeSheet();
+      showToast(L.verificationSent);
+    } catch (e) {
+      setErr(prettyErr(e, lang));
+    } finally { setBusy(false); }
+  }
+
+  const canConfirmEmail = !busy
+    && !!emailToConfirm
+    && emailInput.trim().toLowerCase() === emailToConfirm;
+
+  const sheetAnim = sheetClosing
+    ? 'sheet-down 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both'
+    : 'sheet-up 340ms cubic-bezier(0.34, 1.42, 0.64, 1) both';
+  const overlayAnim = sheetClosing ? 'fade-out 280ms ease both' : 'sync-fade-in 200ms ease both';
+  const overlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 9999, animation: overlayAnim };
+  const backdropStyle: React.CSSProperties = {
+    position: 'absolute', inset: 0,
+    background: 'rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+  };
+  const sheetStyle: React.CSSProperties = {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    background: 'var(--app-surface)',
+    borderRadius: '1.5rem 1.5rem 0 0',
+    padding: '0 0 max(28px, env(safe-area-inset-bottom)) 0',
+    animation: sheetAnim,
+  };
+  const dragPill = (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+      <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.3)' }} />
+    </div>
+  );
+
+  function ActionRow({ icon, iconColor, label, desc, value, onPress, last = false, isDanger = false }: {
+    icon: string; iconColor?: string; label: string; desc?: string; value?: string;
+    onPress: () => void; last?: boolean; isDanger?: boolean;
+  }) {
+    const [pressed, setPressed] = useState(false);
+    return (
+      <button
+        onClick={onPress}
+        onPointerDown={() => setPressed(true)}
+        onPointerUp={() => setPressed(false)}
+        onPointerLeave={() => setPressed(false)}
+        onPointerCancel={() => setPressed(false)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          width: '100%', padding: '13px 16px',
+          background: pressed ? 'rgba(128,128,128,0.06)' : 'transparent',
+          border: 'none', outline: 'none',
+          borderBottom: last ? 'none' : '1px solid rgba(128,128,128,0.07)',
+          cursor: 'pointer', textAlign: 'left',
+          transform: pressed ? 'scale(0.977)' : 'scale(1)',
+          transition: 'background 100ms ease, transform 140ms cubic-bezier(0.34,1.15,0.64,1)',
+          boxSizing: 'border-box',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >
+        <div style={{
+          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+          background: iconColor ? `${iconColor}22` : 'rgba(128,128,128,0.10)',
+          border: `1px solid ${iconColor ? iconColor + '28' : 'transparent'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18, color: iconColor ?? 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: isDanger ? (iconColor ?? '#ff6b6b') : 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.01em' }}>{label}</p>
+          {desc && <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{desc}</p>}
+        </div>
+        {value
+          ? <span style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', flexShrink: 0, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
+          : <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0, opacity: 0.35 }}>chevron_right</span>
+        }
+      </button>
+    );
+  }
+
+  return (
+    <>
+      <SyncAnimations />
+      <SheetAnimations />
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          top: 'max(52px, calc(env(safe-area-inset-top) + 12px))',
+          left: '50%', transform: 'translateX(-50%)',
+          background: '#10b981', color: '#fff',
+          padding: '8px 18px', borderRadius: 999,
+          fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+          boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
+          zIndex: 10001, whiteSpace: 'nowrap',
+          animation: 'sync-fade-in 250ms ease both',
+          pointerEvents: 'none',
+        }}>
+          {toast}
+        </div>
+      )}
+
+      {/* Profile header */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '16px 20px 20px', animation: 'hub-row-fade 350ms ease both' }}>
+        <button
+          type="button"
+          onClick={() => { setPickerClosing(false); setPickerOpen(true); }}
+          aria-label={t.avatarPickerTitle}
+          style={{
+            width: 64, height: 64, borderRadius: '50%',
+            padding: 0, border: 'none', cursor: 'pointer',
+            background: avatarIcon || !user.photoURL || photoFailed
+              ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
+              : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontWeight: 800, fontSize: 26, overflow: 'hidden',
+            boxShadow: `0 4px 16px ${accent.to}44`,
+          }}
+        >
+          {avatarIcon ? (
+            <span className="material-symbols-outlined" style={{ fontSize: 34, color: '#fff' }}>{avatarIcon}</span>
+          ) : user.photoURL && !photoFailed ? (
+            <img src={user.photoURL} alt="" referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <span>{initial}</span>
+          )}
+        </button>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+            {user.displayName || user.email}
+          </p>
+          {user.displayName && (
+            <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '3px 0 0' }}>
+              {user.email}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Profile section */}
+      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '4px 4px 8px', animation: 'hub-row-fade 380ms ease 50ms both' }}>{L.profile}</p>
+      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 60ms both' }}>
+        <ActionRow icon="person" iconColor={accent.from} label={L.displayName} desc={user.displayName || '—'} onPress={() => openSheet('editname')} last={!isEmailUser} />
+        {isEmailUser && (
+          <ActionRow
+            icon={emailVerified ? 'check_circle' : 'mail'}
+            iconColor={emailVerified ? '#10b981' : '#f59e0b'}
+            label={emailVerified ? L.emailVerified : L.emailNotVerified}
+            onPress={emailVerified ? () => {} : () => openSheet('verifyemail')}
+            last
+          />
+        )}
+      </div>
+
+      {/* Sign-in method — static info rows (not interactive) */}
+      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 4px 8px', animation: 'hub-row-fade 380ms ease 90ms both' }}>{L.signInMethod}</p>
+      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 100ms both' }}>
+        {isGoogleUser && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: isEmailUser ? '1px solid rgba(128,128,128,0.07)' : 'none' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: '#4285F422', border: '1px solid #4285F428', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#4285F4', fontVariationSettings: "'FILL' 1" }}>account_circle</span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>{L.google}</p>
+              <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>google.com</p>
+            </div>
+          </div>
+        )}
+        {isEmailUser && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: `${accent.from}22`, border: `1px solid ${accent.from}28`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, fontVariationSettings: "'FILL' 1" }}>mail</span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>{L.emailPass}</p>
+              <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email ?? ''}</p>
+            </div>
+          </div>
+        )}
+        {!isGoogleUser && !isEmailUser && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: 'rgba(128,128,128,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 1" }}>help</span>
+            </div>
+            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>Unknown</p>
+          </div>
+        )}
+      </div>
+
+      {/* Security (email users only) */}
+      {isEmailUser && (
+        <>
+          <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 4px 8px', animation: 'hub-row-fade 380ms ease 130ms both' }}>{L.security}</p>
+          <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 140ms both' }}>
+            <ActionRow icon="lock" iconColor={accent.from} label={L.changePassword} desc={L.changePasswordDesc} onPress={() => openSheet('password')} last={emailVerified} />
+            {!emailVerified && <ActionRow icon="mail" iconColor="#f59e0b" label={L.verifyEmail} desc={L.verifyEmailDesc} onPress={() => openSheet('verifyemail')} last />}
+          </div>
+        </>
+      )}
+
+      {/* Session */}
+      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 4px 8px', animation: 'hub-row-fade 380ms ease 160ms both' }}>{L.session}</p>
+      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 170ms both' }}>
+        <ActionRow icon="logout" iconColor="#f59e0b" label={L.signOut} desc={L.signOutDesc} onPress={() => openSheet('signout')} last />
+      </div>
+
+      {/* Danger zone */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '20px 0 8px' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#ff6b6b' }}>warning</span>
+        <p style={{ color: '#ff6b6b', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', margin: 0 }}>{L.dangerZone}</p>
+      </div>
+      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 200ms both' }}>
+        <ActionRow icon="block" iconColor="#f59e0b" label={L.disableAccount} desc={L.disableAccountDesc} onPress={() => openSheet('disable')} isDanger />
+        <ActionRow icon="delete_forever" iconColor="#ff6b6b" label={L.deleteAccount} desc={L.deleteAccountDesc} onPress={() => openSheet('delete')} isDanger last />
+      </div>
+
+      {/* Avatar picker */}
+      {pickerOpen && createPortal(
+        <AvatarPickerSheet
+          accent={accent}
+          currentIcon={avatarIcon}
+          hasGooglePhoto={!!user.photoURL && !photoFailed}
+          t={t}
+          closing={pickerClosing}
+          onPick={(icon) => { setUserAvatar(user.uid, icon); }}
+          onClose={() => { setPickerClosing(true); setTimeout(() => { setPickerOpen(false); setPickerClosing(false); }, 280); }}
+        />,
+        document.body,
+      )}
+
+      {/* ── Sign out sheet ── */}
+      {sheet === 'signout' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <SheetHeader title={L.signOutTitle} onClose={closeSheet} />
+            <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5, margin: '8px 22px 20px' }}>{L.signOutBody}</p>
+            <div style={{ display: 'flex', gap: 10, padding: '0 16px' }}>
+              <button onClick={closeSheet} style={{ ...secondaryBtn(), flex: 1, padding: '13px 0' }}>{L.cancel}</button>
+              <button onClick={doSignOut} style={{ ...dangerOutlineBtn(), flex: 1, padding: '13px 0' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span>
+                {L.signOut}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Edit display name sheet ── */}
+      {sheet === 'editname' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <SheetHeader title={L.editNameTitle} onClose={closeSheet} />
+            <div style={{ padding: '8px 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <input
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') doSaveName(); }}
+                placeholder={L.namePlaceholder}
+                autoFocus
+                style={inputStyle(accent)}
+              />
+              {err && <p style={{ fontSize: 11, color: '#ff6b6b', margin: 0 }}>{err}</p>}
+            </div>
+            <div style={{ display: 'flex', gap: 10, padding: '0 16px' }}>
+              <button onClick={closeSheet} disabled={busy} style={{ ...secondaryBtn(), flex: 1, padding: '13px 0' }}>{L.cancel}</button>
+              <button onClick={doSaveName} disabled={busy} style={{ ...primaryBtn(accent), flex: 1, padding: '13px 0' }}>
+                {busy ? <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span> : <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>}
+                {L.saveBtn}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Change password sheet ── */}
+      {sheet === 'password' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <SheetHeader title={L.passwordTitle} onClose={closeSheet} />
+            <div style={{ padding: '8px 22px 20px' }}>
+              <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5, margin: 0 }}>{L.passwordBody(user.email ?? '')}</p>
+              {err && <p style={{ fontSize: 11, color: '#ff6b6b', margin: '10px 0 0' }}>{err}</p>}
+            </div>
+            <div style={{ display: 'flex', gap: 10, padding: '0 16px' }}>
+              <button onClick={closeSheet} disabled={busy} style={{ ...secondaryBtn(), flex: 1, padding: '13px 0' }}>{L.cancel}</button>
+              <button onClick={doSendPasswordReset} disabled={busy} style={{ ...primaryBtn(accent), flex: 1, padding: '13px 0' }}>
+                {busy ? <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span> : <span className="material-symbols-outlined" style={{ fontSize: 16 }}>send</span>}
+                {L.sendBtn}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Verify email sheet ── */}
+      {sheet === 'verifyemail' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <SheetHeader title={L.verifyTitle} onClose={closeSheet} />
+            <div style={{ padding: '8px 22px 20px' }}>
+              <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5, margin: 0 }}>{L.verifyBody(user.email ?? '')}</p>
+              {err && <p style={{ fontSize: 11, color: '#ff6b6b', margin: '10px 0 0' }}>{err}</p>}
+            </div>
+            <div style={{ display: 'flex', gap: 10, padding: '0 16px' }}>
+              <button onClick={closeSheet} disabled={busy} style={{ ...secondaryBtn(), flex: 1, padding: '13px 0' }}>{L.cancel}</button>
+              <button onClick={doSendVerification} disabled={busy} style={{ ...primaryBtn(accent), flex: 1, padding: '13px 0' }}>
+                {busy ? <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span> : <span className="material-symbols-outlined" style={{ fontSize: 16 }}>mark_email_read</span>}
+                {L.sendVerifyBtn}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Disable account sheet ── */}
+      {sheet === 'disable' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <SheetHeader title={L.disableTitle} onClose={closeSheet} titleColor="#f59e0b" />
+            <div style={{ padding: '8px 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5, margin: 0 }}>{L.disableBody}</p>
+              <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: 0 }}>
+                {L.disableTypeEmail}: <strong style={{ color: 'var(--c-text-primary)' }}>{user.email}</strong>
+              </p>
+              <input
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder={user.email ?? ''}
+                autoComplete="off"
+                spellCheck={false}
+                style={{ ...inputStyle(accent), borderColor: canConfirmEmail ? '#f59e0b66' : 'rgba(245,158,11,0.2)' }}
+              />
+              {err && <p style={{ fontSize: 11, color: '#ff6b6b', margin: 0 }}>{err}</p>}
+            </div>
+            <div style={{ display: 'flex', gap: 10, padding: '0 16px' }}>
+              <button onClick={closeSheet} disabled={busy} style={{ ...secondaryBtn(), flex: 1, padding: '13px 0' }}>{L.cancel}</button>
+              <button
+                onClick={doDisable}
+                disabled={!canConfirmEmail}
+                style={{
+                  flex: 1, padding: '13px 0', borderRadius: 12, fontSize: 13, fontWeight: 700,
+                  background: canConfirmEmail ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(245,158,11,0.12)',
+                  border: '1px solid rgba(245,158,11,0.35)',
+                  color: canConfirmEmail ? '#fff' : '#f59e0b',
+                  fontFamily: 'Manrope', cursor: canConfirmEmail ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  opacity: canConfirmEmail ? 1 : 0.5,
+                }}
+              >
+                {busy ? <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span> : <span className="material-symbols-outlined" style={{ fontSize: 16 }}>block</span>}
+                {L.disableBtn}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Delete account sheet ── */}
+      {sheet === 'delete' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <SheetHeader title={L.deleteTitle} onClose={closeSheet} titleColor="#ff6b6b" />
+            <div style={{ padding: '8px 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5, margin: 0 }}>{L.deleteBody}</p>
+              <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: 0 }}>
+                {L.deleteTypeEmail}: <strong style={{ color: 'var(--c-text-primary)' }}>{user.email}</strong>
+              </p>
+              <input
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder={user.email ?? ''}
+                autoComplete="off"
+                spellCheck={false}
+                style={{ ...inputStyle(accent), borderColor: canConfirmEmail ? '#ff6b6b66' : 'rgba(255,107,107,0.2)' }}
+              />
+              {err && <p style={{ fontSize: 11, color: '#ff6b6b', margin: 0 }}>{err}</p>}
+            </div>
+            <div style={{ display: 'flex', gap: 10, padding: '0 16px' }}>
+              <button onClick={closeSheet} disabled={busy} style={{ ...secondaryBtn(), flex: 1, padding: '13px 0' }}>{L.cancel}</button>
+              <button
+                onClick={doDelete}
+                disabled={!canConfirmEmail}
+                style={{ ...dangerSolidBtn(), flex: 1, padding: '13px 0', opacity: canConfirmEmail ? 1 : 0.45, cursor: canConfirmEmail ? 'pointer' : 'not-allowed' }}
+              >
+                {busy ? <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span> : <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>}
+                {L.deleteBtn}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }
 

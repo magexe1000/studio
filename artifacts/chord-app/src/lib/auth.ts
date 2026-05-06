@@ -10,6 +10,8 @@ import {
   signOut as fbSignOut,
   updateProfile,
   deleteUser,
+  sendPasswordResetEmail as fbSendPasswordReset,
+  sendEmailVerification as fbSendEmailVerification,
   type User,
 } from 'firebase/auth';
 import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from './firebase';
@@ -196,6 +198,34 @@ export async function deleteAccount(): Promise<void> {
 export function getCurrentEmail(): string | null {
   const auth = getFirebaseAuth();
   return auth?.currentUser?.email ?? null;
+}
+
+export async function updateDisplayName(name: string): Promise<void> {
+  const auth = getFirebaseAuth();
+  if (!auth?.currentUser) throw new Error('Not signed in');
+  await updateProfile(auth.currentUser, { displayName: name.trim() || null });
+}
+
+export async function sendPasswordReset(email: string): Promise<void> {
+  const auth = getFirebaseAuth();
+  if (!auth) throw new Error('Firebase not configured');
+  await fbSendPasswordReset(auth, email);
+}
+
+export async function sendVerificationEmail(): Promise<void> {
+  const auth = getFirebaseAuth();
+  if (!auth?.currentUser) throw new Error('Not signed in');
+  await fbSendEmailVerification(auth.currentUser);
+}
+
+export function isEmailVerified(): boolean {
+  const auth = getFirebaseAuth();
+  return auth?.currentUser?.emailVerified ?? false;
+}
+
+export function getSignInProviders(): string[] {
+  const auth = getFirebaseAuth();
+  return auth?.currentUser?.providerData.map((p) => p.providerId) ?? [];
 }
 
 export { isFirebaseConfigured };

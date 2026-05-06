@@ -16,6 +16,9 @@ const AccountCard = lazy(() => import('./AccountCard'));
 const AccountDangerZone = lazy(() =>
   import('./AccountCard').then(m => ({ default: m.AccountDangerZone }))
 );
+const AccountSettingsPage = lazy(() =>
+  import('./AccountCard').then(m => ({ default: m.AccountSettingsPage }))
+);
 
 type HubTab = 'home' | 'settings';
 type TargetApp = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
@@ -360,7 +363,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'appearance' | 'language' | 'storage' | 'privacy' | 'about' | 'ai-assistant' | 'updater';
+type SettingsPageId = 'main' | 'appearance' | 'language' | 'storage' | 'privacy' | 'about' | 'ai-assistant' | 'updater' | 'account';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -779,6 +782,21 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
     animation: `${slideAnim} 300ms cubic-bezier(0.25,0.46,0.45,0.94) both`,
   };
 
+  /* ── ACCOUNT ────────────────────────────────────────────────────── */
+  if (page === 'account') {
+    return (
+      <div key={pageKey}>
+        <div style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title={(t.hub as { accountSettings?: string }).accountSettings ?? 'Account'} onBack={goBack} />
+          <Suspense fallback={null}>
+            <AccountSettingsPage accent={accent} cardStyle={cardStyle} onBack={goBack} />
+          </Suspense>
+        </div>
+      </div>
+    );
+  }
+
   /* ── APPEARANCE ─────────────────────────────────────────────────── */
   if (page === 'appearance') {
     return (
@@ -1174,7 +1192,7 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
       {/* Account */}
       <SettingsSectionLabel delay={20}>{t.hub.account}</SettingsSectionLabel>
       <Suspense fallback={<div style={{ ...cardStyle, padding: '20px', minHeight: 64 }} />}>
-        <AccountCard accent={accent} cardStyle={cardStyle} rowStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)' }} />
+        <AccountCard accent={accent} cardStyle={cardStyle} rowStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)' }} onAccountSettings={() => navigate('account')} />
       </Suspense>
 
       {/* Profile */}

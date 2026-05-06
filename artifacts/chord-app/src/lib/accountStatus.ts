@@ -29,7 +29,7 @@ export const ACCOUNT_GRACE_DAYS = 7;
 export const ACCOUNT_GRACE_MS = ACCOUNT_GRACE_DAYS * 24 * 60 * 60 * 1000;
 
 export type AccountDoc = {
-  status: 'active' | 'pending_deletion';
+  status: 'active' | 'pending_deletion' | 'disabled';
   scheduledAtMs: number | null;
 };
 
@@ -37,7 +37,8 @@ export type AccountState =
   | { phase: 'unknown' }    // Firebase isn't configured at all
   | { phase: 'signedOut' }
   | { phase: 'active'; user: AuthUser }
-  | { phase: 'pending'; user: AuthUser; scheduledAtMs: number };
+  | { phase: 'pending'; user: AuthUser; scheduledAtMs: number }
+  | { phase: 'disabled'; user: AuthUser };
 
 function metaRef(uid: string) {
   const db = getFirebaseDb();
@@ -73,6 +74,26 @@ export async function scheduleAccountDeletion(uid: string): Promise<void> {
     status: 'pending_deletion',
     scheduledAtMs: Date.now() + ACCOUNT_GRACE_MS,
     requestedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function disableAccount(uid: string): Promise<void> {
+  const ref = metaRef(uid);
+  if (!ref) throw new Error('Firebase not configured');
+  await setDoc(ref, {
+    status: 'disabled',
+    scheduledAtMs: null,
+    disabledAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function enableAccount(uid: string): Promise<void> {
+  const ref = metaRef(uid);
+  if (!ref) throw new Error('Firebase not configured');
+  await setDoc(ref, {
+    status: 'active',
+    scheduledAtMs: null,
+    enabledAt: serverTimestamp(),
   }, { merge: true });
 }
 
@@ -143,6 +164,8 @@ export function subscribeAccountState(cb: (s: AccountState) => void): () => void
       if (!currentUser || currentUser.uid !== u.uid) return;
       if (acc?.status === 'pending_deletion' && acc.scheduledAtMs) {
         cb({ phase: 'pending', user: u, scheduledAtMs: acc.scheduledAtMs });
+      } else if (acc?.status === 'disabled') {
+        cb({ phase: 'disabled', user: u });
       } else {
         cb({ phase: 'active', user: u });
       }
