@@ -975,47 +975,63 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
 
   /* ── LANGUAGE ───────────────────────────────────────────────────── */
   if (page === 'language') {
+    const LANG_OPTIONS: { code: string; flag: string; native: string; label: string }[] = [
+      { code: 'en', flag: '🇬🇧', native: 'English',    label: t.settings.language.en },
+      { code: 'es', flag: '🇪🇸', native: 'Español',    label: t.settings.language.es },
+      { code: 'de', flag: '🇩🇪', native: 'Deutsch',    label: t.settings.language.de },
+      { code: 'fr', flag: '🇫🇷', native: 'Français',   label: t.settings.language.fr },
+      { code: 'zh', flag: '🇨🇳', native: '中文',        label: t.settings.language.zh },
+      { code: 'pt', flag: '🇧🇷', native: 'Português',  label: t.settings.language.pt },
+      { code: 'it', flag: '🇮🇹', native: 'Italiano',   label: t.settings.language.it },
+      { code: 'ja', flag: '🇯🇵', native: '日本語',      label: t.settings.language.ja },
+      { code: 'ko', flag: '🇰🇷', native: '한국어',      label: t.settings.language.ko },
+    ];
+    const currentLang = settings.language ?? 'en';
     return (
       <div key={pageKey} style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={t.settings.sections.language} onBack={goBack} />
-        <div style={cardStyle}>
-          <SettingRow label={t.settings.language.label} desc={t.settings.language.desc}>
-            {/* v3.0.57: 9 languages — too many for a SegmentedControl, so
-                use a styled native <select> for a tappable dropdown. */}
-            <select
-              value={settings.language}
-              onChange={(e) => updateSettings({ language: e.target.value as typeof settings.language })}
-              style={{
-                appearance: 'none',
-                WebkitAppearance: 'none',
-                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                color: '#fff',
-                border: 'none',
-                borderRadius: 12,
-                padding: '10px 36px 10px 14px',
-                fontSize: 15,
-                fontWeight: 600,
-                fontFamily: 'inherit',
-                cursor: 'pointer',
-                minWidth: 160,
-                backgroundImage: `linear-gradient(135deg, ${accent.from}, ${accent.to}), url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='white' d='M6 8L0 0h12z'/></svg>")`,
-                backgroundPosition: 'center, right 12px center',
-                backgroundRepeat: 'no-repeat, no-repeat',
-                backgroundSize: '100% 100%, 12px 8px',
-              }}
-            >
-              <option value="en" style={{ color: '#000' }}>{t.settings.language.en}</option>
-              <option value="es" style={{ color: '#000' }}>{t.settings.language.es}</option>
-              <option value="de" style={{ color: '#000' }}>{t.settings.language.de}</option>
-              <option value="fr" style={{ color: '#000' }}>{t.settings.language.fr}</option>
-              <option value="zh" style={{ color: '#000' }}>{t.settings.language.zh}</option>
-              <option value="pt" style={{ color: '#000' }}>{t.settings.language.pt}</option>
-              <option value="it" style={{ color: '#000' }}>{t.settings.language.it}</option>
-              <option value="ja" style={{ color: '#000' }}>{t.settings.language.ja}</option>
-              <option value="ko" style={{ color: '#000' }}>{t.settings.language.ko}</option>
-            </select>
-          </SettingRow>
+        <div style={{ ...cardStyle, animation: 'hub-row-fade 320ms ease both' }}>
+          {LANG_OPTIONS.map((opt, i) => {
+            const isSelected = currentLang === opt.code;
+            const isLast = i === LANG_OPTIONS.length - 1;
+            return (
+              <button
+                key={opt.code}
+                onClick={() => updateSettings({ language: opt.code as typeof settings.language })}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  width: '100%', padding: '13px 16px',
+                  background: isSelected ? `${accent.from}12` : 'transparent',
+                  border: 'none', outline: 'none',
+                  borderBottom: isLast ? 'none' : '1px solid rgba(128,128,128,0.07)',
+                  cursor: 'pointer', textAlign: 'left',
+                  WebkitTapHighlightColor: 'transparent',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <span style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{opt.flag}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 14,
+                    color: isSelected ? accent.from : 'var(--c-text-primary)',
+                    margin: 0, letterSpacing: '-0.01em',
+                  }}>{opt.native}</p>
+                  <p style={{
+                    fontFamily: 'Inter', fontSize: 11.5,
+                    color: 'var(--c-text-secondary)',
+                    margin: '2px 0 0',
+                  }}>{opt.label}</p>
+                </div>
+                {isSelected && (
+                  <span className="material-symbols-outlined" style={{
+                    fontSize: 20, color: accent.from,
+                    flexShrink: 0, fontVariationSettings: "'FILL' 1",
+                  }}>check_circle</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     );

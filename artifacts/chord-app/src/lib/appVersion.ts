@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.57';
+export const APP_VERSION = '3.0.58';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-05'; // 3.0.57
+export const APP_VERSION_DATE = '2026-05-10'; // 3.0.58
 // 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
@@ -56,15 +56,17 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "What's new",
     items: [
-      'Studio now speaks 9 languages and auto-detects your phone\'s language on first launch: English, Spanish, German, French, Chinese, Portuguese, Italian, Japanese and Korean. You can switch any time from Settings → Language.',
-      'Sync status now shows a clear green check ✓ once your data is safely backed up — much easier to see at a glance.',
+      'Full Account settings page: manage your display name, change your password, verify your email, disable your account temporarily, or delete it — all from Settings → Account.',
+      'What\'s New sheet now appears on every launch so you never miss a release note.',
+      'Language picker rebuilt with a modern in-app selector — no more native Android dialog.',
     ],
   },
   {
     heading: "Fixes",
     items: [
-      'CRITICAL data-loss fix: uninstalling and reinstalling Studio no longer wipes your songs, presets, and progressions. Previously, on a fresh install the empty local state could overwrite your cloud backup before the restore had finished — that bug is now closed for good.',
-      'Update notifications: the duplicated in-app "Update available" banner with the launcher-icon glyph is gone. Only the one system notification with the proper "i" info icon now fires, and it shows whether or not the app is open.',
+      'Account page icons were showing as raw text (BADGE, ALTERNATE_EMAIL, etc.) — all replaced with correct glyphs.',
+      'Sign-in method rows are now read-only info cards — they no longer look or behave like interactive buttons.',
+      'Email row removed from Profile section to reduce clutter.',
     ],
   },
 ];
@@ -75,15 +77,17 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Novedades",
     items: [
-      'Studio ahora habla 9 idiomas y detecta solo el idioma de tu teléfono al abrir por primera vez: inglés, español, alemán, francés, chino, portugués, italiano, japonés y coreano. Puedes cambiarlo cuando quieras desde Ajustes → Idioma.',
-      'El estado de sincronización ahora muestra una palomita verde ✓ cuando tus datos están a salvo en la nube — mucho más fácil de ver de un vistazo.',
+      'Página completa de Cuenta: cambia tu nombre, contraseña, verifica tu correo, desactiva tu cuenta temporalmente o elimínala — todo desde Ajustes → Cuenta.',
+      'La hoja "Novedades" ahora aparece en cada inicio para que no te pierdas ninguna actualización.',
+      'El selector de idioma fue rediseñado con un selector moderno dentro de la app — ya no abre el diálogo nativo de Android.',
     ],
   },
   {
     heading: "Correcciones",
     items: [
-      'CRÍTICO: arreglado el bug que borraba tus canciones, presets y progresiones al desinstalar y reinstalar Studio. Antes, en una instalación nueva el estado vacío local podía sobrescribir tu copia en la nube antes de que la restauración terminara — eso ya quedó cerrado por completo.',
-      'Notificaciones de actualización: se quitó la notificación duplicada que aparecía con el icono raro al abrir la app. Ahora solo aparece una notificación del sistema con el ícono correcto de "i" de información, esté o no abierta la app.',
+      'Los íconos de la página de Cuenta mostraban texto en bruto (BADGE, ALTERNATE_EMAIL, etc.) — todos reemplazados con los glifos correctos.',
+      'Las filas del método de inicio de sesión ahora son tarjetas de solo lectura — ya no parecen ni funcionan como botones interactivos.',
+      'Se eliminó la fila de correo de la sección Perfil para reducir el desorden.',
     ],
   },
 ];
