@@ -1,6 +1,6 @@
 {
-  "version": "3.0.57",
-  "changelog": "• CRITICAL data-loss fix: uninstalling and reinstalling Studio no longer wipes your songs, presets, and progressions on the next sign-in.\n• Studio now speaks 9 languages and auto-detects your phone's language on first launch: English, Spanish, German, French, Chinese, Portuguese, Italian, Japanese, and Korean. You can change it any time from Settings → Language.\n• Sync status now shows a clear green check ✓ once your data is safely backed up.\n• Update notifications cleaned up: removed the duplicated in-app banner; only one system notification fires now, with a proper \"i\" info icon instead of the generic launcher icon.",
+  "version": "3.0.58",
+  "changelog": "Version 3.0.58",
   "mandatory": false,
-  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.57/bundle-3.0.57.zip"
+  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.58/bundle-3.0.58.zip"
 }
