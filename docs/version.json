@@ -1,6 +1,6 @@
 {
-  "version": "3.0.58",
-  "changelog": "Version 3.0.58",
+  "version": "3.0.61",
+  "changelog": "• Faster cold launch: StudioHub, changelog modal, and update indicator now load after first paint.\n• Bottom nav no longer re-renders on unrelated state changes — navigation is more responsive.\n• Hub greeting and accent colour are now memoized — reduced per-frame CPU work.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.58/bundle-3.0.58.zip"
+  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.61/bundle-3.0.61.zip"
 }
