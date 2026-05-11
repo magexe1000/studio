@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.61';
+export const APP_VERSION = '3.0.62';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-11'; // 3.0.61
+export const APP_VERSION_DATE = '2026-05-11'; // 3.0.62
 // 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
@@ -54,11 +54,15 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Performance",
+    heading: "Fixes",
     items: [
-      'Faster cold launch: StudioHub, ChangelogModal, and the update indicator are now loaded after first paint instead of at startup.',
-      'Bottom nav no longer rerenders on unrelated store changes — navigation feels more responsive.',
-      'Greeting and accent colour in the Hub are now memoized — reduced per-frame CPU work.',
+      'Changelog no longer opens on every launch — it now only appears the first time after an update.',
+    ],
+  },
+  {
+    heading: "Translations",
+    items: [
+      'Full German (Deutsch) translation added across all sections: chords, songs, settings, Drumex, Vocalex, Groovex, Stagex, and more.',
     ],
   },
 ];
@@ -67,11 +71,31 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Rendimiento",
+    heading: "Correcciones",
     items: [
-      'Inicio más rápido: StudioHub, el modal de novedades y el indicador de actualizaciones ahora se cargan después del primer fotograma.',
-      'La barra de navegación ya no se rerenderiza por cambios de estado no relacionados.',
-      'El saludo y el color de acento del Hub ahora están memorizados — menor uso de CPU.',
+      'El registro de novedades ya no se abre en cada inicio — ahora solo aparece la primera vez tras una actualización.',
+    ],
+  },
+  {
+    heading: "Traducciones",
+    items: [
+      'Traducción completa al alemán (Deutsch) añadida en todas las secciones: acordes, canciones, ajustes, Drumex, Vocalex, Groovex, Stagex y más.',
+    ],
+  },
+];
+
+/** German version of the current changelog. */
+export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
+  {
+    heading: "Fehlerbehebungen",
+    items: [
+      'Das Änderungsprotokoll öffnet sich nicht mehr bei jedem Start — es erscheint jetzt nur beim ersten Start nach einem Update.',
+    ],
+  },
+  {
+    heading: "Übersetzungen",
+    items: [
+      'Vollständige deutsche Übersetzung hinzugefügt: Akkorde, Lieder, Einstellungen, Drumex, Vocalex, Groovex, Stagex und mehr.',
     ],
   },
 ];
@@ -79,7 +103,9 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** Returns the changelog sections for the requested language, falling
  *  back to English when no localized version is available. */
 export function getChangelogSections(lang: string | undefined | null): ChangelogSection[] {
-  return lang === 'es' ? APP_CHANGELOG_SECTIONS_ES : APP_CHANGELOG_SECTIONS;
+  if (lang === 'es') return APP_CHANGELOG_SECTIONS_ES;
+  if (lang === 'de') return APP_CHANGELOG_SECTIONS_DE;
+  return APP_CHANGELOG_SECTIONS;
 }
 
 /** Backwards-compatible flat bullet list (kept so any old caller still

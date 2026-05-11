@@ -17,6 +17,11 @@ Conventions:
 
 ---
 
+## 3.0.62
+
+- Changelog no longer opens on every launch — it now only appears the first time after an OTA update.
+- Full German (Deutsch) translation added across all sections: chords, songs, settings, Drumex, Vocalex, Groovex, Stagex, Studio Hub, and more.
+
 ## 3.0.61
 
 - Faster cold launch: StudioHub, changelog modal, and update indicator now load after first paint.

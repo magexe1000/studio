@@ -198,9 +198,18 @@ importers:
       '@soundtouchjs/audio-worklet':
         specifier: ^1.0.9
         version: 1.0.9
+      '@tolgee/i18next':
+        specifier: ^7.0.0
+        version: 7.0.0(i18next@26.0.10(typescript@5.9.3))
+      '@tolgee/react':
+        specifier: ^7.0.0
+        version: 7.0.0(react@19.1.0)
       firebase:
         specifier: ^12.12.0
         version: 12.12.0
+      i18next:
+        specifier: ^26.0.10
+        version: 26.0.10(typescript@5.9.3)
       jspdf:
         specifier: ^4.2.1
         version: 4.2.1
@@ -210,6 +219,9 @@ importers:
       pitchy:
         specifier: ^4.1.0
         version: 4.1.0
+      react-i18next:
+        specifier: ^17.0.7
+        version: 17.0.7(i18next@26.0.10(typescript@5.9.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
       zustand:
         specifier: ^5.0.12
         version: 5.0.12(@types/react@19.2.14)(react@19.1.0)(use-sync-external-store@1.6.0(react@19.1.0))
@@ -726,6 +738,10 @@ packages:
 
   '@babel/runtime@7.28.6':
     resolution: {integrity: sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.29.2':
+    resolution: {integrity: sha512-JiDShH45zKHWyGe4ZNVRrCjBz8Nh9TMmZG1kh4QTK8hCBTWBi8Da+i7s1fJw7/lYpM4ccepSNfqzZ/QvABBi5g==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.28.6':
@@ -2904,6 +2920,22 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
+  '@tolgee/core@7.0.0':
+    resolution: {integrity: sha512-dK1LTl7SAQCiR8559jTCz6MXTPIoPVcs+x1y1ZJr8V0tg6zpZOG1ZNyhABXXYZFUK3TblRVtKYRRDkNzQKdK/g==}
+
+  '@tolgee/i18next@7.0.0':
+    resolution: {integrity: sha512-7ypPVD1INVQxMJ9PquO0IaGDG6+sq2KlfLQPuaieaWJWPUUjvD5Xaora2i4JSwiUiKmONxbcavfoVQ/6CPZFNQ==}
+    peerDependencies:
+      i18next: '*'
+
+  '@tolgee/react@7.0.0':
+    resolution: {integrity: sha512-OE7ATvRC4k9fvi4t6aOUpEJsJRSjqKUIeetFfUFW5trnnfoG56YJT20ZEtdQdsjboKnajz9RKYDLQJEBtPMnvw==}
+    peerDependencies:
+      react: ^16.14.0 || ^17.0.1 || ^18.1.0 || ^19
+
+  '@tolgee/web@7.0.0':
+    resolution: {integrity: sha512-1mSBsGMyAoJvdwM/jxHOOo8nIGTCVTyehrQXcrmoWsKdgLo6C9Trbl2bRe5idtAW1IOwos3TCl0fdVFzCGm/qQ==}
+
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
 
@@ -3867,6 +3899,9 @@ packages:
   help-me@5.0.0:
     resolution: {integrity: sha512-7xgomUX6ADmcYzFik0HzAxh/73YlKR9bmFzf51CZwR+b6YtzU2m0u49hQCqV6SvlqIqsaxovfwdvbnsw3b/zpg==}
 
+  html-parse-stringify@3.0.1:
+    resolution: {integrity: sha512-KknJ50kTInJ7qIScF3jeaFRpMpE8/lfiTdzf/twXyPBLAGrLRTmkz3AdTnKeh40X8k9L2fdYwEp/42WGXIRGcg==}
+
   html2canvas@1.4.1:
     resolution: {integrity: sha512-fPU6BHNpsyIhr8yyMpTLLxAbkaK8ArIBcmZIRiBLiDhjeqvXolaEmDGmELFuX9I4xDcaKKcJl+TKZLqruBbmWA==}
     engines: {node: '>=8.0.0'}
@@ -3881,6 +3916,14 @@ packages:
   human-signals@8.0.1:
     resolution: {integrity: sha512-eKCa6bwnJhvxj14kZk5NCPc6Hb6BdsU9DZcOnmQKSnO1VKrfV0zCvtttPZUsBvjmNDn8rpcJfpwSYnHBjc95MQ==}
     engines: {node: '>=18.18.0'}
+
+  i18next@26.0.10:
+    resolution: {integrity: sha512-k3yGPAlWR2RdMYoVXJoDZDT87qeHIWKH7gVksdZMpRty7QX/D9QZeYGvN08KGbKHke9wn01eYT+EEsrqX/YTlw==}
+    peerDependencies:
+      typescript: ^5 || ^6
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   iconv-lite@0.7.2:
     resolution: {integrity: sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==}
@@ -4521,6 +4564,22 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
 
+  react-i18next@17.0.7:
+    resolution: {integrity: sha512-rwtPXsb/zwzDafN+gytcjF5YnqGQQIRmCQ6DctBC1VSipRB8GD/MWEVrFP42vjMyuYydxWxM8CZRt+yiNuuoHg==}
+    peerDependencies:
+      i18next: '>= 26.0.10'
+      react: '>= 16.8.0'
+      react-dom: '*'
+      react-native: '*'
+      typescript: ^5 || ^6
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-native:
+        optional: true
+      typescript:
+        optional: true
+
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
@@ -5049,6 +5108,10 @@ packages:
         optional: true
       yaml:
         optional: true
+
+  void-elements@3.1.0:
+    resolution: {integrity: sha512-Dhxzh5HZuiHQhbvTW9AMetFfBHDMYpo23Uo9btPXgdYP+3T5S+p+jgNy7spra+veYhBP2dCSgxR/i2Y02h5/6w==}
+    engines: {node: '>=0.10.0'}
 
   web-vitals@4.2.4:
     resolution: {integrity: sha512-r4DIlprAGwJ7YM11VZp4R884m0Vmgr6EAKe3P+kO0PPj3Unqyvv59rczf6UiGcb9Z8QxZVcqKNwv/g0WNdWwsw==}
@@ -5691,6 +5754,8 @@ snapshots:
       '@babel/helper-plugin-utils': 7.28.6
 
   '@babel/runtime@7.28.6': {}
+
+  '@babel/runtime@7.29.2': {}
 
   '@babel/template@7.28.6':
     dependencies:
@@ -7994,6 +8059,22 @@ snapshots:
       '@tanstack/query-core': 5.90.20
       react: 19.1.0
 
+  '@tolgee/core@7.0.0': {}
+
+  '@tolgee/i18next@7.0.0(i18next@26.0.10(typescript@5.9.3))':
+    dependencies:
+      '@tolgee/web': 7.0.0
+      i18next: 26.0.10(typescript@5.9.3)
+
+  '@tolgee/react@7.0.0(react@19.1.0)':
+    dependencies:
+      '@tolgee/web': 7.0.0
+      react: 19.1.0
+
+  '@tolgee/web@7.0.0':
+    dependencies:
+      '@tolgee/core': 7.0.0
+
   '@types/babel__core@7.20.5':
     dependencies:
       '@babel/parser': 7.29.0
@@ -8988,6 +9069,10 @@ snapshots:
 
   help-me@5.0.0: {}
 
+  html-parse-stringify@3.0.1:
+    dependencies:
+      void-elements: 3.1.0
+
   html2canvas@1.4.1:
     dependencies:
       css-line-break: 2.1.0
@@ -9005,6 +9090,10 @@ snapshots:
   http-parser-js@0.5.10: {}
 
   human-signals@8.0.1: {}
+
+  i18next@26.0.10(typescript@5.9.3):
+    optionalDependencies:
+      typescript: 5.9.3
 
   iconv-lite@0.7.2:
     dependencies:
@@ -9603,6 +9692,17 @@ snapshots:
     dependencies:
       react: 19.1.0
 
+  react-i18next@17.0.7(i18next@26.0.10(typescript@5.9.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(typescript@5.9.3):
+    dependencies:
+      '@babel/runtime': 7.29.2
+      html-parse-stringify: 3.0.1
+      i18next: 26.0.10(typescript@5.9.3)
+      react: 19.1.0
+      use-sync-external-store: 1.6.0(react@19.1.0)
+    optionalDependencies:
+      react-dom: 19.1.0(react@19.1.0)
+      typescript: 5.9.3
+
   react-is@16.13.1: {}
 
   react-is@18.3.1: {}
@@ -10146,6 +10246,8 @@ snapshots:
       lightningcss: 1.31.1
       tsx: 4.21.0
       yaml: 2.8.3
+
+  void-elements@3.1.0: {}
 
   web-vitals@4.2.4: {}
 

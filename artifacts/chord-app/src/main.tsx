@@ -1,6 +1,8 @@
 import { createRoot } from "react-dom/client";
 import { lazy, Suspense, useState, useEffect } from "react";
+import { TolgeeProvider } from "@tolgee/react";
 import App from "./App";
+import { tolgee } from "./lib/i18nSetup";
 import { notifyBundleReady, ensureNotificationPermission } from "./lib/capgoUpdater";
 import { seedAudioAssets } from "./lib/assetCache";
 import "./index.css";
@@ -49,13 +51,13 @@ function GlobalOverlays() {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <>
+  <TolgeeProvider tolgee={tolgee} fallback={null}>
     <App />
     {/* Global post-update changelog overlay + OTA indicator — mounted as
         root siblings so they surface regardless of which sub-app the user
         lands in. Deferred one frame so first paint is uncontested. */}
     <GlobalOverlays />
-  </>,
+  </TolgeeProvider>,
 );
 
 if ('serviceWorker' in navigator) {
