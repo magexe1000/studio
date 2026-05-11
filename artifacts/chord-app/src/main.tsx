@@ -1,7 +1,6 @@
 import { createRoot } from "react-dom/client";
+import { lazy, Suspense, useState, useEffect } from "react";
 import App from "./App";
-import ChangelogModal from "./components/ChangelogModal";
-import UpdateIndicator from "./components/UpdateIndicator";
 import { notifyBundleReady, ensureNotificationPermission } from "./lib/capgoUpdater";
 import { seedAudioAssets } from "./lib/assetCache";
 import "./index.css";
@@ -26,16 +25,36 @@ void ensureNotificationPermission();
 // future OTA bundles don't have to ship it. No-op on web. Idempotent.
 void seedAudioAssets();
 
+// Lazy-load the global overlays so they never land in the critical-path
+// bundle. ChangelogModal pulls in ChangelogSheet; UpdateIndicator is
+// 699 lines with its own polling logic. Neither is needed for first paint.
+const ChangelogModal  = lazy(() => import("./components/ChangelogModal"));
+const UpdateIndicator = lazy(() => import("./components/UpdateIndicator"));
+
+// Defer mounting the global overlays until after the first frame so they
+// don't compete with the app shell for CPU/JS parse time on launch.
+function GlobalOverlays() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  if (!ready) return null;
+  return (
+    <Suspense fallback={null}>
+      <ChangelogModal />
+      <UpdateIndicator accentFrom="#7c3aed" accentTo="#a855f7" />
+    </Suspense>
+  );
+}
+
 createRoot(document.getElementById("root")!).render(
   <>
     <App />
-    {/* Global post-update changelog overlay — mounted as a root sibling
-        so it surfaces regardless of which sub-app the user lands in. */}
-    <ChangelogModal />
-    {/* Global OTA update indicator — same reasoning. Auto-opens its
-        modal once per remote version so the user can't miss a release
-        even when the OS notification opens the app into a sub-app. */}
-    <UpdateIndicator accentFrom="#7c3aed" accentTo="#a855f7" />
+    {/* Global post-update changelog overlay + OTA indicator — mounted as
+        root siblings so they surface regardless of which sub-app the user
+        lands in. Deferred one frame so first paint is uncontested. */}
+    <GlobalOverlays />
   </>,
 );
 

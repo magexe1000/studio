@@ -17,6 +17,12 @@ Conventions:
 
 ---
 
+## 3.0.61
+
+- Faster cold launch: StudioHub, changelog modal, and update indicator now load after first paint.
+- Bottom nav no longer re-renders on unrelated state changes — navigation is more responsive.
+- Hub greeting and accent colour are now memoized — reduced per-frame CPU work.
+
 ## 3.0.57
 
 - CRITICAL data-loss fix: uninstalling and reinstalling Studio no longer wipes your songs, presets, and progressions on the next sign-in.

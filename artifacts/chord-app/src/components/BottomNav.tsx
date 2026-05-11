@@ -112,7 +112,12 @@ export function IconSettings({ active }: { active: boolean }) {
 const NAV_ORDER: ActivePanel[] = ['songs', 'library', 'chord', 'settings'];
 
 export default function BottomNav() {
-  const { activePanel, setActivePanel, settings } = useChordStore();
+  // Granular selectors — BottomNav only rerenders when these specific
+  // slices change, not on every unrelated store mutation (selectedChordId,
+  // recentChords, multiSelectChords, etc.).
+  const activePanel    = useChordStore(s => s.activePanel);
+  const setActivePanel = useChordStore(s => s.setActivePanel);
+  const settings       = useChordStore(s => s.settings);
   const t = useT();
 
   const NAV_ITEMS: { panel: ActivePanel; Icon: React.FC<{ active: boolean }>; label: string }[] = [

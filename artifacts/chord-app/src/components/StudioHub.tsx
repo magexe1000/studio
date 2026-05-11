@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { useBackHandler } from '../lib/backStack';
+import { subscribeAuth, type AuthUser } from '../lib/auth';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useNavHidden, useScrollHide } from '../lib/navScroll';
@@ -180,25 +181,37 @@ export default function StudioHub() {
   const t = useT();
   const lang = settings.language ?? 'en';
   const hubAccentKey = settings.perApp?.hub?.accentColor ?? settings.accentColor ?? 'blue';
-  const accent = hubAccentKey === 'custom'
-    ? { from: `hsl(${settings.customAccentHue ?? 220}, 75%, 65%)`, mid: `hsl(${settings.customAccentHue ?? 220}, 80%, 55%)`, to: `hsl(${((settings.customAccentHue ?? 220) + 25) % 360}, 85%, 42%)` }
-    : (ACCENT_COLORS[hubAccentKey] ?? ACCENT_COLORS.blue);
+  const accent = useMemo(() =>
+    hubAccentKey === 'custom'
+      ? { from: `hsl(${settings.customAccentHue ?? 220}, 75%, 65%)`, mid: `hsl(${settings.customAccentHue ?? 220}, 80%, 55%)`, to: `hsl(${((settings.customAccentHue ?? 220) + 25) % 360}, 85%, 42%)` }
+      : (ACCENT_COLORS[hubAccentKey] ?? ACCENT_COLORS.blue),
+  [hubAccentKey, settings.customAccentHue]);
   const isHubLight = (settings.perApp?.hub?.theme ?? settings.theme ?? 'dark') === 'light';
 
   const [tab, setTab]     = useState<HubTab>('home');
   const [zooming, setZooming] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
 
-  const launchApp = (appMode: 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex') => {
+  useEffect(() => subscribeAuth(setAuthUser), []);
+
+  const launchApp = useCallback((appMode: 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex') => {
     setZooming(true);
     setTimeout(() => {
       updateSettings({ appMode });
     }, 380);
-  };
+  // updateSettings is stable (Zustand action), setZooming is React setState
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sessionIdx = getSessionIndex();
-  const { greeting, subtitle } = getGreetingPair(settings.hubUserName, sessionIdx, lang);
+  const greetName = authUser?.displayName?.trim() || settings.hubUserName;
+  const { greeting, subtitle } = useMemo(
+    () => getGreetingPair(greetName, sessionIdx, lang),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [greetName, lang],
+  );
 
   return (
     <div style={{
@@ -691,7 +704,6 @@ function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
 function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string; mid: string }; scrollRef?: React.RefObject<HTMLDivElement | null> }) {
   const { settings, updateSettings, updatePerApp } = useChordStore();
   const t = useT();
-  const [name, setName] = useState(settings.hubUserName ?? '');
   const [page, setPage] = useState<SettingsPageId>('main');
   const [pageKey, setPageKey] = useState(0);
   const [slideDir, setSlideDir] = useState<'forward' | 'back'>('forward');
@@ -1210,32 +1222,6 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
       <Suspense fallback={<div style={{ ...cardStyle, padding: '20px', minHeight: 64 }} />}>
         <AccountCard accent={accent} cardStyle={cardStyle} rowStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)' }} onAccountSettings={() => navigate('account')} />
       </Suspense>
-
-      {/* Profile */}
-      <SettingsSectionLabel delay={40}>{t.hub.profile}</SettingsSectionLabel>
-      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 50ms both' }}>
-        <div style={{ padding: '15px 18px' }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', margin: '0 0 8px', fontFamily: 'Manrope' }}>{t.hub.yourName}</p>
-          <input
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onBlur={() => updateSettings({ hubUserName: name })}
-            placeholder={t.hub.namePlaceholder}
-            style={{
-              width: '100%', boxSizing: 'border-box',
-              background: 'rgba(128,128,128,0.08)',
-              border: `1px solid rgba(128,128,128,0.15)`,
-              borderRadius: 12, padding: '11px 14px',
-              fontSize: 14, fontWeight: 500,
-              color: 'var(--c-text-primary)',
-              fontFamily: 'Manrope', outline: 'none',
-              transition: 'border-color 200ms ease',
-            }}
-            onFocus={e => { e.currentTarget.style.borderColor = accent.from; }}
-            onBlurCapture={e => { e.currentTarget.style.borderColor = 'rgba(128,128,128,0.15)'; updateSettings({ hubUserName: name }); }}
-          />
-        </div>
-      </div>
 
       {/* Interface */}
       <SettingsSectionLabel delay={70}>{(t.hub as { studioSettings?: { interface?: string } }).studioSettings?.interface ?? 'Interface'}</SettingsSectionLabel>

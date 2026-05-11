@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.58';
+export const APP_VERSION = '3.0.61';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-10'; // 3.0.58
+export const APP_VERSION_DATE = '2026-05-11'; // 3.0.61
 // 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
@@ -54,19 +54,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "What's new",
+    heading: "Performance",
     items: [
-      'Full Account settings page: manage your display name, change your password, verify your email, disable your account temporarily, or delete it — all from Settings → Account.',
-      'What\'s New sheet now appears on every launch so you never miss a release note.',
-      'Language picker rebuilt with a modern in-app selector — no more native Android dialog.',
-    ],
-  },
-  {
-    heading: "Fixes",
-    items: [
-      'Account page icons were showing as raw text (BADGE, ALTERNATE_EMAIL, etc.) — all replaced with correct glyphs.',
-      'Sign-in method rows are now read-only info cards — they no longer look or behave like interactive buttons.',
-      'Email row removed from Profile section to reduce clutter.',
+      'Faster cold launch: StudioHub, ChangelogModal, and the update indicator are now loaded after first paint instead of at startup.',
+      'Bottom nav no longer rerenders on unrelated store changes — navigation feels more responsive.',
+      'Greeting and accent colour in the Hub are now memoized — reduced per-frame CPU work.',
     ],
   },
 ];
@@ -75,19 +67,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Novedades",
+    heading: "Rendimiento",
     items: [
-      'Página completa de Cuenta: cambia tu nombre, contraseña, verifica tu correo, desactiva tu cuenta temporalmente o elimínala — todo desde Ajustes → Cuenta.',
-      'La hoja "Novedades" ahora aparece en cada inicio para que no te pierdas ninguna actualización.',
-      'El selector de idioma fue rediseñado con un selector moderno dentro de la app — ya no abre el diálogo nativo de Android.',
-    ],
-  },
-  {
-    heading: "Correcciones",
-    items: [
-      'Los íconos de la página de Cuenta mostraban texto en bruto (BADGE, ALTERNATE_EMAIL, etc.) — todos reemplazados con los glifos correctos.',
-      'Las filas del método de inicio de sesión ahora son tarjetas de solo lectura — ya no parecen ni funcionan como botones interactivos.',
-      'Se eliminó la fila de correo de la sección Perfil para reducir el desorden.',
+      'Inicio más rápido: StudioHub, el modal de novedades y el indicador de actualizaciones ahora se cargan después del primer fotograma.',
+      'La barra de navegación ya no se rerenderiza por cambios de estado no relacionados.',
+      'El saludo y el color de acento del Hub ahora están memorizados — menor uso de CPU.',
     ],
   },
 ];

@@ -7,7 +7,10 @@ import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { initPredictiveBack } from './lib/predictiveBack';
 import { useStatusBar } from './lib/useStatusBar';
-import StudioHub from './components/StudioHub';
+// Lazy-load StudioHub — it's 1400+ lines and pulls in SettingControls,
+// ApplyToSheet, ChangelogSheet, and all logo variants. Keeping it out of
+// the main bundle saves significant parse+eval time on cold launch.
+const StudioHub = lazy(() => import('./components/StudioHub'));
 
 // Account state is intentionally typed inline so we don't pull
 // `lib/accountStatus` (and its Firebase dependencies) into the main
