@@ -5167,6 +5167,7 @@ function positionScenesBar() {
   const canvas = document.getElementById('stage-canvas');
   const container = document.getElementById('canvas-container');
   if (!bar || !canvas || !container || bar.style.display === 'none') return;
+  if (state.gigMode) return;
   const cRect = canvas.getBoundingClientRect();
   const kRect = container.getBoundingClientRect();
   const barH = bar.offsetHeight || 36;
