@@ -59,7 +59,6 @@ let _platformSupportedCache: boolean | null = null;
 export function liquidGlassPlatformSupported(): boolean {
   if (_platformSupportedCache !== null) return _platformSupportedCache;
   if (typeof window === 'undefined' || typeof document === 'undefined') return (_platformSupportedCache = false);
-  if (isNativePlatform())     return (_platformSupportedCache = false);
   if (prefersReducedMotion()) return (_platformSupportedCache = false);
   try {
     const ok = CSS.supports('backdrop-filter', 'blur(1px)') ||
