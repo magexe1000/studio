@@ -1,6 +1,6 @@
 {
-  "version": "3.0.62",
-  "changelog": "• Changelog no longer opens on every launch — it now only appears the first time after an OTA update.\n• Full German (Deutsch) translation added across all sections: chords, songs, settings, Drumex, Vocalex, Groovex, Stagex, Studio Hub, and more.",
+  "version": "3.0.70",
+  "changelog": "Version 3.0.70",
   "mandatory": false,
-  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.62/bundle-3.0.62.zip"
+  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.70/bundle-3.0.70.zip"
 }
