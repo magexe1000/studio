@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-11'; // 3.0.62
+export const APP_VERSION_DATE = '2026-05-12'; // 3.0.70
 // 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
