@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useScrollHide } from '../lib/navScroll';
 import { SONG_CATALOG } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
 import {
@@ -28,6 +29,8 @@ function transposeKey(key: string, semitones: number): string {
 }
 
 export default function GroovexPlayer() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollHide(scrollRef);
   const t = useT();
   const { activeSongId, setView, preferences } = useGroovexStore();
   const song = useMemo(() => SONG_CATALOG.find(s => s.id === activeSongId), [activeSongId]);
@@ -360,7 +363,7 @@ export default function GroovexPlayer() {
   const anyLoaded = tracks.some(t => t.loaded);
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ padding: '0 24px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 40px)' }}>
 
         <section className="gx-hero-enter" style={{ paddingTop: 12, marginBottom: 36, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

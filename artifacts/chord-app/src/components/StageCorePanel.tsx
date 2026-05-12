@@ -4,6 +4,8 @@ import { setBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import translations from '../lib/i18n';
 import { useT } from '../lib/useT';
+import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
+import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
 
 type StageWin = Window & {
   stageGoBack?: () => boolean;
@@ -203,20 +205,26 @@ export default function StagexPanel() {
 
   /* ── Glassmorphism bottom nav state ─────────────────────── */
   const stageNavRef    = useRef<HTMLDivElement | null>(null);
+  useLiquidGlassNav(stageNavRef as React.RefObject<HTMLElement | null>);
   const stageBtnRefs   = useRef<(HTMLButtonElement | null)[]>([]);
   const prevTabRef     = useRef(0);
   const stageStretchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [stagePill, setStagePill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const [pressedTab, setPressedTab] = useState<string | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
-  const [stageNavHidden, setStageNavHidden] = useState(false);
   const [liveMode, setLiveMode] = useState(false);
+  const navCollapsed = useNavCollapsed();
+  const [expandedStageH, setExpandedStageH] = useState(52);
+  const [expandedStageW, setExpandedStageW] = useState(380);
   const [landscapeNavHidden, setLandscapeNavHidden] = useState(false);
   const [propPanelOpen, setPropPanelOpen] = useState(false);
   const [pdfSheetOpen, setPdfSheetOpen] = useState(false);
   const [pdfFileName, setPdfFileName] = useState('');
   const [pdfBusy, setPdfBusy] = useState(false);
   const [canShareFiles, setCanShareFiles] = useState(false);
+  // Scenes feature (v3.0.63+) — picker for which stage plot(s) to include
+  const [pdfSceneInfo, setPdfSceneInfo] = useState<{ count: number; currentIdx: number; names: string[] }>({ count: 1, currentIdx: 0, names: ['Scene 1'] });
+  const [pdfSceneChoice, setPdfSceneChoice] = useState<'current' | 'all' | number>('current');
 
   useEffect(() => {
     // Always show the share button when navigator.share exists. Android WebView
@@ -234,21 +242,38 @@ export default function StagexPanel() {
     } catch {
       setPdfFileName('Stagex_Export');
     }
+    // Read scene info from iframe so the picker reflects the project state
+    try {
+      const win = iframeRef.current?.contentWindow as (Window & { __getSceneInfo?: () => { count: number; currentIdx: number; names: string[] } }) | null;
+      const info = win?.__getSceneInfo?.();
+      if (info && typeof info.count === 'number' && info.count > 0) {
+        setPdfSceneInfo({ count: info.count, currentIdx: info.currentIdx ?? 0, names: info.names || [] });
+      } else {
+        setPdfSceneInfo({ count: 1, currentIdx: 0, names: ['Scene 1'] });
+      }
+    } catch {
+      setPdfSceneInfo({ count: 1, currentIdx: 0, names: ['Scene 1'] });
+    }
+    setPdfSceneChoice('current');
     setPdfBusy(false);
     setPdfSheetOpen(true);
   }, []);
 
   const runPdfExport = useCallback(async (action: 'save' | 'share') => {
-    const win = iframeRef.current?.contentWindow as (Window & { exportPDFWithOptions?: (o: { name: string; action: string }) => Promise<void> }) | null;
+    const win = iframeRef.current?.contentWindow as (Window & { exportPDFWithOptions?: (o: { name: string; action: string; scene?: 'current' | 'all' | number }) => Promise<void> }) | null;
     if (!win?.exportPDFWithOptions) return;
     setPdfBusy(true);
     try {
-      await win.exportPDFWithOptions({ name: pdfFileName.trim() || 'Stagex_Export', action });
+      await win.exportPDFWithOptions({
+        name: pdfFileName.trim() || 'Stagex_Export',
+        action,
+        scene: pdfSceneChoice,
+      });
     } finally {
       setPdfBusy(false);
       setPdfSheetOpen(false);
     }
-  }, [pdfFileName]);
+  }, [pdfFileName, pdfSceneChoice]);
 
   const [isLandscape, setIsLandscape] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches
@@ -382,7 +407,7 @@ export default function StagexPanel() {
       if (e.origin !== window.location.origin) return;
       if (e.source !== iframeRef.current?.contentWindow) return;
       if (e.data?.type === 'sc-dial-state') setFabOpen(!!e.data.open);
-      if (e.data?.type === 'sc-scroll-dir') setStageNavHidden(!!e.data.down);
+      if (e.data?.type === 'sc-scroll-dir') setNavCollapsed(!!e.data.down);
       if (e.data?.type === 'sc-prop-state') setPropPanelOpen(e.data.state === 'open' || e.data.state === 'peek');
       if (e.data?.type === 'sc-live-mode') setLiveMode(!!e.data.on);
     };
@@ -462,7 +487,7 @@ export default function StagexPanel() {
   };
 
   const handleNavTap = useCallback((view: string) => {
-    setStageNavHidden(false);
+    setNavCollapsed(false);
     // Optimistically update curView so the top toolbar swaps immediately —
     // don't wait for the iframe's __onViewChange callback to round-trip,
     // which can race on iframe reloads and leave the wrong toolbar showing.
@@ -501,13 +526,17 @@ export default function StagexPanel() {
     const idx = navTabs.findIndex(t => isTabActive(t.view));
     const m = measureStageBtn(idx >= 0 ? idx : 0);
     if (m) setStagePill({ left: m.left, right: m.right, ready: true });
+    if (stageNavRef.current) {
+      setExpandedStageH(stageNavRef.current.offsetHeight);
+      setExpandedStageW(stageNavRef.current.offsetWidth);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* Animate pill when view changes + always show nav on view change */
   useEffect(() => {
     // Any view transition (including back-button from scrollable sections) resets nav visibility
-    setStageNavHidden(false);
+    setNavCollapsed(false);
 
     const newIdx = navTabs.findIndex(t => isTabActive(t.view));
     if (newIdx < 0) return;
@@ -539,7 +568,7 @@ export default function StagexPanel() {
   }, [curView]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: stageBg, transition: 'background 180ms ease' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100dvh', background: stageBg, transition: 'background 180ms ease' }}>
 
       <div style={{
         flexShrink: 0,
@@ -729,78 +758,49 @@ export default function StagexPanel() {
           allow="clipboard-write"
         />
 
-        {/*
-          ── Live mode (eye) — floating button above the blue + FAB ──
-          v3.0.56: moved here from the top toolbar so it lives near the
-          FAB it relates to. Hidden whenever the FAB chip menu is open
-          so the chips fanning upward don't overlap it. Stays visible
-          in live mode itself so the user can tap it to exit.
-
-          The icon is driven by the `liveMode` state mirrored from the
-          iframe via the `sc-live-mode` postMessage — `visibility_off`
-          in live mode, `visibility` otherwise.
-
-          Position math: stacks 8 px above the FAB. FAB sits at
-          bottom = 14 (landscape) or 90 (portrait), right = 14, size 50.
-          So this button sits at bottom = FAB_bottom + 50 + 8.
-        */}
+        {/* ── Live-mode toggle (eye) — stacked 8px above the FAB ── */}
         {curView === 'Editor' && (
           <button
             onClick={() => callIframe('toggleGigMode')}
             onTouchEnd={(e) => { e.preventDefault(); callIframe('toggleGigMode'); }}
             aria-label={liveMode ? tr.stagex.exitLiveMode : tr.stagex.enterLiveMode}
-            title={liveMode ? tr.stagex.exitLiveMode : tr.stagex.enterLiveMode}
-            data-testid="btn-live-mode"
             style={{
               position: 'absolute',
               bottom: (isLandscapeEditor ? 14 : 90) + 50 + 8,
-              right: 14 + (50 - 44) / 2, // center 44 px button under the 50 px FAB
+              right: 17,
               width: 44,
               height: 44,
               borderRadius: '50%',
               background: liveMode
-                ? 'rgba(255, 68, 68, 0.18)'
-                : (isLight ? 'rgba(255,255,255,0.92)' : 'rgba(20,20,24,0.78)'),
-              border: liveMode
-                ? '1px solid rgba(255, 68, 68, 0.45)'
-                : (isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)'),
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
+                ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
+                : (isLight ? 'rgba(255,255,255,0.82)' : 'rgba(28,28,32,0.80)'),
+              border: liveMode ? 'none' : (isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.12)'),
+              backdropFilter: liveMode ? 'none' : 'blur(12px)',
+              WebkitBackdropFilter: liveMode ? 'none' : 'blur(12px)',
               boxShadow: liveMode
-                ? '0 4px 16px rgba(255,68,68,0.30), 0 2px 6px rgba(0,0,0,0.25)'
-                : (isLight ? '0 4px 14px rgba(0,0,0,0.10)' : '0 4px 14px rgba(0,0,0,0.32)'),
+                ? `0 4px 20px ${accent.from}90`
+                : '0 4px 16px rgba(0,0,0,0.25)',
+              zIndex: 20,
+              cursor: 'pointer',
+              WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              cursor: 'pointer',
-              zIndex: 19,
               padding: 0,
-              WebkitTapHighlightColor: 'transparent',
-              touchAction: 'manipulation',
-              // Hide whenever the + chip menu is open (chips fan upward
-              // from the FAB and would overlap), or when the prop panel
-              // is occupying landscape canvas, or when bottom nav is
-              // hidden via scroll-down (matches FAB behavior).
-              opacity: fabOpen ? 0 : (isLandscapeEditor && propPanelOpen) ? 0 : (stageNavHidden && !isLandscapeEditor && !liveMode) ? 0 : 1,
-              pointerEvents: fabOpen ? 'none' as const : (isLandscapeEditor && propPanelOpen) ? 'none' as const : 'auto' as const,
-              visibility: fabOpen ? 'hidden' as const : (isLandscapeEditor && propPanelOpen) ? 'hidden' as const : 'visible' as const,
-              transition: 'opacity 220ms cubic-bezier(0.4,0,0.2,1), background 200ms ease, border-color 200ms ease, box-shadow 200ms ease',
+              opacity: (isLandscapeEditor && propPanelOpen) ? 0 : 1,
+              pointerEvents: (isLandscapeEditor && propPanelOpen) ? 'none' as const : 'auto' as const,
+              visibility: (isLandscapeEditor && propPanelOpen) ? 'hidden' as const : 'visible' as const,
+              transition: 'background 300ms ease, box-shadow 300ms ease, opacity 420ms cubic-bezier(0.4,0,0.2,1)',
             }}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{
-                color: liveMode ? '#ff4444' : (isLight ? 'rgba(0,0,0,0.65)' : 'rgba(220,225,235,0.85)'),
-                fontSize: 20,
-                lineHeight: 1,
-                transition: 'color 200ms ease',
-              }}
-            >
-              {liveMode ? 'visibility_off' : 'visibility'}
+            <span className="material-symbols-outlined" style={{ color: liveMode ? '#fff' : (isLight ? 'rgba(0,0,0,0.65)' : 'rgba(200,200,220,0.9)'), fontSize: 22, lineHeight: 1 }}>
+              {liveMode ? 'visibility' : 'visibility_off'}
             </span>
           </button>
         )}
 
+        {/* ── FAB: add instrument ── */}
         {curView === 'Editor' && (
           <button
             onClick={handleFabTap}
@@ -820,7 +820,7 @@ export default function StagexPanel() {
               WebkitTapHighlightColor: 'transparent',
               touchAction: 'manipulation',
               display: 'flex',
-              opacity: liveMode ? 0 : (isLandscapeEditor && propPanelOpen) ? 0 : (stageNavHidden && !isLandscapeEditor) ? 0 : 1,
+              opacity: liveMode ? 0 : (isLandscapeEditor && propPanelOpen) ? 0 : 1,
               pointerEvents: liveMode ? 'none' as const : (isLandscapeEditor && propPanelOpen) ? 'none' as const : 'auto' as const,
               visibility: liveMode ? 'hidden' as const : (isLandscapeEditor && propPanelOpen) ? 'hidden' as const : 'visible' as const,
               alignItems: 'center',
@@ -906,18 +906,15 @@ export default function StagexPanel() {
             bottom: 'max(10px, env(safe-area-inset-bottom))',
             left: '50%',
             transform: `translateX(-50%) translateY(${
-              liveMode || hideBottomNav || (isLandscapeEditor ? landscapeNavHidden : stageNavHidden) ? '140%' : '0'
+              liveMode || hideBottomNav || (isLandscapeEditor && landscapeNavHidden) ? 'calc(100% + 32px)' : '0px'
             })`,
-            pointerEvents: (liveMode || hideBottomNav) ? 'none' : 'auto',
+            pointerEvents: (liveMode || hideBottomNav || navCollapsed) ? 'none' : 'auto',
             opacity: liveMode ? 0 : 1,
             width: isLandscapeEditor ? '70%' : '90%',
-            maxWidth: isLandscapeEditor ? 320 : 400,
-            display: 'flex',
-            justifyContent: 'space-around',
-            alignItems: 'center',
-            padding: isLandscapeEditor ? '3px 6px' : '6px 8px',
+            maxWidth: isLandscapeEditor ? '320px' : '400px',
+            height: `${expandedStageH}px`,
             borderRadius: '2rem',
-            border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
+            border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
             background: stagePillBg,
             boxShadow: isLight
               ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
@@ -926,9 +923,29 @@ export default function StagexPanel() {
             WebkitBackdropFilter: 'blur(20px)',
             zIndex: 10,
             overflow: 'hidden',
-            transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1), transform 420ms cubic-bezier(0.4,0,0.2,1)',
+            clipPath: navCollapsed
+              ? `inset(${Math.max(0, expandedStageH - 5)}px ${Math.max(0, Math.floor((expandedStageW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedStageW - 90) / 2))}px round 99px)`
+              : 'inset(0 0 0 0 round 2rem)',
+            willChange: 'clip-path, transform, opacity',
+            transition: [
+              navCollapsed
+                ? 'clip-path 500ms cubic-bezier(0.4,0,0.2,1)'
+                : 'clip-path 380ms cubic-bezier(0.16,1,0.3,1)',
+              navCollapsed
+                ? 'transform 500ms cubic-bezier(0.4,0,0.2,1)'
+                : 'transform 380ms cubic-bezier(0.16,1,0.3,1)',
+              'background-color 300ms ease',
+            ].join(', '),
           }}
         >
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+            padding: isLandscapeEditor ? '3px 6px' : '6px 8px',
+            opacity: navCollapsed ? 0 : 1,
+            transition: navCollapsed ? 'opacity 100ms ease' : 'opacity 350ms ease 180ms',
+            willChange: 'opacity',
+          }}>
 
           {/* Elastic sliding pill */}
           {stagePill.ready && (
@@ -941,14 +958,17 @@ export default function StagexPanel() {
                 width: stagePill.right - stagePill.left,
                 height: isLandscapeEditor ? 'calc(100% - 4px)' : 'calc(100% - 8px)',
                 borderRadius: 9999,
-                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                boxShadow: `0 2px 18px ${accent.to}60`,
+                background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.09)',
+                border: isLight ? '1.5px solid rgba(0,0,0,0.14)' : '1.5px solid rgba(255,255,255,0.30)',
+                boxShadow: isLight
+                  ? 'inset 0 1px 0 rgba(255,255,255,0.90), 0 2px 8px rgba(0,0,0,0.10)'
+                  : 'inset 0 1px 0 rgba(255,255,255,0.40), 0 2px 16px rgba(255,255,255,0.06)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
                 pointerEvents: 'none',
                 zIndex: 0,
-                transition: [
-                  'left  150ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  'width 150ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-                ].join(', '),
+                opacity: 1,
+                transition: 'left 150ms cubic-bezier(0.34,1.56,0.64,1), width 150ms cubic-bezier(0.34,1.56,0.64,1)',
               }}
             />
           )}
@@ -977,9 +997,10 @@ export default function StagexPanel() {
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
-                  color: active ? '#fff' : (isLight ? 'rgba(0,0,0,0.4)' : 'var(--c-text-secondary, rgba(160,160,180,0.8))'),
+                  color: active ? (isLight ? accent.from : '#fff') : (isLight ? 'rgba(0,0,0,0.4)' : 'var(--c-text-secondary, rgba(160,160,180,0.8))'),
                   position: 'relative',
                   zIndex: 1,
+                  opacity: 1,
                   transform: pressed ? 'scale(0.91)' : 'scale(1)',
                   transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1)',
                   WebkitFontSmoothing: 'antialiased',
@@ -987,7 +1008,7 @@ export default function StagexPanel() {
                   touchAction: 'manipulation',
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: isLandscapeEditor ? 16 : 20, lineHeight: 1 }}>{icon}</span>
+                <span className="material-symbols-outlined" style={{ fontSize: isLandscapeEditor ? 16 : 20, lineHeight: 1, fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{icon}</span>
                 <span style={{
                   fontFamily: 'Manrope, sans-serif',
                   fontWeight: 700,
@@ -1003,6 +1024,7 @@ export default function StagexPanel() {
               </button>
             );
           })}
+          </div>
         </div>
       </div>
 
@@ -1078,6 +1100,54 @@ export default function StagexPanel() {
                 paddingRight: 4,
               }}>.pdf</span>
             </div>
+
+            {pdfSceneInfo.count > 1 && (
+              <>
+                <label style={{
+                  display: 'block',
+                  fontFamily: 'Manrope, sans-serif',
+                  fontSize: 10, fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.1em',
+                  color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(180,185,200,0.65)',
+                  marginBottom: 6,
+                }}>
+                  {tr.stagex.pdfSheetScene}
+                </label>
+                <div style={{
+                  display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18,
+                }}>
+                  {([
+                    { key: 'current' as const, label: tr.stagex.pdfSheetSceneCurrent },
+                    ...pdfSceneInfo.names.slice(0, pdfSceneInfo.count).map((n, i) => ({ key: i, label: n })),
+                    { key: 'all' as const, label: tr.stagex.pdfSheetSceneAll },
+                  ]).map(({ key, label }) => {
+                    const active = pdfSceneChoice === key;
+                    return (
+                      <button
+                        key={String(key)}
+                        onClick={() => setPdfSceneChoice(key)}
+                        disabled={pdfBusy}
+                        style={{
+                          padding: '7px 12px',
+                          background: active
+                            ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
+                            : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'),
+                          color: active ? '#fff' : (isLight ? '#111' : 'rgba(220,222,232,0.85)'),
+                          border: `1px solid ${active ? 'transparent' : (isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)')}`,
+                          borderRadius: 8,
+                          fontFamily: 'Manrope, sans-serif', fontSize: 11, fontWeight: 700,
+                          textTransform: 'uppercase', letterSpacing: '0.06em',
+                          cursor: pdfBusy ? 'wait' : 'pointer',
+                          transition: 'background 150ms, color 150ms, border-color 150ms',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button

@@ -25,6 +25,8 @@ import {
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import DrumPrefsPanel from './DrumPrefsPanel';
 import { setBackHandler } from '../lib/backStack';
+import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
+import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern } from '../lib/drumLibrary';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
@@ -471,11 +473,21 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
 }) {
   const ALL_NAV_TABS = useDrumNavTabs();
   const navRef  = useRef<HTMLElement | null>(null);
+  useLiquidGlassNav(navRef);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [pill, setPill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const prevIdx = useRef(ALL_NAV_TABS.findIndex(x => x.id === activeTab));
   const strT    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pressed, setPressed] = useState<DrumTab | null>(null);
+  const navCollapsed = useNavCollapsed();
+  const [expandedH, setExpandedH] = useState(56);
+  const [expandedW, setExpandedW] = useState(360);
+  useEffect(() => {
+    if (navRef.current) {
+      setExpandedH(navRef.current.offsetHeight);
+      setExpandedW(navRef.current.offsetWidth);
+    }
+  }, []);
 
   const measure = (idx: number) => {
     const btn = btnRefs.current[idx]; const nav = navRef.current;
@@ -511,27 +523,55 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
   return (
     <nav ref={navRef} style={{
       position: 'fixed', left: '50%',
-      transform: `translateX(-50%) translateY(${hidden ? '140%' : '0'})`,
+      transform: `translateX(-50%) translateY(${hidden ? 'calc(100% + 32px)' : '0px'})`,
       bottom: 'max(10px, env(safe-area-inset-bottom))',
-      width: '88%', maxWidth: 360,
-      display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-      padding: '6px 8px', borderRadius: '2rem',
-      border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
+      width: '88%',
+      maxWidth: '360px',
+      height: `${expandedH}px`,
+      borderRadius: '2rem',
+      border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
       background: isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)'),
       boxShadow: isLight
         ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
         : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
       zIndex: 50, overflow: 'hidden',
       backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-      transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1), transform 420ms cubic-bezier(0.4,0,0.2,1)',
+      clipPath: navCollapsed
+        ? `inset(${Math.max(0, expandedH - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
+        : 'inset(0 0 0 0 round 2rem)',
+      willChange: 'clip-path, transform',
+      transition: [
+        navCollapsed
+          ? 'clip-path 500ms cubic-bezier(0.4,0,0.2,1)'
+          : 'clip-path 380ms cubic-bezier(0.16,1,0.3,1)',
+        navCollapsed
+          ? 'transform 500ms cubic-bezier(0.4,0,0.2,1)'
+          : 'transform 380ms cubic-bezier(0.16,1,0.3,1)',
+        'background-color 300ms ease',
+      ].join(', '),
     }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+        padding: '6px 8px',
+        opacity: navCollapsed ? 0 : 1,
+        transition: navCollapsed ? 'opacity 100ms ease' : 'opacity 350ms ease 180ms',
+        willChange: 'opacity',
+      }}>
       {pill.ready && (
         <div aria-hidden style={{
           position: 'absolute', top: 4, left: pill.left, width: pill.right - pill.left,
           height: 'calc(100% - 8px)', borderRadius: '9999px',
-          background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+          background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.09)',
+          border: isLight ? '1.5px solid rgba(0,0,0,0.14)' : '1.5px solid rgba(255,255,255,0.30)',
+          boxShadow: isLight
+            ? 'inset 0 1px 0 rgba(255,255,255,0.90), 0 2px 8px rgba(0,0,0,0.10)'
+            : 'inset 0 1px 0 rgba(255,255,255,0.40), 0 2px 16px rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
           pointerEvents: 'none', zIndex: 0,
-          transition: 'left 150ms cubic-bezier(0.34,1.56,0.64,1), width 150ms cubic-bezier(0.34,1.56,0.64,1)',
+          opacity: 1,
+          transition: 'left 180ms cubic-bezier(0.16,1,0.3,1), width 180ms cubic-bezier(0.16,1,0.3,1)',
         }} />
       )}
       {ALL_NAV_TABS.map(({ id, label, Icon }, i) => {
@@ -544,7 +584,8 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               gap: 4, padding: '8px 4px', borderRadius: '9999px', background: 'transparent', border: 'none',
-              cursor: 'pointer', color: isActive ? '#fff' : (isLight ? 'rgba(0,0,0,0.4)' : '#71717a'), position: 'relative', zIndex: 1,
+              cursor: 'pointer', color: isActive ? (isLight ? accent.from : '#fff') : (isLight ? 'rgba(0,0,0,0.4)' : '#71717a'), position: 'relative', zIndex: 1,
+              opacity: 1,
               transform: isPressed ? 'scale(0.91)' : 'scale(1)',
               transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34,1.56,0.64,1)',
             }}>
@@ -555,6 +596,7 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
           </button>
         );
       })}
+      </div>
     </nav>
   );
 }
@@ -1649,7 +1691,7 @@ export default function DrumEditor() {
     const newIdx = TAB_ORDER.indexOf(newTab);
     setTabAnim(newIdx >= oldIdx ? 'panel-enter-right' : 'panel-enter-left');
     setActiveTab(newTab);
-    setDrumNavHidden(false);
+    setNavCollapsed(false);
     drumNavLastY.current = 0;
   };
   const [humanizeFeedback,   setHumanizeFeedback]   = useState(false);
@@ -1833,7 +1875,6 @@ export default function DrumEditor() {
   }, [pattern, spm, visibleInsts]);
 
   // ── Scroll-hide for bottom nav ────────────────────────────────────────────
-  const [drumNavHidden, setDrumNavHidden] = useState(false);
   const drumNavLastY = useRef(0);
 
   // ── Refs ─────────────────────────────────────────────────────────────────
@@ -1878,10 +1919,10 @@ export default function DrumEditor() {
   // ── Scroll-hide: attach to grid scroll container ──────────────────────────
   const drumScrollHide = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const y = e.currentTarget.scrollTop;
-    if (y < 30) { setDrumNavHidden(false); drumNavLastY.current = y; return; }
+    if (y < 30) { setNavCollapsed(false); drumNavLastY.current = y; return; }
     const dy = y - drumNavLastY.current;
     if (Math.abs(dy) < 6) return;
-    setDrumNavHidden(dy > 0);
+    setNavCollapsed(dy > 0);
     drumNavLastY.current = y;
   }, []);
 
@@ -3409,12 +3450,12 @@ export default function DrumEditor() {
         )}
 
         {/* ── Prefs tab ─────────────────────────────────────────────────── */}
-        {activeTab === 'prefs' && <DrumPrefsPanel />}
+        {activeTab === 'prefs' && <DrumPrefsPanel onScroll={drumScrollHide} />}
 
       </div>
 
       {/* ── Bottom nav ───────────────────────────────────────────────────── */}
-      <DrumNav activeTab={activeTab} setTab={handleSetTab} accent={accent} isLight={isLight} isAmoled={isAmoled} hidden={drumNavHidden || (isLandscape && inEditor)} />
+      <DrumNav activeTab={activeTab} setTab={handleSetTab} accent={accent} isLight={isLight} isAmoled={isAmoled} hidden={isLandscape && inEditor} />
 
       {/* ── Floating buttons (songs list only): import above + add ──────── */}
       {!inEditor && activeTab === 'songs' && (

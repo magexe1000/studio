@@ -4,17 +4,29 @@ import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { useBackHandler } from '../lib/backStack';
+import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
+import { useNavCollapsed, useNavHidden } from '../lib/navScroll';
 
 const GroovexLibrary = lazy(() => import('./GroovexLibrary'));
 const GroovexPlayer = lazy(() => import('./GroovexPlayer'));
 const GroovexPreferences = lazy(() => import('./GroovexPreferences'));
 
+const VIEW_ORDER: GroovexView[] = ['library', 'player', 'preferences'];
+
 export default function GroovexApp() {
   const { view, setView, activeSongId } = useGroovexStore();
+  const [viewAnim, setViewAnim] = useState<'panel-enter-right' | 'panel-enter-left'>('panel-enter-right');
+
+  function navigate(next: GroovexView) {
+    const oldIdx = VIEW_ORDER.indexOf(view);
+    const newIdx = VIEW_ORDER.indexOf(next);
+    setViewAnim(newIdx >= oldIdx ? 'panel-enter-right' : 'panel-enter-left');
+    setView(next);
+  }
 
   function handleBack() {
     if (view === 'player') {
-      setView('library');
+      navigate('library');
     } else {
       window.dispatchEvent(new Event('studio-hub-return'));
     }
@@ -22,11 +34,11 @@ export default function GroovexApp() {
 
   useBackHandler('nested', () => {
     if (view === 'player') {
-      setView('library');
+      navigate('library');
       return true;
     }
     if (view === 'preferences') {
-      setView('library');
+      navigate('library');
       return true;
     }
     return false;
@@ -74,7 +86,7 @@ export default function GroovexApp() {
 
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         <Suspense fallback={null}>
-          <div key={view} className="panel-enter-right" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div key={view} className={viewAnim} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {view === 'library' && <GroovexLibrary />}
             {view === 'player' && <GroovexPlayer />}
             {view === 'preferences' && <GroovexPreferences />}
@@ -83,7 +95,7 @@ export default function GroovexApp() {
       </div>
 
       {view !== 'player' && (
-        <GroovexNav view={view} setView={setView} hasActiveSong={!!activeSongId} />
+        <GroovexNav view={view} setView={navigate} hasActiveSong={!!activeSongId} />
       )}
     </div>
   );
@@ -101,6 +113,10 @@ function GroovexNav({ view, setView, hasActiveSong }: {
   const isLight = groovexVis.theme === 'light' ||
     (groovexVis.theme === 'system' && typeof window !== 'undefined' &&
      window.matchMedia('(prefers-color-scheme: light)').matches);
+  const accent = ACCENT_COLORS[groovexVis.accentColor as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue;
+  const amoledBg = groovexVis.amoledMode
+    ? 'rgba(0,0,0,0.96)'
+    : (isLight ? 'rgba(255,255,255,0.82)' : 'rgba(26,26,30,0.82)');
 
   const t = useT();
   const items: { id: GroovexView; icon: string; label: string }[] = [
@@ -115,6 +131,16 @@ function GroovexNav({ view, setView, hasActiveSong }: {
 
   const [pill, setPill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const [pressedId, setPressedId] = useState<GroovexView | null>(null);
+  const navCollapsed = useNavCollapsed();
+  const navHidden    = useNavHidden();
+  const [expandedH, setExpandedH] = useState(56);
+  const [expandedW, setExpandedW] = useState(280);
+  useEffect(() => {
+    if (navRef.current) {
+      setExpandedH(navRef.current.offsetHeight);
+      setExpandedW(navRef.current.offsetWidth);
+    }
+  }, []);
 
   const measureBtn = (idx: number): { left: number; right: number } | null => {
     const btn = btnRefs.current[idx];
@@ -167,6 +193,8 @@ function GroovexNav({ view, setView, hasActiveSong }: {
     };
   }, [view]);
 
+  useLiquidGlassNav(navRef as React.RefObject<HTMLElement | null>);
+
   return (
     <nav
       ref={navRef}
@@ -174,26 +202,43 @@ function GroovexNav({ view, setView, hasActiveSong }: {
         position: 'fixed',
         bottom: 'max(10px, env(safe-area-inset-bottom))',
         left: '50%',
-        transform: 'translateX(-50%)',
+        transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 32px)' : '0px'})`,
         width: '70%',
-        maxWidth: 280,
-        display: 'flex',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        padding: '4px 8px',
+        maxWidth: '280px',
+        height: `${expandedH}px`,
         borderRadius: '2rem',
-        border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.10)',
-        background: isLight ? 'rgba(255,255,255,0.85)' : 'rgba(26,26,30,0.82)',
+        border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
+        background: amoledBg,
         boxShadow: isLight
-          ? '0 8px 32px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.6) inset'
+          ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
           : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         zIndex: 50,
         overflow: 'hidden',
-        transition: 'transform 420ms cubic-bezier(0.4, 0, 0.2, 1)',
+        pointerEvents: (navHidden || navCollapsed) ? 'none' : 'auto',
+        clipPath: navCollapsed
+          ? `inset(${Math.max(0, expandedH - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
+          : 'inset(0 0 0 0 round 2rem)',
+        willChange: 'clip-path, transform',
+        transition: [
+          navCollapsed
+            ? 'clip-path 500ms cubic-bezier(0.4,0,0.2,1)'
+            : 'clip-path 380ms cubic-bezier(0.16,1,0.3,1)',
+          navCollapsed
+            ? 'transform 500ms cubic-bezier(0.4,0,0.2,1)'
+            : 'transform 380ms cubic-bezier(0.16,1,0.3,1)',
+        ].join(', '),
       }}
     >
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+        padding: '4px 8px',
+        opacity: navCollapsed ? 0 : 1,
+        transition: navCollapsed ? 'opacity 100ms ease' : 'opacity 350ms ease 180ms',
+        willChange: 'opacity',
+      }}>
       {pill.ready && (
         <div
           aria-hidden
@@ -204,11 +249,17 @@ function GroovexNav({ view, setView, hasActiveSong }: {
             width: pill.right - pill.left,
             height: 'calc(100% - 8px)',
             borderRadius: 9999,
-            background: 'linear-gradient(135deg, var(--gx-accent), var(--gx-accent-container))',
-            boxShadow: '0 2px 18px rgba(0,122,255,0.35)',
+            background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.09)',
+            border: isLight ? '1.5px solid rgba(0,0,0,0.14)' : '1.5px solid rgba(255,255,255,0.30)',
+            boxShadow: isLight
+              ? 'inset 0 1px 0 rgba(255,255,255,0.90), 0 2px 8px rgba(0,0,0,0.10)'
+              : 'inset 0 1px 0 rgba(255,255,255,0.40), 0 2px 16px rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             pointerEvents: 'none',
             zIndex: 0,
-            transition: 'left 150ms cubic-bezier(0.34, 1.56, 0.64, 1), width 150ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+            opacity: 1,
+            transition: 'left 180ms cubic-bezier(0.16,1,0.3,1), width 180ms cubic-bezier(0.16,1,0.3,1)',
           }}
         />
       )}
@@ -236,12 +287,10 @@ function GroovexNav({ view, setView, hasActiveSong }: {
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              // Active pill is always filled with the accent gradient, so the
-              // active label/icon must always be white — dark text would be
-              // unreadable on the blue fill in light mode.
-              color: active ? '#fff' : 'var(--c-text-secondary)',
+              color: active ? (isLight ? accent.from : '#fff') : 'var(--c-text-secondary)',
               position: 'relative',
               zIndex: 1,
+              opacity: 1,
               transform: pressed ? 'scale(0.91)' : 'scale(1)',
               transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1)',
             }}
@@ -264,6 +313,7 @@ function GroovexNav({ view, setView, hasActiveSong }: {
           </button>
         );
       })}
+      </div>
     </nav>
   );
 }

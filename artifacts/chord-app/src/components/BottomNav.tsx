@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useChordStore, ACCENT_COLORS, type ActivePanel, type AppKey } from '../store/useChordStore';
-import { useNavHidden } from '../lib/navScroll';
+import { useNavHidden, useNavCollapsed } from '../lib/navScroll';
 import { useT } from '../lib/useT';
+import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 
 /* ── Crisp inline SVG icons ──────────────────────────────────── */
 export function IconSongs({ active }: { active: boolean }) {
@@ -138,12 +139,30 @@ export default function BottomNav() {
   const amoledBg = activeVis.amoledMode
     ? 'rgba(4,4,4,0.88)'
     : isLight
-      ? 'rgba(240,240,242,0.82)'
-      : 'rgba(26,26,30,0.82)';
-  const navHidden = useNavHidden();
+      ? 'rgba(240,240,242,0.72)'
+      : 'rgba(26,26,30,0.72)';
+  const navHidden    = useNavHidden();
+  const navCollapsed = useNavCollapsed();
+
 
   /* ── Sliding pill state ── */
   const navRef            = useRef<HTMLElement | null>(null);
+  // Wire this nav into the shared liquid-glass renderer (no-op when the
+  // setting is off or the platform isn't supported).
+  useLiquidGlassNav(navRef);
+
+  // Measure the nav's natural height once after mount so we always have
+  // an explicit px value on both ends of the height transition.
+  // CSS cannot interpolate height: auto → 8px, so we need a real number.
+  const [expandedH, setExpandedH] = useState(64);
+  const [expandedW, setExpandedW] = useState(350);
+  useEffect(() => {
+    if (navRef.current) {
+      setExpandedH(navRef.current.offsetHeight);
+      setExpandedW(navRef.current.offsetWidth);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const btnRefs           = useRef<(HTMLButtonElement | null)[]>([]);
   const prevIdxRef        = useRef(NAV_ORDER.indexOf(activePanel));
   const stretchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -204,37 +223,55 @@ export default function BottomNav() {
   return (
     <nav
       ref={navRef}
-      className="glass-nav fixed w-[90%] max-w-md flex justify-around items-center px-2 py-1.5"
+      className="glass-nav fixed"
       // When hidden (e.g. inside the song-preset editor or a full-screen
       // popup), also strip the bar from the accessibility tree so it doesn't
       // appear in screen-reader / aria snapshots — purely visual translation
       // would otherwise leave a "ghost" nav for assistive tech.
-      aria-hidden={navHidden || undefined}
+      aria-hidden={(navHidden || navCollapsed) || undefined}
       // @ts-expect-error – `inert` is valid HTML but missing from React types in this version
-      inert={navHidden ? '' : undefined}
+      inert={(navHidden || navCollapsed) ? '' : undefined}
       style={{
         bottom: 'max(10px, env(safe-area-inset-bottom))',
         left: '50%',
+        width: '90%',
+        maxWidth: '28rem',
+        height: `${expandedH}px`,
         borderRadius: '2rem',
-        border: `1px solid ${isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.10)'}`,
+        border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
         background: amoledBg,
         boxShadow: isLight
           ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
           : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
         zIndex: 50,
         overflow: 'hidden',
-        pointerEvents: navHidden ? 'none' : 'auto',
-        transform: navHidden
-          ? 'translateX(-50%) translateY(calc(100% + 32px))'
-          : 'translateX(-50%) translateY(0)',
+        pointerEvents: (navHidden || navCollapsed) ? 'none' : 'auto',
+        transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 32px)' : '0px'})`,
+        clipPath: navCollapsed
+          ? `inset(${Math.max(0, expandedH - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
+          : 'inset(0 0 0 0 round 2rem)',
+        willChange: 'clip-path, transform',
         transition: [
-          'transform 420ms cubic-bezier(0.4, 0, 0.2, 1)',
-          'background-color 300ms cubic-bezier(0.4,0,0.2,1)',
-          'border-color 300ms cubic-bezier(0.4,0,0.2,1)',
-          'box-shadow 300ms cubic-bezier(0.4,0,0.2,1)',
+          navCollapsed
+            ? 'clip-path 500ms cubic-bezier(0.4,0,0.2,1)'
+            : 'clip-path 380ms cubic-bezier(0.16,1,0.3,1)',
+          navCollapsed
+            ? 'transform 500ms cubic-bezier(0.4,0,0.2,1)'
+            : 'transform 380ms cubic-bezier(0.16,1,0.3,1)',
+          'background-color 300ms ease',
+          'border-color     300ms ease',
+          'box-shadow       300ms ease',
         ].join(', '),
       }}
     >
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+        padding: '6px 8px',
+        opacity: navCollapsed ? 0 : 1,
+        transition: navCollapsed ? 'opacity 100ms ease' : 'opacity 350ms ease 180ms',
+        willChange: 'opacity',
+      }}>
       {/* ── Elastic sliding pill ── */}
       {pill.ready && (
         <div
@@ -246,14 +283,18 @@ export default function BottomNav() {
             width: pill.right - pill.left,
             height: 'calc(100% - 8px)',
             borderRadius: '9999px',
-            background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-            boxShadow: `0 2px 18px ${accent.to}60`,
+            // Liquid glass ring — flips for light vs dark
+            background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.09)',
+            border: isLight ? '1.5px solid rgba(0,0,0,0.14)' : '1.5px solid rgba(255,255,255,0.30)',
+            boxShadow: isLight
+              ? ['inset 0 1px 0 rgba(255,255,255,0.90)', '0 2px 8px rgba(0,0,0,0.10)'].join(', ')
+              : ['inset 0 1px 0 rgba(255,255,255,0.40)', '0 2px 16px rgba(255,255,255,0.06)'].join(', '),
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             pointerEvents: 'none',
             zIndex: 0,
-            transition: [
-              'left  150ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-              'width 150ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-            ].join(', '),
+            opacity: 1,
+            transition: 'left 180ms cubic-bezier(0.16,1,0.3,1), width 180ms cubic-bezier(0.16,1,0.3,1)',
           }}
         />
       )}
@@ -283,12 +324,15 @@ export default function BottomNav() {
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              color: isActive ? '#fff' : 'var(--c-text-secondary)',
+              color: isActive
+                ? (isLight ? accent.from : '#fff')
+                : 'var(--c-text-secondary)',
               position: 'relative',
               zIndex: 1,
+              opacity: 1,
               /* No scale on active — avoids subpixel blur on non-retina screens */
               transform: isPressed ? 'scale(0.91)' : 'scale(1)',
-              transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+              transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34,1.56,0.64,1)',
             }}
           >
             <Icon active={isActive} />
@@ -306,6 +350,7 @@ export default function BottomNav() {
           </button>
         );
       })}
+      </div>
     </nav>
   );
 }

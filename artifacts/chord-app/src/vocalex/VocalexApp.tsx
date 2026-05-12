@@ -3,8 +3,9 @@ import { useBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { useT } from '../lib/useT';
-import { useScrollHide, useNavHidden, setNavHidden } from '../lib/navScroll';
+import { useScrollHide, useNavHidden, useNavCollapsed, setNavHidden } from '../lib/navScroll';
 import { subscribeVocalexBack } from './headerBack';
+import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 
 const PracticePanelLazy = lazy(() => import('./PracticePanel'));
 const PitchPanelLazy = lazy(() => import('./PitchPanel'));
@@ -117,6 +118,15 @@ export default function VocalexApp() {
   ];
 
   const navRef = useRef<HTMLElement | null>(null);
+  useLiquidGlassNav(navRef);
+  const [expandedH, setExpandedH] = useState(64);
+  const [expandedW, setExpandedW] = useState(350);
+  useEffect(() => {
+    if (navRef.current) {
+      setExpandedH(navRef.current.offsetHeight);
+      setExpandedW(navRef.current.offsetWidth);
+    }
+  }, []);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const prevIdxRef = useRef(0);
 
@@ -130,7 +140,8 @@ export default function VocalexApp() {
   useScrollHide(labScrollRef);
   useScrollHide(takesScrollRef);
 
-  const navHidden = useNavHidden();
+  const navHidden   = useNavHidden();
+  const navCollapsed = useNavCollapsed();
   const [headerBack, setHeaderBack] = useState<(() => void) | null>(null);
   useEffect(() => subscribeVocalexBack(fn => setHeaderBack(() => fn)), []);
 
@@ -296,24 +307,40 @@ export default function VocalexApp() {
           left: '50%',
           width: '90%',
           maxWidth: '28rem',
-          display: 'flex',
-          justifyContent: 'space-around',
-          alignItems: 'center',
-          padding: '6px 8px',
+          height: `${expandedH}px`,
           borderRadius: '2rem',
-          border: `1px solid ${isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.10)'}`,
+          border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
           background: amoledBg,
           boxShadow: isLight
             ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
             : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
           zIndex: 50,
           overflow: 'hidden',
-          transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 20px)' : '0'})`,
-          transition: 'transform 320ms cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 32px)' : '0'})`,
+          clipPath: navCollapsed
+            ? `inset(${Math.max(0, expandedH - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
+            : 'inset(0 0 0 0 round 2rem)',
+          willChange: 'clip-path, transform',
+          transition: [
+            navCollapsed
+              ? 'clip-path 500ms cubic-bezier(0.4,0,0.2,1)'
+              : 'clip-path 380ms cubic-bezier(0.16,1,0.3,1)',
+            navCollapsed
+              ? 'transform 500ms cubic-bezier(0.4,0,0.2,1)'
+              : 'transform 380ms cubic-bezier(0.16,1,0.3,1)',
+          ].join(', '),
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
         }}
       >
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+          padding: '6px 8px',
+          opacity: navCollapsed ? 0 : 1,
+          transition: navCollapsed ? 'opacity 100ms ease' : 'opacity 350ms ease 180ms',
+          willChange: 'opacity',
+        }}>
         {pill.ready && (
           <div aria-hidden style={{
             position: 'absolute',
@@ -322,11 +349,17 @@ export default function VocalexApp() {
             width: pill.right - pill.left,
             height: 'calc(100% - 8px)',
             borderRadius: '9999px',
-            background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-            boxShadow: `0 2px 18px ${accent.to}60`,
+            background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.09)',
+            border: isLight ? '1.5px solid rgba(0,0,0,0.14)' : '1.5px solid rgba(255,255,255,0.30)',
+            boxShadow: isLight
+              ? 'inset 0 1px 0 rgba(255,255,255,0.90), 0 2px 8px rgba(0,0,0,0.10)'
+              : 'inset 0 1px 0 rgba(255,255,255,0.40), 0 2px 16px rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             pointerEvents: 'none',
             zIndex: 0,
-            transition: 'left 150ms cubic-bezier(0.34,1.56,0.64,1), width 150ms cubic-bezier(0.34,1.56,0.64,1)',
+            opacity: 1,
+            transition: 'left 180ms cubic-bezier(0.16,1,0.3,1), width 180ms cubic-bezier(0.16,1,0.3,1)',
           }} />
         )}
 
@@ -354,9 +387,10 @@ export default function VocalexApp() {
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
-                color: isActive ? '#fff' : 'var(--c-text-secondary)',
+                color: isActive ? (isLight ? accent.from : '#fff') : 'var(--c-text-secondary)',
                 position: 'relative',
                 zIndex: 1,
+                opacity: 1,
                 transform: isPressed ? 'scale(0.91)' : 'scale(1)',
                 transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34,1.56,0.64,1)',
               }}
@@ -376,6 +410,7 @@ export default function VocalexApp() {
             </button>
           );
         })}
+        </div>
       </nav>
     </div>
   );

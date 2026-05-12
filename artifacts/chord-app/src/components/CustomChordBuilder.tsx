@@ -1,10 +1,10 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useChordStore, ACCENT_COLORS, type CustomChord, type BarreDef } from '../store/useChordStore';
 import {
   detectChordName, chromaticToName,
   OPEN_NOTES, STRING_LABELS, notesFromFrets, notesFromPianoKeys,
 } from '../lib/chordDetect';
-import { setNavHidden } from '../lib/navScroll';
+import { setNavHidden, useScrollHide } from '../lib/navScroll';
 import { useEffect } from 'react';
 import ChordDiagram from './ChordDiagram';
 import type { GuitarChordData } from '../data/chords';
@@ -526,6 +526,8 @@ interface Props {
 }
 
 export default function CustomChordBuilder({ accent, editChord, onSave, onClose: onCloseProp, mode = 'build' }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollHide(scrollRef);
   const { settings } = useChordStore();
   const t = useT();
   const resolvedAccent = ACCENT_COLORS[settings.accentColor];
@@ -689,7 +691,7 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose:
         </div>
 
         {/* Scrollable content */}
-        <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 16px 10px' }}>
+        <div ref={scrollRef} className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 16px 10px' }}>
 
           {/* ── Instrument selector ── */}
           <div style={{ marginBottom: '14px' }}>

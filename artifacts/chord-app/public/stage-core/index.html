@@ -82,6 +82,8 @@
 </script>
 <script src="vendor/lucide.min.js"></script>
 <link rel="stylesheet" href="fonts/google-fonts.css"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block"/>
 <link rel="stylesheet" href="fonts/material-symbols.css"/>
 <link rel="stylesheet" href="stage-core.css"/>
 <link rel="stylesheet" href="app.css"/>
@@ -134,7 +136,7 @@ body {
   gap: 0 !important;
   overflow: hidden !important;
   z-index: 200 !important;
-  transition: opacity 420ms ease !important;
+  transition: transform 540ms cubic-bezier(0.16,1,0.3,1) !important;
   scrollbar-width: none !important;
 }
 #mobile-nav-bar::-webkit-scrollbar { display: none; }
@@ -332,7 +334,7 @@ body {
 /* 10. With status bar gone the nav pill can sit lower */
 #mobile-nav-bar {
   bottom: 10px !important;
-  transition: opacity 420ms ease, transform 420ms cubic-bezier(0.4,0,0.2,1) !important;
+  transition: transform 540ms cubic-bezier(0.16,1,0.3,1) !important;
 }
 
 /* Scroll-hide: slide nav down out of view (keep the -50% X-center) */
@@ -2280,11 +2282,18 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
   <!-- MAIN CANVAS -->
   <main id="canvas-container" class="absolute bg-surface-container-low overflow-hidden" style="left:0;right:0;top:64px;bottom:32px;">
 
+    <!-- SCENES BAR — overlays top-left of the stage canvas (Editor view only) -->
+    <div id="sc-scenes-bar"
+         style="display:none;position:absolute;top:8px;left:8px;transform:none;
+                z-index:30;align-items:center;gap:6px;padding:2px 0;
+                background:none;border:none;box-shadow:none;
+                max-width:calc(100vw - 24px);overflow-x:auto;flex-wrap:nowrap;"></div>
+
     <!-- ══════════ VERTICAL STAGE TOOLBAR ══════════ -->
     <div id="sc-vtools">
       <!-- Collapse / expand handle -->
       <button id="sc-vtools-toggle" onclick="toggleSCVTools()" title="Show tools">
-        <span class="material-symbols-outlined" style="font-size:15px;">more_vert</span>
+        <span class="material-symbols-outlined" style="font-size:15px;font-family:'Material Symbols Outlined';">more_vert</span>
       </button>
       <!-- Tools panel — starts collapsed -->
       <div id="sc-vtools-body" class="vtools-collapsed">

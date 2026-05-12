@@ -3,13 +3,14 @@ import { useBackHandler } from '../lib/backStack';
 import { subscribeAuth, type AuthUser } from '../lib/auth';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
-import { useNavHidden, useScrollHide } from '../lib/navScroll';
+import { useNavHidden, useNavCollapsed, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import ApplyToSheet from './ApplyToSheet';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
 import { useOtaUpdate } from '../lib/otaUpdate';
+import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 
 // AccountCard pulls Firebase (auth + firestore). Lazy-load it so Firebase
 // stays out of the initial bundle graph; only fetched when Settings tab opens.
@@ -1279,15 +1280,30 @@ function HubNav({ tab, setTab, accent }: {
   const { settings } = useChordStore();
   const HUB_NAV_ITEMS = useHubNavItems();
   const navRef   = useRef<HTMLElement | null>(null);
+  useLiquidGlassNav(navRef);
   const btnRefs  = useRef<(HTMLButtonElement | null)[]>([]);
   const prevIdx  = useRef(HUB_NAV_ITEMS.findIndex(i => i.id === tab));
   const stretchT = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const navHidden = useNavHidden();
+  const navHidden    = useNavHidden();
+  const navCollapsed = useNavCollapsed();
+
 
   const [pill, setPill]       = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const [pressed, setPressed] = useState<HubTab | null>(null);
   const [entered, setEntered] = useState(false);
   useEffect(() => { const t = setTimeout(() => setEntered(true), 40); return () => clearTimeout(t); }, []);
+
+  // Measure natural height once after mount — needed so height transition
+  // has explicit px values on both ends (auto → px doesn't animate).
+  const [expandedH, setExpandedH] = useState(60);
+  const [expandedW, setExpandedW] = useState(400);
+  useEffect(() => {
+    if (navRef.current) {
+      setExpandedH(navRef.current.offsetHeight);
+      setExpandedW(navRef.current.offsetWidth);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const measureBtn = (idx: number) => {
     const btn = btnRefs.current[idx];
@@ -1324,7 +1340,7 @@ function HubNav({ tab, setTab, accent }: {
 
   const hubVis2 = settings.perApp?.hub ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
   const isLight = hubVis2.theme === 'light' || (hubVis2.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
-  const bg = hubVis2.amoledMode ? 'rgba(4,4,4,0.88)' : isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)';
+  const bg = hubVis2.amoledMode ? 'rgba(4,4,4,0.88)' : isLight ? 'rgba(240,240,242,0.72)' : 'rgba(26,26,30,0.72)';
 
   return (
     <nav
@@ -1333,28 +1349,52 @@ function HubNav({ tab, setTab, accent }: {
         position: 'fixed',
         bottom: 'max(10px, env(safe-area-inset-bottom))',
         left: '50%',
-        width: '90%', maxWidth: '448px',
-        display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-        padding: '6px 8px',
+        width: '90%',
+        maxWidth: '448px',
+        height: `${expandedH}px`,
         borderRadius: '2rem',
-        border: `1px solid ${isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.10)'}`,
+        border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
         background: bg,
         boxShadow: isLight
           ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
           : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
         zIndex: 50,
         overflow: 'hidden',
-        transform: (navHidden && entered)
-          ? 'translateX(-50%) translateY(calc(100% + 32px))'
-          : entered
-            ? 'translateX(-50%)'
-            : 'translateX(-50%) translateY(24px)',
+        pointerEvents: (navHidden || navCollapsed) ? 'none' : 'auto',
+        transform: !entered
+          ? 'translateX(-50%) translateY(24px)'
+          : navHidden
+            ? 'translateX(-50%) translateY(calc(100% + 32px))'
+            : 'translateX(-50%) translateY(0px)',
         opacity: entered ? 1 : 0,
-        transition: 'transform 420ms cubic-bezier(0.4,0,0.2,1), opacity 400ms cubic-bezier(0.34,1.15,0.64,1), background-color 300ms cubic-bezier(0.4,0,0.2,1), border-color 300ms cubic-bezier(0.4,0,0.2,1), box-shadow 300ms cubic-bezier(0.4,0,0.2,1)',
+        clipPath: navCollapsed
+          ? `inset(${Math.max(0, expandedH - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
+          : 'inset(0 0 0 0 round 2rem)',
+        willChange: 'clip-path, transform, opacity',
+        transition: [
+          navCollapsed
+            ? 'clip-path 500ms cubic-bezier(0.4,0,0.2,1)'
+            : 'clip-path 380ms cubic-bezier(0.16,1,0.3,1)',
+          navCollapsed
+            ? 'transform 500ms cubic-bezier(0.4,0,0.2,1)'
+            : 'transform 380ms cubic-bezier(0.16,1,0.3,1)',
+          'opacity          500ms cubic-bezier(0.16,1,0.3,1)',
+          'background-color 300ms ease',
+          'border-color     300ms ease',
+          'box-shadow       300ms ease',
+        ].join(', '),
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
       }}
     >
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+        padding: '6px 8px',
+        opacity: navCollapsed ? 0 : 1,
+        transition: navCollapsed ? 'opacity 100ms ease' : 'opacity 350ms ease 180ms',
+        willChange: 'opacity',
+      }}>
       {/* Sliding pill */}
       {pill.ready && (
         <div aria-hidden style={{
@@ -1362,10 +1402,17 @@ function HubNav({ tab, setTab, accent }: {
           left: pill.left, width: pill.right - pill.left,
           height: 'calc(100% - 8px)',
           borderRadius: '9999px',
-          background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-          boxShadow: `0 2px 18px ${accent.to}60`,
+          // Liquid glass ring — flips for light vs dark
+          background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.09)',
+          border: isLight ? '1.5px solid rgba(0,0,0,0.14)' : '1.5px solid rgba(255,255,255,0.30)',
+          boxShadow: isLight
+            ? ['inset 0 1px 0 rgba(255,255,255,0.90)', '0 2px 8px rgba(0,0,0,0.10)'].join(', ')
+            : ['inset 0 1px 0 rgba(255,255,255,0.40)', '0 2px 16px rgba(255,255,255,0.06)'].join(', '),
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
           pointerEvents: 'none', zIndex: 0,
-          transition: 'left 150ms cubic-bezier(0.34,1.56,0.64,1), width 150ms cubic-bezier(0.34,1.56,0.64,1)',
+          opacity: 1,
+          transition: 'left 180ms cubic-bezier(0.16,1,0.3,1), width 180ms cubic-bezier(0.16,1,0.3,1)',
         }} />
       )}
 
@@ -1385,8 +1432,11 @@ function HubNav({ tab, setTab, accent }: {
               alignItems: 'center', justifyContent: 'center', gap: 4,
               padding: '8px 4px', borderRadius: '9999px',
               background: 'transparent', border: 'none', cursor: 'pointer',
-              color: active ? '#fff' : 'var(--c-text-secondary)',
+              color: active
+                ? (isLight ? accent.from : '#fff')
+                : 'var(--c-text-secondary)',
               position: 'relative', zIndex: 1,
+              opacity: 1,
               transform: isPressed ? 'scale(0.91)' : 'scale(1)',
               transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34,1.56,0.64,1)',
             }}
@@ -1411,6 +1461,7 @@ function HubNav({ tab, setTab, accent }: {
           </button>
         );
       })}
+      </div>
     </nav>
   );
 }

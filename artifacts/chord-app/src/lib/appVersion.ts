@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.71';
+export const APP_VERSION = '3.0.72';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,8 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-12'; // 3.0.71
-// 3.0.19 fixes the OTA modal getting permanently suppressed after a single missed prompt.
+export const APP_VERSION_DATE = '2026-05-12'; // 3.0.72
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -54,15 +53,26 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixes",
+    heading: "Liquid Glass Navigation",
     items: [
-      'Changelog no longer opens on every launch — it now only appears the first time after an update.',
+      'Bottom nav bar now uses a Liquid Glass effect — live refraction, chromatic aberration rim, and a scroll-driven specular streak.',
+      'The shine slides across the nav as you scroll, mirroring the iOS 26 / Android Liquid Glass aesthetic.',
+      'Effect is GPU-composited and updates in real time against whatever is behind the bar — no snapshots needed.',
     ],
   },
   {
-    heading: "Translations",
+    heading: "Stagex",
     items: [
-      'Full German (Deutsch) translation added across all sections: chords, songs, settings, Drumex, Vocalex, Groovex, Stagex, and more.',
+      'Scenes bar now floats just above the stage plot — dynamically repositioned and no longer stuck at the top of the screen.',
+      'Live mode eye button now correctly triggers the full enter/exit animation sequence.',
+      'Eye icon renders cleanly — no more stray "_off" text next to the button.',
+    ],
+  },
+  {
+    heading: "Navigation",
+    items: [
+      'Nav bar collapses faster when scrolling down and snaps back quicker on scroll up.',
+      'Scroll-hide now active in the chord builder, progression generator, and Groovex player.',
     ],
   },
 ];
@@ -71,15 +81,26 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Correcciones",
+    heading: "Navegación Liquid Glass",
     items: [
-      'El registro de novedades ya no se abre en cada inicio — ahora solo aparece la primera vez tras una actualización.',
+      'La barra de navegación ahora usa efecto Liquid Glass — refracción en vivo, aberración cromática en el borde y un destello espectral impulsado por scroll.',
+      'El brillo se desliza por la barra mientras navegas, inspirado en el estilo iOS 26 / Android Liquid Glass.',
+      'El efecto se compone en GPU en tiempo real sobre el contenido detrás de la barra — sin capturas de pantalla.',
     ],
   },
   {
-    heading: "Traducciones",
+    heading: "Stagex",
     items: [
-      'Traducción completa al alemán (Deutsch) añadida en todas las secciones: acordes, canciones, ajustes, Drumex, Vocalex, Groovex, Stagex y más.',
+      'La barra de escenas ahora flota justo encima del área del escenario — ya no queda atascada en la parte superior de la pantalla.',
+      'El botón de ojo del modo en vivo ahora activa correctamente la secuencia de animación.',
+      'El ícono del ojo se muestra limpio — ya no aparece el texto "_off" junto al botón.',
+    ],
+  },
+  {
+    heading: "Navegación",
+    items: [
+      'La barra de navegación se oculta más rápido al desplazarse hacia abajo y reaparece más rápido al subir.',
+      'El ocultado por desplazamiento ahora está activo en el constructor de acordes, generador de progresiones y reproductor de Groovex.',
     ],
   },
 ];
@@ -87,15 +108,26 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Fehlerbehebungen",
+    heading: "Liquid Glass Navigation",
     items: [
-      'Das Änderungsprotokoll öffnet sich nicht mehr bei jedem Start — es erscheint jetzt nur beim ersten Start nach einem Update.',
+      'Die Navigationsleiste verwendet jetzt einen Liquid-Glass-Effekt — Live-Refraktion, chromatische Aberration am Rand und ein scrollgetriebener Glanzstreifen.',
+      'Der Glanz gleitet beim Scrollen über die Leiste — angelehnt an iOS 26 / Android Liquid Glass.',
+      'Der Effekt wird GPU-kompositiert und aktualisiert sich in Echtzeit gegen den Hintergrund — keine Snapshots erforderlich.',
     ],
   },
   {
-    heading: "Übersetzungen",
+    heading: "Stagex",
     items: [
-      'Vollständige deutsche Übersetzung hinzugefügt: Akkorde, Lieder, Einstellungen, Drumex, Vocalex, Groovex, Stagex und mehr.',
+      'Die Szenenleiste schwebt jetzt direkt über dem Bühnenbereich — nicht mehr am oberen Bildschirmrand festgesteckt.',
+      'Der Auge-Button für den Live-Modus löst jetzt die vollständige Ein-/Ausblendanimation korrekt aus.',
+      'Das Augen-Symbol wird sauber angezeigt — kein "_off"-Text mehr neben dem Button.',
+    ],
+  },
+  {
+    heading: "Navigation",
+    items: [
+      'Die Navigationsleiste blendet sich beim Scrollen nach unten schneller aus und kehrt beim Hochscrollen schneller zurück.',
+      'Scroll-Ausblendung jetzt aktiv im Akkord-Builder, Progressionsgenerator und Groovex-Player.',
     ],
   },
 ];

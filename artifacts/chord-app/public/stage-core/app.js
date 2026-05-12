@@ -6,6 +6,16 @@ let _segNextId = 1;
 const state = {
   elements: [],
   connections: [],
+  // ── Scenes (v3.0.63+) ─────────────────────────────────────
+  // Up to 3 scenes per project. Each scene captures a stage plot
+  // (its own elements, connections, and nextId). Other data
+  // (members, gear, setlist, rider…) is shared across scenes.
+  // The currently-active scene's elements/connections live in
+  // `state.elements` / `state.connections`; the inactive scenes
+  // are kept in `state.scenes[i]` and synced via
+  // `_persistCurrentScene()` whenever we swap or save.
+  scenes: [{ id: 's1', name: 'Scene 1', elements: [], connections: [], nextId: 1 }],
+  currentSceneIdx: 0,
   setlist: [],
   segments: [],
   gear: [],
@@ -926,7 +936,8 @@ function switchView(view) {
   document.querySelectorAll('.mob-tab').forEach(b => {
     b.classList.toggle('active', b.dataset.view === view);
   });
-  if (view === 'Editor') { renderElements(); lcIcons(); }
+  if (view === 'Editor') { renderElements(); lcIcons(); renderScenesBar(); }
+  else { const _sb = document.getElementById('sc-scenes-bar'); if (_sb) _sb.style.display = 'none'; }
   if (view === 'Rider') refreshRider();
   if (view === 'Setlist') renderSetlist();
   if (view === 'Gear') { renderGear(); lcIcons(); }
@@ -4503,6 +4514,7 @@ function savePreset() {
   const name = nameEl.value.trim();
   if (!name) { nameEl.style.borderColor = '#ff716c'; return; }
   nameEl.style.borderColor = '';
+  if (typeof _persistCurrentScene === 'function') _persistCurrentScene();
   const presets = getPresets();
   presets.unshift({
     id: Date.now(),
@@ -4513,6 +4525,9 @@ function savePreset() {
     setlist: JSON.parse(JSON.stringify(state.setlist)),
     canvasW: state.canvasW,
     canvasH: state.canvasH,
+    schemaVersion: 9,
+    scenes: Array.isArray(state.scenes) ? JSON.parse(JSON.stringify(state.scenes)) : undefined,
+    currentSceneIdx: typeof state.currentSceneIdx === 'number' ? state.currentSceneIdx : 0,
   });
   setPresets(presets);
   hideSaveForm();
@@ -4532,8 +4547,38 @@ function loadPreset(id) {
     state.nextId = state.elements.reduce((max, el) => {
       const n = parseInt(el.id.replace('el-', '')) || 0; return Math.max(max, n + 1);
     }, 1);
+    // Restore scenes if the preset has them (schemaVersion >= 9). Otherwise
+    // wrap the loaded plot into Scene 1 so the multi-scene UI still works.
+    if (p.schemaVersion >= 9 && Array.isArray(p.scenes) && p.scenes.length > 0) {
+      state.scenes = p.scenes.slice(0, SCENES_MAX).map((s, i) => ({
+        id: s.id || ('s' + (i + 1)),
+        name: (typeof s.name === 'string' && s.name.trim()) ? s.name.trim().slice(0, 24) : ('Scene ' + (i + 1)),
+        elements: Array.isArray(s.elements) ? JSON.parse(JSON.stringify(s.elements)) : [],
+        connections: Array.isArray(s.connections) ? JSON.parse(JSON.stringify(s.connections)) : [],
+        nextId: typeof s.nextId === 'number' ? s.nextId : 1,
+      }));
+      state.currentSceneIdx = (typeof p.currentSceneIdx === 'number' &&
+                                p.currentSceneIdx >= 0 &&
+                                p.currentSceneIdx < state.scenes.length)
+        ? p.currentSceneIdx : 0;
+      const cur = state.scenes[state.currentSceneIdx];
+      state.elements = JSON.parse(JSON.stringify(cur.elements));
+      state.connections = JSON.parse(JSON.stringify(cur.connections));
+      state.nextId = cur.nextId || state.nextId;
+    } else {
+      state.scenes = [{
+        id: 's1', name: 'Scene 1',
+        elements: JSON.parse(JSON.stringify(state.elements)),
+        connections: JSON.parse(JSON.stringify(state.connections)),
+        nextId: state.nextId,
+      }];
+      state.currentSceneIdx = 0;
+    }
     renderAll();
+    if (typeof renderScenesBar === 'function') renderScenesBar();
     updateDropHint();
+    // Reset history — undo should not cross a preset-load boundary
+    state.history = []; state.historyIndex = -1;
     pushHistory();
     closePresetsPanel();
     showToast(T('presetLoaded') + ': "' + p.name + '"');
@@ -4939,13 +4984,19 @@ function _doAutosave() {
   _asState = 'saving';
   setAutosaveUI('saving');
   try {
+    // Mirror live elements/connections into the active scene first so the
+    // serialized scenes[] is current. Safe even if scenes never enabled.
+    if (typeof _persistCurrentScene === 'function') _persistCurrentScene();
     const presets = getPresets();
     const idx = presets.findIndex(p => p.id === _asPresetId);
     const slot = { id: _asPresetId, name: _asPresetName, savedAt: new Date().toLocaleString(),
       elements: JSON.parse(JSON.stringify(state.elements)),
       connections: JSON.parse(JSON.stringify(state.connections)),
       setlist: JSON.parse(JSON.stringify(state.setlist)),
-      canvasW: state.canvasW, canvasH: state.canvasH };
+      canvasW: state.canvasW, canvasH: state.canvasH,
+      schemaVersion: 9,
+      scenes: Array.isArray(state.scenes) ? JSON.parse(JSON.stringify(state.scenes)) : undefined,
+      currentSceneIdx: typeof state.currentSceneIdx === 'number' ? state.currentSceneIdx : 0 };
     if (idx >= 0) presets[idx] = slot; else presets.unshift(slot);
     setPresets(presets);
   } catch(e) {}
@@ -4953,14 +5004,217 @@ function _doAutosave() {
 }
 
 // ══════════════════════════════════════════════════════════
+//  SCENES (v3.0.63+) — up to 3 stage-plot scenes per project
+// ══════════════════════════════════════════════════════════
+const SCENES_MAX = 3;
+
+function _ensureScenes() {
+  if (!Array.isArray(state.scenes) || state.scenes.length === 0) {
+    state.scenes = [{
+      id: 's1', name: 'Scene 1',
+      elements: JSON.parse(JSON.stringify(state.elements || [])),
+      connections: JSON.parse(JSON.stringify(state.connections || [])),
+      nextId: state.nextId || 1,
+    }];
+    state.currentSceneIdx = 0;
+  }
+  if (typeof state.currentSceneIdx !== 'number' ||
+      state.currentSceneIdx < 0 ||
+      state.currentSceneIdx >= state.scenes.length) {
+    state.currentSceneIdx = 0;
+  }
+}
+
+function _persistCurrentScene() {
+  _ensureScenes();
+  const idx = state.currentSceneIdx;
+  state.scenes[idx] = {
+    id: state.scenes[idx].id,
+    name: state.scenes[idx].name,
+    elements: JSON.parse(JSON.stringify(state.elements)),
+    connections: JSON.parse(JSON.stringify(state.connections)),
+    nextId: state.nextId,
+  };
+}
+
+function _loadScene(idx) {
+  _ensureScenes();
+  if (idx < 0 || idx >= state.scenes.length) return;
+  const sc = state.scenes[idx];
+  state.elements = JSON.parse(JSON.stringify(sc.elements || []));
+  state.connections = JSON.parse(JSON.stringify(sc.connections || []));
+  state.nextId = sc.nextId || 1;
+  state.currentSceneIdx = idx;
+  state.selectedId = null;
+}
+
+function switchScene(idx) {
+  _ensureScenes();
+  if (idx === state.currentSceneIdx) return;
+  if (idx < 0 || idx >= state.scenes.length) return;
+  _persistCurrentScene();
+  _loadScene(idx);
+  // Reset undo/redo history so the user cannot undo INTO the previous scene's
+  // layout — history is scoped to the active scene's lifetime.
+  state.history = [];
+  state.historyIndex = -1;
+  renderAll();
+  renderScenesBar();
+  pushHistory(); // seed new scene's history with current snapshot
+  saveProject();
+}
+
+function addScene() {
+  _ensureScenes();
+  if (state.scenes.length >= SCENES_MAX) {
+    showToast(state.lang === 'es' ? 'Máximo 3 escenas' : 'Max 3 scenes');
+    return;
+  }
+  _persistCurrentScene();
+  const nextIdx = state.scenes.length + 1;
+  state.scenes.push({
+    id: 's' + Date.now(),
+    name: 'Scene ' + nextIdx,
+    elements: [],
+    connections: [],
+    nextId: 1,
+  });
+  _loadScene(state.scenes.length - 1);
+  renderAll();
+  renderScenesBar();
+  saveProject();
+}
+
+function removeScene(idx) {
+  _ensureScenes();
+  if (state.scenes.length <= 1) return; // keep at least one
+  if (idx < 0 || idx >= state.scenes.length) return;
+  const sceneName = state.scenes[idx].name;
+  const msg = state.lang === 'es'
+    ? '¿Eliminar "' + sceneName + '"? Esta acción no se puede deshacer.'
+    : 'Delete "' + sceneName + '"? This cannot be undone.';
+  showConfirm(msg, () => {
+    // If removing the active scene, switch to a neighbour first
+    const wasActive = (idx === state.currentSceneIdx);
+    if (!wasActive) _persistCurrentScene();
+    state.scenes.splice(idx, 1);
+    // Renumber default names if they look like "Scene N"
+    state.scenes.forEach((s, i) => {
+      if (/^Scene\s+\d+$/.test(s.name)) s.name = 'Scene ' + (i + 1);
+    });
+    let target = state.currentSceneIdx;
+    if (wasActive) target = Math.max(0, idx - 1);
+    else if (idx < state.currentSceneIdx) target = state.currentSceneIdx - 1;
+    state.currentSceneIdx = -1; // force load
+    _loadScene(target);
+    renderAll();
+    renderScenesBar();
+    saveProject();
+  });
+}
+
+function renderScenesBar() {
+  const bar = document.getElementById('sc-scenes-bar');
+  if (!bar) return;
+  _ensureScenes();
+  // Only show on Editor view
+  if (state.currentView !== 'Editor') {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  const accent = (THEMES[state.theme] || THEMES.electric).accent;
+  const tabsHtml = state.scenes.map((s, i) => {
+    const active = (i === state.currentSceneIdx);
+    return `
+      <button onclick="switchScene(${i})" title="${s.name}"
+        oncontextmenu="event.preventDefault();renameScenePrompt(${i});return false;"
+        style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;
+               border-radius:6px;border:1px solid ${active ? accent : 'rgba(255,255,255,0.10)'};
+               background:${active ? accent + '22' : 'rgba(255,255,255,0.04)'};
+               color:${active ? accent : '#a0a0a0'};
+               font-family:'Manrope',sans-serif;font-size:10px;font-weight:800;
+               text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;
+               transition:background 0.15s,color 0.15s,border-color 0.15s;">
+        <span>${s.name}</span>
+        ${state.scenes.length > 1 ? `<span onclick="event.stopPropagation();removeScene(${i})"
+           style="opacity:0.5;font-size:13px;line-height:1;cursor:pointer;margin-left:1px;"
+           onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">×</span>` : ''}
+      </button>`;
+  }).join('');
+  const addHtml = state.scenes.length < SCENES_MAX
+    ? `<button onclick="addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}"
+         style="display:inline-flex;align-items:center;justify-content:center;
+                width:24px;height:24px;border-radius:6px;
+                border:1px dashed ${accent};background:transparent;color:${accent};
+                cursor:pointer;transition:background 0.15s;"
+         onmouseover="this.style.background='${accent}22'"
+         onmouseout="this.style.background='transparent'">
+         <span class="material-symbols-outlined" style="font-size:15px;line-height:1;">add</span>
+       </button>`
+    : '';
+  bar.innerHTML = DOMPurify.sanitize(
+    `<span style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:800;
+                  text-transform:uppercase;letter-spacing:0.18em;color:#5a5a5a;
+                  margin-right:4px;">${state.lang === 'es' ? 'Escenas' : 'Scenes'}</span>` +
+    tabsHtml + addHtml
+  );
+  requestAnimationFrame(positionScenesBar);
+}
+
+function positionScenesBar() {
+  const bar = document.getElementById('sc-scenes-bar');
+  const canvas = document.getElementById('stage-canvas');
+  const container = document.getElementById('canvas-container');
+  if (!bar || !canvas || !container || bar.style.display === 'none') return;
+  const cRect = canvas.getBoundingClientRect();
+  const kRect = container.getBoundingClientRect();
+  const barH = bar.offsetHeight || 36;
+  const top = cRect.top - kRect.top - barH - 6;
+  const left = cRect.left - kRect.left;
+  bar.style.top = Math.max(4, top) + 'px';
+  bar.style.left = left + 'px';
+}
+
+// Reposition scenes bar whenever the stage canvas resizes (orientation change, panel open/close)
+(function _initScenesBarResizeObserver() {
+  if (typeof ResizeObserver === 'undefined') return;
+  const canvas = document.getElementById('stage-canvas');
+  if (!canvas) return;
+  new ResizeObserver(() => positionScenesBar()).observe(canvas);
+})();
+
+function renameScenePrompt(idx) {
+  _ensureScenes();
+  if (idx < 0 || idx >= state.scenes.length) return;
+  const cur = state.scenes[idx].name;
+  const nv = window.prompt(state.lang === 'es' ? 'Nombre de la escena:' : 'Scene name:', cur);
+  if (nv == null) return;
+  const v = String(nv).trim().slice(0, 24);
+  if (!v) return;
+  state.scenes[idx].name = v;
+  renderScenesBar();
+  saveProject();
+}
+
+// Expose for inline onclick handlers
+window.switchScene = switchScene;
+window.addScene = addScene;
+window.removeScene = removeScene;
+window.renameScenePrompt = renameScenePrompt;
+
+// ══════════════════════════════════════════════════════════
 //  SAVE / EXPORT
 // ══════════════════════════════════════════════════════════
 function saveProject() {
   try {
+    _persistCurrentScene();
     localStorage.setItem('stagecoreProject', JSON.stringify({
-      schemaVersion: 8,
+      schemaVersion: 9,
       elements: JSON.parse(JSON.stringify(state.elements)),
       connections: JSON.parse(JSON.stringify(state.connections)),
+      scenes: JSON.parse(JSON.stringify(state.scenes)),
+      currentSceneIdx: state.currentSceneIdx,
       members: state.members,
       riderNeeds: state.riderNeeds,
       riderChannels: state.riderChannels || [],
@@ -5009,6 +5263,38 @@ function loadSaved() {
     }
     if (d.canvasW) { state.canvasW = d.canvasW; state.canvasH = d.canvasH; }
     if (d.nextId) state.nextId = d.nextId;
+    // ── Scenes (schemaVersion 9+) ─────────────────────────────
+    // Older saves had no scenes array — wrap the loaded
+    // elements/connections into Scene 1 for backwards compat.
+    if (d.schemaVersion >= 9 && Array.isArray(d.scenes) && d.scenes.length > 0) {
+      state.scenes = d.scenes
+        .slice(0, SCENES_MAX)
+        .map((s, i) => ({
+          id: s.id || ('s' + (i + 1)),
+          name: (typeof s.name === 'string' && s.name.trim()) ? s.name.trim().slice(0, 24) : ('Scene ' + (i + 1)),
+          elements: Array.isArray(s.elements) ? JSON.parse(JSON.stringify(s.elements)) : [],
+          connections: Array.isArray(s.connections) ? JSON.parse(JSON.stringify(s.connections)) : [],
+          nextId: typeof s.nextId === 'number' ? s.nextId : 1,
+        }));
+      state.currentSceneIdx = (typeof d.currentSceneIdx === 'number' &&
+                                d.currentSceneIdx >= 0 &&
+                                d.currentSceneIdx < state.scenes.length)
+        ? d.currentSceneIdx : 0;
+      // Mirror the active scene back into the live state
+      const cur = state.scenes[state.currentSceneIdx];
+      state.elements = JSON.parse(JSON.stringify(cur.elements));
+      state.connections = JSON.parse(JSON.stringify(cur.connections));
+      state.nextId = cur.nextId || state.nextId;
+    } else {
+      // Migrate: treat the existing plot as Scene 1
+      state.scenes = [{
+        id: 's1', name: 'Scene 1',
+        elements: JSON.parse(JSON.stringify(state.elements)),
+        connections: JSON.parse(JSON.stringify(state.connections)),
+        nextId: state.nextId,
+      }];
+      state.currentSceneIdx = 0;
+    }
     state.members = (d.schemaVersion >= 3) ? (d.members || []) : [];
     _memberNextId = state.members.reduce((max, m) => {
       const n = parseInt(String(m.id).replace('m', '')) || 0;
@@ -5112,6 +5398,117 @@ window.exportPDFWithOptions = function(opts) {
   window.__pdfExportOptions = opts || null;
   return exportPDF();
 };
+
+// ── Scene info bridge for the React PDF sheet ────────────────
+window.__getSceneInfo = function() {
+  _ensureScenes();
+  return {
+    count: state.scenes.length,
+    currentIdx: state.currentSceneIdx,
+    names: state.scenes.map(s => s.name),
+    max: SCENES_MAX,
+  };
+};
+
+// Render a single scene's elements + connections into an arbitrary
+// (wrap, layer) pair. Pure function of `scene` — does not touch
+// global `state`. Used by both the live preview canvas and the PDF
+// export "all scenes" pathway.
+function _renderSceneIntoMini(wrap, layer, scene) {
+  if (!wrap || !layer || !scene) return;
+  layer.innerHTML = DOMPurify.sanitize('');
+  const els = scene.elements || [];
+  const conns = scene.connections || [];
+  if (els.length === 0) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'block';
+
+  const refW = state.canvasW || stageCanvas.offsetWidth || 650;
+  const refH = state.canvasH || stageCanvas.offsetHeight || 420;
+  const containerW = wrap.offsetWidth || 900;
+  const miniH = Math.round(containerW * (refH / refW));
+  wrap.style.height = Math.min(300, Math.max(160, miniH)) + 'px';
+
+  els.forEach(el => {
+    const pctX = el.x / refW, pctY = el.y / refH;
+    const dot = document.createElement('div');
+    dot.style.cssText =
+      `position:absolute;left:${pctX*100}%;top:${pctY*100}%;` +
+      `transform:translate(-50%,-50%);display:flex;flex-direction:column;` +
+      `align-items:center;pointer-events:none;`;
+    const exportRoles = el.roles || [];
+    const exportAll = [el, ...exportRoles];
+    const exportSz = exportAll.length > 1 ? 14 : 26;
+    const icoWrap = document.createElement('div');
+    icoWrap.style.cssText =
+      `display:flex;flex-wrap:wrap;align-items:center;justify-content:center;` +
+      `gap:2px;max-width:${exportAll.length > 1 ? '36px' : '30px'};` +
+      `color:${el.color || '#7aafff'};` +
+      `filter:drop-shadow(0 0 4px ${el.color || '#7aafff'}88);`;
+    exportAll.forEach(r => {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = DOMPurify.sanitize(iconHtml(r.icon, exportSz));
+      if (tmp.firstChild) icoWrap.appendChild(tmp.firstChild);
+    });
+    const lbl = document.createElement('div');
+    lbl.style.cssText =
+      `font-family:Inter,Arial,sans-serif;font-size:10px;font-weight:700;` +
+      `color:${el.color || '#7aafff'};text-transform:uppercase;` +
+      `margin-top:5px;text-align:center;letter-spacing:0.04em;` +
+      `max-width:100px;word-break:break-word;line-height:1.2;`;
+    lbl.textContent = el.label;
+    dot.appendChild(icoWrap); dot.appendChild(lbl);
+    layer.appendChild(dot);
+  });
+
+  if (conns.length > 0) {
+    const connSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    connSvg.setAttribute('style', 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;');
+    const cDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    connSvg.appendChild(cDefs);
+    const seen = new Set();
+    function ensureMarker(color) {
+      if (seen.has(color)) return;
+      seen.add(color);
+      const safe = color.replace(/[^a-z0-9]/gi, '_');
+      const m = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+      m.setAttribute('id', 'expmini_arr_' + safe);
+      m.setAttribute('markerWidth', '6'); m.setAttribute('markerHeight', '6');
+      m.setAttribute('refX', '5.5'); m.setAttribute('refY', '3');
+      m.setAttribute('orient', 'auto'); m.setAttribute('markerUnits', 'strokeWidth');
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', 'M0,0 L0,6 L6,3 z'); p.setAttribute('fill', color);
+      m.appendChild(p); cDefs.appendChild(m);
+    }
+    conns.forEach((c, idx) => {
+      const a = els.find(e => e.id === c.from);
+      const b = els.find(e => e.id === c.to);
+      if (!a || !b) return;
+      const lineColor = a.color || '#ff7439';
+      ensureMarker(lineColor);
+      const markerId = 'expmini_arr_' + lineColor.replace(/[^a-z0-9]/gi, '_');
+      const x1 = a.x / refW * 100, y1 = a.y / refH * 100;
+      const x2 = b.x / refW * 100, y2 = b.y / refH * 100;
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx*dx + dy*dy) || 1;
+      const offset = Math.min(8, len * 0.14) * (idx % 2 === 0 ? 1 : -1);
+      const cpx = (x1+x2)/2 - (dy/len)*offset;
+      const cpy = (y1+y2)/2 + (dx/len)*offset;
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', `M ${x1}% ${y1}% Q ${cpx}% ${cpy}% ${x2}% ${y2}%`);
+      path.setAttribute('stroke', lineColor);
+      path.setAttribute('stroke-opacity', '0.6');
+      path.setAttribute('stroke-width', '1.2');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('marker-end', `url(#${markerId})`);
+      connSvg.appendChild(path);
+    });
+    layer.appendChild(connSvg);
+  }
+}
 async function exportPDF() {
   // Lazy-load heavy PDF libs only when actually needed
   await Promise.all([
@@ -5182,6 +5579,79 @@ async function exportPDF() {
     docClone.style.maxHeight  = 'none';
     docClone.style.overflow   = 'visible';
     docClone.style.background = '#0e0e0e';
+
+    // ── Scene-aware stage section(s) for PDF export ──────────
+    // The live #exp-stage-section reflects the active scene. If the
+    // user picked a different single scene or "all scenes", swap the
+    // clone's stage section(s) accordingly. We mutate ONLY docClone —
+    // the live preview is left untouched.
+    (function _applySceneChoice() {
+      const choice = window.__pdfExportOptions && window.__pdfExportOptions.scene;
+      if (choice == null || choice === 'current') return;
+      _ensureScenes();
+      _persistCurrentScene(); // make sure active scene is fresh
+      const scenes = state.scenes;
+      const stageSec = docClone.querySelector('#exp-stage-section');
+      if (!stageSec) return;
+      const sceneLabel = (state.lang === 'es' ? 'Escena ' : 'Scene ');
+
+      // Helper: clone the stage section and repaint its mini canvas with
+      // a chosen scene's elements, optionally tagging it with a label.
+      function buildSectionForScene(scene, idx, labelText) {
+        const clone = stageSec.cloneNode(true);
+        clone.id = idx === 0 ? 'exp-stage-section' : ('exp-stage-section-' + (idx + 1));
+        const wrapEl = clone.querySelector('#exp-canvas-wrap');
+        const layerEl = clone.querySelector('#exp-canvas-elements');
+        const emptyEl = clone.querySelector('#exp-canvas-empty');
+        // Strip duplicate ids on cloned wrap/layer/empty so querySelectors
+        // on docClone don't collide.
+        if (wrapEl)  wrapEl.id  = 'exp-canvas-wrap-'  + (idx + 1);
+        if (layerEl) layerEl.id = 'exp-canvas-elements-' + (idx + 1);
+        if (emptyEl) emptyEl.id = 'exp-canvas-empty-'  + (idx + 1);
+        // Repaint mini canvas with this scene's data
+        if (wrapEl && layerEl) _renderSceneIntoMini(wrapEl, layerEl, scene);
+        if ((!scene.elements || scene.elements.length === 0) && emptyEl) {
+          emptyEl.style.display = 'block';
+        }
+        // Add a per-scene label badge under the section title
+        if (labelText) {
+          const titleRow = clone.querySelector('h2');
+          if (titleRow) {
+            const badge = document.createElement('span');
+            badge.textContent = labelText;
+            badge.style.cssText =
+              'margin-left:10px;padding:2px 8px;border-radius:4px;' +
+              'background:rgba(255,255,255,0.06);color:var(--accent);' +
+              "font-family:'Manrope',sans-serif;font-size:10px;font-weight:800;" +
+              'text-transform:uppercase;letter-spacing:0.14em;';
+            titleRow.appendChild(badge);
+          }
+        }
+        return clone;
+      }
+
+      if (choice === 'all' && scenes.length > 1) {
+        // Replace the single stage section with one section per scene
+        const parent = stageSec.parentNode;
+        const replacements = scenes.map((sc, i) =>
+          buildSectionForScene(sc, i, sceneLabel + (i + 1) + ' · ' + sc.name));
+        parent.insertBefore(replacements[0], stageSec);
+        for (let i = 1; i < replacements.length; i++) {
+          parent.insertBefore(replacements[i], stageSec);
+          // Add the new ids to SECTION_IDS so page-break detection knows
+          // about them as natural break boundaries.
+          SECTION_IDS.splice(2 + i - 1, 0, replacements[i].id);
+        }
+        parent.removeChild(stageSec);
+      } else if (typeof choice === 'number' && scenes[choice]) {
+        // Replace with just the chosen single scene
+        const repl = buildSectionForScene(
+          scenes[choice], 0,
+          sceneLabel + (choice + 1) + ' · ' + scenes[choice].name
+        );
+        stageSec.parentNode.replaceChild(repl, stageSec);
+      }
+    })();
 
     // Apply per-section padding + neutralize editable / overflow constraints
     SECTION_IDS.forEach(id => {
@@ -6702,11 +7172,16 @@ function scheduleCloudAutosave() {}
 window.onSCAuthChange = function() {};
 
 function getCloudState() {
+  // Mirror live elements/connections into the active scene before serializing
+  // so the cloud copy of scenes[] reflects unsaved edits in the current scene.
+  if (typeof _persistCurrentScene === 'function') _persistCurrentScene();
   return {
-    schemaVersion: 8,
+    schemaVersion: 9,
     savedAt: new Date().toISOString(),
     elements:    JSON.parse(JSON.stringify(state.elements)),
     connections: JSON.parse(JSON.stringify(state.connections)),
+    scenes:          Array.isArray(state.scenes) ? JSON.parse(JSON.stringify(state.scenes)) : undefined,
+    currentSceneIdx: typeof state.currentSceneIdx === 'number' ? state.currentSceneIdx : 0,
     setlist:     JSON.parse(JSON.stringify(state.setlist)),
     segments:    JSON.parse(JSON.stringify(state.segments)),
     gear:        JSON.parse(JSON.stringify(state.gear)),
@@ -6747,6 +7222,33 @@ function getCloudState() {
 function _applyCloudData(d) {
   state.elements    = d.elements    ? JSON.parse(JSON.stringify(d.elements))    : [];
   state.connections = d.connections ? JSON.parse(JSON.stringify(d.connections)) : [];
+  // ── Scenes (schemaVersion 9+) ─────────────────────────────────────────
+  // Wrap legacy cloud payloads (schemaVersion < 9) into Scene 1 so users
+  // who upgrade with existing cloud data don't lose their plot.
+  if (d.schemaVersion >= 9 && Array.isArray(d.scenes) && d.scenes.length > 0) {
+    state.scenes = d.scenes.slice(0, SCENES_MAX).map((s, i) => ({
+      id: s.id || ('s' + (i + 1)),
+      name: (typeof s.name === 'string' && s.name.trim()) ? s.name.trim().slice(0, 24) : ('Scene ' + (i + 1)),
+      elements: Array.isArray(s.elements) ? JSON.parse(JSON.stringify(s.elements)) : [],
+      connections: Array.isArray(s.connections) ? JSON.parse(JSON.stringify(s.connections)) : [],
+      nextId: typeof s.nextId === 'number' ? s.nextId : 1,
+    }));
+    state.currentSceneIdx = (typeof d.currentSceneIdx === 'number' &&
+                              d.currentSceneIdx >= 0 &&
+                              d.currentSceneIdx < state.scenes.length)
+      ? d.currentSceneIdx : 0;
+    const cur = state.scenes[state.currentSceneIdx];
+    state.elements = JSON.parse(JSON.stringify(cur.elements));
+    state.connections = JSON.parse(JSON.stringify(cur.connections));
+  } else {
+    state.scenes = [{
+      id: 's1', name: 'Scene 1',
+      elements: JSON.parse(JSON.stringify(state.elements)),
+      connections: JSON.parse(JSON.stringify(state.connections)),
+      nextId: state.nextId || 1,
+    }];
+    state.currentSceneIdx = 0;
+  }
   state.setlist     = d.setlist     ? JSON.parse(JSON.stringify(d.setlist))     : [];
   state.segments    = d.segments    ? JSON.parse(JSON.stringify(d.segments))    : [];
   state.gear        = d.gear        ? JSON.parse(JSON.stringify(d.gear))        : [];

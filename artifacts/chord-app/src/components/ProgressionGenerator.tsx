@@ -26,7 +26,7 @@ import {
   type Key, type ScaleType, type Style, type GeneratedProgression,
 } from '../lib/progressionGen';
 import { setBackHandler } from '../lib/backStack';
-import { setNavLocked, setNavHidden } from '../lib/navScroll';
+import { setNavLocked, setNavHidden, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import type { SongPreset } from '../store/useChordStore';
 
@@ -46,6 +46,8 @@ export default function ProgressionGenerator({
   defaultScale = 'major',
   defaultStyle = 'pop',
 }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollHide(scrollRef);
   const settings        = useChordStore(s => s.settings);
   const presets         = useChordStore(s => s.presets);
   const setProgression  = useChordStore.getState().clearProgression;     // we use clear + add to atomically replace
@@ -246,6 +248,7 @@ export default function ProgressionGenerator({
     >
       <div
         className={`w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl ${closing ? 'sheet-exit' : 'sheet-enter'}`}
+        ref={scrollRef}
         style={{
           background: 'var(--app-surface)',
           maxHeight: '92vh',
