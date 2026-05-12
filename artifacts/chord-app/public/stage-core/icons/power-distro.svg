@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="body" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0%"   stop-color="#2A2A2A"/>
+      <stop offset="100%" stop-color="#0A0A0A"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#3A3A3A"/>
+      <stop offset="100%" stop-color="#1A1A1A"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="100" cy="190" rx="90" ry="10" fill="#00000028"/>
+  <!-- Rack body -->
+  <rect x="6" y="52" width="188" height="128" rx="6" fill="url(#body)"/>
+  <!-- Rack ears -->
+  <rect x="6"   y="52" width="20" height="128" rx="4" fill="#1E1E1E"/>
+  <rect x="174" y="52" width="20" height="128" rx="4" fill="#1E1E1E"/>
+  <circle cx="16"  cy="68"  r="5" fill="#2A2A2A"/><circle cx="16"  cy="68"  r="3" fill="#444"/>
+  <circle cx="16"  cy="164" r="5" fill="#2A2A2A"/><circle cx="16"  cy="164" r="3" fill="#444"/>
+  <circle cx="184" cy="68"  r="5" fill="#2A2A2A"/><circle cx="184" cy="68"  r="3" fill="#444"/>
+  <circle cx="184" cy="164" r="5" fill="#2A2A2A"/><circle cx="184" cy="164" r="3" fill="#444"/>
+  <!-- Front panel -->
+  <rect x="28" y="58" width="144" height="116" rx="4" fill="url(#panel)"/>
+  <!-- Title + master breaker -->
+  <text x="100" y="72" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="9" font-weight="900" fill="#888">POWER DISTRO</text>
+  <!-- Master breaker -->
+  <rect x="36" y="78" width="32" height="18" rx="5" fill="#333"/>
+  <rect x="38" y="80" width="28" height="14" rx="4" fill="#1A1A1A"/>
+  <rect x="40" y="82" width="24" height="10" rx="3" fill="#883333"/>
+  <text x="52" y="91" text-anchor="middle" font-family="Arial, sans-serif" font-size="6" fill="#EE6666">MAIN</text>
+  <!-- Master power LED -->
+  <circle cx="78" cy="87" r="6" fill="#FF4422"/>
+  <circle cx="78" cy="87" r="4" fill="#FF8844"/>
+  <!-- Voltage display -->
+  <rect x="90" y="78" width="44" height="18" rx="3" fill="#111"/>
+  <text x="112" y="90" text-anchor="middle" font-family="Courier, monospace" font-size="10" fill="#FF8844" opacity="0.95">120V</text>
+  <!-- Amps display -->
+  <rect x="138" y="78" width="30" height="18" rx="3" fill="#111"/>
+  <text x="153" y="90" text-anchor="middle" font-family="Courier, monospace" font-size="9" fill="#44FF44" opacity="0.9">12A</text>
+  <!-- 8 circuit breakers -->
+  <rect x="36"  y="104" width="14" height="22" rx="4" fill="#222"/>
+  <rect x="38"  y="106" width="10" height="18" rx="3" fill="#CC4422"/>
+  <rect x="54"  y="104" width="14" height="22" rx="4" fill="#222"/>
+  <rect x="56"  y="106" width="10" height="18" rx="3" fill="#CC4422"/>
+  <rect x="72"  y="104" width="14" height="22" rx="4" fill="#222"/>
+  <rect x="74"  y="106" width="10" height="18" rx="3" fill="#CC4422"/>
+  <rect x="90"  y="104" width="14" height="22" rx="4" fill="#222"/>
+  <rect x="92"  y="106" width="10" height="18" rx="3" fill="#CC4422"/>
+  <rect x="108" y="104" width="14" height="22" rx="4" fill="#222"/>
+  <rect x="110" y="106" width="10" height="18" rx="3" fill="#CC4422"/>
+  <rect x="126" y="104" width="14" height="22" rx="4" fill="#222"/>
+  <rect x="128" y="106" width="10" height="18" rx="3" fill="#CC4422"/>
+  <rect x="144" y="104" width="14" height="22" rx="4" fill="#222"/>
+  <rect x="146" y="106" width="10" height="18" rx="3" fill="#CC4422"/>
+  <rect x="158" y="104" width="8"  height="22" rx="3" fill="#222"/>
+  <!-- Circuit labels -->
+  <text x="43"  y="134" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" fill="#666">CKT1</text>
+  <text x="61"  y="134" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" fill="#666">CKT2</text>
+  <text x="79"  y="134" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" fill="#666">CKT3</text>
+  <text x="97"  y="134" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" fill="#666">CKT4</text>
+  <text x="115" y="134" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" fill="#666">CKT5</text>
+  <text x="133" y="134" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" fill="#666">CKT6</text>
+  <text x="151" y="134" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" fill="#666">CKT7</text>
+  <!-- Power outlet strip -->
+  <rect x="36" y="140" width="128" height="30" rx="5" fill="#111"/>
+  <!-- 5 outlets -->
+  <circle cx="55"  cy="155" r="9"  fill="#1A1A1A"/>
+  <ellipse cx="51" cy="152" rx="2.5" ry="3.5" fill="#333"/>
+  <ellipse cx="59" cy="152" rx="2.5" ry="3.5" fill="#333"/>
+  <circle cx="55"  cy="160" r="2" fill="#333"/>
+  <circle cx="83"  cy="155" r="9"  fill="#1A1A1A"/>
+  <ellipse cx="79" cy="152" rx="2.5" ry="3.5" fill="#333"/>
+  <ellipse cx="87" cy="152" rx="2.5" ry="3.5" fill="#333"/>
+  <circle cx="83"  cy="160" r="2" fill="#333"/>
+  <circle cx="111" cy="155" r="9"  fill="#1A1A1A"/>
+  <ellipse cx="107" cy="152" rx="2.5" ry="3.5" fill="#333"/>
+  <ellipse cx="115" cy="152" rx="2.5" ry="3.5" fill="#333"/>
+  <circle cx="111" cy="160" r="2" fill="#333"/>
+  <circle cx="139" cy="155" r="9"  fill="#1A1A1A"/>
+  <ellipse cx="135" cy="152" rx="2.5" ry="3.5" fill="#333"/>
+  <ellipse cx="143" cy="152" rx="2.5" ry="3.5" fill="#333"/>
+  <circle cx="139" cy="160" r="2" fill="#333"/>
+</svg>

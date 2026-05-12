@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.73';
+export const APP_VERSION = '3.0.75';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-12'; // 3.0.73
+export const APP_VERSION_DATE = '2026-05-12'; // 3.0.75
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,26 +53,26 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Liquid Glass Navigation",
+    heading: "Stagex — Realistic Icons",
     items: [
-      'Bottom nav bar now uses a Liquid Glass effect — live refraction, chromatic aberration rim, and a scroll-driven specular streak.',
-      'The shine slides across the nav as you scroll, mirroring the iOS 26 / Android Liquid Glass aesthetic.',
-      'Effect is GPU-composited and updates in real time against whatever is behind the bar — no snapshots needed.',
+      '46 new full-color illustrated SVG icons for every stage element — mics, drums, instruments, amps, monitors, and utilities.',
+      'Each icon is a detailed vector illustration with gradients, shading, and accurate proportions (SM58 grille mesh, violin f-holes, 4×12 speaker grid, etc.).',
+      'All categories now show photo-quality artwork: Mics, Drums, Instruments, Amps, Audio/Monitors, Utilities, and People.',
     ],
   },
   {
-    heading: "Stagex",
+    heading: "Stagex — Library & Elements",
     items: [
-      'Scenes bar now floats just above the stage plot — dynamically repositioned and no longer stuck at the top of the screen.',
-      'Live mode eye button now correctly triggers the full enter/exit animation sequence.',
-      'Eye icon renders cleanly — no more stray "_off" text next to the button.',
+      'New People category added with 7 stage members: Performer, Vocalist, Guitarist, Bassist, Drummer, Keyboardist, and Tech.',
+      'Mic Stand added to the Mics section with its own boom-stand icon.',
+      'Eye/visibility button now hides automatically when the + FAB dial is open — no more overlap.',
+      'Scenes bar is 15% more compact: smaller pills, tighter font, and a smaller add button.',
     ],
   },
   {
     heading: "Navigation",
     items: [
-      'Nav bar collapses faster when scrolling down and snaps back quicker on scroll up.',
-      'Scroll-hide now active in the chord builder, progression generator, and Groovex player.',
+      'BottomNav buttons are taller — increased padding and larger icons (24 px) for a more comfortable tap target.',
     ],
   },
 ];
@@ -81,26 +81,26 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Navegación Liquid Glass",
+    heading: "Stagex — Íconos Realistas",
     items: [
-      'La barra de navegación ahora usa efecto Liquid Glass — refracción en vivo, aberración cromática en el borde y un destello espectral impulsado por scroll.',
-      'El brillo se desliza por la barra mientras navegas, inspirado en el estilo iOS 26 / Android Liquid Glass.',
-      'El efecto se compone en GPU en tiempo real sobre el contenido detrás de la barra — sin capturas de pantalla.',
+      '46 nuevos íconos SVG ilustrados a todo color para cada elemento del escenario — micrófonos, baterías, instrumentos, amplificadores, monitores y utilidades.',
+      'Cada ícono es una ilustración vectorial detallada con degradados, sombreado y proporciones precisas.',
+      'Todas las categorías ahora muestran arte de calidad fotográfica: Micrófonos, Baterías, Instrumentos, Amplificadores, Audio/Monitores, Utilidades y Personas.',
     ],
   },
   {
-    heading: "Stagex",
+    heading: "Stagex — Biblioteca y Elementos",
     items: [
-      'La barra de escenas ahora flota justo encima del área del escenario — ya no queda atascada en la parte superior de la pantalla.',
-      'El botón de ojo del modo en vivo ahora activa correctamente la secuencia de animación.',
-      'El ícono del ojo se muestra limpio — ya no aparece el texto "_off" junto al botón.',
+      'Nueva categoría Personas con 7 miembros: Intérprete, Vocalista, Guitarrista, Bajista, Baterista, Tecladista y Técnico.',
+      'Soporte de micrófono añadido a la sección de Micrófonos con su propio ícono de jirafa.',
+      'El botón de ojo ahora se oculta automáticamente cuando el menú FAB está abierto.',
+      'La barra de escenas es 15% más compacta: píldoras más pequeñas y fuente más ajustada.',
     ],
   },
   {
     heading: "Navegación",
     items: [
-      'La barra de navegación se oculta más rápido al desplazarse hacia abajo y reaparece más rápido al subir.',
-      'El ocultado por desplazamiento ahora está activo en el constructor de acordes, generador de progresiones y reproductor de Groovex.',
+      'Los botones del BottomNav son más altos — mayor padding e íconos más grandes (24 px) para una zona de toque más cómoda.',
     ],
   },
 ];
@@ -108,26 +108,26 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Liquid Glass Navigation",
+    heading: "Stagex — Realistische Icons",
     items: [
-      'Die Navigationsleiste verwendet jetzt einen Liquid-Glass-Effekt — Live-Refraktion, chromatische Aberration am Rand und ein scrollgetriebener Glanzstreifen.',
-      'Der Glanz gleitet beim Scrollen über die Leiste — angelehnt an iOS 26 / Android Liquid Glass.',
-      'Der Effekt wird GPU-kompositiert und aktualisiert sich in Echtzeit gegen den Hintergrund — keine Snapshots erforderlich.',
+      '46 neue vollfarbige SVG-Illustrationsicons für alle Bühnenelemente — Mikrofone, Drums, Instrumente, Verstärker, Monitore und Utilities.',
+      'Jedes Icon ist eine detaillierte Vektorillustration mit Verläufen, Schattierung und präzisen Proportionen.',
+      'Alle Kategorien zeigen jetzt fotoqualitatives Artwork: Mikrofone, Drums, Instrumente, Verstärker, Audio/Monitore, Utilities und Personen.',
     ],
   },
   {
-    heading: "Stagex",
+    heading: "Stagex — Bibliothek & Elemente",
     items: [
-      'Die Szenenleiste schwebt jetzt direkt über dem Bühnenbereich — nicht mehr am oberen Bildschirmrand festgesteckt.',
-      'Der Auge-Button für den Live-Modus löst jetzt die vollständige Ein-/Ausblendanimation korrekt aus.',
-      'Das Augen-Symbol wird sauber angezeigt — kein "_off"-Text mehr neben dem Button.',
+      'Neue Kategorie Personen mit 7 Bühnenmitgliedern: Performer, Vokalist, Gitarrist, Bassist, Schlagzeuger, Keyboarder und Techniker.',
+      'Mikrofonständer zum Mikrofon-Bereich hinzugefügt mit eigenem Galgen-Icon.',
+      'Das Auge/Sichtbarkeits-Schaltfläche wird nun automatisch ausgeblendet, wenn das FAB-Menü geöffnet ist.',
+      'Die Szenenleiste ist 15 % kompakter: kleinere Pills, engere Schrift und kleinerer Hinzufügen-Button.',
     ],
   },
   {
     heading: "Navigation",
     items: [
-      'Die Navigationsleiste blendet sich beim Scrollen nach unten schneller aus und kehrt beim Hochscrollen schneller zurück.',
-      'Scroll-Ausblendung jetzt aktiv im Akkord-Builder, Progressionsgenerator und Groovex-Player.',
+      'BottomNav-Buttons sind höher — mehr Innenabstand und größere Icons (24 px) für einen komfortableren Tippbereich.',
     ],
   },
 ];

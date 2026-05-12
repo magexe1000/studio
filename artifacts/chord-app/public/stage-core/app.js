@@ -193,7 +193,10 @@ const TRANSLATIONS = {
     themeElectric:'Electric', themeLime:'Lime', themeCyan:'Cyan', themeAmber:'Amber', themeViolet:'Violet', themeRose:'Rose',
     // Library — Mics
     libSM58:'SM58', libCondenser:'Condenser', libAmpMic:'Amp Mic',
-    libWireless:'Wireless', libBoundary:'Boundary', libDrumClip:'Drum Clip',
+    libWireless:'Wireless', libBoundary:'Boundary', libDrumClip:'Drum Clip', libMicStand:'Mic Stand',
+    // Library — People
+    libPerformer:'Performer', libVocalist:'Vocalist', libGuitarist:'Guitarist',
+    libBassist:'Bassist', libDrummer:'Drummer', libKeyboardist:'Keyboardist', libTech:'Tech',
     // Library — Drums
     libDrumKit:'Drum Kit', libEDrums:'E-Drums', libPercussion:'Percussion', libCajon:'Cajón',
     // Library — Instruments
@@ -345,7 +348,10 @@ const TRANSLATIONS = {
     themeElectric:'Eléctrico', themeLime:'Lima', themeCyan:'Cian', themeAmber:'Ámbar', themeViolet:'Violeta', themeRose:'Rosa',
     // Library — Mics
     libSM58:'SM58', libCondenser:'Condensador', libAmpMic:'Mic de instrumento',
-    libWireless:'Inalámbrico', libBoundary:'PZM', libDrumClip:'Clip de batería',
+    libWireless:'Inalámbrico', libBoundary:'PZM', libDrumClip:'Clip de batería', libMicStand:'Pedestal',
+    // Library — People
+    libPerformer:'Músico', libVocalist:'Vocalista', libGuitarist:'Guitarrista',
+    libBassist:'Bajista', libDrummer:'Baterista', libKeyboardist:'Tecladista', libTech:'Técnico',
     // Library — Drums
     libDrumKit:'Batería', libEDrums:'Batería elec.', libPercussion:'Percusión', libCajon:'Cajón',
     // Library — Instruments
@@ -430,6 +436,16 @@ const library = {
     { name: 'Wireless',    nameKey:'libWireless',    icon: 'cx-wireless',      type: 'Wireless Mic' },
     { name: 'Boundary',    nameKey:'libBoundary',    icon: 'cx-boundary',      type: 'PZM Mic' },
     { name: 'Drum Clip',   nameKey:'libDrumClip',    icon: 'cx-drum-clip',     type: 'Instrument Clip' },
+    { name: 'Mic Stand',   nameKey:'libMicStand',    icon: 'cx-mic-stand',     type: 'Mic Stand' },
+  ],
+  people: [
+    { name: 'Performer',   nameKey:'libPerformer',   icon: 'cx-person',        type: 'Person' },
+    { name: 'Vocalist',    nameKey:'libVocalist',    icon: 'cx-person',        type: 'Person' },
+    { name: 'Guitarist',   nameKey:'libGuitarist',   icon: 'cx-person',        type: 'Person' },
+    { name: 'Bassist',     nameKey:'libBassist',     icon: 'cx-person',        type: 'Person' },
+    { name: 'Drummer',     nameKey:'libDrummer',     icon: 'cx-person',        type: 'Person' },
+    { name: 'Keyboardist', nameKey:'libKeyboardist', icon: 'cx-person',        type: 'Person' },
+    { name: 'Tech',        nameKey:'libTech',        icon: 'cx-person',        type: 'Person' },
   ],
   drums: [
     { name: 'Drum Kit',    nameKey:'libDrumKit',     icon: 'drum',              type: 'Acoustic Drums' },
@@ -491,51 +507,65 @@ const library = {
 };
 
 // ══════════════════════════════════════════════════════════
-//  PHOTO ICON MAP — maps icon names to real PNG images
+//  PHOTO ICON MAP — maps icon names to realistic SVG files
 // ══════════════════════════════════════════════════════════
 const ICON_IMAGES = {
-  'cx-drum-clip':       '/stage-core/icons/drum-clip.png',
-  'cx-elec-guitar':     '/stage-core/icons/elec-guitar.png',
-  'cx-bass-guitar':     '/stage-core/icons/bass-guitar.png',
-  'cx-synth':           '/stage-core/icons/synth.png',
-  'cx-edrum':           '/stage-core/icons/edrum.png',
-  'cx-percussion':      '/stage-core/icons/percussion.png',
-  'cx-trumpet':         '/stage-core/icons/trumpet.png',
-  'cx-violin':          '/stage-core/icons/violin.png',
-  'cx-di-box':          '/stage-core/icons/di-box.png',
-  'cx-wireless':        '/stage-core/icons/wireless-handheld.png',
-  'cx-wireless-rack':   '/stage-core/icons/wireless-antenna.png',
-  'cx-boundary':        '/stage-core/icons/boundary-mic.png',
-  'cx-front-fill':      '/stage-core/icons/front-fill.png',
+  // ── Mics ──────────────────────────────────────────────
+  'mic':                '/stage-core/icons/mic-sm58.svg',
+  'mic-2':              '/stage-core/icons/mic-condenser.svg',
+  'cx-wireless':        '/stage-core/icons/wireless-handheld.svg',
+  'cx-boundary':        '/stage-core/icons/boundary-mic.svg',
+  'cx-drum-clip':       '/stage-core/icons/drum-clip.svg',
+  'cx-mic-stand':       '/stage-core/icons/mic-stand.svg',
+  // ── Drums ─────────────────────────────────────────────
+  'drum':               '/stage-core/icons/drum-kit.svg',
+  'cx-edrum':           '/stage-core/icons/edrum.svg',
+  'cx-percussion':      '/stage-core/icons/percussion.svg',
   'cx-cajon':           '/stage-core/icons/cajon.svg',
   'cx-shaker':          '/stage-core/icons/shaker.svg',
   'cx-tambourine':      '/stage-core/icons/tambourine.svg',
-  'mic':                '/stage-core/icons/mic-sm58.png',
-  'mic-2':              '/stage-core/icons/mic-condenser.png',
-  'guitar':             '/stage-core/icons/acoustic-guitar.png',
-  'piano':              '/stage-core/icons/keyboard.png',
-  'drum':               '/stage-core/icons/drum-kit.png',
-  'cx-amp-cab':         '/stage-core/icons/amp-cab.png',
-  'cx-bass-cab':        '/stage-core/icons/bass-cab.png',
-  'cx-guitar-amp':      '/stage-core/icons/guitar-amp.png',
-  'cx-bass-amp':        '/stage-core/icons/bass-amp.png',
-  'cx-wedge':           '/stage-core/icons/wedge.png',
-  'volume-2':           '/stage-core/icons/main-pa.png',
-  'disc':               '/stage-core/icons/stage-sub.png',
-  'disc-2':             '/stage-core/icons/drum-fill.png',
-  'speaker':            '/stage-core/icons/drum-fill.png',
-  'megaphone':          '/stage-core/icons/side-fill.png',
-  'headphones':         '/stage-core/icons/iem-pack.png',
-  'headset':            '/stage-core/icons/iem-pack.png',
-  'sliders-horizontal': '/stage-core/icons/mon-console.png',
-  'sliders-vertical':   '/stage-core/icons/foh-console.png',
-  'zap':                '/stage-core/icons/power-distro.png',
-  'box':                '/stage-core/icons/stage-box.png',
-  'server':             '/stage-core/icons/amp-rack.png',
-  'cpu':                '/stage-core/icons/effects-rack.png',
-  'grid-3x3':           '/stage-core/icons/patch-bay.png',
-  'git-branch':         '/stage-core/icons/splitter.png',
-  'cx-outlet':          '/stage-core/icons/outlet.png',
+  // ── Instruments ───────────────────────────────────────
+  'guitar':             '/stage-core/icons/acoustic-guitar.svg',
+  'cx-elec-guitar':     '/stage-core/icons/elec-guitar.svg',
+  'cx-bass-guitar':     '/stage-core/icons/bass-guitar.svg',
+  'piano':              '/stage-core/icons/keyboard.svg',
+  'cx-synth':           '/stage-core/icons/synth.svg',
+  'cx-trumpet':         '/stage-core/icons/trumpet.svg',
+  'cx-violin':          '/stage-core/icons/violin.svg',
+  // ── Amps ──────────────────────────────────────────────
+  'cx-guitar-amp':      '/stage-core/icons/guitar-amp.svg',
+  'cx-bass-amp':        '/stage-core/icons/bass-amp.svg',
+  'cx-amp-cab':         '/stage-core/icons/amp-cab.svg',
+  'cx-bass-cab':        '/stage-core/icons/bass-cab.svg',
+  // ── Audio / Monitors ──────────────────────────────────
+  'cx-wedge':           '/stage-core/icons/wedge.svg',
+  'volume-2':           '/stage-core/icons/main-pa.svg',
+  'disc':               '/stage-core/icons/stage-sub.svg',
+  'headphones':         '/stage-core/icons/iem-pack.svg',
+  'speaker':            '/stage-core/icons/drum-fill.svg',
+  'disc-2':             '/stage-core/icons/drum-sub.svg',
+  'megaphone':          '/stage-core/icons/side-fill.svg',
+  'radio':              '/stage-core/icons/delay-tower.svg',
+  'cx-front-fill':      '/stage-core/icons/front-fill.svg',
+  'headset':            '/stage-core/icons/headphone-amp.svg',
+  // ── Utilities ─────────────────────────────────────────
+  'sliders-vertical':   '/stage-core/icons/foh-console.svg',
+  'sliders-horizontal': '/stage-core/icons/mon-console.svg',
+  'server':             '/stage-core/icons/amp-rack.svg',
+  'cpu':                '/stage-core/icons/effects-rack.svg',
+  'cx-wireless-rack':   '/stage-core/icons/wireless-rack.svg',
+  'laptop':             '/stage-core/icons/laptop.svg',
+  'cx-di-box':          '/stage-core/icons/di-box.svg',
+  'repeat-2':           '/stage-core/icons/loop-station.svg',
+  'play-circle':        '/stage-core/icons/playback.svg',
+  'box':                '/stage-core/icons/stage-box.svg',
+  'grid-3x3':           '/stage-core/icons/patch-bay.svg',
+  'zap':                '/stage-core/icons/power-distro.svg',
+  'git-branch':         '/stage-core/icons/splitter.svg',
+  'network':            '/stage-core/icons/router.svg',
+  'cx-outlet':          '/stage-core/icons/outlet.svg',
+  // ── People ────────────────────────────────────────────
+  'cx-person':          '/stage-core/icons/person.svg',
 };
 function iconHtml(icon, size, extra) {
   const src = ICON_IMAGES[icon];
@@ -725,6 +755,59 @@ const CUSTOM_ICONS = {
     <rect x="5.5" y="12.5" width="13" height="7.5" rx="1.5" stroke-width="1.2"/>
     <rect x="7.5" y="14.3" width="2"   height="3.8" rx="1"   fill="currentColor" stroke="none" opacity="0.85"/>
     <rect x="14.5" y="14.3" width="1.5" height="3.8" rx="0.75" fill="currentColor" stroke="none" opacity="0.85"/>`,
+
+  /* WIRELESS HANDHELD MIC — cylindrical body, antenna sticking out at side */
+  'cx-wireless': `
+    <rect x="9" y="8" width="6" height="13" rx="3"/>
+    <circle cx="12" cy="5" r="3"/>
+    <line x1="18" y1="9" x2="22" y2="5"/>
+    <line x1="22" y1="5" x2="22" y2="1"/>`,
+
+  /* PZM / BOUNDARY MIC — flat base plate, small capsule dome on top */
+  'cx-boundary': `
+    <rect x="3" y="16" width="18" height="4" rx="1.5"/>
+    <path d="M9 16 Q9 11 12 11 Q15 11 15 16"/>
+    <circle cx="12" cy="10" r="2" fill="currentColor"/>`,
+
+  /* WIRELESS RACK — rack unit with two angled antennas */
+  'cx-wireless-rack': `
+    <rect x="2" y="7" width="20" height="10" rx="1.5"/>
+    <line x1="7" y1="7" x2="4" y2="2"/>
+    <line x1="4" y1="2" x2="6" y2="2"/>
+    <line x1="17" y1="7" x2="20" y2="2"/>
+    <line x1="20" y1="2" x2="18" y2="2"/>
+    <circle cx="8"  cy="12" r="2.2"/>
+    <circle cx="16" cy="12" r="2.2"/>`,
+
+  /* FRONT FILL SPEAKER — small wide low-profile cabinet angled up */
+  'cx-front-fill': `
+    <path d="M3 20 L21 20 L21 14 L3 17 Z"/>
+    <circle cx="12" cy="17.5" r="2.5"/>
+    <circle cx="12" cy="17.5" r="1" fill="currentColor"/>`,
+
+  /* DI BOX — compact box with XLR connectors on both sides */
+  'cx-di-box': `
+    <rect x="5" y="7" width="14" height="10" rx="2"/>
+    <line x1="2" y1="12" x2="5" y2="12"/>
+    <circle cx="2" cy="12" r="1.3"/>
+    <line x1="19" y1="12" x2="22" y2="12"/>
+    <circle cx="22" cy="12" r="1.3"/>
+    <circle cx="12" cy="12" r="2"/>`,
+
+  /* MIC STAND — boom stand with adjustable arm, tripod base */
+  'cx-mic-stand': `
+    <line x1="12" y1="3" x2="12" y2="19"/>
+    <line x1="7" y1="3" x2="19" y2="3"/>
+    <circle cx="7" cy="3" r="1.2" fill="currentColor"/>
+    <circle cx="12" cy="3" r="1" fill="currentColor"/>
+    <line x1="12" y1="19" x2="6"  y2="24"/>
+    <line x1="12" y1="19" x2="12" y2="23"/>
+    <line x1="12" y1="19" x2="18" y2="24"/>`,
+
+  /* PERSON / PERFORMER — simple human silhouette */
+  'cx-person': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>`,
 };
 
 // ── Lucide helper: defers icon scan to after paint, optional scope ────────────
@@ -1120,6 +1203,7 @@ const SC_DIAL_CATS = [
   { cat: 'amps',   icon: 'speaker',                   label: 'Amps'        },
   { cat: 'mon',    icon: 'volume_up',                 label: 'Audio'       },
   { cat: 'util',   icon: 'settings_input_component',  label: 'Utilities'   },
+  { cat: 'people', icon: 'person',                    label: 'People'      },
   { cat: 'custom', icon: 'add_circle',                label: 'Custom',  accent: true },
   { cat: null,     icon: 'bookmark',                  label: 'Presets', gold: true, action: 'presets' },
 ];
@@ -5129,32 +5213,32 @@ function renderScenesBar() {
     return `
       <button onclick="switchScene(${i})" title="${s.name}"
         oncontextmenu="event.preventDefault();renameScenePrompt(${i});return false;"
-        style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;
-               border-radius:6px;border:1px solid ${active ? accent : 'rgba(255,255,255,0.10)'};
+        style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;
+               border-radius:5px;border:1px solid ${active ? accent : 'rgba(255,255,255,0.10)'};
                background:${active ? accent + '22' : 'rgba(255,255,255,0.04)'};
                color:${active ? accent : '#a0a0a0'};
-               font-family:'Manrope',sans-serif;font-size:10px;font-weight:800;
+               font-family:'Manrope',sans-serif;font-size:8.5px;font-weight:800;
                text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;
                transition:background 0.15s,color 0.15s,border-color 0.15s;">
         <span>${s.name}</span>
         ${state.scenes.length > 1 ? `<span onclick="event.stopPropagation();removeScene(${i})"
-           style="opacity:0.5;font-size:13px;line-height:1;cursor:pointer;margin-left:1px;"
+           style="opacity:0.5;font-size:11px;line-height:1;cursor:pointer;margin-left:1px;"
            onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">×</span>` : ''}
       </button>`;
   }).join('');
   const addHtml = state.scenes.length < SCENES_MAX
     ? `<button onclick="addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}"
          style="display:inline-flex;align-items:center;justify-content:center;
-                width:24px;height:24px;border-radius:6px;
+                width:20px;height:20px;border-radius:5px;
                 border:1px dashed ${accent};background:transparent;color:${accent};
                 cursor:pointer;transition:background 0.15s;"
          onmouseover="this.style.background='${accent}22'"
          onmouseout="this.style.background='transparent'">
-         <span class="material-symbols-outlined" style="font-size:15px;line-height:1;">add</span>
+         <span class="material-symbols-outlined" style="font-size:13px;line-height:1;">add</span>
        </button>`
     : '';
   bar.innerHTML = DOMPurify.sanitize(
-    `<span style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:800;
+    `<span style="font-family:'Manrope',sans-serif;font-size:7px;font-weight:800;
                   text-transform:uppercase;letter-spacing:0.18em;color:#5a5a5a;
                   margin-right:4px;">${state.lang === 'es' ? 'Escenas' : 'Scenes'}</span>` +
     tabsHtml + addHtml

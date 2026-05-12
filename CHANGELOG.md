@@ -17,6 +17,16 @@ Conventions:
 
 ---
 
+## 3.0.75
+
+- Stagex: 46 new full-color illustrated SVG icons for every stage element (mics, drums, instruments, amps, monitors, and utilities).
+- Stagex: Each icon is a detailed vector illustration with gradients, shading, and accurate proportions — SM58 grille mesh, violin f-holes, 4×12 speaker grid, mixing console faders, and more.
+- Stagex: New People category added with 7 stage members: Performer, Vocalist, Guitarist, Bassist, Drummer, Keyboardist, and Tech.
+- Stagex: Mic Stand added to the Mics section with its own boom-stand illustration.
+- Stagex: Eye/visibility button now hides automatically when the + FAB dial is open — no overlap with element chips.
+- Stagex: Scenes bar is 15% more compact — smaller pills, tighter font, and a smaller add button.
+- Navigation: BottomNav buttons are taller with larger icons (24 px) for a more comfortable tap target.
+
 ## 3.0.56
 
 - Cloud sync no longer gets stuck on "Syncing" or "Waiting to sync…" — guaranteed to escape that state within 25 seconds.
