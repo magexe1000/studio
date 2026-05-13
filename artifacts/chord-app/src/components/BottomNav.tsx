@@ -341,6 +341,7 @@ export default function BottomNav() {
               textTransform: 'uppercase',
               lineHeight: 1,
               whiteSpace: 'nowrap',
+              textShadow: isLight ? 'none' : '0 1px 4px rgba(0,0,0,0.60)',
             }}>
               {label}
             </span>

@@ -352,21 +352,23 @@ function injectStyles(): void {
   style.textContent = `
 .${TARGET_CLASS} {
   background: rgba(14,14,18,0.45) !important;
-  border: 1px solid rgba(255,255,255,0.35) !important;
+  border: 1px solid rgba(255,255,255,0.48) !important;
   box-shadow:
-    0 8px 32px rgba(0,0,0,0.28),
-    inset 0 1.5px 0 rgba(255,255,255,0.55),
-    inset 0 -1px 0 rgba(255,255,255,0.10) !important;
+    0 16px 56px rgba(0,0,0,0.52),
+    0 2px 12px rgba(0,0,0,0.30),
+    inset 0 2px 0 rgba(255,255,255,0.78),
+    inset 0 -1px 0 rgba(255,255,255,0.12) !important;
   isolation: isolate;
 }
 @media (prefers-color-scheme: light) {
   .${TARGET_CLASS} {
     background: rgba(255,255,255,0.40) !important;
-    border: 1px solid rgba(0,0,0,0.10) !important;
+    border: 1px solid rgba(0,0,0,0.12) !important;
     box-shadow:
-      0 8px 32px rgba(0,0,0,0.14),
-      inset 0 1.5px 0 rgba(255,255,255,0.90),
-      inset 0 -1px 0 rgba(0,0,0,0.04) !important;
+      0 16px 56px rgba(0,0,0,0.18),
+      0 2px 10px rgba(0,0,0,0.10),
+      inset 0 2px 0 rgba(255,255,255,0.96),
+      inset 0 -1px 0 rgba(0,0,0,0.05) !important;
   }
 }`;
   document.head.appendChild(style);
