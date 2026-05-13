@@ -59,7 +59,8 @@ let _platformSupportedCache: boolean | null = null;
 export function liquidGlassPlatformSupported(): boolean {
   if (_platformSupportedCache !== null) return _platformSupportedCache;
   if (typeof window === 'undefined' || typeof document === 'undefined') return (_platformSupportedCache = false);
-  if (prefersReducedMotion()) return (_platformSupportedCache = false);
+  // Note: reduced-motion only suppresses the scroll-shine animation in the hook,
+  // not the glass visual itself — so we deliberately do NOT gate on prefersReducedMotion here.
   try {
     const ok = CSS.supports('backdrop-filter', 'blur(1px)') ||
                CSS.supports('-webkit-backdrop-filter', 'blur(1px)');
@@ -302,8 +303,10 @@ function createShader(host: HTMLElement): Shader {
   const r0 = host.getBoundingClientRect();
   regenerateMap(shader, Math.round(r0.width) || 200, Math.round(r0.height) || 60);
 
-  // Apply the combined backdrop-filter — shuding's exact recipe.
-  const value = `url(#${filterId}) blur(0.25px) contrast(1.2) brightness(1.05) saturate(1.4)`;
+  // Apply the combined backdrop-filter.
+  // url() displacement works in Safari; Chrome applies only the standard filter fns.
+  // We use a meaningful blur so the frosted-glass look is always visible.
+  const value = `url(#${filterId}) blur(16px) saturate(1.8) brightness(1.06) contrast(1.08)`;
   host.style.setProperty('backdrop-filter', value, 'important');
   host.style.setProperty('-webkit-backdrop-filter', value, 'important');
 
@@ -341,14 +344,28 @@ function injectStyles(): void {
   _stylesInjected = true;
   const style = document.createElement('style');
   style.id = STYLE_ID;
-  // Fully transparent — the refraction + chromatic aberration from the SVG
-  // backdrop-filter IS the effect. No white shine or specular on top.
+  // Semi-transparent tint so the frosted glass reads clearly in all browsers.
+  // Safari gets the full SVG displacement lens; Chrome gets blur+saturate.
+  // A very thin tint prevents the nav from being invisible on busy backgrounds.
   style.textContent = `
 .${TARGET_CLASS} {
-  background: transparent !important;
-  border: 1px solid rgba(255,255,255,0.32) !important;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.18) !important;
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.35) !important;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.28),
+    inset 0 1.5px 0 rgba(255,255,255,0.55),
+    inset 0 -1px 0 rgba(255,255,255,0.10) !important;
   isolation: isolate;
+}
+@media (prefers-color-scheme: light) {
+  .${TARGET_CLASS} {
+    background: rgba(255,255,255,0.22) !important;
+    border: 1px solid rgba(0,0,0,0.10) !important;
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.14),
+      inset 0 1.5px 0 rgba(255,255,255,0.90),
+      inset 0 -1px 0 rgba(0,0,0,0.04) !important;
+  }
 }`;
   document.head.appendChild(style);
 }
