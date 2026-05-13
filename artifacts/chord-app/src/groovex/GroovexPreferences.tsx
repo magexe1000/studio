@@ -1,13 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGroovexStore } from './useGroovexStore';
 import { getCacheSize, clearAllCache, clearSongCache, getPerSongCacheInfo, type SongCacheInfo } from './stemCache';
 import { SONG_CATALOG } from './songCatalog';
 import { useT } from '../lib/useT';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
+import { useScrollHide } from '../lib/navScroll';
 
 export default function GroovexPreferences() {
   const t = useT();
   const { preferences, updatePreferences } = useGroovexStore();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollHide(scrollRef);
   const [cacheInfo, setCacheInfo] = useState({ totalBytes: 0, songCount: 0, stemCount: 0 });
   const [songCaches, setSongCaches] = useState<SongCacheInfo[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export default function GroovexPreferences() {
   }
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
 
         <section style={{ paddingTop: 32, marginBottom: 32 }}>

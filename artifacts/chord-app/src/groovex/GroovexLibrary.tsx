@@ -3,12 +3,14 @@ import { SONG_CATALOG, getArtists, getGenres } from './songCatalog';
 import type { SongMeta } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
 import { useT } from '../lib/useT';
+import { useScrollHide } from '../lib/navScroll';
 
 export default function GroovexLibrary() {
   const { searchQuery, setSearchQuery, filterArtist, setFilterArtist, filterGenre, setFilterGenre, sortBy, setSortBy, setView, setActiveSong, addRecentSong, recentSongs } = useGroovexStore();
   const t = useT();
   const [showFilters, setShowFilters] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollHide(scrollRef);
 
   const artists = useMemo(() => getArtists(), []);
   const genres = useMemo(() => getGenres(), []);
