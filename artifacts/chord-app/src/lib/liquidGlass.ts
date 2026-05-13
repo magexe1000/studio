@@ -305,8 +305,8 @@ function createShader(host: HTMLElement): Shader {
 
   // Apply the combined backdrop-filter.
   // url() displacement works in Safari; Chrome applies only the standard filter fns.
-  // 20px blur gives a subtle frosted-glass look without overwhelming the distortion.
-  const value = `url(#${filterId}) blur(20px) saturate(1.8) brightness(1.05) contrast(1.06)`;
+  // No extra blur — keep the lens effect clear; tint alone provides readability.
+  const value = `url(#${filterId}) saturate(1.8) brightness(1.05) contrast(1.06)`;
   host.style.setProperty('backdrop-filter', value, 'important');
   host.style.setProperty('-webkit-backdrop-filter', value, 'important');
 
