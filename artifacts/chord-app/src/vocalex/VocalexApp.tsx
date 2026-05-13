@@ -3,7 +3,7 @@ import { useBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { useT } from '../lib/useT';
-import { useScrollHide, useNavHidden, useNavCollapsed, setNavHidden } from '../lib/navScroll';
+import { resetNav, setNavCollapsed, useNavHidden, useNavCollapsed } from '../lib/navScroll';
 import { subscribeVocalexBack } from './headerBack';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 
@@ -104,8 +104,10 @@ export default function VocalexApp() {
     setExitingTab(prevTab.current);
     setVisibleTab(activeTab);
     prevTab.current = activeTab;
-    // Always show the nav when switching tabs — some panels (e.g. pitch) are not scrollable.
-    setNavHidden(false);
+    // Reset nav fully on every tab switch — resets both hidden AND collapsed states.
+    // Critical: setNavHidden(false) alone left the nav as a collapsed pill when switching
+    // from a scrolled-down panel to a non-scrollable one (e.g. pitch detector).
+    resetNav();
     const ti = setTimeout(() => setExitingTab(null), durMs + 20);
     return () => clearTimeout(ti);
   }, [activeTab, durMs]);
@@ -119,13 +121,12 @@ export default function VocalexApp() {
 
   const navRef = useRef<HTMLElement | null>(null);
   useLiquidGlassNav(navRef);
-  const [expandedH, setExpandedH] = useState(64);
+  // Fixed nav height — same rationale as BottomNav: always 64px, dynamic
+  // measurement was a race condition that returned 64 anyway.
+  const NAV_HEIGHT_PX = 64;
   const [expandedW, setExpandedW] = useState(350);
   useEffect(() => {
-    if (navRef.current) {
-      setExpandedH(navRef.current.offsetHeight);
-      setExpandedW(navRef.current.offsetWidth);
-    }
+    if (navRef.current) setExpandedW(navRef.current.offsetWidth);
   }, []);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const prevIdxRef = useRef(0);
@@ -135,10 +136,41 @@ export default function VocalexApp() {
   const labScrollRef      = useRef<HTMLDivElement | null>(null);
   const takesScrollRef    = useRef<HTMLDivElement | null>(null);
 
-  useScrollHide(practiceScrollRef);
-  useScrollHide(pitchScrollRef);
-  useScrollHide(labScrollRef);
-  useScrollHide(takesScrollRef);
+  // Unified scroll tracker — attaches to the active panel's container after each tab switch.
+  // Replaces 4 separate useScrollHide calls: those ran once on mount with empty deps,
+  // so any panel that wasn't rendered yet (ref = null) never got a scroll listener.
+  useEffect(() => {
+    const refMap = {
+      practice: practiceScrollRef,
+      pitch:    pitchScrollRef,
+      vocalLab: labScrollRef,
+      takes:    takesScrollRef,
+    } as const;
+
+    let el: HTMLElement | null = null;
+    let onScroll: (() => void) | null = null;
+
+    // Defer by one tick so the panel has mounted and the ref has been assigned.
+    const tid = setTimeout(() => {
+      el = refMap[activeTab].current;
+      if (!el) return;
+      let lastY = el.scrollTop;
+      onScroll = () => {
+        const y = el!.scrollTop;
+        if (y < 30) { setNavCollapsed(false); lastY = y; return; }
+        const dy = y - lastY;
+        if (Math.abs(dy) < 6) return;
+        setNavCollapsed(dy > 0);
+        lastY = y;
+      };
+      el.addEventListener('scroll', onScroll, { passive: true });
+    }, 50);
+
+    return () => {
+      clearTimeout(tid);
+      if (el && onScroll) el.removeEventListener('scroll', onScroll);
+    };
+  }, [activeTab]);
 
   const navHidden   = useNavHidden();
   const navCollapsed = useNavCollapsed();
@@ -183,8 +215,11 @@ export default function VocalexApp() {
   };
 
   useEffect(() => {
-    const m = measureBtn(0);
+    // Measure the button for the actual initial tab, not always index 0.
+    const initIdx = NAV_ORDER.indexOf(initialVocalexTab);
+    const m = measureBtn(initIdx >= 0 ? initIdx : 0);
     if (m) setPill({ left: m.left, right: m.right, ready: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -287,7 +322,7 @@ export default function VocalexApp() {
               pointerEvents: isVisible && !isExiting ? 'auto' : 'none',
               overflowY: 'auto',
               WebkitOverflowScrolling: 'touch',
-              paddingBottom: 100,
+              paddingBottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 80px)',
             }}>
               {panel === 'practice' && <Suspense fallback={null}><PracticePanelLazy /></Suspense>}
               {panel === 'pitch' && <Suspense fallback={null}><PitchPanelLazy active={activeTab === 'pitch'} /></Suspense>}
@@ -307,7 +342,7 @@ export default function VocalexApp() {
           left: '50%',
           width: '90%',
           maxWidth: '28rem',
-          height: `${expandedH}px`,
+          height: `${NAV_HEIGHT_PX}px`,
           borderRadius: '2rem',
           border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
           background: amoledBg,
@@ -318,7 +353,7 @@ export default function VocalexApp() {
           overflow: 'hidden',
           transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 32px)' : '0'})`,
           clipPath: navCollapsed
-            ? `inset(${Math.max(0, expandedH - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
+            ? `inset(${Math.max(0, NAV_HEIGHT_PX - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
             : 'inset(0 0 0 0 round 2rem)',
           willChange: 'clip-path, transform',
           transition: [

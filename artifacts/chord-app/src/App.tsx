@@ -378,7 +378,10 @@ export default function App() {
     if (settings.appMode === 'vocalex' && prevAppMode.current !== 'vocalex') fireSplash(setVocalexSplash);
     // Always show the nav when switching apps — non-scrollable sections (e.g. Stage)
     // have no way to scroll up to reveal it, so we reset visibility on every mode change.
-    if (prevAppMode.current !== settings.appMode) setNavHidden(false);
+    // Reset both hidden and collapsed on every app-mode switch.
+    // setNavHidden(false) alone left the nav in a collapsed-pill state if the
+    // user had scrolled down in the previous app before switching.
+    if (prevAppMode.current !== settings.appMode) resetNav();
     prevAppMode.current = settings.appMode;
     return () => splashTimers.current.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps

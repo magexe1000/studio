@@ -651,7 +651,7 @@ export default function LibraryPanel() {
       )}
 
       {/* ── Scrollable body ── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ willChange: 'transform', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'], overscrollBehavior: 'contain' }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ willChange: 'transform', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'], overscrollBehavior: 'contain', paddingBottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 80px)' }}>
        <div key={mainTab} className="library-tab-fade">
 
         {/* ══ EXPLORE: Search results ══ */}
