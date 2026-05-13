@@ -305,8 +305,8 @@ function createShader(host: HTMLElement): Shader {
 
   // Apply the combined backdrop-filter.
   // url() displacement works in Safari; Chrome applies only the standard filter fns.
-  // We use a meaningful blur so the frosted-glass look is always visible.
-  const value = `url(#${filterId}) blur(16px) saturate(1.8) brightness(1.06) contrast(1.08)`;
+  // 20px blur gives a subtle frosted-glass look without overwhelming the distortion.
+  const value = `url(#${filterId}) blur(20px) saturate(1.8) brightness(1.05) contrast(1.06)`;
   host.style.setProperty('backdrop-filter', value, 'important');
   host.style.setProperty('-webkit-backdrop-filter', value, 'important');
 
@@ -344,12 +344,14 @@ function injectStyles(): void {
   _stylesInjected = true;
   const style = document.createElement('style');
   style.id = STYLE_ID;
-  // Semi-transparent tint so the frosted glass reads clearly in all browsers.
-  // Safari gets the full SVG displacement lens; Chrome gets blur+saturate.
-  // A very thin tint prevents the nav from being invisible on busy backgrounds.
+  // Semi-transparent tint + very subtle frosting.
+  // The dark tint (≈ 45% opaque) makes background text slightly harder to read
+  // without overwhelming the displacement-lens refraction effect.
+  // The blur in the backdrop-filter above does most of the frosting work;
+  // the tint stops the nav from being fully transparent on busy backgrounds.
   style.textContent = `
 .${TARGET_CLASS} {
-  background: rgba(255,255,255,0.06) !important;
+  background: rgba(14,14,18,0.45) !important;
   border: 1px solid rgba(255,255,255,0.35) !important;
   box-shadow:
     0 8px 32px rgba(0,0,0,0.28),
@@ -359,7 +361,7 @@ function injectStyles(): void {
 }
 @media (prefers-color-scheme: light) {
   .${TARGET_CLASS} {
-    background: rgba(255,255,255,0.22) !important;
+    background: rgba(255,255,255,0.40) !important;
     border: 1px solid rgba(0,0,0,0.10) !important;
     box-shadow:
       0 8px 32px rgba(0,0,0,0.14),
