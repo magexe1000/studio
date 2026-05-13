@@ -3,6 +3,7 @@ import { useDrumStore } from '../store/useDrumStore';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
 import { useT } from '../lib/useT';
+import { useScrollHide } from '../lib/navScroll';
 
 function IconDrumSongs({ active }: { active: boolean }) {
   const sw = active ? 2 : 1.6; const ao = active ? 0.13 : 0;
@@ -52,6 +53,7 @@ export default function DrumPrefsPanel() {
   const dp = t.drumPrefs;
   const acc = ACCENT_COLORS[(settings.perApp?.drums?.accentColor ?? settings.accentColor) as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue;
   const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollHide(scrollRef);
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--app-surface)',
