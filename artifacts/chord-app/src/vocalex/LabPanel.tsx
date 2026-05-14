@@ -4,6 +4,7 @@ import { getAllTakes, type TakeRecord } from './takesDb';
 import { useT } from '../lib/useT';
 import { setVocalexBack } from './headerBack';
 import { createAudioContext } from '../lib/audioContextOptions';
+import HarmonizerSheet from './HarmonizerSheet';
 
 const SESSION_ICONS = ['graphic_eq', 'layers', 'multiline_chart', 'equalizer', 'tune', 'mic', 'queue_music', 'stacked_line_chart'];
 function randomIcon() { return SESSION_ICONS[Math.floor(Math.random() * SESSION_ICONS.length)]; }
@@ -478,6 +479,7 @@ function AddTrackSheet({ session, onAdd, onClose }: {
   const t = useT();
   const [tab, setTab] = useState<'takes' | 'file' | 'record'>('takes');
   const [takes, setTakes] = useState<TakeRecord[]>([]);
+  const [harmonizingTake, setHarmonizingTake] = useState<TakeRecord | null>(null);
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -593,25 +595,67 @@ function AddTrackSheet({ session, onAdd, onClose }: {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {takes.map(take => (
-                <div key={take.id} onClick={() => importTake(take)} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                  background: 'var(--vx-deep)', borderRadius: 10, cursor: 'pointer',
-                  transition: 'background 150ms ease',
-                }}
-                  onPointerDown={e => (e.currentTarget.style.background = '#1a1a1a')}
-                  onPointerUp={e => (e.currentTarget.style.background = 'var(--vx-deep)')}
-                  onPointerLeave={e => (e.currentTarget.style.background = 'var(--vx-deep)')}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#679cff' }}>video_library</span>
+                <div key={take.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                  background: 'var(--vx-deep)', borderRadius: 10,
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#679cff', flexShrink: 0 }}>video_library</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 600, fontSize: 13, color: 'var(--vx-text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{take.name}</p>
                     <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'var(--vx-text-3)', margin: '1px 0 0' }}>{formatDur(take.durationMs)}</p>
                   </div>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--vx-text-4)' }}>add_circle</span>
+                  {/* Harmonize button */}
+                  <button
+                    onClick={() => setHarmonizingTake(take)}
+                    title="Open Harmonizer"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      padding: '5px 9px', borderRadius: 8, border: 'none',
+                      background: 'rgba(103,156,255,0.13)',
+                      color: '#679cff', cursor: 'pointer',
+                      fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>graphic_eq</span>
+                    Harmonize
+                  </button>
+                  {/* Direct add button */}
+                  <button
+                    onClick={() => importTake(take)}
+                    title="Add to session"
+                    style={{
+                      width: 30, height: 30, borderRadius: 8, border: 'none',
+                      background: 'rgba(255,255,255,0.06)',
+                      color: 'var(--vx-text-4)', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add_circle</span>
+                  </button>
                 </div>
               ))}
             </div>
           )
+        )}
+
+        {/* Harmonizer overlay — renders full-screen above everything */}
+        {harmonizingTake && (
+          <HarmonizerSheet
+            take={harmonizingTake}
+            onClose={() => setHarmonizingTake(null)}
+            onBounce={async (newTake) => {
+              onAdd(createLayer({
+                name: newTake.name,
+                audioBlob: newTake.audioBlob,
+                durationMs: newTake.durationMs,
+                sourceType: 'take',
+              }));
+              setHarmonizingTake(null);
+              onClose();
+            }}
+          />
         )}
 
         {tab === 'file' && (
