@@ -308,8 +308,9 @@ function EffectRow({ effect, onChange, index }: { effect: TrackEffect; onChange:
   );
 }
 
-function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
-  layer: LabLayer; hasSolo: boolean; onUpdate: (l: LabLayer) => void; onDelete: () => void; isPlaying: boolean;
+function TrackChannel({ layer, hasSolo, onUpdate, onDelete, onHarmonize, isPlaying }: {
+  layer: LabLayer; hasSolo: boolean; onUpdate: (l: LabLayer) => void; onDelete: () => void;
+  onHarmonize: () => void; isPlaying: boolean;
 }) {
   const [showFx, setShowFx] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -439,6 +440,21 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
           }}>tune</span>
           FX {layer.effects.filter(e => e.enabled).length > 0 && `(${layer.effects.filter(e => e.enabled).length})`}
         </button>
+
+        <button onClick={onHarmonize} style={{
+          display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(103,156,255,0.10)',
+          border: '1px solid rgba(103,156,255,0.22)', borderRadius: 6, padding: '4px 9px', cursor: 'pointer',
+          fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#679cff',
+          transition: 'background 150ms ease, transform 100ms ease',
+        }}
+          onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.95)')}
+          onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+          onPointerLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }}>graphic_eq</span>
+          Harmonize
+        </button>
+
         {confirmDel ? (
           <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
             <button onClick={() => { onDelete(); setConfirmDel(false); }} style={{ background: '#7f2927', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#ff9993' }}>Delete</button>
@@ -479,7 +495,6 @@ function AddTrackSheet({ session, onAdd, onClose }: {
   const t = useT();
   const [tab, setTab] = useState<'takes' | 'file' | 'record'>('takes');
   const [takes, setTakes] = useState<TakeRecord[]>([]);
-  const [harmonizingTake, setHarmonizingTake] = useState<TakeRecord | null>(null);
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -595,67 +610,25 @@ function AddTrackSheet({ session, onAdd, onClose }: {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {takes.map(take => (
-                <div key={take.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                  background: 'var(--vx-deep)', borderRadius: 10,
-                }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#679cff', flexShrink: 0 }}>video_library</span>
+                <div key={take.id} onClick={() => importTake(take)} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                  background: 'var(--vx-deep)', borderRadius: 10, cursor: 'pointer',
+                  transition: 'background 150ms ease',
+                }}
+                  onPointerDown={e => (e.currentTarget.style.background = '#1a1a1a')}
+                  onPointerUp={e => (e.currentTarget.style.background = 'var(--vx-deep)')}
+                  onPointerLeave={e => (e.currentTarget.style.background = 'var(--vx-deep)')}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#679cff' }}>video_library</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 600, fontSize: 13, color: 'var(--vx-text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{take.name}</p>
                     <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'var(--vx-text-3)', margin: '1px 0 0' }}>{formatDur(take.durationMs)}</p>
                   </div>
-                  {/* Harmonize button */}
-                  <button
-                    onClick={() => setHarmonizingTake(take)}
-                    title="Open Harmonizer"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 4,
-                      padding: '5px 9px', borderRadius: 8, border: 'none',
-                      background: 'rgba(103,156,255,0.13)',
-                      color: '#679cff', cursor: 'pointer',
-                      fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>graphic_eq</span>
-                    Harmonize
-                  </button>
-                  {/* Direct add button */}
-                  <button
-                    onClick={() => importTake(take)}
-                    title="Add to session"
-                    style={{
-                      width: 30, height: 30, borderRadius: 8, border: 'none',
-                      background: 'rgba(255,255,255,0.06)',
-                      color: 'var(--vx-text-4)', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add_circle</span>
-                  </button>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--vx-text-4)' }}>add_circle</span>
                 </div>
               ))}
             </div>
           )
-        )}
-
-        {/* Harmonizer overlay — renders full-screen above everything */}
-        {harmonizingTake && (
-          <HarmonizerSheet
-            take={harmonizingTake}
-            onClose={() => setHarmonizingTake(null)}
-            onBounce={async (newTake) => {
-              onAdd(createLayer({
-                name: newTake.name,
-                audioBlob: newTake.audioBlob,
-                durationMs: newTake.durationMs,
-                sourceType: 'take',
-              }));
-              setHarmonizingTake(null);
-              onClose();
-            }}
-          />
         )}
 
         {tab === 'file' && (
@@ -723,6 +696,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(session.name);
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [harmonizingLayer, setHarmonizingLayer] = useState<LabLayer | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -1073,12 +1047,37 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {session.layers.map(layer => (
             <TrackChannel key={layer.id} layer={layer} hasSolo={hasSolo} isPlaying={playing}
-              onUpdate={updateLayer} onDelete={() => removeLayer(layer.id)} />
+              onUpdate={updateLayer} onDelete={() => removeLayer(layer.id)}
+              onHarmonize={() => setHarmonizingLayer(layer)} />
           ))}
         </div>
       )}
 
       {showAddSheet && <AddTrackSheet session={session} onAdd={addLayer} onClose={() => setShowAddSheet(false)} />}
+
+      {harmonizingLayer && (
+        <HarmonizerSheet
+          take={{
+            id:            harmonizingLayer.id,
+            name:          harmonizingLayer.name,
+            createdAt:     Date.now(),
+            durationMs:    harmonizingLayer.durationMs,
+            audioBlob:     harmonizingLayer.audioBlob,
+            waveformPeaks: [],
+            sampleRate:    44100,
+          }}
+          onClose={() => setHarmonizingLayer(null)}
+          onBounce={async (newTake) => {
+            addLayer(createLayer({
+              name:       newTake.name,
+              audioBlob:  newTake.audioBlob,
+              durationMs: newTake.durationMs,
+              sourceType: 'take',
+            }));
+            setHarmonizingLayer(null);
+          }}
+        />
+      )}
     </div>
   );
 }
