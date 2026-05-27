@@ -319,6 +319,133 @@ export default function StudioHub() {
   );
 }
 
+// ── StudioFamilyOrbit ─────────────────────────────────────────────────────────
+// Port of animata.design/docs/list/orbiting-items: each sub-app icon orbits
+// the Studio logo at a steady speed. Uses the canonical double-rotate trick
+// so icons stay upright while their wrapper revolves around the center.
+function StudioFamilyOrbit({
+  accent,
+  items,
+}: {
+  accent: { from: string; to: string };
+  items: { key: string; node: React.ReactNode; label: string }[];
+}) {
+  const RADIUS = 96;   // px
+  const SPEED  = 22;   // s per revolution
+  const SIZE   = 240;  // px container
+  const N      = items.length;
+
+  // Build one keyframe per starting angle so each orbiter keeps its
+  // upright orientation throughout the full 360° revolution.
+  const keyframes = items.map((_, i) => {
+    const a = (i / N) * 360;
+    return `
+      @keyframes family-orbit-${i} {
+        from { transform: rotate(${a}deg) translateX(${RADIUS}px) rotate(${-a}deg); }
+        to   { transform: rotate(${a + 360}deg) translateX(${RADIUS}px) rotate(${-(a + 360)}deg); }
+      }
+    `;
+  }).join('\n');
+
+  return (
+    <div style={{
+      position: 'relative',
+      width: '100%',
+      height: SIZE,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    }}>
+      <style>{`
+        ${keyframes}
+        @keyframes family-orbit-glow {
+          0%,100% { opacity: 0.85; transform: translate(-50%,-50%) scale(1); }
+          50%     { opacity: 1;    transform: translate(-50%,-50%) scale(1.08); }
+        }
+        @keyframes family-orbit-bob {
+          0%,100% { transform: translateY(0); }
+          50%     { transform: translateY(-4px); }
+        }
+      `}</style>
+
+      {/* Nebula glow behind the center */}
+      <div style={{
+        position: 'absolute',
+        top: '50%', left: '50%',
+        width: 220, height: 220,
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${accent.from}33 0%, ${accent.to}14 45%, transparent 70%)`,
+        filter: 'blur(8px)',
+        pointerEvents: 'none',
+        animation: 'family-orbit-glow 5s ease-in-out infinite',
+      }} />
+
+      {/* Dashed orbit ring */}
+      <div style={{
+        position: 'absolute',
+        width: RADIUS * 2,
+        height: RADIUS * 2,
+        borderRadius: '50%',
+        border: '1px dashed rgba(128,128,128,0.22)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Center Studio logo */}
+      <div style={{
+        position: 'relative',
+        zIndex: 2,
+        width: 84,
+        height: 84,
+        borderRadius: 24,
+        background: `linear-gradient(135deg, ${accent.from} 0%, ${accent.to} 100%)`,
+        boxShadow: `0 0 30px 8px ${accent.from}55, 0 0 60px 20px ${accent.to}22, inset 0 1px 0 rgba(255,255,255,0.25)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        animation: 'family-orbit-bob 3.2s ease-in-out infinite',
+      }}>
+        <StudioLogo size={50} />
+      </div>
+
+      {/* Orbiters — each absolutely positioned at center, animated outward */}
+      {items.map(({ key, node }, i) => (
+        <div
+          key={key}
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: 0,
+            height: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: `family-orbit-${i} ${SPEED}s linear infinite`,
+            zIndex: 1,
+          }}
+        >
+          <div style={{
+            width: 48,
+            height: 48,
+            borderRadius: '50%',
+            background: 'rgba(20,22,30,0.92)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            boxShadow: '0 6px 18px rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {React.cloneElement(node as React.ReactElement<{ size: number }>, { size: 26 })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── App row (list item inside the combined card) ───────────────────────────────
 function AppRow({
   Logo, name, desc, last, onClick,
@@ -1167,14 +1294,25 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
           </div>
         </div>
 
-        {/* Sub-app family */}
+        {/* Sub-app family — animata orbiting-items with Studio logo in the
+            center and each sub-app icon orbiting smoothly around it. The
+            keyframe rotates by 360° AROUND the center using a double-rotate
+            trick so icons stay upright. Below the orbit we keep the static
+            labelled grid so users can still scan all app names at a glance. */}
         <SettingsSectionLabel delay={40}>{lang === 'es' ? 'Familia' : 'Family'}</SettingsSectionLabel>
         <div style={cardStyle}>
+          <StudioFamilyOrbit
+            accent={accent}
+            items={subAppLogos}
+          />
+          {/* Labelled grid (the "other stuff" — keeps names visible) */}
           <div style={{
-            padding: '18px 14px',
+            padding: '4px 14px 18px',
             display: 'grid',
             gridTemplateColumns: 'repeat(5, 1fr)',
             gap: 8,
+            borderTop: '1px solid rgba(128,128,128,0.08)',
+            marginTop: 4,
           }}>
             {subAppLogos.map(({ key, node, label }) => (
               <div key={key} style={{
@@ -1182,18 +1320,19 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: 6,
+                paddingTop: 14,
               }}>
                 <div style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 12,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 11,
                   background: 'rgba(128,128,128,0.07)',
                   border: '1px solid rgba(128,128,128,0.10)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  {node}
+                  {React.cloneElement(node as React.ReactElement<{ size: number }>, { size: 22 })}
                 </div>
                 <span style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: 600, color: 'var(--c-text-secondary)', letterSpacing: '0.02em' }}>{label}</span>
               </div>
