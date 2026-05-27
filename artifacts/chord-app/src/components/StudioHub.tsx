@@ -12,6 +12,7 @@ import { APP_VERSION_LABEL } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate } from '../lib/otaUpdate';
+import StudioUpdateScreen from './StudioUpdateScreen';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import ProfileDropdown from './kokonutui/profile-dropdown';
 
@@ -196,6 +197,27 @@ export default function StudioHub() {
   const [zooming, setZooming] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // ── OTA demo ──────────────────────────────────────────────────────────────
+  const [otaDemo, setOtaDemo] = useState(false);
+  const [otaDemoProgress, setOtaDemoProgress] = useState(0);
+  useEffect(() => {
+    if (!otaDemo) return;
+    setOtaDemoProgress(0);
+    const DURATION_MS = 6000;
+    const TICK_MS     = 60;
+    const start       = Date.now();
+    const id = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const p       = Math.min(elapsed / DURATION_MS, 1);
+      setOtaDemoProgress(p);
+      if (p >= 1) {
+        clearInterval(id);
+        setTimeout(() => setOtaDemo(false), 1200);
+      }
+    }, TICK_MS);
+    return () => clearInterval(id);
+  }, [otaDemo]);
   useScrollHide(scrollRef);
 
   useEffect(() => subscribeAuth(setAuthUser), []);
@@ -303,7 +325,38 @@ export default function StudioHub() {
               ))}
             </GradientBorderCard>
 
+            {/* ── OTA demo button ── */}
+            <button
+              type="button"
+              onClick={() => setOtaDemo(true)}
+              style={{
+                marginTop: 20,
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '9px 18px', borderRadius: 999,
+                background: `color-mix(in srgb, ${accent.from} 12%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${accent.from} 28%, transparent)`,
+                color: accent.from,
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 12,
+                cursor: 'pointer', outline: 'none',
+                WebkitTapHighlightColor: 'transparent',
+                letterSpacing: '0.01em',
+                animation: 'hub-rise-in 500ms 160ms cubic-bezier(0.34,1.15,0.64,1) both',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>play_arrow</span>
+              Preview OTA update
+            </button>
+
           </div>
+        )}
+
+        {/* ── OTA demo overlay ── */}
+        {otaDemo && (
+          <StudioUpdateScreen
+            progress={otaDemoProgress}
+            accentFrom={accent.from}
+            accentTo={accent.to}
+          />
         )}
 
         {/* ── PROFILE TAB ── */}
