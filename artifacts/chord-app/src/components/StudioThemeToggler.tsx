@@ -45,6 +45,7 @@ export interface StudioThemeTogglerProps {
     amoled?: string;
   };
   variant?: TransitionVariant;
+  /** Animation duration in ms. Default 500 — feels fluid without being slow. */
   duration?: number;
 }
 
@@ -156,7 +157,7 @@ export default function StudioThemeToggler({
   onChange,
   labels,
   variant = 'circle',
-  duration = 380,
+  duration = 500,
 }: StudioThemeTogglerProps) {
 
   const handleSelect = useCallback((
@@ -211,7 +212,9 @@ export default function StudioThemeToggler({
         { clipPath: [clipFrom, clipTo] },
         {
           duration,
-          easing: variant === 'star' ? 'linear' : 'ease-in-out',
+          // Fast-out: starts at full velocity (masks snapshot-capture delay),
+          // then decelerates smoothly — no aggressive punch-through.
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
           fill: 'forwards',
           pseudoElement: '::view-transition-new(root)',
         },
