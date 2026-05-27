@@ -2,8 +2,6 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 
-const SESSION_KEY = 'studio_solar_shown_v2';
-
 function easeInOut(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
@@ -31,14 +29,11 @@ const STARS = Array.from({ length: 44 }, (_, i) => ({
 }));
 
 export default function StudioSolarIntro() {
+  // Always play on mount. Respect reduced-motion users by skipping the animation.
   const shouldShow = useMemo(() => {
     if (typeof window === 'undefined') return false;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
-    try {
-      if (sessionStorage.getItem(SESSION_KEY)) return false;
-      sessionStorage.setItem(SESSION_KEY, '1');
-      return true;
-    } catch { return false; }
+    return true;
   }, []);
 
   const [visible, setVisible] = useState(shouldShow);
@@ -211,7 +206,6 @@ export default function StudioSolarIntro() {
         userSelect: 'none',
       }}
       onClick={() => {
-        try { sessionStorage.setItem(SESSION_KEY, '1'); } catch {}
         setFadeOut(true);
         setTimeout(() => setVisible(false), 380);
       }}
