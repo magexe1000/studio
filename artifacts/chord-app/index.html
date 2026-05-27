@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<!-- v6 — animata orbiting-items-3d port -->
+<!-- v7 — professional monochrome intro -->
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
     <title>Studio</title>
     <meta name="description" content="Studio — Chordex & Drumex, your complete music toolkit" />
-    <meta name="theme-color" content="#111116" />
+    <meta name="theme-color" content="#0a0a0c" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -23,21 +23,15 @@
     <style>
       html, body { background: #0a0a0c; margin: 0; padding: 0; }
 
-      /* ── Inline orbiting-items-3D startup intro (v6) ───────────────────
-         Direct port of animata.design/docs/list/orbiting-items-3-d:
-           • elliptical tilted orbit (radiusX=130, radiusY=36, tilt=-30°)
-           • per-frame angle update via rAF → x,y from sin/cos
-           • scale & z-index swing based on orbital half (front bigger,
-             back smaller and behind) for a true 3-D feel
-           • smooth transform transitions interpolate between frames
-         After the orbit phase the JS lerps each planet to its final hub
-         position (Studio at top, 5 app icons stacked in the card column).
+      /* ── Professional monochrome startup intro (v7) ────────────────────
+         • Pure black bg, no colored glow
+         • White icons, no per-app color tints, no pill backgrounds
+         • Orbit starts smooth, accelerates dramatically right before settle
+         • Each app icon then arranges into its final hub position
       ────────────────────────────────────────────────────────────────── */
       #intro {
         position: fixed; inset: 0; z-index: 2147483647;
-        background:
-          radial-gradient(ellipse at 50% 45%,
-            #1a1530 0%, #0c0a18 55%, #07060c 100%);
+        background: #0a0a0c;
         overflow: hidden;
         pointer-events: none;
         opacity: 1;
@@ -47,110 +41,79 @@
       #intro.dismissing { opacity: 0; }
       #intro.dismissed  { display: none; }
 
-      /* Purple nebula glow */
+      /* Very subtle white nebula — gives depth without ugly color */
       #intro-glow {
         position: absolute; top: 50%; left: 50%;
-        width: 460px; height: 460px;
-        margin: -230px 0 0 -230px;
+        width: 420px; height: 420px;
+        margin: -210px 0 0 -210px;
         background: radial-gradient(circle,
-          rgba(139, 92,246,0.30) 0%,
-          rgba( 99,102,241,0.14) 40%,
-          transparent            70%);
+          rgba(255,255,255,0.05) 0%,
+          rgba(255,255,255,0.02) 40%,
+          transparent 70%);
         border-radius: 50%;
-        filter: blur(12px);
-        animation: glow-breathe 6s ease-in-out infinite;
+        filter: blur(8px);
         pointer-events: none;
       }
-      @keyframes glow-breathe {
-        0%,100% { transform: scale(1);    opacity: 0.85; }
-        50%     { transform: scale(1.12); opacity: 1;    }
-      }
 
-      /* Twinkling stars */
+      /* Tiny twinkling stars */
       #intro-stars {
         position: absolute; inset: 0;
         background-image:
-          radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.7), transparent 50%),
-          radial-gradient(1px 1px at 78% 22%, rgba(255,255,255,0.5), transparent 50%),
-          radial-gradient(1.5px 1.5px at 30% 78%, rgba(255,255,255,0.6), transparent 50%),
-          radial-gradient(1px 1px at 88% 70%, rgba(255,255,255,0.7), transparent 50%),
-          radial-gradient(1px 1px at 55% 8%,  rgba(255,255,255,0.4), transparent 50%),
-          radial-gradient(1px 1px at 8% 60%,  rgba(255,255,255,0.5), transparent 50%),
-          radial-gradient(1.5px 1.5px at 65% 92%, rgba(255,255,255,0.55), transparent 50%),
-          radial-gradient(1px 1px at 42% 38%, rgba(255,255,255,0.35), transparent 50%);
-        animation: twinkle 5s ease-in-out infinite;
-        opacity: 0.55;
-      }
-      @keyframes twinkle {
-        0%,100% { opacity: 0.4; }
-        50%     { opacity: 0.9; }
+          radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.55), transparent 50%),
+          radial-gradient(1px 1px at 78% 22%, rgba(255,255,255,0.40), transparent 50%),
+          radial-gradient(1.5px 1.5px at 30% 78%, rgba(255,255,255,0.50), transparent 50%),
+          radial-gradient(1px 1px at 88% 70%, rgba(255,255,255,0.55), transparent 50%),
+          radial-gradient(1px 1px at 55% 8%,  rgba(255,255,255,0.30), transparent 50%),
+          radial-gradient(1px 1px at 8% 60%,  rgba(255,255,255,0.40), transparent 50%),
+          radial-gradient(1.5px 1.5px at 65% 92%, rgba(255,255,255,0.45), transparent 50%),
+          radial-gradient(1px 1px at 42% 38%, rgba(255,255,255,0.28), transparent 50%);
+        opacity: 0.5;
       }
 
-      /* Center Studio logo — JS sets transform every frame so it can
-         smoothly migrate to its final hub position. */
+      /* Center Studio logo — JS controls transform every frame */
       #intro-center {
         position: absolute; top: 50%; left: 50%;
         display: flex; flex-direction: column; align-items: center;
-        gap: 6px;
+        gap: 8px;
         z-index: 1;
         will-change: transform;
         transform: translate(-50%, -50%) scale(1);
+        opacity: 0;
+        animation: center-fade-in 600ms 80ms ease-out forwards;
+      }
+      @keyframes center-fade-in {
+        from { opacity: 0; } to { opacity: 1; }
       }
       #intro-center .logo {
-        width: 132px; height: 132px;
-        border-radius: 50%;
+        width: 96px; height: 96px;
         display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 45%, #6366f1 100%);
-        padding: 28px; box-sizing: border-box;
-        box-shadow:
-          0 0 40px 15px rgba(139, 92, 246, 0.40),
-          0 0 80px 30px rgba(99, 102, 241, 0.18),
-          inset 0 1px 0 rgba(255,255,255,0.25);
-        animation: center-float 3.2s ease-in-out infinite;
+        filter: drop-shadow(0 0 24px rgba(255,255,255,0.18));
       }
-      @keyframes center-float {
-        0%,100% { transform: translateY(0); }
-        50%     { transform: translateY(-10px); }
-      }
-      #intro-center .logo svg { width: 100%; height: 100%; }
+      #intro-center .logo svg { width: 96px; height: 96px; }
       #intro-center .title {
-        font-size: 30px; font-weight: 800; color: #fff;
-        letter-spacing: -0.02em; margin: 12px 0 0;
-        text-shadow: 0 2px 18px rgba(139,92,246,0.45);
+        font-size: 32px; font-weight: 800; color: #ffffff;
+        letter-spacing: -0.025em; margin: 6px 0 0;
       }
       #intro-center .sub {
-        font-size: 13px; color: rgba(255,255,255,0.55);
-        margin: 0;
+        font-size: 12px; color: rgba(255,255,255,0.50);
+        letter-spacing: 0.08em; margin: 0; text-transform: uppercase;
       }
 
-      /* Each orbiter — JS positions absolutely via left/top + transform.
-         Glass-pill look matches animata: white/5 bg, white/10 border,
-         backdrop-blur, purple-tinted shadow. */
+      /* Orbiters — no background pill, just white icons */
       .orbiter {
         position: absolute;
-        width: 64px; height: 64px;
-        border-radius: 50%;
+        width: 44px; height: 44px;
         display: flex; align-items: center; justify-content: center;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.10);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        box-shadow: 0 8px 24px rgba(139, 92, 246, 0.22);
-        transition: transform 0.6s cubic-bezier(0.34,1.2,0.64,1);
         will-change: transform, left, top;
         opacity: 0;
-        animation: orb-fade-in 600ms ease-out forwards;
+        animation: orb-fade-in 500ms 120ms ease-out forwards;
+        color: #ffffff;
       }
-      @keyframes orb-fade-in {
-        from { opacity: 0; }
-        to   { opacity: 1; }
+      @keyframes orb-fade-in { from { opacity: 0; } to { opacity: 1; } }
+      .orbiter svg {
+        width: 30px; height: 30px;
+        filter: drop-shadow(0 0 6px rgba(255,255,255,0.25));
       }
-      .orbiter svg { width: 30px; height: 30px; }
-      .orbiter.c-chordex svg { color: #a78bfa; }
-      .orbiter.c-drumex  svg { color: #fb923c; }
-      .orbiter.c-stagex  svg { color: #fbbf24; }
-      .orbiter.c-groovex svg { color: #34d399; }
-      .orbiter.c-vocalex svg { color: #60a5fa; }
 
       @media (prefers-reduced-motion: reduce) {
         #intro *, #intro { animation: none !important; transition: opacity 200ms linear !important; }
@@ -175,143 +138,151 @@
         <p class="sub">by Mag</p>
       </div>
 
-      <div class="orbiter c-chordex" data-i="0">
+      <!-- 5 white-icon orbiters, no background colors -->
+      <div class="orbiter" data-i="0">
         <svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
-      <div class="orbiter c-drumex" data-i="1">
+      <div class="orbiter" data-i="1">
         <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg>
       </div>
-      <div class="orbiter c-stagex" data-i="2">
+      <div class="orbiter" data-i="2">
         <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="9" width="3" height="6" rx="0.6"/><rect x="8" y="6" width="3" height="12" rx="0.6"/><rect x="13" y="9" width="3" height="6" rx="0.6"/><rect x="18" y="7" width="3" height="10" rx="0.6"/></svg>
       </div>
-      <div class="orbiter c-groovex" data-i="3">
+      <div class="orbiter" data-i="3">
         <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
       </div>
-      <div class="orbiter c-vocalex" data-i="4">
+      <div class="orbiter" data-i="4">
         <svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" fill="currentColor"/><path d="M6 12a6 6 0 0 0 12 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       </div>
     </div>
     <div id="root"></div>
 
     <script>
-      // ── Orbiting items 3D — vanilla port of animata's component ─────────
+      // ── Professional orbiting intro with accelerating spin ──────────────
       (function () {
         var intro    = document.getElementById('intro');
         var center   = document.getElementById('intro-center');
         var orbiters = intro ? intro.querySelectorAll('.orbiter') : [];
         if (!intro || orbiters.length === 0) return;
 
-        // Geometry — elliptical tilted orbit, matches animata defaults.
-        var RX        = 130;                       // x radius (px)
-        var RY        = 36;                        // y radius (px) → tilt look
-        var TILT      = -30 * Math.PI / 180;       // tilt of orbit plane
+        // Geometry — elliptical tilted orbit (3D look)
+        var RX        = 132;
+        var RY        = 38;
+        var TILT      = -28 * Math.PI / 180;
         var COS_T     = Math.cos(TILT);
         var SIN_T     = Math.sin(TILT);
-        var ORBIT_MS  = 8500;                      // one full revolution
         var N         = orbiters.length;
         var STEP      = 360 / N;
 
-        // Phase timings (ms from start)
-        var SETTLE_START = 3200;                   // begin lerp to hub pos
-        var SETTLE_END   = 4400;                   // fully settled
-        var INTRO_TOTAL  = 4400;                   // min visible
+        // ── Speed profile (deg/ms angular velocity) ───────────────────────
+        // Phase 1 (0 → ACCEL_START):   smooth steady orbit
+        // Phase 2 (ACCEL_START → ACCEL_END): accelerate dramatically — the
+        //   "spin faster as the app is about to open" effect
+        // Phase 3 (SETTLE_START → SETTLE_END): each item arranges into hub pos
+        var BASE_OMEGA   = 360 / 8500;       // ~8.5s per revolution
+        var PEAK_OMEGA   = 360 / 900;        // ~0.9s per revolution at peak
+        var ACCEL_START  = 1800;
+        var ACCEL_END    = 3200;
+        var SETTLE_START = 3000;             // start settling slightly during peak
+        var SETTLE_END   = 4400;
+        var INTRO_TOTAL  = 4400;
 
-        // Final hub-icon positions (relative to viewport CENTER).
-        // Derived from the hub screenshot: app icons sit in a vertical
-        // column ~70px from the viewport left edge with ~76px row spacing,
-        // and the card top starts ~120px below the vertical center.
-        var W = window.innerWidth;
-        var H = window.innerHeight;
-        var COL_X = -(W / 2) + 64;                 // 64px from left edge
-        var ROW0  = (H * 0.18);                    // first row y
-        var GAP   = 76;
-        var targets = [
-          { x: COL_X, y: ROW0 + 0 * GAP, scale: 0.55 }, // chordex
-          { x: COL_X, y: ROW0 + 1 * GAP, scale: 0.55 }, // drumex
-          { x: COL_X, y: ROW0 + 2 * GAP, scale: 0.55 }, // stagex
-          { x: COL_X, y: ROW0 + 3 * GAP, scale: 0.55 }, // groovex
-          { x: COL_X, y: ROW0 + 4 * GAP, scale: 0.55 }, // vocalex
-        ];
-        // Center logo target — top of screen, where hub displays it.
-        var centerTarget = { x: 0, y: -(H / 2) + 130, scale: 0.55 };
+        // Final hub-icon positions (relative to viewport CENTER) — recomputed
+        // on resize/orientation change so all settled items stay visible.
+        var W, H, targets = [], centerTarget = { x: 0, y: 0, scale: 0.55 };
+        function recomputeTargets() {
+          W = window.innerWidth;
+          H = window.innerHeight;
+          var COL_X = -(W / 2) + 64;
+          // Clamp last row so it never overflows the bottom of the viewport
+          var GAP_DESIRED = 76;
+          var maxYFromCenter = (H / 2) - 48;       // 48 = half of orbiter+padding
+          var firstY        = Math.max(-(H / 2) + 88, -(H / 2) + H * 0.18);
+          var lastYBudget   = maxYFromCenter - firstY;
+          var GAP = Math.min(GAP_DESIRED, Math.max(48, lastYBudget / (N - 1)));
+          targets = [];
+          for (var j = 0; j < N; j++) {
+            targets.push({ x: COL_X, y: firstY + j * GAP, scale: 0.55 });
+          }
+          centerTarget = { x: 0, y: -(H / 2) + 130, scale: 0.55 };
+        }
+        recomputeTargets();
+        window.addEventListener('resize', recomputeTargets);
+        window.addEventListener('orientationchange', recomputeTargets);
 
         function easeInOutCubic(t) {
           return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
         }
+        function easeInQuad(t) { return t * t; }
 
-        var start = performance.now();
+        // Anchor orbiters to viewport center; per-frame transform handles motion
+        var cx = W / 2, cy = H / 2;
+        for (var i = 0; i < orbiters.length; i++) {
+          orbiters[i].style.left = (cx - 22) + 'px';   // 22 = half of 44
+          orbiters[i].style.top  = (cy - 22) + 'px';
+        }
+
+        var start  = performance.now();
+        var angle  = 0;           // accumulated orbit angle (deg)
+        var lastT  = start;
         var stopped = false;
 
-        // Reposition each orbiter to viewport center first so left/top
-        // serve as anchor and the per-frame transform handles motion.
-        var cx = W / 2;
-        var cy = H / 2;
-        for (var i = 0; i < orbiters.length; i++) {
-          orbiters[i].style.left = (cx - 32) + 'px';   // 32 = half of 64
-          orbiters[i].style.top  = (cy - 32) + 'px';
+        function omegaAt(t) {
+          if (t <= ACCEL_START) return BASE_OMEGA;
+          if (t >= ACCEL_END)   return PEAK_OMEGA;
+          var p = (t - ACCEL_START) / (ACCEL_END - ACCEL_START);
+          return BASE_OMEGA + (PEAK_OMEGA - BASE_OMEGA) * easeInQuad(p);
         }
 
         function frame(now) {
           if (stopped) return;
-          var t = now - start;
-          var angleBase = (t / ORBIT_MS * 360) % 360;
+          var t  = now - start;
+          var dt = now - lastT;
+          lastT  = now;
+          // Integrate angular velocity for smooth acceleration
+          angle = (angle + omegaAt(t) * dt) % 360;
 
-          // Settle progress 0..1
+          // Settle progress
           var sP = (t - SETTLE_START) / (SETTLE_END - SETTLE_START);
           if (sP < 0) sP = 0; else if (sP > 1) sP = 1;
           var sE = easeInOutCubic(sP);
 
-          // Per-orbiter
           for (var k = 0; k < orbiters.length; k++) {
             var el = orbiters[k];
-            // Use the original DOM order's data-i (0..4) as the slot, but
-            // the visual orbit starting angle should be staggered.
-            var a = (angleBase + k * STEP) % 360;
+            var a = (angle + k * STEP) % 360;
             if (a < 0) a += 360;
             var rad = a * Math.PI / 180;
             var x0 = RX * Math.cos(rad);
             var y0 = RY * Math.sin(rad);
-            // Tilt rotation
             var xT = x0 * COS_T - y0 * SIN_T;
             var yT = x0 * SIN_T + y0 * COS_T;
 
-            // 3-D depth: front half (0..180°) larger & in front of center
             var front = a < 180;
-            var orbitScale = front ? 1.15 : 0.85;
-            var z         = front ? 3 : 0;
+            var orbitScale = front ? 1.10 : 0.85;
+            var z          = front ? 3 : 0;
 
-            // Lerp to settle target
-            var tx = targets[k].x;
-            var ty = targets[k].y;
-            var ts = targets[k].scale;
+            var tx = targets[k].x, ty = targets[k].y, ts = targets[k].scale;
             var fx = xT + (tx - xT) * sE;
             var fy = yT + (ty - yT) * sE;
             var fs = orbitScale + (ts - orbitScale) * sE;
-            // During settle, fade z to a normal stacking
             el.style.zIndex   = sE > 0.5 ? 1 : z;
-            el.style.transform = 'translate(' + fx.toFixed(2) + 'px, ' + fy.toFixed(2) + 'px) scale(' + fs.toFixed(3) + ')';
+            el.style.transform = 'translate(' + fx.toFixed(2) + 'px,' + fy.toFixed(2) + 'px) scale(' + fs.toFixed(3) + ')';
           }
 
-          // Center logo migrates to its hub position
-          var ccx = (centerTarget.x - 0) * sE;
-          var ccy = (centerTarget.y - 0) * sE;
+          // Center logo migrates upward to its hub position during settle
+          var ccx = centerTarget.x * sE;
+          var ccy = centerTarget.y * sE;
           var ccs = 1 + (centerTarget.scale - 1) * sE;
-          center.style.transform = 'translate(-50%, -50%) translate(' + ccx.toFixed(2) + 'px, ' + ccy.toFixed(2) + 'px) scale(' + ccs.toFixed(3) + ')';
+          center.style.transform = 'translate(-50%, -50%) translate(' + ccx.toFixed(2) + 'px,' + ccy.toFixed(2) + 'px) scale(' + ccs.toFixed(3) + ')';
 
-          if (sP >= 1) {
-            // Settled — one final frame, then halt rAF (positions are static).
-            stopped = true;
-            return;
-          }
+          if (sP >= 1) { stopped = true; return; }
           requestAnimationFrame(frame);
         }
         requestAnimationFrame(frame);
 
-        // ── Dismiss logic ────────────────────────────────────────────────
-        // Dismiss when BOTH min-visible time elapsed AND React mounted.
-        var rootEl     = document.getElementById('root');
-        var dismissed  = false, observer = null, pollId = 0;
-        var introStart = start;
+        // ── Dismiss when min-visible time elapsed AND React mounted ─────────
+        var rootEl = document.getElementById('root');
+        var dismissed = false, observer = null, pollId = 0;
         function dismiss() {
           if (dismissed) return;
           dismissed = true;
@@ -329,7 +300,7 @@
         }
         function tryDismiss() {
           if (dismissed) return;
-          var elapsed = performance.now() - introStart;
+          var elapsed = performance.now() - start;
           if (reactMounted() && elapsed >= INTRO_TOTAL) {
             dismiss();
           } else if (reactMounted()) {
@@ -346,7 +317,7 @@
           tryDismiss();
           if (!dismissed) pollId = setInterval(tryDismiss, 100);
         }, INTRO_TOTAL);
-        setTimeout(dismiss, 10000); // hard safety
+        setTimeout(dismiss, 10000);
       })();
     </script>
     <script type="module" src="/src/main.tsx"></script>
