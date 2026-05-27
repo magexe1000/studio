@@ -13,6 +13,7 @@ import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import StudioUpdateScreen from './StudioUpdateScreen';
+import StudioTitleReveal from './StudioTitleReveal';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import ProfileDropdown from './kokonutui/profile-dropdown';
 
@@ -272,10 +273,8 @@ export default function StudioHub() {
               <div data-intro-target="studio" style={{ color: isHubLight ? '#18181b' : 'white', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <StudioLogo size={56} />
               </div>
-              <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: '10px 0 0', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                {String(t.hub.studio).split('').map((char, i) => (
-                  <span key={i} style={{ display: 'inline-block', animation: `char-reveal 0.45s ${0.08 + i * 0.06}s cubic-bezier(0.22,1,0.36,1) both` }}>{char}</span>
-                ))}
+              <p style={{ fontSize: 28, fontWeight: 800, margin: '10px 0 0', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                <StudioTitleReveal text={String(t.hub.studio)} />
               </p>
             </div>
 
@@ -636,10 +635,6 @@ const HUB_SETTINGS_CSS = `
   @keyframes hub-spin {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
-  }
-  @keyframes char-reveal {
-    from { opacity: 0; transform: translateY(9px); filter: blur(4px); }
-    to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
   }
   @keyframes profile-sheet-up {
     from { transform: translateY(100%); }

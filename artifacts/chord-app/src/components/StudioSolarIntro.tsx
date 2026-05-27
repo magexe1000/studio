@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
+import { triggerIntroReveal } from './StudioTitleReveal';
 
 function easeInOut(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -126,7 +127,7 @@ export default function StudioSolarIntro() {
       const elapsed = now - t0;
 
       if (elapsed >= FADEOUT_END) {
-        if (!doneFired) { doneFired = true; setVisible(false); }
+        if (!doneFired) { doneFired = true; triggerIntroReveal(); setVisible(false); }
         return;
       }
       if (elapsed >= SETTLE_END && !fadeOutFired) {
@@ -208,6 +209,7 @@ export default function StudioSolarIntro() {
         userSelect: 'none',
       }}
       onClick={() => {
+        triggerIntroReveal();
         setFadeOut(true);
         setTimeout(() => setVisible(false), 380);
       }}
