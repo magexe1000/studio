@@ -1,6 +1,7 @@
 import {
   memo, useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
+import ElasticSlider from '../components/ElasticSlider';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
 import LoadingLottie from '../components/lottie/LoadingLottie';
@@ -3561,9 +3562,12 @@ export default function DrumEditor() {
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', flex: 1 }}>Master</span>
                 <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 700, minWidth: 36, textAlign: 'right' }}>{(masterVolume * 100).toFixed(1)}%</span>
-                <input type="range" min={0} max={1} step={0.005} value={masterVolume}
-                  onChange={e => setMasterVolume(parseFloat(e.target.value))}
-                  style={{ width: 110, accentColor: accent.from, flexShrink: 0 }} />
+                <ElasticSlider
+                  min={0} max={1} step={0.005} value={masterVolume}
+                  onChange={setMasterVolume}
+                  accentColor={accent.from}
+                  style={{ width: 110, flexShrink: 0 }}
+                />
                 <div style={{ width: 32, flexShrink: 0 }} />
               </div>
               {ALL_INSTS.map((inst, i) => {
@@ -3575,9 +3579,12 @@ export default function DrumEditor() {
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: hidden ? 'var(--c-text-muted)' : 'var(--c-text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
                     <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 700, minWidth: 30, textAlign: 'right' }}>{Math.round(vol * 100)}%</span>
-                    <input type="range" min={0} max={1} step={0.01} value={vol}
-                      onChange={e => setVolumeForInstrument(inst, parseFloat(e.target.value))}
-                      style={{ width: 90, accentColor: color, flexShrink: 0 }} />
+                    <ElasticSlider
+                      min={0} max={1} step={0.01} value={vol}
+                      onChange={v => setVolumeForInstrument(inst, v)}
+                      accentColor={color}
+                      style={{ width: 90, flexShrink: 0 }}
+                    />
                     <button onClick={() => togglePatternMute(pattern.id, inst)} title={hidden ? 'Show row' : 'Hide row'}
                       style={{ width: 32, height: 32, borderRadius: 8, background: hidden ? 'rgba(128,128,128,0.08)' : `${color}18`, border: hidden ? '1px solid rgba(128,128,128,0.12)' : `1px solid ${color}30`, cursor: 'pointer', color: hidden ? 'var(--c-text-muted)' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
                       {hidden
@@ -3678,9 +3685,12 @@ export default function DrumEditor() {
                         <div style={{ fontSize: 12, fontWeight: 700, color: active ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', lineHeight: 1.2 }}>{label}</div>
                         {hint && <div style={{ fontSize: 9, color: 'var(--c-text-muted)', fontFamily: 'Manrope', letterSpacing: '0.02em' }}>{hint}</div>}
                       </div>
-                      <input type="range" min={min} max={max} step={step} value={val}
-                        onChange={e => setInstFX(fxInst, { ...curFX, [key]: parseFloat(e.target.value) })}
-                        style={{ flex: 1, accentColor: color }} />
+                      <ElasticSlider
+                        min={min} max={max} step={step} value={val}
+                        onChange={v => setInstFX(fxInst, { ...curFX, [key]: v })}
+                        accentColor={color}
+                        style={{ flex: 1 }}
+                      />
                       <span style={{ fontSize: 11, fontWeight: 700, color: active ? color : 'var(--c-text-muted)', minWidth: 58, textAlign: 'right', fontFamily: 'Manrope', transition: 'color 150ms' }}>{dispVal}</span>
                     </div>
                   );

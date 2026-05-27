@@ -12,6 +12,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import ElasticSlider from '../components/ElasticSlider';
 import type { TakeRecord } from './takesDb';
 import { blobToAudioBuffer } from './takesDb';
 import {
@@ -820,10 +821,11 @@ function SliderRow({
         fontSize: 9, fontWeight: 800, letterSpacing: '0.08em',
         color: 'rgba(255,255,255,0.28)', width: 24, flexShrink: 0,
       }}>{label}</span>
-      <input
-        type="range" min={min} max={max} step={step} value={value}
-        onChange={e => onChange(+e.target.value)}
-        style={{ flex: 1, accentColor: accent, height: 3 }}
+      <ElasticSlider
+        min={min} max={max} step={step} value={value}
+        onChange={onChange}
+        accentColor={accent}
+        style={{ flex: 1 }}
       />
       <span style={{
         fontSize: 9.5, fontVariantNumeric: 'tabular-nums',
@@ -854,10 +856,11 @@ function AdvSlider({
           color: 'rgba(255,255,255,0.4)',
         }}>{Math.round(value * 100)}%</span>
       </div>
-      <input
-        type="range" min={0} max={1} step={0.01} value={value}
-        onChange={e => onChange(+e.target.value)}
-        style={{ width: '100%', accentColor: color, height: 3 }}
+      <ElasticSlider
+        min={0} max={1} step={0.01} value={value}
+        onChange={onChange}
+        accentColor={color}
+        style={{ width: '100%' }}
       />
       <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', margin: '5px 0 0', lineHeight: 1.5 }}>{hint}</p>
     </div>

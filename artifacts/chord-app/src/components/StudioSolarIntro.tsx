@@ -262,12 +262,16 @@ export default function StudioSolarIntro() {
       >
         <p style={{
           color: textPri, fontSize: 28, fontWeight: 800,
-          fontFamily: 'Manrope, sans-serif', margin: 0, letterSpacing: '-0.03em',
-        }}>Studio</p>
-        <p style={{
-          color: textSec, fontSize: 11,
-          fontFamily: 'Manrope, sans-serif', margin: 0, letterSpacing: '0.06em',
-        }}>by Mag</p>
+          fontFamily: 'Manrope, sans-serif', margin: 0, letterSpacing: '-0.03em', lineHeight: 1,
+        }}>
+          {'Studio'.split('').map((char, i) => (
+            <span key={i} style={{
+              display: 'inline-block',
+              animation: `char-reveal 0.45s ${0.18 + i * 0.06}s cubic-bezier(0.22,1,0.36,1) both`,
+            }}>{char}</span>
+          ))}
+        </p>
+        <style>{`@keyframes char-reveal{from{opacity:0;transform:translateY(9px);filter:blur(4px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}`}</style>
       </div>
 
       {/* Orbiting planets */}

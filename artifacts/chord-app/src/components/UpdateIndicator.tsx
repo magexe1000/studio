@@ -31,6 +31,7 @@
 import { useState, useEffect } from 'react';
 import AppSpinner from './AppSpinner';
 import AnimatedBorderButton from './AnimatedBorderButton';
+import UpdateLoadingScreen from './UpdateLoadingScreen';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
 import { applyUpdate, isNative } from '../lib/capgoUpdater';
@@ -520,172 +521,137 @@ function UpdateModal({
           width: '100%',
           background: 'var(--app-surface)',
           borderRadius: 22,
-          padding: 24,
-          border: '1px solid rgba(128,128,128,0.18)',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+          overflow: 'hidden',
+          border: '1px solid rgba(128,128,128,0.15)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
           animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
         }}
       >
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 14,
-          }}
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 24, color: 'white' }}
-          >
-            download
-          </span>
-        </div>
+        {downloading ? (
+          <UpdateLoadingScreen
+            progress={progress}
+            accentFrom={accentFrom}
+            accentTo={accentTo}
+          />
+        ) : (
+          <>
+            {/* ── Top section: icon + title + badge ── */}
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              textAlign: 'center', padding: '32px 24px 22px', gap: 12,
+            }}>
+              <div style={{
+                width: 58, height: 58, borderRadius: '50%',
+                background: `color-mix(in srgb, ${accentFrom} 12%, var(--app-surface))`,
+                border: `1.5px solid color-mix(in srgb, ${accentFrom} 28%, transparent)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: `0 0 20px color-mix(in srgb, ${accentFrom} 18%, transparent)`,
+              }}>
+                <span className="material-symbols-outlined" style={{
+                  fontSize: 26, color: accentFrom,
+                  fontVariationSettings: "'FILL' 1",
+                }}>system_update_alt</span>
+              </div>
 
-        <p
-          style={{
-            margin: 0,
-            fontSize: 20,
-            fontWeight: 800,
-            color: 'var(--c-text-primary)',
-            fontFamily: 'Manrope',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Update available
-        </p>
-        <p
-          style={{
-            margin: '6px 0 0',
-            fontSize: 13,
-            color: 'var(--c-text-secondary)',
-            fontFamily: 'Inter',
-            lineHeight: 1.5,
-          }}
-        >
-          Version {toVersion} is ready. You're on {fromLabel}.
-        </p>
+              <p style={{
+                margin: 0, fontSize: 20, fontWeight: 800,
+                color: 'var(--c-text-primary)',
+                fontFamily: 'Manrope', letterSpacing: '-0.02em',
+              }}>Update Available</p>
 
-        {mandatory && (
-          <p
-            style={{
-              margin: '14px 0 0',
-              fontSize: 11,
-              color: '#f59e0b',
-              fontFamily: 'Inter',
-              fontWeight: 600,
-            }}
-          >
-            This update is required.
-          </p>
-        )}
-
-        {downloading && (
-          <div style={{ marginTop: 18 }}>
-            <div
-              style={{
-                height: 6,
-                borderRadius: 999,
-                background: 'rgba(128,128,128,0.18)',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  width: `${Math.round(progress * 100)}%`,
-                  height: '100%',
-                  background: `linear-gradient(90deg, ${accentFrom}, ${accentTo})`,
-                  transition: 'width 220ms ease',
-                }}
-              />
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '4px 11px', borderRadius: 9999,
+                background: `color-mix(in srgb, ${accentFrom} 14%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${accentFrom} 28%, transparent)`,
+              }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: accentFrom, display: 'block', flexShrink: 0,
+                }} />
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: accentFrom,
+                  fontFamily: 'Manrope', letterSpacing: '0.04em',
+                }}>v{toVersion}</span>
+              </div>
             </div>
-            <p
-              style={{
-                margin: '8px 0 0',
-                fontSize: 11,
-                color: 'var(--c-text-muted)',
-                fontFamily: 'Inter',
-                textAlign: 'center',
-              }}
-            >
-              Downloading update… {Math.round(progress * 100)}%
-            </p>
-          </div>
-        )}
 
-        {errMsg && !downloading && (
-          <p
-            style={{
-              margin: '14px 0 0',
-              fontSize: 11,
-              color: '#f87171',
-              fontFamily: 'Inter',
-              fontWeight: 600,
-              textAlign: 'center',
-            }}
-          >
-            {errMsg}
-          </p>
-        )}
+            {/* ── Tinted bottom section ── */}
+            <div style={{
+              background: 'var(--app-surface-high)',
+              padding: '20px 22px 24px',
+              borderTop: '1px solid rgba(128,128,128,0.1)',
+            }}>
+              <p style={{
+                margin: 0, fontSize: 13,
+                color: 'var(--c-text-secondary)',
+                fontFamily: 'Inter', lineHeight: 1.55,
+              }}>
+                Version {toVersion} is ready. You&apos;re on {fromLabel}.
+              </p>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 22 }}>
-          <button
-            type="button"
-            onClick={onLater}
-            disabled={downloading}
-            style={{
-              flex: 1,
-              padding: '11px 14px',
-              borderRadius: 12,
-              background: 'transparent',
-              border: '1px solid rgba(128,128,128,0.25)',
-              color: 'var(--c-text-secondary)',
-              fontFamily: 'Manrope',
-              fontWeight: 700,
-              fontSize: 13,
-              cursor: downloading ? 'not-allowed' : 'pointer',
-              opacity: downloading ? 0.5 : 1,
-            }}
-          >
-            Later
-          </button>
-          <AnimatedBorderButton
-            type="button"
-            onClick={handleReload}
-            disabled={downloading}
-            wrapStyle={{ flex: 2 }}
-            style={{
-              padding: '11px 14px',
-              borderRadius: 12,
-              background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
-              border: 'none',
-              color: 'white',
-              fontFamily: 'Manrope',
-              fontWeight: 800,
-              fontSize: 13,
-              cursor: downloading ? 'wait' : 'pointer',
-              boxShadow: `0 8px 22px color-mix(in srgb, ${accentTo} 35%, transparent)`,
-              opacity: downloading ? 0.85 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 7,
-            }}
-          >
-            {downloading ? <AppSpinner size={15} color="white" strokeWidth={2} /> : null}
-            {downloading ? 'Downloading…' : 'Update now'}
-          </AnimatedBorderButton>
-        </div>
+              {mandatory && (
+                <p style={{
+                  margin: '10px 0 0', fontSize: 11,
+                  color: '#f59e0b', fontFamily: 'Inter', fontWeight: 600,
+                }}>
+                  This update is required.
+                </p>
+              )}
+
+              {errMsg && (
+                <p style={{
+                  margin: '10px 0 0', fontSize: 11,
+                  color: '#f87171', fontFamily: 'Inter',
+                  fontWeight: 600, textAlign: 'center',
+                }}>
+                  {errMsg}
+                </p>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+                <button
+                  type="button"
+                  onClick={onLater}
+                  style={{
+                    flex: 1, padding: '11px 14px', borderRadius: 12,
+                    background: 'transparent',
+                    border: '1px solid rgba(128,128,128,0.22)',
+                    color: 'var(--c-text-secondary)',
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                    cursor: 'pointer',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  Remind me later
+                </button>
+                <AnimatedBorderButton
+                  type="button"
+                  onClick={handleReload}
+                  wrapStyle={{ flex: 2 }}
+                  style={{
+                    padding: '11px 14px', borderRadius: 12,
+                    background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
+                    border: 'none', color: 'white',
+                    fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
+                    cursor: 'pointer',
+                    boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
+                    display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', gap: 7,
+                  }}
+                >
+                  Update now
+                </AnimatedBorderButton>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes rise-in {
-          from { opacity: 0; transform: translateY(12px) scale(0.96); }
+          from { opacity: 0; transform: translateY(14px) scale(0.95); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>

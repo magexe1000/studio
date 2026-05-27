@@ -231,9 +231,12 @@ function EffectSlider({ label, value, min, max, step, onChange, accentColor }: {
       animation: 'lab-fx-row-in 250ms cubic-bezier(0.22,1,0.36,1) both',
     }}>
       <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'var(--vx-text-3)', minWidth: 48, textTransform: 'capitalize' }}>{label}</span>
-      <input type="range" min={min} max={max} step={step} value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-        style={{ flex: 1, accentColor: accentColor || '#679cff', height: 3, cursor: 'pointer', transition: 'opacity 150ms ease' }} />
+      <ElasticSlider
+        min={min} max={max} step={step} value={value}
+        onChange={onChange}
+        accentColor={accentColor || '#679cff'}
+        style={{ flex: 1 }}
+      />
       <span style={{
         fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 28, textAlign: 'right',
         transition: 'color 150ms ease',
@@ -1017,9 +1020,13 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
           <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: 'var(--vx-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t.vocalex.master}</span>
-          <input type="range" min={0} max={1} step={0.01} value={session.masterVolume ?? 0.8}
-            onChange={e => updateMasterVol(parseFloat(e.target.value))}
-            style={{ flex: 1, accentColor: '#679cff', height: 3, cursor: 'pointer' }} />
+          <ElasticSlider
+            min={0} max={1} step={0.01}
+            value={session.masterVolume ?? 0.8}
+            onChange={updateMasterVol}
+            accentColor="#679cff"
+            style={{ flex: 1 }}
+          />
           <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 42, textAlign: 'right' }}>
             {dbToDisplay(session.masterVolume ?? 0.8)}
           </span>
