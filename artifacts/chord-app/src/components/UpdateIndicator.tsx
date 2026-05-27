@@ -30,7 +30,7 @@
 
 import { useState, useEffect } from 'react';
 import StudioSpinner from './animata/progress/spinner';
-import AnimatedBorderButton from './AnimatedBorderButton';
+import AnimatedActionButton from './animata/container/animated-border-trail';
 import UpdateLoadingScreen from './UpdateLoadingScreen';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
@@ -625,12 +625,14 @@ function UpdateModal({
                 >
                   Remind me later
                 </button>
-                <AnimatedBorderButton
+                <AnimatedActionButton
                   type="button"
                   onClick={handleReload}
                   wrapStyle={{ flex: 2 }}
+                  borderRadius={12}
+                  trailColor={accentTo}
                   style={{
-                    padding: '11px 14px', borderRadius: 12,
+                    padding: '11px 14px',
                     background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
                     border: 'none', color: 'white',
                     fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
@@ -641,7 +643,7 @@ function UpdateModal({
                   }}
                 >
                   Update now
-                </AnimatedBorderButton>
+                </AnimatedActionButton>
               </div>
             </div>
           </>

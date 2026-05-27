@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ElasticSlider from '../components/ElasticSlider';
-import AnimatedBorderButton from '../components/AnimatedBorderButton';
+import AnimatedActionButton from '../components/animata/container/animated-border-trail';
 import MicWavesLottie from '../components/lottie/MicWavesLottie';
 import { getAllSessions, saveSession, deleteSession, createLayer, createDefaultEffects, type LabSession, type LabLayer, type TrackEffect } from './labSessionDb';
 import { getAllTakes, type TakeRecord } from './takesDb';
@@ -681,15 +681,20 @@ function AddTrackSheet({ session, onAdd, onClose }: {
               <>
                 <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#679cff' }}>mic</span>
                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', textAlign: 'center' }}>{t.vocalex.recordPrompt}</p>
-                <AnimatedBorderButton onClick={startRec} style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px', borderRadius: 9999,
-                  background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
-                  fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, color: '#fff',
-                  boxShadow: '0 8px 32px rgba(0,122,255,0.25)',
-                }}>
+                <AnimatedActionButton
+                  onClick={startRec}
+                  trailColor="#007aff"
+                  wrapClassName="mx-auto"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px',
+                    background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
+                    fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, color: '#fff',
+                    boxShadow: '0 8px 32px rgba(0,122,255,0.25)',
+                  }}
+                >
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic</span>
                   {t.vocalex.startRecording}
-                </AnimatedBorderButton>
+                </AnimatedActionButton>
               </>
             )}
           </div>

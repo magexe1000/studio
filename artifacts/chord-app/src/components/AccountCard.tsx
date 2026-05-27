@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import AppSpinner from './AppSpinner';
 import StudioSpinner from './animata/progress/spinner';
-import AnimatedBorderButton from './AnimatedBorderButton';
+import AnimatedActionButton from './animata/container/animated-border-trail';
 import {
   isFirebaseConfigured,
   signInGoogle,
@@ -396,19 +396,18 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
               <button onClick={() => { setMode('idle'); setErr(null); }} disabled={busy} style={{ ...secondaryBtn(), flex: 1 }}>
                 {t.cancel}
               </button>
-              <AnimatedBorderButton
+              <AnimatedActionButton
                 onClick={doEmail}
                 disabled={busy}
                 wrapStyle={{ flex: 1 }}
                 style={{
                   ...primaryBtn(accent),
-                  width: '100%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}
               >
                 {busy ? <AppSpinner size={14} color="white" strokeWidth={2} /> : null}
                 {mode === 'email-signin' ? t.signIn : t.register}
-              </AnimatedBorderButton>
+              </AnimatedActionButton>
             </div>
             {mode === 'email-signin' ? (
               <button onClick={() => { setMode('email-register'); setErr(null); }} style={textBtn()}>

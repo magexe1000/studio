@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import AnimatedActionButton from '../components/animata/container/animated-border-trail';
 import { Capacitor } from '@capacitor/core';
 import SuccessLottie from '../components/lottie/SuccessLottie';
 import MusicNotesLottie from '../components/lottie/MusicNotesLottie';
@@ -1631,17 +1632,23 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
           )}
           {isNative ? (
             <>
-              <button onClick={() => handleExport('save')} disabled={savingPDF || sharingPDF} className="btn-smooth"
-                style={{ flex: 1, padding: '14px', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px', color: '#fff',
+              <AnimatedActionButton
+                onClick={() => handleExport('save')}
+                disabled={savingPDF || sharingPDF}
+                className="btn-smooth"
+                wrapStyle={{ flex: 1 }}
+                trailColor={accent.to}
+                style={{ padding: '14px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px', color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                   background: (savingPDF || sharingPDF) ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
                   boxShadow: (savingPDF || sharingPDF) ? 'none' : `0 4px 20px ${accent.to}40`,
-                  transition: 'all 200ms ease' }}>
+                  transition: 'all 200ms ease' }}
+              >
                 <span className="material-symbols-outlined" style={{ fontSize: '17px', fontVariationSettings: "'FILL' 1" }}>
                   {savingPDF ? 'hourglass_empty' : 'save'}
                 </span>
                 {savingPDF ? t.songs.generatingPdf : 'Save'}
-              </button>
+              </AnimatedActionButton>
               <button onClick={() => handleExport('share')} disabled={savingPDF || sharingPDF} className="btn-smooth"
                 style={{ flex: 1, padding: '14px', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px',
                   color: accent.from, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -1653,17 +1660,23 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
               </button>
             </>
           ) : (
-            <button onClick={() => handleExport('share')} disabled={sharingPDF} className="btn-smooth"
-              style={{ flex: 1, padding: '15px', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px', color: '#fff',
+            <AnimatedActionButton
+              onClick={() => handleExport('share')}
+              disabled={sharingPDF}
+              className="btn-smooth"
+              wrapStyle={{ flex: 1 }}
+              trailColor={accent.to}
+              style={{ padding: '15px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px', color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                 background: sharingPDF ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
                 boxShadow: sharingPDF ? 'none' : `0 4px 24px ${accent.to}40`,
-                transition: 'all 200ms ease' }}>
+                transition: 'all 200ms ease' }}
+            >
               <span className="material-symbols-outlined" style={{ fontSize: '19px', fontVariationSettings: "'FILL' 1" }}>
                 {sharingPDF ? 'hourglass_empty' : 'download'}
               </span>
               {sharingPDF ? t.songs.generatingPdf : t.songs.downloadPdf}
-            </button>
+            </AnimatedActionButton>
           )}
         </div>
       </div>
