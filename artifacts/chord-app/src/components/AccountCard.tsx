@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import AppSpinner from './AppSpinner';
+import StudioSpinner from './animata/progress/spinner';
 import AnimatedBorderButton from './AnimatedBorderButton';
 import {
   isFirebaseConfigured,
@@ -247,7 +248,7 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
 
         <div style={{ ...rowStyle, alignItems: 'center', gap: 10 }}>
           {isSyncing ? (
-            <AppSpinner size={18} color={iconColor} strokeWidth={2.2} />
+            <StudioSpinner outerSize="h-[18px] w-[18px]" childSize="h-[14px] w-[14px]" colorFrom={iconColor} colorTo={iconColor} />
           ) : (
             <span
               className={`material-symbols-outlined sync-icon ${justSynced ? 'sync-pop' : ''}`}

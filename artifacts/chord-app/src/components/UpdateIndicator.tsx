@@ -29,7 +29,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import AppSpinner from './AppSpinner';
+import StudioSpinner from './animata/progress/spinner';
 import AnimatedBorderButton from './AnimatedBorderButton';
 import UpdateLoadingScreen from './UpdateLoadingScreen';
 import { useOtaUpdate } from '../lib/otaUpdate';
@@ -227,7 +227,7 @@ export default function UpdateIndicator({
           {isOk ? (
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#22c55e' }}>check_circle</span>
           ) : (
-            <AppSpinner size={16} color={cTo} strokeWidth={2} />
+            <StudioSpinner outerSize="h-4 w-4" childSize="h-3 w-3" colorFrom={cFrom} colorTo={cTo} />
           )}
           <span>{isOk ? 'Up to date' : 'Checking\u2026'}</span>
         </div>
