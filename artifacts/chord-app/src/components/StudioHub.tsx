@@ -238,9 +238,9 @@ export default function StudioHub() {
 
         {/* ── HOME TAB ── */}
         {tab === 'home' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 60px)', position: 'relative' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}>
 
-            {/* ── Profile dropdown (KokonutUI) ── */}
+            {/* ── Profile trigger — centered at top ── */}
             <ProfileDropdown
               authUser={authUser}
               hubUserName={settings.hubUserName}
@@ -249,9 +249,8 @@ export default function StudioHub() {
               onSettings={() => setTab('settings')}
               onSignOut={signOut}
               style={{
-                position: 'absolute',
-                top: 'max(14px, calc(env(safe-area-inset-top) + 10px))',
-                left: 20,
+                marginTop: 'max(14px, 12px)',
+                width: 'min(300px, 88%)',
                 zIndex: 200,
                 animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
               }}
@@ -260,7 +259,7 @@ export default function StudioHub() {
             {/* Logo area */}
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
-              paddingTop: 'clamp(148px, 30vh, 200px)',
+              paddingTop: 'clamp(36px, 7vh, 56px)',
               animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
             }}>
               <div data-intro-target="studio" style={{ color: isHubLight ? '#18181b' : 'white', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -278,7 +277,7 @@ export default function StudioHub() {
               borderRadius={24}
               wrapStyle={{
                 width: '100%', maxWidth: 380,
-                marginTop: 'clamp(40px, 9vh, 68px)',
+                marginTop: 'clamp(28px, 6vh, 48px)',
                 animation: 'hub-rise-in 500ms 80ms cubic-bezier(0.34,1.15,0.64,1) both, gb-spin 14s linear infinite',
               }}
               innerStyle={{
@@ -341,11 +340,21 @@ export default function StudioHub() {
               </button>
             </div>
             <Suspense fallback={<div style={{ padding: 32, textAlign: 'center', color: 'var(--c-text-muted)' }}>…</div>}>
-              <AccountSettingsPage
-                accent={accent}
-                cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}
-                onBack={() => setTab('home')}
-              />
+              {authUser ? (
+                <AccountSettingsPage
+                  accent={accent}
+                  cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}
+                  onBack={() => setTab('home')}
+                />
+              ) : (
+                <div style={{ padding: '0 20px 80px' }}>
+                  <AccountCard
+                    accent={accent}
+                    cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)', marginBottom: 12 }}
+                    rowStyle={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}
+                  />
+                </div>
+              )}
             </Suspense>
           </>
         )}
@@ -372,6 +381,9 @@ export default function StudioHub() {
           </>
         )}
       </div>
+
+      {/* ── Bottom nav ── */}
+      <HubNav tab={tab} setTab={setTab} accent={accent} />
 
       {/* UpdateIndicator is now hoisted to AppShell so it appears on
           every screen, not just the Hub. */}
