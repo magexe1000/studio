@@ -1109,3 +1109,35 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   .gb-wrap      { animation: none; }
   .gb-border-ring { animation: none; }
 }
+
+/* ─── Studio Solar System Intro ───────────────────────────────────────────── */
+
+/* Center "sun" — spring scale-in with slight overshoot */
+@keyframes solar-sun-in {
+  from { opacity: 0; transform: translate(-50%, -52%) scale(0.35); }
+  to   { opacity: 1; transform: translate(-50%, -52%) scale(1);    }
+}
+
+/* Orbit ring — pure opacity fade */
+@keyframes solar-ring-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Planet icons — fade in only (transform is handled by rAF) */
+@keyframes solar-planet-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Star field — slow breathing pulse */
+@keyframes solar-twinkle {
+  0%, 100% { opacity: 0;    }
+  50%      { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* If somehow the component renders despite the prefers-reduced-motion check,
+     kill all animations instantly so nothing moves. */
+  [data-solar-intro] * { animation: none !important; transition: none !important; }
+}
