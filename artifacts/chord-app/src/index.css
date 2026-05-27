@@ -1059,50 +1059,6 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   .gb-wrap, .gb-border-ring { --gb-mix: 28%; }
 }
 
-/* ─── Studio startup launch animation ────────────────────────────────────── */
-
-/* Logo wave: fades in, oscillates slowly → rapidly → peak bloom → drifts up */
-@keyframes studio-launch-wave {
-  0%    { transform: translateY(0)   scale(0.82); opacity: 0; }
-  5%    { transform: translateY(0)   scale(1);    opacity: 1; }
-  /* slow waves */
-  13%   { transform: translateY(-9px); }
-  21%   { transform: translateY( 9px); }
-  29%   { transform: translateY(-8px); }
-  /* speeding up */
-  35%   { transform: translateY( 7px); }
-  40%   { transform: translateY(-6px); }
-  44%   { transform: translateY( 6px); }
-  48%   { transform: translateY(-5px); }
-  51%   { transform: translateY( 5px); }
-  /* very fast */
-  53.5% { transform: translateY(-4px); }
-  56%   { transform: translateY( 4px); }
-  58%   { transform: translateY(-3px); }
-  60%   { transform: translateY( 3px); }
-  62%   { transform: translateY(-2px); }
-  63.5% { transform: translateY( 2px); }
-  65%   { transform: translateY(-1px); }
-  66%   { transform: translateY( 1px); }
-  /* peak bloom */
-  68%   { transform: translateY(0) scale(1.14); }
-  72%   { transform: translateY(0) scale(1);    }
-  /* drift up — parent fade handles opacity */
-  100%  { transform: translateY(-44px) scale(0.80); }
-}
-
-/* Wordmark: fades in then fades out & drifts up in sync with logo exit */
-@keyframes studio-launch-text {
-  0%    { opacity: 0; transform: translateY(10px); }
-  12%   { opacity: 1; transform: translateY(0);    }
-  70%   { opacity: 1; transform: translateY(0);    }
-  100%  { opacity: 0; transform: translateY(-14px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .studio-launch-wave,
-  .studio-launch-text { animation: none !important; }
-}
 
 /* Reduced motion: freeze the rotation, keep the static gradient tint */
 @media (prefers-reduced-motion: reduce) {

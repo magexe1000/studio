@@ -108,13 +108,17 @@ export default function StudioSolarIntro() {
 
     // ── Timing (ms) ────────────────────────────────────────────────────────
     const ORBIT_PERIOD  = 2600;
-    const ENTER_END     = 420;
+    const ENTER_END     = 0;     // orbit starts immediately (enter is rAF-driven now)
     const ORBIT_END     = 2700;
     const STAGGER_MS    = 65;    // each planet starts settling 65ms after the previous
     const SETTLE_DUR    = 720;   // each planet's settle animation lasts 720ms
     const LAST_START    = ORBIT_END + (PLANET_DEFS.length - 1) * STAGGER_MS;
     const SETTLE_END    = LAST_START + SETTLE_DUR;
     const FADEOUT_END   = SETTLE_END + 380;
+
+    // Enter: staggered fade-in fully via rAF (no CSS animation on planets)
+    const ENTER_STAGGER = 110; // ms between each planet's fade-in start
+    const ENTER_DUR     = 340; // fade-in duration per planet
 
     let raf: number;
     const t0 = performance.now();
@@ -163,7 +167,12 @@ export default function StudioSolarIntro() {
         const orbitY = Math.sin(angle) * R;
 
         if (!settling) {
+          // Always set position
           el.style.transform = `translate(${orbitX - half}px, ${orbitY - half}px)`;
+          // Staggered enter fade-in (fully via rAF — no CSS animation)
+          const fadeStart   = i * ENTER_STAGGER;
+          const fadeElapsed = Math.max(0, elapsed - fadeStart);
+          el.style.opacity  = String(Math.min(easeOut(fadeElapsed / ENTER_DUR), 1));
         } else {
           // Per-planet staggered settle
           const pDelay   = i * STAGGER_MS;
@@ -272,6 +281,11 @@ export default function StudioSolarIntro() {
         const glowColor   = def.isStudio ? accent.from : def.glow;
         const borderStyle = def.isStudio ? `1px solid ${accent.from}55` : `1px solid ${pillBorder}`;
         const bgStyle     = def.isStudio ? `${accent.from}18` : pillBg;
+        // Pre-position at orbit angle so planets never flash at screen-center.
+        // 128px ≈ median R across device sizes; rAF corrects on the first tick.
+        const half  = def.isStudio ? 27 : 22;
+        const initX = Math.cos(def.startAngle) * 128 - half;
+        const initY = Math.sin(def.startAngle) * 128 - half;
 
         return (
           <div
@@ -280,8 +294,9 @@ export default function StudioSolarIntro() {
             style={{
               position: 'absolute', top: '50%', left: '50%',
               width: size, height: size,
-              opacity: 0, willChange: 'transform, opacity',
-              animation: `solar-planet-in 380ms ${500 + i * 90}ms ease-out forwards`,
+              opacity: 0,                                   // rAF owns opacity fully
+              transform: `translate(${initX}px, ${initY}px)`, // rAF corrects on first tick
+              willChange: 'transform, opacity',
               pointerEvents: 'none', zIndex: 1,
             }}
           >
