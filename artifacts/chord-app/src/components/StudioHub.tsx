@@ -241,22 +241,6 @@ export default function StudioHub() {
         {tab === 'home' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}>
 
-            {/* ── Profile trigger — centered at top ── */}
-            <ProfileDropdown
-              authUser={authUser}
-              hubUserName={settings.hubUserName}
-              accent={accent}
-              onProfile={() => setTab('profile')}
-              onSettings={() => setTab('settings')}
-              onSignOut={signOut}
-              style={{
-                marginTop: 'max(14px, 12px)',
-                width: 'min(300px, 88%)',
-                zIndex: 200,
-                animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
-              }}
-            />
-
             {/* Logo area */}
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -325,9 +309,10 @@ export default function StudioHub() {
         {/* ── PROFILE TAB ── */}
         {tab === 'profile' && (
           <>
+            <style>{HUB_SETTINGS_CSS}</style>
             <div style={{ display: 'flex', alignItems: 'center', padding: '8px 8px 0', paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
               <button
-                onClick={() => setTab('home')}
+                onClick={() => setTab('settings')}
                 style={{
                   width: 40, height: 40, borderRadius: 12,
                   background: 'transparent', border: 'none',
@@ -342,13 +327,15 @@ export default function StudioHub() {
             </div>
             <Suspense fallback={<div style={{ padding: 32, textAlign: 'center', color: 'var(--c-text-muted)' }}>…</div>}>
               {authUser ? (
+                <div style={{ animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
                 <AccountSettingsPage
                   accent={accent}
                   cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}
-                  onBack={() => setTab('home')}
+                  onBack={() => setTab('settings')}
                 />
+                </div>
               ) : (
-                <div style={{ padding: '0 20px 80px' }}>
+                <div style={{ padding: '0 20px 80px', animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
                   <AccountCard
                     accent={accent}
                     cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)', marginBottom: 12 }}
@@ -378,7 +365,7 @@ export default function StudioHub() {
                 <span className="material-symbols-outlined" style={{ fontSize: 24 }}>chevron_left</span>
               </button>
             </div>
-            <HubSettings accent={accent} scrollRef={scrollRef} />
+            <HubSettings accent={accent} scrollRef={scrollRef} authUser={authUser} onProfile={() => setTab('profile')} />
           </>
         )}
       </div>
@@ -916,7 +903,7 @@ function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
   );
 }
 
-function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string; mid: string }; scrollRef?: React.RefObject<HTMLDivElement | null> }) {
+function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { from: string; to: string; mid: string }; scrollRef?: React.RefObject<HTMLDivElement | null>; authUser?: AuthUser | null; onProfile?: () => void }) {
   const { settings, updateSettings, updatePerApp } = useChordStore();
   const t = useT();
   const [page, setPage] = useState<SettingsPageId>('main');
@@ -1352,6 +1339,84 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
         <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>{t.hub.settingsTitle}</p>
         <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>{t.hub.settingsSubtitle}</p>
       </div>
+
+      {/* ── Profile card ── */}
+      {(() => {
+        const name    = authUser?.displayName || authUser?.email || '';
+        const email   = authUser?.email || '';
+        const photo   = authUser?.photoURL;
+        const initial = (name[0] ?? 'S').toUpperCase();
+        const hasUser = !!authUser;
+        return (
+          <button
+            type="button"
+            onClick={() => onProfile?.()}
+            className="btn-smooth"
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              width: '100%', padding: '28px 20px 24px',
+              marginBottom: 8,
+              background: 'var(--app-surface)',
+              borderRadius: '1.25rem',
+              border: '1px solid rgba(128,128,128,0.07)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+              cursor: 'pointer', outline: 'none',
+              WebkitTapHighlightColor: 'transparent',
+              animation: 'hub-row-fade 320ms 30ms ease both',
+              position: 'relative',
+              textAlign: 'center',
+              gap: 0,
+            }}
+          >
+            {/* Chevron top-right */}
+            <span
+              className="material-symbols-outlined"
+              style={{
+                position: 'absolute', top: 14, right: 14,
+                fontSize: 18, color: 'var(--c-text-secondary)', opacity: 0.5,
+              }}
+            >chevron_right</span>
+
+            {/* Avatar */}
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%', marginBottom: 14,
+              background: photo
+                ? 'transparent'
+                : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 30, fontWeight: 800, color: '#fff',
+              overflow: 'hidden', flexShrink: 0,
+              boxShadow: `0 0 0 3px ${accent.from}33, 0 4px 18px ${accent.from}28`,
+            }}>
+              {photo ? (
+                <img src={photo} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : hasUser ? (
+                <span>{initial}</span>
+              ) : (
+                <span className="material-symbols-outlined" style={{ fontSize: 34, color: '#fff' }}>account_circle</span>
+              )}
+            </div>
+
+            {/* Name */}
+            <p style={{
+              fontFamily: 'Manrope', fontWeight: 800, fontSize: 18,
+              color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em',
+              maxWidth: '80%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {hasUser ? (authUser.displayName || 'Studio User') : 'Sign In'}
+            </p>
+
+            {/* Email */}
+            <p style={{
+              fontFamily: 'Inter', fontSize: 13,
+              color: 'var(--c-text-secondary)', margin: '4px 0 0',
+              maxWidth: '80%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {hasUser ? email : 'Tap to create account or sign in'}
+            </p>
+          </button>
+        );
+      })()}
 
       {/* Interface */}
       <SettingsSectionLabel delay={70}>{(t.hub as { studioSettings?: { interface?: string } }).studioSettings?.interface ?? 'Interface'}</SettingsSectionLabel>
