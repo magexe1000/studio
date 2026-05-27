@@ -10,13 +10,44 @@ import StudioProgressBar from './StudioProgressBar';
  * Text:       fully white/black via var(--c-text-primary)
  */
 
-const MESSAGES = [
-  "Sit tight, we're almost there",
+// Pool of mid-update messages — shuffled on mount so each session feels fresh
+const MESSAGE_POOL = [
   'Preparing your update',
-  'Almost ready',
-  'Finishing things up',
-  'Making things smoother',
+  'Downloading new features',
+  'Unpacking improvements',
+  'Optimizing your experience',
+  'Applying the finishing touches',
+  'Tuning things up',
+  'This one's a good one',
+  'Almost there, hang tight',
+  'Smoothing out the rough edges',
+  'Making Studio feel just right',
+  'One moment — good things take time',
+  'Rewriting the good parts',
+  'Polishing every detail',
+  'Good vibes incoming',
+  'Your patience is appreciated',
+  'Worth the wait, promise',
 ];
+
+// Completion messages — one is picked at random when progress hits 100
+const DONE_MESSAGES = [
+  "You're all caught up",
+  'Update complete — enjoy',
+  'Fresh and ready to go',
+  'All done. Studio is yours',
+  'Good as new',
+  'Latest and greatest, installed',
+];
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 interface StudioUpdateScreenProps {
   progress: number;
@@ -29,16 +60,26 @@ export default function StudioUpdateScreen({
   accentFrom,
   accentTo,
 }: StudioUpdateScreenProps) {
-  const [msgIdx, setMsgIdx] = useState(0);
   const pct = Math.round(progress * 100);
+  const isDone = pct >= 100;
+
+  // Shuffled pool — stable across re-renders via useState initializer
+  const [messages] = useState<string[]>(() => shuffle(MESSAGE_POOL));
+  const [doneMsg] = useState<string>(
+    () => DONE_MESSAGES[Math.floor(Math.random() * DONE_MESSAGES.length)],
+  );
+  const [msgIdx, setMsgIdx] = useState(0);
 
   useEffect(() => {
+    if (isDone) return; // stop cycling once complete
     const id = setInterval(
-      () => setMsgIdx(i => (i + 1) % MESSAGES.length),
-      2800,
+      () => setMsgIdx(i => (i + 1) % messages.length),
+      2600,
     );
     return () => clearInterval(id);
-  }, []);
+  }, [isDone, messages.length]);
+
+  const displayMsg = isDone ? doneMsg : messages[msgIdx];
 
   // Blob palette — warm-neutral, relaxing, theme-independent.
   // Screen blend mode on a dark bg turns these into gentle glows.
@@ -314,9 +355,9 @@ export default function StudioUpdateScreen({
           />
         </div>
 
-        {/* Rotating status message */}
+        {/* Status message — cycles through shuffled pool, then done message */}
         <motion.p
-          key={msgIdx}
+          key={displayMsg}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
@@ -330,7 +371,7 @@ export default function StudioUpdateScreen({
             letterSpacing: '-0.015em',
           }}
         >
-          {MESSAGES[msgIdx]}
+          {displayMsg}
         </motion.p>
       </div>
     </div>
