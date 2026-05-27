@@ -12,7 +12,7 @@ import {
 } from './audioEngine';
 import { downloadStem, getSongCacheStatus, clearSongCache, type DownloadProgress } from './stemCache';
 import { useT } from '../lib/useT';
-import AnimatedProgressBar from '../components/AnimatedProgressBar';
+import StudioProgressBar from '../components/StudioProgressBar';
 
 type PlayerPhase = 'idle' | 'downloading' | 'ready';
 
@@ -488,8 +488,8 @@ export default function GroovexPlayer() {
                   {Math.round(overallProgress)}%
                 </span>
               </div>
-              <AnimatedProgressBar
-                progress={overallProgress / 100}
+              <StudioProgressBar
+                value={overallProgress}
                 accentFrom="var(--gx-accent-container)"
                 accentTo="var(--gx-accent)"
                 height={6}

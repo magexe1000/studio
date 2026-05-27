@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import AnimatedProgressBar from './AnimatedProgressBar';
+import StudioProgressBar from './StudioProgressBar';
 
 /**
  * StudioUpdateScreen — fullscreen overlay shown exclusively during the OTA
@@ -303,8 +303,8 @@ export default function StudioUpdateScreen({
 
         {/* Progress bar */}
         <div style={{ width: '100%' }}>
-          <AnimatedProgressBar
-            progress={progress}
+          <StudioProgressBar
+            value={progress * 100}
             accentFrom={accentFrom}
             accentTo={accentTo}
             height={4}
