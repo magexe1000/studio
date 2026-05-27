@@ -1333,10 +1333,10 @@ function HubNav({ tab, setTab, accent }: {
     if (stretchT.current) { clearTimeout(stretchT.current); stretchT.current = null; setPill(p => ({ ...p, left: newM.left, right: newM.right })); return; }
     if (newIdx > oldIdx) {
       setPill(p => ({ ...p, right: newM.right }));
-      stretchT.current = setTimeout(() => { setPill(p => ({ ...p, left: newM.left })); stretchT.current = null; }, 70);
+      stretchT.current = setTimeout(() => { setPill(p => ({ ...p, left: newM.left })); stretchT.current = null; }, 90);
     } else {
       setPill(p => ({ ...p, left: newM.left }));
-      stretchT.current = setTimeout(() => { setPill(p => ({ ...p, right: newM.right })); stretchT.current = null; }, 70);
+      stretchT.current = setTimeout(() => { setPill(p => ({ ...p, right: newM.right })); stretchT.current = null; }, 90);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
@@ -1415,7 +1415,7 @@ function HubNav({ tab, setTab, accent }: {
           WebkitBackdropFilter: 'blur(8px)',
           pointerEvents: 'none', zIndex: 0,
           opacity: 1,
-          transition: 'left 180ms cubic-bezier(0.16,1,0.3,1), width 180ms cubic-bezier(0.16,1,0.3,1)',
+          transition: 'left 300ms cubic-bezier(0.16,1,0.3,1), width 300ms cubic-bezier(0.16,1,0.3,1)',
         }} />
       )}
 

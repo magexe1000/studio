@@ -5,6 +5,7 @@ import App from "./App";
 import { tolgee } from "./lib/i18nSetup";
 import { notifyBundleReady, ensureNotificationPermission } from "./lib/capgoUpdater";
 import { seedAudioAssets } from "./lib/assetCache";
+import StartupSplash from "./components/StartupSplash";
 import "./index.css";
 
 // Tell the Capgo updater plugin that this bundle booted successfully.
@@ -53,6 +54,9 @@ function GlobalOverlays() {
 createRoot(document.getElementById("root")!).render(
   <TolgeeProvider tolgee={tolgee} fallback={null}>
     <App />
+    {/* Startup splash — renders on first paint of each browser session,
+        covers the app shell with a wave logo animation, then auto-dismisses. */}
+    <StartupSplash />
     {/* Global post-update changelog overlay + OTA indicator — mounted as
         root siblings so they surface regardless of which sub-app the user
         lands in. Deferred one frame so first paint is uncontested. */}

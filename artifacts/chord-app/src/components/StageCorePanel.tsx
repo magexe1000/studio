@@ -556,13 +556,13 @@ export default function StagexPanel() {
       stageStretchRef.current = setTimeout(() => {
         setStagePill(p => ({ ...p, left: newM.left }));
         stageStretchRef.current = null;
-      }, 70);
+      }, 90);
     } else {
       setStagePill(p => ({ ...p, left: newM.left }));
       stageStretchRef.current = setTimeout(() => {
         setStagePill(p => ({ ...p, right: newM.right }));
         stageStretchRef.current = null;
-      }, 70);
+      }, 90);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curView]);
@@ -968,7 +968,7 @@ export default function StagexPanel() {
                 pointerEvents: 'none',
                 zIndex: 0,
                 opacity: 1,
-                transition: 'left 150ms cubic-bezier(0.34,1.56,0.64,1), width 150ms cubic-bezier(0.34,1.56,0.64,1)',
+                transition: 'left 300ms cubic-bezier(0.16,1,0.3,1), width 300ms cubic-bezier(0.16,1,0.3,1)',
               }}
             />
           )}

@@ -512,10 +512,10 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
     const om = measure(oi);
     if (ni > oi) {
       setPill(p => ({ ...p, left: om?.left ?? p.left, right: nm.right }));
-      strT.current = setTimeout(() => setPill(p => ({ ...p, left: nm.left })), 70);
+      strT.current = setTimeout(() => setPill(p => ({ ...p, left: nm.left })), 90);
     } else {
       setPill(p => ({ ...p, left: nm.left, right: om?.right ?? p.right }));
-      strT.current = setTimeout(() => setPill(p => ({ ...p, right: nm.right })), 70);
+      strT.current = setTimeout(() => setPill(p => ({ ...p, right: nm.right })), 90);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -571,7 +571,7 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
           WebkitBackdropFilter: 'blur(8px)',
           pointerEvents: 'none', zIndex: 0,
           opacity: 1,
-          transition: 'left 180ms cubic-bezier(0.16,1,0.3,1), width 180ms cubic-bezier(0.16,1,0.3,1)',
+          transition: 'left 300ms cubic-bezier(0.16,1,0.3,1), width 300ms cubic-bezier(0.16,1,0.3,1)',
         }} />
       )}
       {ALL_NAV_TABS.map(({ id, label, Icon }, i) => {
