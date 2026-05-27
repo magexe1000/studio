@@ -31,7 +31,7 @@
 import { useState, useEffect } from 'react';
 import StudioSpinner from './animata/progress/spinner';
 import AnimatedActionButton from './animata/container/animated-border-trail';
-import UpdateLoadingScreen from './UpdateLoadingScreen';
+import StudioUpdateScreen from './StudioUpdateScreen';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
 import { applyUpdate, isNative } from '../lib/capgoUpdater';
@@ -492,14 +492,21 @@ function UpdateModal({
     setTimeout(() => window.location.reload(), 120);
   };
 
+  if (downloading) {
+    return (
+      <StudioUpdateScreen
+        progress={progress}
+        accentFrom={accentFrom}
+        accentTo={accentTo}
+      />
+    );
+  }
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      onClick={() => {
-        if (downloading) return;
-        onClose();
-      }}
+      onClick={onClose}
       style={{
         position: 'fixed',
         inset: 0,
@@ -527,14 +534,7 @@ function UpdateModal({
           animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
         }}
       >
-        {downloading ? (
-          <UpdateLoadingScreen
-            progress={progress}
-            accentFrom={accentFrom}
-            accentTo={accentTo}
-          />
-        ) : (
-          <>
+        <>
             {/* ── Top section: icon + title + badge ── */}
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -647,7 +647,6 @@ function UpdateModal({
               </div>
             </div>
           </>
-        )}
       </div>
 
       <style>{`
