@@ -970,7 +970,10 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
 }) {
   const tRoot = useT();
   const t = tRoot.hub.accountSection;
-  const lang = useChordStore((s) => s.settings.language) ?? 'en';
+  const lang        = useChordStore((s) => s.settings.language) ?? 'en';
+  const favCount    = useChordStore(s => s.favorites?.length    ?? 0);
+  const progCount   = useChordStore(s => s.progressions?.length ?? 0);
+  const presetCount = useChordStore(s => s.presets?.length      ?? 0);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [avatarIcon, setAvatarIcon] = useState<AvatarIcon | null>(null);
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -1271,119 +1274,178 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
         </div>
       )}
 
-      {/* Profile header */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '16px 20px 20px', animation: 'hub-row-fade 350ms ease both' }}>
+      {/* ── Profile header ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '22px 20px 24px', animation: 'hub-row-fade 350ms ease both' }}>
+        {/* Avatar */}
         <button
           type="button"
           onClick={() => { setPickerClosing(false); setPickerOpen(true); }}
           aria-label={t.avatarPickerTitle}
           style={{
-            width: 64, height: 64, borderRadius: '50%',
-            padding: 0, border: 'none', cursor: 'pointer',
+            width: 84, height: 84, borderRadius: '50%',
+            padding: 0, border: `3px solid ${accent.from}50`, cursor: 'pointer',
             background: avatarIcon || !user.photoURL || photoFailed
               ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
               : 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 800, fontSize: 26, overflow: 'hidden',
-            boxShadow: `0 4px 16px ${accent.to}44`,
+            color: '#fff', fontWeight: 800, fontSize: 34, overflow: 'hidden',
+            boxShadow: `0 8px 28px ${accent.to}55`,
           }}
         >
           {avatarIcon ? (
-            <span className="material-symbols-outlined" style={{ fontSize: 34, color: '#fff' }}>{avatarIcon}</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 44, color: '#fff' }}>{avatarIcon}</span>
           ) : user.photoURL && !photoFailed ? (
             <img src={user.photoURL} alt="" referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             <span>{initial}</span>
           )}
         </button>
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+
+        {/* Identity */}
+        <div style={{ textAlign: 'center', marginTop: 14 }}>
+          <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 20, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.025em' }}>
             {user.displayName || user.email}
           </p>
           {user.displayName && (
-            <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '3px 0 0' }}>
+            <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', margin: '4px 0 0' }}>
               {user.email}
             </p>
           )}
+          {/* Free Member badge */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            marginTop: 10, padding: '4px 12px 4px 10px',
+            borderRadius: 9999,
+            background: `${accent.from}18`,
+            border: `1px solid ${accent.from}35`,
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 13, color: accent.from, fontVariationSettings: "'FILL' 1" }}>verified</span>
+            <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: accent.from, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              {lang === 'es' ? 'Miembro Gratis' : 'Free Member'}
+            </span>
+          </div>
+        </div>
+
+        {/* On-device stats */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 20, width: '100%' }}>
+          {([
+            { label: lang === 'es' ? 'Favoritos' : 'Favorites', value: favCount,    icon: 'favorite',    color: accent.from   },
+            { label: lang === 'es' ? 'Progres.'  : 'Progressions', value: progCount, icon: 'queue_music', color: '#10b981'     },
+            { label: lang === 'es' ? 'Presets'   : 'Presets',   value: presetCount, icon: 'grid_view',   color: '#f59e0b'     },
+          ] as { label: string; value: number; icon: string; color: string }[]).map(({ label, value, icon, color }) => (
+            <div key={label} style={{
+              flex: 1, background: 'var(--app-surface)',
+              border: '1px solid rgba(128,128,128,0.09)', borderRadius: 16,
+              padding: '13px 8px 11px', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: 5,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 17, color, fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 22, color: 'var(--c-text-primary)', margin: 0, lineHeight: 1 }}>{value}</p>
+              <p style={{ fontFamily: 'Inter', fontSize: 9.5, color: 'var(--c-text-secondary)', margin: 0, fontWeight: 600, textAlign: 'center', lineHeight: 1.3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Profile section */}
-      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '4px 4px 8px', animation: 'hub-row-fade 380ms ease 50ms both' }}>{L.profile}</p>
-      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 60ms both' }}>
-        <ActionRow icon="person" iconColor={accent.from} label={L.displayName} desc={user.displayName || '—'} onPress={() => openSheet('editname')} last={!isEmailUser} />
+      {/* ── Section cards (padded horizontally) ── */}
+      <div style={{ padding: '0 16px' }}>
+
+        {/* Profile section */}
+        <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '0 0 8px', animation: 'hub-row-fade 380ms ease 50ms both' }}>{L.profile}</p>
+        <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 60ms both' }}>
+          <ActionRow icon="person" iconColor={accent.from} label={L.displayName} desc={user.displayName || '—'} onPress={() => openSheet('editname')} last={!isEmailUser} />
+          {isEmailUser && (
+            <ActionRow
+              icon={emailVerified ? 'check_circle' : 'mail'}
+              iconColor={emailVerified ? '#10b981' : '#f59e0b'}
+              label={emailVerified ? L.emailVerified : L.emailNotVerified}
+              onPress={emailVerified ? () => {} : () => openSheet('verifyemail')}
+              last
+            />
+          )}
+        </div>
+
+        {/* Sign-in method */}
+        <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 0 8px', animation: 'hub-row-fade 380ms ease 90ms both' }}>{L.signInMethod}</p>
+        <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 100ms both' }}>
+          {isGoogleUser && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: isEmailUser ? '1px solid rgba(128,128,128,0.07)' : 'none' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: '#4285F422', border: '1px solid #4285F428', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#4285F4', fontVariationSettings: "'FILL' 1" }}>account_circle</span>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>{L.google}</p>
+                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>google.com</p>
+              </div>
+            </div>
+          )}
+          {isEmailUser && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: `${accent.from}22`, border: `1px solid ${accent.from}28`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, fontVariationSettings: "'FILL' 1" }}>mail</span>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>{L.emailPass}</p>
+                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email ?? ''}</p>
+              </div>
+            </div>
+          )}
+          {!isGoogleUser && !isEmailUser && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: 'rgba(128,128,128,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 1" }}>help</span>
+              </div>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>Unknown</p>
+            </div>
+          )}
+        </div>
+
+        {/* Security (email users only) */}
         {isEmailUser && (
-          <ActionRow
-            icon={emailVerified ? 'check_circle' : 'mail'}
-            iconColor={emailVerified ? '#10b981' : '#f59e0b'}
-            label={emailVerified ? L.emailVerified : L.emailNotVerified}
-            onPress={emailVerified ? () => {} : () => openSheet('verifyemail')}
-            last
-          />
+          <>
+            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 0 8px', animation: 'hub-row-fade 380ms ease 130ms both' }}>{L.security}</p>
+            <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 140ms both' }}>
+              <ActionRow icon="lock" iconColor={accent.from} label={L.changePassword} desc={L.changePasswordDesc} onPress={() => openSheet('password')} last={emailVerified} />
+              {!emailVerified && <ActionRow icon="mail" iconColor="#f59e0b" label={L.verifyEmail} desc={L.verifyEmailDesc} onPress={() => openSheet('verifyemail')} last />}
+            </div>
+          </>
         )}
-      </div>
 
-      {/* Sign-in method — static info rows (not interactive) */}
-      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 4px 8px', animation: 'hub-row-fade 380ms ease 90ms both' }}>{L.signInMethod}</p>
-      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 100ms both' }}>
-        {isGoogleUser && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: isEmailUser ? '1px solid rgba(128,128,128,0.07)' : 'none' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: '#4285F422', border: '1px solid #4285F428', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#4285F4', fontVariationSettings: "'FILL' 1" }}>account_circle</span>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>{L.google}</p>
-              <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>google.com</p>
-            </div>
-          </div>
-        )}
-        {isEmailUser && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: `${accent.from}22`, border: `1px solid ${accent.from}28`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, fontVariationSettings: "'FILL' 1" }}>mail</span>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>{L.emailPass}</p>
-              <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email ?? ''}</p>
-            </div>
-          </div>
-        )}
-        {!isGoogleUser && !isEmailUser && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: 'rgba(128,128,128,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 1" }}>help</span>
-            </div>
-            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>Unknown</p>
-          </div>
-        )}
-      </div>
+        {/* Session */}
+        <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 0 8px', animation: 'hub-row-fade 380ms ease 160ms both' }}>{L.session}</p>
+        <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 170ms both' }}>
+          <ActionRow icon="logout" iconColor="#f59e0b" label={L.signOut} desc={L.signOutDesc} onPress={() => openSheet('signout')} last />
+        </div>
 
-      {/* Security (email users only) */}
-      {isEmailUser && (
-        <>
-          <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 4px 8px', animation: 'hub-row-fade 380ms ease 130ms both' }}>{L.security}</p>
-          <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 140ms both' }}>
-            <ActionRow icon="lock" iconColor={accent.from} label={L.changePassword} desc={L.changePasswordDesc} onPress={() => openSheet('password')} last={emailVerified} />
-            {!emailVerified && <ActionRow icon="mail" iconColor="#f59e0b" label={L.verifyEmail} desc={L.verifyEmailDesc} onPress={() => openSheet('verifyemail')} last />}
-          </div>
-        </>
-      )}
+        {/* Danger zone — disable only */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '20px 0 8px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#ff6b6b' }}>warning</span>
+          <p style={{ color: '#ff6b6b', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', margin: 0 }}>{L.dangerZone}</p>
+        </div>
+        <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 200ms both' }}>
+          <ActionRow icon="block" iconColor="#f59e0b" label={L.disableAccount} desc={L.disableAccountDesc} onPress={() => openSheet('disable')} isDanger last />
+        </div>
 
-      {/* Session */}
-      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 4px 8px', animation: 'hub-row-fade 380ms ease 160ms both' }}>{L.session}</p>
-      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 170ms both' }}>
-        <ActionRow icon="logout" iconColor="#f59e0b" label={L.signOut} desc={L.signOutDesc} onPress={() => openSheet('signout')} last />
-      </div>
+        {/* Delete account — subtle link at the bottom */}
+        <button
+          type="button"
+          onClick={() => openSheet('delete')}
+          style={{
+            width: '100%', marginTop: 20, marginBottom: 36,
+            background: 'none', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            color: 'rgba(255,107,107,0.55)',
+            fontFamily: 'Manrope', fontWeight: 600, fontSize: 12,
+            padding: '8px 0',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete_forever</span>
+          {L.deleteAccount}
+        </button>
 
-      {/* Danger zone */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '20px 0 8px' }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#ff6b6b' }}>warning</span>
-        <p style={{ color: '#ff6b6b', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', margin: 0 }}>{L.dangerZone}</p>
-      </div>
-      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 200ms both' }}>
-        <ActionRow icon="block" iconColor="#f59e0b" label={L.disableAccount} desc={L.disableAccountDesc} onPress={() => openSheet('disable')} isDanger />
-        <ActionRow icon="delete_forever" iconColor="#ff6b6b" label={L.deleteAccount} desc={L.deleteAccountDesc} onPress={() => openSheet('delete')} isDanger last />
-      </div>
+      </div>{/* end section cards */}
 
       {/* Avatar picker */}
       {pickerOpen && createPortal(
