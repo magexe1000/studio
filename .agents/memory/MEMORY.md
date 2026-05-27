@@ -1,2 +1,3 @@
 - [Chordex project context](chordex-project.md) — pnpm monorepo, React/Vite PWA + Express 5 API, OTA via GitHub Pages, GitHub API push required
 - [UI upgrade components](ui-upgrade-components.md) — AnimatedBorderButton, AppSpinner, ElasticSlider; where each is used in the app
+- [StudioThemeToggler animation contract](studio-theme-toggler.md) — DOM classes applied inside startViewTransition/flushSync; onChange fires in finished.finally to avoid conflicting with App.tsx theme-transitioning effect.

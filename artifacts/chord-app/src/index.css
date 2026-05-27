@@ -470,6 +470,23 @@ html.light [style*="border:1px solid #161717"] {
   to   { opacity: 0; }
 }
 
+/* ===== StudioThemeToggler — MagicUI clip-path reveal ===== */
+/* When data-studio-theme-vt="active" the toggler drives its own clip-path
+   animation on ::view-transition-new(root) and suppresses the generic fade. */
+[data-studio-theme-vt="active"] ::view-transition-group(root) {
+  animation-duration: var(--studio-theme-vt-duration, 380ms);
+}
+[data-studio-theme-vt="active"] ::view-transition-old(root) {
+  animation: none;
+  z-index: 1;
+}
+[data-studio-theme-vt="active"] ::view-transition-new(root) {
+  clip-path: var(--studio-theme-vt-clip-from, circle(0px at 50% 50%));
+  animation: none;
+  opacity: 1;
+  z-index: 2;
+}
+
 /* When theme is transitioning, add color transitions to all elements
    Exempt: elements inside [data-theme-exempt] keep their own transitions */
 html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt]),

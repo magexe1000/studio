@@ -6,6 +6,7 @@ import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, Vocal
 import { useNavHidden, useNavCollapsed, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
+import StudioThemeToggler from './StudioThemeToggler';
 import ApplyToSheet from './ApplyToSheet';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
@@ -1019,41 +1020,18 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
         <SettingsSectionLabel>{(t.hub as { studioSettings?: { themeSection?: string } }).studioSettings?.themeSection ?? 'Theme'}</SettingsSectionLabel>
         <div style={cardStyle}>
           <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-              {([
-                { value: 'system', label: t.settings.rows.themeSystem, icon: 'brightness_auto', amoled: false },
-                { value: 'light',  label: t.settings.rows.themeLight,  icon: 'light_mode',      amoled: false },
-                { value: 'dark',   label: t.settings.rows.themeDark,   icon: 'dark_mode',        amoled: false },
-                { value: 'dark',   label: t.hub.amoled,                icon: 'contrast',          amoled: true  },
-              ] as { value: Theme; label: string; icon: string; amoled: boolean }[]).map((opt, i) => {
-                const isActive = opt.amoled
-                  ? hubVis.amoledMode
-                  : hubVis.theme === opt.value && !hubVis.amoledMode;
-                return (
-                  <button key={i}
-                    onClick={() => { if (opt.amoled) requestChange({ theme: 'dark', amoledMode: true }); else requestChange({ theme: opt.value, amoledMode: false }); }}
-                    className="btn-smooth"
-                    style={{
-                      padding: '12px 6px', borderRadius: 12,
-                      background: isActive ? `${accent.from}22` : 'var(--app-surface-high)',
-                      border: `1.5px solid ${isActive ? accent.from + '66' : 'transparent'}`,
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                      transition: 'background 200ms ease, border-color 200ms ease, transform 160ms cubic-bezier(0.34,1.56,0.64,1)',
-                      cursor: 'pointer',
-                      transform: isActive ? 'scale(1.04)' : 'scale(1)',
-                    }}>
-                    <span className="material-symbols-outlined" style={{
-                      fontSize: 22,
-                      color: isActive ? accent.from : 'var(--c-text-secondary)',
-                      fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
-                      transition: 'color 200ms ease, font-variation-settings 200ms ease',
-                      filter: isActive ? `drop-shadow(0 0 6px ${accent.from}66)` : 'none',
-                    }}>{opt.icon}</span>
-                    <p style={{ color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease', margin: 0 }}>{opt.label}</p>
-                  </button>
-                );
-              })}
-            </div>
+            <StudioThemeToggler
+              currentTheme={hubVis.theme}
+              currentAmoled={hubVis.amoledMode ?? false}
+              accentFrom={accent.from}
+              onChange={(theme, amoledMode) => updatePerApp(['hub'], { theme, amoledMode })}
+              labels={{
+                system: t.settings.rows.themeSystem,
+                light:  t.settings.rows.themeLight,
+                dark:   t.settings.rows.themeDark,
+                amoled: t.hub.amoled,
+              }}
+            />
             {/* Dynamic theme — full-width row */}
             {(() => {
               const isDynActive = hubVis.theme === 'dynamic' && !hubVis.amoledMode;
