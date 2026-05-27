@@ -1,17 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-  animate,
-  motion,
-  useInView,
-  useMotionValue,
-  useReducedMotion,
-  useTransform,
-  type HTMLMotionProps,
-} from 'motion/react';
+import { useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
+import { SplitText } from 'gsap/SplitText';
+
+gsap.registerPlugin(SplitText);
 
 // ── Module-level intro signal ─────────────────────────────────────────────────
 // StudioSolarIntro calls triggerIntroReveal() when it finishes (or is skipped).
-// Any StudioTitleReveal mounted after that fires its sweep immediately.
+// Any StudioTitleReveal mounted after that fires its animation immediately.
 
 let _introDone = false;
 const INTRO_EVENT = 'studio-intro-done';
@@ -23,251 +18,144 @@ export function triggerIntroReveal(): void {
   }
 }
 
-// ── DiaTextReveal core (ported from magicui.design/r/dia-text-reveal) ─────────
-
-const DEFAULT_COLORS = ['#c679c4', '#fa3d1d', '#ffb005', '#e1e1fe', '#0358f7'];
-const BAND_HALF = 17;
-const SWEEP_START = -BAND_HALF;
-const SWEEP_END = 100 + BAND_HALF;
-
-const sweepEase = (t: number) =>
-  t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
-
-function buildGradient(pos: number, colors: string[], textColor: string) {
-  const bandStart = pos - BAND_HALF;
-  const bandEnd = pos + BAND_HALF;
-
-  if (bandStart >= 100) {
-    return `linear-gradient(90deg, ${textColor}, ${textColor})`;
-  }
-
-  const n = colors.length;
-  const parts: string[] = [];
-
-  if (bandStart > 0)
-    parts.push(`${textColor} 0%`, `${textColor} ${bandStart.toFixed(2)}%`);
-
-  colors.forEach((c, i) => {
-    const pct = n === 1 ? pos : bandStart + (i / (n - 1)) * BAND_HALF * 2;
-    parts.push(`${c} ${pct.toFixed(2)}%`);
-  });
-
-  if (bandEnd < 100)
-    parts.push(`transparent ${bandEnd.toFixed(2)}%`, `transparent 100%`);
-
-  return `linear-gradient(90deg, ${parts.join(', ')})`;
-}
-
-function measureWidths(el: HTMLElement, texts: string[]) {
-  const ghost = el.cloneNode() as HTMLElement;
-  Object.assign(ghost.style, {
-    position: 'absolute',
-    visibility: 'hidden',
-    pointerEvents: 'none',
-    width: 'auto',
-    whiteSpace: 'nowrap',
-  });
-  el.parentElement!.appendChild(ghost);
-  const widths = texts.map(t => {
-    ghost.textContent = t;
-    return ghost.getBoundingClientRect().width;
-  });
-  ghost.remove();
-  return widths;
-}
-
 // ── Props ─────────────────────────────────────────────────────────────────────
 
-export interface StudioTitleRevealProps
-  extends Omit<
-    HTMLMotionProps<'span'>,
-    'ref' | 'children' | 'style' | 'animate' | 'transition' | 'color'
-  > {
+export interface StudioTitleRevealProps {
   text: string | string[];
-  colors?: string[];
-  /** Defaults to var(--c-text-primary) — white in dark mode, black in light. */
-  textColor?: string;
-  duration?: number;
-  delay?: number;
-  repeat?: boolean;
-  repeatDelay?: number;
+  className?: string;
+  style?: React.CSSProperties;
   /**
-   * When true, sweep starts when element enters the viewport.
-   * When false (default), sweep waits for the intro-done signal.
+   * Duration of each character's tween in seconds.
+   * @default 0.72
+   */
+  duration?: number;
+  /**
+   * Stagger delay between characters in milliseconds.
+   * @default 58
+   */
+  delay?: number;
+  /**
+   * GSAP ease string.
+   * @default "power3.out"
+   */
+  ease?: string;
+  /**
+   * When true, animation triggers on scroll-into-view instead of the intro signal.
+   * @default false
    */
   startOnView?: boolean;
-  once?: boolean;
-  fixedWidth?: boolean;
+  onComplete?: () => void;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Component (official reactbits.dev/text-animations/split-text, adapted) ───
 
 export default function StudioTitleReveal({
   text,
-  colors = DEFAULT_COLORS,
-  textColor = 'var(--c-text-primary)',
-  duration = 1.5,
-  delay = 0,
-  repeat = false,
-  repeatDelay = 0.5,
-  startOnView = false,
-  once = true,
   className,
-  fixedWidth = false,
-  ...props
+  style,
+  duration = 0.72,
+  delay = 58,
+  ease = 'power3.out',
+  startOnView = false,
+  onComplete,
 }: StudioTitleRevealProps) {
-  const texts = Array.isArray(text) ? text : [text];
-  const isMulti = texts.length > 1;
-  const prefersReducedMotion = useReducedMotion();
-
-  const spanRef = useRef<HTMLSpanElement>(null);
-  const optsRef = useRef({ colors, textColor, duration, delay, repeat, repeatDelay, texts });
-  optsRef.current = { colors, textColor, duration, delay, repeat, repeatDelay, texts };
-
-  const indexRef = useRef(0);
+  const displayText = Array.isArray(text) ? text[0] : text;
+  const ref = useRef<HTMLSpanElement>(null);
   const hasPlayedRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const playRef = useRef<() => void>(null!);
-  const stopRef = useRef<(() => void) | null>(null);
-
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [measuredWidths, setMeasuredWidths] = useState<number[]>([]);
-
-  const sweepPos = useMotionValue(prefersReducedMotion ? SWEEP_END : SWEEP_START);
-  const backgroundImage = useTransform(sweepPos, pos =>
-    buildGradient(pos, optsRef.current.colors, optsRef.current.textColor),
-  );
-
-  const isInView = useInView(spanRef, { once, amount: 0.1 });
 
   useEffect(() => {
-    const el = spanRef.current;
-    if (!el || !isMulti) return;
-    setMeasuredWidths(measureWidths(el, texts));
-  }, [Array.isArray(text) ? text.join('\0') : text]);
+    const el = ref.current;
+    if (!el) return;
 
-  playRef.current = () => {
-    const { duration, delay, repeat, repeatDelay, texts } = optsRef.current;
-    sweepPos.set(SWEEP_START);
-    const controls = animate(sweepPos, SWEEP_END, {
-      duration,
-      delay,
-      ease: sweepEase,
-      onComplete() {
-        if (!repeat) return;
-        timerRef.current = setTimeout(() => {
-          const next = (indexRef.current + 1) % texts.length;
-          indexRef.current = next;
-          setActiveIndex(next);
-          playRef.current();
-        }, repeatDelay * 1000);
-      },
-    });
-    stopRef.current = () => controls.stop();
-  };
-
-  useEffect(() => {
-    // Reduced motion: skip to final state immediately.
-    if (prefersReducedMotion) {
-      sweepPos.set(SWEEP_END);
+    // Reduced-motion: skip to final state, no animation.
+    const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+      gsap.set(el, { opacity: 1 });
+      onComplete?.();
       return;
     }
 
-    // startOnView mode: use in-view detection.
+    // ── Official SplitText setup (reactbits.dev implementation) ──────────────
+    const split = new SplitText(el, { type: 'chars' });
+    const targets = split.chars;
+
+    // GPU acceleration + initial hidden state
+    gsap.set(targets, { willChange: 'transform, opacity', opacity: 0, y: 20 });
+
+    function play() {
+      if (hasPlayedRef.current) return;
+      hasPlayedRef.current = true;
+
+      gsap.to(targets, {
+        opacity: 1,
+        y: 0,
+        duration,
+        ease,
+        stagger: delay / 1000,
+        onComplete() {
+          gsap.set(targets, { willChange: 'auto' });
+          onComplete?.();
+        },
+      });
+    }
+
+    // ── startOnView mode: IntersectionObserver ────────────────────────────────
     if (startOnView) {
-      if (!isInView) return;
-      if (once && hasPlayedRef.current) return;
-      hasPlayedRef.current = true;
-      playRef.current();
-      return () => { stopRef.current?.(); clearTimeout(timerRef.current); };
+      const io = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) { play(); io.disconnect(); } },
+        { threshold: 0.1 },
+      );
+      io.observe(el);
+      return () => { io.disconnect(); split.revert(); };
     }
 
-    // Default mode: wait for studio-intro-done signal.
-    // If it already fired (or intro was skipped/not shown), play immediately.
+    // ── Default mode: wait for studio-intro-done signal ───────────────────────
+
+    // Already fired before mount.
     if (_introDone) {
-      if (once && hasPlayedRef.current) return;
-      hasPlayedRef.current = true;
-      playRef.current();
-      return () => { stopRef.current?.(); clearTimeout(timerRef.current); };
+      play();
+      return () => { split.revert(); };
     }
 
-    // Safety: if the intro overlay is already gone from the DOM (e.g., the
-    // component mounted after the intro finished without firing the event),
-    // play immediately and mark done so future instances follow suit.
-    if (typeof document !== 'undefined') {
-      const introInDom = !!document.getElementById('intro') ||
-                         !!document.querySelector('[data-solar-intro]');
-      if (!introInDom) {
-        _introDone = true;
-        if (!(once && hasPlayedRef.current)) {
-          hasPlayedRef.current = true;
-          playRef.current();
-        }
-        return () => { stopRef.current?.(); clearTimeout(timerRef.current); };
-      }
+    // Safety check: if the intro overlay is gone from the DOM without firing the
+    // event (e.g. the component mounted after a page reload without the intro),
+    // play immediately so the text is never invisible.
+    if (
+      typeof document !== 'undefined' &&
+      !document.getElementById('intro') &&
+      !document.querySelector('[data-solar-intro]')
+    ) {
+      _introDone = true;
+      play();
+      return () => { split.revert(); };
     }
 
-    const handler = () => {
-      if (once && hasPlayedRef.current) return;
-      hasPlayedRef.current = true;
-      playRef.current();
-    };
+    const handler = () => play();
 
-    // Hard safety net: if the intro-done event never fires (e.g., the intro
-    // was removed without dispatching, or the page loaded in a weird state),
-    // play the sweep after a maximum wait so the text never stays invisible.
+    // Hard safety net: if the intro-done event never fires, show text after 3.5s.
     const safetyTimer = setTimeout(() => {
       if (!hasPlayedRef.current) {
         _introDone = true;
-        hasPlayedRef.current = true;
-        playRef.current();
+        play();
       }
     }, 3_500);
 
     window.addEventListener(INTRO_EVENT, handler, { once: true });
+
     return () => {
       window.removeEventListener(INTRO_EVENT, handler);
       clearTimeout(safetyTimer);
-      stopRef.current?.();
-      clearTimeout(timerRef.current);
+      split.revert();
     };
-  }, [isInView, startOnView, once, prefersReducedMotion, sweepPos]);
-
-  const fixedW =
-    isMulti && fixedWidth && measuredWidths.length > 0
-      ? Math.max(...measuredWidths)
-      : undefined;
-
-  const animatedW =
-    isMulti && !fixedWidth && measuredWidths[activeIndex] != null
-      ? measuredWidths[activeIndex]
-      : undefined;
+  }, [displayText]);
 
   return (
-    <motion.span
-      ref={spanRef}
+    <span
+      ref={ref}
       className={className}
-      style={{
-        display: 'inline-block',
-        verticalAlign: 'bottom',
-        lineHeight: 'inherit',
-        transform: 'translateY(-1px)',
-        color: 'transparent',
-        backgroundClip: 'text',
-        WebkitBackgroundClip: 'text',
-        backgroundSize: '100% 100%',
-        backgroundImage,
-        ...(isMulti && {
-          overflow: 'hidden',
-          whiteSpace: 'nowrap',
-          ...(fixedW != null && { width: fixedW }),
-        }),
-      }}
-      animate={animatedW != null ? { width: animatedW } : undefined}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-      {...props}
+      style={{ display: 'inline-block', lineHeight: 'inherit', ...style }}
     >
-      {texts[activeIndex]}
-    </motion.span>
+      {displayText}
+    </span>
   );
 }
