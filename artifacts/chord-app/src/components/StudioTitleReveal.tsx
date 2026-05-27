@@ -133,7 +133,7 @@ export default function StudioTitleReveal({
   const [activeIndex, setActiveIndex] = useState(0);
   const [measuredWidths, setMeasuredWidths] = useState<number[]>([]);
 
-  const sweepPos = useMotionValue(SWEEP_START);
+  const sweepPos = useMotionValue(prefersReducedMotion ? SWEEP_END : SWEEP_START);
   const backgroundImage = useTransform(sweepPos, pos =>
     buildGradient(pos, optsRef.current.colors, optsRef.current.textColor),
   );
@@ -222,7 +222,7 @@ export default function StudioTitleReveal({
         hasPlayedRef.current = true;
         playRef.current();
       }
-    }, 10_000);
+    }, 3_500);
 
     window.addEventListener(INTRO_EVENT, handler, { once: true });
     return () => {

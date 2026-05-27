@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.76';
+export const APP_VERSION = '3.0.77';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-12'; // 3.0.76
+export const APP_VERSION_DATE = '2026-05-27'; // 3.0.77
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,26 +53,19 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Stagex — Realistic Icons",
+    heading: "Profile & Account",
     items: [
-      '46 new full-color illustrated SVG icons for every stage element — mics, drums, instruments, amps, monitors, and utilities.',
-      'Each icon is a detailed vector illustration with gradients, shading, and accurate proportions (SM58 grille mesh, violin f-holes, 4×12 speaker grid, etc.).',
-      'All categories now show photo-quality artwork: Mics, Drums, Instruments, Amps, Audio/Monitors, Utilities, and People.',
+      'Completely redesigned account settings with five grouped sections: Personal Information, Security & Login, Subscription & Billing, Devices & Sessions, and Privacy & Data.',
+      'Each section opens its own dedicated sheet with relevant controls and information.',
+      'Upload a custom profile photo from your device — stored locally and applied instantly across the app.',
+      'New back button in the profile tab for quick navigation back to Settings.',
     ],
   },
   {
-    heading: "Stagex — Library & Elements",
+    heading: "Fixes & Polish",
     items: [
-      'New People category added with 7 stage members: Performer, Vocalist, Guitarist, Bassist, Drummer, Keyboardist, and Tech.',
-      'Mic Stand added to the Mics section with its own boom-stand icon.',
-      'Eye/visibility button now hides automatically when the + FAB dial is open — no more overlap.',
-      'Scenes bar is 15% more compact: smaller pills, tighter font, and a smaller add button.',
-    ],
-  },
-  {
-    heading: "Navigation",
-    items: [
-      'BottomNav buttons are taller — increased padding and larger icons (24 px) for a more comfortable tap target.',
+      'Fixed missing icons throughout the app — lock, shield, devices, workspace_premium, smartphone, and others now render correctly.',
+      'Studio title animation now plays reliably on every launch, including on devices with Reduced Motion enabled.',
     ],
   },
 ];
@@ -81,26 +74,19 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Stagex — Íconos Realistas",
+    heading: "Perfil y cuenta",
     items: [
-      '46 nuevos íconos SVG ilustrados a todo color para cada elemento del escenario — micrófonos, baterías, instrumentos, amplificadores, monitores y utilidades.',
-      'Cada ícono es una ilustración vectorial detallada con degradados, sombreado y proporciones precisas.',
-      'Todas las categorías ahora muestran arte de calidad fotográfica: Micrófonos, Baterías, Instrumentos, Amplificadores, Audio/Monitores, Utilidades y Personas.',
+      'Configuración de cuenta completamente rediseñada con cinco secciones agrupadas: Información personal, Seguridad e inicio de sesión, Suscripción, Dispositivos y sesiones, y Privacidad y datos.',
+      'Cada sección abre su propio panel con controles específicos.',
+      'Sube una foto de perfil personalizada desde tu dispositivo — se guarda localmente y se aplica de inmediato.',
+      'Nuevo botón de retroceso en la pestaña de perfil para volver rápidamente a Ajustes.',
     ],
   },
   {
-    heading: "Stagex — Biblioteca y Elementos",
+    heading: "Correcciones y pulido",
     items: [
-      'Nueva categoría Personas con 7 miembros: Intérprete, Vocalista, Guitarrista, Bajista, Baterista, Tecladista y Técnico.',
-      'Soporte de micrófono añadido a la sección de Micrófonos con su propio ícono de jirafa.',
-      'El botón de ojo ahora se oculta automáticamente cuando el menú FAB está abierto.',
-      'La barra de escenas es 15% más compacta: píldoras más pequeñas y fuente más ajustada.',
-    ],
-  },
-  {
-    heading: "Navegación",
-    items: [
-      'Los botones del BottomNav son más altos — mayor padding e íconos más grandes (24 px) para una zona de toque más cómoda.',
+      'Se corrigieron íconos faltantes en toda la app — lock, shield, devices, workspace_premium, smartphone y otros ahora se muestran correctamente.',
+      'La animación del título Studio ahora se reproduce correctamente en cada arranque, incluyendo en dispositivos con Movimiento reducido activado.',
     ],
   },
 ];
@@ -108,26 +94,19 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Stagex — Realistische Icons",
+    heading: "Profil & Konto",
     items: [
-      '46 neue vollfarbige SVG-Illustrationsicons für alle Bühnenelemente — Mikrofone, Drums, Instrumente, Verstärker, Monitore und Utilities.',
-      'Jedes Icon ist eine detaillierte Vektorillustration mit Verläufen, Schattierung und präzisen Proportionen.',
-      'Alle Kategorien zeigen jetzt fotoqualitatives Artwork: Mikrofone, Drums, Instrumente, Verstärker, Audio/Monitore, Utilities und Personen.',
+      'Vollständig überarbeitete Kontoeinstellungen mit fünf gruppierten Bereichen: Persönliche Daten, Sicherheit & Anmeldung, Abonnement, Geräte & Sitzungen und Datenschutz.',
+      'Jeder Bereich öffnet sein eigenes Panel mit den zugehörigen Einstellungen.',
+      'Lade ein eigenes Profilfoto von deinem Gerät hoch — lokal gespeichert und sofort sichtbar.',
+      'Neuer Zurück-Button im Profil-Tab für schnelle Navigation zurück zu Einstellungen.',
     ],
   },
   {
-    heading: "Stagex — Bibliothek & Elemente",
+    heading: "Korrekturen & Feinschliff",
     items: [
-      'Neue Kategorie Personen mit 7 Bühnenmitgliedern: Performer, Vokalist, Gitarrist, Bassist, Schlagzeuger, Keyboarder und Techniker.',
-      'Mikrofonständer zum Mikrofon-Bereich hinzugefügt mit eigenem Galgen-Icon.',
-      'Das Auge/Sichtbarkeits-Schaltfläche wird nun automatisch ausgeblendet, wenn das FAB-Menü geöffnet ist.',
-      'Die Szenenleiste ist 15 % kompakter: kleinere Pills, engere Schrift und kleinerer Hinzufügen-Button.',
-    ],
-  },
-  {
-    heading: "Navigation",
-    items: [
-      'BottomNav-Buttons sind höher — mehr Innenabstand und größere Icons (24 px) für einen komfortableren Tippbereich.',
+      'Fehlende Icons in der gesamten App behoben — lock, shield, devices, workspace_premium, smartphone und weitere werden jetzt korrekt angezeigt.',
+      'Die Studio-Titelanimation wird nun bei jedem Start zuverlässig abgespielt, auch auf Geräten mit aktivierter Bewegungsreduzierung.',
     ],
   },
 ];
