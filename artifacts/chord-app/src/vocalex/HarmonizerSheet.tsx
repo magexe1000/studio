@@ -275,6 +275,7 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
           <div style={{
             background: 'rgba(255,255,255,0.04)', borderRadius: 14,
             padding: '12px 12px 10px',
+            position: 'relative',
           }}>
             {/* Waveform bars */}
             <div style={{
@@ -356,6 +357,9 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
             {playError && (
               <p style={{ fontSize: 11, color: '#ef4444', margin: '8px 0 0', textAlign: 'center' }}>{playError}</p>
             )}
+
+            {/* Gradient border ring */}
+            <div className="gb-border-ring" aria-hidden="true" />
           </div>
         </div>
 

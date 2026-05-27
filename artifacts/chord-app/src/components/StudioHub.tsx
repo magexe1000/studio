@@ -9,6 +9,7 @@ import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } fr
 import ApplyToSheet from './ApplyToSheet';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
+import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 
@@ -256,16 +257,18 @@ export default function StudioHub() {
             </div>
 
             {/* Combined welcome + apps card */}
-            <div style={{
-              width: '100%', maxWidth: 380,
-              marginTop: 'clamp(28px, 6vh, 48px)',
-              background: 'var(--app-surface)',
-              borderRadius: 24,
-              overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.05)',
-              animation: 'hub-rise-in 500ms 80ms cubic-bezier(0.34,1.15,0.64,1) both',
-              transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
-            }}>
+            <GradientBorderCard
+              borderRadius={24}
+              wrapStyle={{
+                width: '100%', maxWidth: 380,
+                marginTop: 'clamp(28px, 6vh, 48px)',
+                animation: 'hub-rise-in 500ms 80ms cubic-bezier(0.34,1.15,0.64,1) both, gb-spin 14s linear infinite',
+              }}
+              innerStyle={{
+                overflow: 'hidden',
+                transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+              }}
+            >
               {/* Welcome header */}
               <div style={{ padding: '22px 22px 18px' }}>
                 <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
@@ -296,7 +299,7 @@ export default function StudioHub() {
                   onClick={() => launchApp(app)}
                 />
               ))}
-            </div>
+            </GradientBorderCard>
 
           </div>
         )}
