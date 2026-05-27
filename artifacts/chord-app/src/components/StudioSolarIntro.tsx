@@ -102,18 +102,20 @@ export default function StudioSolarIntro() {
     });
 
     // ── Timing (ms) ────────────────────────────────────────────────────────
-    const ORBIT_PERIOD  = 2600;
-    const ENTER_END     = 0;     // orbit starts immediately (enter is rAF-driven now)
-    const ORBIT_END     = 2700;
-    const STAGGER_MS    = 65;    // each planet starts settling 65ms after the previous
-    const SETTLE_DUR    = 720;   // each planet's settle animation lasts 720ms
+    // Generous orbit phase so the animation is unmissable even when the
+    // React app takes a couple of seconds to finish first paint.
+    const ORBIT_PERIOD  = 3200;  // one full revolution
+    const ENTER_END     = 0;     // orbit starts immediately (enter is rAF-driven)
+    const ORBIT_END     = 5200;  // ~5.2s of visible orbiting
+    const STAGGER_MS    = 80;    // each planet starts settling 80ms after the previous
+    const SETTLE_DUR    = 820;   // each planet's settle animation lasts 820ms
     const LAST_START    = ORBIT_END + (PLANET_DEFS.length - 1) * STAGGER_MS;
     const SETTLE_END    = LAST_START + SETTLE_DUR;
-    const FADEOUT_END   = SETTLE_END + 380;
+    const FADEOUT_END   = SETTLE_END + 420;
 
     // Enter: staggered fade-in fully via rAF (no CSS animation on planets)
-    const ENTER_STAGGER = 110; // ms between each planet's fade-in start
-    const ENTER_DUR     = 340; // fade-in duration per planet
+    const ENTER_STAGGER = 130; // ms between each planet's fade-in start
+    const ENTER_DUR     = 380; // fade-in duration per planet
 
     let raf: number;
     const t0 = performance.now();
