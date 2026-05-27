@@ -3,13 +3,11 @@ import { motion } from 'motion/react';
 import StudioProgressBar from './StudioProgressBar';
 
 /**
- * StudioUpdateScreen — fullscreen overlay shown exclusively during the OTA
- * download/install process.
+ * StudioUpdateScreen — fullscreen overlay during OTA download.
  *
- * Background: animate-ui BubbleBackground (blurred radial-gradient blobs)
- * Loader:     KokonutUI Loader (multi-ring conic-gradient, accent-colored)
- * Bar:        AnimatedProgressBar
- * Text:       rotating status messages
+ * Background: soft warm-neutral blobs (no accent color — calming atmosphere)
+ * Loader:     theme-aware rings — white in dark mode, near-black in light
+ * Text:       fully white/black via var(--c-text-primary)
  */
 
 const MESSAGES = [
@@ -42,9 +40,18 @@ export default function StudioUpdateScreen({
     return () => clearInterval(id);
   }, []);
 
-  /* ── helpers ─────────────────────────────────────────────────────────── */
-  const mix = (color: string, pct: number) =>
-    `color-mix(in srgb, ${color} ${pct}%, transparent)`;
+  // Blob palette — warm-neutral, relaxing, theme-independent.
+  // Screen blend mode on a dark bg turns these into gentle glows.
+  const blobA = 'rgba(245, 238, 255, 0.60)'; // warm lavender-white
+  const blobB = 'rgba(220, 210, 255, 0.45)'; // soft violet
+  const blobC = 'rgba(255, 248, 235, 0.35)'; // warm cream
+  const blobD = 'rgba(200, 195, 255, 0.28)'; // pale periwinkle
+
+  // Ring color — crisp white on dark, near-black on light.
+  const ring = 'var(--c-text-primary)';
+  // Opacity helper for ring layers
+  const ringAlpha = (a: number) =>
+    `color-mix(in srgb, ${ring} ${Math.round(a * 100)}%, transparent)`;
 
   return (
     <div
@@ -59,9 +66,7 @@ export default function StudioUpdateScreen({
         background: 'var(--app-bg, #0a0a0c)',
       }}
     >
-      {/* ── animate-ui BubbleBackground ────────────────────────────────── */}
-
-      {/* SVG goo filter — makes blobs merge softly */}
+      {/* ── SVG goo filter ─────────────────────────────────────────────── */}
       <svg
         aria-hidden="true"
         style={{ position: 'absolute', width: 0, height: 0, top: 0, left: 0 }}
@@ -80,32 +85,32 @@ export default function StudioUpdateScreen({
         </defs>
       </svg>
 
-      {/* Blobs layer */}
+      {/* ── Blobs — warm neutral, relaxing atmosphere ───────────────────── */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          filter: 'url(#su-goo) blur(40px)',
+          filter: 'url(#su-goo) blur(44px)',
         }}
       >
-        {/* Primary blob — oscillates vertically */}
+        {/* Primary — slow vertical drift */}
         <motion.div
           style={{
             position: 'absolute',
-            width: '80%',
-            height: '80%',
-            top: '10%',
-            left: '10%',
+            width: '85%',
+            height: '85%',
+            top: '7%',
+            left: '7%',
             borderRadius: '50%',
             mixBlendMode: 'screen',
-            background: `radial-gradient(circle at center, ${mix(accentFrom, 55)} 0%, ${mix(accentFrom, 0)} 60%)`,
+            background: `radial-gradient(circle at center, ${blobA} 0%, transparent 62%)`,
             willChange: 'transform',
           }}
-          animate={{ y: [-60, 60, -60] }}
-          transition={{ duration: 28, ease: 'easeInOut', repeat: Infinity }}
+          animate={{ y: [-55, 55, -55] }}
+          transition={{ duration: 30, ease: 'easeInOut', repeat: Infinity }}
         />
 
-        {/* Second blob — orbits around offset pivot */}
+        {/* Second — slow orbit */}
         <motion.div
           style={{
             position: 'absolute',
@@ -113,24 +118,24 @@ export default function StudioUpdateScreen({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transformOrigin: 'calc(50% - 380px) 50%',
+            transformOrigin: 'calc(50% - 360px) 50%',
             willChange: 'transform',
           }}
           animate={{ rotate: 360 }}
-          transition={{ duration: 20, ease: 'linear', repeat: Infinity }}
+          transition={{ duration: 24, ease: 'linear', repeat: Infinity }}
         >
           <div
             style={{
-              width: '75%',
-              height: '75%',
+              width: '70%',
+              height: '70%',
               borderRadius: '50%',
               mixBlendMode: 'screen',
-              background: `radial-gradient(circle at center, ${mix(accentTo, 45)} 0%, ${mix(accentTo, 0)} 55%)`,
+              background: `radial-gradient(circle at center, ${blobB} 0%, transparent 58%)`,
             }}
           />
         </motion.div>
 
-        {/* Third blob — orbits opposite pivot */}
+        {/* Third — opposite slow orbit */}
         <motion.div
           style={{
             position: 'absolute',
@@ -138,45 +143,45 @@ export default function StudioUpdateScreen({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transformOrigin: 'calc(50% + 380px) 50%',
+            transformOrigin: 'calc(50% + 360px) 50%',
             willChange: 'transform',
           }}
           animate={{ rotate: 360 }}
-          transition={{ duration: 38, ease: 'linear', repeat: Infinity }}
+          transition={{ duration: 42, ease: 'linear', repeat: Infinity }}
         >
           <div
             style={{
               position: 'absolute',
-              width: '70%',
-              height: '70%',
-              top: 'calc(50% + 140px)',
-              left: 'calc(50% - 400px)',
+              width: '68%',
+              height: '68%',
+              top: 'calc(50% + 130px)',
+              left: 'calc(50% - 380px)',
               borderRadius: '50%',
               mixBlendMode: 'screen',
-              background: `radial-gradient(circle at center, ${mix(accentFrom, 35)} 0%, ${mix(accentFrom, 0)} 55%)`,
+              background: `radial-gradient(circle at center, ${blobC} 0%, transparent 58%)`,
             }}
           />
         </motion.div>
 
-        {/* Fourth blob — oscillates horizontally */}
+        {/* Fourth — slow horizontal drift */}
         <motion.div
           style={{
             position: 'absolute',
-            width: '80%',
-            height: '80%',
-            top: '10%',
-            left: '10%',
+            width: '75%',
+            height: '75%',
+            top: '12%',
+            left: '12%',
             borderRadius: '50%',
             mixBlendMode: 'screen',
-            background: `radial-gradient(circle at center, ${mix(accentTo, 28)} 0%, ${mix(accentTo, 0)} 60%)`,
+            background: `radial-gradient(circle at center, ${blobD} 0%, transparent 62%)`,
             willChange: 'transform',
           }}
-          animate={{ x: [-50, 50, -50] }}
-          transition={{ duration: 36, ease: 'easeInOut', repeat: Infinity }}
+          animate={{ x: [-45, 45, -45] }}
+          transition={{ duration: 38, ease: 'easeInOut', repeat: Infinity }}
         />
       </div>
 
-      {/* ── Centered content ───────────────────────────────────────────── */}
+      {/* ── Centered content ────────────────────────────────────────────── */}
       <div
         style={{
           position: 'relative',
@@ -184,84 +189,80 @@ export default function StudioUpdateScreen({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 28,
-          padding: '0 32px',
+          gap: 32,
+          padding: '0 36px',
           width: '100%',
-          maxWidth: 340,
+          maxWidth: 360,
         }}
       >
-        {/* KokonutUI Loader — accent-colored rings */}
+        {/* ── Loader: theme-aware rings, 210×210 ── */}
         <motion.div
-          style={{ position: 'relative', width: 160, height: 160, flexShrink: 0 }}
-          animate={{ scale: [1, 1.015, 1] }}
-          transition={{ duration: 4, repeat: Infinity, ease: [0.4, 0, 0.6, 1] }}
+          style={{ position: 'relative', width: 210, height: 210, flexShrink: 0 }}
+          animate={{ scale: [1, 1.012, 1] }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: [0.4, 0, 0.6, 1] }}
         >
-          {/* Ring 1 — outermost thin ring, fast */}
+          {/* Ring 1 — outermost thin, fast */}
           <motion.div
             style={{
               position: 'absolute',
               inset: 0,
               borderRadius: '50%',
-              background: `conic-gradient(from 0deg, transparent 0deg, ${accentFrom} 90deg, transparent 180deg)`,
+              background: `conic-gradient(from 0deg, transparent 0deg, ${ringAlpha(0.9)} 90deg, transparent 180deg)`,
               mask: 'radial-gradient(circle at 50% 50%, transparent 35%, black 37%, black 39%, transparent 41%)',
               WebkitMask:
                 'radial-gradient(circle at 50% 50%, transparent 35%, black 37%, black 39%, transparent 41%)',
-              opacity: 0.85,
               willChange: 'transform',
             }}
             animate={{ rotate: [0, 360] }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+            transition={{ duration: 2.8, repeat: Infinity, ease: 'linear' }}
           />
 
-          {/* Ring 2 — primary wide ring, medium speed */}
+          {/* Ring 2 — primary wide, medium */}
           <motion.div
             style={{
               position: 'absolute',
               inset: 0,
               borderRadius: '50%',
-              background: `conic-gradient(from 0deg, transparent 0deg, ${accentFrom} 120deg, ${mix(accentTo, 55)} 240deg, transparent 360deg)`,
-              mask: 'radial-gradient(circle at 50% 50%, transparent 42%, black 44%, black 48%, transparent 50%)',
+              background: `conic-gradient(from 0deg, transparent 0deg, ${ringAlpha(1)} 120deg, ${ringAlpha(0.5)} 240deg, transparent 360deg)`,
+              mask: 'radial-gradient(circle at 50% 50%, transparent 42%, black 44%, black 49%, transparent 51%)',
               WebkitMask:
-                'radial-gradient(circle at 50% 50%, transparent 42%, black 44%, black 48%, transparent 50%)',
-              opacity: 0.95,
+                'radial-gradient(circle at 50% 50%, transparent 42%, black 44%, black 49%, transparent 51%)',
               willChange: 'transform',
             }}
             animate={{ rotate: [0, 360] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: [0.4, 0, 0.6, 1] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: [0.4, 0, 0.6, 1] }}
           />
 
-          {/* Ring 3 — counter-rotating, slow */}
+          {/* Ring 3 — counter-rotating, slow, dim */}
           <motion.div
             style={{
               position: 'absolute',
               inset: 0,
               borderRadius: '50%',
-              background: `conic-gradient(from 180deg, transparent 0deg, ${mix(accentTo, 60)} 45deg, transparent 90deg)`,
-              mask: 'radial-gradient(circle at 50% 50%, transparent 52%, black 54%, black 56%, transparent 58%)',
+              background: `conic-gradient(from 180deg, transparent 0deg, ${ringAlpha(0.5)} 45deg, transparent 90deg)`,
+              mask: 'radial-gradient(circle at 50% 50%, transparent 53%, black 55%, black 57%, transparent 59%)',
               WebkitMask:
-                'radial-gradient(circle at 50% 50%, transparent 52%, black 54%, black 56%, transparent 58%)',
-              opacity: 0.45,
+                'radial-gradient(circle at 50% 50%, transparent 53%, black 55%, black 57%, transparent 59%)',
               willChange: 'transform',
             }}
             animate={{ rotate: [0, -360] }}
-            transition={{ duration: 4, repeat: Infinity, ease: [0.4, 0, 0.6, 1] }}
+            transition={{ duration: 4.2, repeat: Infinity, ease: [0.4, 0, 0.6, 1] }}
           />
 
-          {/* Ring 4 — accent dot arc, outermost */}
+          {/* Ring 4 — tiny dot arc, outermost */}
           <motion.div
             style={{
               position: 'absolute',
               inset: 0,
               borderRadius: '50%',
-              background: `conic-gradient(from 270deg, transparent 0deg, ${mix(accentFrom, 45)} 20deg, transparent 40deg)`,
-              mask: 'radial-gradient(circle at 50% 50%, transparent 61%, black 62%, black 63%, transparent 64%)',
+              background: `conic-gradient(from 270deg, transparent 0deg, ${ringAlpha(0.55)} 20deg, transparent 40deg)`,
+              mask: 'radial-gradient(circle at 50% 50%, transparent 62%, black 63%, black 64.5%, transparent 65.5%)',
               WebkitMask:
-                'radial-gradient(circle at 50% 50%, transparent 61%, black 62%, black 63%, transparent 64%)',
-              opacity: 0.6,
+                'radial-gradient(circle at 50% 50%, transparent 62%, black 63%, black 64.5%, transparent 65.5%)',
               willChange: 'transform',
             }}
             animate={{ rotate: [0, 360] }}
-            transition={{ duration: 3.5, repeat: Infinity, ease: 'linear' }}
+            transition={{ duration: 3.6, repeat: Infinity, ease: 'linear' }}
           />
 
           {/* Progress % — centered inside rings */}
@@ -273,17 +274,17 @@ export default function StudioUpdateScreen({
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 1,
+              gap: 2,
             }}
           >
             <span
               style={{
                 fontFamily: 'Manrope, sans-serif',
                 fontWeight: 800,
-                fontSize: 30,
+                fontSize: 42,
                 lineHeight: 1,
-                letterSpacing: '-0.03em',
-                color: accentFrom,
+                letterSpacing: '-0.04em',
+                color: 'var(--c-text-primary)',
               }}
             >
               {pct}
@@ -291,9 +292,11 @@ export default function StudioUpdateScreen({
             <span
               style={{
                 fontFamily: 'Manrope, sans-serif',
-                fontWeight: 600,
-                fontSize: 11,
-                color: 'var(--c-text-secondary)',
+                fontWeight: 700,
+                fontSize: 13,
+                letterSpacing: '0.04em',
+                color: 'var(--c-text-primary)',
+                opacity: 0.55,
               }}
             >
               %
@@ -301,7 +304,7 @@ export default function StudioUpdateScreen({
           </div>
         </motion.div>
 
-        {/* Progress bar */}
+        {/* Progress bar — accent-colored, full width */}
         <div style={{ width: '100%' }}>
           <StudioProgressBar
             value={progress * 100}
@@ -311,19 +314,20 @@ export default function StudioUpdateScreen({
           />
         </div>
 
-        {/* Rotating message */}
+        {/* Rotating status message */}
         <motion.p
           key={msgIdx}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
+          transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
           style={{
             margin: 0,
-            fontFamily: 'Inter, sans-serif',
-            fontSize: 14,
-            color: 'var(--c-text-secondary)',
+            fontFamily: 'Manrope, sans-serif',
+            fontWeight: 700,
+            fontSize: 16,
+            color: 'var(--c-text-primary)',
             textAlign: 'center',
-            letterSpacing: '-0.01em',
+            letterSpacing: '-0.015em',
           }}
         >
           {MESSAGES[msgIdx]}
