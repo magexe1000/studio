@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v4 -->
+<!-- v6 — animata orbiting-items-3d port -->
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
@@ -21,241 +21,150 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=account_circle,add,add_circle,air,album,analytics,animation,arrow_back,arrow_downward,arrow_forward,arrow_forward_ios,arrow_upward,auto_awesome,auto_fix_high,block,blur_on,bolt,bookmark_add,brightness_auto,casino,celebration,check,check_circle,chevron_left,chevron_right,close,cloud,cloud_done,cloud_download,compare_arrows,content_copy,contrast,dark_mode,dashboard,data_object,delete,delete_forever,download,drag_indicator,edit,edit_note,electric_bolt,electric_guitar,equalizer,error,expand,expand_less,expand_more,face,face_2,face_3,face_4,face_5,face_6,favorite,file_download,flamenco,flash_on,folder_open,forest,format_bold,forward_10,gesture,grade,grain,graphic_eq,grid_4x4,grid_on,grid_view,groups,guitar_pick,headphones,health_and_safety,hearing,hexagon,history,home,horizontal_rule,hourglass_empty,hourglass_top,info,insights,ios_share,keyboard_arrow_up,language,layers,library_music,light_mode,local_fire_department,logout,merge,message,mic,mic_none,mood,more_vert,moving,music_note,nightlight,noise_aware,north_east,open_in_new,palette,pause,pending,person,piano,picture_as_pdf,play_arrow,play_circle,playlist_add,progress_activity,psychology,public,queue_music,radio,radio_button_unchecked,record_voice_over,redo,refresh,remove,replay_10,restart_alt,sailing,save,schedule,schema,science,search,search_off,segment,self_improvement,sentiment_satisfied,sentiment_very_satisfied,settings,settings_input_component,share,skip_next,skip_previous,sort,south,speed,sprint,stacked_bar_chart,stacked_line_chart,star_half,stars,stop,straighten,swap_horiz,swap_vert,sync,sync_problem,target,theater_comedy,timer,title,touch_app,trending_down,trending_up,tune,undo,upload_file,verified,vibration,video_library,visibility,visibility_off,volume_up,warning,waves&display=block"
     />
     <style>
-      html, body { background: #0e0e0e; margin: 0; padding: 0; }
+      html, body { background: #0a0a0c; margin: 0; padding: 0; }
 
-      /* ── Inline floating-icons startup intro ───────────────────────────
-         Animata-style: a central Studio logo with scattered, gently-floating
-         app icons (with labels) drifting around it. After ~2.8s the icons
-         glide into a left-aligned vertical column — the same arrangement
-         they'll appear in inside the hub's app list — then the overlay
-         fades out, revealing the real hub already in place.
-         Lives inline in index.html so it paints on the FIRST frame.
+      /* ── Inline orbiting-items-3D startup intro (v6) ───────────────────
+         Direct port of animata.design/docs/list/orbiting-items-3-d:
+           • elliptical tilted orbit (radiusX=130, radiusY=36, tilt=-30°)
+           • per-frame angle update via rAF → x,y from sin/cos
+           • scale & z-index swing based on orbital half (front bigger,
+             back smaller and behind) for a true 3-D feel
+           • smooth transform transitions interpolate between frames
+         After the orbit phase the JS lerps each planet to its final hub
+         position (Studio at top, 5 app icons stacked in the card column).
       ────────────────────────────────────────────────────────────────── */
-      #solar-intro {
+      #intro {
         position: fixed; inset: 0; z-index: 2147483647;
         background:
-          radial-gradient(ellipse at center, #15151c 0%, #0b0b0f 70%, #050507 100%);
+          radial-gradient(ellipse at 50% 45%,
+            #1a1530 0%, #0c0a18 55%, #07060c 100%);
         overflow: hidden;
         pointer-events: none;
         opacity: 1;
-        transition: opacity 600ms cubic-bezier(0.4,0,0.2,1);
+        transition: opacity 700ms cubic-bezier(0.4,0,0.2,1);
         font-family: Manrope, system-ui, -apple-system, sans-serif;
       }
-      #solar-intro.dismissing { opacity: 0; }
-      #solar-intro.dismissed   { display: none; }
+      #intro.dismissing { opacity: 0; }
+      #intro.dismissed  { display: none; }
 
-      /* Soft purple/blue nebula behind everything */
+      /* Purple nebula glow */
       #intro-glow {
         position: absolute; top: 50%; left: 50%;
-        width: 480px; height: 480px;
-        margin: -240px 0 0 -240px;
+        width: 460px; height: 460px;
+        margin: -230px 0 0 -230px;
         background: radial-gradient(circle,
-          rgba(120,110,255,0.22) 0%,
-          rgba(80,90,200,0.10) 40%,
-          transparent 70%);
+          rgba(139, 92,246,0.30) 0%,
+          rgba( 99,102,241,0.14) 40%,
+          transparent            70%);
         border-radius: 50%;
-        animation: intro-glow-pulse 5s ease-in-out infinite;
-        filter: blur(10px);
+        filter: blur(12px);
+        animation: glow-breathe 6s ease-in-out infinite;
+        pointer-events: none;
       }
-      @keyframes intro-glow-pulse {
+      @keyframes glow-breathe {
         0%,100% { transform: scale(1);    opacity: 0.85; }
-        50%     { transform: scale(1.15); opacity: 1;    }
+        50%     { transform: scale(1.12); opacity: 1;    }
       }
 
-      /* Tiny twinkling stars layer */
+      /* Twinkling stars */
       #intro-stars {
         position: absolute; inset: 0;
         background-image:
-          radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.7) 50%, transparent),
-          radial-gradient(1px 1px at 78% 22%, rgba(255,255,255,0.5) 50%, transparent),
-          radial-gradient(1.5px 1.5px at 30% 78%, rgba(255,255,255,0.6) 50%, transparent),
-          radial-gradient(1px 1px at 88% 70%, rgba(255,255,255,0.7) 50%, transparent),
-          radial-gradient(1px 1px at 55% 12%, rgba(255,255,255,0.4) 50%, transparent),
-          radial-gradient(1px 1px at 8% 60%, rgba(255,255,255,0.5) 50%, transparent),
-          radial-gradient(1.5px 1.5px at 65% 85%, rgba(255,255,255,0.55) 50%, transparent),
-          radial-gradient(1px 1px at 42% 38%, rgba(255,255,255,0.35) 50%, transparent);
-        animation: intro-stars-twinkle 4s ease-in-out infinite;
-        opacity: 0.7;
+          radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.7), transparent 50%),
+          radial-gradient(1px 1px at 78% 22%, rgba(255,255,255,0.5), transparent 50%),
+          radial-gradient(1.5px 1.5px at 30% 78%, rgba(255,255,255,0.6), transparent 50%),
+          radial-gradient(1px 1px at 88% 70%, rgba(255,255,255,0.7), transparent 50%),
+          radial-gradient(1px 1px at 55% 8%,  rgba(255,255,255,0.4), transparent 50%),
+          radial-gradient(1px 1px at 8% 60%,  rgba(255,255,255,0.5), transparent 50%),
+          radial-gradient(1.5px 1.5px at 65% 92%, rgba(255,255,255,0.55), transparent 50%),
+          radial-gradient(1px 1px at 42% 38%, rgba(255,255,255,0.35), transparent 50%);
+        animation: twinkle 5s ease-in-out infinite;
+        opacity: 0.55;
       }
-      @keyframes intro-stars-twinkle {
-        0%,100% { opacity: 0.5; }
-        50%     { opacity: 0.95; }
+      @keyframes twinkle {
+        0%,100% { opacity: 0.4; }
+        50%     { opacity: 0.9; }
       }
 
-      /* Central Studio logo + title */
+      /* Center Studio logo — JS sets transform every frame so it can
+         smoothly migrate to its final hub position. */
       #intro-center {
         position: absolute; top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
         display: flex; flex-direction: column; align-items: center;
-        gap: 12px;
-        z-index: 3;
-        animation: intro-center-life 4400ms cubic-bezier(0.4,0,0.2,1) forwards;
+        gap: 6px;
+        z-index: 1;
+        will-change: transform;
+        transform: translate(-50%, -50%) scale(1);
       }
-      @keyframes intro-center-life {
-        0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-        12%  { opacity: 1; transform: translate(-50%, -50%) scale(1);   }
-        62%  { opacity: 1; transform: translate(-50%, -50%) scale(1);   }
-        85%  { opacity: 0; transform: translate(-50%, calc(-50% - 30px)) scale(0.7); }
-        100% { opacity: 0; transform: translate(-50%, calc(-50% - 30px)) scale(0.7); }
-      }
-      #intro-center .pill {
-        width: 88px; height: 88px; border-radius: 26px;
+      #intro-center .logo {
+        width: 132px; height: 132px;
+        border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(135deg, #7c83ff 0%, #5560e0 100%);
+        background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 45%, #6366f1 100%);
+        padding: 28px; box-sizing: border-box;
         box-shadow:
-          0 0 32px 10px rgba(120,140,255,0.45),
-          0 0 80px 30px rgba(120,140,255,0.18),
+          0 0 40px 15px rgba(139, 92, 246, 0.40),
+          0 0 80px 30px rgba(99, 102, 241, 0.18),
           inset 0 1px 0 rgba(255,255,255,0.25);
-        animation: intro-center-bob 3.2s ease-in-out infinite;
+        animation: center-float 3.2s ease-in-out infinite;
       }
-      @keyframes intro-center-bob {
+      @keyframes center-float {
         0%,100% { transform: translateY(0); }
-        50%     { transform: translateY(-6px); }
+        50%     { transform: translateY(-10px); }
       }
-      #intro-center .pill svg { width: 44px; height: 44px; }
+      #intro-center .logo svg { width: 100%; height: 100%; }
       #intro-center .title {
-        font-size: 26px; font-weight: 800; color: #ffffff;
-        letter-spacing: -0.02em; margin: 4px 0 0;
-        text-shadow: 0 2px 18px rgba(120,140,255,0.4);
+        font-size: 30px; font-weight: 800; color: #fff;
+        letter-spacing: -0.02em; margin: 12px 0 0;
+        text-shadow: 0 2px 18px rgba(139,92,246,0.45);
       }
       #intro-center .sub {
-        font-size: 11px; color: rgba(255,255,255,0.55);
-        letter-spacing: 0.14em; margin: 0; text-transform: uppercase;
+        font-size: 13px; color: rgba(255,255,255,0.55);
+        margin: 0;
       }
 
-      /* ── Floating app-icon slots ────────────────────────────────────
-         Each slot has its OWN keyframe that runs the full intro lifecycle:
-           0–8%   appear from center
-           8–62%  float at scatter position (gentle drift via interpolation)
-           62–82% glide to final stacked column position
-           82–100% sit in column, then fade with overlay
-         Self-contained so we don't fight conflicting CSS transforms.
-      ─────────────────────────────────────────────────────────────── */
-      .slot {
-        position: absolute; top: 50%; left: 50%;
-        z-index: 2;
-        display: flex; align-items: center; gap: 10px;
-        opacity: 0;
-        animation-duration: 4400ms;
-        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        animation-fill-mode: forwards;
-      }
-      .slot .label {
-        font-size: 12px; font-weight: 600;
-        color: rgba(255,255,255,0.85);
-        letter-spacing: -0.01em;
-        white-space: nowrap;
-        text-shadow: 0 1px 8px rgba(0,0,0,0.6);
-        animation: intro-label-life 4400ms ease-out forwards;
-        opacity: 0;
-      }
-      .slot.label-left { flex-direction: row-reverse; }
-      @keyframes intro-label-life {
-        0%   { opacity: 0; }
-        12%  { opacity: 0; }
-        20%  { opacity: 1; }
-        62%  { opacity: 1; }
-        70%  { opacity: 0; }
-        100% { opacity: 0; }
-      }
-
-      .icon {
-        width: 46px; height: 46px; border-radius: 14px;
+      /* Each orbiter — JS positions absolutely via left/top + transform.
+         Glass-pill look matches animata: white/5 bg, white/10 border,
+         backdrop-blur, purple-tinted shadow. */
+      .orbiter {
+        position: absolute;
+        width: 64px; height: 64px;
+        border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
-        background: rgba(20, 22, 32, 0.72);
-        backdrop-filter: blur(8px);
+        background: rgba(255,255,255,0.05);
         border: 1px solid rgba(255,255,255,0.10);
-        box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 8px 24px rgba(139, 92, 246, 0.22);
+        transition: transform 0.6s cubic-bezier(0.34,1.2,0.64,1);
+        will-change: transform, left, top;
+        opacity: 0;
+        animation: orb-fade-in 600ms ease-out forwards;
       }
-      .icon svg { width: 24px; height: 24px; }
-
-      /* Per-app accent rings */
-      .icon.chordex { border-color: rgba(139, 92, 246, 0.55); box-shadow: 0 0 18px 2px rgba(139,92,246,0.35), 0 6px 18px rgba(0,0,0,0.5); }
-      .icon.drumex  { border-color: rgba(249, 115,  22, 0.55); box-shadow: 0 0 18px 2px rgba(249,115,22,0.35), 0 6px 18px rgba(0,0,0,0.5); }
-      .icon.stagex  { border-color: rgba(245, 158,  11, 0.55); box-shadow: 0 0 18px 2px rgba(245,158,11,0.35), 0 6px 18px rgba(0,0,0,0.5); }
-      .icon.groovex { border-color: rgba( 16, 185, 129, 0.55); box-shadow: 0 0 18px 2px rgba(16,185,129,0.35), 0 6px 18px rgba(0,0,0,0.5); }
-      .icon.vocalex { border-color: rgba( 59, 130, 246, 0.55); box-shadow: 0 0 18px 2px rgba(59,130,246,0.35), 0 6px 18px rgba(0,0,0,0.5); }
-
-      /* ── Per-slot lifecycle keyframes ─────────────────────────────────
-         Final positions: a single vertical column at x = -130px (relative
-         to viewport center) — this lines up with the hub's left-side icon
-         column once the overlay fades. Spacing 66px ≈ hub row height.
-      ─────────────────────────────────────────────────────────────────── */
-
-      /* CHORDEX — top-left scatter, settles row 1 (y=-132) */
-      .slot.s-chordex { animation-name: slot-chordex; }
-      @keyframes slot-chordex {
-        0%    { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-        8%    { opacity: 1; transform: translate(calc(-50% - 110px), calc(-50% - 140px)) scale(1); }
-        25%   { transform: translate(calc(-50% - 118px), calc(-50% - 130px)) scale(1); }
-        45%   { transform: translate(calc(-50% - 102px), calc(-50% - 152px)) scale(1); }
-        62%   { transform: translate(calc(-50% - 110px), calc(-50% - 140px)) scale(1); }
-        80%   { transform: translate(calc(-50% - 130px), calc(-50% - 132px)) scale(0.92); }
-        92%   { opacity: 1; }
-        100%  { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% - 132px)) scale(0.92); }
+      @keyframes orb-fade-in {
+        from { opacity: 0; }
+        to   { opacity: 1; }
       }
-      /* DRUMEX — top-right scatter, settles row 2 (y=-66) */
-      .slot.s-drumex { animation-name: slot-drumex; }
-      @keyframes slot-drumex {
-        0%    { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-        10%   { opacity: 1; transform: translate(calc(-50% + 110px), calc(-50% - 110px)) scale(1); }
-        30%   { transform: translate(calc(-50% + 120px), calc(-50% - 96px)) scale(1); }
-        50%   { transform: translate(calc(-50% + 100px), calc(-50% - 120px)) scale(1); }
-        62%   { transform: translate(calc(-50% + 110px), calc(-50% - 110px)) scale(1); }
-        80%   { transform: translate(calc(-50% - 130px), calc(-50% - 66px)) scale(0.92); }
-        100%  { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% - 66px)) scale(0.92); }
-      }
-      /* STAGEX — right scatter, settles row 3 (y=0) */
-      .slot.s-stagex { animation-name: slot-stagex; }
-      @keyframes slot-stagex {
-        0%    { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-        12%   { opacity: 1; transform: translate(calc(-50% + 140px), calc(-50% + 30px)) scale(1); }
-        32%   { transform: translate(calc(-50% + 148px), calc(-50% + 42px)) scale(1); }
-        52%   { transform: translate(calc(-50% + 132px), calc(-50% + 18px)) scale(1); }
-        62%   { transform: translate(calc(-50% + 140px), calc(-50% + 30px)) scale(1); }
-        80%   { transform: translate(calc(-50% - 130px), calc(-50% + 0px)) scale(0.92); }
-        100%  { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% + 0px)) scale(0.92); }
-      }
-      /* GROOVEX — bottom-left scatter, settles row 4 (y=66) */
-      .slot.s-groovex { animation-name: slot-groovex; }
-      @keyframes slot-groovex {
-        0%    { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-        14%   { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% + 100px)) scale(1); }
-        34%   { transform: translate(calc(-50% - 140px), calc(-50% + 88px)) scale(1); }
-        54%   { transform: translate(calc(-50% - 122px), calc(-50% + 112px)) scale(1); }
-        62%   { transform: translate(calc(-50% - 130px), calc(-50% + 100px)) scale(1); }
-        80%   { transform: translate(calc(-50% - 130px), calc(-50% + 66px)) scale(0.92); }
-        100%  { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% + 66px)) scale(0.92); }
-      }
-      /* VOCALEX — bottom-right scatter, settles row 5 (y=132) */
-      .slot.s-vocalex { animation-name: slot-vocalex; }
-      @keyframes slot-vocalex {
-        0%    { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-        16%   { opacity: 1; transform: translate(calc(-50% + 80px), calc(-50% + 150px)) scale(1); }
-        36%   { transform: translate(calc(-50% + 92px), calc(-50% + 138px)) scale(1); }
-        56%   { transform: translate(calc(-50% + 72px), calc(-50% + 162px)) scale(1); }
-        62%   { transform: translate(calc(-50% + 80px), calc(-50% + 150px)) scale(1); }
-        80%   { transform: translate(calc(-50% - 130px), calc(-50% + 132px)) scale(0.92); }
-        100%  { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% + 132px)) scale(0.92); }
-      }
+      .orbiter svg { width: 30px; height: 30px; }
+      .orbiter.c-chordex svg { color: #a78bfa; }
+      .orbiter.c-drumex  svg { color: #fb923c; }
+      .orbiter.c-stagex  svg { color: #fbbf24; }
+      .orbiter.c-groovex svg { color: #34d399; }
+      .orbiter.c-vocalex svg { color: #60a5fa; }
 
       @media (prefers-reduced-motion: reduce) {
-        #solar-intro, #solar-intro * {
-          animation: none !important;
-          transition: opacity 200ms linear !important;
-        }
-        .slot, #intro-center, .slot .label { opacity: 1 !important; }
+        #intro *, #intro { animation: none !important; transition: opacity 200ms linear !important; }
+        .orbiter, #intro-center { opacity: 1 !important; }
       }
     </style>
   </head>
   <body>
-    <div id="solar-intro" aria-hidden="true">
+    <div id="intro" aria-hidden="true">
       <div id="intro-stars"></div>
       <div id="intro-glow"></div>
 
-      <!-- Central Studio logo -->
       <div id="intro-center">
-        <div class="pill">
+        <div class="logo">
           <svg viewBox="0 0 512 512" fill="none">
             <path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256"
                   stroke="white" stroke-width="44"
@@ -266,87 +175,169 @@
         <p class="sub">by Mag</p>
       </div>
 
-      <!-- Floating app-icon slots: each has its own self-contained keyframe -->
-      <div class="slot s-chordex">
-        <div class="icon chordex">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h14" stroke="rgba(255,255,255,0.95)" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </div>
-        <span class="label">Chordex</span>
+      <div class="orbiter c-chordex" data-i="0">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
-
-      <div class="slot s-drumex label-left">
-        <div class="icon drumex">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="rgba(255,255,255,0.95)" stroke-width="1.8"/><circle cx="12" cy="12" r="2.2" fill="rgba(255,255,255,0.95)"/></svg>
-        </div>
-        <span class="label">Drumex</span>
+      <div class="orbiter c-drumex" data-i="1">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg>
       </div>
-
-      <div class="slot s-stagex label-left">
-        <div class="icon stagex">
-          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="9" width="3" height="6" fill="rgba(255,255,255,0.95)" rx="0.6"/><rect x="8" y="6" width="3" height="12" fill="rgba(255,255,255,0.95)" rx="0.6"/><rect x="13" y="9" width="3" height="6" fill="rgba(255,255,255,0.95)" rx="0.6"/><rect x="18" y="7" width="3" height="10" fill="rgba(255,255,255,0.95)" rx="0.6"/></svg>
-        </div>
-        <span class="label">Stagex</span>
+      <div class="orbiter c-stagex" data-i="2">
+        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="9" width="3" height="6" rx="0.6"/><rect x="8" y="6" width="3" height="12" rx="0.6"/><rect x="13" y="9" width="3" height="6" rx="0.6"/><rect x="18" y="7" width="3" height="10" rx="0.6"/></svg>
       </div>
-
-      <div class="slot s-groovex">
-        <div class="icon groovex">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="rgba(255,255,255,0.95)" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="rgba(255,255,255,0.95)" stroke-width="1.6"/><circle cx="12" cy="12" r="1.3" fill="rgba(255,255,255,0.95)"/></svg>
-        </div>
-        <span class="label">Groovex</span>
+      <div class="orbiter c-groovex" data-i="3">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
       </div>
-
-      <div class="slot s-vocalex label-left">
-        <div class="icon vocalex">
-          <svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" fill="rgba(255,255,255,0.95)"/><path d="M6 12a6 6 0 0 0 12 0M12 18v3" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linecap="round"/></svg>
-        </div>
-        <span class="label">Vocalex</span>
+      <div class="orbiter c-vocalex" data-i="4">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" fill="currentColor"/><path d="M6 12a6 6 0 0 0 12 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       </div>
     </div>
     <div id="root"></div>
-    <script>
-      // Dismiss the overlay when BOTH: (a) the intro animation has had at
-      // least its minimum visible time, AND (b) React has actually mounted
-      // the hub (so we never reveal a blank/gray screen during bundle
-      // parse). A safety timeout dismisses no matter what at 10s.
-      (function () {
-        var MIN_VISIBLE_MS = 4400; // full intro length (matches keyframes)
-        var SAFETY_MS      = 10000;
-        var startedAt      = Date.now();
-        var rootEl         = document.getElementById('root');
-        var overlayEl      = document.getElementById('solar-intro');
-        if (!overlayEl) return;
 
-        var dismissed = false;
-        var observer  = null;
-        var pollId    = 0;
+    <script>
+      // ── Orbiting items 3D — vanilla port of animata's component ─────────
+      (function () {
+        var intro    = document.getElementById('intro');
+        var center   = document.getElementById('intro-center');
+        var orbiters = intro ? intro.querySelectorAll('.orbiter') : [];
+        if (!intro || orbiters.length === 0) return;
+
+        // Geometry — elliptical tilted orbit, matches animata defaults.
+        var RX        = 130;                       // x radius (px)
+        var RY        = 36;                        // y radius (px) → tilt look
+        var TILT      = -30 * Math.PI / 180;       // tilt of orbit plane
+        var COS_T     = Math.cos(TILT);
+        var SIN_T     = Math.sin(TILT);
+        var ORBIT_MS  = 8500;                      // one full revolution
+        var N         = orbiters.length;
+        var STEP      = 360 / N;
+
+        // Phase timings (ms from start)
+        var SETTLE_START = 3200;                   // begin lerp to hub pos
+        var SETTLE_END   = 4400;                   // fully settled
+        var INTRO_TOTAL  = 4400;                   // min visible
+
+        // Final hub-icon positions (relative to viewport CENTER).
+        // Derived from the hub screenshot: app icons sit in a vertical
+        // column ~70px from the viewport left edge with ~76px row spacing,
+        // and the card top starts ~120px below the vertical center.
+        var W = window.innerWidth;
+        var H = window.innerHeight;
+        var COL_X = -(W / 2) + 64;                 // 64px from left edge
+        var ROW0  = (H * 0.18);                    // first row y
+        var GAP   = 76;
+        var targets = [
+          { x: COL_X, y: ROW0 + 0 * GAP, scale: 0.55 }, // chordex
+          { x: COL_X, y: ROW0 + 1 * GAP, scale: 0.55 }, // drumex
+          { x: COL_X, y: ROW0 + 2 * GAP, scale: 0.55 }, // stagex
+          { x: COL_X, y: ROW0 + 3 * GAP, scale: 0.55 }, // groovex
+          { x: COL_X, y: ROW0 + 4 * GAP, scale: 0.55 }, // vocalex
+        ];
+        // Center logo target — top of screen, where hub displays it.
+        var centerTarget = { x: 0, y: -(H / 2) + 130, scale: 0.55 };
+
+        function easeInOutCubic(t) {
+          return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        var start = performance.now();
+        var stopped = false;
+
+        // Reposition each orbiter to viewport center first so left/top
+        // serve as anchor and the per-frame transform handles motion.
+        var cx = W / 2;
+        var cy = H / 2;
+        for (var i = 0; i < orbiters.length; i++) {
+          orbiters[i].style.left = (cx - 32) + 'px';   // 32 = half of 64
+          orbiters[i].style.top  = (cy - 32) + 'px';
+        }
+
+        function frame(now) {
+          if (stopped) return;
+          var t = now - start;
+          var angleBase = (t / ORBIT_MS * 360) % 360;
+
+          // Settle progress 0..1
+          var sP = (t - SETTLE_START) / (SETTLE_END - SETTLE_START);
+          if (sP < 0) sP = 0; else if (sP > 1) sP = 1;
+          var sE = easeInOutCubic(sP);
+
+          // Per-orbiter
+          for (var k = 0; k < orbiters.length; k++) {
+            var el = orbiters[k];
+            // Use the original DOM order's data-i (0..4) as the slot, but
+            // the visual orbit starting angle should be staggered.
+            var a = (angleBase + k * STEP) % 360;
+            if (a < 0) a += 360;
+            var rad = a * Math.PI / 180;
+            var x0 = RX * Math.cos(rad);
+            var y0 = RY * Math.sin(rad);
+            // Tilt rotation
+            var xT = x0 * COS_T - y0 * SIN_T;
+            var yT = x0 * SIN_T + y0 * COS_T;
+
+            // 3-D depth: front half (0..180°) larger & in front of center
+            var front = a < 180;
+            var orbitScale = front ? 1.15 : 0.85;
+            var z         = front ? 3 : 0;
+
+            // Lerp to settle target
+            var tx = targets[k].x;
+            var ty = targets[k].y;
+            var ts = targets[k].scale;
+            var fx = xT + (tx - xT) * sE;
+            var fy = yT + (ty - yT) * sE;
+            var fs = orbitScale + (ts - orbitScale) * sE;
+            // During settle, fade z to a normal stacking
+            el.style.zIndex   = sE > 0.5 ? 1 : z;
+            el.style.transform = 'translate(' + fx.toFixed(2) + 'px, ' + fy.toFixed(2) + 'px) scale(' + fs.toFixed(3) + ')';
+          }
+
+          // Center logo migrates to its hub position
+          var ccx = (centerTarget.x - 0) * sE;
+          var ccy = (centerTarget.y - 0) * sE;
+          var ccs = 1 + (centerTarget.scale - 1) * sE;
+          center.style.transform = 'translate(-50%, -50%) translate(' + ccx.toFixed(2) + 'px, ' + ccy.toFixed(2) + 'px) scale(' + ccs.toFixed(3) + ')';
+
+          if (sP >= 1) {
+            // Settled — one final frame, then halt rAF (positions are static).
+            stopped = true;
+            return;
+          }
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+
+        // ── Dismiss logic ────────────────────────────────────────────────
+        // Dismiss when BOTH min-visible time elapsed AND React mounted.
+        var rootEl     = document.getElementById('root');
+        var dismissed  = false, observer = null, pollId = 0;
+        var introStart = start;
         function dismiss() {
           if (dismissed) return;
           dismissed = true;
+          stopped   = true;
           if (observer) { observer.disconnect(); observer = null; }
           if (pollId)   { clearInterval(pollId); pollId = 0; }
-          overlayEl.classList.add('dismissing');
+          intro.classList.add('dismissing');
           setTimeout(function () {
-            overlayEl.classList.add('dismissed');
-            if (overlayEl.parentNode) overlayEl.parentNode.removeChild(overlayEl);
-          }, 650);
+            intro.classList.add('dismissed');
+            if (intro.parentNode) intro.parentNode.removeChild(intro);
+          }, 750);
         }
-
         function reactMounted() {
           return !!(rootEl && rootEl.children && rootEl.children.length > 0);
         }
-
         function tryDismiss() {
           if (dismissed) return;
-          var elapsed = Date.now() - startedAt;
-          if (reactMounted() && elapsed >= MIN_VISIBLE_MS) {
+          var elapsed = performance.now() - introStart;
+          if (reactMounted() && elapsed >= INTRO_TOTAL) {
             dismiss();
           } else if (reactMounted()) {
             if (observer) { observer.disconnect(); observer = null; }
             if (pollId)   { clearInterval(pollId); pollId = 0; }
-            setTimeout(dismiss, MIN_VISIBLE_MS - elapsed);
+            setTimeout(dismiss, INTRO_TOTAL - elapsed);
           }
         }
-
         if (rootEl && 'MutationObserver' in window) {
           observer = new MutationObserver(tryDismiss);
           observer.observe(rootEl, { childList: true, subtree: false });
@@ -354,8 +345,8 @@
         setTimeout(function () {
           tryDismiss();
           if (!dismissed) pollId = setInterval(tryDismiss, 100);
-        }, MIN_VISIBLE_MS);
-        setTimeout(dismiss, SAFETY_MS);
+        }, INTRO_TOTAL);
+        setTimeout(dismiss, 10000); // hard safety
       })();
     </script>
     <script type="module" src="/src/main.tsx"></script>
