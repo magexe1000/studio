@@ -267,38 +267,37 @@ export default function StudioHub() {
               <button
                 onClick={() => setShowProfile(v => !v)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '7px 9px 7px 12px',
-                  borderRadius: 16,
-                  background: showProfile ? 'var(--app-surface-high)' : 'var(--app-surface)',
-                  border: `1px solid ${showProfile ? 'rgba(128,128,128,0.28)' : 'rgba(128,128,128,0.15)'}`,
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '10px 14px 10px 10px',
+                  borderRadius: 18,
+                  background: 'var(--app-surface)',
+                  border: `1px solid ${showProfile ? 'rgba(128,128,128,0.32)' : 'rgba(128,128,128,0.18)'}`,
                   cursor: 'pointer', outline: 'none',
                   WebkitTapHighlightColor: 'transparent',
                   transition: 'background 160ms ease, border-color 160ms ease',
-                  maxWidth: 210,
+                  minWidth: 190,
                 }}
               >
-                <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope', letterSpacing: '-0.01em', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {authUser?.displayName || settings.hubUserName || 'Studio'}
-                  </p>
-                  {authUser?.email && (
-                    <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {authUser.email}
-                    </p>
-                  )}
-                </div>
-                {/* Avatar with gradient ring */}
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, padding: 2, flexShrink: 0 }}>
+                {/* Avatar on LEFT with gradient ring */}
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, padding: 2, flexShrink: 0 }}>
                   <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: 'var(--app-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {authUser?.photoURL ? (
                       <img src={authUser.photoURL} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                     ) : (
-                      <span style={{ fontSize: 13, fontWeight: 800, color: accent.from, fontFamily: 'Manrope' }}>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: accent.from, fontFamily: 'Manrope' }}>
                         {(authUser?.displayName || settings.hubUserName || 'S')[0]?.toUpperCase()}
                       </span>
                     )}
                   </div>
+                </div>
+                {/* Name + email on RIGHT */}
+                <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope', letterSpacing: '-0.01em', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {authUser?.displayName || settings.hubUserName || 'Studio'}
+                  </p>
+                  <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {authUser?.email || 'studio@app'}
+                  </p>
                 </div>
               </button>
 
@@ -316,7 +315,7 @@ export default function StudioHub() {
                 }}>
                   {([
                     { icon: 'account_circle', label: 'Profile',      action: () => { setTab('settings'); setShowProfile(false); }, badge: null as string | null },
-                    { icon: 'workspace_premium', label: 'Subscription', action: null as (() => void) | null, badge: 'Soon' },
+                    { icon: 'diamond',        label: 'Subscription', action: null as (() => void) | null, badge: 'Soon' },
                     { icon: 'settings',       label: 'Settings',     action: () => { setTab('settings'); setShowProfile(false); }, badge: null },
                   ]).map(item => (
                     <button
