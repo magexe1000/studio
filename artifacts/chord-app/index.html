@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v2 -->
+<!-- v3 -->
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
@@ -14,9 +14,6 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" type="image/svg+xml" href="./icon-512.svg" />
     <link rel="apple-touch-icon" href="./icon-512.svg" />
-    <!-- Material Symbols (subsetted to only the icons the app uses).
-         Replaces the 3.8 MB local material-symbols woff2; this fetch is
-         typically <30 KB and is cached aggressively by Google's CDN. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -25,10 +22,189 @@
     />
     <style>
       html, body { background: #0e0e0e; margin: 0; padding: 0; }
+
+      /* ── Inline solar-system startup intro ─────────────────────────────
+         Lives in index.html so it paints on the FIRST frame, before any
+         JS bundle has to download/parse/mount. Auto-dismisses after ~5s.
+      ────────────────────────────────────────────────────────────────── */
+      #solar-intro {
+        position: fixed; inset: 0; z-index: 2147483647;
+        background: #0e0e0e;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+        animation: solar-overlay-out 600ms 4600ms cubic-bezier(0.4,0,0.2,1) forwards;
+      }
+      @keyframes solar-overlay-out {
+        from { opacity: 1; visibility: visible; }
+        to   { opacity: 0; visibility: hidden; }
+      }
+      #solar-intro.dismissed { display: none; }
+
+      /* Center nebula glow */
+      #solar-glow {
+        position: absolute; width: 280px; height: 280px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(120,140,255,0.22) 0%, rgba(120,140,255,0.06) 45%, transparent 70%);
+        animation: solar-glow-pulse 3.5s ease-in-out infinite;
+        pointer-events: none;
+      }
+      @keyframes solar-glow-pulse {
+        0%,100% { transform: scale(1);    opacity: 0.85; }
+        50%     { transform: scale(1.12); opacity: 1;    }
+      }
+
+      /* Dashed orbit ring */
+      #solar-ring {
+        position: absolute;
+        width: 256px; height: 256px;
+        border-radius: 50%;
+        border: 1px dashed rgba(255,255,255,0.18);
+        opacity: 0;
+        animation: solar-ring-in 600ms 200ms ease-out forwards;
+        pointer-events: none;
+      }
+      @keyframes solar-ring-in {
+        from { opacity: 0; transform: scale(0.85); }
+        to   { opacity: 1; transform: scale(1);    }
+      }
+
+      /* Center wordmark */
+      #solar-wordmark {
+        position: relative; z-index: 3;
+        display: flex; flex-direction: column; align-items: center; gap: 6px;
+        opacity: 0;
+        animation: solar-wordmark-in 700ms 150ms cubic-bezier(0.34,1.56,0.64,1) forwards;
+        font-family: Manrope, system-ui, -apple-system, sans-serif;
+      }
+      @keyframes solar-wordmark-in {
+        from { opacity: 0; transform: scale(0.4); }
+        to   { opacity: 1; transform: scale(1);   }
+      }
+      #solar-wordmark .w-logo svg { display: block; }
+      #solar-wordmark .w-title {
+        font-size: 30px; font-weight: 800; color: #ffffff;
+        letter-spacing: -0.03em; margin: 6px 0 0;
+      }
+      #solar-wordmark .w-sub {
+        font-size: 11px; color: rgba(255,255,255,0.5);
+        letter-spacing: 0.08em; margin: 0;
+      }
+
+      /* Orbit wrappers — each rotates around the center, planet sits at the rim */
+      .orbit {
+        position: absolute; width: 0; height: 0;
+        animation: solar-orbit 4s linear infinite;
+        opacity: 0;
+        animation-fill-mode: both;
+      }
+      @keyframes solar-orbit {
+        from { transform: rotate(0deg);   }
+        to   { transform: rotate(360deg); }
+      }
+      .planet {
+        position: absolute;
+        top: -128px; /* orbit radius */
+        left: -20px; width: 40px; height: 40px;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.12);
+        animation: solar-planet-in 500ms ease-out both;
+      }
+      @keyframes solar-planet-in {
+        from { opacity: 0; transform: scale(0.4); }
+        to   { opacity: 1; transform: scale(1);   }
+      }
+      .planet.studio {
+        width: 50px; height: 50px; border-radius: 16px; left: -25px; top: -132px;
+        background: rgba(120,140,255,0.15);
+        border: 1px solid rgba(120,140,255,0.4);
+        box-shadow: 0 0 22px 8px rgba(120,140,255,0.32), 0 0 48px 20px rgba(120,140,255,0.12);
+      }
+      .planet svg { width: 22px; height: 22px; }
+      .planet.studio svg { width: 26px; height: 26px; }
+
+      /* Per-planet rotation offsets so they're evenly spaced on the ring.
+         The orbit animation runs continuously; we shift each one by setting
+         a negative animation-delay equal to its share of the period. */
+      .orbit.p1 { animation-delay: -0s;     }
+      .orbit.p2 { animation-delay: -0.667s; }
+      .orbit.p3 { animation-delay: -1.333s; }
+      .orbit.p4 { animation-delay: -2s;     }
+      .orbit.p5 { animation-delay: -2.667s; }
+      .orbit.p6 { animation-delay: -3.333s; }
+
+      /* Staggered fade-in for each orbit (separate animation runs alongside) */
+      .orbit { animation: solar-orbit 4s linear infinite, solar-orbit-fade-in 400ms ease-out forwards; }
+      .orbit.p1 { animation-delay: -0s,     200ms; }
+      .orbit.p2 { animation-delay: -0.667s, 290ms; }
+      .orbit.p3 { animation-delay: -1.333s, 380ms; }
+      .orbit.p4 { animation-delay: -2s,     470ms; }
+      .orbit.p5 { animation-delay: -2.667s, 560ms; }
+      .orbit.p6 { animation-delay: -3.333s, 650ms; }
+      @keyframes solar-orbit-fade-in {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
+
+      /* Color tints per planet */
+      .planet.chordex { box-shadow: 0 0 12px 3px rgba(139,92,246,0.4); border-color: rgba(139,92,246,0.5); }
+      .planet.drumex  { box-shadow: 0 0 12px 3px rgba(249,115,22,0.4); border-color: rgba(249,115,22,0.5); }
+      .planet.stagex  { box-shadow: 0 0 12px 3px rgba(245,158,11,0.4); border-color: rgba(245,158,11,0.5); }
+      .planet.groovex { box-shadow: 0 0 12px 3px rgba(16,185,129,0.4); border-color: rgba(16,185,129,0.5); }
+      .planet.vocalex { box-shadow: 0 0 12px 3px rgba(59,130,246,0.4); border-color: rgba(59,130,246,0.5); }
+
+      @media (prefers-reduced-motion: reduce) {
+        #solar-intro { animation: solar-overlay-out 200ms 100ms forwards; }
+      }
     </style>
   </head>
   <body>
+    <div id="solar-intro" aria-hidden="true">
+      <div id="solar-glow"></div>
+      <div id="solar-ring"></div>
+
+      <!-- 6 orbiting planets, evenly spaced via negative animation-delays -->
+      <div class="orbit p1"><div class="planet chordex">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h14" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </div></div>
+      <div class="orbit p2"><div class="planet drumex">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="rgba(255,255,255,0.85)" stroke-width="1.8"/><circle cx="12" cy="12" r="2.2" fill="rgba(255,255,255,0.85)"/></svg>
+      </div></div>
+      <div class="orbit p3"><div class="planet studio">
+        <svg viewBox="0 0 512 512" fill="none"><path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256" stroke="white" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      </div></div>
+      <div class="orbit p4"><div class="planet stagex">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="9" width="3" height="6" fill="rgba(255,255,255,0.85)" rx="0.6"/><rect x="8" y="6" width="3" height="12" fill="rgba(255,255,255,0.85)" rx="0.6"/><rect x="13" y="9" width="3" height="6" fill="rgba(255,255,255,0.85)" rx="0.6"/><rect x="18" y="7" width="3" height="10" fill="rgba(255,255,255,0.85)" rx="0.6"/></svg>
+      </div></div>
+      <div class="orbit p5"><div class="planet groovex">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"/><circle cx="12" cy="12" r="1.3" fill="rgba(255,255,255,0.85)"/></svg>
+      </div></div>
+      <div class="orbit p6"><div class="planet vocalex">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" fill="rgba(255,255,255,0.85)"/><path d="M6 12a6 6 0 0 0 12 0M12 18v3" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div></div>
+
+      <div id="solar-wordmark">
+        <span class="w-logo">
+          <svg width="64" height="64" viewBox="0 0 512 512" fill="none">
+            <path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256"
+                  stroke="white" stroke-width="44"
+                  stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </span>
+        <p class="w-title">Studio</p>
+        <p class="w-sub">by Mag</p>
+      </div>
+    </div>
     <div id="root"></div>
+    <script>
+      // Remove the overlay from the DOM after its fade-out completes, so it
+      // can never intercept pointer events on the hub.
+      setTimeout(function () {
+        var el = document.getElementById('solar-intro');
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+      }, 5400);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

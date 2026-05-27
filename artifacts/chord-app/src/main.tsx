@@ -5,7 +5,10 @@ import App from "./App";
 import { tolgee } from "./lib/i18nSetup";
 import { notifyBundleReady, ensureNotificationPermission } from "./lib/capgoUpdater";
 import { seedAudioAssets } from "./lib/assetCache";
-import StudioSolarIntro from "./components/StudioSolarIntro";
+// StudioSolarIntro removed from the React tree — the solar-system startup
+// animation now lives inline in index.html so it paints on the FIRST frame,
+// before the JS bundle has to download/parse/mount. The .tsx file is kept
+// in source for now in case we want to reuse pieces of it later.
 import "./index.css";
 
 // Tell the Capgo updater plugin that this bundle booted successfully.
@@ -53,9 +56,6 @@ function GlobalOverlays() {
 
 createRoot(document.getElementById("root")!).render(
   <TolgeeProvider tolgee={tolgee} fallback={null}>
-    {/* Solar intro — shown once per browser session, covers the app shell
-        with the orbiting-planets animation then auto-dismisses. */}
-    <StudioSolarIntro />
     <App />
     {/* Global post-update changelog overlay + OTA indicator */}
     <GlobalOverlays />
