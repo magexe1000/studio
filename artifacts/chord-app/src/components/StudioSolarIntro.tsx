@@ -2,14 +2,17 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 
-// Show once per browser session — users see it every time they open the app
 const SESSION_KEY = 'studio_solar_shown';
 
 function easeInOut(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-// 6 planets evenly spaced — Studio is index 2 (3rd position)
+function easeOut(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+// 6 planets — Studio is index 2 (3rd position, orbits like the others)
 const PLANET_DEFS = [
   { name: 'Chordex', glow: '#8b5cf6', Icon: ChordexLogo,    startAngle: 0,                  isStudio: false },
   { name: 'Drumex',  glow: '#f97316', Icon: DrumexLogo,     startAngle: Math.PI / 3,        isStudio: false },
@@ -19,7 +22,6 @@ const PLANET_DEFS = [
   { name: 'Vocalex', glow: '#3b82f6', Icon: VocalexLogo,    startAngle: (Math.PI * 5) / 3,  isStudio: false },
 ];
 
-// Deterministic star field (44 stars, no Math.random() for SSR stability)
 const STARS = Array.from({ length: 44 }, (_, i) => ({
   x:    ((i * 347 + 23) % 88) + 6,
   y:    ((i * 211 + 41) % 88) + 6,
@@ -27,9 +29,6 @@ const STARS = Array.from({ length: 44 }, (_, i) => ({
   del:  (i * 0.31) % 3,
   dur:  2.2 + (i % 3) * 0.7,
 }));
-
-// Final Y positions for 6 planets settling into a column (35px gaps)
-const FINAL_Y = [-88, -53, -18, 17, 52, 87];
 
 export default function StudioSolarIntro() {
   const shouldShow = useMemo(() => {
@@ -42,16 +41,19 @@ export default function StudioSolarIntro() {
     } catch { return false; }
   }, []);
 
-  const [visible,  setVisible]  = useState(shouldShow);
-  const [fadeOut,  setFadeOut]  = useState(false);
+  const [visible, setVisible] = useState(shouldShow);
+  const [fadeOut, setFadeOut] = useState(false);
 
   const planetRefs = useRef<Array<HTMLDivElement | null>>([null, null, null, null, null, null]);
   const ringRef    = useRef<SVGEllipseElement>(null);
   const starsRef   = useRef<HTMLDivElement>(null);
   const glowRef    = useRef<HTMLDivElement>(null);
+  const wordmarkRef = useRef<HTMLDivElement>(null);
+
+  // Stores the (x,y) each planet flies toward during the settle phase
+  const finalPosRef = useRef<{ x: number; y: number }[]>([]);
 
   const { settings } = useChordStore();
-
   const rawTheme      = settings.theme;
   const sysLight      = typeof window !== 'undefined'
     ? window.matchMedia('(prefers-color-scheme: light)').matches : false;
@@ -59,31 +61,60 @@ export default function StudioSolarIntro() {
   const isLight       = resolvedTheme === 'light';
   const isAmoled      = !isLight && !!settings.amoledMode;
 
-  const bg          = isLight ? '#f2f1ef' : isAmoled ? '#000000' : '#0e0e0e';
-  const textPri     = isLight ? '#1a1a1a' : '#e7e5e4';
-  const textSec     = isLight ? '#6e6d6b' : '#acabaa';
-  const ringColor   = isLight ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.16)';
-  const starColor   = isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.55)';
-  const pillBg      = isLight ? 'rgba(0,0,0,0.07)'  : 'rgba(255,255,255,0.08)';
-  const pillBorder  = isLight ? 'rgba(0,0,0,0.10)'  : 'rgba(255,255,255,0.11)';
+  const bg         = isLight ? '#f2f1ef' : isAmoled ? '#000000' : '#0e0e0e';
+  const textPri    = isLight ? '#1a1a1a' : '#e7e5e4';
+  const textSec    = isLight ? '#6e6d6b' : '#acabaa';
+  const ringColor  = isLight ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.16)';
+  const starColor  = isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.55)';
+  const pillBg     = isLight ? 'rgba(0,0,0,0.07)'  : 'rgba(255,255,255,0.08)';
+  const pillBorder = isLight ? 'rgba(0,0,0,0.10)'  : 'rgba(255,255,255,0.11)';
 
   const accent = ACCENT_COLORS[settings.accentColor ?? 'blue'] ?? ACCENT_COLORS.blue;
 
   useEffect(() => {
     if (!shouldShow) return;
 
-    const R = Math.min(Math.min(window.innerWidth, window.innerHeight) * 0.35, 148);
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const R = Math.min(Math.min(W, H) * 0.35, 148);
 
     if (ringRef.current) {
       ringRef.current.setAttribute('rx', String(R));
       ringRef.current.setAttribute('ry', String(R));
     }
 
-    const ORBIT_PERIOD = 2600;
-    const ENTER_END    = 420;
-    const ORBIT_END    = 2700;
-    const SETTLE_END   = 3430;
-    const FADEOUT_END  = 3850;
+    // ── Compute final positions (approximate home screen icon locations) ──
+    // These are offsets from screen center (50%, 50%)
+    const cx = W / 2;
+    const cy = H / 2;
+
+    // Studio waveform logo sits near the top of the home screen (≈11% from top)
+    const studioFinalX = 0;
+    const studioFinalY = H * 0.11 - cy;
+
+    // App icons sit in a left-aligned column, in a card that starts ≈27% down
+    const cardTopY = H * 0.27;
+    const rowH     = Math.min(68, H * 0.082);
+    const iconCX   = -(cx - 82); // icon centers ≈82px from left edge
+
+    // Map PLANET_DEFS[i] → home screen row
+    // [0]=Chordex row0, [1]=Drumex row1, [2]=Studio header, [3]=Stagex row2, [4]=Groovex row3, [5]=Vocalex row4
+    const rowMap = [0, 1, -1, 2, 3, 4];
+    finalPosRef.current = PLANET_DEFS.map((def, i) => {
+      if (def.isStudio) return { x: studioFinalX, y: studioFinalY };
+      const row = rowMap[i];
+      return { x: iconCX, y: cardTopY + 48 + row * rowH - cy };
+    });
+
+    // ── Timing (ms) ────────────────────────────────────────────────────────
+    const ORBIT_PERIOD  = 2600;
+    const ENTER_END     = 420;
+    const ORBIT_END     = 2700;
+    const STAGGER_MS    = 65;    // each planet starts settling 65ms after the previous
+    const SETTLE_DUR    = 720;   // each planet's settle animation lasts 720ms
+    const LAST_START    = ORBIT_END + (PLANET_DEFS.length - 1) * STAGGER_MS;
+    const SETTLE_END    = LAST_START + SETTLE_DUR;
+    const FADEOUT_END   = SETTLE_END + 380;
 
     let raf: number;
     const t0 = performance.now();
@@ -103,29 +134,50 @@ export default function StudioSolarIntro() {
       }
 
       const settling    = elapsed > ORBIT_END;
-      const settleT     = settling ? Math.min((elapsed - ORBIT_END) / (SETTLE_END - ORBIT_END), 1) : 0;
-      const easedS      = easeInOut(settleT);
+      // Global settle progress (for ring/stars/glow fade)
+      const settleT     = settling
+        ? Math.min((elapsed - ORBIT_END) / (SETTLE_END - ORBIT_END), 1)
+        : 0;
+      const easedS      = easeOut(settleT);
 
-      const orbitBase   = elapsed - ENTER_END;
-      const settleExtra = settling ? (elapsed - ORBIT_END) * (1 - easedS * 0.92) : 0;
-      const baseElapsed = settling
+      // Orbit elapsed — decelerate during settle so planets slow down
+      const orbitBase    = Math.max(0, elapsed - ENTER_END);
+      const settleExtra  = settling
+        ? (elapsed - ORBIT_END) * (1 - easeInOut(Math.min((elapsed - ORBIT_END) / 600, 1)) * 0.94)
+        : 0;
+      const baseElapsed  = settling
         ? (ORBIT_END - ENTER_END) + settleExtra
-        : Math.max(0, orbitBase);
-      const currentR    = R * (1 - easedS);
+        : orbitBase;
 
-      if (ringRef.current)  ringRef.current.style.opacity  = String(Math.max(0, 1 - easedS * 1.6));
-      if (starsRef.current) starsRef.current.style.opacity = String(Math.max(0, 1 - easedS * 1.3));
-      if (glowRef.current)  glowRef.current.style.opacity  = String(Math.max(0, 1 - easedS * 1.4));
+      if (ringRef.current)    ringRef.current.style.opacity    = String(Math.max(0, 1 - easedS * 1.5));
+      if (starsRef.current)   starsRef.current.style.opacity   = String(Math.max(0, 1 - easedS * 1.2));
+      if (glowRef.current)    glowRef.current.style.opacity    = String(Math.max(0, 1 - easedS * 1.3));
+      if (wordmarkRef.current) wordmarkRef.current.style.opacity = String(Math.max(0, 1 - easedS * 1.6));
 
       PLANET_DEFS.forEach((def, i) => {
         const el   = planetRefs.current[i];
         if (!el) return;
         const half  = def.isStudio ? 27 : 22;
         const angle = def.startAngle + (baseElapsed / ORBIT_PERIOD) * Math.PI * 2;
-        const tx    = Math.cos(angle) * currentR * (1 - easedS);
-        const ty    = Math.sin(angle) * currentR * (1 - easedS) + FINAL_Y[i] * easedS;
-        el.style.transform = `translate(${tx - half}px, ${ty - half}px)`;
-        if (settling) el.style.opacity = String(Math.max(0, 1 - easedS * 0.45));
+        const orbitX = Math.cos(angle) * R;
+        const orbitY = Math.sin(angle) * R;
+
+        if (!settling) {
+          el.style.transform = `translate(${orbitX - half}px, ${orbitY - half}px)`;
+        } else {
+          // Per-planet staggered settle
+          const pDelay   = i * STAGGER_MS;
+          const pElapsed = Math.max(0, elapsed - ORBIT_END - pDelay);
+          const pEase    = easeInOut(Math.min(pElapsed / SETTLE_DUR, 1));
+
+          const fp = finalPosRef.current[i] ?? { x: 0, y: 0 };
+          const tx = orbitX * (1 - pEase) + fp.x * pEase;
+          const ty = orbitY * (1 - pEase) + fp.y * pEase;
+
+          el.style.transform = `translate(${tx - half}px, ${ty - half}px)`;
+          // Fade fully to 0 — smooth eased fade, slightly delayed so planet moves first
+          el.style.opacity   = String(Math.max(0, 1 - Math.pow(pEase, 0.65)));
+        }
       });
 
       raf = requestAnimationFrame(tick);
@@ -144,15 +196,15 @@ export default function StudioSolarIntro() {
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
         background: bg, overflow: 'hidden',
-        opacity: fadeOut ? 0 : 1,
-        transition: fadeOut ? 'opacity 420ms cubic-bezier(0.4,0,1,1)' : 'none',
+        opacity:    fadeOut ? 0 : 1,
+        transition: fadeOut ? 'opacity 380ms cubic-bezier(0.4,0,1,1)' : 'none',
         pointerEvents: fadeOut ? 'none' : 'auto',
         userSelect: 'none',
       }}
       onClick={() => {
         try { sessionStorage.setItem(SESSION_KEY, '1'); } catch {}
         setFadeOut(true);
-        setTimeout(() => setVisible(false), 420);
+        setTimeout(() => setVisible(false), 380);
       }}
     >
       {/* Star field */}
@@ -179,7 +231,7 @@ export default function StudioSolarIntro() {
         />
       </svg>
 
-      {/* Center nebula glow — no icon, no blue box */}
+      {/* Center nebula glow */}
       <div
         ref={glowRef}
         style={{
@@ -193,13 +245,16 @@ export default function StudioSolarIntro() {
       />
 
       {/* Center wordmark */}
-      <div style={{
-        position: 'absolute', top: '50%', left: '50%',
-        transform: 'translate(-50%, -52%)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-        animation: 'solar-sun-in 700ms cubic-bezier(0.34,1.56,0.64,1) forwards',
-        zIndex: 2, pointerEvents: 'none',
-      }}>
+      <div
+        ref={wordmarkRef}
+        style={{
+          position: 'absolute', top: '50%', left: '50%',
+          transform: 'translate(-50%, -52%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+          animation: 'solar-sun-in 700ms cubic-bezier(0.34,1.56,0.64,1) forwards',
+          zIndex: 2, pointerEvents: 'none',
+        }}
+      >
         <p style={{
           color: textPri, fontSize: 28, fontWeight: 800,
           fontFamily: 'Manrope, sans-serif', margin: 0, letterSpacing: '-0.03em',
@@ -215,12 +270,8 @@ export default function StudioSolarIntro() {
         const size        = def.isStudio ? 54 : 44;
         const iconSize    = def.isStudio ? 28 : 22;
         const glowColor   = def.isStudio ? accent.from : def.glow;
-        const borderStyle = def.isStudio
-          ? `1px solid ${accent.from}55`
-          : `1px solid ${pillBorder}`;
-        const bgStyle     = def.isStudio
-          ? `${accent.from}18`
-          : pillBg;
+        const borderStyle = def.isStudio ? `1px solid ${accent.from}55` : `1px solid ${pillBorder}`;
+        const bgStyle     = def.isStudio ? `${accent.from}18` : pillBg;
 
         return (
           <div
@@ -237,8 +288,7 @@ export default function StudioSolarIntro() {
             <div style={{
               width: size, height: size,
               borderRadius: def.isStudio ? 17 : 14,
-              background: bgStyle,
-              border: borderStyle,
+              background: bgStyle, border: borderStyle,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: def.isStudio
                 ? `0 0 20px 7px ${glowColor}55, 0 0 44px 18px ${glowColor}22`
