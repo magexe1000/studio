@@ -32,13 +32,12 @@
         background: #0e0e0e;
         display: flex; align-items: center; justify-content: center;
         overflow: hidden;
-        animation: solar-overlay-out 600ms 4600ms cubic-bezier(0.4,0,0.2,1) forwards;
+        pointer-events: none; /* never block hub taps */
+        opacity: 1;
+        transition: opacity 600ms cubic-bezier(0.4,0,0.2,1);
       }
-      @keyframes solar-overlay-out {
-        from { opacity: 1; visibility: visible; }
-        to   { opacity: 0; visibility: hidden; }
-      }
-      #solar-intro.dismissed { display: none; }
+      #solar-intro.dismissing { opacity: 0; }
+      #solar-intro.dismissed   { display: none; }
 
       /* Center nebula glow */
       #solar-glow {
@@ -155,7 +154,14 @@
       .planet.vocalex { box-shadow: 0 0 12px 3px rgba(59,130,246,0.4); border-color: rgba(59,130,246,0.5); }
 
       @media (prefers-reduced-motion: reduce) {
-        #solar-intro { animation: solar-overlay-out 200ms 100ms forwards; }
+        /* Disable orbits, glow pulse, and entrance animations entirely;
+           the inline script will still dismiss the overlay early. */
+        #solar-intro,
+        #solar-intro * {
+          animation: none !important;
+          transition: opacity 200ms linear !important;
+        }
+        .orbit, .planet, #solar-wordmark, #solar-ring { opacity: 1 !important; }
       }
     </style>
   </head>
@@ -198,12 +204,63 @@
     </div>
     <div id="root"></div>
     <script>
-      // Remove the overlay from the DOM after its fade-out completes, so it
-      // can never intercept pointer events on the hub.
-      setTimeout(function () {
-        var el = document.getElementById('solar-intro');
-        if (el && el.parentNode) el.parentNode.removeChild(el);
-      }, 5400);
+      // Dismiss the overlay when BOTH: (a) a minimum visible time has
+      // elapsed so the animation isn't cut short, AND (b) React has actually
+      // mounted the hub (so we never reveal a blank/gray screen during
+      // bundle parse). A safety timeout dismisses no matter what at 10s.
+      (function () {
+        var MIN_VISIBLE_MS = 3800; // keep intro on screen at least this long
+        var SAFETY_MS      = 10000;
+        var startedAt      = Date.now();
+        var rootEl         = document.getElementById('root');
+        var overlayEl      = document.getElementById('solar-intro');
+        if (!overlayEl) return;
+
+        var dismissed = false;
+        var observer  = null;
+        var pollId    = 0;
+        function dismiss() {
+          if (dismissed) return;
+          dismissed = true;
+          if (observer) { observer.disconnect(); observer = null; }
+          if (pollId)   { clearInterval(pollId); pollId = 0; }
+          overlayEl.classList.add('dismissing');
+          setTimeout(function () {
+            overlayEl.classList.add('dismissed');
+            if (overlayEl.parentNode) overlayEl.parentNode.removeChild(overlayEl);
+          }, 650);
+        }
+
+        function reactMounted() {
+          return !!(rootEl && rootEl.children && rootEl.children.length > 0);
+        }
+
+        function tryDismiss() {
+          if (dismissed) return;
+          var elapsed = Date.now() - startedAt;
+          if (reactMounted() && elapsed >= MIN_VISIBLE_MS) {
+            dismiss();
+          } else if (reactMounted()) {
+            // React is ready early — wait out the remaining min-visible time.
+            if (observer) { observer.disconnect(); observer = null; }
+            if (pollId)   { clearInterval(pollId); pollId = 0; }
+            setTimeout(dismiss, MIN_VISIBLE_MS - elapsed);
+          }
+        }
+
+        if (rootEl && 'MutationObserver' in window) {
+          observer = new MutationObserver(tryDismiss);
+          observer.observe(rootEl, { childList: true, subtree: false });
+        }
+        // After min-visible time, poll #root every 100ms so we dismiss
+        // promptly once React mounts (works even without MutationObserver).
+        setTimeout(function () {
+          tryDismiss();
+          if (!dismissed) pollId = setInterval(tryDismiss, 100);
+        }, MIN_VISIBLE_MS);
+        // Hard safety net: dismiss no matter what.
+        setTimeout(dismiss, SAFETY_MS);
+      })();
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
