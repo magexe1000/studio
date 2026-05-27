@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
+import SuccessLottie from '../components/lottie/SuccessLottie';
 import { getAllChords, getChordById, type Chord, type ChordType, type GuitarChordData } from '../data/chords';
 import { useChordStore, ACCENT_COLORS, type SongPreset, type SongSection, type CustomChord } from '../store/useChordStore';
 import { transposeChordId, transposeKeyString, formatOffset } from '../lib/transpose';
@@ -1619,8 +1620,11 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
         {/* Export button */}
         <div style={{ padding: '6px 16px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))', display: 'flex', gap: '10px', position: 'relative' }}>
           {saveResult && (
-            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, textAlign: 'center', padding: '6px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px',
+            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '6px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px',
               color: saveResult === 'ok' ? '#34d399' : '#f87171' }}>
+              {saveResult === 'ok' && (
+                <SuccessLottie size={20} isLight={false} style={{ flexShrink: 0 }} />
+              )}
               {saveResult === 'ok' ? 'Saved to Downloads!' : 'Could not save — try Share instead'}
             </div>
           )}

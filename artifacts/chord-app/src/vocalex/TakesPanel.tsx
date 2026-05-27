@@ -4,6 +4,8 @@ import {
   extractWaveformPeaks, blobToAudioBuffer,
   type TakeRecord,
 } from './takesDb';
+import LoadingLottie from '../components/lottie/LoadingLottie';
+import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
 import { analyzeAudio, type VocalAnalysis, type AnalysisLabels } from './vocalAnalysis';
 import { useT } from '../lib/useT';
 import { setVocalexBack } from './headerBack';
@@ -127,14 +129,18 @@ export default function TakesPanel() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--vx-text-2)', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>{t.vocalex.loading}</div>
+        <div style={{ padding: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <LoadingLottie width={48} />
+          <span style={{ color: 'var(--vx-text-2)', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>{t.vocalex.loading}</span>
+        </div>
       ) : takes.length === 0 ? (
         <div style={{
           padding: '48px 24px', textAlign: 'center',
           background: 'var(--vx-card-2)', borderRadius: 16,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 40, color: 'var(--vx-text-4)', marginBottom: 12, display: 'block' }}>mic_none</span>
-          <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--vx-text)', margin: '0 0 6px' }}>{t.vocalex.noTakesYet}</p>
+          <EmptyStateLottie app="vocalex" size={56} style={{ marginBottom: 2 }} />
+          <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--vx-text)', margin: 0 }}>{t.vocalex.noTakesYet}</p>
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', margin: 0 }}>{t.vocalex.noTakesHint}</p>
         </div>
       ) : (

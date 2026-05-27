@@ -2,6 +2,7 @@ import {
   memo, useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
+import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
 import { useT } from '../lib/useT';
 import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, INSTRUMENT_NAME, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS, CYMBAL_PACKS,
@@ -3335,10 +3336,10 @@ export default function DrumEditor() {
                 )}
 
                 {grooves.length === 0 ? (
-                  <div style={{ margin: '0 16px 24px', padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.18)', textAlign: 'center' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--c-text-muted)', display: 'block', marginBottom: 8 }}>library_music</span>
+                  <div style={{ margin: '0 16px 24px', padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.18)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <EmptyStateLottie app="drumex" size={52} isLight={isLight} />
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No grooves saved yet</p>
-                    <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--c-text-muted)' }}>Save any pattern to build your personal library</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'var(--c-text-muted)' }}>Save any pattern to build your personal library</p>
                   </div>
                 ) : (
                   <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -3426,8 +3427,8 @@ export default function DrumEditor() {
             {libCategory !== 'My Grooves' && (
               <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {filteredLibrary.length === 0 ? (
-                  <div style={{ padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', textAlign: 'center' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 28, color: 'var(--c-text-muted)', display: 'block', marginBottom: 6 }}>search_off</span>
+                  <div style={{ padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <EmptyStateLottie app="drumex" size={44} isLight={isLight} />
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No patterns found</p>
                   </div>
                 ) : (<>
