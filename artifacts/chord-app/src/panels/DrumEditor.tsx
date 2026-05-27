@@ -3,6 +3,8 @@ import {
 } from 'react';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
+import LoadingLottie from '../components/lottie/LoadingLottie';
+import SuccessLottie from '../components/lottie/SuccessLottie';
 import { useT } from '../lib/useT';
 import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, INSTRUMENT_NAME, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS, CYMBAL_PACKS,
@@ -2596,15 +2598,21 @@ export default function DrumEditor() {
                   })}
                 </div>
                 {!houseLoaded && (
-                  <div style={{ marginTop: 5, fontSize: 10.5, color: 'var(--c-text-muted)', fontFamily: 'Inter,sans-serif' }}>
-                    {houseProgress.total > 0
-                      ? `Loading… ${houseProgress.loaded}/${houseProgress.total}`
-                      : 'Loading samples…'}
+                  <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <LoadingLottie width={16} />
+                    <span style={{ fontSize: 10.5, color: 'var(--c-text-muted)', fontFamily: 'Inter,sans-serif' }}>
+                      {houseProgress.total > 0
+                        ? `${houseProgress.loaded}/${houseProgress.total}`
+                        : 'Loading…'}
+                    </span>
                   </div>
                 )}
                 {houseLoaded && (
-                  <div style={{ marginTop: 5, fontSize: 10.5, color: accent.from, fontFamily: 'Inter,sans-serif' }}>
-                    ✓ Samples ready
+                  <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <SuccessLottie size={16} isLight={isLight} />
+                    <span style={{ fontSize: 10.5, color: accent.from, fontFamily: 'Inter,sans-serif' }}>
+                      Samples ready
+                    </span>
                   </div>
                 )}
               </div>

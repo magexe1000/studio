@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import VinylLottie from '../components/lottie/VinylLottie';
+import LoadingLottie from '../components/lottie/LoadingLottie';
 import { useScrollHide } from '../lib/navScroll';
 import { SONG_CATALOG } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
@@ -353,8 +355,9 @@ export default function GroovexPlayer() {
 
   if (!song) {
     return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)' }}>
-        <p>{t.groovex.noSongSelected}</p>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, color: 'var(--c-text-secondary)' }}>
+        <VinylLottie size={64} />
+        <p style={{ fontSize: 14, margin: 0 }}>{t.groovex.noSongSelected}</p>
       </div>
     );
   }
@@ -472,7 +475,7 @@ export default function GroovexPlayer() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 22, color: 'var(--gx-accent)', animation: 'spin 1s linear infinite' }}>progress_activity</span>
+                  <LoadingLottie width={26} />
                   <div>
                     <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>{t.groovex.downloading}</p>
                     <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0', fontFamily: 'Inter' }}>

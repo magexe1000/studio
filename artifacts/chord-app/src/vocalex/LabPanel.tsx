@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import MicWavesLottie from '../components/lottie/MicWavesLottie';
 import { getAllSessions, saveSession, deleteSession, createLayer, createDefaultEffects, type LabSession, type LabLayer, type TrackEffect } from './labSessionDb';
 import { getAllTakes, type TakeRecord } from './takesDb';
 import { useT } from '../lib/useT';
@@ -1032,7 +1033,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
 
       {session.layers.length === 0 ? (
         <div style={{ background: 'var(--vx-card)', borderRadius: 14, padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--vx-text-4)' }}>queue_music</span>
+          <MicWavesLottie size={52} />
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-3)', margin: 0, textAlign: 'center' }}>{t.vocalex.noTracksYet}</p>
           <button onClick={() => setShowAddSheet(true)} style={{
             marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 9999,

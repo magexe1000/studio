@@ -13,6 +13,7 @@ import ProgressionGenerator from '../components/ProgressionGenerator';
 import { setBackHandler } from '../lib/backStack';
 import { playChord, stopChordPlayback } from '../lib/guitarAudio';
 import type { GuitarChordData } from '../data/chords';
+import MusicNotesLottie from '../components/lottie/MusicNotesLottie';
 
 function RelatedPlayBtn({ guitar, accent }: {
   guitar: GuitarChordData;
@@ -138,7 +139,7 @@ export default function ChordPanel() {
           </h1>
         </header>
         <div className="flex-1 flex flex-col items-center justify-center px-6">
-          <span className="material-symbols-outlined mb-4" style={{ fontSize: '52px', color: 'var(--c-text-muted)' }}>music_note</span>
+          <MusicNotesLottie size={52} isLight={settings.theme === 'light'} style={{ marginBottom: 16 }} />
           <p style={{ color: 'var(--c-text-secondary)', fontSize: '14px', fontFamily: 'Inter', marginBottom: '20px', textAlign: 'center' }}>{t.chord.emptyState}</p>
           <button
             onClick={() => setShowFinder(true)}

@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
+import NoResultsLottie from '../components/lottie/NoResultsLottie';
 import { SONG_CATALOG, getArtists, getGenres } from './songCatalog';
 import type { SongMeta } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
@@ -157,7 +158,7 @@ export default function GroovexLibrary() {
 
         {filteredSongs.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--c-text-secondary)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 48, marginBottom: 12, display: 'block', opacity: 0.4 }}>search_off</span>
+            <NoResultsLottie size={52} style={{ marginBottom: 6 }} />
             <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>{t.groovex.noSongsFound}</p>
             <p style={{ fontSize: 13, margin: 0 }}>{t.groovex.noSongsHint}</p>
           </div>
