@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v3 -->
+<!-- v4 -->
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
@@ -23,193 +23,293 @@
     <style>
       html, body { background: #0e0e0e; margin: 0; padding: 0; }
 
-      /* ── Inline solar-system startup intro ─────────────────────────────
-         Lives in index.html so it paints on the FIRST frame, before any
-         JS bundle has to download/parse/mount. Auto-dismisses after ~5s.
+      /* ── Inline floating-icons startup intro ───────────────────────────
+         Animata-style: a central Studio logo with scattered, gently-floating
+         app icons (with labels) drifting around it. After ~2.8s the icons
+         glide into a left-aligned vertical column — the same arrangement
+         they'll appear in inside the hub's app list — then the overlay
+         fades out, revealing the real hub already in place.
+         Lives inline in index.html so it paints on the FIRST frame.
       ────────────────────────────────────────────────────────────────── */
       #solar-intro {
         position: fixed; inset: 0; z-index: 2147483647;
-        background: #0e0e0e;
-        display: flex; align-items: center; justify-content: center;
+        background:
+          radial-gradient(ellipse at center, #15151c 0%, #0b0b0f 70%, #050507 100%);
         overflow: hidden;
-        pointer-events: none; /* never block hub taps */
+        pointer-events: none;
         opacity: 1;
         transition: opacity 600ms cubic-bezier(0.4,0,0.2,1);
+        font-family: Manrope, system-ui, -apple-system, sans-serif;
       }
       #solar-intro.dismissing { opacity: 0; }
       #solar-intro.dismissed   { display: none; }
 
-      /* Center nebula glow */
-      #solar-glow {
-        position: absolute; width: 280px; height: 280px;
+      /* Soft purple/blue nebula behind everything */
+      #intro-glow {
+        position: absolute; top: 50%; left: 50%;
+        width: 480px; height: 480px;
+        margin: -240px 0 0 -240px;
+        background: radial-gradient(circle,
+          rgba(120,110,255,0.22) 0%,
+          rgba(80,90,200,0.10) 40%,
+          transparent 70%);
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(120,140,255,0.22) 0%, rgba(120,140,255,0.06) 45%, transparent 70%);
-        animation: solar-glow-pulse 3.5s ease-in-out infinite;
-        pointer-events: none;
+        animation: intro-glow-pulse 5s ease-in-out infinite;
+        filter: blur(10px);
       }
-      @keyframes solar-glow-pulse {
+      @keyframes intro-glow-pulse {
         0%,100% { transform: scale(1);    opacity: 0.85; }
-        50%     { transform: scale(1.12); opacity: 1;    }
+        50%     { transform: scale(1.15); opacity: 1;    }
       }
 
-      /* Dashed orbit ring */
-      #solar-ring {
-        position: absolute;
-        width: 256px; height: 256px;
-        border-radius: 50%;
-        border: 1px dashed rgba(255,255,255,0.18);
-        opacity: 0;
-        animation: solar-ring-in 600ms 200ms ease-out forwards;
-        pointer-events: none;
+      /* Tiny twinkling stars layer */
+      #intro-stars {
+        position: absolute; inset: 0;
+        background-image:
+          radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.7) 50%, transparent),
+          radial-gradient(1px 1px at 78% 22%, rgba(255,255,255,0.5) 50%, transparent),
+          radial-gradient(1.5px 1.5px at 30% 78%, rgba(255,255,255,0.6) 50%, transparent),
+          radial-gradient(1px 1px at 88% 70%, rgba(255,255,255,0.7) 50%, transparent),
+          radial-gradient(1px 1px at 55% 12%, rgba(255,255,255,0.4) 50%, transparent),
+          radial-gradient(1px 1px at 8% 60%, rgba(255,255,255,0.5) 50%, transparent),
+          radial-gradient(1.5px 1.5px at 65% 85%, rgba(255,255,255,0.55) 50%, transparent),
+          radial-gradient(1px 1px at 42% 38%, rgba(255,255,255,0.35) 50%, transparent);
+        animation: intro-stars-twinkle 4s ease-in-out infinite;
+        opacity: 0.7;
       }
-      @keyframes solar-ring-in {
-        from { opacity: 0; transform: scale(0.85); }
-        to   { opacity: 1; transform: scale(1);    }
-      }
-
-      /* Center wordmark */
-      #solar-wordmark {
-        position: relative; z-index: 3;
-        display: flex; flex-direction: column; align-items: center; gap: 6px;
-        opacity: 0;
-        animation: solar-wordmark-in 700ms 150ms cubic-bezier(0.34,1.56,0.64,1) forwards;
-        font-family: Manrope, system-ui, -apple-system, sans-serif;
-      }
-      @keyframes solar-wordmark-in {
-        from { opacity: 0; transform: scale(0.4); }
-        to   { opacity: 1; transform: scale(1);   }
-      }
-      #solar-wordmark .w-logo svg { display: block; }
-      #solar-wordmark .w-title {
-        font-size: 30px; font-weight: 800; color: #ffffff;
-        letter-spacing: -0.03em; margin: 6px 0 0;
-      }
-      #solar-wordmark .w-sub {
-        font-size: 11px; color: rgba(255,255,255,0.5);
-        letter-spacing: 0.08em; margin: 0;
+      @keyframes intro-stars-twinkle {
+        0%,100% { opacity: 0.5; }
+        50%     { opacity: 0.95; }
       }
 
-      /* Orbit wrappers — each rotates around the center, planet sits at the rim */
-      .orbit {
-        position: absolute; width: 0; height: 0;
-        animation: solar-orbit 4s linear infinite;
-        opacity: 0;
-        animation-fill-mode: both;
+      /* Central Studio logo + title */
+      #intro-center {
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex; flex-direction: column; align-items: center;
+        gap: 12px;
+        z-index: 3;
+        animation: intro-center-life 4400ms cubic-bezier(0.4,0,0.2,1) forwards;
       }
-      @keyframes solar-orbit {
-        from { transform: rotate(0deg);   }
-        to   { transform: rotate(360deg); }
+      @keyframes intro-center-life {
+        0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+        12%  { opacity: 1; transform: translate(-50%, -50%) scale(1);   }
+        62%  { opacity: 1; transform: translate(-50%, -50%) scale(1);   }
+        85%  { opacity: 0; transform: translate(-50%, calc(-50% - 30px)) scale(0.7); }
+        100% { opacity: 0; transform: translate(-50%, calc(-50% - 30px)) scale(0.7); }
       }
-      .planet {
-        position: absolute;
-        top: -128px; /* orbit radius */
-        left: -20px; width: 40px; height: 40px;
-        border-radius: 12px;
+      #intro-center .pill {
+        width: 88px; height: 88px; border-radius: 26px;
         display: flex; align-items: center; justify-content: center;
-        background: rgba(255,255,255,0.07);
-        border: 1px solid rgba(255,255,255,0.12);
-        animation: solar-planet-in 500ms ease-out both;
+        background: linear-gradient(135deg, #7c83ff 0%, #5560e0 100%);
+        box-shadow:
+          0 0 32px 10px rgba(120,140,255,0.45),
+          0 0 80px 30px rgba(120,140,255,0.18),
+          inset 0 1px 0 rgba(255,255,255,0.25);
+        animation: intro-center-bob 3.2s ease-in-out infinite;
       }
-      @keyframes solar-planet-in {
-        from { opacity: 0; transform: scale(0.4); }
-        to   { opacity: 1; transform: scale(1);   }
+      @keyframes intro-center-bob {
+        0%,100% { transform: translateY(0); }
+        50%     { transform: translateY(-6px); }
       }
-      .planet.studio {
-        width: 50px; height: 50px; border-radius: 16px; left: -25px; top: -132px;
-        background: rgba(120,140,255,0.15);
-        border: 1px solid rgba(120,140,255,0.4);
-        box-shadow: 0 0 22px 8px rgba(120,140,255,0.32), 0 0 48px 20px rgba(120,140,255,0.12);
+      #intro-center .pill svg { width: 44px; height: 44px; }
+      #intro-center .title {
+        font-size: 26px; font-weight: 800; color: #ffffff;
+        letter-spacing: -0.02em; margin: 4px 0 0;
+        text-shadow: 0 2px 18px rgba(120,140,255,0.4);
       }
-      .planet svg { width: 22px; height: 22px; }
-      .planet.studio svg { width: 26px; height: 26px; }
-
-      /* Per-planet rotation offsets so they're evenly spaced on the ring.
-         The orbit animation runs continuously; we shift each one by setting
-         a negative animation-delay equal to its share of the period. */
-      .orbit.p1 { animation-delay: -0s;     }
-      .orbit.p2 { animation-delay: -0.667s; }
-      .orbit.p3 { animation-delay: -1.333s; }
-      .orbit.p4 { animation-delay: -2s;     }
-      .orbit.p5 { animation-delay: -2.667s; }
-      .orbit.p6 { animation-delay: -3.333s; }
-
-      /* Staggered fade-in for each orbit (separate animation runs alongside) */
-      .orbit { animation: solar-orbit 4s linear infinite, solar-orbit-fade-in 400ms ease-out forwards; }
-      .orbit.p1 { animation-delay: -0s,     200ms; }
-      .orbit.p2 { animation-delay: -0.667s, 290ms; }
-      .orbit.p3 { animation-delay: -1.333s, 380ms; }
-      .orbit.p4 { animation-delay: -2s,     470ms; }
-      .orbit.p5 { animation-delay: -2.667s, 560ms; }
-      .orbit.p6 { animation-delay: -3.333s, 650ms; }
-      @keyframes solar-orbit-fade-in {
-        from { opacity: 0; }
-        to   { opacity: 1; }
+      #intro-center .sub {
+        font-size: 11px; color: rgba(255,255,255,0.55);
+        letter-spacing: 0.14em; margin: 0; text-transform: uppercase;
       }
 
-      /* Color tints per planet */
-      .planet.chordex { box-shadow: 0 0 12px 3px rgba(139,92,246,0.4); border-color: rgba(139,92,246,0.5); }
-      .planet.drumex  { box-shadow: 0 0 12px 3px rgba(249,115,22,0.4); border-color: rgba(249,115,22,0.5); }
-      .planet.stagex  { box-shadow: 0 0 12px 3px rgba(245,158,11,0.4); border-color: rgba(245,158,11,0.5); }
-      .planet.groovex { box-shadow: 0 0 12px 3px rgba(16,185,129,0.4); border-color: rgba(16,185,129,0.5); }
-      .planet.vocalex { box-shadow: 0 0 12px 3px rgba(59,130,246,0.4); border-color: rgba(59,130,246,0.5); }
+      /* ── Floating app-icon slots ────────────────────────────────────
+         Each slot has its OWN keyframe that runs the full intro lifecycle:
+           0–8%   appear from center
+           8–62%  float at scatter position (gentle drift via interpolation)
+           62–82% glide to final stacked column position
+           82–100% sit in column, then fade with overlay
+         Self-contained so we don't fight conflicting CSS transforms.
+      ─────────────────────────────────────────────────────────────── */
+      .slot {
+        position: absolute; top: 50%; left: 50%;
+        z-index: 2;
+        display: flex; align-items: center; gap: 10px;
+        opacity: 0;
+        animation-duration: 4400ms;
+        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        animation-fill-mode: forwards;
+      }
+      .slot .label {
+        font-size: 12px; font-weight: 600;
+        color: rgba(255,255,255,0.85);
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+        text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+        animation: intro-label-life 4400ms ease-out forwards;
+        opacity: 0;
+      }
+      .slot.label-left { flex-direction: row-reverse; }
+      @keyframes intro-label-life {
+        0%   { opacity: 0; }
+        12%  { opacity: 0; }
+        20%  { opacity: 1; }
+        62%  { opacity: 1; }
+        70%  { opacity: 0; }
+        100% { opacity: 0; }
+      }
+
+      .icon {
+        width: 46px; height: 46px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(20, 22, 32, 0.72);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.10);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+      }
+      .icon svg { width: 24px; height: 24px; }
+
+      /* Per-app accent rings */
+      .icon.chordex { border-color: rgba(139, 92, 246, 0.55); box-shadow: 0 0 18px 2px rgba(139,92,246,0.35), 0 6px 18px rgba(0,0,0,0.5); }
+      .icon.drumex  { border-color: rgba(249, 115,  22, 0.55); box-shadow: 0 0 18px 2px rgba(249,115,22,0.35), 0 6px 18px rgba(0,0,0,0.5); }
+      .icon.stagex  { border-color: rgba(245, 158,  11, 0.55); box-shadow: 0 0 18px 2px rgba(245,158,11,0.35), 0 6px 18px rgba(0,0,0,0.5); }
+      .icon.groovex { border-color: rgba( 16, 185, 129, 0.55); box-shadow: 0 0 18px 2px rgba(16,185,129,0.35), 0 6px 18px rgba(0,0,0,0.5); }
+      .icon.vocalex { border-color: rgba( 59, 130, 246, 0.55); box-shadow: 0 0 18px 2px rgba(59,130,246,0.35), 0 6px 18px rgba(0,0,0,0.5); }
+
+      /* ── Per-slot lifecycle keyframes ─────────────────────────────────
+         Final positions: a single vertical column at x = -130px (relative
+         to viewport center) — this lines up with the hub's left-side icon
+         column once the overlay fades. Spacing 66px ≈ hub row height.
+      ─────────────────────────────────────────────────────────────────── */
+
+      /* CHORDEX — top-left scatter, settles row 1 (y=-132) */
+      .slot.s-chordex { animation-name: slot-chordex; }
+      @keyframes slot-chordex {
+        0%    { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+        8%    { opacity: 1; transform: translate(calc(-50% - 110px), calc(-50% - 140px)) scale(1); }
+        25%   { transform: translate(calc(-50% - 118px), calc(-50% - 130px)) scale(1); }
+        45%   { transform: translate(calc(-50% - 102px), calc(-50% - 152px)) scale(1); }
+        62%   { transform: translate(calc(-50% - 110px), calc(-50% - 140px)) scale(1); }
+        80%   { transform: translate(calc(-50% - 130px), calc(-50% - 132px)) scale(0.92); }
+        92%   { opacity: 1; }
+        100%  { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% - 132px)) scale(0.92); }
+      }
+      /* DRUMEX — top-right scatter, settles row 2 (y=-66) */
+      .slot.s-drumex { animation-name: slot-drumex; }
+      @keyframes slot-drumex {
+        0%    { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+        10%   { opacity: 1; transform: translate(calc(-50% + 110px), calc(-50% - 110px)) scale(1); }
+        30%   { transform: translate(calc(-50% + 120px), calc(-50% - 96px)) scale(1); }
+        50%   { transform: translate(calc(-50% + 100px), calc(-50% - 120px)) scale(1); }
+        62%   { transform: translate(calc(-50% + 110px), calc(-50% - 110px)) scale(1); }
+        80%   { transform: translate(calc(-50% - 130px), calc(-50% - 66px)) scale(0.92); }
+        100%  { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% - 66px)) scale(0.92); }
+      }
+      /* STAGEX — right scatter, settles row 3 (y=0) */
+      .slot.s-stagex { animation-name: slot-stagex; }
+      @keyframes slot-stagex {
+        0%    { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+        12%   { opacity: 1; transform: translate(calc(-50% + 140px), calc(-50% + 30px)) scale(1); }
+        32%   { transform: translate(calc(-50% + 148px), calc(-50% + 42px)) scale(1); }
+        52%   { transform: translate(calc(-50% + 132px), calc(-50% + 18px)) scale(1); }
+        62%   { transform: translate(calc(-50% + 140px), calc(-50% + 30px)) scale(1); }
+        80%   { transform: translate(calc(-50% - 130px), calc(-50% + 0px)) scale(0.92); }
+        100%  { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% + 0px)) scale(0.92); }
+      }
+      /* GROOVEX — bottom-left scatter, settles row 4 (y=66) */
+      .slot.s-groovex { animation-name: slot-groovex; }
+      @keyframes slot-groovex {
+        0%    { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+        14%   { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% + 100px)) scale(1); }
+        34%   { transform: translate(calc(-50% - 140px), calc(-50% + 88px)) scale(1); }
+        54%   { transform: translate(calc(-50% - 122px), calc(-50% + 112px)) scale(1); }
+        62%   { transform: translate(calc(-50% - 130px), calc(-50% + 100px)) scale(1); }
+        80%   { transform: translate(calc(-50% - 130px), calc(-50% + 66px)) scale(0.92); }
+        100%  { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% + 66px)) scale(0.92); }
+      }
+      /* VOCALEX — bottom-right scatter, settles row 5 (y=132) */
+      .slot.s-vocalex { animation-name: slot-vocalex; }
+      @keyframes slot-vocalex {
+        0%    { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+        16%   { opacity: 1; transform: translate(calc(-50% + 80px), calc(-50% + 150px)) scale(1); }
+        36%   { transform: translate(calc(-50% + 92px), calc(-50% + 138px)) scale(1); }
+        56%   { transform: translate(calc(-50% + 72px), calc(-50% + 162px)) scale(1); }
+        62%   { transform: translate(calc(-50% + 80px), calc(-50% + 150px)) scale(1); }
+        80%   { transform: translate(calc(-50% - 130px), calc(-50% + 132px)) scale(0.92); }
+        100%  { opacity: 1; transform: translate(calc(-50% - 130px), calc(-50% + 132px)) scale(0.92); }
+      }
 
       @media (prefers-reduced-motion: reduce) {
-        /* Disable orbits, glow pulse, and entrance animations entirely;
-           the inline script will still dismiss the overlay early. */
-        #solar-intro,
-        #solar-intro * {
+        #solar-intro, #solar-intro * {
           animation: none !important;
           transition: opacity 200ms linear !important;
         }
-        .orbit, .planet, #solar-wordmark, #solar-ring { opacity: 1 !important; }
+        .slot, #intro-center, .slot .label { opacity: 1 !important; }
       }
     </style>
   </head>
   <body>
     <div id="solar-intro" aria-hidden="true">
-      <div id="solar-glow"></div>
-      <div id="solar-ring"></div>
+      <div id="intro-stars"></div>
+      <div id="intro-glow"></div>
 
-      <!-- 6 orbiting planets, evenly spaced via negative animation-delays -->
-      <div class="orbit p1"><div class="planet chordex">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h14" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </div></div>
-      <div class="orbit p2"><div class="planet drumex">
-        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="rgba(255,255,255,0.85)" stroke-width="1.8"/><circle cx="12" cy="12" r="2.2" fill="rgba(255,255,255,0.85)"/></svg>
-      </div></div>
-      <div class="orbit p3"><div class="planet studio">
-        <svg viewBox="0 0 512 512" fill="none"><path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256" stroke="white" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-      </div></div>
-      <div class="orbit p4"><div class="planet stagex">
-        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="9" width="3" height="6" fill="rgba(255,255,255,0.85)" rx="0.6"/><rect x="8" y="6" width="3" height="12" fill="rgba(255,255,255,0.85)" rx="0.6"/><rect x="13" y="9" width="3" height="6" fill="rgba(255,255,255,0.85)" rx="0.6"/><rect x="18" y="7" width="3" height="10" fill="rgba(255,255,255,0.85)" rx="0.6"/></svg>
-      </div></div>
-      <div class="orbit p5"><div class="planet groovex">
-        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"/><circle cx="12" cy="12" r="1.3" fill="rgba(255,255,255,0.85)"/></svg>
-      </div></div>
-      <div class="orbit p6"><div class="planet vocalex">
-        <svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" fill="rgba(255,255,255,0.85)"/><path d="M6 12a6 6 0 0 0 12 0M12 18v3" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" stroke-linecap="round"/></svg>
-      </div></div>
-
-      <div id="solar-wordmark">
-        <span class="w-logo">
-          <svg width="64" height="64" viewBox="0 0 512 512" fill="none">
+      <!-- Central Studio logo -->
+      <div id="intro-center">
+        <div class="pill">
+          <svg viewBox="0 0 512 512" fill="none">
             <path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256"
                   stroke="white" stroke-width="44"
                   stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
-        </span>
-        <p class="w-title">Studio</p>
-        <p class="w-sub">by Mag</p>
+        </div>
+        <p class="title">Studio</p>
+        <p class="sub">by Mag</p>
+      </div>
+
+      <!-- Floating app-icon slots: each has its own self-contained keyframe -->
+      <div class="slot s-chordex">
+        <div class="icon chordex">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h14" stroke="rgba(255,255,255,0.95)" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <span class="label">Chordex</span>
+      </div>
+
+      <div class="slot s-drumex label-left">
+        <div class="icon drumex">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="rgba(255,255,255,0.95)" stroke-width="1.8"/><circle cx="12" cy="12" r="2.2" fill="rgba(255,255,255,0.95)"/></svg>
+        </div>
+        <span class="label">Drumex</span>
+      </div>
+
+      <div class="slot s-stagex label-left">
+        <div class="icon stagex">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="9" width="3" height="6" fill="rgba(255,255,255,0.95)" rx="0.6"/><rect x="8" y="6" width="3" height="12" fill="rgba(255,255,255,0.95)" rx="0.6"/><rect x="13" y="9" width="3" height="6" fill="rgba(255,255,255,0.95)" rx="0.6"/><rect x="18" y="7" width="3" height="10" fill="rgba(255,255,255,0.95)" rx="0.6"/></svg>
+        </div>
+        <span class="label">Stagex</span>
+      </div>
+
+      <div class="slot s-groovex">
+        <div class="icon groovex">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="rgba(255,255,255,0.95)" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="rgba(255,255,255,0.95)" stroke-width="1.6"/><circle cx="12" cy="12" r="1.3" fill="rgba(255,255,255,0.95)"/></svg>
+        </div>
+        <span class="label">Groovex</span>
+      </div>
+
+      <div class="slot s-vocalex label-left">
+        <div class="icon vocalex">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" fill="rgba(255,255,255,0.95)"/><path d="M6 12a6 6 0 0 0 12 0M12 18v3" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <span class="label">Vocalex</span>
       </div>
     </div>
     <div id="root"></div>
     <script>
-      // Dismiss the overlay when BOTH: (a) a minimum visible time has
-      // elapsed so the animation isn't cut short, AND (b) React has actually
-      // mounted the hub (so we never reveal a blank/gray screen during
-      // bundle parse). A safety timeout dismisses no matter what at 10s.
+      // Dismiss the overlay when BOTH: (a) the intro animation has had at
+      // least its minimum visible time, AND (b) React has actually mounted
+      // the hub (so we never reveal a blank/gray screen during bundle
+      // parse). A safety timeout dismisses no matter what at 10s.
       (function () {
-        var MIN_VISIBLE_MS = 3800; // keep intro on screen at least this long
+        var MIN_VISIBLE_MS = 4400; // full intro length (matches keyframes)
         var SAFETY_MS      = 10000;
         var startedAt      = Date.now();
         var rootEl         = document.getElementById('root');
@@ -241,7 +341,6 @@
           if (reactMounted() && elapsed >= MIN_VISIBLE_MS) {
             dismiss();
           } else if (reactMounted()) {
-            // React is ready early — wait out the remaining min-visible time.
             if (observer) { observer.disconnect(); observer = null; }
             if (pollId)   { clearInterval(pollId); pollId = 0; }
             setTimeout(dismiss, MIN_VISIBLE_MS - elapsed);
@@ -252,13 +351,10 @@
           observer = new MutationObserver(tryDismiss);
           observer.observe(rootEl, { childList: true, subtree: false });
         }
-        // After min-visible time, poll #root every 100ms so we dismiss
-        // promptly once React mounts (works even without MutationObserver).
         setTimeout(function () {
           tryDismiss();
           if (!dismissed) pollId = setInterval(tryDismiss, 100);
         }, MIN_VISIBLE_MS);
-        // Hard safety net: dismiss no matter what.
         setTimeout(dismiss, SAFETY_MS);
       })();
     </script>
