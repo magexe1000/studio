@@ -23,7 +23,7 @@ const AccountSettingsPage = lazy(() =>
   import('./AccountCard').then(m => ({ default: m.AccountSettingsPage }))
 );
 
-type HubTab = 'home' | 'settings';
+type HubTab = 'home' | 'settings' | 'profile';
 type TargetApp = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
@@ -314,10 +314,10 @@ export default function StudioHub() {
                   animation: 'profile-dd-in 180ms cubic-bezier(0.34,1.4,0.64,1) both',
                 }}>
                   {([
-                    { icon: 'account_circle', label: 'Profile',      action: () => { setTab('settings'); setShowProfile(false); }, badge: null as string | null },
-                    { icon: 'diamond',        label: 'Subscription', action: null as (() => void) | null, badge: 'Soon' },
+                    { icon: 'account_circle', label: 'Profile',      action: () => { setTab('profile'); setShowProfile(false); }, badge: null as string | null },
+                    { icon: 'auto_awesome',   label: 'Subscription', action: null as (() => void) | null, badge: 'Soon' },
                     { icon: 'settings',       label: 'Settings',     action: () => { setTab('settings'); setShowProfile(false); }, badge: null },
-                  ]).map(item => (
+                  ]).map((item, idx) => (
                     <button
                       key={item.icon}
                       onClick={item.action ?? undefined}
@@ -331,6 +331,7 @@ export default function StudioHub() {
                         outline: 'none', WebkitTapHighlightColor: 'transparent',
                         opacity: item.action || item.badge ? 1 : 0.5,
                         transition: 'background 120ms ease',
+                        animation: `profile-dd-item-in 220ms ${idx * 55}ms cubic-bezier(0.22,1,0.36,1) both`,
                       }}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 17, color: 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 0", flexShrink: 0 }}>{item.icon}</span>
@@ -355,6 +356,7 @@ export default function StudioHub() {
                         borderRadius: 14,
                         cursor: 'pointer', outline: 'none', WebkitTapHighlightColor: 'transparent',
                         transition: 'background 120ms ease',
+                        animation: 'profile-dd-item-in 220ms 165ms cubic-bezier(0.22,1,0.36,1) both',
                       }}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 17, color: '#f87171', fontVariationSettings: "'FILL' 0", flexShrink: 0 }}>logout</span>
@@ -368,7 +370,7 @@ export default function StudioHub() {
             {/* Logo area */}
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
-              paddingTop: 'clamp(88px, 18vh, 120px)',
+              paddingTop: 'clamp(110px, 24vh, 155px)',
               animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
             }}>
               <div data-intro-target="studio" style={{ color: isHubLight ? '#18181b' : 'white', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -386,7 +388,7 @@ export default function StudioHub() {
               borderRadius={24}
               wrapStyle={{
                 width: '100%', maxWidth: 380,
-                marginTop: 'clamp(28px, 6vh, 48px)',
+                marginTop: 'clamp(32px, 7vh, 56px)',
                 animation: 'hub-rise-in 500ms 80ms cubic-bezier(0.34,1.15,0.64,1) both, gb-spin 14s linear infinite',
               }}
               innerStyle={{
@@ -428,6 +430,30 @@ export default function StudioHub() {
             </GradientBorderCard>
 
           </div>
+        )}
+
+        {/* ── PROFILE TAB ── */}
+        {tab === 'profile' && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '8px 8px 0', paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
+              <button
+                onClick={() => setTab('home')}
+                style={{
+                  width: 40, height: 40, borderRadius: 12,
+                  background: 'transparent', border: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', outline: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                  color: 'var(--c-text-secondary)',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 24 }}>chevron_left</span>
+              </button>
+            </div>
+            <Suspense fallback={<div style={{ padding: 32, textAlign: 'center', color: 'var(--c-text-muted)' }}>…</div>}>
+              <AccountSettingsPage accent={accent} />
+            </Suspense>
+          </>
         )}
 
         {/* ── SETTINGS TAB ── */}
@@ -675,6 +701,10 @@ const HUB_SETTINGS_CSS = `
   @keyframes profile-dd-in {
     from { opacity: 0; transform: translateY(-6px) scale(0.97); }
     to   { opacity: 1; transform: translateY(0)   scale(1); }
+  }
+  @keyframes profile-dd-item-in {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
   }
   input[type=range].hue-slider {
     -webkit-appearance: none;
