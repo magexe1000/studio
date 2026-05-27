@@ -5,7 +5,6 @@ import App from "./App";
 import { tolgee } from "./lib/i18nSetup";
 import { notifyBundleReady, ensureNotificationPermission } from "./lib/capgoUpdater";
 import { seedAudioAssets } from "./lib/assetCache";
-import StartupSplash from "./components/StartupSplash";
 import StudioSolarIntro from "./components/StudioSolarIntro";
 import "./index.css";
 
@@ -54,17 +53,11 @@ function GlobalOverlays() {
 
 createRoot(document.getElementById("root")!).render(
   <TolgeeProvider tolgee={tolgee} fallback={null}>
-    {/* Solar intro — renders ONLY on the very first launch ever (localStorage).
-        Must be before StartupSplash so its useMemo runs first and sets the
-        sessionStorage flag that prevents StartupSplash from doubling up. */}
+    {/* Solar intro — shown once per browser session, covers the app shell
+        with the orbiting-planets animation then auto-dismisses. */}
     <StudioSolarIntro />
     <App />
-    {/* Startup splash — renders on first paint of each browser session,
-        covers the app shell with a wave logo animation, then auto-dismisses. */}
-    <StartupSplash />
-    {/* Global post-update changelog overlay + OTA indicator — mounted as
-        root siblings so they surface regardless of which sub-app the user
-        lands in. Deferred one frame so first paint is uncontested. */}
+    {/* Global post-update changelog overlay + OTA indicator */}
     <GlobalOverlays />
   </TolgeeProvider>,
 );
