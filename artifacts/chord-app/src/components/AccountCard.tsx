@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import AppSpinner from './AppSpinner';
+import AnimatedBorderButton from './AnimatedBorderButton';
 import {
   isFirebaseConfigured,
   signInGoogle,
@@ -244,12 +246,16 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
         </div>
 
         <div style={{ ...rowStyle, alignItems: 'center', gap: 10 }}>
-          <span
-            className={`material-symbols-outlined sync-icon ${isSyncing ? 'sync-spin' : justSynced ? 'sync-pop' : ''}`}
-            style={{ fontSize: 18, color: iconColor, transition: 'color 250ms ease' }}
-          >
-            {iconName}
-          </span>
+          {isSyncing ? (
+            <AppSpinner size={18} color={iconColor} strokeWidth={2.2} />
+          ) : (
+            <span
+              className={`material-symbols-outlined sync-icon ${justSynced ? 'sync-pop' : ''}`}
+              style={{ fontSize: 18, color: iconColor, transition: 'color 250ms ease' }}
+            >
+              {iconName}
+            </span>
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-primary)', margin: 0 }}>
               {statusText}
@@ -324,49 +330,95 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
       )}
 
       {(mode === 'email-signin' || mode === 'email-register') && (
-        <div style={{ padding: '12px 14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {mode === 'email-register' && (
+        <div style={{ padding: '10px 14px 16px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {/* Card header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '12px 14px',
+            background: `linear-gradient(135deg, ${accent.from}14, ${accent.to}0c)`,
+            border: `1px solid ${accent.from}28`,
+            borderRadius: '14px 14px 0 0',
+            borderBottom: 'none',
+          }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: `linear-gradient(135deg, ${accent.from}30, ${accent.to}20)`,
+              border: `1px solid ${accent.from}35`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 17, color: accent.from }}>mail</span>
+            </div>
+            <div>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 13, color: 'var(--c-text-primary)', margin: 0 }}>
+                {mode === 'email-signin' ? t.signIn : t.register}
+              </p>
+              <p style={{ fontFamily: 'Inter', fontSize: 10.5, color: 'var(--c-text-secondary)', margin: '1px 0 0' }}>
+                {mode === 'email-signin' ? t.emailPlaceholder : t.namePlaceholder}
+              </p>
+            </div>
+          </div>
+
+          {/* Card body */}
+          <div style={{
+            background: 'var(--app-surface-high)',
+            border: `1px solid ${accent.from}20`,
+            borderRadius: '0 0 14px 14px',
+            padding: '14px 14px 12px',
+            display: 'flex', flexDirection: 'column', gap: 8,
+          }}>
+            {mode === 'email-register' && (
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t.namePlaceholder}
+                autoComplete="name"
+                style={inputStyle(accent)}
+              />
+            )}
             <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t.namePlaceholder}
-              autoComplete="name"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t.emailPlaceholder}
+              autoComplete="email"
+              type="email"
               style={inputStyle(accent)}
             />
-          )}
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={t.emailPlaceholder}
-            autoComplete="email"
-            type="email"
-            style={inputStyle(accent)}
-          />
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={t.passwordPlaceholder}
-            autoComplete={mode === 'email-signin' ? 'current-password' : 'new-password'}
-            type="password"
-            style={inputStyle(accent)}
-          />
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button onClick={() => { setMode('idle'); setErr(null); }} disabled={busy} style={{ ...secondaryBtn(), flex: 1 }}>
-              {t.cancel}
-            </button>
-            <button onClick={doEmail} disabled={busy} style={{ ...primaryBtn(accent), flex: 1 }}>
-              {mode === 'email-signin' ? t.signIn : t.register}
-            </button>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={t.passwordPlaceholder}
+              autoComplete={mode === 'email-signin' ? 'current-password' : 'new-password'}
+              type="password"
+              style={inputStyle(accent)}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button onClick={() => { setMode('idle'); setErr(null); }} disabled={busy} style={{ ...secondaryBtn(), flex: 1 }}>
+                {t.cancel}
+              </button>
+              <AnimatedBorderButton
+                onClick={doEmail}
+                disabled={busy}
+                wrapStyle={{ flex: 1 }}
+                style={{
+                  ...primaryBtn(accent),
+                  width: '100%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}
+              >
+                {busy ? <AppSpinner size={14} color="white" strokeWidth={2} /> : null}
+                {mode === 'email-signin' ? t.signIn : t.register}
+              </AnimatedBorderButton>
+            </div>
+            {mode === 'email-signin' ? (
+              <button onClick={() => { setMode('email-register'); setErr(null); }} style={textBtn()}>
+                {t.switchToRegister}
+              </button>
+            ) : (
+              <button onClick={() => { setMode('email-signin'); setErr(null); }} style={textBtn()}>
+                {t.switchToSignIn}
+              </button>
+            )}
           </div>
-          {mode === 'email-signin' ? (
-            <button onClick={() => { setMode('email-register'); setErr(null); }} style={textBtn()}>
-              {t.switchToRegister}
-            </button>
-          ) : (
-            <button onClick={() => { setMode('email-signin'); setErr(null); }} style={textBtn()}>
-              {t.switchToSignIn}
-            </button>
-          )}
         </div>
       )}
 

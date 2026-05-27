@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import ElasticSlider from '../components/ElasticSlider';
+import AnimatedBorderButton from '../components/AnimatedBorderButton';
 import MicWavesLottie from '../components/lottie/MicWavesLottie';
 import { getAllSessions, saveSession, deleteSession, createLayer, createDefaultEffects, type LabSession, type LabLayer, type TrackEffect } from './labSessionDb';
 import { getAllTakes, type TakeRecord } from './takesDb';
@@ -393,13 +395,14 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, onHarmonize, isPlayi
           transition: 'color 150ms ease',
           ...(isMuted ? {} : { color: '#5a5a5a' }),
         }}>volume_up</span>
-        <input type="range" min={0} max={1} step={0.01} value={layer.volume}
-          onChange={e => onUpdate({ ...layer, volume: parseFloat(e.target.value) })}
-          style={{
-            flex: 1, accentColor: accent, height: 3, cursor: 'pointer',
-            opacity: isMuted ? 0.3 : 1,
-            transition: 'opacity 200ms ease',
-          }} />
+        <ElasticSlider
+          min={0} max={1} step={0.01}
+          value={layer.volume}
+          onChange={v => onUpdate({ ...layer, volume: v })}
+          accentColor={accent}
+          disabled={isMuted}
+          style={{ flex: 1 }}
+        />
         <span style={{
           fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 42, textAlign: 'right',
           transition: 'color 150ms ease',
@@ -410,9 +413,13 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, onHarmonize, isPlayi
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--vx-text-4)' }}>swap_horiz</span>
-        <input type="range" min={-1} max={1} step={0.01} value={layer.pan}
-          onChange={e => onUpdate({ ...layer, pan: parseFloat(e.target.value) })}
-          style={{ flex: 1, accentColor: '#a78bfa', height: 3, cursor: 'pointer' }} />
+        <ElasticSlider
+          min={-1} max={1} step={0.01}
+          value={layer.pan}
+          onChange={v => onUpdate({ ...layer, pan: v })}
+          accentColor="#a78bfa"
+          style={{ flex: 1 }}
+        />
         <span style={{
           fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 28, textAlign: 'right',
           transition: 'color 150ms ease',
@@ -671,7 +678,7 @@ function AddTrackSheet({ session, onAdd, onClose }: {
               <>
                 <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#679cff' }}>mic</span>
                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', textAlign: 'center' }}>{t.vocalex.recordPrompt}</p>
-                <button onClick={startRec} style={{
+                <AnimatedBorderButton onClick={startRec} style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px', borderRadius: 9999,
                   background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
                   fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, color: '#fff',
@@ -679,7 +686,7 @@ function AddTrackSheet({ session, onAdd, onClose }: {
                 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic</span>
                   {t.vocalex.startRecording}
-                </button>
+                </AnimatedBorderButton>
               </>
             )}
           </div>

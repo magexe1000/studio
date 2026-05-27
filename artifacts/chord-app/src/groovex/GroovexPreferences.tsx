@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import ElasticSlider from '../components/ElasticSlider';
 import { useGroovexStore } from './useGroovexStore';
 import { getCacheSize, clearAllCache, clearSongCache, getPerSongCacheInfo, type SongCacheInfo } from './stemCache';
 import { SONG_CATALOG } from './songCatalog';
@@ -297,11 +298,12 @@ function SliderRow({ label, value, onChange, displayValue }: {
         </label>
         <span style={{ fontSize: 13, color: 'var(--gx-accent)', fontWeight: 700 }}>{displayValue}</span>
       </div>
-      <input
-        type="range" min="0" max="1" step="0.01" value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-        className="gx-slider"
-        style={{ width: '100%' }}
+      <ElasticSlider
+        min={0} max={1} step={0.01}
+        value={value}
+        onChange={onChange}
+        accentColor="var(--gx-accent, #679cff)"
+        trackColor="var(--gx-surface-high, rgba(128,128,128,0.2))"
       />
     </div>
   );

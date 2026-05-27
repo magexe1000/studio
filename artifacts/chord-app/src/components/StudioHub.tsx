@@ -962,9 +962,17 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
                       background: isActive ? `${accent.from}22` : 'var(--app-surface-high)',
                       border: `1.5px solid ${isActive ? accent.from + '66' : 'transparent'}`,
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                      transition: 'background 200ms ease, border-color 200ms ease', cursor: 'pointer',
+                      transition: 'background 200ms ease, border-color 200ms ease, transform 160ms cubic-bezier(0.34,1.56,0.64,1)',
+                      cursor: 'pointer',
+                      transform: isActive ? 'scale(1.04)' : 'scale(1)',
                     }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 22, color: isActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease' }}>{opt.icon}</span>
+                    <span className="material-symbols-outlined" style={{
+                      fontSize: 22,
+                      color: isActive ? accent.from : 'var(--c-text-secondary)',
+                      fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
+                      transition: 'color 200ms ease, font-variation-settings 200ms ease',
+                      filter: isActive ? `drop-shadow(0 0 6px ${accent.from}66)` : 'none',
+                    }}>{opt.icon}</span>
                     <p style={{ color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease', margin: 0 }}>{opt.label}</p>
                   </button>
                 );
@@ -982,9 +990,11 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
                     background: isDynActive ? `${accent.from}22` : 'var(--app-surface-high)',
                     border: `1.5px solid ${isDynActive ? accent.from + '66' : 'transparent'}`,
                     display: 'flex', alignItems: 'center', gap: 12,
-                    transition: 'background 200ms ease, border-color 200ms ease', cursor: 'pointer',
+                    transition: 'background 200ms ease, border-color 200ms ease, transform 160ms cubic-bezier(0.34,1.56,0.64,1)',
+                    cursor: 'pointer',
+                    transform: isDynActive ? 'scale(1.02)' : 'scale(1)',
                   }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 22, color: isDynActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isDynActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease', flexShrink: 0 }}>schedule</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 22, color: isDynActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isDynActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease', flexShrink: 0, filter: isDynActive ? `drop-shadow(0 0 6px ${accent.from}66)` : 'none' }}>schedule</span>
                   <div style={{ textAlign: 'left' }}>
                     <p style={{ color: isDynActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', margin: 0, transition: 'color 200ms ease' }}>{(t.hub as { studioSettings?: { dynamic?: string } }).studioSettings?.dynamic ?? 'Dynamic'}</p>
                     <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 10.5, margin: '2px 0 0', opacity: 0.75 }}>{

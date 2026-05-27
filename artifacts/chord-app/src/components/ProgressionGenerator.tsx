@@ -18,6 +18,7 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import AnimatedBorderButton from './AnimatedBorderButton';
 import { useChordStore } from '../store/useChordStore';
 import { getChordById } from '../data/chords';
 import {
@@ -330,7 +331,7 @@ export default function ProgressionGenerator({
         {/* ── Generate / Regenerate primary action ──────────────────── */}
         <div className="px-5 pt-3">
           {!result ? (
-            <button
+            <AnimatedBorderButton
               data-testid="generate-progression-btn"
               onClick={handleGenerate}
               className="btn-smooth w-full py-3 font-bold"
@@ -339,7 +340,7 @@ export default function ProgressionGenerator({
                 color: 'white', borderRadius: 9999, fontFamily: 'Manrope', fontSize: 14,
                 boxShadow: `0 4px 20px ${accent.to}40`, border: 'none', cursor: 'pointer',
               }}
-            >Generate Progression</button>
+            >Generate Progression</AnimatedBorderButton>
           ) : (
             <div className="flex gap-2">
               <button

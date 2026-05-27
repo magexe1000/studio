@@ -29,6 +29,8 @@
  */
 
 import { useState, useEffect } from 'react';
+import AppSpinner from './AppSpinner';
+import AnimatedBorderButton from './AnimatedBorderButton';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
 import { applyUpdate, isNative } from '../lib/capgoUpdater';
@@ -221,25 +223,13 @@ export default function UpdateIndicator({
             willChange: 'transform, opacity',
           }}
         >
-          <span
-            className="material-symbols-outlined"
-            style={{
-              fontSize: 16,
-              color: isOk ? '#22c55e' : cTo,
-              animation: isOk ? undefined : 'check-spin 1s linear infinite',
-              transition: 'color 280ms ease',
-            }}
-          >
-            {isOk ? 'check_circle' : 'progress_activity'}
-          </span>
+          {isOk ? (
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#22c55e' }}>check_circle</span>
+          ) : (
+            <AppSpinner size={16} color={cTo} strokeWidth={2} />
+          )}
           <span>{isOk ? 'Up to date' : 'Checking\u2026'}</span>
         </div>
-        <style>{`
-          @keyframes check-spin {
-            from { transform: rotate(0deg); }
-            to   { transform: rotate(360deg); }
-          }
-        `}</style>
       </>
     );
   }
@@ -663,12 +653,12 @@ function UpdateModal({
           >
             Later
           </button>
-          <button
+          <AnimatedBorderButton
             type="button"
             onClick={handleReload}
             disabled={downloading}
+            wrapStyle={{ flex: 2 }}
             style={{
-              flex: 2,
               padding: '11px 14px',
               borderRadius: 12,
               background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
@@ -680,10 +670,15 @@ function UpdateModal({
               cursor: downloading ? 'wait' : 'pointer',
               boxShadow: `0 8px 22px color-mix(in srgb, ${accentTo} 35%, transparent)`,
               opacity: downloading ? 0.85 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 7,
             }}
           >
+            {downloading ? <AppSpinner size={15} color="white" strokeWidth={2} /> : null}
             {downloading ? 'Downloading…' : 'Update now'}
-          </button>
+          </AnimatedBorderButton>
         </div>
       </div>
 
