@@ -17,7 +17,7 @@ Conventions:
 
 ---
 
-## 3.0.75
+## 3.0.76
 
 - Stagex: 46 new full-color illustrated SVG icons for every stage element (mics, drums, instruments, amps, monitors, and utilities).
 - Stagex: Each icon is a detailed vector illustration with gradients, shading, and accurate proportions — SM58 grille mesh, violin f-holes, 4×12 speaker grid, mixing console faders, and more.
