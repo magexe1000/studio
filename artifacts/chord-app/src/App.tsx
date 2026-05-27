@@ -602,7 +602,7 @@ export default function App() {
   }, [settings.displayDensity]);
 
   // Panel transition with slide direction
-  const durMs = settings.animationSpeed === 'fast' ? 160 : settings.animationSpeed === 'reduced' ? 0 : 200;
+  const durMs = settings.animationSpeed === 'fast' ? 200 : settings.animationSpeed === 'reduced' ? 0 : 280;
 
   useEffect(() => {
     if (activePanel === prevPanel.current) return;
@@ -814,7 +814,8 @@ export default function App() {
         position: 'relative',
         height: '100dvh',
         paddingTop: 'env(safe-area-inset-top)',
-        '--panel-dur': `${durMs}ms`,
+        '--panel-dur':      `${durMs}ms`,
+        '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
         animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
         transform: exitingToHub ? 'scale(1.10)' : undefined,
         opacity:   exitingToHub ? 0 : undefined,

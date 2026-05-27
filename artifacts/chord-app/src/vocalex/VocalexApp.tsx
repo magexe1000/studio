@@ -94,7 +94,7 @@ export default function VocalexApp() {
   const accent = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
   const isLight = activeVis.theme === 'light' || (activeVis.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
 
-  const durMs = settings.animationSpeed === 'fast' ? 160 : settings.animationSpeed === 'reduced' ? 0 : 200;
+  const durMs = settings.animationSpeed === 'fast' ? 200 : settings.animationSpeed === 'reduced' ? 0 : 280;
 
   useEffect(() => {
     if (activeTab === prevTab.current) return;
@@ -262,7 +262,8 @@ export default function VocalexApp() {
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden',
       paddingTop: 'env(safe-area-inset-top)',
-      '--panel-dur': `${durMs}ms`,
+      '--panel-dur':      `${durMs}ms`,
+      '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
     } as React.CSSProperties}>
       <header className="flex-none px-6 pt-6 pb-1" style={{ display: 'flex', alignItems: 'center' }}>
         <div style={{

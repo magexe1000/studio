@@ -705,42 +705,44 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   .overlay-fade-in  { animation: fade-in  220ms ease-out both; }
   .overlay-fade-out { animation: fade-out 200ms ease-in  both; }
 
-  /* ===== Panel section transitions — unified across all apps (matches Stagex) =====
-     Smooth-but-quick fade + rise + subtle scale. Direction-agnostic so every app
-     (Chordex, Vocalex, Drumex, Groovex, Stagex) feels identical when switching
-     bottom-nav sections. */
+  /* ===== Panel section transitions — unified across all apps =================
+     Directional horizontal slide + crossfade.
+     Enter:  spring deceleration  — content glides in and settles naturally.
+     Exit:   quick ease-in        — old content leaves without lingering.
+     Translate is intentionally small (16 px) for a refined, iOS-like feel.
+     --panel-dur      controls enter speed (default 280 ms).
+     --panel-exit-dur controls exit  speed (default 180 ms, ~65 % of enter). */
+
   @keyframes panel-enter-right {
-    from { transform: translate3d(0, 10px, 0) scale(0.985); opacity: 0; }
-    to   { transform: translate3d(0, 0, 0) scale(1);        opacity: 1; }
+    from { transform: translate3d(16px, 0, 0); opacity: 0; }
+    to   { transform: translate3d(0,    0, 0); opacity: 1; }
   }
   @keyframes panel-enter-left {
-    from { transform: translate3d(0, 10px, 0) scale(0.985); opacity: 0; }
-    to   { transform: translate3d(0, 0, 0) scale(1);        opacity: 1; }
+    from { transform: translate3d(-16px, 0, 0); opacity: 0; }
+    to   { transform: translate3d(0,     0, 0); opacity: 1; }
   }
   @keyframes panel-exit-left {
-    from { transform: translate3d(0, 0, 0) scale(1);          opacity: 1; }
-    to   { transform: translate3d(0, -6px, 0) scale(0.985);   opacity: 0; }
+    from { transform: translate3d(0,     0, 0); opacity: 1; }
+    to   { transform: translate3d(-16px, 0, 0); opacity: 0; }
   }
   @keyframes panel-exit-right {
-    from { transform: translate3d(0, 0, 0) scale(1);          opacity: 1; }
-    to   { transform: translate3d(0, -6px, 0) scale(0.985);   opacity: 0; }
+    from { transform: translate3d(0,    0, 0); opacity: 1; }
+    to   { transform: translate3d(16px, 0, 0); opacity: 0; }
   }
-  /* will-change + backface-visibility removed — they force a permanent GPU
-     compositing layer that drops subpixel text anti-aliasing, making body
-     text look fuzzy after every navigation. Animations stay smooth without
-     them on modern browsers because transform/opacity are auto-promoted
-     for the duration of the animation only. */
+
+  /* Enter — spring deceleration (cubic-bezier(0.16, 1, 0.3, 1)) */
   .panel-enter-right {
-    animation: panel-enter-right var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: panel-enter-right var(--panel-dur, 280ms) cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-  .panel-enter-left  {
-    animation: panel-enter-left  var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .panel-enter-left {
+    animation: panel-enter-left  var(--panel-dur, 280ms) cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-  .panel-exit-left   {
-    animation: panel-exit-left   var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Exit — ease-in so content leaves quickly and cleanly */
+  .panel-exit-left {
+    animation: panel-exit-left  var(--panel-exit-dur, 180ms) cubic-bezier(0.4, 0, 1, 1) both;
   }
-  .panel-exit-right  {
-    animation: panel-exit-right  var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .panel-exit-right {
+    animation: panel-exit-right var(--panel-exit-dur, 180ms) cubic-bezier(0.4, 0, 1, 1) both;
   }
 
   /* ===== Live Mode chord transitions ===== */

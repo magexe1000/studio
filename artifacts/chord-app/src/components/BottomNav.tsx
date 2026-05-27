@@ -206,13 +206,13 @@ export default function BottomNav() {
       stretchTimeoutRef.current = setTimeout(() => {
         setPill(p => ({ ...p, left: newM.left }));
         stretchTimeoutRef.current = null;
-      }, 70);
+      }, 90);
     } else {
       setPill(p => ({ ...p, left: newM.left }));
       stretchTimeoutRef.current = setTimeout(() => {
         setPill(p => ({ ...p, right: newM.right }));
         stretchTimeoutRef.current = null;
-      }, 70);
+      }, 90);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePanel]);
@@ -291,7 +291,7 @@ export default function BottomNav() {
             pointerEvents: 'none',
             zIndex: 0,
             opacity: 1,
-            transition: 'left 180ms cubic-bezier(0.16,1,0.3,1), width 180ms cubic-bezier(0.16,1,0.3,1)',
+            transition: 'left 300ms cubic-bezier(0.16,1,0.3,1), width 300ms cubic-bezier(0.16,1,0.3,1)',
           }}
         />
       )}
