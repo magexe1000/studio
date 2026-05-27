@@ -670,18 +670,13 @@ function SettingsNavRow({
         transformOrigin: 'center center',
       }}
     >
-      <div style={{
-        width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-        background: iconColor ? `${iconColor}20` : 'rgba(128,128,128,0.10)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: `1px solid ${iconColor ? iconColor + '28' : 'transparent'}`,
-      }}>
-        <span className="material-symbols-outlined" style={{
-          fontSize: 18,
-          color: iconColor ?? 'var(--c-text-secondary)',
-          fontVariationSettings: "'FILL' 1",
-        }}>{icon}</span>
-      </div>
+      <span className="material-symbols-outlined" style={{
+        fontSize: 22, flexShrink: 0,
+        color: iconColor ?? 'var(--c-text-secondary)',
+        fontVariationSettings: "'FILL' 1",
+        opacity: 0.75,
+        width: 26, textAlign: 'center',
+      }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.01em', fontFamily: 'Manrope' }}>{title}</p>
         {desc && <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '2px 0 0', fontWeight: 500, fontFamily: 'Inter', lineHeight: 1.3 }}>{desc}</p>}
