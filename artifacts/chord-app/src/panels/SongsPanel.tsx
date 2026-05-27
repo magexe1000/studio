@@ -1472,7 +1472,7 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
       <div
         ref={scrollRef}
         className="no-scrollbar"
-        style={{ flex: 1, overflowY: 'auto', paddingBottom: '190px' }}
+        style={{ flex: 1, overflowY: 'auto', paddingBottom: 'var(--content-bottom-pad)' }}
       >
         {/* Paper stage */}
         <div style={{
@@ -3604,7 +3604,7 @@ export default function SongsPanel() {
       )}
 
       {/* Floating action buttons above bottom nav */}
-      <div style={{ position: 'absolute', right: '20px', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', pointerEvents: 'none', zIndex: 50 }}>
+      <div style={{ position: 'absolute', right: '20px', bottom: 'var(--content-bottom-pad)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', pointerEvents: 'none', zIndex: 50 }}>
         {/* Import circle — top */}
         <button
           onClick={() => setShowImport(true)}

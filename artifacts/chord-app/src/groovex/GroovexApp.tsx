@@ -200,7 +200,7 @@ function GroovexNav({ view, setView, hasActiveSong }: {
       ref={navRef}
       style={{
         position: 'fixed',
-        bottom: 'max(10px, env(safe-area-inset-bottom))',
+        bottom: 'var(--nav-safe-bottom)',
         left: '50%',
         transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 32px)' : '0px'})`,
         width: '70%',

@@ -323,7 +323,7 @@ export default function VocalexApp() {
               pointerEvents: isVisible && !isExiting ? 'auto' : 'none',
               overflowY: 'auto',
               WebkitOverflowScrolling: 'touch',
-              paddingBottom: 'calc(max(10px, env(safe-area-inset-bottom)) + 80px)',
+              paddingBottom: 'var(--content-bottom-pad)',
             }}>
               {panel === 'practice' && <Suspense fallback={null}><PracticePanelLazy /></Suspense>}
               {panel === 'pitch' && <Suspense fallback={null}><PitchPanelLazy active={activeTab === 'pitch'} /></Suspense>}
@@ -339,7 +339,7 @@ export default function VocalexApp() {
         className="glass-nav"
         style={{
           position: 'fixed',
-          bottom: 'max(10px, env(safe-area-inset-bottom))',
+          bottom: 'var(--nav-safe-bottom)',
           left: '50%',
           width: '90%',
           maxWidth: '28rem',

@@ -229,7 +229,7 @@ export default function BottomNav() {
       // @ts-expect-error – `inert` is valid HTML but missing from React types in this version
       inert={(navHidden || navCollapsed) ? '' : undefined}
       style={{
-        bottom: 'max(10px, env(safe-area-inset-bottom))',
+        bottom: 'var(--nav-safe-bottom)',
         left: '50%',
         width: '90%',
         maxWidth: '28rem',

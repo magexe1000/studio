@@ -18,7 +18,7 @@ const MESSAGE_POOL = [
   'Optimizing your experience',
   'Applying the finishing touches',
   'Tuning things up',
-  'This one's a good one',
+  "This one's a good one",
   'Almost there, hang tight',
   'Smoothing out the rough edges',
   'Making Studio feel just right',

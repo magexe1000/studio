@@ -262,7 +262,7 @@ export default function StudioHub() {
 
         {/* ── HOME TAB ── */}
         {tab === 'home' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
 
             {/* Logo area */}
             <div style={{
@@ -1040,7 +1040,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
   const slideAnim = slideDir === 'forward' ? 'hub-slide-in' : 'hub-slide-back';
   const subStyle: React.CSSProperties = {
     padding: '0 20px',
-    paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)',
+    paddingBottom: 'var(--content-bottom-pad)',
     animation: `${slideAnim} 300ms cubic-bezier(0.25,0.46,0.45,0.94) both`,
   };
 
@@ -1379,7 +1379,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
 
   /* ── MAIN PAGE ──────────────────────────────────────────────────── */
   return (
-    <div key={pageKey} style={{ padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
+    <div key={pageKey} style={{ padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
       <style>{HUB_SETTINGS_CSS}</style>
 
       {/* Title */}
@@ -1589,7 +1589,7 @@ function HubNav({ tab, setTab, accent }: {
       ref={navRef}
       style={{
         position: 'fixed',
-        bottom: 'max(10px, env(safe-area-inset-bottom))',
+        bottom: 'var(--nav-safe-bottom)',
         left: '50%',
         width: '90%',
         maxWidth: '448px',

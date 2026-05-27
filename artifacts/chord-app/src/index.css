@@ -176,6 +176,24 @@
 /* Body background always tracks the active theme so the status bar area blends in */
 html, body { background: var(--app-bg); }
 
+/* ── Navigation safe-area variables — single source of truth ────────────────
+   All scrollable content areas and floating nav bars must use these vars so
+   the floating pill nav never obscures content on any device or nav mode.
+
+   --nav-safe-bottom : gap between pill bottom and screen edge
+                       max(10px, …) guards Android 3-button nav where
+                       env(safe-area-inset-bottom) can be 0.
+                       The ,0px fallback handles WebView/older Android.
+   --nav-h           : pill height (matches BottomNav NAV_HEIGHT_PX = 64)
+   --content-bottom-pad : total bottom padding for scrollable content areas
+                          = gap + pill + 16px breathing room (≥ 90px)
+──────────────────────────────────────────────────────────────────────────── */
+:root {
+  --nav-safe-bottom:    max(10px, env(safe-area-inset-bottom, 0px));
+  --nav-h:              64px;
+  --content-bottom-pad: calc(var(--nav-safe-bottom) + var(--nav-h) + 16px);
+}
+
 /* ============================================================
    Vocalex theme tokens — used by PracticePanel / PitchPanel /
    LabPanel / TakesPanel. Defined here (not inline) so the white

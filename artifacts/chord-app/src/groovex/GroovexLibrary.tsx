@@ -66,7 +66,7 @@ export default function GroovexLibrary() {
 
   return (
     <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
-      <div style={{ padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
+      <div style={{ padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
         <section style={{ paddingTop: 32, marginBottom: 32 }}>
           <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}>{t.groovex.libraryTitle}</h2>
           <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0, fontWeight: 600 }}>

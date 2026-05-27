@@ -55,7 +55,7 @@ export default function GroovexPreferences() {
 
   return (
     <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
+      <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
 
         <section style={{ paddingTop: 32, marginBottom: 32 }}>
           <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}>{t.groovex.audioEngine}</h2>
