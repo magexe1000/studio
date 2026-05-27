@@ -386,7 +386,7 @@ export default function StudioHub() {
             {/* Logo area */}
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
-              paddingTop: 'clamp(190px, 40vh, 270px)',
+              paddingTop: 'clamp(148px, 30vh, 200px)',
               animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
             }}>
               <div data-intro-target="studio" style={{ color: isHubLight ? '#18181b' : 'white', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
