@@ -258,111 +258,124 @@ export default function StudioHub() {
               style={{
                 position: 'absolute',
                 top: 'max(14px, calc(env(safe-area-inset-top) + 10px))',
-                left: 0,
+                left: 20,
                 zIndex: 200,
                 animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
               }}
             >
-              {/* Trigger button */}
+              {/* Avatar circle — compact trigger */}
               <button
                 onClick={() => setShowProfile(v => !v)}
+                aria-label="Profile"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '10px 14px 10px 10px',
-                  borderRadius: 18,
-                  background: 'var(--app-surface)',
-                  border: `1px solid ${showProfile ? 'rgba(128,128,128,0.32)' : 'rgba(128,128,128,0.18)'}`,
+                  width: 40, height: 40, borderRadius: '50%',
+                  background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                  padding: 2, border: 'none',
                   cursor: 'pointer', outline: 'none',
                   WebkitTapHighlightColor: 'transparent',
-                  transition: 'background 160ms ease, border-color 160ms ease',
-                  minWidth: 190,
+                  flexShrink: 0,
+                  boxShadow: showProfile ? `0 0 0 3px color-mix(in srgb, ${accent.from} 28%, transparent)` : 'none',
+                  transition: 'box-shadow 200ms ease',
                 }}
               >
-                {/* Avatar on LEFT with gradient ring */}
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, padding: 2, flexShrink: 0 }}>
-                  <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: 'var(--app-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {authUser?.photoURL ? (
-                      <img src={authUser.photoURL} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                    ) : (
-                      <span style={{ fontSize: 14, fontWeight: 800, color: accent.from, fontFamily: 'Manrope' }}>
-                        {(authUser?.displayName || settings.hubUserName || 'S')[0]?.toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {/* Name + email on RIGHT */}
-                <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope', letterSpacing: '-0.01em', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {authUser?.displayName || settings.hubUserName || 'Studio'}
-                  </p>
-                  <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {authUser?.email || 'studio@app'}
-                  </p>
+                <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--app-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  {authUser?.photoURL ? (
+                    <img src={authUser.photoURL} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                  ) : (
+                    <span style={{ fontSize: 15, fontWeight: 800, color: accent.from, fontFamily: 'Manrope' }}>
+                      {(authUser?.displayName || settings.hubUserName || 'S')[0]?.toUpperCase()}
+                    </span>
+                  )}
                 </div>
               </button>
 
-              {/* Dropdown panel */}
+              {/* Expanded panel — slides out to the right */}
               {showProfile && (
                 <div style={{
-                  position: 'absolute', top: 'calc(100% + 8px)', left: 0,
-                  width: 220,
+                  position: 'absolute', left: 50, top: 0,
+                  width: 235,
                   background: 'var(--app-surface)',
                   border: '1px solid rgba(128,128,128,0.18)',
-                  borderRadius: 20,
+                  borderRadius: 18,
                   boxShadow: '0 12px 40px rgba(0,0,0,0.32)',
-                  padding: '6px',
-                  animation: 'profile-dd-in 180ms cubic-bezier(0.34,1.4,0.64,1) both',
+                  overflow: 'hidden',
+                  animation: 'profile-expand-right 280ms cubic-bezier(0.22,1,0.36,1) both',
                 }}>
-                  {([
-                    { icon: 'account_circle', label: 'Profile',      action: () => { setTab('profile'); setShowProfile(false); }, badge: null as string | null },
-                    { icon: 'auto_awesome',   label: 'Subscription', action: null as (() => void) | null, badge: 'Soon' },
-                    { icon: 'settings',       label: 'Settings',     action: () => { setTab('settings'); setShowProfile(false); }, badge: null },
-                  ]).map((item, idx) => (
-                    <button
-                      key={item.icon}
-                      onClick={item.action ?? undefined}
-                      disabled={!item.action}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 12px',
-                        background: 'transparent', border: '1px solid transparent',
-                        borderRadius: 14,
-                        cursor: item.action ? 'pointer' : 'default',
-                        outline: 'none', WebkitTapHighlightColor: 'transparent',
-                        opacity: item.action || item.badge ? 1 : 0.5,
-                        transition: 'background 120ms ease',
-                        animation: `profile-dd-item-in 220ms ${idx * 55}ms cubic-bezier(0.22,1,0.36,1) both`,
-                      }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 17, color: 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 0", flexShrink: 0 }}>{item.icon}</span>
-                      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', textAlign: 'left' }}>{item.label}</span>
-                      {item.badge && (
-                        <span style={{ fontSize: 9, fontWeight: 700, color: accent.from, background: `color-mix(in srgb, ${accent.from} 14%, transparent)`, padding: '2px 7px', borderRadius: 9999, border: `1px solid color-mix(in srgb, ${accent.from} 22%, transparent)` }}>{item.badge}</span>
-                      )}
-                    </button>
-                  ))}
+                  {/* Header: avatar + name + email */}
+                  <div style={{ padding: '13px 15px 11px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, padding: 2, flexShrink: 0 }}>
+                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: 'var(--app-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {authUser?.photoURL ? (
+                          <img src={authUser.photoURL} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                        ) : (
+                          <span style={{ fontSize: 12, fontWeight: 800, color: accent.from, fontFamily: 'Manrope' }}>
+                            {(authUser?.displayName || settings.hubUserName || 'S')[0]?.toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope', letterSpacing: '-0.01em', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {authUser?.displayName || settings.hubUserName || 'Studio'}
+                      </p>
+                      <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {authUser?.email || 'studio@app'}
+                      </p>
+                    </div>
+                  </div>
 
-                  {/* Separator */}
-                  <div style={{ height: 1, background: 'rgba(128,128,128,0.12)', margin: '4px 2px' }} />
+                  <div style={{ height: 1, background: 'rgba(128,128,128,0.1)', margin: '0 10px 4px' }} />
 
-                  {/* Sign out */}
-                  {authUser && (
-                    <button
-                      onClick={async () => { await signOut(); setShowProfile(false); }}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 12px',
-                        background: 'rgba(239,68,68,0.07)', border: '1px solid transparent',
-                        borderRadius: 14,
-                        cursor: 'pointer', outline: 'none', WebkitTapHighlightColor: 'transparent',
-                        transition: 'background 120ms ease',
-                        animation: 'profile-dd-item-in 220ms 165ms cubic-bezier(0.22,1,0.36,1) both',
-                      }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 17, color: '#f87171', fontVariationSettings: "'FILL' 0", flexShrink: 0 }}>logout</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#f87171', fontFamily: 'Manrope' }}>Sign out</span>
-                    </button>
-                  )}
+                  <div style={{ padding: '0 4px 4px' }}>
+                    {([
+                      { icon: 'account_circle', label: 'Profile',      action: () => { setTab('profile'); setShowProfile(false); }, badge: null as string | null },
+                      { icon: 'auto_awesome',   label: 'Subscription', action: null as (() => void) | null, badge: 'Soon' },
+                      { icon: 'settings',       label: 'Settings',     action: () => { setTab('settings'); setShowProfile(false); }, badge: null },
+                    ]).map((item, idx) => (
+                      <button
+                        key={item.icon}
+                        onClick={item.action ?? undefined}
+                        disabled={!item.action}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '10px 11px',
+                          background: 'transparent', border: '1px solid transparent',
+                          borderRadius: 13,
+                          cursor: item.action ? 'pointer' : 'default',
+                          outline: 'none', WebkitTapHighlightColor: 'transparent',
+                          opacity: item.action || item.badge ? 1 : 0.5,
+                          transition: 'background 120ms ease',
+                          animation: `profile-dd-item-in 200ms ${idx * 45}ms cubic-bezier(0.22,1,0.36,1) both`,
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 0", flexShrink: 0 }}>{item.icon}</span>
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', textAlign: 'left' }}>{item.label}</span>
+                        {item.badge && (
+                          <span style={{ fontSize: 9, fontWeight: 700, color: accent.from, background: `color-mix(in srgb, ${accent.from} 14%, transparent)`, padding: '2px 7px', borderRadius: 9999, border: `1px solid color-mix(in srgb, ${accent.from} 22%, transparent)` }}>{item.badge}</span>
+                        )}
+                      </button>
+                    ))}
+
+                    <div style={{ height: 1, background: 'rgba(128,128,128,0.1)', margin: '4px 6px' }} />
+
+                    {authUser && (
+                      <button
+                        onClick={async () => { await signOut(); setShowProfile(false); }}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '10px 11px',
+                          background: 'rgba(239,68,68,0.07)', border: '1px solid transparent',
+                          borderRadius: 13,
+                          cursor: 'pointer', outline: 'none', WebkitTapHighlightColor: 'transparent',
+                          transition: 'background 120ms ease',
+                          animation: 'profile-dd-item-in 200ms 135ms cubic-bezier(0.22,1,0.36,1) both',
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#f87171', fontVariationSettings: "'FILL' 0", flexShrink: 0 }}>logout</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#f87171', fontFamily: 'Manrope' }}>Sign out</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -664,7 +677,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'appearance' | 'language' | 'storage' | 'privacy' | 'about' | 'ai-assistant' | 'updater' | 'account';
+type SettingsPageId = 'main' | 'appearance' | 'language' | 'storage' | 'privacy' | 'about' | 'ai-assistant' | 'updater';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -705,6 +718,10 @@ const HUB_SETTINGS_CSS = `
   @keyframes profile-dd-item-in {
     from { opacity: 0; transform: translateX(-8px); }
     to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes profile-expand-right {
+    from { opacity: 0; transform: scaleX(0.82) translateX(-10px); transform-origin: left center; }
+    to   { opacity: 1; transform: scaleX(1)    translateX(0);     transform-origin: left center; }
   }
   input[type=range].hue-slider {
     -webkit-appearance: none;
@@ -1098,21 +1115,6 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
     animation: `${slideAnim} 300ms cubic-bezier(0.25,0.46,0.45,0.94) both`,
   };
 
-  /* ── ACCOUNT ────────────────────────────────────────────────────── */
-  if (page === 'account') {
-    return (
-      <div key={pageKey}>
-        <div style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title={(t.hub as { accountSettings?: string }).accountSettings ?? 'Account'} onBack={goBack} />
-          <Suspense fallback={null}>
-            <AccountSettingsPage accent={accent} cardStyle={cardStyle} onBack={goBack} />
-          </Suspense>
-        </div>
-      </div>
-    );
-  }
-
   /* ── APPEARANCE ─────────────────────────────────────────────────── */
   if (page === 'appearance') {
     return (
@@ -1479,12 +1481,6 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
         <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>{t.hub.settingsTitle}</p>
         <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>{t.hub.settingsSubtitle}</p>
       </div>
-
-      {/* Account */}
-      <SettingsSectionLabel delay={20}>{t.hub.account}</SettingsSectionLabel>
-      <Suspense fallback={<div style={{ ...cardStyle, padding: '20px', minHeight: 64 }} />}>
-        <AccountCard accent={accent} cardStyle={cardStyle} rowStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)' }} onAccountSettings={() => navigate('account')} />
-      </Suspense>
 
       {/* Interface */}
       <SettingsSectionLabel delay={70}>{(t.hub as { studioSettings?: { interface?: string } }).studioSettings?.interface ?? 'Interface'}</SettingsSectionLabel>
