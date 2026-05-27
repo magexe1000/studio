@@ -485,6 +485,9 @@ function StudioFamilyOrbit({
           <div style={{
             width: 46,
             height: 46,
+            minWidth: 46,
+            minHeight: 46,
+            flexShrink: 0,
             borderRadius: '50%',
             background: 'transparent',
             border: '1px solid rgba(255,255,255,0.22)',
