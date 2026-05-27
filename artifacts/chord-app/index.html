@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v7 — professional monochrome intro -->
+<!-- v8 — pro intro with real app logos that fly into hub positions -->
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
@@ -23,11 +23,12 @@
     <style>
       html, body { background: #0a0a0c; margin: 0; padding: 0; }
 
-      /* ── Professional monochrome startup intro (v7) ────────────────────
-         • Pure black bg, no colored glow
-         • White icons, no per-app color tints, no pill backgrounds
-         • Orbit starts smooth, accelerates dramatically right before settle
-         • Each app icon then arranges into its final hub position
+      /* ── Professional startup intro v8 ─────────────────────────────────
+         • Pure black, monochrome white
+         • 5 REAL app logos orbiting (Chordex/Drumex/Stagex/Groovex/Vocalex)
+         • Orbit accelerates dramatically right before settle
+         • Each icon flies to its EXACT measured hub position (data-intro-target)
+         • Then the intro overlay fades out, revealing the hub underneath
       ────────────────────────────────────────────────────────────────── */
       #intro {
         position: fixed; inset: 0; z-index: 2147483647;
@@ -35,13 +36,12 @@
         overflow: hidden;
         pointer-events: none;
         opacity: 1;
-        transition: opacity 700ms cubic-bezier(0.4,0,0.2,1);
+        transition: opacity 600ms cubic-bezier(0.4,0,0.2,1);
         font-family: Manrope, system-ui, -apple-system, sans-serif;
       }
       #intro.dismissing { opacity: 0; }
       #intro.dismissed  { display: none; }
 
-      /* Very subtle white nebula — gives depth without ugly color */
       #intro-glow {
         position: absolute; top: 50%; left: 50%;
         width: 420px; height: 420px;
@@ -55,7 +55,6 @@
         pointer-events: none;
       }
 
-      /* Tiny twinkling stars */
       #intro-stars {
         position: absolute; inset: 0;
         background-image:
@@ -70,7 +69,6 @@
         opacity: 0.5;
       }
 
-      /* Center Studio logo — JS controls transform every frame */
       #intro-center {
         position: absolute; top: 50%; left: 50%;
         display: flex; flex-direction: column; align-items: center;
@@ -80,10 +78,9 @@
         transform: translate(-50%, -50%) scale(1);
         opacity: 0;
         animation: center-fade-in 600ms 80ms ease-out forwards;
+        color: #ffffff;
       }
-      @keyframes center-fade-in {
-        from { opacity: 0; } to { opacity: 1; }
-      }
+      @keyframes center-fade-in { from { opacity: 0; } to { opacity: 1; } }
       #intro-center .logo {
         width: 96px; height: 96px;
         display: flex; align-items: center; justify-content: center;
@@ -99,18 +96,18 @@
         letter-spacing: 0.08em; margin: 0; text-transform: uppercase;
       }
 
-      /* Orbiters — no background pill, just white icons */
+      /* Orbiter — pure white icon, no pill */
       .orbiter {
         position: absolute;
         width: 44px; height: 44px;
         display: flex; align-items: center; justify-content: center;
-        will-change: transform, left, top;
+        will-change: transform, opacity;
         opacity: 0;
         animation: orb-fade-in 500ms 120ms ease-out forwards;
         color: #ffffff;
       }
       @keyframes orb-fade-in { from { opacity: 0; } to { opacity: 1; } }
-      .orbiter svg {
+      .orbiter > svg {
         width: 30px; height: 30px;
         filter: drop-shadow(0 0 6px rgba(255,255,255,0.25));
       }
@@ -126,8 +123,9 @@
       <div id="intro-stars"></div>
       <div id="intro-glow"></div>
 
-      <div id="intro-center">
+      <div id="intro-center" data-intro-id="studio">
         <div class="logo">
+          <!-- Studio sine wave (matches StudioLogo component) -->
           <svg viewBox="0 0 512 512" fill="none">
             <path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256"
                   stroke="white" stroke-width="44"
@@ -138,94 +136,206 @@
         <p class="sub">by Mag</p>
       </div>
 
-      <!-- 5 white-icon orbiters, no background colors -->
-      <div class="orbiter" data-i="0">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14M5 12h14M5 16h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <!-- 5 real app logos, inlined from ChordexLogo.tsx -->
+
+      <!-- Chordex: fretboard with 3 strings + chord dots -->
+      <div class="orbiter" data-intro-id="chords">
+        <svg viewBox="0 0 13 17" fill="none" preserveAspectRatio="xMidYMid meet" style="width:26px;height:34px;">
+          <rect x="0.5" y="0.5" width="12" height="2.5" rx="1" fill="currentColor"/>
+          <line x1="2.5"  y1="3" x2="2.5"  y2="16.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.45"/>
+          <line x1="6.5"  y1="3" x2="6.5"  y2="16.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.45"/>
+          <line x1="10.5" y1="3" x2="10.5" y2="16.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.45"/>
+          <line x1="0.5" y1="8"  x2="12.5" y2="8"  stroke="currentColor" stroke-width="0.7" stroke-opacity="0.35"/>
+          <line x1="0.5" y1="13" x2="12.5" y2="13" stroke="currentColor" stroke-width="0.7" stroke-opacity="0.35"/>
+          <circle cx="2.5"  cy="5.5"  r="2.1" fill="currentColor"/>
+          <circle cx="10.5" cy="5.5"  r="2.1" fill="currentColor"/>
+          <circle cx="6.5"  cy="10.5" r="2.1" fill="currentColor"/>
+        </svg>
       </div>
-      <div class="orbiter" data-i="1">
-        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg>
+
+      <!-- Drumex: snare drum top-down -->
+      <div class="orbiter" data-intro-id="drums">
+        <svg viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="8" cy="8" r="4.8" stroke="currentColor" stroke-width="0.85" stroke-opacity="0.55"/>
+          <circle cx="8" cy="2" r="0.95" fill="currentColor"/>
+          <circle cx="13.196" cy="5" r="0.95" fill="currentColor"/>
+          <circle cx="13.196" cy="11" r="0.95" fill="currentColor"/>
+          <circle cx="8" cy="14" r="0.95" fill="currentColor"/>
+          <circle cx="2.804" cy="11" r="0.95" fill="currentColor"/>
+          <circle cx="2.804" cy="5" r="0.95" fill="currentColor"/>
+          <circle cx="8" cy="8" r="1.4" fill="currentColor"/>
+        </svg>
       </div>
-      <div class="orbiter" data-i="2">
-        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="9" width="3" height="6" rx="0.6"/><rect x="8" y="6" width="3" height="12" rx="0.6"/><rect x="13" y="9" width="3" height="6" rx="0.6"/><rect x="18" y="7" width="3" height="10" rx="0.6"/></svg>
+
+      <!-- Stagex: stage with 2 speakers + mic stand -->
+      <div class="orbiter" data-intro-id="stage">
+        <svg viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="10" width="14" height="2.5" rx="1" fill="currentColor" fill-opacity="0.95"/>
+          <rect x="1" y="4" width="3.5" height="5.5" rx="0.8" stroke="currentColor" stroke-width="1.1"/>
+          <circle cx="2.75" cy="6.2" r="0.8" fill="currentColor"/>
+          <circle cx="2.75" cy="8.1" r="0.55" fill="currentColor" fill-opacity="0.7"/>
+          <rect x="11.5" y="4" width="3.5" height="5.5" rx="0.8" stroke="currentColor" stroke-width="1.1"/>
+          <circle cx="13.25" cy="6.2" r="0.8" fill="currentColor"/>
+          <circle cx="13.25" cy="8.1" r="0.55" fill="currentColor" fill-opacity="0.7"/>
+          <line x1="8" y1="4" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+          <circle cx="8" cy="3.2" r="1.2" fill="currentColor"/>
+        </svg>
       </div>
-      <div class="orbiter" data-i="3">
-        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
+
+      <!-- Groovex: concentric circles with crosshairs -->
+      <div class="orbiter" data-intro-id="groovex">
+        <svg viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.2"/>
+          <circle cx="8" cy="8" r="1" fill="currentColor"/>
+          <line x1="8" y1="1" x2="8" y2="5" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
+          <line x1="8" y1="11" x2="8" y2="15" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
+          <line x1="1" y1="8" x2="5" y2="8" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
+          <line x1="11" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
+        </svg>
       </div>
-      <div class="orbiter" data-i="4">
-        <svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" fill="currentColor"/><path d="M6 12a6 6 0 0 0 12 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+
+      <!-- Vocalex: microphone with cradle + stand -->
+      <div class="orbiter" data-intro-id="vocalex">
+        <svg viewBox="0 0 16 16" fill="none">
+          <rect x="6.5" y="2" width="3" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M4 8.5C4 11.26 5.79 13 8 13C10.21 13 12 11.26 12 8.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+          <line x1="8" y1="13" x2="8" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <line x1="6" y1="14" x2="10" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
       </div>
     </div>
     <div id="root"></div>
 
     <script>
-      // ── Professional orbiting intro with accelerating spin ──────────────
+      // ── Pro intro with measured-target settle ───────────────────────────
       (function () {
         var intro    = document.getElementById('intro');
         var center   = document.getElementById('intro-center');
-        var orbiters = intro ? intro.querySelectorAll('.orbiter') : [];
-        if (!intro || orbiters.length === 0) return;
+        if (!intro || !center) return;
+        var orbiterEls = intro.querySelectorAll('.orbiter');
+        if (orbiterEls.length === 0) return;
 
-        // Geometry — elliptical tilted orbit (3D look)
-        var RX        = 132;
-        var RY        = 38;
-        var TILT      = -28 * Math.PI / 180;
-        var COS_T     = Math.cos(TILT);
-        var SIN_T     = Math.sin(TILT);
-        var N         = orbiters.length;
-        var STEP      = 360 / N;
+        // Map each intro icon to its hub data-intro-target counterpart.
+        var orbiters = [];
+        orbiterEls.forEach(function (el) {
+          orbiters.push({ el: el, key: el.getAttribute('data-intro-id') });
+        });
+        var N = orbiters.length;
 
-        // ── Speed profile (deg/ms angular velocity) ───────────────────────
-        // Phase 1 (0 → ACCEL_START):   smooth steady orbit
-        // Phase 2 (ACCEL_START → ACCEL_END): accelerate dramatically — the
-        //   "spin faster as the app is about to open" effect
-        // Phase 3 (SETTLE_START → SETTLE_END): each item arranges into hub pos
-        var BASE_OMEGA   = 360 / 8500;       // ~8.5s per revolution
-        var PEAK_OMEGA   = 360 / 900;        // ~0.9s per revolution at peak
-        var ACCEL_START  = 1800;
-        var ACCEL_END    = 3200;
-        var SETTLE_START = 3000;             // start settling slightly during peak
-        var SETTLE_END   = 4400;
-        var INTRO_TOTAL  = 4400;
+        // Geometry — elliptical tilted orbit for 3D feel
+        var RX    = 132;
+        var RY    = 38;
+        var TILT  = -28 * Math.PI / 180;
+        var COS_T = Math.cos(TILT);
+        var SIN_T = Math.sin(TILT);
+        var STEP  = 360 / N;
 
-        // Final hub-icon positions (relative to viewport CENTER) — recomputed
-        // on resize/orientation change so all settled items stay visible.
-        var W, H, targets = [], centerTarget = { x: 0, y: 0, scale: 0.55 };
-        function recomputeTargets() {
-          W = window.innerWidth;
-          H = window.innerHeight;
-          var COL_X = -(W / 2) + 64;
-          // Clamp last row so it never overflows the bottom of the viewport
-          var GAP_DESIRED = 76;
-          var maxYFromCenter = (H / 2) - 48;       // 48 = half of orbiter+padding
-          var firstY        = Math.max(-(H / 2) + 88, -(H / 2) + H * 0.18);
-          var lastYBudget   = maxYFromCenter - firstY;
-          var GAP = Math.min(GAP_DESIRED, Math.max(48, lastYBudget / (N - 1)));
-          targets = [];
-          for (var j = 0; j < N; j++) {
-            targets.push({ x: COL_X, y: firstY + j * GAP, scale: 0.55 });
+        // Speed profile (deg/ms): smooth → dramatic accel → settle
+        var BASE_OMEGA   = 360 / 8500;
+        var PEAK_OMEGA   = 360 / 900;
+        var ACCEL_START  = 1600;
+        var ACCEL_END    = 2800;
+
+        // Settle starts when targets are known AND minimum spin time elapsed.
+        // Falls back to t=3000 if React hasn't mounted yet.
+        var SETTLE_DURATION = 1200;  // ms to lerp from orbit → target
+        var FADE_OVERLAP    = 350;   // intro fade starts before settle fully ends
+        var FADE_DURATION   = 600;
+        var MIN_SPIN_TIME   = 2800;  // don't settle before this
+        var MAX_WAIT_TIME   = 4500;  // hard cap — settle even without targets
+
+        // Default fallback targets (relative to viewport center) if measurement fails
+        function fallbackTargets() {
+          var W = window.innerWidth;
+          var H = window.innerHeight;
+          var x = -(W / 2) + 64;
+          var y0 = -(H / 2) + 240;
+          var gap = Math.min(76, (H * 0.5) / (N + 1));
+          var ts = [];
+          for (var i = 0; i < N; i++) {
+            ts.push({ x: x, y: y0 + i * gap, scale: 0.55 });
           }
-          centerTarget = { x: 0, y: -(H / 2) + 130, scale: 0.55 };
+          return {
+            orbiters: ts,
+            center:   { x: 0, y: -(H / 2) + 130, scale: 0.55 },
+          };
         }
-        recomputeTargets();
-        window.addEventListener('resize', recomputeTargets);
-        window.addEventListener('orientationchange', recomputeTargets);
+
+        // Measure actual hub icon positions from data-intro-target elements.
+        // Returns null if not all targets are present.
+        function measureTargets() {
+          var W = window.innerWidth;
+          var H = window.innerHeight;
+          var cxV = W / 2, cyV = H / 2;
+          var centerEl = document.querySelector('[data-intro-target="studio"]');
+          if (!centerEl) return null;
+          var cr = centerEl.getBoundingClientRect();
+          if (cr.width === 0) return null;
+          var centerTarget = {
+            x: (cr.left + cr.width / 2) - cxV,
+            y: (cr.top  + cr.height / 2) - cyV,
+            scale: cr.width / 96,  // intro center logo is 96px
+          };
+          var orbiterTargets = [];
+          for (var i = 0; i < orbiters.length; i++) {
+            var key = orbiters[i].key;
+            var t = document.querySelector('[data-intro-target="' + key + '"]');
+            if (!t) return null;
+            var r = t.getBoundingClientRect();
+            if (r.width === 0) return null;
+            orbiterTargets.push({
+              x: (r.left + r.width / 2) - cxV,
+              y: (r.top  + r.height / 2) - cyV,
+              scale: r.width / 44,  // intro orbiter container is 44px
+            });
+          }
+          return { orbiters: orbiterTargets, center: centerTarget };
+        }
+
+        // Measure vertical offset of the logo's center relative to the
+        // #intro-center container's center. The container holds logo + title +
+        // subtitle in normal flow, so the logo center sits ABOVE the container
+        // center. We use this offset (scaled) to make the LOGO land on the
+        // measured hub target, not the container.
+        var _cachedLogoOffY = null;
+        function getLogoOffsetY() {
+          if (_cachedLogoOffY !== null) return _cachedLogoOffY;
+          var logoEl = center.querySelector('.logo');
+          if (!logoEl) return 0;
+          var lr = logoEl.getBoundingClientRect();
+          var cr = center.getBoundingClientRect();
+          if (cr.height === 0) return 0;  // not laid out yet — try later
+          _cachedLogoOffY = (lr.top + lr.height / 2) - (cr.top + cr.height / 2);
+          return _cachedLogoOffY;
+        }
 
         function easeInOutCubic(t) {
           return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
         }
         function easeInQuad(t) { return t * t; }
 
-        // Anchor orbiters to viewport center; per-frame transform handles motion
-        var cx = W / 2, cy = H / 2;
-        for (var i = 0; i < orbiters.length; i++) {
-          orbiters[i].style.left = (cx - 22) + 'px';   // 22 = half of 44
-          orbiters[i].style.top  = (cy - 22) + 'px';
+        // Anchor orbiters at viewport center; transform handles motion
+        function anchor() {
+          var W = window.innerWidth, H = window.innerHeight;
+          for (var i = 0; i < orbiters.length; i++) {
+            orbiters[i].el.style.left = (W / 2 - 22) + 'px';
+            orbiters[i].el.style.top  = (H / 2 - 22) + 'px';
+          }
         }
+        anchor();
+        window.addEventListener('resize', anchor);
+        window.addEventListener('orientationchange', anchor);
 
         var start  = performance.now();
-        var angle  = 0;           // accumulated orbit angle (deg)
+        var angle  = 0;
         var lastT  = start;
         var stopped = false;
+        var settleStartTime = -1;     // when settle actually began
+        var targets = null;
+        var fadeStarted = false;
+        var dismissed = false;
 
         function omegaAt(t) {
           if (t <= ACCEL_START) return BASE_OMEGA;
@@ -234,21 +344,40 @@
           return BASE_OMEGA + (PEAK_OMEGA - BASE_OMEGA) * easeInQuad(p);
         }
 
+        function reactMounted() {
+          var r = document.getElementById('root');
+          return !!(r && r.children && r.children.length > 0);
+        }
+
         function frame(now) {
           if (stopped) return;
           var t  = now - start;
           var dt = now - lastT;
           lastT  = now;
-          // Integrate angular velocity for smooth acceleration
-          angle = (angle + omegaAt(t) * dt) % 360;
+          angle  = (angle + omegaAt(t) * dt) % 360;
 
-          // Settle progress
-          var sP = (t - SETTLE_START) / (SETTLE_END - SETTLE_START);
-          if (sP < 0) sP = 0; else if (sP > 1) sP = 1;
+          // Decide whether to start settling
+          if (settleStartTime < 0 && t >= MIN_SPIN_TIME) {
+            var measured = measureTargets();
+            if (measured) {
+              targets = measured;
+              settleStartTime = now;
+            } else if (t >= MAX_WAIT_TIME) {
+              targets = fallbackTargets();
+              settleStartTime = now;
+            }
+          }
+
+          // Settle progress (0 → 1)
+          var sP = 0;
+          if (settleStartTime > 0) {
+            sP = (now - settleStartTime) / SETTLE_DURATION;
+            if (sP < 0) sP = 0; else if (sP > 1) sP = 1;
+          }
           var sE = easeInOutCubic(sP);
 
           for (var k = 0; k < orbiters.length; k++) {
-            var el = orbiters[k];
+            var el = orbiters[k].el;
             var a = (angle + k * STEP) % 360;
             if (a < 0) a += 360;
             var rad = a * Math.PI / 180;
@@ -257,67 +386,83 @@
             var xT = x0 * COS_T - y0 * SIN_T;
             var yT = x0 * SIN_T + y0 * COS_T;
 
-            var front = a < 180;
+            var front      = a < 180;
             var orbitScale = front ? 1.10 : 0.85;
             var z          = front ? 3 : 0;
 
-            var tx = targets[k].x, ty = targets[k].y, ts = targets[k].scale;
-            var fx = xT + (tx - xT) * sE;
-            var fy = yT + (ty - yT) * sE;
-            var fs = orbitScale + (ts - orbitScale) * sE;
-            el.style.zIndex   = sE > 0.5 ? 1 : z;
+            var fx, fy, fs;
+            if (targets) {
+              var tgt = targets.orbiters[k];
+              fx = xT + (tgt.x - xT) * sE;
+              fy = yT + (tgt.y - yT) * sE;
+              fs = orbitScale + (tgt.scale - orbitScale) * sE;
+            } else {
+              fx = xT; fy = yT; fs = orbitScale;
+            }
+            el.style.zIndex    = sE > 0.5 ? 1 : z;
             el.style.transform = 'translate(' + fx.toFixed(2) + 'px,' + fy.toFixed(2) + 'px) scale(' + fs.toFixed(3) + ')';
           }
 
-          // Center logo migrates upward to its hub position during settle
-          var ccx = centerTarget.x * sE;
-          var ccy = centerTarget.y * sE;
-          var ccs = 1 + (centerTarget.scale - 1) * sE;
-          center.style.transform = 'translate(-50%, -50%) translate(' + ccx.toFixed(2) + 'px,' + ccy.toFixed(2) + 'px) scale(' + ccs.toFixed(3) + ')';
+          // Center logo follows — compensate for logo offset within the
+          // container so the LOGO (not the container) lands on the hub target.
+          if (targets) {
+            var ct = targets.center;
+            var ccs = 1 + (ct.scale - 1) * sE;
+            var logoOffY = getLogoOffsetY(); // px, logo-center relative to container-center
+            var ccx = ct.x * sE;
+            var ccy = (ct.y - logoOffY * ccs) * sE;
+            center.style.transform = 'translate(-50%, -50%) translate(' + ccx.toFixed(2) + 'px,' + ccy.toFixed(2) + 'px) scale(' + ccs.toFixed(3) + ')';
+            // Fade out title/sub during settle so only the logo "lands"
+            var titleEl = center.querySelector('.title');
+            var subEl   = center.querySelector('.sub');
+            if (titleEl) titleEl.style.opacity = String(1 - sE);
+            if (subEl)   subEl.style.opacity   = String(1 - sE);
+          }
 
-          if (sP >= 1) { stopped = true; return; }
+          // Start crossfade slightly before settle completes so the intro
+          // icons appear to BECOME the hub icons rather than swap.
+          if (!fadeStarted && settleStartTime > 0 && (now - settleStartTime) >= (SETTLE_DURATION - FADE_OVERLAP)) {
+            fadeStarted = true;
+            // Only start the fade when React is mounted (so the hub is there
+            // to crossfade INTO). Otherwise wait briefly.
+            startFade();
+          }
+
+          if (sP >= 1 && fadeStarted) {
+            // Settle done; rAF loop ends after fade dismisses
+            stopped = true;
+            return;
+          }
           requestAnimationFrame(frame);
         }
         requestAnimationFrame(frame);
 
-        // ── Dismiss when min-visible time elapsed AND React mounted ─────────
-        var rootEl = document.getElementById('root');
-        var dismissed = false, observer = null, pollId = 0;
-        function dismiss() {
+        function startFade() {
+          if (dismissed) return;
+          if (!reactMounted()) {
+            // Wait for React then fade
+            var startedAt = performance.now();
+            var iv = setInterval(function () {
+              if (reactMounted() || performance.now() - startedAt > 3000) {
+                clearInterval(iv);
+                doFade();
+              }
+            }, 80);
+            return;
+          }
+          doFade();
+        }
+        function doFade() {
           if (dismissed) return;
           dismissed = true;
-          stopped   = true;
-          if (observer) { observer.disconnect(); observer = null; }
-          if (pollId)   { clearInterval(pollId); pollId = 0; }
           intro.classList.add('dismissing');
           setTimeout(function () {
             intro.classList.add('dismissed');
             if (intro.parentNode) intro.parentNode.removeChild(intro);
-          }, 750);
+          }, FADE_DURATION + 50);
         }
-        function reactMounted() {
-          return !!(rootEl && rootEl.children && rootEl.children.length > 0);
-        }
-        function tryDismiss() {
-          if (dismissed) return;
-          var elapsed = performance.now() - start;
-          if (reactMounted() && elapsed >= INTRO_TOTAL) {
-            dismiss();
-          } else if (reactMounted()) {
-            if (observer) { observer.disconnect(); observer = null; }
-            if (pollId)   { clearInterval(pollId); pollId = 0; }
-            setTimeout(dismiss, INTRO_TOTAL - elapsed);
-          }
-        }
-        if (rootEl && 'MutationObserver' in window) {
-          observer = new MutationObserver(tryDismiss);
-          observer.observe(rootEl, { childList: true, subtree: false });
-        }
-        setTimeout(function () {
-          tryDismiss();
-          if (!dismissed) pollId = setInterval(tryDismiss, 100);
-        }, INTRO_TOTAL);
-        setTimeout(dismiss, 10000);
+        // Hard safety
+        setTimeout(doFade, 10000);
       })();
     </script>
     <script type="module" src="/src/main.tsx"></script>
