@@ -195,9 +195,21 @@ export default function StudioHub() {
   const [showProfile, setShowProfile] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
 
   useEffect(() => subscribeAuth(setAuthUser), []);
+
+  useEffect(() => {
+    if (!showProfile) return;
+    const handler = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setShowProfile(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showProfile]);
 
   const launchApp = useCallback((appMode: 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex') => {
     setZooming(true);
@@ -238,38 +250,128 @@ export default function StudioHub() {
 
         {/* ── HOME TAB ── */}
         {tab === 'home' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 48px)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 60px)', position: 'relative' }}>
+
+            {/* ── Profile trigger + dropdown — top left ── */}
+            <div
+              ref={profileRef}
+              style={{
+                position: 'absolute',
+                top: 'max(14px, calc(env(safe-area-inset-top) + 10px))',
+                left: 0,
+                zIndex: 200,
+                animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
+              }}
+            >
+              {/* Trigger button */}
+              <button
+                onClick={() => setShowProfile(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '7px 9px 7px 12px',
+                  borderRadius: 16,
+                  background: showProfile ? 'var(--app-surface-high)' : 'var(--app-surface)',
+                  border: `1px solid ${showProfile ? 'rgba(128,128,128,0.28)' : 'rgba(128,128,128,0.15)'}`,
+                  cursor: 'pointer', outline: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                  transition: 'background 160ms ease, border-color 160ms ease',
+                  maxWidth: 210,
+                }}
+              >
+                <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope', letterSpacing: '-0.01em', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {authUser?.displayName || settings.hubUserName || 'Studio'}
+                  </p>
+                  {authUser?.email && (
+                    <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {authUser.email}
+                    </p>
+                  )}
+                </div>
+                {/* Avatar with gradient ring */}
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, padding: 2, flexShrink: 0 }}>
+                  <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: 'var(--app-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {authUser?.photoURL ? (
+                      <img src={authUser.photoURL} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                    ) : (
+                      <span style={{ fontSize: 13, fontWeight: 800, color: accent.from, fontFamily: 'Manrope' }}>
+                        {(authUser?.displayName || settings.hubUserName || 'S')[0]?.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </button>
+
+              {/* Dropdown panel */}
+              {showProfile && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 8px)', left: 0,
+                  width: 220,
+                  background: 'var(--app-surface)',
+                  border: '1px solid rgba(128,128,128,0.18)',
+                  borderRadius: 20,
+                  boxShadow: '0 12px 40px rgba(0,0,0,0.32)',
+                  padding: '6px',
+                  animation: 'profile-dd-in 180ms cubic-bezier(0.34,1.4,0.64,1) both',
+                }}>
+                  {([
+                    { icon: 'account_circle', label: 'Profile',      action: () => { setTab('settings'); setShowProfile(false); }, badge: null as string | null },
+                    { icon: 'workspace_premium', label: 'Subscription', action: null as (() => void) | null, badge: 'Soon' },
+                    { icon: 'settings',       label: 'Settings',     action: () => { setTab('settings'); setShowProfile(false); }, badge: null },
+                  ]).map(item => (
+                    <button
+                      key={item.icon}
+                      onClick={item.action ?? undefined}
+                      disabled={!item.action}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 12px',
+                        background: 'transparent', border: '1px solid transparent',
+                        borderRadius: 14,
+                        cursor: item.action ? 'pointer' : 'default',
+                        outline: 'none', WebkitTapHighlightColor: 'transparent',
+                        opacity: item.action || item.badge ? 1 : 0.5,
+                        transition: 'background 120ms ease',
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 17, color: 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 0", flexShrink: 0 }}>{item.icon}</span>
+                      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', textAlign: 'left' }}>{item.label}</span>
+                      {item.badge && (
+                        <span style={{ fontSize: 9, fontWeight: 700, color: accent.from, background: `color-mix(in srgb, ${accent.from} 14%, transparent)`, padding: '2px 7px', borderRadius: 9999, border: `1px solid color-mix(in srgb, ${accent.from} 22%, transparent)` }}>{item.badge}</span>
+                      )}
+                    </button>
+                  ))}
+
+                  {/* Separator */}
+                  <div style={{ height: 1, background: 'rgba(128,128,128,0.12)', margin: '4px 2px' }} />
+
+                  {/* Sign out */}
+                  {authUser && (
+                    <button
+                      onClick={async () => { await signOut(); setShowProfile(false); }}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 12px',
+                        background: 'rgba(239,68,68,0.07)', border: '1px solid transparent',
+                        borderRadius: 14,
+                        cursor: 'pointer', outline: 'none', WebkitTapHighlightColor: 'transparent',
+                        transition: 'background 120ms ease',
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 17, color: '#f87171', fontVariationSettings: "'FILL' 0", flexShrink: 0 }}>logout</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#f87171', fontFamily: 'Manrope' }}>Sign out</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Logo area */}
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
-              paddingTop: 'clamp(48px, 10vh, 80px)', position: 'relative',
+              paddingTop: 'clamp(88px, 18vh, 120px)',
               animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
             }}>
-              {/* Profile button */}
-              <button
-                onClick={() => setShowProfile(true)}
-                aria-label="Profile"
-                style={{
-                  position: 'absolute', top: 'clamp(48px, 10vh, 80px)', right: -52,
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: 'var(--app-surface-high)',
-                  border: '1px solid rgba(128,128,128,0.15)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', outline: 'none',
-                  WebkitTapHighlightColor: 'transparent',
-                  transition: 'opacity 160ms ease',
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                }}
-              >
-                {authUser?.photoURL ? (
-                  <img src={authUser.photoURL} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} alt="" />
-                ) : (
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-secondary)' }}>account_circle</span>
-                )}
-              </button>
-
               <div data-intro-target="studio" style={{ color: isHubLight ? '#18181b' : 'white', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <StudioLogo size={56} />
               </div>
@@ -351,92 +453,6 @@ export default function StudioHub() {
           </>
         )}
       </div>
-
-      {/* ── Profile sheet ── */}
-      {showProfile && (
-        <>
-          <div
-            onClick={() => setShowProfile(false)}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 8000,
-              background: 'rgba(0,0,0,0.48)',
-              backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)',
-            }}
-          />
-          <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 8001,
-            background: 'var(--app-surface)',
-            borderRadius: '24px 24px 0 0',
-            boxShadow: '0 -8px 40px rgba(0,0,0,0.35)',
-            animation: 'profile-sheet-up 320ms cubic-bezier(0.34,1.15,0.64,1) both',
-          }}>
-            {/* Drag handle */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 8px' }}>
-              <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.25)' }} />
-            </div>
-
-            {/* User header */}
-            <div style={{ padding: '8px 20px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{
-                width: 46, height: 46, borderRadius: '50%',
-                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0, overflow: 'hidden',
-              }}>
-                {authUser?.photoURL ? (
-                  <img src={authUser.photoURL} style={{ width: 46, height: 46, objectFit: 'cover' }} alt="" />
-                ) : (
-                  <span style={{ fontSize: 18, fontWeight: 800, color: 'white', fontFamily: 'Manrope' }}>
-                    {(authUser?.displayName || settings.hubUserName || 'S')[0]?.toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <div>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
-                  {authUser?.displayName || settings.hubUserName || 'Studio'}
-                </p>
-                {authUser?.email && (
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>
-                    {authUser.email}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div style={{ height: 1, background: 'rgba(128,128,128,0.1)', margin: '0 0 6px' }} />
-
-            {/* Menu items */}
-            {([
-              { icon: 'settings', label: 'Settings', action: () => { setTab('settings'); setShowProfile(false); }, chevron: true, danger: false, badge: null as string | null },
-              { icon: 'workspace_premium', label: 'Subscription', action: null as (() => void) | null, chevron: false, danger: false, badge: 'Soon' },
-              ...(authUser ? [{ icon: 'logout', label: 'Sign out', action: async () => { await signOut(); setShowProfile(false); }, chevron: false, danger: true, badge: null as string | null }] : []),
-            ] as Array<{ icon: string; label: string; action: (() => void) | null; chevron: boolean; danger: boolean; badge: string | null }>).map((item) => (
-              <button
-                key={item.icon}
-                onClick={item.action ?? undefined}
-                disabled={!item.action}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '14px 20px', background: 'transparent', border: 'none',
-                  cursor: item.action ? 'pointer' : 'default',
-                  opacity: item.action ? 1 : 0.55,
-                  outline: 'none', WebkitTapHighlightColor: 'transparent',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 20, color: item.danger ? '#f87171' : 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 0" }}>{item.icon}</span>
-                <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: item.danger ? '#f87171' : 'var(--c-text-primary)', fontFamily: 'Manrope', textAlign: 'left' }}>{item.label}</span>
-                {item.badge && (
-                  <span style={{ fontSize: 9, fontWeight: 700, color: accent.from, background: `color-mix(in srgb, ${accent.from} 15%, transparent)`, padding: '2px 7px', borderRadius: 9999, border: `1px solid color-mix(in srgb, ${accent.from} 25%, transparent)` }}>{item.badge}</span>
-                )}
-                {item.chevron && <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-muted)' }}>chevron_right</span>}
-              </button>
-            ))}
-
-            <div style={{ height: 'max(20px, env(safe-area-inset-bottom))' }} />
-          </div>
-        </>
-      )}
 
       {/* UpdateIndicator is now hoisted to AppShell so it appears on
           every screen, not just the Hub. */}
@@ -656,6 +672,10 @@ const HUB_SETTINGS_CSS = `
   @keyframes profile-sheet-up {
     from { transform: translateY(100%); }
     to   { transform: translateY(0); }
+  }
+  @keyframes profile-dd-in {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
   }
   input[type=range].hue-slider {
     -webkit-appearance: none;
