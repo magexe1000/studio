@@ -62,10 +62,13 @@ createRoot(document.getElementById("root")!).render(
   </TolgeeProvider>,
 );
 
+// Service worker registration removed — the previous SW was caching the old
+// StartupSplash bundle. The current `public/sw.js` is a self-destructing
+// killswitch: once it runs on a device it unregisters itself and clears all
+// caches, so we don't re-register it here. To restore offline support in the
+// future, register a new SW under a different filename.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL })
-      .catch(err => console.warn('Service worker registration failed:', err));
-  });
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((reg) => { void reg.unregister(); });
+  }).catch(() => { /* ignore */ });
 }
