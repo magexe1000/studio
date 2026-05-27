@@ -289,17 +289,18 @@ export default function StudioHub() {
                 </div>
               </button>
 
-              {/* Expanded panel — slides out to the right */}
+              {/* Panel — bursts out from the avatar origin */}
               {showProfile && (
                 <div style={{
-                  position: 'absolute', left: 50, top: 0,
+                  position: 'absolute', left: 0, top: 0,
                   width: 235,
                   background: 'var(--app-surface)',
                   border: '1px solid rgba(128,128,128,0.18)',
                   borderRadius: 18,
                   boxShadow: '0 12px 40px rgba(0,0,0,0.32)',
                   overflow: 'hidden',
-                  animation: 'profile-expand-right 280ms cubic-bezier(0.22,1,0.36,1) both',
+                  animation: 'profile-burst-out 320ms cubic-bezier(0.34,1.65,0.64,1) both',
+                  transformOrigin: 'top left',
                 }}>
                   {/* Header: avatar + name + email */}
                   <div style={{ padding: '13px 15px 11px', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -383,7 +384,7 @@ export default function StudioHub() {
             {/* Logo area */}
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
-              paddingTop: 'clamp(110px, 24vh, 155px)',
+              paddingTop: 'clamp(190px, 40vh, 270px)',
               animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
             }}>
               <div data-intro-target="studio" style={{ color: isHubLight ? '#18181b' : 'white', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -401,7 +402,7 @@ export default function StudioHub() {
               borderRadius={24}
               wrapStyle={{
                 width: '100%', maxWidth: 380,
-                marginTop: 'clamp(32px, 7vh, 56px)',
+                marginTop: 'clamp(40px, 9vh, 68px)',
                 animation: 'hub-rise-in 500ms 80ms cubic-bezier(0.34,1.15,0.64,1) both, gb-spin 14s linear infinite',
               }}
               innerStyle={{
@@ -719,9 +720,9 @@ const HUB_SETTINGS_CSS = `
     from { opacity: 0; transform: translateX(-8px); }
     to   { opacity: 1; transform: translateX(0); }
   }
-  @keyframes profile-expand-right {
-    from { opacity: 0; transform: scaleX(0.82) translateX(-10px); transform-origin: left center; }
-    to   { opacity: 1; transform: scaleX(1)    translateX(0);     transform-origin: left center; }
+  @keyframes profile-burst-out {
+    from { opacity: 0; transform: scale(0.12); transform-origin: top left; }
+    to   { opacity: 1; transform: scale(1);   transform-origin: top left; }
   }
   input[type=range].hue-slider {
     -webkit-appearance: none;
