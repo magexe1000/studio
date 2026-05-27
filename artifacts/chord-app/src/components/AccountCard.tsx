@@ -1425,40 +1425,6 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
           {L.signOut}
         </button>
 
-        {/* Delete Account — destructive section at bottom */}
-        <div style={{
-          marginTop: 28, marginBottom: 40,
-          padding: '18px 18px 16px',
-          background: 'rgba(255,107,107,0.04)',
-          border: '1px solid rgba(255,107,107,0.11)',
-          borderRadius: '1.25rem',
-          animation: 'hub-row-fade 380ms ease 200ms both',
-        }}>
-          <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14, color: '#ff6b6b', margin: '0 0 6px' }}>
-            {L.deleteAccount}
-          </p>
-          <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '0 0 16px', lineHeight: 1.6 }}>
-            {lang === 'es'
-              ? 'Tu cuenta entrará en un período de recuperación de 7 días antes de la eliminación permanente. Iniciar sesión durante este período restaura la cuenta.'
-              : 'Your account will enter a 7-day recovery period before permanent deletion. Logging back in during this period restores the account.'}
-          </p>
-          <button
-            type="button"
-            onClick={() => openSheet('delete')}
-            style={{
-              width: '100%', padding: '12px 0', borderRadius: 12,
-              background: 'rgba(255,107,107,0.09)',
-              border: '1px solid rgba(255,107,107,0.28)',
-              color: '#ff6b6b', fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
-            {L.deleteAccount}
-          </button>
-        </div>
-
       </div>{/* end settings list */}
 
       {/* Avatar picker */}
@@ -1814,22 +1780,51 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                 <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', opacity: 0.35 }}>chevron_right</span>
               </button>
             )}
-            <button
-              onClick={() => { closeSheet(); setTimeout(() => openSheet('disable'), 310); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                padding: '15px 22px', background: 'none', border: 'none',
-                borderTop: '1px solid rgba(128,128,128,0.07)',
-                cursor: 'pointer', textAlign: 'left' as const,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#f59e0b', opacity: 0.85 }}>block</span>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 15, color: '#f59e0b', margin: 0 }}>{L.disableAccount}</p>
-                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>{L.disableAccountDesc}</p>
+            {/* ── Account actions pill ── */}
+            <div style={{ padding: '14px 22px 28px' }}>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.15em', textTransform: 'uppercase' as const, margin: '0 0 8px' }}>
+                {lang === 'es' ? 'Zona de riesgo' : 'Danger zone'}
+              </p>
+              <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 14, overflow: 'hidden' }}>
+                {/* Disable account */}
+                <button
+                  onClick={() => { closeSheet(); setTimeout(() => openSheet('disable'), 310); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 13, width: '100%',
+                    padding: '13px 16px', background: 'none', border: 'none',
+                    borderBottom: '1px solid rgba(128,128,128,0.08)',
+                    cursor: 'pointer', textAlign: 'left' as const,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-secondary)', opacity: 0.65, flexShrink: 0, width: 22, textAlign: 'center' as const }}>block</span>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0 }}>{L.disableAccount}</p>
+                    <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>{L.disableAccountDesc}</p>
+                  </div>
+                  <span className="material-symbols-outlined" style={{ fontSize: 17, color: 'var(--c-text-secondary)', opacity: 0.3 }}>chevron_right</span>
+                </button>
+                {/* Delete account */}
+                <button
+                  onClick={() => { closeSheet(); setTimeout(() => openSheet('delete'), 310); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 13, width: '100%',
+                    padding: '13px 16px', background: 'none', border: 'none',
+                    cursor: 'pointer', textAlign: 'left' as const,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#ff6b6b', opacity: 0.8, flexShrink: 0, width: 22, textAlign: 'center' as const }}>delete_forever</span>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 14.5, color: '#ff6b6b', margin: 0 }}>{L.deleteAccount}</p>
+                    <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>
+                      {lang === 'es' ? 'Eliminar permanentemente tu cuenta' : 'Permanently remove your account'}
+                    </p>
+                  </div>
+                  <span className="material-symbols-outlined" style={{ fontSize: 17, color: 'var(--c-text-secondary)', opacity: 0.3 }}>chevron_right</span>
+                </button>
               </div>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', opacity: 0.35 }}>chevron_right</span>
-            </button>
+            </div>
           </div>
         </div>,
         document.body,
