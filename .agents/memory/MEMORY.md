@@ -1,0 +1,1 @@
+- [Chordex project context](chordex-project.md) — pnpm monorepo, React/Vite PWA + Express 5 API, OTA via GitHub Pages, GitHub API push required
