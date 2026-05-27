@@ -35,11 +35,12 @@
         background: #0a0a0c;
         overflow: hidden;
         pointer-events: none;
-        opacity: 1;
-        transition: opacity 600ms cubic-bezier(0.4,0,0.2,1);
+        opacity: 0;
+        /* Transition is applied via JS so we can control both the
+           fade-in speed (quick) and the fade-out speed (slow & smooth)
+           independently without class juggling. */
         font-family: Manrope, system-ui, -apple-system, sans-serif;
       }
-      #intro.dismissing { opacity: 0; }
       #intro.dismissed  { display: none; }
 
       #intro-glow {
@@ -241,8 +242,8 @@
         // Settle starts when targets are known AND minimum spin time elapsed.
         // Falls back to t=3000 if React hasn't mounted yet.
         var SETTLE_DURATION = 1200;  // ms to lerp from orbit → target
-        var FADE_OVERLAP    = 350;   // intro fade starts before settle fully ends
-        var FADE_DURATION   = 600;
+        var FADE_OVERLAP    = 620;   // intro fade starts this many ms before settle ends
+        var FADE_DURATION   = 1100;  // long crossfade so hub reveals gradually
         var MIN_SPIN_TIME   = 2800;  // don't settle before this
         var MAX_WAIT_TIME   = 4500;  // hard cap — settle even without targets
 
@@ -327,6 +328,19 @@
         anchor();
         window.addEventListener('resize', anchor);
         window.addEventListener('orientationchange', anchor);
+
+        // ── Smooth fade-in: start at opacity 0, transition to 1 on next paint ──
+        // Two nested rAF calls ensure the browser has committed the opacity:0
+        // state before we start animating, producing a genuine fade from nothing.
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            intro.style.transition = 'opacity 420ms ease-out';
+            intro.style.opacity = '1';
+            // Remove transition after fade-in so JS can set its own timing
+            // for the dismiss crossfade without fighting CSS specificity.
+            setTimeout(function () { intro.style.transition = ''; }, 450);
+          });
+        });
 
         var start  = performance.now();
         var angle  = 0;
@@ -439,6 +453,9 @@
 
         function startFade() {
           if (dismissed) return;
+          // Signal React the intro is finishing — StudioTitleReveal can now
+          // start its sweep animation so the title appears as the hub reveals.
+          window.dispatchEvent(new Event('studio-intro-done'));
           if (!reactMounted()) {
             // Wait for React then fade
             var startedAt = performance.now();
@@ -455,7 +472,11 @@
         function doFade() {
           if (dismissed) return;
           dismissed = true;
-          intro.classList.add('dismissing');
+          // Apply a long, smooth ease-out transition for the crossfade into the hub.
+          // cubic-bezier(0.22,1,0.36,1) starts quickly then eases very gently at the
+          // end — this makes the hub "breathe in" rather than snap into view.
+          intro.style.transition = 'opacity ' + FADE_DURATION + 'ms cubic-bezier(0.22,1,0.36,1)';
+          intro.style.opacity = '0';
           setTimeout(function () {
             intro.classList.add('dismissed');
             if (intro.parentNode) intro.parentNode.removeChild(intro);

@@ -191,14 +191,43 @@ export default function StudioTitleReveal({
       return () => { stopRef.current?.(); clearTimeout(timerRef.current); };
     }
 
+    // Safety: if the intro overlay is already gone from the DOM (e.g., the
+    // component mounted after the intro finished without firing the event),
+    // play immediately and mark done so future instances follow suit.
+    if (typeof document !== 'undefined') {
+      const introInDom = !!document.getElementById('intro') ||
+                         !!document.querySelector('[data-solar-intro]');
+      if (!introInDom) {
+        _introDone = true;
+        if (!(once && hasPlayedRef.current)) {
+          hasPlayedRef.current = true;
+          playRef.current();
+        }
+        return () => { stopRef.current?.(); clearTimeout(timerRef.current); };
+      }
+    }
+
     const handler = () => {
       if (once && hasPlayedRef.current) return;
       hasPlayedRef.current = true;
       playRef.current();
     };
+
+    // Hard safety net: if the intro-done event never fires (e.g., the intro
+    // was removed without dispatching, or the page loaded in a weird state),
+    // play the sweep after a maximum wait so the text never stays invisible.
+    const safetyTimer = setTimeout(() => {
+      if (!hasPlayedRef.current) {
+        _introDone = true;
+        hasPlayedRef.current = true;
+        playRef.current();
+      }
+    }, 10_000);
+
     window.addEventListener(INTRO_EVENT, handler, { once: true });
     return () => {
       window.removeEventListener(INTRO_EVENT, handler);
+      clearTimeout(safetyTimer);
       stopRef.current?.();
       clearTimeout(timerRef.current);
     };
