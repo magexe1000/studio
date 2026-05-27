@@ -1018,10 +1018,9 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   padding: 1px;
   background: conic-gradient(
     from var(--gb-angle),
-    rgba(139, 92, 246, var(--gb-a, 0.38)),
-    rgba(59,  130, 246, var(--gb-a, 0.38)),
-    rgba(6,   182, 212, var(--gb-a, 0.38)),
-    rgba(139, 92, 246, var(--gb-a, 0.38))
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 38%), transparent),
+    color-mix(in srgb, var(--accent-to,   #679cff) var(--gb-mix, 38%), transparent),
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 38%), transparent)
   );
   animation: gb-spin var(--gb-dur, 14s) linear infinite;
 }
@@ -1041,10 +1040,9 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   padding: 1px;
   background: conic-gradient(
     from var(--gb-angle),
-    rgba(139, 92, 246, var(--gb-a, 0.45)),
-    rgba(59,  130, 246, var(--gb-a, 0.45)),
-    rgba(6,   182, 212, var(--gb-a, 0.45)),
-    rgba(139, 92, 246, var(--gb-a, 0.45))
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 45%), transparent),
+    color-mix(in srgb, var(--accent-to,   #679cff) var(--gb-mix, 45%), transparent),
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 45%), transparent)
   );
   mask:
     linear-gradient(#fff 0 0) content-box,
@@ -1056,9 +1054,9 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   z-index: 9;
 }
 
-/* Light-mode: softer opacity */
+/* Light-mode: softer blend */
 @media (prefers-color-scheme: light) {
-  .gb-wrap, .gb-border-ring { --gb-a: 0.28; }
+  .gb-wrap, .gb-border-ring { --gb-mix: 28%; }
 }
 
 /* Reduced motion: freeze the rotation, keep the static gradient tint */
