@@ -362,6 +362,26 @@ export default function StudioHub() {
         {tab === 'profile' && (
           <>
             <style>{HUB_SETTINGS_CSS}</style>
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              padding: '8px 8px 0',
+              paddingTop: 'max(8px, env(safe-area-inset-top))',
+            }}>
+              <button
+                onClick={() => setTab('settings')}
+                style={{
+                  width: 38, height: 38, borderRadius: 12,
+                  background: 'rgba(128,128,128,0.10)',
+                  border: '1px solid rgba(128,128,128,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', outline: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                  color: 'var(--c-text-secondary)',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>chevron_left</span>
+              </button>
+            </div>
             <Suspense fallback={<div style={{ padding: 32, textAlign: 'center', color: 'var(--c-text-muted)' }}>…</div>}>
               {authUser ? (
                 <div style={{ animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
