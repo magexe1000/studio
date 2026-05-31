@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.72';
+export const APP_VERSION = '3.0.77';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-12'; // 3.0.72
+export const APP_VERSION_DATE = '2026-05-27'; // 3.0.77
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,26 +53,19 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Liquid Glass Navigation",
+    heading: "Profile & Account",
     items: [
-      'Bottom nav bar now uses a Liquid Glass effect — live refraction, chromatic aberration rim, and a scroll-driven specular streak.',
-      'The shine slides across the nav as you scroll, mirroring the iOS 26 / Android Liquid Glass aesthetic.',
-      'Effect is GPU-composited and updates in real time against whatever is behind the bar — no snapshots needed.',
+      'Completely redesigned account settings with five grouped sections: Personal Information, Security & Login, Subscription & Billing, Devices & Sessions, and Privacy & Data.',
+      'Each section opens its own dedicated sheet with relevant controls and information.',
+      'Upload a custom profile photo from your device — stored locally and applied instantly across the app.',
+      'New back button in the profile tab for quick navigation back to Settings.',
     ],
   },
   {
-    heading: "Stagex",
+    heading: "Fixes & Polish",
     items: [
-      'Scenes bar now floats just above the stage plot — dynamically repositioned and no longer stuck at the top of the screen.',
-      'Live mode eye button now correctly triggers the full enter/exit animation sequence.',
-      'Eye icon renders cleanly — no more stray "_off" text next to the button.',
-    ],
-  },
-  {
-    heading: "Navigation",
-    items: [
-      'Nav bar collapses faster when scrolling down and snaps back quicker on scroll up.',
-      'Scroll-hide now active in the chord builder, progression generator, and Groovex player.',
+      'Fixed missing icons throughout the app — lock, shield, devices, workspace_premium, smartphone, and others now render correctly.',
+      'Studio title animation now plays reliably on every launch, including on devices with Reduced Motion enabled.',
     ],
   },
 ];
@@ -81,26 +74,19 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Navegación Liquid Glass",
+    heading: "Perfil y cuenta",
     items: [
-      'La barra de navegación ahora usa efecto Liquid Glass — refracción en vivo, aberración cromática en el borde y un destello espectral impulsado por scroll.',
-      'El brillo se desliza por la barra mientras navegas, inspirado en el estilo iOS 26 / Android Liquid Glass.',
-      'El efecto se compone en GPU en tiempo real sobre el contenido detrás de la barra — sin capturas de pantalla.',
+      'Configuración de cuenta completamente rediseñada con cinco secciones agrupadas: Información personal, Seguridad e inicio de sesión, Suscripción, Dispositivos y sesiones, y Privacidad y datos.',
+      'Cada sección abre su propio panel con controles específicos.',
+      'Sube una foto de perfil personalizada desde tu dispositivo — se guarda localmente y se aplica de inmediato.',
+      'Nuevo botón de retroceso en la pestaña de perfil para volver rápidamente a Ajustes.',
     ],
   },
   {
-    heading: "Stagex",
+    heading: "Correcciones y pulido",
     items: [
-      'La barra de escenas ahora flota justo encima del área del escenario — ya no queda atascada en la parte superior de la pantalla.',
-      'El botón de ojo del modo en vivo ahora activa correctamente la secuencia de animación.',
-      'El ícono del ojo se muestra limpio — ya no aparece el texto "_off" junto al botón.',
-    ],
-  },
-  {
-    heading: "Navegación",
-    items: [
-      'La barra de navegación se oculta más rápido al desplazarse hacia abajo y reaparece más rápido al subir.',
-      'El ocultado por desplazamiento ahora está activo en el constructor de acordes, generador de progresiones y reproductor de Groovex.',
+      'Se corrigieron íconos faltantes en toda la app — lock, shield, devices, workspace_premium, smartphone y otros ahora se muestran correctamente.',
+      'La animación del título Studio ahora se reproduce correctamente en cada arranque, incluyendo en dispositivos con Movimiento reducido activado.',
     ],
   },
 ];
@@ -108,26 +94,19 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Liquid Glass Navigation",
+    heading: "Profil & Konto",
     items: [
-      'Die Navigationsleiste verwendet jetzt einen Liquid-Glass-Effekt — Live-Refraktion, chromatische Aberration am Rand und ein scrollgetriebener Glanzstreifen.',
-      'Der Glanz gleitet beim Scrollen über die Leiste — angelehnt an iOS 26 / Android Liquid Glass.',
-      'Der Effekt wird GPU-kompositiert und aktualisiert sich in Echtzeit gegen den Hintergrund — keine Snapshots erforderlich.',
+      'Vollständig überarbeitete Kontoeinstellungen mit fünf gruppierten Bereichen: Persönliche Daten, Sicherheit & Anmeldung, Abonnement, Geräte & Sitzungen und Datenschutz.',
+      'Jeder Bereich öffnet sein eigenes Panel mit den zugehörigen Einstellungen.',
+      'Lade ein eigenes Profilfoto von deinem Gerät hoch — lokal gespeichert und sofort sichtbar.',
+      'Neuer Zurück-Button im Profil-Tab für schnelle Navigation zurück zu Einstellungen.',
     ],
   },
   {
-    heading: "Stagex",
+    heading: "Korrekturen & Feinschliff",
     items: [
-      'Die Szenenleiste schwebt jetzt direkt über dem Bühnenbereich — nicht mehr am oberen Bildschirmrand festgesteckt.',
-      'Der Auge-Button für den Live-Modus löst jetzt die vollständige Ein-/Ausblendanimation korrekt aus.',
-      'Das Augen-Symbol wird sauber angezeigt — kein "_off"-Text mehr neben dem Button.',
-    ],
-  },
-  {
-    heading: "Navigation",
-    items: [
-      'Die Navigationsleiste blendet sich beim Scrollen nach unten schneller aus und kehrt beim Hochscrollen schneller zurück.',
-      'Scroll-Ausblendung jetzt aktiv im Akkord-Builder, Progressionsgenerator und Groovex-Player.',
+      'Fehlende Icons in der gesamten App behoben — lock, shield, devices, workspace_premium, smartphone und weitere werden jetzt korrekt angezeigt.',
+      'Die Studio-Titelanimation wird nun bei jedem Start zuverlässig abgespielt, auch auf Geräten mit aktivierter Bewegungsreduzierung.',
     ],
   },
 ];

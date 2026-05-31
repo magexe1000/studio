@@ -1,49 +1,55 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
-# compiled output
-dist
-tmp
-out-tsc
+# ── Build output ──────────────────────────────────────────────────────────────
+dist/
+tmp/
+out-tsc/
 *.tsbuildinfo
-.expo
-.expo-shared
+*.apk
+*.zip
+.expo/
+.expo-shared/
 
-# dependencies
-node_modules
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
 
-# IDEs and editors
-/.idea
+# ── OTA bundle zips — hosted on GitHub Releases, not committed to the repo ────
+docs/bundles/
+artifacts/api-server/public/dl/
+
+# ── Agent conversation attachments ────────────────────────────────────────────
+# Screenshots, design pastes, error logs pasted during development sessions.
+# These are not source code and grow the repo unnecessarily.
+attached_assets/
+
+# ── IDE / editor ──────────────────────────────────────────────────────────────
+/.idea/
 .project
 .classpath
 .c9/
 *.launch
 .settings/
 *.sublime-workspace
-
-# IDE - VSCode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# misc
-/.sass-cache
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+/.sass-cache/
 /connect.lock
-/coverage
+/coverage/
 /libpeerconnection.log
 npm-debug.log
 yarn-error.log
 testem.log
-/typings
+/typings/
 
-# System Files
-.DS_Store
-Thumbs.db
-
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
-
-# Replit
+# ── Replit internals ──────────────────────────────────────────────────────────
 .cache/
 .local/
+.cursor/
+.github/instructions/

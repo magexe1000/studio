@@ -12,6 +12,24 @@
    element styling; the @font-face comes from Google Fonts. */
 @import "tailwindcss";
 
+/* ── Gradient Border System ─────────────────────────────────────────────────
+   @property must live at the top level (outside any @layer / @media).
+   Used by .gb-wrap (wrapper pattern) and .gb-border-ring (overlay pattern). */
+@property --gb-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* Animata AnimatedBorderTrail — registered @property so conic-gradient can
+   actually animate (without registration the browser treats it as a discrete
+   value and no transition/animation fires). */
+@property --border-trail-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -157,6 +175,24 @@
 
 /* Body background always tracks the active theme so the status bar area blends in */
 html, body { background: var(--app-bg); }
+
+/* ── Navigation safe-area variables — single source of truth ────────────────
+   All scrollable content areas and floating nav bars must use these vars so
+   the floating pill nav never obscures content on any device or nav mode.
+
+   --nav-safe-bottom : gap between pill bottom and screen edge
+                       max(10px, …) guards Android 3-button nav where
+                       env(safe-area-inset-bottom) can be 0.
+                       The ,0px fallback handles WebView/older Android.
+   --nav-h           : pill height (matches BottomNav NAV_HEIGHT_PX = 64)
+   --content-bottom-pad : total bottom padding for scrollable content areas
+                          = gap + pill + 16px breathing room (≥ 90px)
+──────────────────────────────────────────────────────────────────────────── */
+:root {
+  --nav-safe-bottom:    max(10px, env(safe-area-inset-bottom, 0px));
+  --nav-h:              64px;
+  --content-bottom-pad: calc(var(--nav-safe-bottom) + var(--nav-h) + 16px);
+}
 
 /* ============================================================
    Vocalex theme tokens — used by PracticePanel / PitchPanel /
@@ -452,6 +488,27 @@ html.light [style*="border:1px solid #161717"] {
   to   { opacity: 0; }
 }
 
+/* ===== StudioThemeToggler — MagicUI clip-path reveal ===== */
+/* When data-studio-theme-vt="active" the toggler drives its own clip-path
+   animation on ::view-transition-new(root) and suppresses the generic fade. */
+[data-studio-theme-vt="active"] ::view-transition-group(root) {
+  /* Suppress browser's own group animation — JS drives the reveal */
+  animation: none;
+}
+[data-studio-theme-vt="active"] ::view-transition-old(root) {
+  animation: none;
+  opacity: 1;
+  z-index: 1;
+}
+[data-studio-theme-vt="active"] ::view-transition-new(root) {
+  /* JS animates clip-path from this initial value → full coverage */
+  clip-path: var(--studio-theme-vt-clip-from, circle(0px at 50% 50%));
+  animation: none;
+  opacity: 1;
+  z-index: 2;
+  will-change: clip-path;
+}
+
 /* When theme is transitioning, add color transitions to all elements
    Exempt: elements inside [data-theme-exempt] keep their own transitions */
 html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt]),
@@ -705,42 +762,44 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   .overlay-fade-in  { animation: fade-in  220ms ease-out both; }
   .overlay-fade-out { animation: fade-out 200ms ease-in  both; }
 
-  /* ===== Panel section transitions — unified across all apps (matches Stagex) =====
-     Smooth-but-quick fade + rise + subtle scale. Direction-agnostic so every app
-     (Chordex, Vocalex, Drumex, Groovex, Stagex) feels identical when switching
-     bottom-nav sections. */
+  /* ===== Panel section transitions — unified across all apps =================
+     Directional horizontal slide + crossfade.
+     Enter:  spring deceleration  — content glides in and settles naturally.
+     Exit:   quick ease-in        — old content leaves without lingering.
+     Translate is intentionally small (16 px) for a refined, iOS-like feel.
+     --panel-dur      controls enter speed (default 280 ms).
+     --panel-exit-dur controls exit  speed (default 180 ms, ~65 % of enter). */
+
   @keyframes panel-enter-right {
-    from { transform: translate3d(0, 10px, 0) scale(0.985); opacity: 0; }
-    to   { transform: translate3d(0, 0, 0) scale(1);        opacity: 1; }
+    from { transform: translate3d(16px, 0, 0); opacity: 0; }
+    to   { transform: translate3d(0,    0, 0); opacity: 1; }
   }
   @keyframes panel-enter-left {
-    from { transform: translate3d(0, 10px, 0) scale(0.985); opacity: 0; }
-    to   { transform: translate3d(0, 0, 0) scale(1);        opacity: 1; }
+    from { transform: translate3d(-16px, 0, 0); opacity: 0; }
+    to   { transform: translate3d(0,     0, 0); opacity: 1; }
   }
   @keyframes panel-exit-left {
-    from { transform: translate3d(0, 0, 0) scale(1);          opacity: 1; }
-    to   { transform: translate3d(0, -6px, 0) scale(0.985);   opacity: 0; }
+    from { transform: translate3d(0,     0, 0); opacity: 1; }
+    to   { transform: translate3d(-16px, 0, 0); opacity: 0; }
   }
   @keyframes panel-exit-right {
-    from { transform: translate3d(0, 0, 0) scale(1);          opacity: 1; }
-    to   { transform: translate3d(0, -6px, 0) scale(0.985);   opacity: 0; }
+    from { transform: translate3d(0,    0, 0); opacity: 1; }
+    to   { transform: translate3d(16px, 0, 0); opacity: 0; }
   }
-  /* will-change + backface-visibility removed — they force a permanent GPU
-     compositing layer that drops subpixel text anti-aliasing, making body
-     text look fuzzy after every navigation. Animations stay smooth without
-     them on modern browsers because transform/opacity are auto-promoted
-     for the duration of the animation only. */
+
+  /* Enter — spring deceleration (cubic-bezier(0.16, 1, 0.3, 1)) */
   .panel-enter-right {
-    animation: panel-enter-right var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: panel-enter-right var(--panel-dur, 280ms) cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-  .panel-enter-left  {
-    animation: panel-enter-left  var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .panel-enter-left {
+    animation: panel-enter-left  var(--panel-dur, 280ms) cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-  .panel-exit-left   {
-    animation: panel-exit-left   var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Exit — ease-in so content leaves quickly and cleanly */
+  .panel-exit-left {
+    animation: panel-exit-left  var(--panel-exit-dur, 180ms) cubic-bezier(0.4, 0, 1, 1) both;
   }
-  .panel-exit-right  {
-    animation: panel-exit-right  var(--panel-dur, 200ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  .panel-exit-right {
+    animation: panel-exit-right var(--panel-exit-dur, 180ms) cubic-bezier(0.4, 0, 1, 1) both;
   }
 
   /* ===== Live Mode chord transitions ===== */
@@ -985,4 +1044,113 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
 [data-perf-mode="on"] * {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* ── Gradient Border utilities ───────────────────────────────────────────────
+   Two complementary patterns:
+   1. .gb-wrap + .gb-inner  — wrapper pattern (add 1px padding outside the card)
+   2. .gb-border-ring       — overlay pattern (abs-pos inside a position:relative)
+
+   Slow conic-gradient rotation via @property --gb-angle (declared above the
+   @import so it sits at stylesheet top level as required by the spec).
+   GPU-only: only --gb-angle (a registered CSS custom property) animates;
+   no layout properties are touched.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@keyframes gb-spin {
+  to { --gb-angle: 360deg; }
+}
+
+@keyframes border-trail {
+  to { --border-trail-angle: 360deg; }
+}
+
+/* — Wrapper pattern — */
+.gb-wrap {
+  padding: 1px;
+  background: conic-gradient(
+    from var(--gb-angle),
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 38%), transparent),
+    color-mix(in srgb, var(--accent-to,   #679cff) var(--gb-mix, 38%), transparent),
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 38%), transparent)
+  );
+  animation: gb-spin var(--gb-dur, 14s) linear infinite;
+}
+
+.gb-inner {
+  background: var(--gb-inner-bg, var(--app-surface));
+  border-radius: inherit;
+}
+
+/* — Ring overlay pattern —
+   Place an element with this class as a child of any position:relative card.
+   The mask cuts a 1 px ring from the gradient so only the border is visible. */
+.gb-border-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--gb-angle),
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 45%), transparent),
+    color-mix(in srgb, var(--accent-to,   #679cff) var(--gb-mix, 45%), transparent),
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 45%), transparent)
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  animation: gb-spin var(--gb-dur, 14s) linear infinite;
+  pointer-events: none;
+  z-index: 9;
+}
+
+/* Light-mode: softer blend */
+@media (prefers-color-scheme: light) {
+  .gb-wrap, .gb-border-ring { --gb-mix: 28%; }
+}
+
+
+/* Reduced motion: freeze the rotation, keep the static gradient tint */
+@media (prefers-reduced-motion: reduce) {
+  .gb-wrap      { animation: none; }
+  .gb-border-ring { animation: none; }
+}
+
+/* ─── Studio Solar System Intro ───────────────────────────────────────────── */
+
+/* Center "sun" — spring scale-in with slight overshoot */
+@keyframes solar-glow-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.7; }
+  50%      { transform: translate(-50%, -50%) scale(1.18); opacity: 1;   }
+}
+
+@keyframes solar-sun-in {
+  from { opacity: 0; transform: translate(-50%, -52%) scale(0.35); }
+  to   { opacity: 1; transform: translate(-50%, -52%) scale(1);    }
+}
+
+/* Orbit ring — pure opacity fade */
+@keyframes solar-ring-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Planet icons — fade in only (transform is handled by rAF) */
+@keyframes solar-planet-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Star field — slow breathing pulse */
+@keyframes solar-twinkle {
+  0%, 100% { opacity: 0;    }
+  50%      { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* If somehow the component renders despite the prefers-reduced-motion check,
+     kill all animations instantly so nothing moves. */
+  [data-solar-intro] * { animation: none !important; transition: none !important; }
 }

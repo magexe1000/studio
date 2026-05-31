@@ -1,14 +1,17 @@
 import { useState, useMemo, useRef } from 'react';
+import NoResultsLottie from '../components/lottie/NoResultsLottie';
 import { SONG_CATALOG, getArtists, getGenres } from './songCatalog';
 import type { SongMeta } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
 import { useT } from '../lib/useT';
+import { useScrollHide } from '../lib/navScroll';
 
 export default function GroovexLibrary() {
   const { searchQuery, setSearchQuery, filterArtist, setFilterArtist, filterGenre, setFilterGenre, sortBy, setSortBy, setView, setActiveSong, addRecentSong, recentSongs } = useGroovexStore();
   const t = useT();
   const [showFilters, setShowFilters] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollHide(scrollRef);
 
   const artists = useMemo(() => getArtists(), []);
   const genres = useMemo(() => getGenres(), []);
@@ -63,7 +66,7 @@ export default function GroovexLibrary() {
 
   return (
     <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
-      <div style={{ padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
+      <div style={{ padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
         <section style={{ paddingTop: 32, marginBottom: 32 }}>
           <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}>{t.groovex.libraryTitle}</h2>
           <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0, fontWeight: 600 }}>
@@ -155,7 +158,7 @@ export default function GroovexLibrary() {
 
         {filteredSongs.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--c-text-secondary)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 48, marginBottom: 12, display: 'block', opacity: 0.4 }}>search_off</span>
+            <NoResultsLottie size={52} style={{ marginBottom: 6 }} />
             <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>{t.groovex.noSongsFound}</p>
             <p style={{ fontSize: 13, margin: 0 }}>{t.groovex.noSongsHint}</p>
           </div>

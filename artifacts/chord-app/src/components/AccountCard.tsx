@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import AppSpinner from './AppSpinner';
+import StudioSpinner from './animata/progress/spinner';
+import AnimatedActionButton from './animata/container/animated-border-trail';
 import {
   isFirebaseConfigured,
   signInGoogle,
@@ -244,12 +247,16 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
         </div>
 
         <div style={{ ...rowStyle, alignItems: 'center', gap: 10 }}>
-          <span
-            className={`material-symbols-outlined sync-icon ${isSyncing ? 'sync-spin' : justSynced ? 'sync-pop' : ''}`}
-            style={{ fontSize: 18, color: iconColor, transition: 'color 250ms ease' }}
-          >
-            {iconName}
-          </span>
+          {isSyncing ? (
+            <StudioSpinner outerSize="h-[18px] w-[18px]" childSize="h-[14px] w-[14px]" colorFrom={iconColor} colorTo={iconColor} />
+          ) : (
+            <span
+              className={`material-symbols-outlined sync-icon ${justSynced ? 'sync-pop' : ''}`}
+              style={{ fontSize: 18, color: iconColor, transition: 'color 250ms ease' }}
+            >
+              {iconName}
+            </span>
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-primary)', margin: 0 }}>
               {statusText}
@@ -324,49 +331,94 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
       )}
 
       {(mode === 'email-signin' || mode === 'email-register') && (
-        <div style={{ padding: '12px 14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {mode === 'email-register' && (
+        <div style={{ padding: '10px 14px 16px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {/* Card header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '12px 14px',
+            background: `linear-gradient(135deg, ${accent.from}14, ${accent.to}0c)`,
+            border: `1px solid ${accent.from}28`,
+            borderRadius: '14px 14px 0 0',
+            borderBottom: 'none',
+          }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: `linear-gradient(135deg, ${accent.from}30, ${accent.to}20)`,
+              border: `1px solid ${accent.from}35`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 17, color: accent.from }}>mail</span>
+            </div>
+            <div>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 13, color: 'var(--c-text-primary)', margin: 0 }}>
+                {mode === 'email-signin' ? t.signIn : t.register}
+              </p>
+              <p style={{ fontFamily: 'Inter', fontSize: 10.5, color: 'var(--c-text-secondary)', margin: '1px 0 0' }}>
+                {mode === 'email-signin' ? t.emailPlaceholder : t.namePlaceholder}
+              </p>
+            </div>
+          </div>
+
+          {/* Card body */}
+          <div style={{
+            background: 'var(--app-surface-high)',
+            border: `1px solid ${accent.from}20`,
+            borderRadius: '0 0 14px 14px',
+            padding: '14px 14px 12px',
+            display: 'flex', flexDirection: 'column', gap: 8,
+          }}>
+            {mode === 'email-register' && (
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t.namePlaceholder}
+                autoComplete="name"
+                style={inputStyle(accent)}
+              />
+            )}
             <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t.namePlaceholder}
-              autoComplete="name"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t.emailPlaceholder}
+              autoComplete="email"
+              type="email"
               style={inputStyle(accent)}
             />
-          )}
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={t.emailPlaceholder}
-            autoComplete="email"
-            type="email"
-            style={inputStyle(accent)}
-          />
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={t.passwordPlaceholder}
-            autoComplete={mode === 'email-signin' ? 'current-password' : 'new-password'}
-            type="password"
-            style={inputStyle(accent)}
-          />
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button onClick={() => { setMode('idle'); setErr(null); }} disabled={busy} style={{ ...secondaryBtn(), flex: 1 }}>
-              {t.cancel}
-            </button>
-            <button onClick={doEmail} disabled={busy} style={{ ...primaryBtn(accent), flex: 1 }}>
-              {mode === 'email-signin' ? t.signIn : t.register}
-            </button>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={t.passwordPlaceholder}
+              autoComplete={mode === 'email-signin' ? 'current-password' : 'new-password'}
+              type="password"
+              style={inputStyle(accent)}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button onClick={() => { setMode('idle'); setErr(null); }} disabled={busy} style={{ ...secondaryBtn(), flex: 1 }}>
+                {t.cancel}
+              </button>
+              <AnimatedActionButton
+                onClick={doEmail}
+                disabled={busy}
+                wrapStyle={{ flex: 1 }}
+                style={{
+                  ...primaryBtn(accent),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}
+              >
+                {busy ? <AppSpinner size={14} color="white" strokeWidth={2} /> : null}
+                {mode === 'email-signin' ? t.signIn : t.register}
+              </AnimatedActionButton>
+            </div>
+            {mode === 'email-signin' ? (
+              <button onClick={() => { setMode('email-register'); setErr(null); }} style={textBtn()}>
+                {t.switchToRegister}
+              </button>
+            ) : (
+              <button onClick={() => { setMode('email-signin'); setErr(null); }} style={textBtn()}>
+                {t.switchToSignIn}
+              </button>
+            )}
           </div>
-          {mode === 'email-signin' ? (
-            <button onClick={() => { setMode('email-register'); setErr(null); }} style={textBtn()}>
-              {t.switchToRegister}
-            </button>
-          ) : (
-            <button onClick={() => { setMode('email-signin'); setErr(null); }} style={textBtn()}>
-              {t.switchToSignIn}
-            </button>
-          )}
         </div>
       )}
 
@@ -909,7 +961,8 @@ function SheetHeader({ title, onClose, titleColor }: {
 }
 
 // ── Account Settings Page ────────────────────────────────────────────────────
-type AccountActiveSheet = 'none' | 'signout' | 'disable' | 'delete' | 'editname' | 'password' | 'verifyemail';
+type AccountActiveSheet = 'none' | 'signout' | 'disable' | 'delete' | 'editname' | 'password' | 'verifyemail'
+  | 'personal-info' | 'security-login' | 'subscription' | 'devices-sessions' | 'privacy-data';
 
 export function AccountSettingsPage({ accent, cardStyle, onBack }: {
   accent: { from: string; to: string; mid: string };
@@ -918,12 +971,17 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
 }) {
   const tRoot = useT();
   const t = tRoot.hub.accountSection;
-  const lang = useChordStore((s) => s.settings.language) ?? 'en';
+  const lang        = useChordStore((s) => s.settings.language) ?? 'en';
+  const favCount    = useChordStore(s => s.favorites?.length    ?? 0);
+  const progCount   = useChordStore(s => s.progressions?.length ?? 0);
+  const presetCount = useChordStore(s => s.presets?.length      ?? 0);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [avatarIcon, setAvatarIcon] = useState<AvatarIcon | null>(null);
   const [photoFailed, setPhotoFailed] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerClosing, setPickerClosing] = useState(false);
+  const [customPhoto, setCustomPhoto] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [sheet, setSheet] = useState<AccountActiveSheet>('none');
   const [sheetClosing, setSheetClosing] = useState(false);
   const [emailInput, setEmailInput] = useState('');
@@ -939,10 +997,18 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     return subscribeUserAvatar(refresh);
   }, [user?.uid]);
   useEffect(() => { setPhotoFailed(false); }, [user?.uid, user?.photoURL]);
+  useEffect(() => {
+    if (!user?.uid) { setCustomPhoto(null); return; }
+    try {
+      const stored = localStorage.getItem(`chordex_cp_${user.uid}`);
+      setCustomPhoto(stored || null);
+    } catch { setCustomPhoto(null); }
+  }, [user?.uid]);
 
   if (!user || !isFirebaseConfigured) return null;
 
   const initial = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
+  const effectivePhoto = customPhoto || (user.photoURL && !photoFailed ? user.photoURL : null);
   const providers = getSignInProviders();
   const isEmailUser = providers.includes('password');
   const isGoogleUser = providers.includes('google.com');
@@ -1124,6 +1190,24 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     } finally { setBusy(false); }
   }
 
+  function handlePhotoFile(file: File) {
+    if (!user?.uid || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      try { localStorage.setItem(`chordex_cp_${user!.uid}`, dataUrl); } catch { /* quota */ }
+      setCustomPhoto(dataUrl);
+      setUserAvatar(user!.uid, null);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function clearCustomPhoto() {
+    if (!user?.uid) return;
+    localStorage.removeItem(`chordex_cp_${user.uid}`);
+    setCustomPhoto(null);
+  }
+
   const canConfirmEmail = !busy
     && !!emailToConfirm
     && emailInput.trim().toLowerCase() === emailToConfirm;
@@ -1151,9 +1235,8 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     </div>
   );
 
-  function ActionRow({ icon, iconColor, label, desc, value, onPress, last = false, isDanger = false }: {
-    icon: string; iconColor?: string; label: string; desc?: string; value?: string;
-    onPress: () => void; last?: boolean; isDanger?: boolean;
+  function SettingsRow({ icon, label, badge, onPress, last = false }: {
+    icon: string; label: string; badge?: string; onPress: () => void; last?: boolean;
   }) {
     const [pressed, setPressed] = useState(false);
     return (
@@ -1164,34 +1247,31 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
         onPointerLeave={() => setPressed(false)}
         onPointerCancel={() => setPressed(false)}
         style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          width: '100%', padding: '13px 16px',
+          display: 'flex', alignItems: 'center', gap: 14,
+          width: '100%', padding: '15px 16px',
           background: pressed ? 'rgba(128,128,128,0.06)' : 'transparent',
           border: 'none', outline: 'none',
           borderBottom: last ? 'none' : '1px solid rgba(128,128,128,0.07)',
-          cursor: 'pointer', textAlign: 'left',
-          transform: pressed ? 'scale(0.977)' : 'scale(1)',
-          transition: 'background 100ms ease, transform 140ms cubic-bezier(0.34,1.15,0.64,1)',
-          boxSizing: 'border-box',
+          cursor: 'pointer', textAlign: 'left' as const,
+          transform: pressed ? 'scale(0.99)' : 'scale(1)',
+          transition: 'background 100ms ease, transform 140ms ease',
+          boxSizing: 'border-box' as const,
           WebkitTapHighlightColor: 'transparent',
         }}
       >
-        <div style={{
-          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-          background: iconColor ? `${iconColor}22` : 'rgba(128,128,128,0.10)',
-          border: `1px solid ${iconColor ? iconColor + '28' : 'transparent'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 18, color: iconColor ?? 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 1" }}>{icon}</span>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: isDanger ? (iconColor ?? '#ff6b6b') : 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.01em' }}>{label}</p>
-          {desc && <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{desc}</p>}
-        </div>
-        {value
-          ? <span style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', flexShrink: 0, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
-          : <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0, opacity: 0.35 }}>chevron_right</span>
-        }
+        <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-primary)', opacity: 0.7, flexShrink: 0 }}>{icon}</span>
+        <span style={{ flex: 1, fontFamily: 'Manrope', fontWeight: 600, fontSize: 15, color: 'var(--c-text-primary)' }}>{label}</span>
+        {badge && (
+          <span style={{
+            fontFamily: 'Manrope', fontWeight: 700, fontSize: 9,
+            color: 'var(--c-text-secondary)',
+            background: 'rgba(128,128,128,0.12)',
+            border: '1px solid rgba(128,128,128,0.15)',
+            borderRadius: 6, padding: '3px 8px',
+            textTransform: 'uppercase' as const, letterSpacing: '0.04em',
+          }}>{badge}</span>
+        )}
+        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', opacity: 0.35, flexShrink: 0 }}>chevron_right</span>
       </button>
     );
   }
@@ -1200,6 +1280,19 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     <>
       <SyncAnimations />
       <SheetAnimations />
+
+      {/* Hidden file input for custom photo upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handlePhotoFile(file);
+          e.target.value = '';
+        }}
+      />
 
       {/* Toast */}
       {toast && (
@@ -1219,119 +1312,120 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
         </div>
       )}
 
-      {/* Profile header */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '16px 20px 20px', animation: 'hub-row-fade 350ms ease both' }}>
+      {/* ── Profile header ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '22px 20px 24px', animation: 'hub-row-fade 350ms ease both' }}>
+        {/* Avatar — tap to open Personal Information */}
         <button
           type="button"
-          onClick={() => { setPickerClosing(false); setPickerOpen(true); }}
-          aria-label={t.avatarPickerTitle}
+          onClick={() => openSheet('personal-info')}
+          aria-label="Edit profile"
           style={{
-            width: 64, height: 64, borderRadius: '50%',
-            padding: 0, border: 'none', cursor: 'pointer',
-            background: avatarIcon || !user.photoURL || photoFailed
-              ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
-              : 'transparent',
+            width: 84, height: 84, borderRadius: '50%',
+            padding: 0, border: `3px solid ${accent.from}50`, cursor: 'pointer',
+            background: effectivePhoto && !avatarIcon
+              ? 'transparent'
+              : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 800, fontSize: 26, overflow: 'hidden',
-            boxShadow: `0 4px 16px ${accent.to}44`,
+            color: '#fff', fontWeight: 800, fontSize: 34, overflow: 'hidden',
+            boxShadow: `0 8px 28px ${accent.to}55`,
+            position: 'relative',
           }}
         >
           {avatarIcon ? (
-            <span className="material-symbols-outlined" style={{ fontSize: 34, color: '#fff' }}>{avatarIcon}</span>
-          ) : user.photoURL && !photoFailed ? (
-            <img src={user.photoURL} alt="" referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <span className="material-symbols-outlined" style={{ fontSize: 44, color: '#fff' }}>{avatarIcon}</span>
+          ) : effectivePhoto ? (
+            <img src={effectivePhoto} alt="" referrerPolicy="no-referrer"
+              onError={() => { if (effectivePhoto === user.photoURL) setPhotoFailed(true); }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             <span>{initial}</span>
           )}
         </button>
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+
+        {/* Identity */}
+        <div style={{ textAlign: 'center', marginTop: 14 }}>
+          <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 20, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.025em' }}>
             {user.displayName || user.email}
           </p>
           {user.displayName && (
-            <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '3px 0 0' }}>
+            <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', margin: '4px 0 0' }}>
               {user.email}
             </p>
           )}
+          {/* Free Member badge */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            marginTop: 10, padding: '4px 12px 4px 10px',
+            borderRadius: 9999,
+            background: `${accent.from}18`,
+            border: `1px solid ${accent.from}35`,
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 13, color: accent.from, fontVariationSettings: "'FILL' 1" }}>verified</span>
+            <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: accent.from, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              {lang === 'es' ? 'Miembro Gratis' : 'Free Member'}
+            </span>
+          </div>
+        </div>
+
+        {/* On-device stats */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 20, width: '100%' }}>
+          {([
+            { label: lang === 'es' ? 'Favoritos' : 'Favorites', value: favCount,    icon: 'favorite',    color: accent.from   },
+            { label: lang === 'es' ? 'Progres.'  : 'Progressions', value: progCount, icon: 'queue_music', color: '#10b981'     },
+            { label: lang === 'es' ? 'Presets'   : 'Presets',   value: presetCount, icon: 'grid_view',   color: '#f59e0b'     },
+          ] as { label: string; value: number; icon: string; color: string }[]).map(({ label, value, icon, color }) => (
+            <div key={label} style={{
+              flex: 1, background: 'var(--app-surface)',
+              border: '1px solid rgba(128,128,128,0.09)', borderRadius: 16,
+              padding: '13px 8px 11px', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: 5,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 17, color, fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 22, color: 'var(--c-text-primary)', margin: 0, lineHeight: 1 }}>{value}</p>
+              <p style={{ fontFamily: 'Inter', fontSize: 9.5, color: 'var(--c-text-secondary)', margin: 0, fontWeight: 600, textAlign: 'center', lineHeight: 1.3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Profile section */}
-      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '4px 4px 8px', animation: 'hub-row-fade 380ms ease 50ms both' }}>{L.profile}</p>
-      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 60ms both' }}>
-        <ActionRow icon="person" iconColor={accent.from} label={L.displayName} desc={user.displayName || '—'} onPress={() => openSheet('editname')} last={!isEmailUser} />
-        {isEmailUser && (
-          <ActionRow
-            icon={emailVerified ? 'check_circle' : 'mail'}
-            iconColor={emailVerified ? '#10b981' : '#f59e0b'}
-            label={emailVerified ? L.emailVerified : L.emailNotVerified}
-            onPress={emailVerified ? () => {} : () => openSheet('verifyemail')}
-            last
-          />
-        )}
-      </div>
+      {/* ── Main settings list ── */}
+      <div style={{ padding: '0 16px' }}>
 
-      {/* Sign-in method — static info rows (not interactive) */}
-      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 4px 8px', animation: 'hub-row-fade 380ms ease 90ms both' }}>{L.signInMethod}</p>
-      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 100ms both' }}>
-        {isGoogleUser && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: isEmailUser ? '1px solid rgba(128,128,128,0.07)' : 'none' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: '#4285F422', border: '1px solid #4285F428', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#4285F4', fontVariationSettings: "'FILL' 1" }}>account_circle</span>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>{L.google}</p>
-              <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>google.com</p>
-            </div>
-          </div>
-        )}
-        {isEmailUser && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: `${accent.from}22`, border: `1px solid ${accent.from}28`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, fontVariationSettings: "'FILL' 1" }}>mail</span>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>{L.emailPass}</p>
-              <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email ?? ''}</p>
-            </div>
-          </div>
-        )}
-        {!isGoogleUser && !isEmailUser && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: 'rgba(128,128,128,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 1" }}>help</span>
-            </div>
-            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>Unknown</p>
-          </div>
-        )}
-      </div>
+        {/* Section label */}
+        <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '0 0 10px', animation: 'hub-row-fade 380ms ease 50ms both' }}>
+          {lang === 'es' ? 'Preferencias y cuenta' : 'Preferences & Account'}
+        </p>
 
-      {/* Security (email users only) */}
-      {isEmailUser && (
-        <>
-          <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 4px 8px', animation: 'hub-row-fade 380ms ease 130ms both' }}>{L.security}</p>
-          <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 140ms both' }}>
-            <ActionRow icon="lock" iconColor={accent.from} label={L.changePassword} desc={L.changePasswordDesc} onPress={() => openSheet('password')} last={emailVerified} />
-            {!emailVerified && <ActionRow icon="mail" iconColor="#f59e0b" label={L.verifyEmail} desc={L.verifyEmailDesc} onPress={() => openSheet('verifyemail')} last />}
-          </div>
-        </>
-      )}
+        {/* Grouped settings card — all 5 options in one rectangle */}
+        <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 70ms both' }}>
+          <SettingsRow icon="person" label={lang === 'es' ? 'Información personal' : 'Personal Information'} onPress={() => openSheet('personal-info')} />
+          <SettingsRow icon="lock" label={lang === 'es' ? 'Seguridad y acceso' : 'Security & Login'} onPress={() => openSheet('security-login')} />
+          <SettingsRow icon="workspace_premium" label={lang === 'es' ? 'Suscripción y facturación' : 'Subscription & Billing'} badge={lang === 'es' ? 'Próximamente' : 'Coming soon'} onPress={() => openSheet('subscription')} />
+          <SettingsRow icon="devices" label={lang === 'es' ? 'Dispositivos y sesiones' : 'Devices & Sessions'} onPress={() => openSheet('devices-sessions')} />
+          <SettingsRow icon="shield" label={lang === 'es' ? 'Privacidad y datos' : 'Privacy & Data'} onPress={() => openSheet('privacy-data')} last />
+        </div>
 
-      {/* Session */}
-      <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '16px 4px 8px', animation: 'hub-row-fade 380ms ease 160ms both' }}>{L.session}</p>
-      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 170ms both' }}>
-        <ActionRow icon="logout" iconColor="#f59e0b" label={L.signOut} desc={L.signOutDesc} onPress={() => openSheet('signout')} last />
-      </div>
+        {/* Sign Out — prominent red button */}
+        <button
+          type="button"
+          onClick={() => openSheet('signout')}
+          style={{
+            width: '100%', marginTop: 16, padding: '15px 0',
+            borderRadius: '1.25rem',
+            background: 'rgba(255,107,107,0.07)',
+            border: '1px solid rgba(255,107,107,0.18)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            color: '#ff6b6b', fontFamily: 'Manrope', fontWeight: 700, fontSize: 15,
+            cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+            animation: 'hub-row-fade 380ms ease 160ms both',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 19 }}>logout</span>
+          {L.signOut}
+        </button>
 
-      {/* Danger zone */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '20px 0 8px' }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#ff6b6b' }}>warning</span>
-        <p style={{ color: '#ff6b6b', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', margin: 0 }}>{L.dangerZone}</p>
-      </div>
-      <div style={{ ...cardStyle, animation: 'hub-row-fade 380ms ease 200ms both' }}>
-        <ActionRow icon="block" iconColor="#f59e0b" label={L.disableAccount} desc={L.disableAccountDesc} onPress={() => openSheet('disable')} isDanger />
-        <ActionRow icon="delete_forever" iconColor="#ff6b6b" label={L.deleteAccount} desc={L.deleteAccountDesc} onPress={() => openSheet('delete')} isDanger last />
-      </div>
+      </div>{/* end settings list */}
 
       {/* Avatar picker */}
       {pickerOpen && createPortal(
@@ -1521,6 +1615,336 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                 {busy ? <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span> : <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>}
                 {L.deleteBtn}
               </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Personal Information sheet ── */}
+      {sheet === 'personal-info' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <SheetHeader title={lang === 'es' ? 'Información personal' : 'Personal Information'} onClose={closeSheet} />
+            {/* Avatar */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 22px 20px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
+              <div style={{
+                width: 72, height: 72, borderRadius: '50%',
+                background: effectivePhoto && !avatarIcon
+                  ? 'transparent'
+                  : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontWeight: 800, fontSize: 28, overflow: 'hidden',
+                border: `2px solid ${accent.from}40`,
+              }}>
+                {avatarIcon ? (
+                  <span className="material-symbols-outlined" style={{ fontSize: 38, color: '#fff' }}>{avatarIcon}</span>
+                ) : effectivePhoto ? (
+                  <img src={effectivePhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <span>{initial}</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    padding: '8px 14px', borderRadius: 10, fontSize: 12, fontWeight: 700,
+                    background: `${accent.from}18`, border: `1px solid ${accent.from}30`,
+                    color: accent.from, fontFamily: 'Manrope', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 5,
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>photo_camera</span>
+                  {lang === 'es' ? 'Subir foto' : 'Upload photo'}
+                </button>
+                <button
+                  onClick={() => { setPickerClosing(false); setPickerOpen(true); closeSheet(); }}
+                  style={{
+                    padding: '8px 14px', borderRadius: 10, fontSize: 12, fontWeight: 700,
+                    background: 'rgba(128,128,128,0.10)', border: '1px solid rgba(128,128,128,0.18)',
+                    color: 'var(--c-text-primary)', fontFamily: 'Manrope', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 5,
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>emoji_emotions</span>
+                  {lang === 'es' ? 'Elegir icono' : 'Choose icon'}
+                </button>
+                {(customPhoto || avatarIcon) && (
+                  <button
+                    onClick={() => { clearCustomPhoto(); setUserAvatar(user.uid, null); }}
+                    style={{
+                      padding: '8px 10px', borderRadius: 10,
+                      background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.25)',
+                      color: '#ff6b6b', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    }}
+                    aria-label="Reset photo"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>close</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            {/* Display name row */}
+            <button
+              onClick={() => { closeSheet(); setTimeout(() => openSheet('editname'), 310); }}
+              style={{
+                display: 'flex', alignItems: 'center', width: '100%',
+                padding: '15px 22px', background: 'none', border: 'none',
+                borderBottom: '1px solid rgba(128,128,128,0.07)', cursor: 'pointer', textAlign: 'left' as const,
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <p style={{ fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{lang === 'es' ? 'Nombre' : 'Display name'}</p>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 15, color: 'var(--c-text-primary)', margin: '3px 0 0' }}>{user.displayName || '—'}</p>
+              </div>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', opacity: 0.35 }}>chevron_right</span>
+            </button>
+            {/* Email row */}
+            <div style={{ display: 'flex', alignItems: 'center', padding: '15px 22px' }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-secondary)', margin: 0, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Email</p>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 15, color: 'var(--c-text-primary)', margin: '3px 0 0' }}>{user.email || '—'}</p>
+              </div>
+              <span className="material-symbols-outlined" style={{ fontSize: 16, color: emailVerified ? '#10b981' : '#f59e0b', fontVariationSettings: "'FILL' 1" }}>
+                {emailVerified ? 'check_circle' : 'warning'}
+              </span>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Security & Login sheet ── */}
+      {sheet === 'security-login' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <SheetHeader title={lang === 'es' ? 'Seguridad y acceso' : 'Security & Login'} onClose={closeSheet} />
+            <div style={{ padding: '6px 22px 0' }}>
+              <p style={{ fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-secondary)', margin: '0 0 8px', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>
+                {lang === 'es' ? 'Método de inicio de sesión' : 'Sign-in method'}
+              </p>
+              <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-primary)', opacity: 0.7, fontVariationSettings: "'FILL' 1" }}>
+                  {isGoogleUser ? 'account_circle' : 'mail'}
+                </span>
+                <div>
+                  <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>
+                    {isGoogleUser ? 'Google' : L.emailPass}
+                  </p>
+                  <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>{user.email}</p>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '10px 22px 0' }}>
+              <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: emailVerified ? '#10b981' : '#f59e0b', fontVariationSettings: "'FILL' 1" }}>
+                  {emailVerified ? 'check_circle' : 'warning'}
+                </span>
+                <p style={{ flex: 1, fontFamily: 'Manrope', fontWeight: 600, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>
+                  {emailVerified ? (lang === 'es' ? 'Email verificado' : 'Email verified') : (lang === 'es' ? 'Email sin verificar' : 'Email not verified')}
+                </p>
+                {!emailVerified && isEmailUser && (
+                  <button
+                    onClick={() => { closeSheet(); setTimeout(() => openSheet('verifyemail'), 310); }}
+                    style={{
+                      padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                      background: `${accent.from}18`, border: `1px solid ${accent.from}30`,
+                      color: accent.from, fontFamily: 'Manrope', cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'es' ? 'Verificar' : 'Verify'}
+                  </button>
+                )}
+              </div>
+            </div>
+            {isEmailUser && (
+              <button
+                onClick={() => { closeSheet(); setTimeout(() => openSheet('password'), 310); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                  padding: '15px 22px', background: 'none', border: 'none',
+                  borderTop: '1px solid rgba(128,128,128,0.07)', marginTop: 10,
+                  cursor: 'pointer', textAlign: 'left' as const,
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-primary)', opacity: 0.65 }}>lock_reset</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 15, color: 'var(--c-text-primary)', margin: 0 }}>{L.changePassword}</p>
+                  <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>{L.changePasswordDesc}</p>
+                </div>
+                <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', opacity: 0.35 }}>chevron_right</span>
+              </button>
+            )}
+            {/* ── Account actions pill ── */}
+            <div style={{ padding: '14px 22px 28px' }}>
+              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.15em', textTransform: 'uppercase' as const, margin: '0 0 8px' }}>
+                {lang === 'es' ? 'Zona de riesgo' : 'Danger zone'}
+              </p>
+              <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 14, overflow: 'hidden' }}>
+                {/* Disable account */}
+                <button
+                  onClick={() => { closeSheet(); setTimeout(() => openSheet('disable'), 310); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 13, width: '100%',
+                    padding: '13px 16px', background: 'none', border: 'none',
+                    borderBottom: '1px solid rgba(128,128,128,0.08)',
+                    cursor: 'pointer', textAlign: 'left' as const,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-secondary)', opacity: 0.65, flexShrink: 0, width: 22, textAlign: 'center' as const }}>block</span>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0 }}>{L.disableAccount}</p>
+                    <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>{L.disableAccountDesc}</p>
+                  </div>
+                  <span className="material-symbols-outlined" style={{ fontSize: 17, color: 'var(--c-text-secondary)', opacity: 0.3 }}>chevron_right</span>
+                </button>
+                {/* Delete account */}
+                <button
+                  onClick={() => { closeSheet(); setTimeout(() => openSheet('delete'), 310); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 13, width: '100%',
+                    padding: '13px 16px', background: 'none', border: 'none',
+                    cursor: 'pointer', textAlign: 'left' as const,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#ff6b6b', opacity: 0.8, flexShrink: 0, width: 22, textAlign: 'center' as const }}>delete_forever</span>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontFamily: 'Manrope', fontWeight: 600, fontSize: 14.5, color: '#ff6b6b', margin: 0 }}>{L.deleteAccount}</p>
+                    <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>
+                      {lang === 'es' ? 'Eliminar permanentemente tu cuenta' : 'Permanently remove your account'}
+                    </p>
+                  </div>
+                  <span className="material-symbols-outlined" style={{ fontSize: 17, color: 'var(--c-text-secondary)', opacity: 0.3 }}>chevron_right</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Subscription & Billing sheet ── */}
+      {sheet === 'subscription' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <SheetHeader title={lang === 'es' ? 'Suscripción y facturación' : 'Subscription & Billing'} onClose={closeSheet} />
+            <div style={{ padding: '16px 22px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: `${accent.from}18`, border: `1px solid ${accent.from}30`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 28, color: accent.from, fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 20, color: 'var(--c-text-primary)', margin: 0 }}>
+                  {lang === 'es' ? 'Próximamente' : 'Coming soon'}
+                </p>
+                <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', margin: '10px 0 0', lineHeight: 1.7 }}>
+                  {lang === 'es'
+                    ? 'Estamos preparando planes premium con funciones exclusivas. Por ahora, disfruta del plan gratuito.'
+                    : "We're working on premium plans with exclusive features. For now, enjoy the free plan."}
+                </p>
+              </div>
+              <div style={{
+                width: '100%', padding: '14px 16px',
+                background: `${accent.from}10`, border: `1px solid ${accent.from}25`,
+                borderRadius: 14, display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, fontVariationSettings: "'FILL' 1" }}>verified</span>
+                <div>
+                  <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>
+                    {lang === 'es' ? 'Plan actual · Gratis' : 'Current plan · Free'}
+                  </p>
+                  <p style={{ fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>
+                    {lang === 'es' ? 'Acceso completo a las funciones básicas' : 'Full access to core features'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Devices & Sessions sheet ── */}
+      {sheet === 'devices-sessions' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <SheetHeader title={lang === 'es' ? 'Dispositivos y sesiones' : 'Devices & Sessions'} onClose={closeSheet} />
+            <div style={{ padding: '8px 22px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 14, padding: '14px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-primary)', opacity: 0.7 }}>smartphone</span>
+                  <div>
+                    <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>
+                      {lang === 'es' ? 'Este dispositivo' : 'This device'}
+                    </p>
+                    <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: '#10b981', margin: '2px 0 0', fontWeight: 600 }}>
+                      ● {lang === 'es' ? 'Sesión activa' : 'Active session'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.6 }}>
+                {lang === 'es'
+                  ? 'La gestión de múltiples dispositivos estará disponible próximamente.'
+                  : 'Multi-device session management is coming soon.'}
+              </p>
+              <button
+                onClick={() => { closeSheet(); setTimeout(() => openSheet('signout'), 310); }}
+                style={{
+                  width: '100%', padding: '13px 0', borderRadius: 12,
+                  background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.20)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  color: '#ff6b6b', fontFamily: 'Manrope', fontWeight: 700, fontSize: 14,
+                  cursor: 'pointer',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
+                {lang === 'es' ? 'Cerrar sesión' : 'Sign out of this device'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Privacy & Data sheet ── */}
+      {sheet === 'privacy-data' && createPortal(
+        <div style={overlayStyle}>
+          <div style={backdropStyle} onClick={closeSheet} />
+          <div style={sheetStyle}>
+            {dragPill}
+            <SheetHeader title={lang === 'es' ? 'Privacidad y datos' : 'Privacy & Data'} onClose={closeSheet} />
+            <div style={{ padding: '8px 22px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-primary)', opacity: 0.65, fontVariationSettings: "'FILL' 1" }}>download</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>
+                    {lang === 'es' ? 'Exportar mis datos' : 'Export my data'}
+                  </p>
+                  <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>
+                    {lang === 'es' ? 'Próximamente' : 'Coming soon'}
+                  </p>
+                </div>
+              </div>
+              <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.7 }}>
+                {lang === 'es'
+                  ? 'Tus datos se almacenan de forma segura. Nunca compartimos tu información con terceros sin tu consentimiento.'
+                  : 'Your data is stored securely. We never share your information with third parties without your consent.'}
+              </p>
             </div>
           </div>
         </div>,

@@ -59,8 +59,8 @@ let _platformSupportedCache: boolean | null = null;
 export function liquidGlassPlatformSupported(): boolean {
   if (_platformSupportedCache !== null) return _platformSupportedCache;
   if (typeof window === 'undefined' || typeof document === 'undefined') return (_platformSupportedCache = false);
-  if (isNativePlatform())     return (_platformSupportedCache = false);
-  if (prefersReducedMotion()) return (_platformSupportedCache = false);
+  // Note: reduced-motion only suppresses the scroll-shine animation in the hook,
+  // not the glass visual itself — so we deliberately do NOT gate on prefersReducedMotion here.
   try {
     const ok = CSS.supports('backdrop-filter', 'blur(1px)') ||
                CSS.supports('-webkit-backdrop-filter', 'blur(1px)');
@@ -303,8 +303,10 @@ function createShader(host: HTMLElement): Shader {
   const r0 = host.getBoundingClientRect();
   regenerateMap(shader, Math.round(r0.width) || 200, Math.round(r0.height) || 60);
 
-  // Apply the combined backdrop-filter — shuding's exact recipe.
-  const value = `url(#${filterId}) blur(0.25px) contrast(1.2) brightness(1.05) saturate(1.4)`;
+  // Apply the combined backdrop-filter.
+  // url() displacement works in Safari; Chrome applies only the standard filter fns.
+  // No extra blur — keep the lens effect clear; tint alone provides readability.
+  const value = `url(#${filterId}) saturate(1.8) brightness(1.05) contrast(1.06)`;
   host.style.setProperty('backdrop-filter', value, 'important');
   host.style.setProperty('-webkit-backdrop-filter', value, 'important');
 
@@ -342,14 +344,32 @@ function injectStyles(): void {
   _stylesInjected = true;
   const style = document.createElement('style');
   style.id = STYLE_ID;
-  // Fully transparent — the refraction + chromatic aberration from the SVG
-  // backdrop-filter IS the effect. No white shine or specular on top.
+  // Semi-transparent tint + very subtle frosting.
+  // The dark tint (≈ 45% opaque) makes background text slightly harder to read
+  // without overwhelming the displacement-lens refraction effect.
+  // The blur in the backdrop-filter above does most of the frosting work;
+  // the tint stops the nav from being fully transparent on busy backgrounds.
   style.textContent = `
 .${TARGET_CLASS} {
-  background: transparent !important;
-  border: 1px solid rgba(255,255,255,0.32) !important;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.18) !important;
+  background: rgba(14,14,18,0.45) !important;
+  border: 1px solid rgba(255,255,255,0.48) !important;
+  box-shadow:
+    0 16px 56px rgba(0,0,0,0.52),
+    0 2px 12px rgba(0,0,0,0.30),
+    inset 0 2px 0 rgba(255,255,255,0.78),
+    inset 0 -1px 0 rgba(255,255,255,0.12) !important;
   isolation: isolate;
+}
+@media (prefers-color-scheme: light) {
+  .${TARGET_CLASS} {
+    background: rgba(255,255,255,0.40) !important;
+    border: 1px solid rgba(0,0,0,0.12) !important;
+    box-shadow:
+      0 16px 56px rgba(0,0,0,0.18),
+      0 2px 10px rgba(0,0,0,0.10),
+      inset 0 2px 0 rgba(255,255,255,0.96),
+      inset 0 -1px 0 rgba(0,0,0,0.05) !important;
+  }
 }`;
   document.head.appendChild(style);
 }

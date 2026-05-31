@@ -1,386 +1,868 @@
 /**
- * HarmonizerSheet — bottom-sheet modal that lets the user duplicate a take
- * into Major-3rd / Perfect-5th / Octave harmony layers, preview them in
- * real time, and bounce the mix as a new take.
+ * HarmonizerSheet — Full-screen professional vocal harmonizer for Vocalex.
  *
- * UX:
- *   • Three layer rows. Each has an on/off toggle and a volume slider.
- *   • Big "Preview" play button at the bottom plays dry + enabled layers
- *     in sync. Slider changes apply live (setGain).
- *   • "Save as new take" renders an offline bounce and persists via the
- *     parent's onBounce callback.
- *
- * Audio is fully lazy: nothing is rendered until the user enables a layer
- * and presses Preview, so the sheet has zero cost when first opened.
+ * Features:
+ *   • 9 harmony interval types with musical descriptions
+ *   • Per-layer: volume, pan, mute, solo, fine-tune, custom interval
+ *   • Add / remove layers freely
+ *   • Waveform display with live playhead
+ *   • Advanced processing: humanize + formant correction sliders
+ *   • Key detection from pitch analysis
+ *   • Export: Save as new take, Download full mix (WAV), Download harmony only (WAV)
  */
 
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import ElasticSlider from '../components/ElasticSlider';
 import type { TakeRecord } from './takesDb';
+import { blobToAudioBuffer } from './takesDb';
 import {
-  HARMONIES, DEFAULT_HARMONY_STATE,
+  HARMONIES, DEFAULT_HARMONY_LAYERS,
   startHarmonyPlayback, bounceHarmonizedTake,
+  layerSemitones, detectKey,
   type HarmonyId, type HarmonyLayerState, type HarmonyPlaybackSession,
 } from './harmonyEngine';
+import { detectPitch } from './pitchYin';
+import { bufferToMono } from './pitchShift';
+import { createAudioContext } from '../lib/audioContextOptions';
 
-interface Props {
-  take:      TakeRecord;
-  accent?:   string;        // colour token (defaults to Vocalex blue)
-  onClose:   () => void;
-  onBounce:  (newTake: TakeRecord) => void | Promise<void>;
+// ─── helpers ──────────────────────────────────────────────────────────────
+
+function fmt(sec: number): string {
+  const m = Math.floor(Math.max(0, sec) / 60);
+  const s = Math.floor(Math.max(0, sec) % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+// ─── types ────────────────────────────────────────────────────────────────
+
+interface Props {
+  take:     TakeRecord;
+  accent?:  string;
+  onClose:  () => void;
+  onBounce: (newTake: TakeRecord) => void | Promise<void>;
+}
+
+// ─── Main component ────────────────────────────────────────────────────────
+
 export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onBounce }: Props) {
-  const [layers, setLayers] = useState<HarmonyLayerState[]>(() =>
-    DEFAULT_HARMONY_STATE.map(l => ({ ...l })),
-  );
-  const [dryGain, setDryGain] = useState(1.0);
-  const [previewing, setPreviewing] = useState(false);
-  const [busy, setBusy] = useState<'idle' | 'rendering' | 'saving'>('idle');
-  const [error, setError] = useState<string | null>(null);
+  const [layers, setLayers]               = useState<HarmonyLayerState[]>(() => DEFAULT_HARMONY_LAYERS.map(l => ({ ...l })));
+  const [dryGain, setDryGain]             = useState(1.0);
+  const [humanize, setHumanize]           = useState(0.28);
+  const [formant, setFormant]             = useState(0.40);
+  const [isPlaying, setIsPlaying]         = useState(false);
+  const [isGenerating, setIsGenerating]   = useState(false);
+  const [playProgress, setPlayProgress]   = useState(0);
+  const [showAdvanced, setShowAdvanced]   = useState(false);
+  const [showAddLayer, setShowAddLayer]   = useState(false);
+  const [showExport, setShowExport]       = useState(false);
+  const [detectedKey, setDetectedKey]     = useState<string | null>(null);
+  const [isBouncing, setIsBouncing]       = useState(false);
+  const [bounceError, setBounceError]     = useState<string | null>(null);
+  const [playError, setPlayError]         = useState<string | null>(null);
 
-  const ctxRef     = useRef<AudioContext | null>(null);
-  const sessionRef = useRef<HarmonyPlaybackSession | null>(null);
+  const ctxRef        = useRef<AudioContext | null>(null);
+  const sessionRef    = useRef<HarmonyPlaybackSession | null>(null);
+  const rafRef        = useRef<number>(0);
+  const isPlayingRef  = useRef(false);
+  const durationRef   = useRef(take.durationMs / 1000);
 
-  const enabledCount = useMemo(() => layers.filter(l => l.enabled).length, [layers]);
+  // ── Key detection ────────────────────────────────────────────────────────
+  useEffect(() => {
+    blobToAudioBuffer(take.audioBlob).then(buf => {
+      const mono = bufferToMono(buf);
+      const chunkSize = 2048;
+      const hopSize   = 4096;
+      const timeline: { noteName: string; frequency: number }[] = [];
+      for (let off = 0; off + chunkSize <= mono.length; off += hopSize) {
+        const chunk  = mono.slice(off, off + chunkSize);
+        const result = detectPitch(chunk, buf.sampleRate, 0.8);
+        if (result) timeline.push({ noteName: result.noteName, frequency: result.frequency });
+      }
+      setDetectedKey(detectKey(timeline));
+    }).catch(() => {});
+  }, [take]);
 
-  // Ensure playback halts on unmount.
+  // ── Cleanup ──────────────────────────────────────────────────────────────
   useEffect(() => () => {
     sessionRef.current?.stop();
-    sessionRef.current = null;
+    cancelAnimationFrame(rafRef.current);
+    ctxRef.current?.close();
   }, []);
 
-  const ensureCtx = useCallback((): AudioContext => {
-    if (!ctxRef.current) {
-      const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext;
-      ctxRef.current = new Ctor();
-    }
-    if (ctxRef.current!.state === 'suspended') void ctxRef.current!.resume();
-    return ctxRef.current!;
-  }, []);
-
-  const setLayer = useCallback((id: HarmonyId, patch: Partial<HarmonyLayerState>) => {
-    setLayers(prev => prev.map(l => {
-      if (l.id !== id) return l;
-      const next = { ...l, ...patch };
-      // Push gain changes to the live session so sliders feel real-time.
-      if (sessionRef.current && patch.gain !== undefined) {
-        sessionRef.current.setGain(id, patch.enabled === false ? 0 : next.gain);
-      }
-      if (sessionRef.current && patch.enabled !== undefined) {
-        // Toggling while playing — fade the layer in/out via gain since we
-        // can't add a source mid-stream cheaply.
-        sessionRef.current.setGain(id, patch.enabled ? next.gain : 0);
-      }
-      return next;
-    }));
-  }, []);
-
-  const handleDryGain = useCallback((v: number) => {
-    setDryGain(v);
-    sessionRef.current?.setGain('dry', v);
-  }, []);
-
-  const stopPreview = useCallback(() => {
+  // ── Playback ─────────────────────────────────────────────────────────────
+  const stopPlayback = useCallback(() => {
     sessionRef.current?.stop();
     sessionRef.current = null;
-    setPreviewing(false);
+    cancelAnimationFrame(rafRef.current);
+    isPlayingRef.current = false;
+    setIsPlaying(false);
+    setPlayProgress(0);
   }, []);
 
-  const startPreview = useCallback(async () => {
-    setError(null);
-    try {
-      const ctx = ensureCtx();
-      setBusy('rendering');
-      // Pass current layer states; engine pre-renders shifted buffers as
-      // needed. The first preview after enabling a new harmony incurs a
-      // tiny render delay (cached after).
-      const session = await startHarmonyPlayback(take, layers, ctx, dryGain);
-      sessionRef.current = session;
-      session.onEnded(() => {
-        sessionRef.current = null;
-        setPreviewing(false);
-      });
-      setPreviewing(true);
-    } catch (e) {
-      setError('Could not start preview. Try again.');
-      console.error('[Harmonizer] preview failed', e);
-    } finally {
-      setBusy('idle');
+  const handlePlayStop = useCallback(async () => {
+    if (isPlayingRef.current) { stopPlayback(); return; }
+
+    let ctx = ctxRef.current;
+    if (!ctx || ctx.state === 'closed') {
+      ctx = createAudioContext();
+      ctxRef.current = ctx;
     }
-  }, [take, layers, dryGain, ensureCtx]);
+    if (ctx.state === 'suspended') await ctx.resume();
 
-  const togglePreview = useCallback(() => {
-    if (previewing) stopPreview();
-    else void startPreview();
-  }, [previewing, stopPreview, startPreview]);
-
-  const handleBounce = useCallback(async () => {
-    if (!enabledCount) return;
-    stopPreview();
-    setError(null);
-    setBusy('saving');
+    setPlayError(null);
+    setIsGenerating(true);
     try {
-      const enabledNames = layers.filter(l => l.enabled)
+      const session = await startHarmonyPlayback(take, layers, ctx, {
+        dryGain, humanize, formantCorrection: formant,
+      });
+      sessionRef.current = session;
+      durationRef.current = session.duration;
+
+      const startTime = ctx.currentTime;
+      isPlayingRef.current = true;
+      setIsGenerating(false);
+      setIsPlaying(true);
+
+      session.onEnded(() => {
+        isPlayingRef.current = false;
+        setIsPlaying(false);
+        setPlayProgress(0);
+        cancelAnimationFrame(rafRef.current);
+      });
+
+      const tick = () => {
+        if (!isPlayingRef.current) return;
+        const elapsed = ctx!.currentTime - startTime;
+        setPlayProgress(Math.min(1, elapsed / durationRef.current));
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    } catch {
+      setIsGenerating(false);
+      setPlayError('Failed to generate harmonies. Please try again.');
+    }
+  }, [take, layers, dryGain, humanize, formant, stopPlayback]);
+
+  // ── Layer management ──────────────────────────────────────────────────────
+  const updateLayer = useCallback((index: number, patch: Partial<HarmonyLayerState>) => {
+    setLayers(prev => prev.map((l, i) => i === index ? { ...l, ...patch } : l));
+  }, []);
+
+  const removeLayer = useCallback((index: number) => {
+    setLayers(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const addLayer = useCallback((id: HarmonyId) => {
+    const panOptions = [-0.3, 0.3, -0.5, 0.5, -0.15, 0.15, 0, 0.4, -0.4];
+    setLayers(prev => [...prev, {
+      id,
+      enabled:        true,
+      gain:           0.75,
+      pan:            panOptions[prev.length % panOptions.length],
+      mute:           false,
+      solo:           false,
+      fineTune:       0,
+      customSemitones: 5,
+    }]);
+    setShowAddLayer(false);
+  }, []);
+
+  // ── Bounce / export ───────────────────────────────────────────────────────
+  const doBounce = useCallback(async (opts: { harmonyOnly?: boolean; download?: boolean } = {}) => {
+    const { harmonyOnly = false, download = false } = opts;
+    stopPlayback();
+    setBounceError(null);
+    setIsBouncing(true);
+    setShowExport(false);
+    try {
+      const enabledNames = layers.filter(l => l.enabled && !l.mute)
         .map(l => HARMONIES.find(h => h.id === l.id)?.short ?? '')
         .filter(Boolean).join(' ');
-      const newName = `${take.name} (Harmonized ${enabledNames})`.trim();
-      const bounced = await bounceHarmonizedTake(take, layers, newName, dryGain);
-      await onBounce(bounced);
-      onClose();
-    } catch (e) {
-      setError('Could not bounce harmonized take.');
-      console.error('[Harmonizer] bounce failed', e);
-    } finally {
-      setBusy('idle');
+      const newName = `${take.name} (${harmonyOnly ? 'Harmony' : `Harmonized ${enabledNames}`})`.trim();
+      const newTake = await bounceHarmonizedTake(take, layers, newName, {
+        dryGain:           harmonyOnly ? 0 : dryGain,
+        humanize,
+        formantCorrection: formant,
+      });
+      if (download) {
+        const url = URL.createObjectURL(newTake.audioBlob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `${take.name}${harmonyOnly ? '-harmony' : '-mix'}.wav`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        await onBounce(newTake);
+        onClose();
+      }
+    } catch {
+      setBounceError('Export failed. Please try again.');
     }
-  }, [enabledCount, layers, take, dryGain, onBounce, onClose, stopPreview]);
+    setIsBouncing(false);
+  }, [take, layers, dryGain, humanize, formant, stopPlayback, onBounce, onClose]);
+
+  // ── Computed ──────────────────────────────────────────────────────────────
+  const totalDuration  = take.durationMs / 1000;
+  const currentTimeSec = playProgress * durationRef.current;
+  const activeCount    = layers.filter(l => l.enabled && !l.mute).length;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
-      onClick={() => { stopPreview(); onClose(); }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Vocal harmonizer"
-    >
-      <div
-        className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl"
-        style={{
-          background: 'var(--vx-bg, var(--app-surface))',
-          maxHeight: '92vh', overflowY: 'auto',
-          boxShadow: '0 -10px 40px rgba(0,0,0,0.45)',
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
-          animation: 'spring-in 200ms cubic-bezier(0.22,1,0.36,1)',
-        }}
-        onClick={e => e.stopPropagation()}
-        data-testid="harmonizer-sheet"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <div>
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: accent, letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
-              Harmonize
-            </p>
-            <h2 style={{ fontFamily: 'Manrope, sans-serif', fontSize: 18, fontWeight: 800, color: 'var(--vx-text)', margin: '2px 0 0', letterSpacing: '-0.02em', wordBreak: 'break-word' }}>
-              {take.name}
-            </h2>
-            <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 11.5, color: 'var(--vx-text-2)', margin: '2px 0 0' }}>
-              Layer pitch-shifted copies of your vocal
-            </p>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'var(--vx-bg, #0b0b11)',
+      display: 'flex', flexDirection: 'column',
+      fontFamily: 'Inter, sans-serif',
+    }}>
+
+      {/* ── HEADER ─────────────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '12px 16px 10px',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        flexShrink: 0,
+      }}>
+        <button
+          onClick={() => { stopPlayback(); onClose(); }}
+          style={{
+            background: 'none', border: 'none', padding: 4, cursor: 'pointer',
+            color: 'var(--vx-text-2, rgba(255,255,255,0.45))',
+            display: 'flex', alignItems: 'center',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>arrow_back</span>
+        </button>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <h2 style={{
+              fontFamily: 'Manrope, sans-serif', fontWeight: 800,
+              fontSize: 17, color: 'var(--vx-text, #fff)',
+              margin: 0, letterSpacing: '-0.02em',
+            }}>Harmonizer</h2>
+            {detectedKey && (
+              <span style={{
+                background: `${accent}22`, border: `1px solid ${accent}55`,
+                borderRadius: 6, padding: '2px 7px',
+                fontSize: 10, fontWeight: 800, color: accent,
+                fontFamily: 'Manrope, sans-serif', letterSpacing: '0.06em',
+                flexShrink: 0,
+              }}>
+                {detectedKey}
+              </span>
+            )}
           </div>
-          <button
-            onClick={() => { stopPreview(); onClose(); }}
-            aria-label="Close"
-            style={{
-              width: 34, height: 34, borderRadius: '50%',
-              background: 'var(--vx-input-2, var(--app-surface-high))', border: 'none', cursor: 'pointer',
-              color: 'var(--vx-text-2)', fontSize: 18, lineHeight: 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >×</button>
+          <p style={{
+            fontSize: 11, color: 'var(--vx-text-2, rgba(255,255,255,0.4))',
+            margin: '1px 0 0',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{take.name}</p>
         </div>
 
-        {/* Dry-vocal row */}
-        <div className="px-5 pb-2">
-          <LayerRow
-            id="dry"
-            label="Original"
-            sub="Your dry vocal"
-            enabled
-            gain={dryGain}
-            onToggle={() => { /* dry stays on */ }}
-            onGain={handleDryGain}
-            accent={accent}
-            data-testid="dry-row"
-            isDry
+        {/* Layer count badge */}
+        <div style={{
+          background: 'rgba(255,255,255,0.07)', borderRadius: 8,
+          padding: '4px 9px', fontSize: 11, fontWeight: 700,
+          color: 'rgba(255,255,255,0.5)', flexShrink: 0,
+        }}>
+          {activeCount} layer{activeCount !== 1 ? 's' : ''}
+        </div>
+      </div>
+
+      {/* ── SCROLLABLE BODY ────────────────────────────────────────────── */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }} className="no-scrollbar">
+
+        {/* WAVEFORM PLAYER */}
+        <div style={{ padding: '14px 16px 0' }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.04)', borderRadius: 14,
+            padding: '12px 12px 10px',
+            position: 'relative',
+          }}>
+            {/* Waveform bars */}
+            <div style={{
+              height: 60, display: 'flex', alignItems: 'center',
+              gap: 1.5, borderRadius: 8,
+              background: 'rgba(0,0,0,0.35)', padding: '0 8px',
+              position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', left: 0, top: 0, bottom: 0,
+                width: `${playProgress * 100}%`,
+                background: `${accent}18`,
+                borderRight: `2px solid ${accent}`,
+                transition: isPlaying ? 'none' : 'width 80ms ease',
+              }} />
+              {take.waveformPeaks.map((h, i) => {
+                const played = (i / take.waveformPeaks.length) < playProgress;
+                return (
+                  <div key={i} style={{
+                    flex: 1, minWidth: 1.5,
+                    height: `${Math.max(8, h)}%`,
+                    borderRadius: 9999, position: 'relative', zIndex: 1,
+                    background: played ? `${accent}bb` : 'rgba(172,171,170,0.16)',
+                  }} />
+                );
+              })}
+            </div>
+
+            {/* Controls row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+              <button
+                onClick={handlePlayStop}
+                disabled={isBouncing}
+                style={{
+                  width: 42, height: 42, borderRadius: '50%',
+                  background: isGenerating ? `${accent}55` : accent,
+                  border: 'none',
+                  cursor: isGenerating || isBouncing ? 'wait' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: `0 4px 14px ${accent}44`,
+                  transition: 'background 150ms',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{
+                  fontSize: 20, color: '#fff',
+                  fontVariationSettings: "'FILL' 1",
+                  animation: isGenerating ? 'hz-spin 1s linear infinite' : 'none',
+                }}>
+                  {isGenerating ? 'progress_activity' : isPlaying ? 'stop' : 'play_arrow'}
+                </span>
+              </button>
+
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  fontSize: 10.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                  color: 'rgba(255,255,255,0.4)',
+                }}>
+                  <span>{fmt(currentTimeSec)}</span>
+                  <span style={{ color: isGenerating ? accent : 'rgba(255,255,255,0.4)' }}>
+                    {isGenerating ? 'Generating…' : isPlaying ? 'Playing' : 'Ready'}
+                  </span>
+                  <span>−{fmt(totalDuration - currentTimeSec)}</span>
+                </div>
+
+                {/* Thin progress track */}
+                <div style={{ height: 3, borderRadius: 9999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 9999,
+                    width: `${playProgress * 100}%`,
+                    background: accent,
+                    transition: isPlaying ? 'none' : 'width 80ms ease',
+                  }} />
+                </div>
+              </div>
+            </div>
+
+            {playError && (
+              <p style={{ fontSize: 11, color: '#ef4444', margin: '8px 0 0', textAlign: 'center' }}>{playError}</p>
+            )}
+
+            {/* Gradient border ring */}
+            <div className="gb-border-ring" aria-hidden="true" />
+          </div>
+        </div>
+
+        {/* DRY GAIN ROW */}
+        <div style={{ padding: '10px 16px 0' }}>
+          <SliderRow
+            icon="mic"
+            label="Lead Vocal"
+            value={dryGain}
+            min={0} max={1.5} step={0.01}
+            accent="rgba(255,255,255,0.55)"
+            display={`${Math.round(dryGain * 100)}%`}
+            onChange={setDryGain}
           />
         </div>
 
-        {/* Harmony layers */}
-        <div className="px-5 pb-2 flex flex-col gap-2">
-          {layers.map(l => {
-            const def = HARMONIES.find(h => h.id === l.id)!;
-            return (
-              <LayerRow
-                key={l.id}
-                id={l.id}
-                label={def.label}
-                sub={def.hint}
-                enabled={l.enabled}
-                gain={l.gain}
-                onToggle={() => setLayer(l.id, { enabled: !l.enabled })}
-                onGain={v => setLayer(l.id, { gain: v })}
-                accent={accent}
+        {/* LAYERS SECTION */}
+        <div style={{ padding: '14px 16px 0' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', marginBottom: 10,
+          }}>
+            <span style={{
+              fontSize: 9.5, fontWeight: 800, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
+            }}>Harmony Layers</span>
+
+            <button
+              onClick={() => setShowAddLayer(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 8,
+                background: showAddLayer ? `${accent}22` : 'rgba(255,255,255,0.07)',
+                border: showAddLayer ? `1px solid ${accent}55` : '1px solid rgba(255,255,255,0.1)',
+                color: showAddLayer ? accent : 'rgba(255,255,255,0.55)',
+                cursor: 'pointer', fontSize: 12, fontWeight: 700,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>
+              Add
+            </button>
+          </div>
+
+          {/* Add-layer picker grid */}
+          {showAddLayer && (
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 6, marginBottom: 10,
+              padding: 10, borderRadius: 12,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}>
+              {HARMONIES.map(h => (
+                <button
+                  key={h.id}
+                  onClick={() => addLayer(h.id)}
+                  style={{
+                    padding: '8px 4px', borderRadius: 8,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    cursor: 'pointer', textAlign: 'center',
+                  }}
+                >
+                  <div style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: h.color, margin: '0 auto 4px',
+                    boxShadow: `0 0 6px ${h.color}80`,
+                  }} />
+                  <div style={{
+                    fontSize: 11, fontWeight: 800, color: '#fff',
+                    fontFamily: 'Manrope, sans-serif',
+                  }}>{h.short}</div>
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{h.label}</div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Layer cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {layers.map((layer, i) => (
+              <LayerCard
+                key={`${layer.id}-${i}`}
+                layer={layer}
+                canDelete={layers.length > 1}
+                onChange={patch => updateLayer(i, patch)}
+                onDelete={() => removeLayer(i)}
               />
-            );
-          })}
+            ))}
+          </div>
         </div>
 
-        {error && (
-          <p data-testid="harmonizer-error" style={{
-            margin: '0 20px 8px', padding: '8px 12px',
-            background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
-            borderRadius: 10, color: '#ef4444',
-            fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 600,
-          }}>{error}</p>
+        {/* ADVANCED SETTINGS */}
+        <div style={{ padding: '12px 16px 0' }}>
+          <button
+            onClick={() => setShowAdvanced(v => !v)}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              width: '100%', padding: '10px 13px', borderRadius: 10,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              cursor: 'pointer', color: 'rgba(255,255,255,0.55)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'rgba(255,255,255,0.4)' }}>tune</span>
+              Advanced Processing
+            </div>
+            <span className="material-symbols-outlined" style={{
+              fontSize: 18,
+              transform: showAdvanced ? 'rotate(180deg)' : 'none',
+              transition: 'transform 200ms ease',
+            }}>expand_more</span>
+          </button>
+
+          {showAdvanced && (
+            <div style={{
+              marginTop: 6, padding: '14px 13px', borderRadius: 10,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', flexDirection: 'column', gap: 16,
+            }}>
+              <AdvSlider
+                label="Humanize"
+                hint="Adds natural micro-timing and pitch variation between layers"
+                value={humanize}
+                color="#32d74b"
+                icon="person"
+                onChange={setHumanize}
+              />
+              <AdvSlider
+                label="Formant Correction"
+                hint="Preserves vocal character when shifting large intervals"
+                value={formant}
+                color="#ff9f0a"
+                icon="graphic_eq"
+                onChange={setFormant}
+              />
+              <p style={{
+                fontSize: 10, color: 'rgba(255,255,255,0.25)',
+                margin: 0, lineHeight: 1.5,
+              }}>
+                Changes apply on next playback. Larger corrections increase generation time.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {bounceError && (
+          <div style={{ padding: '10px 16px 0' }}>
+            <div style={{
+              padding: '9px 13px', borderRadius: 10,
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.25)',
+              color: '#ef4444', fontSize: 12,
+            }}>{bounceError}</div>
+          </div>
         )}
 
-        {/* Action row */}
-        <div className="px-5 pt-3 pb-1 flex gap-2">
-          <button
-            data-testid="harmonizer-preview-btn"
-            onClick={togglePreview}
-            disabled={busy === 'saving'}
-            style={{
-              flex: 1, height: 48, borderRadius: 9999,
-              background: previewing ? 'var(--vx-input-2, var(--app-surface-high))' : accent,
-              color: previewing ? 'var(--vx-text)' : '#fff',
-              border: 'none', cursor: busy === 'saving' ? 'not-allowed' : 'pointer',
-              fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 14,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              boxShadow: previewing ? 'none' : `0 4px 16px ${accent}55`,
-              transition: 'background 200ms ease',
-              opacity: busy === 'saving' ? 0.5 : 1,
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>
-              {busy === 'rendering' ? 'progress_activity' : previewing ? 'stop' : 'play_arrow'}
-            </span>
-            {busy === 'rendering' ? 'Loading…' : previewing ? 'Stop Preview' : 'Preview Harmonies'}
-          </button>
-          <button
-            data-testid="harmonizer-bounce-btn"
-            onClick={handleBounce}
-            disabled={!enabledCount || busy !== 'idle'}
-            title={!enabledCount ? 'Enable at least one harmony layer' : 'Save as a new take'}
-            style={{
-              height: 48, padding: '0 18px', borderRadius: 9999,
-              background: 'var(--vx-input-2, var(--app-surface-high))',
-              color: enabledCount ? accent : 'var(--vx-text-4)',
-              border: 'none',
-              cursor: enabledCount && busy === 'idle' ? 'pointer' : 'not-allowed',
-              fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 13,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              opacity: enabledCount ? 1 : 0.5,
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>save</span>
-            {busy === 'saving' ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-
-        <p style={{
-          margin: '8px 20px 0', fontSize: 10.5, color: 'var(--vx-text-4)',
-          fontFamily: 'Inter, sans-serif', textAlign: 'center', lineHeight: 1.5,
-        }}>
-          Harmonies are generated by granular pitch-shifting — best with sustained vowels.
-        </p>
+        <div style={{ height: 110 }} />
       </div>
+
+      {/* ── FIXED BOTTOM BAR ────────────────────────────────────────────── */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        padding: '11px 16px calc(11px + env(safe-area-inset-bottom, 0px))',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        background: 'rgba(11,11,17,0.96)',
+        backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
+        display: 'flex', gap: 8,
+      }}>
+        {/* Save as Take */}
+        <button
+          onClick={() => doBounce()}
+          disabled={isBouncing || activeCount === 0}
+          style={{
+            flex: 1, padding: '12px 14px', borderRadius: 12,
+            background: isBouncing ? 'rgba(0,122,255,0.08)' : `${accent}22`,
+            border: `1px solid ${accent}44`,
+            color: activeCount === 0 ? 'rgba(0,122,255,0.35)' : accent,
+            fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13,
+            cursor: isBouncing || activeCount === 0 ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            opacity: activeCount === 0 ? 0.5 : 1,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{
+            fontSize: 15,
+            animation: isBouncing ? 'hz-spin 1s linear infinite' : 'none',
+          }}>
+            {isBouncing ? 'progress_activity' : 'save'}
+          </span>
+          {isBouncing ? 'Saving…' : 'Save as Take'}
+        </button>
+
+        {/* Export dropdown */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowExport(v => !v)}
+            disabled={isBouncing || activeCount === 0}
+            style={{
+              padding: '12px 14px', borderRadius: 12,
+              background: 'rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: activeCount === 0 ? 'rgba(255,255,255,0.25)' : '#fff',
+              fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13,
+              cursor: isBouncing || activeCount === 0 ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              opacity: activeCount === 0 ? 0.5 : 1,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 15 }}>download</span>
+            Export
+            <span className="material-symbols-outlined" style={{
+              fontSize: 13,
+              transform: showExport ? 'rotate(180deg)' : 'none',
+              transition: 'transform 180ms ease',
+            }}>expand_more</span>
+          </button>
+
+          {showExport && (
+            <div style={{
+              position: 'absolute', bottom: 'calc(100% + 8px)', right: 0,
+              background: 'rgba(22,22,28,0.98)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 12, overflow: 'hidden',
+              boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
+              minWidth: 200, zIndex: 10,
+            }}>
+              {[
+                { label: 'Full Mix  (WAV)', icon: 'audio_file', harmonyOnly: false },
+                { label: 'Harmony Only  (WAV)', icon: 'music_note', harmonyOnly: true },
+              ].map(opt => (
+                <button
+                  key={opt.label}
+                  onClick={() => doBounce({ harmonyOnly: opt.harmonyOnly, download: true })}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    width: '100%', padding: '12px 15px',
+                    background: 'none', border: 'none',
+                    cursor: 'pointer', color: '#fff',
+                    fontFamily: 'Inter, sans-serif', fontSize: 13,
+                    fontWeight: 500, textAlign: 'left',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 17, color: 'rgba(255,255,255,0.4)' }}>{opt.icon}</span>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       <style>{`
-        @keyframes spring-in {
-          from { transform: translateY(20px); opacity: 0; }
-          to   { transform: translateY(0);    opacity: 1; }
-        }
+        @keyframes hz-spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
 }
 
-// ── Layer row ─────────────────────────────────────────────────────────────
+// ─── Layer Card ───────────────────────────────────────────────────────────
 
-interface LayerRowProps {
-  id:       HarmonyId | 'dry';
-  label:    string;
-  sub:      string;
-  enabled:  boolean;
-  gain:     number;
-  onToggle: () => void;
-  onGain:   (v: number) => void;
-  accent:   string;
-  isDry?:   boolean;
-  ['data-testid']?: string;
-}
+function LayerCard({
+  layer, canDelete, onChange, onDelete,
+}: {
+  layer:     HarmonyLayerState;
+  canDelete: boolean;
+  onChange:  (patch: Partial<HarmonyLayerState>) => void;
+  onDelete:  () => void;
+}) {
+  const def     = HARMONIES.find(h => h.id === layer.id)!;
+  const semis   = layerSemitones(layer);
+  const isActive = layer.enabled && !layer.mute;
 
-function LayerRow({ id, label, sub, enabled, gain, onToggle, onGain, accent, isDry, ...rest }: LayerRowProps) {
-  const dim = !enabled && !isDry;
   return (
-    <div
-      data-testid={(rest as any)['data-testid'] ?? `harmony-row-${id}`}
-      style={{
-        background: enabled || isDry ? 'var(--vx-card-2, var(--app-surface-high))' : 'transparent',
-        border: enabled
-          ? `1px solid ${accent}55`
-          : '1px solid rgba(128,128,128,0.18)',
-        borderRadius: 14, padding: '10px 14px',
-        display: 'flex', alignItems: 'center', gap: 12,
-        opacity: dim ? 0.6 : 1, transition: 'all 180ms ease',
-      }}
-    >
-      {/* Toggle */}
-      {!isDry ? (
+    <div style={{
+      borderRadius: 13,
+      background: isActive ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+      border: `1px solid ${isActive ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.05)'}`,
+      padding: '11px 12px',
+      opacity: layer.mute ? 0.5 : 1,
+      transition: 'opacity 150ms, background 150ms',
+    }}>
+      {/* Top row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        {/* Color dot = enable toggle */}
         <button
-          data-testid={`harmony-toggle-${id}`}
-          onClick={onToggle}
-          aria-pressed={enabled}
-          aria-label={`${enabled ? 'Disable' : 'Enable'} ${label}`}
+          onClick={() => onChange({ enabled: !layer.enabled })}
+          title={layer.enabled ? 'Disable layer' : 'Enable layer'}
           style={{
-            width: 36, height: 22, borderRadius: 9999, position: 'relative',
-            background: enabled ? accent : 'rgba(128,128,128,0.30)',
-            border: 'none', cursor: 'pointer', transition: 'background 180ms ease',
-            flexShrink: 0,
-          }}
-        >
-          <span style={{
-            position: 'absolute', top: 2, left: enabled ? 16 : 2,
-            width: 18, height: 18, borderRadius: '50%', background: '#fff',
-            transition: 'left 180ms cubic-bezier(0.22,1,0.36,1)',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-          }}/>
-        </button>
-      ) : (
-        <span className="material-symbols-outlined" style={{ fontSize: 22, color: accent, fontVariationSettings: "'FILL' 1" }}>graphic_eq</span>
-      )}
-
-      {/* Label */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{
-          fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 13,
-          color: 'var(--vx-text)', margin: 0, lineHeight: 1.2,
-        }}>{label}</p>
-        <p style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 10.5,
-          color: 'var(--vx-text-2)', margin: '2px 0 0', lineHeight: 1.2,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{sub}</p>
-      </div>
-
-      {/* Volume slider — show even when disabled (greyed) so layout is stable */}
-      <div style={{ width: 90, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-        <input
-          data-testid={`harmony-vol-${id}`}
-          type="range"
-          min={0} max={1.5} step={0.05}
-          value={gain}
-          onChange={e => onGain(Number(e.target.value))}
-          disabled={!enabled && !isDry}
-          aria-label={`${label} volume`}
-          style={{
-            width: '100%', height: 4, accentColor: accent,
-            cursor: enabled || isDry ? 'pointer' : 'not-allowed',
+            width: 11, height: 11, borderRadius: '50%',
+            background: layer.enabled ? def.color : 'rgba(255,255,255,0.18)',
+            border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0,
+            boxShadow: layer.enabled ? `0 0 8px ${def.color}80` : 'none',
+            transition: 'background 150ms, box-shadow 150ms',
           }}
         />
-        <span style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 9.5, fontWeight: 700,
-          color: 'var(--vx-text-2)', fontVariantNumeric: 'tabular-nums',
-        }}>{gainToDb(gain)}</span>
+
+        {/* Interval info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+            <span style={{
+              fontSize: 12.5, fontWeight: 700, color: layer.enabled ? '#fff' : 'rgba(255,255,255,0.35)',
+              fontFamily: 'Manrope, sans-serif',
+            }}>{def.label}</span>
+            <span style={{
+              fontSize: 10, fontWeight: 700, color: def.color,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              {semis > 0 ? '+' : ''}{semis.toFixed(1)} st
+            </span>
+          </div>
+          <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.28)', marginTop: 1 }}>{def.hint}</div>
+        </div>
+
+        {/* Mute */}
+        <MiniButton
+          active={layer.mute}
+          activeColor="rgba(239,68,68,0.3)"
+          activeBorder="rgba(239,68,68,0.5)"
+          activeTextColor="#ef4444"
+          onClick={() => onChange({ mute: !layer.mute })}
+          label="M"
+          title={layer.mute ? 'Unmute' : 'Mute'}
+        />
+
+        {/* Solo */}
+        <MiniButton
+          active={layer.solo}
+          activeColor="rgba(255,204,0,0.2)"
+          activeBorder="rgba(255,204,0,0.4)"
+          activeTextColor="#ffcc00"
+          onClick={() => onChange({ solo: !layer.solo })}
+          label="S"
+          title={layer.solo ? 'Unsolo' : 'Solo'}
+        />
+
+        {/* Delete */}
+        {canDelete && (
+          <button
+            onClick={onDelete}
+            title="Remove layer"
+            style={{
+              width: 26, height: 26, borderRadius: 7,
+              background: 'none', border: 'none',
+              color: 'rgba(255,255,255,0.22)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>close</span>
+          </button>
+        )}
       </div>
+
+      {/* Volume */}
+      <SliderRow
+        icon="volume_up"
+        label="VOL"
+        value={layer.gain}
+        min={0} max={1.5} step={0.01}
+        accent={def.color}
+        display={`${Math.round(layer.gain * 100)}%`}
+        onChange={v => onChange({ gain: v })}
+        compact
+      />
+
+      {/* Pan */}
+      <SliderRow
+        icon="spatial_audio"
+        label="PAN"
+        value={layer.pan}
+        min={-1} max={1} step={0.01}
+        accent={def.color}
+        display={layer.pan === 0 ? 'C' : layer.pan < 0 ? `L${Math.round(-layer.pan * 100)}` : `R${Math.round(layer.pan * 100)}`}
+        onChange={v => onChange({ pan: v })}
+        compact
+      />
+
+      {/* Fine tune */}
+      <SliderRow
+        icon="piano"
+        label="FINE"
+        value={layer.fineTune}
+        min={-1} max={1} step={0.01}
+        accent={def.color}
+        display={`${layer.fineTune >= 0 ? '+' : ''}${layer.fineTune.toFixed(2)} st`}
+        onChange={v => onChange({ fineTune: v })}
+        compact
+      />
+
+      {/* Custom interval */}
+      {layer.id === 'custom' && (
+        <SliderRow
+          icon="tune"
+          label="INT"
+          value={layer.customSemitones}
+          min={-24} max={24} step={0.5}
+          accent={def.color}
+          display={`${layer.customSemitones >= 0 ? '+' : ''}${layer.customSemitones} st`}
+          onChange={v => onChange({ customSemitones: v })}
+          compact
+        />
+      )}
     </div>
   );
 }
 
-function gainToDb(g: number): string {
-  if (g <= 0.001) return '−∞';
-  const db = 20 * Math.log10(g);
-  return `${db >= 0 ? '+' : ''}${db.toFixed(1)} dB`;
+// ─── MiniButton ───────────────────────────────────────────────────────────
+
+function MiniButton({
+  active, activeColor, activeBorder, activeTextColor,
+  onClick, label, title,
+}: {
+  active: boolean; activeColor: string; activeBorder: string; activeTextColor: string;
+  onClick: () => void; label: string; title?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        width: 26, height: 26, borderRadius: 7,
+        background: active ? activeColor : 'rgba(255,255,255,0.06)',
+        border: `1px solid ${active ? activeBorder : 'rgba(255,255,255,0.09)'}`,
+        color: active ? activeTextColor : 'rgba(255,255,255,0.4)',
+        cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'Manrope, sans-serif', fontSize: 9, fontWeight: 800,
+        transition: 'background 150ms, border-color 150ms, color 150ms',
+      }}
+    >{label}</button>
+  );
+}
+
+// ─── SliderRow ────────────────────────────────────────────────────────────
+
+function SliderRow({
+  icon, label, value, min, max, step, accent, display, onChange, compact = false,
+}: {
+  icon: string; label: string; value: number; min: number; max: number; step: number;
+  accent: string; display: string; onChange: (v: number) => void; compact?: boolean;
+}) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 7,
+      marginTop: compact ? 7 : 0,
+      padding: compact ? 0 : '9px 13px',
+      background: compact ? 'none' : 'rgba(255,255,255,0.04)',
+      borderRadius: compact ? 0 : 10,
+    }}>
+      <span className="material-symbols-outlined" style={{
+        fontSize: 13, color: 'rgba(255,255,255,0.3)',
+        fontVariationSettings: "'FILL' 1", flexShrink: 0,
+      }}>{icon}</span>
+      <span style={{
+        fontSize: 9, fontWeight: 800, letterSpacing: '0.08em',
+        color: 'rgba(255,255,255,0.28)', width: 24, flexShrink: 0,
+      }}>{label}</span>
+      <ElasticSlider
+        min={min} max={max} step={step} value={value}
+        onChange={onChange}
+        accentColor={accent}
+        style={{ flex: 1 }}
+      />
+      <span style={{
+        fontSize: 9.5, fontVariantNumeric: 'tabular-nums',
+        color: 'rgba(255,255,255,0.3)', width: 38,
+        textAlign: 'right', flexShrink: 0,
+      }}>{display}</span>
+    </div>
+  );
+}
+
+// ─── AdvSlider ────────────────────────────────────────────────────────────
+
+function AdvSlider({
+  label, hint, value, color, icon, onChange,
+}: {
+  label: string; hint: string; value: number;
+  color: string; icon: string; onChange: (v: number) => void;
+}) {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+        <span className="material-symbols-outlined" style={{
+          fontSize: 14, color, fontVariationSettings: "'FILL' 1",
+        }}>{icon}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', flex: 1 }}>{label}</span>
+        <span style={{
+          fontSize: 10.5, fontVariantNumeric: 'tabular-nums',
+          color: 'rgba(255,255,255,0.4)',
+        }}>{Math.round(value * 100)}%</span>
+      </div>
+      <ElasticSlider
+        min={0} max={1} step={0.01} value={value}
+        onChange={onChange}
+        accentColor={color}
+        style={{ width: '100%' }}
+      />
+      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', margin: '5px 0 0', lineHeight: 1.5 }}>{hint}</p>
+    </div>
+  );
 }

@@ -48,16 +48,18 @@ const VocalexApp = lazy(vocalexImport);
 const PendingDeletionScreen = lazy(() => import('./components/PendingDeletionScreen'));
 const DisabledAccountScreen = lazy(() => import('./components/DisabledAccountScreen'));
 
-// Smart preload: instead of eagerly fetching every panel chunk on idle
-// (which used to push ~500 KB of JS the user may never visit), preload
-// only the chunks the user is most likely to land on next based on
-// their startup preference and last session.
+// Preload panel chunks during browser idle time so tab switches and
+// app-mode transitions are instant.  We fire on the first available idle
+// frame (no hard timeout) and run ALL critical chunks regardless of the
+// startup app — Chordex tab panels are light enough that preloading all
+// four adds negligible overhead while eliminating the visible stall on
+// first visit to each section.
 function schedulePreload(picks: Array<() => Promise<unknown>>) {
   const run = () => { for (const p of picks) { try { p(); } catch { /* noop */ } } };
   if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(run, { timeout: 2000 });
+    requestIdleCallback(run);
   } else {
-    setTimeout(run, 600);
+    setTimeout(run, 200);
   }
 }
 
@@ -258,21 +260,19 @@ export default function App() {
       if (tab !== 'library') setActivePanel(tab);
     }
 
-    // Smart preload: warm the chunk(s) the user is most likely to land
-    // on next, instead of fetching every panel up-front. Hub-only users
-    // pay nothing extra; users who pinned a startup app get that app's
-    // chunk pre-warmed during browser idle time.
+    // Always preload all four Chordex tab panels + Stagex so navigating
+    // to any section from the hub is instant.  The four Chordex panels
+    // together are the most-visited chunks in the app; Stagex is next.
+    // Heavier app chunks (Drumex, Groovex, Vocalex) are only pre-warmed
+    // when they are the startup or restored app.
     const targetApp: AppKey = (restoredApp ?? (startApp as AppKey));
-    const picks: Array<() => Promise<unknown>> = [];
-    if (targetApp === 'drums') picks.push(drumImport);
-    else if (targetApp === 'stage') picks.push(stagexImport);
-    else if (targetApp === 'groovex') picks.push(groovexImport);
-    else if (targetApp === 'vocalex') picks.push(vocalexImport);
-    else if (targetApp === 'chords') picks.push(libraryImport, chordImport);
-    // For 'hub' (the default) we preload nothing — the user hasn't
-    // chosen a destination yet and we don't want to spend their
-    // bandwidth speculatively.
-    if (picks.length) schedulePreload(picks);
+    const picks: Array<() => Promise<unknown>> = [
+      libraryImport, chordImport, songsImport, settingsImport, stagexImport,
+    ];
+    if (targetApp === 'drums')   picks.push(drumImport);
+    if (targetApp === 'groovex') picks.push(groovexImport);
+    if (targetApp === 'vocalex') picks.push(vocalexImport);
+    schedulePreload(picks);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -378,7 +378,10 @@ export default function App() {
     if (settings.appMode === 'vocalex' && prevAppMode.current !== 'vocalex') fireSplash(setVocalexSplash);
     // Always show the nav when switching apps — non-scrollable sections (e.g. Stage)
     // have no way to scroll up to reveal it, so we reset visibility on every mode change.
-    if (prevAppMode.current !== settings.appMode) setNavHidden(false);
+    // Reset both hidden and collapsed on every app-mode switch.
+    // setNavHidden(false) alone left the nav in a collapsed-pill state if the
+    // user had scrolled down in the previous app before switching.
+    if (prevAppMode.current !== settings.appMode) resetNav();
     prevAppMode.current = settings.appMode;
     return () => splashTimers.current.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -599,7 +602,7 @@ export default function App() {
   }, [settings.displayDensity]);
 
   // Panel transition with slide direction
-  const durMs = settings.animationSpeed === 'fast' ? 160 : settings.animationSpeed === 'reduced' ? 0 : 200;
+  const durMs = settings.animationSpeed === 'fast' ? 200 : settings.animationSpeed === 'reduced' ? 0 : 280;
 
   useEffect(() => {
     if (activePanel === prevPanel.current) return;
@@ -811,7 +814,8 @@ export default function App() {
         position: 'relative',
         height: '100dvh',
         paddingTop: 'env(safe-area-inset-top)',
-        '--panel-dur': `${durMs}ms`,
+        '--panel-dur':      `${durMs}ms`,
+        '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
         animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
         transform: exitingToHub ? 'scale(1.10)' : undefined,
         opacity:   exitingToHub ? 0 : undefined,

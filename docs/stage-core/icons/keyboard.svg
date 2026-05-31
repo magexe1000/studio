@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="body" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0%"   stop-color="#3A3A3A"/>
+      <stop offset="50%"  stop-color="#1A1A1A"/>
+      <stop offset="100%" stop-color="#0A0A0A"/>
+    </linearGradient>
+    <linearGradient id="white_key" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#F8F8F8"/>
+      <stop offset="80%"  stop-color="#E8E8E8"/>
+      <stop offset="100%" stop-color="#D0D0D0"/>
+    </linearGradient>
+    <linearGradient id="black_key" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#2A2A2A"/>
+      <stop offset="100%" stop-color="#111"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#4A4A4A"/>
+      <stop offset="100%" stop-color="#2A2A2A"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="100" cy="194" rx="95" ry="6" fill="#00000028"/>
+  <!-- Main body -->
+  <rect x="6" y="56" width="188" height="128" rx="6" fill="url(#body)"/>
+  <!-- Control panel top -->
+  <rect x="6" y="56" width="188" height="40" rx="6" fill="url(#panel)"/>
+  <!-- Pitch / mod wheels -->
+  <ellipse cx="30" cy="76" rx="10" ry="16" fill="#222"/>
+  <ellipse cx="30" cy="76" rx="8"  ry="12" fill="#333"/>
+  <line x1="30" y1="64" x2="30" y2="88" stroke="#555" stroke-width="1.5" opacity="0.6"/>
+  <ellipse cx="50" cy="76" rx="10" ry="16" fill="#222"/>
+  <ellipse cx="50" cy="76" rx="8"  ry="12" fill="#333"/>
+  <line x1="50" y1="64" x2="50" y2="88" stroke="#555" stroke-width="1.5" opacity="0.6"/>
+  <!-- LCD display -->
+  <rect x="68" y="62" width="78" height="28" rx="3" fill="#111"/>
+  <rect x="70" y="64" width="74" height="24" rx="2" fill="#1A3A1A"/>
+  <text x="107" y="80" text-anchor="middle" font-family="Courier, monospace" font-size="9" fill="#44DD44" opacity="0.9">PIANO 01</text>
+  <!-- Knobs row -->
+  <circle cx="155" cy="72" r="7" fill="#222"/> <circle cx="155" cy="72" r="5" fill="#444"/>
+  <circle cx="168" cy="72" r="7" fill="#222"/> <circle cx="168" cy="72" r="5" fill="#444"/>
+  <circle cx="181" cy="72" r="7" fill="#222"/> <circle cx="181" cy="72" r="5" fill="#444"/>
+  <!-- White keys — 14 visible (2 octaves) -->
+  <rect x="8"   y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="22"  y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="36"  y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="50"  y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="64"  y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="78"  y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="92"  y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="106" y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="120" y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="134" y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="148" y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="162" y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <rect x="176" y="96" width="12" height="80" rx="2" fill="url(#white_key)"/>
+  <!-- Key separators -->
+  <line x1="21"  y1="96" x2="21"  y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <line x1="35"  y1="96" x2="35"  y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <line x1="49"  y1="96" x2="49"  y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <line x1="63"  y1="96" x2="63"  y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <line x1="77"  y1="96" x2="77"  y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <line x1="91"  y1="96" x2="91"  y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <line x1="105" y1="96" x2="105" y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <line x1="119" y1="96" x2="119" y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <line x1="133" y1="96" x2="133" y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <line x1="147" y1="96" x2="147" y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <line x1="161" y1="96" x2="161" y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <line x1="175" y1="96" x2="175" y2="176" stroke="#AAA" stroke-width="0.8" opacity="0.5"/>
+  <!-- Black keys -->
+  <rect x="17"  y="96" width="9" height="52" rx="2" fill="url(#black_key)"/>
+  <rect x="31"  y="96" width="9" height="52" rx="2" fill="url(#black_key)"/>
+  <rect x="59"  y="96" width="9" height="52" rx="2" fill="url(#black_key)"/>
+  <rect x="73"  y="96" width="9" height="52" rx="2" fill="url(#black_key)"/>
+  <rect x="87"  y="96" width="9" height="52" rx="2" fill="url(#black_key)"/>
+  <rect x="115" y="96" width="9" height="52" rx="2" fill="url(#black_key)"/>
+  <rect x="129" y="96" width="9" height="52" rx="2" fill="url(#black_key)"/>
+  <rect x="157" y="96" width="9" height="52" rx="2" fill="url(#black_key)"/>
+  <rect x="171" y="96" width="9" height="52" rx="2" fill="url(#black_key)"/>
+</svg>

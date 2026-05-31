@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import AnimatedActionButton from '../components/animata/container/animated-border-trail';
 import { Capacitor } from '@capacitor/core';
+import SuccessLottie from '../components/lottie/SuccessLottie';
+import MusicNotesLottie from '../components/lottie/MusicNotesLottie';
 import { getAllChords, getChordById, type Chord, type ChordType, type GuitarChordData } from '../data/chords';
 import { useChordStore, ACCENT_COLORS, type SongPreset, type SongSection, type CustomChord } from '../store/useChordStore';
 import { transposeChordId, transposeKeyString, formatOffset } from '../lib/transpose';
@@ -1469,7 +1472,7 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
       <div
         ref={scrollRef}
         className="no-scrollbar"
-        style={{ flex: 1, overflowY: 'auto', paddingBottom: '190px' }}
+        style={{ flex: 1, overflowY: 'auto', paddingBottom: 'var(--content-bottom-pad)' }}
       >
         {/* Paper stage */}
         <div style={{
@@ -1619,24 +1622,33 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
         {/* Export button */}
         <div style={{ padding: '6px 16px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))', display: 'flex', gap: '10px', position: 'relative' }}>
           {saveResult && (
-            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, textAlign: 'center', padding: '6px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px',
+            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '6px', fontFamily: 'Manrope', fontWeight: 700, fontSize: '12px',
               color: saveResult === 'ok' ? '#34d399' : '#f87171' }}>
+              {saveResult === 'ok' && (
+                <SuccessLottie size={20} isLight={false} style={{ flexShrink: 0 }} />
+              )}
               {saveResult === 'ok' ? 'Saved to Downloads!' : 'Could not save — try Share instead'}
             </div>
           )}
           {isNative ? (
             <>
-              <button onClick={() => handleExport('save')} disabled={savingPDF || sharingPDF} className="btn-smooth"
-                style={{ flex: 1, padding: '14px', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px', color: '#fff',
+              <AnimatedActionButton
+                onClick={() => handleExport('save')}
+                disabled={savingPDF || sharingPDF}
+                className="btn-smooth"
+                wrapStyle={{ flex: 1 }}
+                trailColor={accent.to}
+                style={{ padding: '14px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px', color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                   background: (savingPDF || sharingPDF) ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
                   boxShadow: (savingPDF || sharingPDF) ? 'none' : `0 4px 20px ${accent.to}40`,
-                  transition: 'all 200ms ease' }}>
+                  transition: 'all 200ms ease' }}
+              >
                 <span className="material-symbols-outlined" style={{ fontSize: '17px', fontVariationSettings: "'FILL' 1" }}>
                   {savingPDF ? 'hourglass_empty' : 'save'}
                 </span>
                 {savingPDF ? t.songs.generatingPdf : 'Save'}
-              </button>
+              </AnimatedActionButton>
               <button onClick={() => handleExport('share')} disabled={savingPDF || sharingPDF} className="btn-smooth"
                 style={{ flex: 1, padding: '14px', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '14px',
                   color: accent.from, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -1648,17 +1660,23 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
               </button>
             </>
           ) : (
-            <button onClick={() => handleExport('share')} disabled={sharingPDF} className="btn-smooth"
-              style={{ flex: 1, padding: '15px', borderRadius: '9999px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px', color: '#fff',
+            <AnimatedActionButton
+              onClick={() => handleExport('share')}
+              disabled={sharingPDF}
+              className="btn-smooth"
+              wrapStyle={{ flex: 1 }}
+              trailColor={accent.to}
+              style={{ padding: '15px', fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px', color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                 background: sharingPDF ? 'rgba(72,72,72,0.3)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
                 boxShadow: sharingPDF ? 'none' : `0 4px 24px ${accent.to}40`,
-                transition: 'all 200ms ease' }}>
+                transition: 'all 200ms ease' }}
+            >
               <span className="material-symbols-outlined" style={{ fontSize: '19px', fontVariationSettings: "'FILL' 1" }}>
                 {sharingPDF ? 'hourglass_empty' : 'download'}
               </span>
               {sharingPDF ? t.songs.generatingPdf : t.songs.downloadPdf}
-            </button>
+            </AnimatedActionButton>
           )}
         </div>
       </div>
@@ -2190,9 +2208,7 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
         {/* ── SUCCESS ── */}
         {stage === 'success' && parsed && (
           <div style={{ padding: '24px 20px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', textAlign: 'center' }}>
-            <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(52,211,153,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ color: '#34d399', fontSize: '36px', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-            </div>
+            <SuccessLottie size={72} isLight={false} />
             <div>
               <p style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '20px', color: 'var(--c-text-primary)', letterSpacing: '-0.02em' }}>{t.songs.songImportedTitle}</p>
               <p style={{ fontFamily: 'Inter', fontSize: '13px', color: 'var(--c-text-secondary)', marginTop: '6px' }}>
@@ -3170,7 +3186,7 @@ export default function SongsPanel() {
             <>
           {localChords.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', gap: '12px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--c-text-muted)' }}>queue_music</span>
+              <MusicNotesLottie size={52} />
               <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '14px' }}>{t.songs.noChords}</p>
             </div>
           )}
@@ -3588,7 +3604,7 @@ export default function SongsPanel() {
       )}
 
       {/* Floating action buttons above bottom nav */}
-      <div style={{ position: 'absolute', right: '20px', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', pointerEvents: 'none', zIndex: 50 }}>
+      <div style={{ position: 'absolute', right: '20px', bottom: 'var(--content-bottom-pad)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', pointerEvents: 'none', zIndex: 50 }}>
         {/* Import circle — top */}
         <button
           onClick={() => setShowImport(true)}

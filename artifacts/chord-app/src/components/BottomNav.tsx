@@ -151,16 +151,13 @@ export default function BottomNav() {
   // setting is off or the platform isn't supported).
   useLiquidGlassNav(navRef);
 
-  // Measure the nav's natural height once after mount so we always have
-  // an explicit px value on both ends of the height transition.
-  // CSS cannot interpolate height: auto → 8px, so we need a real number.
-  const [expandedH, setExpandedH] = useState(64);
+  // Fixed nav height — matches the button content (8+22+4+10+8 = 52px) plus
+  // the inner wrapper's 6px top/bottom padding, totalling exactly 64px.
+  // Dynamic measurement introduced a race condition and was always 64 anyway.
+  const NAV_HEIGHT_PX = 64;
   const [expandedW, setExpandedW] = useState(350);
   useEffect(() => {
-    if (navRef.current) {
-      setExpandedH(navRef.current.offsetHeight);
-      setExpandedW(navRef.current.offsetWidth);
-    }
+    if (navRef.current) setExpandedW(navRef.current.offsetWidth);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const btnRefs           = useRef<(HTMLButtonElement | null)[]>([]);
@@ -209,13 +206,13 @@ export default function BottomNav() {
       stretchTimeoutRef.current = setTimeout(() => {
         setPill(p => ({ ...p, left: newM.left }));
         stretchTimeoutRef.current = null;
-      }, 70);
+      }, 90);
     } else {
       setPill(p => ({ ...p, left: newM.left }));
       stretchTimeoutRef.current = setTimeout(() => {
         setPill(p => ({ ...p, right: newM.right }));
         stretchTimeoutRef.current = null;
-      }, 70);
+      }, 90);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePanel]);
@@ -232,11 +229,11 @@ export default function BottomNav() {
       // @ts-expect-error – `inert` is valid HTML but missing from React types in this version
       inert={(navHidden || navCollapsed) ? '' : undefined}
       style={{
-        bottom: 'max(10px, env(safe-area-inset-bottom))',
+        bottom: 'var(--nav-safe-bottom)',
         left: '50%',
         width: '90%',
         maxWidth: '28rem',
-        height: `${expandedH}px`,
+        height: `${NAV_HEIGHT_PX}px`,
         borderRadius: '2rem',
         border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
         background: amoledBg,
@@ -248,7 +245,7 @@ export default function BottomNav() {
         pointerEvents: (navHidden || navCollapsed) ? 'none' : 'auto',
         transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 32px)' : '0px'})`,
         clipPath: navCollapsed
-          ? `inset(${Math.max(0, expandedH - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
+          ? `inset(${Math.max(0, NAV_HEIGHT_PX - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
           : 'inset(0 0 0 0 round 2rem)',
         willChange: 'clip-path, transform',
         transition: [
@@ -294,7 +291,7 @@ export default function BottomNav() {
             pointerEvents: 'none',
             zIndex: 0,
             opacity: 1,
-            transition: 'left 180ms cubic-bezier(0.16,1,0.3,1), width 180ms cubic-bezier(0.16,1,0.3,1)',
+            transition: 'left 300ms cubic-bezier(0.16,1,0.3,1), width 300ms cubic-bezier(0.16,1,0.3,1)',
           }}
         />
       )}
@@ -344,6 +341,7 @@ export default function BottomNav() {
               textTransform: 'uppercase',
               lineHeight: 1,
               whiteSpace: 'nowrap',
+              textShadow: isLight ? 'none' : '0 1px 4px rgba(0,0,0,0.60)',
             }}>
               {label}
             </span>

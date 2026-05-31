@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import AnimatedActionButton from '../components/animata/container/animated-border-trail';
 import { useScrollHide } from '../lib/navScroll';
 import { getChordById, getRelatedChords, suggestNextChord } from '../data/chords';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
@@ -13,6 +14,7 @@ import ProgressionGenerator from '../components/ProgressionGenerator';
 import { setBackHandler } from '../lib/backStack';
 import { playChord, stopChordPlayback } from '../lib/guitarAudio';
 import type { GuitarChordData } from '../data/chords';
+import MusicNotesLottie from '../components/lottie/MusicNotesLottie';
 
 function RelatedPlayBtn({ guitar, accent }: {
   guitar: GuitarChordData;
@@ -138,7 +140,7 @@ export default function ChordPanel() {
           </h1>
         </header>
         <div className="flex-1 flex flex-col items-center justify-center px-6">
-          <span className="material-symbols-outlined mb-4" style={{ fontSize: '52px', color: 'var(--c-text-muted)' }}>music_note</span>
+          <MusicNotesLottie size={52} isLight={settings.theme === 'light'} style={{ marginBottom: 16 }} />
           <p style={{ color: 'var(--c-text-secondary)', fontSize: '14px', fontFamily: 'Inter', marginBottom: '20px', textAlign: 'center' }}>{t.chord.emptyState}</p>
           <button
             onClick={() => setShowFinder(true)}
@@ -152,19 +154,20 @@ export default function ChordPanel() {
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>search</span>
             {t.chordFinder.openFinder}
           </button>
-          <button
+          <AnimatedActionButton
             data-testid="open-generator-empty"
             onClick={() => setShowGenerator(true)}
             className="btn-smooth flex items-center gap-2 px-5 py-2.5 font-bold mt-3"
+            trailColor={accent.from}
             style={{
               background: 'transparent', color: accent.from,
-              border: `1.5px solid ${accent.from}55`, borderRadius: '9999px',
+              border: `1.5px solid ${accent.from}55`,
               fontFamily: 'Manrope', fontSize: '13px', cursor: 'pointer',
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>auto_awesome</span>
             Generate Progression
-          </button>
+          </AnimatedActionButton>
         </div>
         {showFinder && (
           <CustomChordBuilder

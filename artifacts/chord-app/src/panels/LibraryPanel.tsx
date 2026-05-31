@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { getAllChords, searchChords, getChordById, type ChordType } from '../data/chords';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
+import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
 import { SONGS, GENRE_META, type Genre } from '../data/progressions';
 import { SPANISH_DESCRIPTIONS } from '../data/progressionsEs';
 import { useScrollHide } from '../lib/navScroll';
@@ -398,6 +399,7 @@ export default function LibraryPanel() {
   const isDark = activeTheme === 'dark' ||
     (activeTheme === 'system' && typeof window !== 'undefined' &&
      !window.matchMedia('(prefers-color-scheme: light)').matches);
+  const isLight = !isDark;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
@@ -651,7 +653,7 @@ export default function LibraryPanel() {
       )}
 
       {/* ── Scrollable body ── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ willChange: 'transform', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'], overscrollBehavior: 'contain' }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ willChange: 'transform', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'], overscrollBehavior: 'contain', paddingBottom: 'var(--content-bottom-pad)' }}>
        <div key={mainTab} className="library-tab-fade">
 
         {/* ══ EXPLORE: Search results ══ */}
@@ -880,7 +882,7 @@ export default function LibraryPanel() {
             <div className="px-5 space-y-3">
               {discoverSongs.length === 0 && (
                 <div className="py-12 flex flex-col items-center gap-3" style={{ color: 'var(--c-text-secondary)' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '40px', opacity: 0.4 }}>search_off</span>
+                  <EmptyStateLottie app="chordex" size={52} isLight={isLight} style={{ marginBottom: 2 }} />
                   <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: '15px', color: 'var(--c-text-primary)' }}>{(t.library as { noSongsFound?: string }).noSongsFound ?? 'No songs found'}</p>
                   <p style={{ fontFamily: 'Inter', fontSize: '13px', textAlign: 'center', maxWidth: '220px' }}>
                     {(t.library as { noSongsHint?: string }).noSongsHint ?? 'Try a different search term or clear the filter.'}

@@ -291,6 +291,9 @@ export default function ChangelogSheet({
         </div>
       </div>
 
+      {/* Gradient border ring — 1 px animated conic border on the sheet */}
+      <div className="gb-border-ring" aria-hidden="true" style={{ borderRadius: '22px 22px 0 0' }} />
+
       <style>{`
         @keyframes cl-sheet-up {
           from { transform: translateY(100%); }

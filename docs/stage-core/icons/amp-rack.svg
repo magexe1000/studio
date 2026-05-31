@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="case" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0%"   stop-color="#2A2A2A"/>
+      <stop offset="100%" stop-color="#0A0A0A"/>
+    </linearGradient>
+    <linearGradient id="unit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#3A3A3A"/>
+      <stop offset="100%" stop-color="#1A1A1A"/>
+    </linearGradient>
+    <linearGradient id="unit2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#303838"/>
+      <stop offset="100%" stop-color="#101818"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="100" cy="193" rx="88" ry="7" fill="#00000028"/>
+  <!-- Rack case -->
+  <rect x="8" y="18" width="184" height="172" rx="8" fill="url(#case)"/>
+  <!-- Rack ears -->
+  <rect x="8"   y="18" width="20" height="172" rx="4" fill="#1E1E1E"/>
+  <rect x="172" y="18" width="20" height="172" rx="4" fill="#1E1E1E"/>
+  <!-- Ear screws -->
+  <circle cx="18" cy="34"  r="5" fill="#2A2A2A"/><circle cx="18" cy="34"  r="3" fill="#444"/>
+  <circle cx="18" cy="174" r="5" fill="#2A2A2A"/><circle cx="18" cy="174" r="3" fill="#444"/>
+  <circle cx="182" cy="34"  r="5" fill="#2A2A2A"/><circle cx="182" cy="34"  r="3" fill="#444"/>
+  <circle cx="182" cy="174" r="5" fill="#2A2A2A"/><circle cx="182" cy="174" r="3" fill="#444"/>
+  <!-- Rack unit 1 — Power Amp A -->
+  <rect x="30" y="24" width="140" height="30" rx="3" fill="url(#unit)"/>
+  <text x="70" y="37" font-family="Arial, sans-serif" font-size="8" fill="#AAA" opacity="0.8">POWER AMP A</text>
+  <circle cx="148" cy="30" r="4" fill="#00CC44"/>
+  <circle cx="148" cy="30" r="2" fill="#44FF88"/>
+  <rect x="32" y="44" width="42" height="6" rx="2" fill="#111"/>
+  <rect x="32" y="44" width="28" height="6" rx="2" fill="#22BB22" opacity="0.8"/>
+  <rect x="78" y="44" width="42" height="6" rx="2" fill="#111"/>
+  <rect x="78" y="44" width="32" height="6" rx="2" fill="#22BB22" opacity="0.8"/>
+  <!-- Rack unit 2 — Power Amp B -->
+  <rect x="30" y="58" width="140" height="30" rx="3" fill="url(#unit)"/>
+  <text x="70" y="71" font-family="Arial, sans-serif" font-size="8" fill="#AAA" opacity="0.8">POWER AMP B</text>
+  <circle cx="148" cy="64" r="4" fill="#00CC44"/>
+  <circle cx="148" cy="64" r="2" fill="#44FF88"/>
+  <rect x="32" y="78" width="42" height="6" rx="2" fill="#111"/>
+  <rect x="32" y="78" width="24" height="6" rx="2" fill="#22BB22" opacity="0.8"/>
+  <rect x="78" y="78" width="42" height="6" rx="2" fill="#111"/>
+  <rect x="78" y="78" width="36" height="6" rx="2" fill="#22BB22" opacity="0.8"/>
+  <!-- Rack unit 3 — Sub Amp -->
+  <rect x="30" y="92" width="140" height="30" rx="3" fill="url(#unit2)"/>
+  <text x="70" y="105" font-family="Arial, sans-serif" font-size="8" fill="#8AC8AA" opacity="0.8">SUB AMP</text>
+  <circle cx="148" cy="98" r="4" fill="#00CC44"/>
+  <circle cx="148" cy="98" r="2" fill="#44FF88"/>
+  <rect x="32" y="112" width="88" height="6" rx="2" fill="#111"/>
+  <rect x="32" y="112" width="62" height="6" rx="2" fill="#20A040" opacity="0.9"/>
+  <!-- Rack unit 4 — spare / blank -->
+  <rect x="30" y="126" width="140" height="16" rx="3" fill="#111"/>
+  <!-- Rack unit 5 — signal processor -->
+  <rect x="30" y="146" width="140" height="30" rx="3" fill="url(#unit)"/>
+  <text x="70" y="159" font-family="Arial, sans-serif" font-size="8" fill="#AAA" opacity="0.8">PROCESSOR</text>
+  <circle cx="38" cy="158" r="7" fill="#1A1A1A"/><circle cx="38" cy="158" r="5" fill="#333"/>
+  <circle cx="54" cy="158" r="7" fill="#1A1A1A"/><circle cx="54" cy="158" r="5" fill="#333"/>
+  <!-- Vents at bottom -->
+  <rect x="30" y="180" width="140" height="6" rx="2" fill="#111"/>
+  <line x1="40"  y1="180" x2="40"  y2="186" stroke="#222" stroke-width="4"/>
+  <line x1="56"  y1="180" x2="56"  y2="186" stroke="#222" stroke-width="4"/>
+  <line x1="72"  y1="180" x2="72"  y2="186" stroke="#222" stroke-width="4"/>
+  <line x1="88"  y1="180" x2="88"  y2="186" stroke="#222" stroke-width="4"/>
+  <line x1="104" y1="180" x2="104" y2="186" stroke="#222" stroke-width="4"/>
+  <line x1="120" y1="180" x2="120" y2="186" stroke="#222" stroke-width="4"/>
+  <line x1="136" y1="180" x2="136" y2="186" stroke="#222" stroke-width="4"/>
+  <line x1="152" y1="180" x2="152" y2="186" stroke="#222" stroke-width="4"/>
+</svg>

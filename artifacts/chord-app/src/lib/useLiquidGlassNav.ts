@@ -21,6 +21,10 @@ import {
  */
 export function useLiquidGlassNav(ref: React.RefObject<HTMLElement | null>) {
   const platformOk = useMemo(() => liquidGlassPlatformSupported(), []);
+  const reduceMotion = useMemo(() => {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+    catch { return false; }
+  }, []);
 
   useEffect(() => {
     const el = ref.current;
@@ -28,14 +32,19 @@ export function useLiquidGlassNav(ref: React.RefObject<HTMLElement | null>) {
     enableLiquidGlass();
     tagLiquidTarget(el);
 
-    // Scroll-driven shine. We track each scroll source independently — the
-    // window AND the nearest scrollable ancestor — because mobile pages
-    // often scroll a child container while window.scrollY stays at 0.
+    // Scroll-driven shine. Suppressed when reduce-motion is on, but the glass
+    // visual itself is always shown (that's a static effect, not an animation).
     let shine = 50;            // current shine position in %
     let target = 50;           // target position the shine eases toward
     let rafId: number | null = null;
     let idleTimer: number | null = null;
     let disposed = false;
+
+    // Skip the scroll-animation wiring entirely if reduced motion is preferred.
+    if (reduceMotion) {
+      el.style.setProperty('--lg-shine-x', '50%');
+      return () => { untagLiquidTarget(el); };
+    }
 
     const tick = () => {
       if (disposed) { rafId = null; return; }

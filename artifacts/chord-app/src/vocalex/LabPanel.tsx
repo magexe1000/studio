@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import ElasticSlider from '../components/ElasticSlider';
+import AnimatedActionButton from '../components/animata/container/animated-border-trail';
+import MicWavesLottie from '../components/lottie/MicWavesLottie';
 import { getAllSessions, saveSession, deleteSession, createLayer, createDefaultEffects, type LabSession, type LabLayer, type TrackEffect } from './labSessionDb';
 import { getAllTakes, type TakeRecord } from './takesDb';
 import { useT } from '../lib/useT';
 import { setVocalexBack } from './headerBack';
 import { createAudioContext } from '../lib/audioContextOptions';
+import HarmonizerSheet from './HarmonizerSheet';
 
 const SESSION_ICONS = ['graphic_eq', 'layers', 'multiline_chart', 'equalizer', 'tune', 'mic', 'queue_music', 'stacked_line_chart'];
 function randomIcon() { return SESSION_ICONS[Math.floor(Math.random() * SESSION_ICONS.length)]; }
@@ -227,9 +231,12 @@ function EffectSlider({ label, value, min, max, step, onChange, accentColor }: {
       animation: 'lab-fx-row-in 250ms cubic-bezier(0.22,1,0.36,1) both',
     }}>
       <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'var(--vx-text-3)', minWidth: 48, textTransform: 'capitalize' }}>{label}</span>
-      <input type="range" min={min} max={max} step={step} value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-        style={{ flex: 1, accentColor: accentColor || '#679cff', height: 3, cursor: 'pointer', transition: 'opacity 150ms ease' }} />
+      <ElasticSlider
+        min={min} max={max} step={step} value={value}
+        onChange={onChange}
+        accentColor={accentColor || '#679cff'}
+        style={{ flex: 1 }}
+      />
       <span style={{
         fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 28, textAlign: 'right',
         transition: 'color 150ms ease',
@@ -307,8 +314,9 @@ function EffectRow({ effect, onChange, index }: { effect: TrackEffect; onChange:
   );
 }
 
-function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
-  layer: LabLayer; hasSolo: boolean; onUpdate: (l: LabLayer) => void; onDelete: () => void; isPlaying: boolean;
+function TrackChannel({ layer, hasSolo, onUpdate, onDelete, onHarmonize, isPlaying }: {
+  layer: LabLayer; hasSolo: boolean; onUpdate: (l: LabLayer) => void; onDelete: () => void;
+  onHarmonize: () => void; isPlaying: boolean;
 }) {
   const [showFx, setShowFx] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -390,13 +398,14 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
           transition: 'color 150ms ease',
           ...(isMuted ? {} : { color: '#5a5a5a' }),
         }}>volume_up</span>
-        <input type="range" min={0} max={1} step={0.01} value={layer.volume}
-          onChange={e => onUpdate({ ...layer, volume: parseFloat(e.target.value) })}
-          style={{
-            flex: 1, accentColor: accent, height: 3, cursor: 'pointer',
-            opacity: isMuted ? 0.3 : 1,
-            transition: 'opacity 200ms ease',
-          }} />
+        <ElasticSlider
+          min={0} max={1} step={0.01}
+          value={layer.volume}
+          onChange={v => onUpdate({ ...layer, volume: v })}
+          accentColor={accent}
+          disabled={isMuted}
+          style={{ flex: 1 }}
+        />
         <span style={{
           fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 42, textAlign: 'right',
           transition: 'color 150ms ease',
@@ -407,9 +416,13 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--vx-text-4)' }}>swap_horiz</span>
-        <input type="range" min={-1} max={1} step={0.01} value={layer.pan}
-          onChange={e => onUpdate({ ...layer, pan: parseFloat(e.target.value) })}
-          style={{ flex: 1, accentColor: '#a78bfa', height: 3, cursor: 'pointer' }} />
+        <ElasticSlider
+          min={-1} max={1} step={0.01}
+          value={layer.pan}
+          onChange={v => onUpdate({ ...layer, pan: v })}
+          accentColor="#a78bfa"
+          style={{ flex: 1 }}
+        />
         <span style={{
           fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 28, textAlign: 'right',
           transition: 'color 150ms ease',
@@ -438,6 +451,21 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, isPlaying }: {
           }}>tune</span>
           FX {layer.effects.filter(e => e.enabled).length > 0 && `(${layer.effects.filter(e => e.enabled).length})`}
         </button>
+
+        <button onClick={onHarmonize} style={{
+          display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(103,156,255,0.10)',
+          border: '1px solid rgba(103,156,255,0.22)', borderRadius: 6, padding: '4px 9px', cursor: 'pointer',
+          fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#679cff',
+          transition: 'background 150ms ease, transform 100ms ease',
+        }}
+          onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.95)')}
+          onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+          onPointerLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }}>graphic_eq</span>
+          Harmonize
+        </button>
+
         {confirmDel ? (
           <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
             <button onClick={() => { onDelete(); setConfirmDel(false); }} style={{ background: '#7f2927', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#ff9993' }}>Delete</button>
@@ -653,15 +681,20 @@ function AddTrackSheet({ session, onAdd, onClose }: {
               <>
                 <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#679cff' }}>mic</span>
                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', textAlign: 'center' }}>{t.vocalex.recordPrompt}</p>
-                <button onClick={startRec} style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px', borderRadius: 9999,
-                  background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
-                  fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, color: '#fff',
-                  boxShadow: '0 8px 32px rgba(0,122,255,0.25)',
-                }}>
+                <AnimatedActionButton
+                  onClick={startRec}
+                  trailColor="#007aff"
+                  wrapClassName="mx-auto"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px',
+                    background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
+                    fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, color: '#fff',
+                    boxShadow: '0 8px 32px rgba(0,122,255,0.25)',
+                  }}
+                >
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic</span>
                   {t.vocalex.startRecording}
-                </button>
+                </AnimatedActionButton>
               </>
             )}
           </div>
@@ -679,6 +712,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(session.name);
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [harmonizingLayer, setHarmonizingLayer] = useState<LabLayer | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -991,9 +1025,13 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
           <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: 'var(--vx-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t.vocalex.master}</span>
-          <input type="range" min={0} max={1} step={0.01} value={session.masterVolume ?? 0.8}
-            onChange={e => updateMasterVol(parseFloat(e.target.value))}
-            style={{ flex: 1, accentColor: '#679cff', height: 3, cursor: 'pointer' }} />
+          <ElasticSlider
+            min={0} max={1} step={0.01}
+            value={session.masterVolume ?? 0.8}
+            onChange={updateMasterVol}
+            accentColor="#679cff"
+            style={{ flex: 1 }}
+          />
           <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 42, textAlign: 'right' }}>
             {dbToDisplay(session.masterVolume ?? 0.8)}
           </span>
@@ -1014,7 +1052,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
 
       {session.layers.length === 0 ? (
         <div style={{ background: 'var(--vx-card)', borderRadius: 14, padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--vx-text-4)' }}>queue_music</span>
+          <MicWavesLottie size={52} />
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-3)', margin: 0, textAlign: 'center' }}>{t.vocalex.noTracksYet}</p>
           <button onClick={() => setShowAddSheet(true)} style={{
             marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 9999,
@@ -1029,12 +1067,37 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {session.layers.map(layer => (
             <TrackChannel key={layer.id} layer={layer} hasSolo={hasSolo} isPlaying={playing}
-              onUpdate={updateLayer} onDelete={() => removeLayer(layer.id)} />
+              onUpdate={updateLayer} onDelete={() => removeLayer(layer.id)}
+              onHarmonize={() => setHarmonizingLayer(layer)} />
           ))}
         </div>
       )}
 
       {showAddSheet && <AddTrackSheet session={session} onAdd={addLayer} onClose={() => setShowAddSheet(false)} />}
+
+      {harmonizingLayer && (
+        <HarmonizerSheet
+          take={{
+            id:            harmonizingLayer.id,
+            name:          harmonizingLayer.name,
+            createdAt:     Date.now(),
+            durationMs:    harmonizingLayer.durationMs,
+            audioBlob:     harmonizingLayer.audioBlob,
+            waveformPeaks: [],
+            sampleRate:    44100,
+          }}
+          onClose={() => setHarmonizingLayer(null)}
+          onBounce={async (newTake) => {
+            addLayer(createLayer({
+              name:       newTake.name,
+              audioBlob:  newTake.audioBlob,
+              durationMs: newTake.durationMs,
+              sourceType: 'take',
+            }));
+            setHarmonizingLayer(null);
+          }}
+        />
+      )}
     </div>
   );
 }

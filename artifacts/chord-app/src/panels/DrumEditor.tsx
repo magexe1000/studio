@@ -1,7 +1,11 @@
 import {
   memo, useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
+import ElasticSlider from '../components/ElasticSlider';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
+import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
+import LoadingLottie from '../components/lottie/LoadingLottie';
+import SuccessLottie from '../components/lottie/SuccessLottie';
 import { useT } from '../lib/useT';
 import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, INSTRUMENT_NAME, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS, CYMBAL_PACKS,
@@ -512,10 +516,10 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
     const om = measure(oi);
     if (ni > oi) {
       setPill(p => ({ ...p, left: om?.left ?? p.left, right: nm.right }));
-      strT.current = setTimeout(() => setPill(p => ({ ...p, left: nm.left })), 70);
+      strT.current = setTimeout(() => setPill(p => ({ ...p, left: nm.left })), 90);
     } else {
       setPill(p => ({ ...p, left: nm.left, right: om?.right ?? p.right }));
-      strT.current = setTimeout(() => setPill(p => ({ ...p, right: nm.right })), 70);
+      strT.current = setTimeout(() => setPill(p => ({ ...p, right: nm.right })), 90);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -571,7 +575,7 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
           WebkitBackdropFilter: 'blur(8px)',
           pointerEvents: 'none', zIndex: 0,
           opacity: 1,
-          transition: 'left 180ms cubic-bezier(0.16,1,0.3,1), width 180ms cubic-bezier(0.16,1,0.3,1)',
+          transition: 'left 300ms cubic-bezier(0.16,1,0.3,1), width 300ms cubic-bezier(0.16,1,0.3,1)',
         }} />
       )}
       {ALL_NAV_TABS.map(({ id, label, Icon }, i) => {
@@ -2595,15 +2599,21 @@ export default function DrumEditor() {
                   })}
                 </div>
                 {!houseLoaded && (
-                  <div style={{ marginTop: 5, fontSize: 10.5, color: 'var(--c-text-muted)', fontFamily: 'Inter,sans-serif' }}>
-                    {houseProgress.total > 0
-                      ? `Loading… ${houseProgress.loaded}/${houseProgress.total}`
-                      : 'Loading samples…'}
+                  <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <LoadingLottie width={16} />
+                    <span style={{ fontSize: 10.5, color: 'var(--c-text-muted)', fontFamily: 'Inter,sans-serif' }}>
+                      {houseProgress.total > 0
+                        ? `${houseProgress.loaded}/${houseProgress.total}`
+                        : 'Loading…'}
+                    </span>
                   </div>
                 )}
                 {houseLoaded && (
-                  <div style={{ marginTop: 5, fontSize: 10.5, color: accent.from, fontFamily: 'Inter,sans-serif' }}>
-                    ✓ Samples ready
+                  <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <SuccessLottie size={16} isLight={isLight} />
+                    <span style={{ fontSize: 10.5, color: accent.from, fontFamily: 'Inter,sans-serif' }}>
+                      Samples ready
+                    </span>
                   </div>
                 )}
               </div>
@@ -3335,10 +3345,10 @@ export default function DrumEditor() {
                 )}
 
                 {grooves.length === 0 ? (
-                  <div style={{ margin: '0 16px 24px', padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.18)', textAlign: 'center' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--c-text-muted)', display: 'block', marginBottom: 8 }}>library_music</span>
+                  <div style={{ margin: '0 16px 24px', padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.18)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <EmptyStateLottie app="drumex" size={52} isLight={isLight} />
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No grooves saved yet</p>
-                    <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--c-text-muted)' }}>Save any pattern to build your personal library</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'var(--c-text-muted)' }}>Save any pattern to build your personal library</p>
                   </div>
                 ) : (
                   <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -3426,8 +3436,8 @@ export default function DrumEditor() {
             {libCategory !== 'My Grooves' && (
               <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {filteredLibrary.length === 0 ? (
-                  <div style={{ padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', textAlign: 'center' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 28, color: 'var(--c-text-muted)', display: 'block', marginBottom: 6 }}>search_off</span>
+                  <div style={{ padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <EmptyStateLottie app="drumex" size={44} isLight={isLight} />
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No patterns found</p>
                   </div>
                 ) : (<>
@@ -3552,9 +3562,12 @@ export default function DrumEditor() {
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent.from, flexShrink: 0 }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', flex: 1 }}>Master</span>
                 <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 700, minWidth: 36, textAlign: 'right' }}>{(masterVolume * 100).toFixed(1)}%</span>
-                <input type="range" min={0} max={1} step={0.005} value={masterVolume}
-                  onChange={e => setMasterVolume(parseFloat(e.target.value))}
-                  style={{ width: 110, accentColor: accent.from, flexShrink: 0 }} />
+                <ElasticSlider
+                  min={0} max={1} step={0.005} value={masterVolume}
+                  onChange={setMasterVolume}
+                  accentColor={accent.from}
+                  style={{ width: 110, flexShrink: 0 }}
+                />
                 <div style={{ width: 32, flexShrink: 0 }} />
               </div>
               {ALL_INSTS.map((inst, i) => {
@@ -3566,9 +3579,12 @@ export default function DrumEditor() {
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: hidden ? 'var(--c-text-muted)' : 'var(--c-text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
                     <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 700, minWidth: 30, textAlign: 'right' }}>{Math.round(vol * 100)}%</span>
-                    <input type="range" min={0} max={1} step={0.01} value={vol}
-                      onChange={e => setVolumeForInstrument(inst, parseFloat(e.target.value))}
-                      style={{ width: 90, accentColor: color, flexShrink: 0 }} />
+                    <ElasticSlider
+                      min={0} max={1} step={0.01} value={vol}
+                      onChange={v => setVolumeForInstrument(inst, v)}
+                      accentColor={color}
+                      style={{ width: 90, flexShrink: 0 }}
+                    />
                     <button onClick={() => togglePatternMute(pattern.id, inst)} title={hidden ? 'Show row' : 'Hide row'}
                       style={{ width: 32, height: 32, borderRadius: 8, background: hidden ? 'rgba(128,128,128,0.08)' : `${color}18`, border: hidden ? '1px solid rgba(128,128,128,0.12)' : `1px solid ${color}30`, cursor: 'pointer', color: hidden ? 'var(--c-text-muted)' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
                       {hidden
@@ -3669,9 +3685,12 @@ export default function DrumEditor() {
                         <div style={{ fontSize: 12, fontWeight: 700, color: active ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', lineHeight: 1.2 }}>{label}</div>
                         {hint && <div style={{ fontSize: 9, color: 'var(--c-text-muted)', fontFamily: 'Manrope', letterSpacing: '0.02em' }}>{hint}</div>}
                       </div>
-                      <input type="range" min={min} max={max} step={step} value={val}
-                        onChange={e => setInstFX(fxInst, { ...curFX, [key]: parseFloat(e.target.value) })}
-                        style={{ flex: 1, accentColor: color }} />
+                      <ElasticSlider
+                        min={min} max={max} step={step} value={val}
+                        onChange={v => setInstFX(fxInst, { ...curFX, [key]: v })}
+                        accentColor={color}
+                        style={{ flex: 1 }}
+                      />
                       <span style={{ fontSize: 11, fontWeight: 700, color: active ? color : 'var(--c-text-muted)', minWidth: 58, textAlign: 'right', fontFamily: 'Manrope', transition: 'color 150ms' }}>{dispVal}</span>
                     </div>
                   );

@@ -5,6 +5,10 @@ import App from "./App";
 import { tolgee } from "./lib/i18nSetup";
 import { notifyBundleReady, ensureNotificationPermission } from "./lib/capgoUpdater";
 import { seedAudioAssets } from "./lib/assetCache";
+// StudioSolarIntro removed from the React tree — the solar-system startup
+// animation now lives inline in index.html so it paints on the FIRST frame,
+// before the JS bundle has to download/parse/mount. The .tsx file is kept
+// in source for now in case we want to reuse pieces of it later.
 import "./index.css";
 
 // Tell the Capgo updater plugin that this bundle booted successfully.
@@ -53,17 +57,18 @@ function GlobalOverlays() {
 createRoot(document.getElementById("root")!).render(
   <TolgeeProvider tolgee={tolgee} fallback={null}>
     <App />
-    {/* Global post-update changelog overlay + OTA indicator — mounted as
-        root siblings so they surface regardless of which sub-app the user
-        lands in. Deferred one frame so first paint is uncontested. */}
+    {/* Global post-update changelog overlay + OTA indicator */}
     <GlobalOverlays />
   </TolgeeProvider>,
 );
 
+// Service worker registration removed — the previous SW was caching the old
+// StartupSplash bundle. The current `public/sw.js` is a self-destructing
+// killswitch: once it runs on a device it unregisters itself and clears all
+// caches, so we don't re-register it here. To restore offline support in the
+// future, register a new SW under a different filename.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL })
-      .catch(err => console.warn('Service worker registration failed:', err));
-  });
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((reg) => { void reg.unregister(); });
+  }).catch(() => { /* ignore */ });
 }

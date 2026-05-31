@@ -1,85 +1,134 @@
 /**
  * Harmony Engine (Vocalex)
  * ────────────────────────
- * Manages pitch-shifted variants of a take and plays them in sync with the
- * dry vocal as a real-time preview. Pre-renders shifted buffers once and
- * caches them per (takeId, semitones) so toggling layers / scrubbing is
- * instantaneous.
- *
- *   • Lazy generation: shifted buffers are computed on first request.
- *   • Synchronous playback: all source nodes start at ctx.currentTime + 0.05
- *     so the dry vocal and harmonies are sample-aligned (no flam).
- *   • Per-layer gain control: caller can adjust `gain` mid-playback.
- *   • Lightweight: each layer is a single AudioBufferSourceNode → GainNode
- *     → destination. No filters, no real-time DSP.
+ * Full harmony system:
+ *   • 9 interval types with per-layer pan, mute, solo, fine-tune
+ *   • Caches shifted buffers keyed by (semitones, humanize, formant)
+ *   • StereoPannerNode per layer for real stereo width
+ *   • Humanize: randomised per-layer timing offset
+ *   • Key detection from pitch timeline
  */
 
-import { pitchShiftBuffer, audioBufferToWavBlob } from './pitchShift';
+import { pitchShiftBuffer, audioBufferToWavBlob, type PitchShiftOptions } from './pitchShift';
 import type { TakeRecord } from './takesDb';
 import { blobToAudioBuffer, extractWaveformPeaks } from './takesDb';
 
-// ── Harmony interval catalogue ─────────────────────────────────────────────
+// ── Harmony interval catalogue ──────────────────────────────────────────────
 
-export type HarmonyId = 'third' | 'fifth' | 'octave';
+export type HarmonyId =
+  | 'third_up' | 'third_down'
+  | 'fifth_up'
+  | 'sixth_up' | 'sixth_down'
+  | 'octave_up' | 'octave_down'
+  | 'double' | 'custom';
 
 export interface HarmonyDef {
-  id:        HarmonyId;
-  label:     string;
-  short:     string;     // compact label for chips
+  id:       HarmonyId;
+  label:    string;
+  short:    string;
   semitones: number;
-  hint:      string;     // user-facing description
+  color:    string;
+  hint:     string;
 }
 
 export const HARMONIES: HarmonyDef[] = [
-  { id: 'third',  label: 'Major 3rd',   short: '+3rd', semitones: 4,  hint: 'Bright, sweet upper harmony'   },
-  { id: 'fifth',  label: 'Perfect 5th', short: '+5th', semitones: 7,  hint: 'Strong, open consonant interval' },
-  { id: 'octave', label: 'Octave',      short: '+8ve', semitones: 12, hint: 'Doubles the melody one octave up' },
+  { id: 'third_up',    label: '3rd Above',    short: '+3rd',  semitones: 4,    color: '#007aff', hint: 'Bright, sweet upper harmony' },
+  { id: 'third_down',  label: '3rd Below',    short: '−3rd',  semitones: -3,   color: '#5856d6', hint: 'Warm, intimate lower harmony' },
+  { id: 'fifth_up',    label: '5th Above',    short: '+5th',  semitones: 7,    color: '#34c759', hint: 'Strong, open consonant interval' },
+  { id: 'sixth_up',    label: '6th Above',    short: '+6th',  semitones: 9,    color: '#ff9f0a', hint: 'Expressive, soulful upper voice' },
+  { id: 'sixth_down',  label: '6th Below',    short: '−6th',  semitones: -9,   color: '#ff6b35', hint: 'Full, rich lower harmony' },
+  { id: 'octave_up',   label: 'Octave Up',    short: '+8ve',  semitones: 12,   color: '#af52de', hint: 'Doubles melody one octave higher' },
+  { id: 'octave_down', label: 'Octave Down',  short: '−8ve',  semitones: -12,  color: '#ff2d55', hint: 'Deep double one octave below' },
+  { id: 'double',      label: 'Double Track', short: 'DBL',   semitones: 0.18, color: '#32d74b', hint: 'Classic double-tracking thickener' },
+  { id: 'custom',      label: 'Custom',       short: 'CST',   semitones: 5,    color: '#64d2ff', hint: 'Custom semitone interval' },
 ];
 
 export interface HarmonyLayerState {
-  id:       HarmonyId;
-  enabled:  boolean;
-  gain:     number;      // 0–1.5 (linear)
+  id:             HarmonyId;
+  enabled:        boolean;
+  gain:           number;           // 0–1.5 linear
+  pan:            number;           // −1 (L) to +1 (R)
+  mute:           boolean;
+  solo:           boolean;
+  fineTune:       number;           // −1 to +1 semitones of additional shift
+  customSemitones: number;          // only used when id === 'custom'
 }
 
-export const DEFAULT_HARMONY_STATE: HarmonyLayerState[] = HARMONIES.map(h => ({
-  id:      h.id,
-  enabled: false,
-  gain:    0.7,
-}));
+const LAYER_DEFAULTS: Omit<HarmonyLayerState, 'id'> = {
+  enabled: true,
+  gain:    0.75,
+  pan:     0,
+  mute:    false,
+  solo:    false,
+  fineTune: 0,
+  customSemitones: 5,
+};
 
-// ── Cache: take.id → { shiftedBuffers, sourceBuffer } ──────────────────────
+export const DEFAULT_HARMONY_LAYERS: HarmonyLayerState[] = [
+  { ...LAYER_DEFAULTS, id: 'third_up',   pan:  0.25 },
+  { ...LAYER_DEFAULTS, id: 'third_down', pan: -0.25, enabled: false },
+  { ...LAYER_DEFAULTS, id: 'fifth_up',   pan: -0.15, enabled: false },
+];
+
+/** Effective semitone shift for a layer (base + fineTune, or custom). */
+export function layerSemitones(layer: HarmonyLayerState): number {
+  const def = HARMONIES.find(h => h.id === layer.id)!;
+  const base = layer.id === 'custom' ? layer.customSemitones : def.semitones;
+  return base + layer.fineTune;
+}
+
+// ── Key detection ───────────────────────────────────────────────────────────
+
+export function detectKey(
+  pitchTimeline: { noteName: string; frequency: number }[],
+): string | null {
+  if (!pitchTimeline.length) return null;
+  const counts = new Map<string, number>();
+  for (const { noteName } of pitchTimeline) {
+    counts.set(noteName, (counts.get(noteName) ?? 0) + 1);
+  }
+  let best = '';
+  let max = 0;
+  for (const [note, count] of counts) {
+    if (count > max) { max = count; best = note; }
+  }
+  return best || null;
+}
+
+// ── Buffer cache ────────────────────────────────────────────────────────────
 
 interface TakeCache {
-  source:   AudioBuffer;
-  shifted:  Partial<Record<HarmonyId, AudioBuffer>>;
+  source:  AudioBuffer;
+  shifted: Map<string, AudioBuffer>;  // key = serialised options
 }
 const cache = new Map<string, TakeCache>();
 
-/** Decode the take's blob and cache the source AudioBuffer. */
 async function getSource(take: TakeRecord, ctx: AudioContext): Promise<AudioBuffer> {
   const existing = cache.get(take.id);
   if (existing) return existing.source;
-  const arrayBuffer = await take.audioBlob.arrayBuffer();
-  // We need a real (or matching-rate) context to decode. Use the live ctx.
-  const source = await ctx.decodeAudioData(arrayBuffer.slice(0));
-  cache.set(take.id, { source, shifted: {} });
+  const ab = await take.audioBlob.arrayBuffer();
+  const source = await ctx.decodeAudioData(ab.slice(0));
+  cache.set(take.id, { source, shifted: new Map() });
   return source;
 }
 
-/** Lazily render and cache the shifted buffer for a given harmony. */
-export async function getShiftedBuffer(
+function shiftCacheKey(semitones: number, opts: PitchShiftOptions): string {
+  return `${semitones.toFixed(3)}:h${(opts.humanize ?? 0).toFixed(2)}:f${(opts.formantCorrection ?? 0).toFixed(2)}`;
+}
+
+async function getShiftedBuffer(
   take: TakeRecord,
-  harmonyId: HarmonyId,
+  semitones: number,
   ctx: AudioContext,
+  opts: PitchShiftOptions = {},
 ): Promise<AudioBuffer> {
   const source = await getSource(take, ctx);
   const entry  = cache.get(take.id)!;
-  if (entry.shifted[harmonyId]) return entry.shifted[harmonyId]!;
-  const def   = HARMONIES.find(h => h.id === harmonyId);
-  if (!def) throw new Error(`Unknown harmony id: ${harmonyId}`);
-  const shifted = pitchShiftBuffer(ctx, source, def.semitones);
-  entry.shifted[harmonyId] = shifted;
+  const key    = shiftCacheKey(semitones, opts);
+  const cached = entry.shifted.get(key);
+  if (cached) return cached;
+  const shifted = pitchShiftBuffer(ctx, source, semitones, opts);
+  entry.shifted.set(key, shifted);
   return shifted;
 }
 
@@ -88,50 +137,54 @@ export function clearTakeCache(takeId: string) {
   cache.delete(takeId);
 }
 
-// ── Playback session ───────────────────────────────────────────────────────
+// ── Playback session ────────────────────────────────────────────────────────
 
 export interface HarmonyPlaybackSession {
-  /** Stop all layers and free nodes. */
-  stop: () => void;
-  /** Update the gain of one harmony layer (or 'dry' for the original). */
-  setGain: (id: HarmonyId | 'dry', gain: number) => void;
-  /** True after the dry buffer reaches its end. */
-  onEnded: (cb: () => void) => void;
-  /** Duration in seconds. */
+  stop:     () => void;
+  /** Update gain of a layer (index) or 'dry'. */
+  setGain:  (layerIdx: number | 'dry', gain: number) => void;
+  onEnded:  (cb: () => void) => void;
   duration: number;
 }
 
+export interface PlaybackOptions {
+  dryGain?:           number;
+  humanize?:          number;   // 0–1
+  formantCorrection?: number;   // 0–1
+}
+
 /**
- * Begin synchronised playback of dry vocal + every enabled harmony layer.
- * Returns a session handle; call `stop()` to halt all sources cleanly.
- *
- * Buffers for enabled layers are rendered before scheduling so we can start
- * everything at the *same* future timestamp. The 50 ms head-start guarantees
- * sample-aligned starts even on slower devices.
+ * Start synchronised playback of dry vocal + enabled harmony layers.
+ * Mute/solo logic is applied before scheduling.
  */
 export async function startHarmonyPlayback(
-  take: TakeRecord,
+  take:   TakeRecord,
   layers: HarmonyLayerState[],
-  ctx: AudioContext,
-  dryGain = 1,
+  ctx:    AudioContext,
+  opts:   PlaybackOptions = {},
 ): Promise<HarmonyPlaybackSession> {
+  const { dryGain = 1, humanize = 0, formantCorrection = 0 } = opts;
+  const shiftOpts: PitchShiftOptions = { humanize, formantCorrection };
+
   const source = await getSource(take, ctx);
 
-  // Pre-render every enabled layer so we never race the audio clock.
-  await Promise.all(
-    layers
-      .filter(l => l.enabled)
-      .map(l => getShiftedBuffer(take, l.id, ctx)),
+  const hasSolo = layers.some(l => l.enabled && l.solo && !l.mute);
+  const audible = layers.filter(l =>
+    l.enabled && !l.mute && (!hasSolo || l.solo),
   );
 
-  const startAt = ctx.currentTime + 0.05;
-  const gainNodes = new Map<HarmonyId | 'dry', GainNode>();
+  await Promise.all(
+    audible.map(l => getShiftedBuffer(take, layerSemitones(l), ctx, shiftOpts)),
+  );
+
+  const startAt  = ctx.currentTime + 0.05;
+  const gainNodes = new Map<number | 'dry', GainNode>();
   const sources:  AudioBufferSourceNode[] = [];
 
   // Dry vocal
-  const drySrc  = ctx.createBufferSource();
+  const drySrc = ctx.createBufferSource();
   drySrc.buffer = source;
-  const dryG    = ctx.createGain();
+  const dryG = ctx.createGain();
   dryG.gain.value = dryGain;
   drySrc.connect(dryG).connect(ctx.destination);
   drySrc.start(startAt);
@@ -139,17 +192,27 @@ export async function startHarmonyPlayback(
   sources.push(drySrc);
 
   // Harmony layers
-  for (const layer of layers) {
-    if (!layer.enabled) continue;
-    const buf = cache.get(take.id)?.shifted[layer.id];
+  for (let i = 0; i < audible.length; i++) {
+    const layer   = audible[i];
+    const key     = shiftCacheKey(layerSemitones(layer), shiftOpts);
+    const buf     = cache.get(take.id)?.shifted.get(key);
     if (!buf) continue;
+
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    const g    = ctx.createGain();
+
+    const g = ctx.createGain();
     g.gain.value = layer.gain;
-    src.connect(g).connect(ctx.destination);
-    src.start(startAt);
-    gainNodes.set(layer.id, g);
+
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = layer.pan;
+
+    src.connect(panner).connect(g).connect(ctx.destination);
+
+    const jitter = humanize * 0.015 * Math.random();
+    src.start(startAt + jitter);
+
+    gainNodes.set(i, g);
     sources.push(src);
   }
 
@@ -178,27 +241,24 @@ export async function startHarmonyPlayback(
   };
 }
 
-// ── Bounce: render a take + its enabled harmonies into a new TakeRecord ────
+// ── Offline bounce ──────────────────────────────────────────────────────────
 
-/**
- * Render an offline mix of (dry + enabled harmony layers) into a new take.
- * Used to make harmonized recordings persistent (post-record processing).
- */
 export async function bounceHarmonizedTake(
-  take: TakeRecord,
-  layers: HarmonyLayerState[],
+  take:    TakeRecord,
+  layers:  HarmonyLayerState[],
   newName: string,
-  dryGain = 1,
+  opts:    PlaybackOptions = {},
 ): Promise<TakeRecord> {
-  // Decode source and render shifted buffers via the OfflineAudioContext so
-  // we don't depend on the live audio graph (callable from any context).
+  const { dryGain = 1, humanize = 0, formantCorrection = 0 } = opts;
+  const shiftOpts: PitchShiftOptions = { humanize, formantCorrection };
+
   const sourceBuf = await blobToAudioBuffer(take.audioBlob);
-  const sr        = sourceBuf.sampleRate;
-  const numCh     = Math.min(2, Math.max(1, sourceBuf.numberOfChannels));
+  const sr    = sourceBuf.sampleRate;
+  const numCh = Math.min(2, Math.max(1, sourceBuf.numberOfChannels));
 
   const offline = new OfflineAudioContext(numCh, sourceBuf.length, sr);
 
-  // Dry path
+  // Dry
   const drySrc = offline.createBufferSource();
   drySrc.buffer = sourceBuf;
   const dryG = offline.createGain();
@@ -206,32 +266,38 @@ export async function bounceHarmonizedTake(
   drySrc.connect(dryG).connect(offline.destination);
   drySrc.start(0);
 
-  // Each enabled harmony — render the shifted buffer offline, route to mix.
+  // Harmony layers
+  const hasSolo = layers.some(l => l.enabled && l.solo && !l.mute);
   for (const layer of layers) {
-    if (!layer.enabled) continue;
-    const def = HARMONIES.find(h => h.id === layer.id);
-    if (!def) continue;
-    const shifted = pitchShiftBuffer(offline, sourceBuf, def.semitones);
+    if (!layer.enabled || layer.mute) continue;
+    if (hasSolo && !layer.solo) continue;
+
+    const shifted = pitchShiftBuffer(offline, sourceBuf, layerSemitones(layer), shiftOpts);
     const src = offline.createBufferSource();
     src.buffer = shifted;
+
     const g = offline.createGain();
     g.gain.value = layer.gain;
-    src.connect(g).connect(offline.destination);
+
+    const panner = offline.createStereoPanner();
+    panner.pan.value = layer.pan;
+
+    src.connect(panner).connect(g).connect(offline.destination);
     src.start(0);
   }
 
-  const renderedBuf = await offline.startRendering();
-  const blob        = audioBufferToWavBlob(renderedBuf);
-  const peaks       = extractWaveformPeaks(renderedBuf, 60);
+  const rendered = await offline.startRendering();
+  const blob     = audioBufferToWavBlob(rendered);
+  const peaks    = extractWaveformPeaks(rendered, 60);
 
   const id = `take-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return {
     id,
-    name:           newName,
-    createdAt:      Date.now(),
-    durationMs:     Math.round(renderedBuf.duration * 1000),
-    audioBlob:      blob,
-    waveformPeaks:  peaks,
-    sampleRate:     renderedBuf.sampleRate,
+    name:          newName,
+    createdAt:     Date.now(),
+    durationMs:    Math.round(rendered.duration * 1000),
+    audioBlob:     blob,
+    waveformPeaks: peaks,
+    sampleRate:    rendered.sampleRate,
   };
 }

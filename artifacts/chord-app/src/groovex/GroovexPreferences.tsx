@@ -1,13 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import ElasticSlider from '../components/ElasticSlider';
 import { useGroovexStore } from './useGroovexStore';
 import { getCacheSize, clearAllCache, clearSongCache, getPerSongCacheInfo, type SongCacheInfo } from './stemCache';
 import { SONG_CATALOG } from './songCatalog';
 import { useT } from '../lib/useT';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
+import { useScrollHide } from '../lib/navScroll';
 
 export default function GroovexPreferences() {
   const t = useT();
   const { preferences, updatePreferences } = useGroovexStore();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollHide(scrollRef);
   const [cacheInfo, setCacheInfo] = useState({ totalBytes: 0, songCount: 0, stemCount: 0 });
   const [songCaches, setSongCaches] = useState<SongCacheInfo[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -50,8 +54,8 @@ export default function GroovexPreferences() {
   }
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
+    <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+      <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
 
         <section style={{ paddingTop: 32, marginBottom: 32 }}>
           <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}>{t.groovex.audioEngine}</h2>
@@ -294,11 +298,12 @@ function SliderRow({ label, value, onChange, displayValue }: {
         </label>
         <span style={{ fontSize: 13, color: 'var(--gx-accent)', fontWeight: 700 }}>{displayValue}</span>
       </div>
-      <input
-        type="range" min="0" max="1" step="0.01" value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-        className="gx-slider"
-        style={{ width: '100%' }}
+      <ElasticSlider
+        min={0} max={1} step={0.01}
+        value={value}
+        onChange={onChange}
+        accentColor="var(--gx-accent, #679cff)"
+        trackColor="var(--gx-surface-high, rgba(128,128,128,0.2))"
       />
     </div>
   );

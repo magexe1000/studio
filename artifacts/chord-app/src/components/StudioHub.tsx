@@ -1,16 +1,20 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { useBackHandler } from '../lib/backStack';
-import { subscribeAuth, type AuthUser } from '../lib/auth';
+import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useNavHidden, useNavCollapsed, useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
+import StudioThemeToggler from './StudioThemeToggler';
 import ApplyToSheet from './ApplyToSheet';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
+import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate } from '../lib/otaUpdate';
+import StudioTitleReveal from './StudioTitleReveal';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
+import ProfileDropdown from './kokonutui/profile-dropdown';
 
 // AccountCard pulls Firebase (auth + firestore). Lazy-load it so Firebase
 // stays out of the initial bundle graph; only fetched when Settings tab opens.
@@ -22,7 +26,7 @@ const AccountSettingsPage = lazy(() =>
   import('./AccountCard').then(m => ({ default: m.AccountSettingsPage }))
 );
 
-type HubTab = 'home' | 'settings';
+type HubTab = 'home' | 'settings' | 'profile';
 type TargetApp = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
@@ -189,10 +193,11 @@ export default function StudioHub() {
   [hubAccentKey, settings.customAccentHue]);
   const isHubLight = (settings.perApp?.hub?.theme ?? settings.theme ?? 'dark') === 'light';
 
-  const [tab, setTab]     = useState<HubTab>('home');
+  const [tab, setTab]       = useState<HubTab>('home');
   const [zooming, setZooming] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
   useScrollHide(scrollRef);
 
   useEffect(() => subscribeAuth(setAuthUser), []);
@@ -236,36 +241,35 @@ export default function StudioHub() {
 
         {/* ── HOME TAB ── */}
         {tab === 'home' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
 
             {/* Logo area */}
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
-              paddingTop: 'clamp(48px, 10vh, 80px)',
+              paddingTop: 'clamp(36px, 7vh, 56px)',
               animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
             }}>
-              <div style={{ color: isHubLight ? '#18181b' : 'white' }}>
+              <div data-intro-target="studio" style={{ color: isHubLight ? '#18181b' : 'white', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <StudioLogo size={56} />
               </div>
-              <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: '10px 0 0', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                {t.hub.studio}
-              </p>
-              <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '5px 0 0', letterSpacing: '0.05em', fontWeight: 500 }}>
-                {t.hub.byChordex}
+              <p style={{ fontSize: 28, fontWeight: 800, margin: '10px 0 0', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                <StudioTitleReveal text={String(t.hub.studio)} />
               </p>
             </div>
 
             {/* Combined welcome + apps card */}
-            <div style={{
-              width: '100%', maxWidth: 380,
-              marginTop: 'clamp(28px, 6vh, 48px)',
-              background: 'var(--app-surface)',
-              borderRadius: 24,
-              overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.05)',
-              animation: 'hub-rise-in 500ms 80ms cubic-bezier(0.34,1.15,0.64,1) both',
-              transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
-            }}>
+            <GradientBorderCard
+              borderRadius={24}
+              wrapStyle={{
+                width: '100%', maxWidth: 380,
+                marginTop: 'clamp(28px, 6vh, 48px)',
+                animation: 'hub-rise-in 500ms 80ms cubic-bezier(0.34,1.15,0.64,1) both, gb-spin 14s linear infinite',
+              }}
+              innerStyle={{
+                overflow: 'hidden',
+                transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+              }}
+            >
               {/* Welcome header */}
               <div style={{ padding: '22px 22px 18px' }}>
                 <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
@@ -289,6 +293,7 @@ export default function StudioHub() {
               ]).map(({ app, Logo, name, desc }, i, arr) => (
                 <AppRow
                   key={app}
+                  app={app}
                   Logo={Logo}
                   name={name}
                   desc={desc}
@@ -296,14 +301,77 @@ export default function StudioHub() {
                   onClick={() => launchApp(app)}
                 />
               ))}
-            </div>
+            </GradientBorderCard>
 
           </div>
         )}
 
+        {/* ── PROFILE TAB ── */}
+        {tab === 'profile' && (
+          <>
+            <style>{HUB_SETTINGS_CSS}</style>
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              padding: '8px 8px 0',
+              paddingTop: 'max(8px, env(safe-area-inset-top))',
+            }}>
+              <button
+                onClick={() => setTab('settings')}
+                style={{
+                  width: 38, height: 38, borderRadius: 12,
+                  background: 'rgba(128,128,128,0.10)',
+                  border: '1px solid rgba(128,128,128,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', outline: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                  color: 'var(--c-text-secondary)',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>chevron_left</span>
+              </button>
+            </div>
+            <Suspense fallback={<div style={{ padding: 32, textAlign: 'center', color: 'var(--c-text-muted)' }}>…</div>}>
+              {authUser ? (
+                <div style={{ animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
+                <AccountSettingsPage
+                  accent={accent}
+                  cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}
+                  onBack={() => setTab('settings')}
+                />
+                </div>
+              ) : (
+                <div style={{ padding: '0 20px 80px', animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
+                  <AccountCard
+                    accent={accent}
+                    cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)', marginBottom: 12 }}
+                    rowStyle={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}
+                  />
+                </div>
+              )}
+            </Suspense>
+          </>
+        )}
+
         {/* ── SETTINGS TAB ── */}
         {tab === 'settings' && (
-          <HubSettings accent={accent} scrollRef={scrollRef} />
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '8px 8px 0', paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
+              <button
+                onClick={() => setTab('home')}
+                style={{
+                  width: 40, height: 40, borderRadius: 12,
+                  background: 'transparent', border: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', outline: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                  color: 'var(--c-text-secondary)',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 24 }}>chevron_left</span>
+              </button>
+            </div>
+            <HubSettings accent={accent} scrollRef={scrollRef} authUser={authUser} onProfile={() => setTab('profile')} />
+          </>
         )}
       </div>
 
@@ -316,10 +384,131 @@ export default function StudioHub() {
   );
 }
 
+// ── StudioFamilyOrbit ─────────────────────────────────────────────────────────
+// Clean monochrome orbit — Studio sine-wave in a neutral dark circle at center,
+// 5 sub-app icons orbiting in white-outlined circles (no color gradients).
+// Uses the canonical animata double-rotate trick so icons stay upright.
+function StudioFamilyOrbit({
+  items,
+}: {
+  items: { key: string; node: React.ReactNode; label: string }[];
+}) {
+  const RADIUS = 96;
+  const SPEED  = 22;
+  const SIZE   = 240;
+  const N      = items.length;
+
+  const keyframes = items.map((_, i) => {
+    const a = (i / N) * 360;
+    return `
+      @keyframes family-orbit-${i} {
+        from { transform: rotate(${a}deg) translateX(${RADIUS}px) rotate(${-a}deg); }
+        to   { transform: rotate(${a + 360}deg) translateX(${RADIUS}px) rotate(${-(a + 360)}deg); }
+      }
+    `;
+  }).join('\n');
+
+  return (
+    <div style={{
+      position: 'relative',
+      width: '100%',
+      height: SIZE,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    }}>
+      <style>{`
+        ${keyframes}
+        @keyframes family-orbit-bob {
+          0%,100% { transform: translateY(0); }
+          50%     { transform: translateY(-3px); }
+        }
+      `}</style>
+
+      {/* Subtle neutral glow */}
+      <div style={{
+        position: 'absolute',
+        top: '50%', left: '50%',
+        width: 200, height: 200,
+        marginTop: -100, marginLeft: -100,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Dashed orbit ring */}
+      <div style={{
+        position: 'absolute',
+        width: RADIUS * 2,
+        height: RADIUS * 2,
+        borderRadius: '50%',
+        border: '1px dashed rgba(128,128,128,0.22)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Center Studio logo — neutral dark circle, no pink gradient */}
+      <div style={{
+        position: 'relative',
+        zIndex: 2,
+        width: 84,
+        height: 84,
+        borderRadius: '50%',
+        background: 'var(--c-surface-2, rgba(255,255,255,0.05))',
+        border: '1px solid rgba(255,255,255,0.10)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--c-text-primary)',
+        animation: 'family-orbit-bob 3.2s ease-in-out infinite',
+      }}>
+        <StudioLogo size={48} />
+      </div>
+
+      {/* Orbiters — clean white-outlined circles */}
+      {items.map(({ key, node }, i) => (
+        <div
+          key={key}
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: 0,
+            height: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: `family-orbit-${i} ${SPEED}s linear infinite`,
+            zIndex: 1,
+          }}
+        >
+          <div style={{
+            width: 46,
+            height: 46,
+            minWidth: 46,
+            minHeight: 46,
+            flexShrink: 0,
+            borderRadius: '50%',
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.22)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--c-text-primary)',
+          }}>
+            {React.cloneElement(node as React.ReactElement<{ size: number }>, { size: 24 })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── App row (list item inside the combined card) ───────────────────────────────
 function AppRow({
-  Logo, name, desc, last, onClick,
+  app, Logo, name, desc, last, onClick,
 }: {
+  app: TargetApp;
   Logo: React.FC<{ size: number }>;
   name: string;
   desc: string;
@@ -348,7 +537,7 @@ function AppRow({
       }}
     >
       {/* Icon pill */}
-      <div style={{
+      <div data-intro-target={app} style={{
         width: 42, height: 42, borderRadius: 12, flexShrink: 0,
         background: 'rgba(128,128,128,0.10)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -377,7 +566,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'appearance' | 'language' | 'storage' | 'privacy' | 'about' | 'ai-assistant' | 'updater' | 'account';
+type SettingsPageId = 'main' | 'appearance' | 'language' | 'storage' | 'privacy' | 'about' | 'ai-assistant' | 'updater';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -402,6 +591,22 @@ const HUB_SETTINGS_CSS = `
   @keyframes hub-spin {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
+  }
+  @keyframes profile-sheet-up {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  @keyframes profile-dd-in {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+  }
+  @keyframes profile-dd-item-in {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes profile-burst-out {
+    from { opacity: 0; transform: scale(0.12); transform-origin: top left; }
+    to   { opacity: 1; transform: scale(1);   transform-origin: top left; }
   }
   input[type=range].hue-slider {
     -webkit-appearance: none;
@@ -468,18 +673,13 @@ function SettingsNavRow({
         transformOrigin: 'center center',
       }}
     >
-      <div style={{
-        width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-        background: iconColor ? `${iconColor}20` : 'rgba(128,128,128,0.10)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: `1px solid ${iconColor ? iconColor + '28' : 'transparent'}`,
-      }}>
-        <span className="material-symbols-outlined" style={{
-          fontSize: 18,
-          color: iconColor ?? 'var(--c-text-secondary)',
-          fontVariationSettings: "'FILL' 1",
-        }}>{icon}</span>
-      </div>
+      <span className="material-symbols-outlined" style={{
+        fontSize: 22, flexShrink: 0,
+        color: iconColor ?? 'var(--c-text-secondary)',
+        fontVariationSettings: "'FILL' 1",
+        opacity: 0.75,
+        width: 26, textAlign: 'center',
+      }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.01em', fontFamily: 'Manrope' }}>{title}</p>
         {desc && <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '2px 0 0', fontWeight: 500, fontFamily: 'Inter', lineHeight: 1.3 }}>{desc}</p>}
@@ -702,7 +902,7 @@ function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
   );
 }
 
-function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string; mid: string }; scrollRef?: React.RefObject<HTMLDivElement | null> }) {
+function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { from: string; to: string; mid: string }; scrollRef?: React.RefObject<HTMLDivElement | null>; authUser?: AuthUser | null; onProfile?: () => void }) {
   const { settings, updateSettings, updatePerApp } = useChordStore();
   const t = useT();
   const [page, setPage] = useState<SettingsPageId>('main');
@@ -791,24 +991,9 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
   const slideAnim = slideDir === 'forward' ? 'hub-slide-in' : 'hub-slide-back';
   const subStyle: React.CSSProperties = {
     padding: '0 20px',
-    paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)',
+    paddingBottom: 'var(--content-bottom-pad)',
     animation: `${slideAnim} 300ms cubic-bezier(0.25,0.46,0.45,0.94) both`,
   };
-
-  /* ── ACCOUNT ────────────────────────────────────────────────────── */
-  if (page === 'account') {
-    return (
-      <div key={pageKey}>
-        <div style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title={(t.hub as { accountSettings?: string }).accountSettings ?? 'Account'} onBack={goBack} />
-          <Suspense fallback={null}>
-            <AccountSettingsPage accent={accent} cardStyle={cardStyle} onBack={goBack} />
-          </Suspense>
-        </div>
-      </div>
-    );
-  }
 
   /* ── APPEARANCE ─────────────────────────────────────────────────── */
   if (page === 'appearance') {
@@ -821,33 +1006,18 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
         <SettingsSectionLabel>{(t.hub as { studioSettings?: { themeSection?: string } }).studioSettings?.themeSection ?? 'Theme'}</SettingsSectionLabel>
         <div style={cardStyle}>
           <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-              {([
-                { value: 'system', label: t.settings.rows.themeSystem, icon: 'brightness_auto', amoled: false },
-                { value: 'light',  label: t.settings.rows.themeLight,  icon: 'light_mode',      amoled: false },
-                { value: 'dark',   label: t.settings.rows.themeDark,   icon: 'dark_mode',        amoled: false },
-                { value: 'dark',   label: t.hub.amoled,                icon: 'contrast',          amoled: true  },
-              ] as { value: Theme; label: string; icon: string; amoled: boolean }[]).map((opt, i) => {
-                const isActive = opt.amoled
-                  ? hubVis.amoledMode
-                  : hubVis.theme === opt.value && !hubVis.amoledMode;
-                return (
-                  <button key={i}
-                    onClick={() => { if (opt.amoled) requestChange({ theme: 'dark', amoledMode: true }); else requestChange({ theme: opt.value, amoledMode: false }); }}
-                    className="btn-smooth"
-                    style={{
-                      padding: '12px 6px', borderRadius: 12,
-                      background: isActive ? `${accent.from}22` : 'var(--app-surface-high)',
-                      border: `1.5px solid ${isActive ? accent.from + '66' : 'transparent'}`,
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                      transition: 'background 200ms ease, border-color 200ms ease', cursor: 'pointer',
-                    }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 22, color: isActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease' }}>{opt.icon}</span>
-                    <p style={{ color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', transition: 'color 200ms ease', margin: 0 }}>{opt.label}</p>
-                  </button>
-                );
-              })}
-            </div>
+            <StudioThemeToggler
+              currentTheme={hubVis.theme}
+              currentAmoled={hubVis.amoledMode ?? false}
+              accentFrom={accent.from}
+              onChange={(theme, amoledMode) => updatePerApp(['hub'], { theme, amoledMode })}
+              labels={{
+                system: t.settings.rows.themeSystem,
+                light:  t.settings.rows.themeLight,
+                dark:   t.settings.rows.themeDark,
+                amoled: t.hub.amoled,
+              }}
+            />
             {/* Dynamic theme — full-width row */}
             {(() => {
               const isDynActive = hubVis.theme === 'dynamic' && !hubVis.amoledMode;
@@ -860,9 +1030,11 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
                     background: isDynActive ? `${accent.from}22` : 'var(--app-surface-high)',
                     border: `1.5px solid ${isDynActive ? accent.from + '66' : 'transparent'}`,
                     display: 'flex', alignItems: 'center', gap: 12,
-                    transition: 'background 200ms ease, border-color 200ms ease', cursor: 'pointer',
+                    transition: 'background 200ms ease, border-color 200ms ease, transform 160ms cubic-bezier(0.34,1.56,0.64,1)',
+                    cursor: 'pointer',
+                    transform: isDynActive ? 'scale(1.02)' : 'scale(1)',
                   }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 22, color: isDynActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isDynActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease', flexShrink: 0 }}>schedule</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 22, color: isDynActive ? accent.from : 'var(--c-text-secondary)', fontVariationSettings: isDynActive ? "'FILL' 1" : "'FILL' 0", transition: 'color 200ms ease', flexShrink: 0, filter: isDynActive ? `drop-shadow(0 0 6px ${accent.from}66)` : 'none' }}>schedule</span>
                   <div style={{ textAlign: 'left' }}>
                     <p style={{ color: isDynActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', margin: 0, transition: 'color 200ms ease' }}>{(t.hub as { studioSettings?: { dynamic?: string } }).studioSettings?.dynamic ?? 'Dynamic'}</p>
                     <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 10.5, margin: '2px 0 0', opacity: 0.75 }}>{
@@ -1136,70 +1308,19 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={t.settings.sections.about} onBack={goBack} />
 
-        {/* Hero — giant Studio logo + name */}
-        <div style={{
-          ...cardStyle,
-          padding: '36px 20px 28px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 16,
-          textAlign: 'center',
-        }}>
-          <div style={{
-            width: 112,
-            height: 112,
-            borderRadius: 28,
-            background: `linear-gradient(135deg, ${accent.from}1a, ${accent.to}1a)`,
-            border: `1px solid ${accent.from}33`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <StudioLogo size={88} />
-          </div>
-          <div>
-            <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 32, letterSpacing: '-0.03em', color: 'var(--c-text-primary)', lineHeight: 1.1 }}>Studio</p>
+        {/* Sub-app family — clean monochrome orbit of all 5 apps around the
+            Studio sine-wave center. This is the only visual on the About
+            page now (per design); version + footer sit minimally below. */}
+        <div style={cardStyle}>
+          <StudioFamilyOrbit items={subAppLogos} />
+          <div style={{ textAlign: 'center', padding: '0 0 22px' }}>
+            <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 26, letterSpacing: '-0.03em', color: 'var(--c-text-primary)', lineHeight: 1.1 }}>Studio</p>
             <p style={{ margin: '6px 0 0', fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', letterSpacing: '0.04em' }}>{APP_VERSION_LABEL}</p>
           </div>
         </div>
 
-        {/* Sub-app family */}
-        <SettingsSectionLabel delay={40}>{lang === 'es' ? 'Familia' : 'Family'}</SettingsSectionLabel>
-        <div style={cardStyle}>
-          <div style={{
-            padding: '18px 14px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            gap: 8,
-          }}>
-            {subAppLogos.map(({ key, node, label }) => (
-              <div key={key} style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 6,
-              }}>
-                <div style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 12,
-                  background: 'rgba(128,128,128,0.07)',
-                  border: '1px solid rgba(128,128,128,0.10)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  {node}
-                </div>
-                <span style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: 600, color: 'var(--c-text-secondary)', letterSpacing: '0.02em' }}>{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div style={{ padding: '28px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 32, height: 2, borderRadius: 999, background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`, marginBottom: 4 }} />
+          <div style={{ width: 32, height: 2, borderRadius: 999, background: 'rgba(128,128,128,0.35)', marginBottom: 4 }} />
           <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>{t.settings.about.footer}</p>
         </div>
         <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
@@ -1209,7 +1330,7 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
 
   /* ── MAIN PAGE ──────────────────────────────────────────────────── */
   return (
-    <div key={pageKey} style={{ padding: '0 20px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
+    <div key={pageKey} style={{ padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
       <style>{HUB_SETTINGS_CSS}</style>
 
       {/* Title */}
@@ -1218,11 +1339,83 @@ function HubSettings({ accent, scrollRef }: { accent: { from: string; to: string
         <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>{t.hub.settingsSubtitle}</p>
       </div>
 
-      {/* Account */}
-      <SettingsSectionLabel delay={20}>{t.hub.account}</SettingsSectionLabel>
-      <Suspense fallback={<div style={{ ...cardStyle, padding: '20px', minHeight: 64 }} />}>
-        <AccountCard accent={accent} cardStyle={cardStyle} rowStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)' }} onAccountSettings={() => navigate('account')} />
-      </Suspense>
+      {/* ── Profile card ── */}
+      {(() => {
+        const name    = authUser?.displayName || authUser?.email || '';
+        const email   = authUser?.email || '';
+        const photo   = authUser?.photoURL;
+        const initial = (name[0] ?? 'S').toUpperCase();
+        const hasUser = !!authUser;
+        return (
+          <button
+            type="button"
+            onClick={() => onProfile?.()}
+            className="btn-smooth"
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              width: '100%', padding: '28px 20px 24px',
+              marginBottom: 8,
+              background: 'var(--app-surface)',
+              borderRadius: '1.25rem',
+              border: '1px solid rgba(128,128,128,0.07)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+              cursor: 'pointer', outline: 'none',
+              WebkitTapHighlightColor: 'transparent',
+              animation: 'hub-row-fade 320ms 30ms ease both',
+              position: 'relative',
+              textAlign: 'center',
+              gap: 0,
+            }}
+          >
+            {/* Chevron top-right */}
+            <span
+              className="material-symbols-outlined"
+              style={{
+                position: 'absolute', top: 14, right: 14,
+                fontSize: 18, color: 'var(--c-text-secondary)', opacity: 0.5,
+              }}
+            >chevron_right</span>
+
+            {/* Avatar */}
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%', marginBottom: 14,
+              background: photo
+                ? 'transparent'
+                : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 30, fontWeight: 800, color: '#fff',
+              overflow: 'hidden', flexShrink: 0,
+              boxShadow: `0 0 0 3px ${accent.from}33, 0 4px 18px ${accent.from}28`,
+            }}>
+              {photo ? (
+                <img src={photo} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : hasUser ? (
+                <span>{initial}</span>
+              ) : (
+                <span className="material-symbols-outlined" style={{ fontSize: 34, color: '#fff' }}>account_circle</span>
+              )}
+            </div>
+
+            {/* Name */}
+            <p style={{
+              fontFamily: 'Manrope', fontWeight: 800, fontSize: 18,
+              color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em',
+              maxWidth: '80%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {hasUser ? (authUser.displayName || 'Studio User') : 'Sign In'}
+            </p>
+
+            {/* Email */}
+            <p style={{
+              fontFamily: 'Inter', fontSize: 13,
+              color: 'var(--c-text-secondary)', margin: '4px 0 0',
+              maxWidth: '80%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {hasUser ? email : 'Tap to create account or sign in'}
+            </p>
+          </button>
+        );
+      })()}
 
       {/* Interface */}
       <SettingsSectionLabel delay={70}>{(t.hub as { studioSettings?: { interface?: string } }).studioSettings?.interface ?? 'Interface'}</SettingsSectionLabel>
@@ -1330,10 +1523,10 @@ function HubNav({ tab, setTab, accent }: {
     if (stretchT.current) { clearTimeout(stretchT.current); stretchT.current = null; setPill(p => ({ ...p, left: newM.left, right: newM.right })); return; }
     if (newIdx > oldIdx) {
       setPill(p => ({ ...p, right: newM.right }));
-      stretchT.current = setTimeout(() => { setPill(p => ({ ...p, left: newM.left })); stretchT.current = null; }, 70);
+      stretchT.current = setTimeout(() => { setPill(p => ({ ...p, left: newM.left })); stretchT.current = null; }, 90);
     } else {
       setPill(p => ({ ...p, left: newM.left }));
-      stretchT.current = setTimeout(() => { setPill(p => ({ ...p, right: newM.right })); stretchT.current = null; }, 70);
+      stretchT.current = setTimeout(() => { setPill(p => ({ ...p, right: newM.right })); stretchT.current = null; }, 90);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
@@ -1347,7 +1540,7 @@ function HubNav({ tab, setTab, accent }: {
       ref={navRef}
       style={{
         position: 'fixed',
-        bottom: 'max(10px, env(safe-area-inset-bottom))',
+        bottom: 'var(--nav-safe-bottom)',
         left: '50%',
         width: '90%',
         maxWidth: '448px',
@@ -1412,7 +1605,7 @@ function HubNav({ tab, setTab, accent }: {
           WebkitBackdropFilter: 'blur(8px)',
           pointerEvents: 'none', zIndex: 0,
           opacity: 1,
-          transition: 'left 180ms cubic-bezier(0.16,1,0.3,1), width 180ms cubic-bezier(0.16,1,0.3,1)',
+          transition: 'left 300ms cubic-bezier(0.16,1,0.3,1), width 300ms cubic-bezier(0.16,1,0.3,1)',
         }} />
       )}
 

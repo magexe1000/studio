@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
+import AnimatedActionButton from './animata/container/animated-border-trail';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
 import { setBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
@@ -556,13 +557,13 @@ export default function StagexPanel() {
       stageStretchRef.current = setTimeout(() => {
         setStagePill(p => ({ ...p, left: newM.left }));
         stageStretchRef.current = null;
-      }, 70);
+      }, 90);
     } else {
       setStagePill(p => ({ ...p, left: newM.left }));
       stageStretchRef.current = setTimeout(() => {
         setStagePill(p => ({ ...p, right: newM.right }));
         stageStretchRef.current = null;
-      }, 70);
+      }, 90);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curView]);
@@ -968,7 +969,7 @@ export default function StagexPanel() {
                 pointerEvents: 'none',
                 zIndex: 0,
                 opacity: 1,
-                transition: 'left 150ms cubic-bezier(0.34,1.56,0.64,1), width 150ms cubic-bezier(0.34,1.56,0.64,1)',
+                transition: 'left 300ms cubic-bezier(0.16,1,0.3,1), width 300ms cubic-bezier(0.16,1,0.3,1)',
               }}
             />
           )}
@@ -1150,14 +1151,17 @@ export default function StagexPanel() {
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button
+              <AnimatedActionButton
                 onClick={() => runPdfExport('save')}
                 disabled={pdfBusy || !pdfFileName.trim()}
+                borderRadius={12}
+                trailColor={accent.to}
+                wrapStyle={{ width: '100%' }}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   width: '100%', height: 48,
                   background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                  color: '#fff', border: 'none', borderRadius: 12,
+                  color: '#fff', border: 'none',
                   fontFamily: 'Manrope, sans-serif', fontSize: 13, fontWeight: 800,
                   textTransform: 'uppercase', letterSpacing: '0.08em',
                   cursor: pdfBusy ? 'wait' : 'pointer',
@@ -1168,7 +1172,7 @@ export default function StagexPanel() {
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 18, lineHeight: 1 }}>download</span>
                 {tr.stagex.pdfSheetSave}
-              </button>
+              </AnimatedActionButton>
 
               {canShareFiles && (
                 <button

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import ElasticSlider from './ElasticSlider';
 import { getChordById, type GuitarChordData } from '../data/chords';
 import { useChordStore, ACCENT_COLORS, type SongPreset } from '../store/useChordStore';
 import { setNavHidden } from '../lib/navScroll';
@@ -534,9 +535,12 @@ export default function LiveMode({ preset, onClose, transposeOffset = 0 }: LiveM
                     style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '20px' }}>remove</span>
                   </button>
-                  <input type="range" min={20} max={300} step={5} value={bpmOverride}
-                    onChange={e => setBpmOverride(Number(e.target.value))}
-                    style={{ flex: 1, accentColor: accent.from }} />
+                  <ElasticSlider
+                    min={20} max={300} step={5} value={bpmOverride}
+                    onChange={setBpmOverride}
+                    accentColor={accent.from}
+                    style={{ flex: 1 }}
+                  />
                   <button onClick={() => setBpmOverride(b => Math.min(300, b + 10))} className="btn-smooth"
                     style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '20px' }}>add</span>
