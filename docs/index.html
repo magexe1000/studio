@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<!-- v2 -->
+<!-- v8 — pro intro with real app logos that fly into hub positions -->
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
     <title>Studio</title>
     <meta name="description" content="Studio — Chordex & Drumex, your complete music toolkit" />
-    <meta name="theme-color" content="#111116" />
+    <meta name="theme-color" content="#0a0a0c" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -14,99 +14,482 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" type="image/svg+xml" href="./icon-512.svg" />
     <link rel="apple-touch-icon" href="./icon-512.svg" />
-    <!-- Material Symbols (subsetted to only the icons the app uses).
-         Replaces the 3.8 MB local material-symbols woff2; this fetch is
-         typically <30 KB and is cached aggressively by Google's CDN. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=account_circle,add,add_circle,air,album,analytics,animation,arrow_back,arrow_downward,arrow_forward,arrow_forward_ios,arrow_upward,auto_awesome,auto_fix_high,block,blur_on,bolt,bookmark_add,brightness_auto,casino,celebration,check,check_circle,chevron_left,chevron_right,close,cloud,cloud_done,cloud_download,compare_arrows,content_copy,contrast,dark_mode,dashboard,data_object,delete,delete_forever,download,drag_indicator,edit,edit_note,electric_bolt,electric_guitar,equalizer,error,expand,expand_less,expand_more,face,face_2,face_3,face_4,face_5,face_6,favorite,file_download,flamenco,flash_on,folder_open,forest,format_bold,forward_10,gesture,grade,grain,graphic_eq,grid_4x4,grid_on,grid_view,groups,guitar_pick,headphones,health_and_safety,hearing,hexagon,history,home,horizontal_rule,hourglass_empty,hourglass_top,info,insights,ios_share,keyboard_arrow_up,language,layers,library_music,light_mode,local_fire_department,logout,merge,message,mic,mic_none,mood,more_vert,moving,music_note,nightlight,noise_aware,north_east,open_in_new,palette,pause,pending,person,piano,picture_as_pdf,play_arrow,play_circle,playlist_add,progress_activity,psychology,public,queue_music,radio,radio_button_unchecked,record_voice_over,redo,refresh,remove,replay_10,restart_alt,sailing,save,schedule,schema,science,search,search_off,segment,self_improvement,sentiment_satisfied,sentiment_very_satisfied,settings,settings_input_component,share,skip_next,skip_previous,sort,south,speed,sprint,stacked_bar_chart,stacked_line_chart,star_half,stars,stop,straighten,swap_horiz,swap_vert,sync,sync_problem,target,theater_comedy,timer,title,touch_app,trending_down,trending_up,tune,undo,upload_file,verified,vibration,video_library,visibility,visibility_off,volume_up,warning,waves&display=block"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=account_circle,add,add_circle,air,album,analytics,animation,arrow_back,arrow_downward,arrow_forward,arrow_forward_ios,arrow_upward,auto_awesome,auto_fix_high,block,blur_on,bolt,bookmark_add,brightness_auto,casino,celebration,check,check_circle,chevron_left,chevron_right,close,cloud,cloud_done,cloud_download,compare_arrows,content_copy,contrast,dark_mode,dashboard,data_object,delete,delete_forever,devices,download,drag_indicator,edit,edit_note,electric_bolt,electric_guitar,emoji_emotions,equalizer,error,expand,expand_less,expand_more,face,face_2,face_3,face_4,face_5,face_6,favorite,file_download,flamenco,flash_on,folder_open,forest,format_bold,forward_10,gesture,grade,grain,graphic_eq,grid_4x4,grid_on,grid_view,groups,guitar_pick,headphones,health_and_safety,hearing,hexagon,history,home,horizontal_rule,hourglass_empty,hourglass_top,info,insights,ios_share,keyboard_arrow_up,language,layers,library_music,light_mode,local_fire_department,lock,lock_reset,logout,merge,message,mic,mic_none,mood,more_vert,moving,music_note,nightlight,noise_aware,north_east,open_in_new,palette,pause,pending,person,photo_camera,piano,picture_as_pdf,play_arrow,play_circle,playlist_add,progress_activity,psychology,public,queue_music,radio,radio_button_unchecked,record_voice_over,redo,refresh,remove,replay_10,restart_alt,sailing,save,schedule,schema,science,search,search_off,segment,self_improvement,sentiment_satisfied,sentiment_very_satisfied,settings,settings_input_component,share,shield,skip_next,skip_previous,smartphone,sort,south,speed,sprint,stacked_bar_chart,stacked_line_chart,star_half,stars,stop,straighten,swap_horiz,swap_vert,sync,sync_problem,target,theater_comedy,timer,title,touch_app,trending_down,trending_up,tune,undo,upload_file,verified,vibration,video_library,visibility,visibility_off,volume_up,warning,waves,workspace_premium&display=block"
     />
     <style>
-      html, body { background: #0e0e0e; margin: 0; padding: 0; }
-      #html-splash {
-        position: fixed; inset: 0; z-index: 9999;
-        background: #000000;
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: center; gap: 16px;
+      html, body { background: #0a0a0c; margin: 0; padding: 0; }
+
+      /* ── Professional startup intro v8 ─────────────────────────────────
+         • Pure black, monochrome white
+         • 5 REAL app logos orbiting (Chordex/Drumex/Stagex/Groovex/Vocalex)
+         • Orbit accelerates dramatically right before settle
+         • Each icon flies to its EXACT measured hub position (data-intro-target)
+         • Then the intro overlay fades out, revealing the hub underneath
+      ────────────────────────────────────────────────────────────────── */
+      #intro {
+        position: fixed; inset: 0; z-index: 2147483647;
+        background: #0a0a0c;
+        overflow: hidden;
+        pointer-events: none;
+        opacity: 0;
+        /* Transition is applied via JS so we can control both the
+           fade-in speed (quick) and the fade-out speed (slow & smooth)
+           independently without class juggling. */
+        font-family: Manrope, system-ui, -apple-system, sans-serif;
+      }
+      #intro.dismissed  { display: none; }
+
+      #intro-glow {
+        position: absolute; top: 50%; left: 50%;
+        width: 420px; height: 420px;
+        margin: -210px 0 0 -210px;
+        background: radial-gradient(circle,
+          rgba(255,255,255,0.05) 0%,
+          rgba(255,255,255,0.02) 40%,
+          transparent 70%);
+        border-radius: 50%;
+        filter: blur(8px);
         pointer-events: none;
       }
-      #html-splash-logo {
-        opacity: 0;
-        transform: scale(0.48) translateY(10px);
-        transition: opacity 620ms cubic-bezier(0.34,1.56,0.64,1),
-                    transform 620ms cubic-bezier(0.34,1.56,0.64,1);
+
+      #intro-stars {
+        position: absolute; inset: 0;
+        background-image:
+          radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.55), transparent 50%),
+          radial-gradient(1px 1px at 78% 22%, rgba(255,255,255,0.40), transparent 50%),
+          radial-gradient(1.5px 1.5px at 30% 78%, rgba(255,255,255,0.50), transparent 50%),
+          radial-gradient(1px 1px at 88% 70%, rgba(255,255,255,0.55), transparent 50%),
+          radial-gradient(1px 1px at 55% 8%,  rgba(255,255,255,0.30), transparent 50%),
+          radial-gradient(1px 1px at 8% 60%,  rgba(255,255,255,0.40), transparent 50%),
+          radial-gradient(1.5px 1.5px at 65% 92%, rgba(255,255,255,0.45), transparent 50%),
+          radial-gradient(1px 1px at 42% 38%, rgba(255,255,255,0.28), transparent 50%);
+        opacity: 0.5;
       }
-      #html-splash-text { text-align: center; }
-      #html-splash-word {
+
+      #intro-center {
+        position: absolute; top: 50%; left: 50%;
+        display: flex; flex-direction: column; align-items: center;
+        gap: 8px;
+        z-index: 1;
+        will-change: transform;
+        transform: translate(-50%, -50%) scale(1);
         opacity: 0;
-        transform: translateY(7px);
-        transition: opacity 500ms cubic-bezier(0.25,0.46,0.45,0.94),
-                    transform 500ms cubic-bezier(0.25,0.46,0.45,0.94);
-        font-family: system-ui, -apple-system, sans-serif;
-        font-weight: bold; font-size: 28px;
-        letter-spacing: -0.02em; color: #ffffff; margin: 0 0 5px;
+        animation: center-fade-in 600ms 80ms ease-out forwards;
+        color: #ffffff;
       }
-      #html-splash-sub {
+      @keyframes center-fade-in { from { opacity: 0; } to { opacity: 1; } }
+      #intro-center .logo {
+        width: 96px; height: 96px;
+        display: flex; align-items: center; justify-content: center;
+        filter: drop-shadow(0 0 24px rgba(255,255,255,0.18));
+      }
+      #intro-center .logo svg { width: 96px; height: 96px; }
+      #intro-center .title {
+        font-size: 32px; font-weight: 800; color: #ffffff;
+        letter-spacing: -0.025em; margin: 6px 0 0;
+      }
+      #intro-center .sub {
+        font-size: 12px; color: rgba(255,255,255,0.50);
+        letter-spacing: 0.08em; margin: 0; text-transform: uppercase;
+      }
+
+      /* Orbiter — pure white icon, no pill */
+      .orbiter {
+        position: absolute;
+        width: 44px; height: 44px;
+        display: flex; align-items: center; justify-content: center;
+        will-change: transform, opacity;
         opacity: 0;
-        transform: translateY(5px);
-        transition: opacity 500ms 60ms cubic-bezier(0.25,0.46,0.45,0.94),
-                    transform 500ms 60ms cubic-bezier(0.25,0.46,0.45,0.94);
-        font-family: system-ui, -apple-system, sans-serif;
-        font-weight: normal; font-size: 13px;
-        letter-spacing: 0.08em; color: rgba(255,255,255,0.38); margin: 0;
+        animation: orb-fade-in 500ms 120ms ease-out forwards;
+        color: #ffffff;
+      }
+      @keyframes orb-fade-in { from { opacity: 0; } to { opacity: 1; } }
+      .orbiter > svg {
+        width: 30px; height: 30px;
+        filter: drop-shadow(0 0 6px rgba(255,255,255,0.25));
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #intro *, #intro { animation: none !important; transition: opacity 200ms linear !important; }
+        .orbiter, #intro-center { opacity: 1 !important; }
       }
     </style>
-    <script type="module" crossorigin src="/Studio/assets/index-B999UcUx.js"></script>
-    <link rel="modulepreload" crossorigin href="/Studio/assets/capacitor-gkgpYtx8.js">
-    <link rel="modulepreload" crossorigin href="/Studio/assets/react-vendor-O7Eajc3h.js">
-    <link rel="modulepreload" crossorigin href="/Studio/assets/zustand-C-xeqU7a.js">
-    <link rel="stylesheet" crossorigin href="/Studio/assets/index-57B68Z4K.css">
+    <script type="module" crossorigin src="/Chordex/assets/index-UKCDvUu5.js"></script>
+    <link rel="modulepreload" crossorigin href="/Chordex/assets/capacitor-CWwSkqgv.js">
+    <link rel="modulepreload" crossorigin href="/Chordex/assets/react-vendor-O7Eajc3h.js">
+    <link rel="modulepreload" crossorigin href="/Chordex/assets/zustand-C-xeqU7a.js">
+    <link rel="stylesheet" crossorigin href="/Chordex/assets/index-Ba6DFtYy.css">
   </head>
   <body>
-    <div id="html-splash">
-      <div id="html-splash-logo">
-        <!-- Studio logo: sine wave mark -->
-        <svg width="72" height="72" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256"
-            stroke="white" stroke-width="44"
-            stroke-linecap="round" stroke-linejoin="round" fill="none"
-          />
+    <div id="intro" aria-hidden="true">
+      <div id="intro-stars"></div>
+      <div id="intro-glow"></div>
+
+      <div id="intro-center" data-intro-id="studio">
+        <div class="logo">
+          <!-- Studio sine wave (matches StudioLogo component) -->
+          <svg viewBox="0 0 512 512" fill="none">
+            <path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256"
+                  stroke="white" stroke-width="44"
+                  stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <p class="title">Studio</p>
+        <p class="sub">by Mag</p>
+      </div>
+
+      <!-- 5 real app logos, inlined from ChordexLogo.tsx -->
+
+      <!-- Chordex: fretboard with 3 strings + chord dots -->
+      <div class="orbiter" data-intro-id="chords">
+        <svg viewBox="0 0 13 17" fill="none" preserveAspectRatio="xMidYMid meet" style="width:26px;height:34px;">
+          <rect x="0.5" y="0.5" width="12" height="2.5" rx="1" fill="currentColor"/>
+          <line x1="2.5"  y1="3" x2="2.5"  y2="16.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.45"/>
+          <line x1="6.5"  y1="3" x2="6.5"  y2="16.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.45"/>
+          <line x1="10.5" y1="3" x2="10.5" y2="16.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.45"/>
+          <line x1="0.5" y1="8"  x2="12.5" y2="8"  stroke="currentColor" stroke-width="0.7" stroke-opacity="0.35"/>
+          <line x1="0.5" y1="13" x2="12.5" y2="13" stroke="currentColor" stroke-width="0.7" stroke-opacity="0.35"/>
+          <circle cx="2.5"  cy="5.5"  r="2.1" fill="currentColor"/>
+          <circle cx="10.5" cy="5.5"  r="2.1" fill="currentColor"/>
+          <circle cx="6.5"  cy="10.5" r="2.1" fill="currentColor"/>
         </svg>
       </div>
-      <div id="html-splash-text">
-        <p id="html-splash-word">Studio</p>
-        <p id="html-splash-sub">by Mag</p>
+
+      <!-- Drumex: snare drum top-down -->
+      <div class="orbiter" data-intro-id="drums">
+        <svg viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="8" cy="8" r="4.8" stroke="currentColor" stroke-width="0.85" stroke-opacity="0.55"/>
+          <circle cx="8" cy="2" r="0.95" fill="currentColor"/>
+          <circle cx="13.196" cy="5" r="0.95" fill="currentColor"/>
+          <circle cx="13.196" cy="11" r="0.95" fill="currentColor"/>
+          <circle cx="8" cy="14" r="0.95" fill="currentColor"/>
+          <circle cx="2.804" cy="11" r="0.95" fill="currentColor"/>
+          <circle cx="2.804" cy="5" r="0.95" fill="currentColor"/>
+          <circle cx="8" cy="8" r="1.4" fill="currentColor"/>
+        </svg>
+      </div>
+
+      <!-- Stagex: stage with 2 speakers + mic stand -->
+      <div class="orbiter" data-intro-id="stage">
+        <svg viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="10" width="14" height="2.5" rx="1" fill="currentColor" fill-opacity="0.95"/>
+          <rect x="1" y="4" width="3.5" height="5.5" rx="0.8" stroke="currentColor" stroke-width="1.1"/>
+          <circle cx="2.75" cy="6.2" r="0.8" fill="currentColor"/>
+          <circle cx="2.75" cy="8.1" r="0.55" fill="currentColor" fill-opacity="0.7"/>
+          <rect x="11.5" y="4" width="3.5" height="5.5" rx="0.8" stroke="currentColor" stroke-width="1.1"/>
+          <circle cx="13.25" cy="6.2" r="0.8" fill="currentColor"/>
+          <circle cx="13.25" cy="8.1" r="0.55" fill="currentColor" fill-opacity="0.7"/>
+          <line x1="8" y1="4" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+          <circle cx="8" cy="3.2" r="1.2" fill="currentColor"/>
+        </svg>
+      </div>
+
+      <!-- Groovex: concentric circles with crosshairs -->
+      <div class="orbiter" data-intro-id="groovex">
+        <svg viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.2"/>
+          <circle cx="8" cy="8" r="1" fill="currentColor"/>
+          <line x1="8" y1="1" x2="8" y2="5" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
+          <line x1="8" y1="11" x2="8" y2="15" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
+          <line x1="1" y1="8" x2="5" y2="8" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
+          <line x1="11" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
+        </svg>
+      </div>
+
+      <!-- Vocalex: microphone with cradle + stand -->
+      <div class="orbiter" data-intro-id="vocalex">
+        <svg viewBox="0 0 16 16" fill="none">
+          <rect x="6.5" y="2" width="3" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M4 8.5C4 11.26 5.79 13 8 13C10.21 13 12 11.26 12 8.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+          <line x1="8" y1="13" x2="8" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <line x1="6" y1="14" x2="10" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
       </div>
     </div>
     <div id="root"></div>
+
     <script>
-      var splash = document.getElementById('html-splash');
-      var logo   = document.getElementById('html-splash-logo');
-      var word   = document.getElementById('html-splash-word');
-      var sub    = document.getElementById('html-splash-sub');
+      // ── Pro intro with measured-target settle ───────────────────────────
+      (function () {
+        var intro    = document.getElementById('intro');
+        var center   = document.getElementById('intro-center');
+        if (!intro || !center) return;
+        var orbiterEls = intro.querySelectorAll('.orbiter');
+        if (orbiterEls.length === 0) return;
 
-      requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-          logo.style.opacity   = '1';
-          logo.style.transform = 'scale(1) translateY(0)';
-
-          setTimeout(function() {
-            word.style.opacity   = '1';
-            word.style.transform = 'translateY(0)';
-            sub.style.opacity    = '1';
-            sub.style.transform  = 'translateY(0)';
-          }, 220);
-
-          setTimeout(function() {
-            splash.style.transition = 'opacity 440ms cubic-bezier(0.4,0,0.2,1)';
-            splash.style.opacity    = '0';
-            setTimeout(function() { splash.style.display = 'none'; }, 440);
-          }, 1200);
+        // Map each intro icon to its hub data-intro-target counterpart.
+        var orbiters = [];
+        orbiterEls.forEach(function (el) {
+          orbiters.push({ el: el, key: el.getAttribute('data-intro-id') });
         });
-      });
-    </script>
+        var N = orbiters.length;
+
+        // Geometry — elliptical tilted orbit for 3D feel
+        var RX    = 132;
+        var RY    = 38;
+        var TILT  = -28 * Math.PI / 180;
+        var COS_T = Math.cos(TILT);
+        var SIN_T = Math.sin(TILT);
+        var STEP  = 360 / N;
+
+        // Speed profile (deg/ms): smooth → dramatic accel → settle
+        var BASE_OMEGA   = 360 / 8500;
+        var PEAK_OMEGA   = 360 / 900;
+        var ACCEL_START  = 1600;
+        var ACCEL_END    = 2800;
+
+        // Settle starts when targets are known AND minimum spin time elapsed.
+        // Falls back to t=3000 if React hasn't mounted yet.
+        var SETTLE_DURATION = 1200;  // ms to lerp from orbit → target
+        var FADE_OVERLAP    = 620;   // intro fade starts this many ms before settle ends
+        var FADE_DURATION   = 1100;  // long crossfade so hub reveals gradually
+        var MIN_SPIN_TIME   = 2800;  // don't settle before this
+        var MAX_WAIT_TIME   = 4500;  // hard cap — settle even without targets
+
+        // Default fallback targets (relative to viewport center) if measurement fails
+        function fallbackTargets() {
+          var W = window.innerWidth;
+          var H = window.innerHeight;
+          var x = -(W / 2) + 64;
+          var y0 = -(H / 2) + 240;
+          var gap = Math.min(76, (H * 0.5) / (N + 1));
+          var ts = [];
+          for (var i = 0; i < N; i++) {
+            ts.push({ x: x, y: y0 + i * gap, scale: 0.55 });
+          }
+          return {
+            orbiters: ts,
+            center:   { x: 0, y: -(H / 2) + 130, scale: 0.55 },
+          };
+        }
+
+        // Measure actual hub icon positions from data-intro-target elements.
+        // Returns null if not all targets are present.
+        function measureTargets() {
+          var W = window.innerWidth;
+          var H = window.innerHeight;
+          var cxV = W / 2, cyV = H / 2;
+          var centerEl = document.querySelector('[data-intro-target="studio"]');
+          if (!centerEl) return null;
+          var cr = centerEl.getBoundingClientRect();
+          if (cr.width === 0) return null;
+          var centerTarget = {
+            x: (cr.left + cr.width / 2) - cxV,
+            y: (cr.top  + cr.height / 2) - cyV,
+            scale: cr.width / 96,  // intro center logo is 96px
+          };
+          var orbiterTargets = [];
+          for (var i = 0; i < orbiters.length; i++) {
+            var key = orbiters[i].key;
+            var t = document.querySelector('[data-intro-target="' + key + '"]');
+            if (!t) return null;
+            var r = t.getBoundingClientRect();
+            if (r.width === 0) return null;
+            orbiterTargets.push({
+              x: (r.left + r.width / 2) - cxV,
+              y: (r.top  + r.height / 2) - cyV,
+              scale: r.width / 44,  // intro orbiter container is 44px
+            });
+          }
+          return { orbiters: orbiterTargets, center: centerTarget };
+        }
+
+        // Measure vertical offset of the logo's center relative to the
+        // #intro-center container's center. The container holds logo + title +
+        // subtitle in normal flow, so the logo center sits ABOVE the container
+        // center. We use this offset (scaled) to make the LOGO land on the
+        // measured hub target, not the container.
+        var _cachedLogoOffY = null;
+        function getLogoOffsetY() {
+          if (_cachedLogoOffY !== null) return _cachedLogoOffY;
+          var logoEl = center.querySelector('.logo');
+          if (!logoEl) return 0;
+          var lr = logoEl.getBoundingClientRect();
+          var cr = center.getBoundingClientRect();
+          if (cr.height === 0) return 0;  // not laid out yet — try later
+          _cachedLogoOffY = (lr.top + lr.height / 2) - (cr.top + cr.height / 2);
+          return _cachedLogoOffY;
+        }
+
+        function easeInOutCubic(t) {
+          return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+        function easeInQuad(t) { return t * t; }
+
+        // Anchor orbiters at viewport center; transform handles motion
+        function anchor() {
+          var W = window.innerWidth, H = window.innerHeight;
+          for (var i = 0; i < orbiters.length; i++) {
+            orbiters[i].el.style.left = (W / 2 - 22) + 'px';
+            orbiters[i].el.style.top  = (H / 2 - 22) + 'px';
+          }
+        }
+        anchor();
+        window.addEventListener('resize', anchor);
+        window.addEventListener('orientationchange', anchor);
+
+        // ── Smooth fade-in: start at opacity 0, transition to 1 on next paint ──
+        // Two nested rAF calls ensure the browser has committed the opacity:0
+        // state before we start animating, producing a genuine fade from nothing.
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            intro.style.transition = 'opacity 420ms ease-out';
+            intro.style.opacity = '1';
+            // Remove transition after fade-in so JS can set its own timing
+            // for the dismiss crossfade without fighting CSS specificity.
+            setTimeout(function () { intro.style.transition = ''; }, 450);
+          });
+        });
+
+        var start  = performance.now();
+        var angle  = 0;
+        var lastT  = start;
+        var stopped = false;
+        var settleStartTime = -1;     // when settle actually began
+        var targets = null;
+        var fadeStarted = false;
+        var dismissed = false;
+
+        function omegaAt(t) {
+          if (t <= ACCEL_START) return BASE_OMEGA;
+          if (t >= ACCEL_END)   return PEAK_OMEGA;
+          var p = (t - ACCEL_START) / (ACCEL_END - ACCEL_START);
+          return BASE_OMEGA + (PEAK_OMEGA - BASE_OMEGA) * easeInQuad(p);
+        }
+
+        function reactMounted() {
+          var r = document.getElementById('root');
+          return !!(r && r.children && r.children.length > 0);
+        }
+
+        function frame(now) {
+          if (stopped) return;
+          var t  = now - start;
+          var dt = now - lastT;
+          lastT  = now;
+          angle  = (angle + omegaAt(t) * dt) % 360;
+
+          // Decide whether to start settling
+          if (settleStartTime < 0 && t >= MIN_SPIN_TIME) {
+            var measured = measureTargets();
+            if (measured) {
+              targets = measured;
+              settleStartTime = now;
+            } else if (t >= MAX_WAIT_TIME) {
+              targets = fallbackTargets();
+              settleStartTime = now;
+            }
+          }
+
+          // Settle progress (0 → 1)
+          var sP = 0;
+          if (settleStartTime > 0) {
+            sP = (now - settleStartTime) / SETTLE_DURATION;
+            if (sP < 0) sP = 0; else if (sP > 1) sP = 1;
+          }
+          var sE = easeInOutCubic(sP);
+
+          for (var k = 0; k < orbiters.length; k++) {
+            var el = orbiters[k].el;
+            var a = (angle + k * STEP) % 360;
+            if (a < 0) a += 360;
+            var rad = a * Math.PI / 180;
+            var x0 = RX * Math.cos(rad);
+            var y0 = RY * Math.sin(rad);
+            var xT = x0 * COS_T - y0 * SIN_T;
+            var yT = x0 * SIN_T + y0 * COS_T;
+
+            var front      = a < 180;
+            var orbitScale = front ? 1.10 : 0.85;
+            var z          = front ? 3 : 0;
+
+            var fx, fy, fs;
+            if (targets) {
+              var tgt = targets.orbiters[k];
+              fx = xT + (tgt.x - xT) * sE;
+              fy = yT + (tgt.y - yT) * sE;
+              fs = orbitScale + (tgt.scale - orbitScale) * sE;
+            } else {
+              fx = xT; fy = yT; fs = orbitScale;
+            }
+            el.style.zIndex    = sE > 0.5 ? 1 : z;
+            el.style.transform = 'translate(' + fx.toFixed(2) + 'px,' + fy.toFixed(2) + 'px) scale(' + fs.toFixed(3) + ')';
+          }
+
+          // Center logo follows — compensate for logo offset within the
+          // container so the LOGO (not the container) lands on the hub target.
+          if (targets) {
+            var ct = targets.center;
+            var ccs = 1 + (ct.scale - 1) * sE;
+            var logoOffY = getLogoOffsetY(); // px, logo-center relative to container-center
+            var ccx = ct.x * sE;
+            var ccy = (ct.y - logoOffY * ccs) * sE;
+            center.style.transform = 'translate(-50%, -50%) translate(' + ccx.toFixed(2) + 'px,' + ccy.toFixed(2) + 'px) scale(' + ccs.toFixed(3) + ')';
+            // Fade out title/sub during settle so only the logo "lands"
+            var titleEl = center.querySelector('.title');
+            var subEl   = center.querySelector('.sub');
+            if (titleEl) titleEl.style.opacity = String(1 - sE);
+            if (subEl)   subEl.style.opacity   = String(1 - sE);
+          }
+
+          // Start crossfade slightly before settle completes so the intro
+          // icons appear to BECOME the hub icons rather than swap.
+          if (!fadeStarted && settleStartTime > 0 && (now - settleStartTime) >= (SETTLE_DURATION - FADE_OVERLAP)) {
+            fadeStarted = true;
+            // Only start the fade when React is mounted (so the hub is there
+            // to crossfade INTO). Otherwise wait briefly.
+            startFade();
+          }
+
+          if (sP >= 1 && fadeStarted) {
+            // Settle done; rAF loop ends after fade dismisses
+            stopped = true;
+            return;
+          }
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+
+        function startFade() {
+          if (dismissed) return;
+          // Signal React the intro is finishing — StudioTitleReveal can now
+          // start its sweep animation so the title appears as the hub reveals.
+          window.dispatchEvent(new Event('studio-intro-done'));
+          if (!reactMounted()) {
+            // Wait for React then fade
+            var startedAt = performance.now();
+            var iv = setInterval(function () {
+              if (reactMounted() || performance.now() - startedAt > 3000) {
+                clearInterval(iv);
+                doFade();
+              }
+            }, 80);
+            return;
+          }
+          doFade();
+        }
+        function doFade() {
+          if (dismissed) return;
+          dismissed = true;
+          // Apply a long, smooth ease-out transition for the crossfade into the hub.
+          // cubic-bezier(0.22,1,0.36,1) starts quickly then eases very gently at the
+          // end — this makes the hub "breathe in" rather than snap into view.
+          intro.style.transition = 'opacity ' + FADE_DURATION + 'ms cubic-bezier(0.22,1,0.36,1)';
+          intro.style.opacity = '0';
+          setTimeout(function () {
+            intro.classList.add('dismissed');
+            if (intro.parentNode) intro.parentNode.removeChild(intro);
+          }, FADE_DURATION + 50);
+        }
+        // Hard safety
+        setTimeout(doFade, 10000);
+      })();
+    </script>
   </body>
 </html>
