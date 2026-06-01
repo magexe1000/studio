@@ -1665,29 +1665,27 @@ function playSoundAt(
         playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0);
         return;
       }
-      // Buffer not loaded yet — play nothing rather than falling back to synthesis
-      return;
+      // Buffer not loaded yet — fall back to synthesis
+    } else {
+      // ── Cymbal routing (hi-hat, crash, ride via CymbalPool) ─────────────────
+      if (inst === 'hihat-closed') {
+        const buf = cymbalPool.getHHClosed(variation);
+        if (buf) { playBufferChoked(ctx, buf, t, vol, chainInput, 'hihat-closed', 1.0); return; }
+      } else if (inst === 'hihat-open') {
+        const buf = cymbalPool.getHHOpen(variation);
+        if (buf) { playBufferChoked(ctx, buf, t, vol, noteDest, 'hihat-open', 1.0); return; }
+      } else if (inst === 'hihat-foot') {
+        const buf = cymbalPool.getHHFoot();
+        if (buf) { playBufferChoked(ctx, buf, t, vol, chainInput, 'hihat-foot', 1.0); return; }
+      } else if (inst === 'crash') {
+        const buf = cymbalPool.getCrash(_houseCrashModel, variation, _cymbalPack);
+        if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
+      } else if (inst === 'ride') {
+        const buf = cymbalPool.getRide(variation, _cymbalPack);
+        if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
+      }
+      // Cymbal pool not yet loaded — fall back to synthesis
     }
-
-    // ── Cymbal routing (hi-hat, crash, ride via CymbalPool) ─────────────────
-    if (inst === 'hihat-closed') {
-      const buf = cymbalPool.getHHClosed(variation);
-      if (buf) { playBufferChoked(ctx, buf, t, vol, chainInput, 'hihat-closed', 1.0); return; }
-    } else if (inst === 'hihat-open') {
-      const buf = cymbalPool.getHHOpen(variation);
-      if (buf) { playBufferChoked(ctx, buf, t, vol, noteDest, 'hihat-open', 1.0); return; }
-    } else if (inst === 'hihat-foot') {
-      const buf = cymbalPool.getHHFoot();
-      if (buf) { playBufferChoked(ctx, buf, t, vol, chainInput, 'hihat-foot', 1.0); return; }
-    } else if (inst === 'crash') {
-      const buf = cymbalPool.getCrash(_houseCrashModel, variation, _cymbalPack);
-      if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
-    } else if (inst === 'ride') {
-      const buf = cymbalPool.getRide(variation, _cymbalPack);
-      if (buf) { playBuffer(ctx, buf, t, vol, noteDest, undefined, 1.0); return; }
-    }
-    // Cymbal pool not yet loaded — play nothing, don't fall back to synthesis
-    return;
   }
 
   // Try kit-specific real sample first

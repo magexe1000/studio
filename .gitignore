@@ -12,7 +12,8 @@ out-tsc/
 node_modules/
 
 # ── OTA bundle zips — hosted on GitHub Releases, not committed to the repo ────
-docs/bundles/
+# docs/bundles/
+!docs/bundles/*.zip
 artifacts/api-server/public/dl/
 
 # ── Agent conversation attachments ────────────────────────────────────────────
