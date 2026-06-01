@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.13';
+export const APP_VERSION = '3.1.14';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-01'; // 3.1.13
+export const APP_VERSION_DATE = '2026-06-01'; // 3.1.14
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -65,6 +65,12 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
       'Active Session Improvements: Decoupled revocation listeners and explicitly set browser local persistence for more stable cross-device logins.',
     ],
   },
+  {
+    heading: "SEO & Discovery",
+    items: [
+      'Google Verification: Added the official site-verification meta tag to index and verify the StudioXX PWA inside Google Search Console.',
+    ],
+  },
 ];
 
 /** Spanish version of the current changelog — picked at render time
@@ -83,6 +89,12 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
       'Persistencia Mejorada: Se optimizaron las sesiones activas y la persistencia de autenticación para evitar cierres de sesión inesperados.',
     ],
   },
+  {
+    heading: "SEO y Descubrimiento",
+    items: [
+      'Verificación de Google: Se añadió la etiqueta meta de verificación oficial para indexar la aplicación en Google Search Console.',
+    ],
+  },
 ];
 
 /** German version of the current changelog. */
@@ -98,6 +110,12 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
     items: [
       'Datenverlustschutz: Verbesserter Erstsynchronisierungsschutz verhindert das Überschreiben bestehender Cloud-Daten mit leeren lokalen Standardwerten.',
       'Verbesserte Persistenz: Sitzungsüberwachung optimiert und Firebase Auth-Persistenz explizit auf Browserspeicher gesetzt für zuverlässigere Verbindungen.',
+    ],
+  },
+  {
+    heading: "SEO & Auffindbarkeit",
+    items: [
+      'Google-Verifizierung: Google Site-Verification Meta-Tag hinzugefügt, um die StudioXX-PWA in der Google Search Console zu indizieren.',
     ],
   },
 ];

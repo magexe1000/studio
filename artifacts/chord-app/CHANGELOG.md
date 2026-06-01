@@ -17,6 +17,16 @@ Conventions:
 
 ---
 
+## 3.1.14
+
+- Google Verification: Added the official Google Search Console meta tag to the index page to verify the domain and ensure robust search engine indexing.
+
+## 3.1.13
+
+- Profile Avatar Synchronization: Selected profile avatars are now stored and synced in Firestore, instantly visible across all logged-in devices.
+- Data Loss Protection: Upgraded initial device sync runs to prevent fresh devices from overwriting existing cloud data with local defaults.
+- Active Session Improvements: Decoupled revocation listeners and explicitly set browser local persistence for more stable cross-device logins.
+
 ## 3.1.11
 
 - Search Engine Indexability: Created five standalone, premium static HTML landing pages under the public directory (copied directly to /stagex/, /chordex/, etc.) containing curated JSON-LD structured data, rich inline SVGs, and interactive FAQ sections, enabling 100% crawler discoverability.
