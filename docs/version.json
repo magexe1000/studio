@@ -1,6 +1,6 @@
 {
-  "version": "3.0.99",
-  "changelog": "• Update Indicator Polish: Replaced the solid blue circular update badge with a sleek, borderless floating glass cloud download icon, featuring a pulsing ambient neon accent glow and smooth bouncy micro-animation.\n• Sub-App Typography Reverted: Restored the original premium large section heading sizes (2.6rem Manrope font at 900 weight) across the Songs, Library, and Beats/Drums views to ensure optimal visual hierarchy and layout premiumness.",
+  "version": "3.1.0",
+  "changelog": "• Studio Pricing Section: Implemented the premium Aceternity \"Pricing with header and icons\" block in Profile → Subscription & Billing, showing Free, Core, and Pro tiers with checklist bullet points and disabled lock CTAs.\n• Full Custom Accent Integration: Embedded theme-integrated custom active accent color highlights and glows for the recommended Core plan, adaptive checkmarks, and background layers.\n• Scroll-Safe Mobile Layout: Hardened layout coordinates and wrapping elements inside a scrollable bottom sheet to prevent cutoff, safe-area overlap, or horizontal overflows on smaller viewports.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.0.99/bundle-3.0.99.zip"
+  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.0/bundle-3.1.0.zip"
 }
