@@ -57,7 +57,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
     items: [
       'Removed the unwanted circular loader rings/artifacts from the top of the update screen.',
       'Re-centered and restructured the UI elements into a clean, vertically balanced column.',
-      'Stacked elements in strict logical order: Large Percentage -> Progress Bar -> Rotating Status Message.',
+      'Stacked elements in strict logical order (Percentage -> Progress Bar -> Status Message) with perfect vertical and horizontal centering across small/tall phones, WebViews, and PWA mode.',
       'Retained the stunning calming Aurora background fully visible behind the content.',
     ],
   },
@@ -71,7 +71,7 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
     items: [
       'Eliminados los anillos/artefactos de carga circulares de la parte superior de la pantalla.',
       'Se re-centró y reestructuró la interfaz en una columna limpia y equilibrada.',
-      'Elementos organizados en orden vertical estricto: Porcentaje Grande -> Barra de Progreso -> Mensaje Rotativo.',
+      'Elementos organizados en orden vertical estricto (Porcentaje -> Barra de progreso -> Mensaje rotativo) con centrado perfecto vertical y horizontal en cualquier dispositivo.',
       'Se mantuvo el hermoso fondo Aurora animado totalmente visible detrás del contenido.',
     ],
   },
@@ -84,7 +84,7 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
     items: [
       'Unerwünschte kreisförmige Laderinge/-artefakte wurden oben vom Update-Bildschirm entfernt.',
       'Die Benutzeroberfläche wurde in einer sauberen, vertikal ausgewogenen Spalte zentriert und neu strukturiert.',
-      'Elemente in streng logischer Reihenfolge angeordnet: Großer Prozentsatz -> Fortschrittsbalken -> Rotierende Statusmeldung.',
+      'Elemente in streng logischer Reihenfolge angeordnet (Prozentsatz -> Fortschrittsbalken -> Statusmeldung) mit perfekter vertikaler und horizontaler Zentrierung auf allen Geräten.',
       'Der atemberaubende, beruhigende Aurora-Hintergrund bleibt vollständig hinter dem Inhalt sichtbar.',
     ],
   },

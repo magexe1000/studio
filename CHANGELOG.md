@@ -17,6 +17,11 @@ Conventions:
 
 ---
 
+## 3.1.2
+
+- Perfect Vertical Centering: Refactored the internal background layout wrapper to be a flexbox centering container, ensuring the update column is perfectly centered on small phones, tall screens, WebViews, and PWA mode.
+- OTA Spacing Refinements: Fine-tuned vertical element gap (20px) to balance the percentage, progress line, and rotating messages with a clean, cohesive visual rhythm.
+
 ## 3.1.1
 
 - OTA Update Layout Restructured: Completely removed the large rotating conic-gradient circular loader rings from the top of the update screen, cleaning up the visual presentation.
