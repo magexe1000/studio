@@ -136,10 +136,12 @@ export default function BottomNav() {
   };
   const accent    = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
   const isLight  = activeVis.theme === 'light' || (activeVis.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
-  const amoledBg = activeVis.amoledMode
-    ? 'rgba(4,4,4,0.88)'
-    : isLight
-      ? 'rgba(240,240,242,0.72)'
+  const amoledBg = isLight
+    ? activeVis.amoledMode
+      ? 'rgba(255, 255, 255, 0.95)'
+      : 'rgba(255, 255, 255, 0.75)'
+    : activeVis.amoledMode
+      ? 'rgba(4,4,4,0.88)'
       : 'rgba(26,26,30,0.72)';
   const navHidden    = useNavHidden();
   const navCollapsed = useNavCollapsed();
@@ -235,10 +237,10 @@ export default function BottomNav() {
         maxWidth: '360px',
         height: `${NAV_HEIGHT_PX}px`,
         borderRadius: '2rem',
-        border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
+        border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.32)'}`,
         background: amoledBg,
         boxShadow: isLight
-          ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
+          ? '0 8px 32px rgba(0,0,0,0.08), 0 1.5px 0 rgba(255,255,255,0.70) inset'
           : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
         zIndex: 50,
         overflow: 'hidden',
@@ -281,10 +283,10 @@ export default function BottomNav() {
             height: 'calc(100% - 8px)',
             borderRadius: '9999px',
             // Liquid glass ring — flips for light vs dark
-            background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.09)',
-            border: isLight ? '1.5px solid rgba(0,0,0,0.14)' : '1.5px solid rgba(255,255,255,0.30)',
+            background: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.09)',
+            border: isLight ? '1.5px solid rgba(0, 0, 0, 0.06)' : '1.5px solid rgba(255, 255, 255, 0.30)',
             boxShadow: isLight
-              ? ['inset 0 1px 0 rgba(255,255,255,0.90)', '0 2px 8px rgba(0,0,0,0.10)'].join(', ')
+              ? ['inset 0 1px 0 rgba(255,255,255,0.95)', '0 2px 8px rgba(0,0,0,0.08)'].join(', ')
               : ['inset 0 1px 0 rgba(255,255,255,0.40)', '0 2px 16px rgba(255,255,255,0.06)'].join(', '),
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',

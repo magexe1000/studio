@@ -53,22 +53,17 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Profile & Avatar Sync",
+    heading: "Light Mode Bottom Bar",
     items: [
-      'Synchronized Profile Pictures: Selected profile avatars are now stored and synced in Firestore, instantly visible across all logged-in devices.',
+      'Pristine Visuals: Replaced muddy grey background with a clean, high-clarity translucent white glassmorphism background in Light/White mode.',
+      'Active Sliding Pill: Upgraded the active indicator to a premium floating white card with high-contrast soft shadows and crisp borders for immaculate readability.',
     ],
   },
   {
-    heading: "Robust Multi-Device Sync",
+    heading: "Global Theme Synchronization",
     items: [
-      'Data Loss Protection: Upgraded initial device sync runs to prevent fresh devices from overwriting existing cloud data with local defaults.',
-      'Active Session Improvements: Decoupled revocation listeners and explicitly set browser local persistence for more stable cross-device logins.',
-    ],
-  },
-  {
-    heading: "SEO & Discovery",
-    items: [
-      'Google Verification: Added the official site-verification meta tag to index and verify the StudioXX PWA inside Google Search Console.',
+      'Universal Themes: Propagated visual changes (theme, accent color, and AMOLED mode) globally to all 6 sub-apps instantly.',
+      'Seamless Flow: Removed the select-app selection sheet completely for instantaneous visual adjustments.',
     ],
   },
 ];

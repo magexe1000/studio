@@ -1116,13 +1116,15 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
   }, [authUser?.uid]);
 
   const hubVis: PerAppVisuals = settings.perApp?.hub ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
-  const [pending, setPending] = useState<Partial<PerAppVisuals> | null>(null);
-  const [showSheet, setShowSheet] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
 
-  function requestChange(patch: Partial<PerAppVisuals>) { setPending(patch); setShowSheet(true); }
-  function handleApply(apps: AppKey[]) { if (pending) updatePerApp(apps, pending); setPending(null); setShowSheet(false); }
-  function handleClose() { setPending(null); setShowSheet(false); }
+  function requestChange(patch: Partial<PerAppVisuals>) {
+    const ALL_APPS: AppKey[] = ['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex'];
+    updatePerApp(ALL_APPS, patch);
+    if (patch.theme) updateSettings({ theme: patch.theme });
+    if (patch.accentColor) updateSettings({ accentColor: patch.accentColor });
+    if (patch.amoledMode !== undefined) updateSettings({ amoledMode: patch.amoledMode });
+  }
 
   // Scroll-position memory per sub-page. Without this, navigating
   // Settings → About → back resets the outer scroll container to the
@@ -1216,7 +1218,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
               currentTheme={hubVis.theme}
               currentAmoled={hubVis.amoledMode ?? false}
               accentFrom={accent.from}
-              onChange={(theme, amoledMode) => updatePerApp(['hub'], { theme, amoledMode })}
+              onChange={(theme, amoledMode) => requestChange({ theme, amoledMode })}
               labels={{
                 system: t.settings.rows.themeSystem,
                 light:  t.settings.rows.themeLight,
@@ -1393,7 +1395,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
           </SettingRow>
         </div>
         </div>
-        <ApplyToSheet show={showSheet} onApply={handleApply} onClose={handleClose} />
+
       </div>
     );
   }
