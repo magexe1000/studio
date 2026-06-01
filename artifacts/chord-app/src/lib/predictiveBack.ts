@@ -15,6 +15,8 @@
 //   • Android 13 already shows the system-level window-scale predictive back
 //     preview thanks to `android:enableOnBackInvokedCallback="true"`.
 
+import { hasBackEntries } from './backStack';
+
 export interface BackProgressEvent {
   progress: number;
   touchX: number;
@@ -54,6 +56,11 @@ export function applyCssProgress(progress: number, edge: 'left' | 'right') {
   root.style.setProperty('--back-progress', String(progress));
   root.style.setProperty('--back-edge', edge === 'right' ? '1' : '-1');
   root.classList.add('predictive-back-active');
+  if (hasBackEntries()) {
+    root.classList.add('predictive-back-has-overlay');
+  } else {
+    root.classList.remove('predictive-back-has-overlay');
+  }
 }
 
 export function clearCssProgress() {
@@ -61,6 +68,7 @@ export function clearCssProgress() {
   root.style.removeProperty('--back-progress');
   root.style.removeProperty('--back-edge');
   root.classList.remove('predictive-back-active');
+  root.classList.remove('predictive-back-has-overlay');
 }
 
 function createDimOverlay(): HTMLDivElement {

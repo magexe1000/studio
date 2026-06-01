@@ -39,6 +39,7 @@ export default function StudioSolarIntro() {
 
   const [visible, setVisible] = useState(shouldShow);
   const [fadeOut, setFadeOut] = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
 
   const planetRefs = useRef<Array<HTMLDivElement | null>>([null, null, null, null, null, null]);
   const ringRef    = useRef<SVGEllipseElement>(null);
@@ -124,7 +125,10 @@ export default function StudioSolarIntro() {
     let doneFired    = false;
 
     const tick = (now: number) => {
-      if (t0 === null) t0 = now;
+      if (t0 === null) {
+        t0 = now;
+        setIsStarted(true);
+      }
       const elapsed = now - t0;
 
       if (elapsed >= FADEOUT_END) {
@@ -152,10 +156,12 @@ export default function StudioSolarIntro() {
         ? (ORBIT_END - ENTER_END) + settleExtra
         : orbitBase;
 
-      if (ringRef.current)    ringRef.current.style.opacity    = String(Math.max(0, 1 - easedS * 1.5));
-      if (starsRef.current)   starsRef.current.style.opacity   = String(Math.max(0, 1 - easedS * 1.2));
-      if (glowRef.current)    glowRef.current.style.opacity    = String(Math.max(0, 1 - easedS * 1.3));
-      if (wordmarkRef.current) wordmarkRef.current.style.opacity = String(Math.max(0, 1 - easedS * 1.6));
+      if (settling) {
+        if (ringRef.current)    ringRef.current.style.opacity    = String(Math.max(0, 1 - easedS * 1.5));
+        if (starsRef.current)   starsRef.current.style.opacity   = String(Math.max(0, 1 - easedS * 1.2));
+        if (glowRef.current)    glowRef.current.style.opacity    = String(Math.max(0, 1 - easedS * 1.3));
+        if (wordmarkRef.current) wordmarkRef.current.style.opacity = String(Math.max(0, 1 - easedS * 1.6));
+      }
 
       PLANET_DEFS.forEach((def, i) => {
         const el   = planetRefs.current[i];
@@ -224,7 +230,7 @@ export default function StudioSolarIntro() {
             width: s.size, height: s.size,
             borderRadius: '50%', background: starColor,
             opacity: 0,
-            animation: `solar-twinkle ${s.dur}s ${s.del}s ease-in-out infinite`,
+            animation: isStarted ? `solar-twinkle ${s.dur}s ${s.del}s ease-in-out infinite` : 'none',
           }} />
         ))}
       </div>
@@ -235,7 +241,7 @@ export default function StudioSolarIntro() {
           ref={ringRef}
           cx="50%" cy="50%" rx={148} ry={148}
           fill="none" strokeWidth={0.75} strokeDasharray="3 12"
-          style={{ stroke: ringColor, opacity: 0, animation: 'solar-ring-in 600ms 200ms ease-out forwards' }}
+          style={{ stroke: ringColor, opacity: isStarted ? 1 : 0, animation: isStarted ? 'solar-ring-in 600ms 200ms ease-out forwards' : 'none' }}
         />
       </svg>
 
@@ -247,7 +253,8 @@ export default function StudioSolarIntro() {
           transform: 'translate(-50%, -50%)',
           width: 240, height: 240, borderRadius: '50%',
           background: `radial-gradient(circle, ${accent.from}2a 0%, ${accent.from}10 45%, transparent 70%)`,
-          animation: 'solar-glow-pulse 3.5s ease-in-out infinite',
+          opacity: isStarted ? 1 : 0,
+          animation: isStarted ? 'solar-glow-pulse 3.5s ease-in-out infinite' : 'none',
           pointerEvents: 'none',
         }}
       />
@@ -259,7 +266,8 @@ export default function StudioSolarIntro() {
           position: 'absolute', top: '50%', left: '50%',
           transform: 'translate(-50%, -52%)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-          animation: 'solar-sun-in 700ms cubic-bezier(0.34,1.56,0.64,1) forwards',
+          opacity: isStarted ? 1 : 0,
+          animation: isStarted ? 'solar-sun-in 700ms cubic-bezier(0.34,1.56,0.64,1) forwards' : 'none',
           zIndex: 2, pointerEvents: 'none',
         }}
       >
@@ -270,7 +278,8 @@ export default function StudioSolarIntro() {
           {'Studio'.split('').map((char, i) => (
             <span key={i} style={{
               display: 'inline-block',
-              animation: `char-reveal 0.45s ${0.18 + i * 0.06}s cubic-bezier(0.22,1,0.36,1) both`,
+              opacity: isStarted ? undefined : 0,
+              animation: isStarted ? `char-reveal 0.45s ${0.18 + i * 0.06}s cubic-bezier(0.22,1,0.36,1) both` : 'none',
             }}>{char}</span>
           ))}
         </p>
@@ -326,7 +335,7 @@ export default function StudioSolarIntro() {
         color: textSec, fontSize: 11,
         fontFamily: 'Manrope, sans-serif', letterSpacing: '0.05em',
         opacity: 0,
-        animation: 'solar-planet-in 500ms 1400ms ease-out forwards',
+        animation: isStarted ? 'solar-planet-in 500ms 1400ms ease-out forwards' : 'none',
         pointerEvents: 'none',
       }}>
         tap to skip

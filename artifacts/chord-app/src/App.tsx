@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
@@ -709,34 +710,75 @@ export default function App() {
     return () => clearTimeout(t);
   }, [activePanel, durMs]);
 
+  const renderExitToast = () => {
+    return createPortal(
+      <div
+        id="exit-toast"
+        style={{
+          position: 'fixed',
+          bottom: 'max(28px, calc(env(safe-area-inset-bottom) + 88px))',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(24,24,32,0.93)',
+          color: 'var(--c-text-primary)',
+          padding: '10px 22px',
+          borderRadius: '24px',
+          fontSize: '13px',
+          fontFamily: 'Inter, sans-serif',
+          zIndex: 99999,
+          pointerEvents: 'none',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Press back or swipe again to exit
+      </div>,
+      document.body
+    );
+  };
+
   // ── Account scheduled for deletion: lockdown overlay ───────────────────
   if (accountState.phase === 'pending') {
     return (
-      <Suspense fallback={null}>
-        <PendingDeletionScreen
-          phase="pending"
-          user={accountState.user}
-          scheduledAtMs={accountState.scheduledAtMs}
-        />
-      </Suspense>
+      <>
+        <div className="app-main-layout" style={{ height: '100dvh', overflow: 'hidden' }}>
+          <Suspense fallback={null}>
+            <PendingDeletionScreen
+              phase="pending"
+              user={accountState.user}
+              scheduledAtMs={accountState.scheduledAtMs}
+            />
+          </Suspense>
+        </div>
+        {exitToast && renderExitToast()}
+      </>
     );
   }
 
   // ── Account disabled ─────────────────────────────────────────────────────
   if (accountState.phase === 'disabled') {
     return (
-      <Suspense fallback={null}>
-        <DisabledAccountScreen user={accountState.user} />
-      </Suspense>
+      <>
+        <div className="app-main-layout" style={{ height: '100dvh', overflow: 'hidden' }}>
+          <Suspense fallback={null}>
+            <DisabledAccountScreen user={accountState.user} />
+          </Suspense>
+        </div>
+        {exitToast && renderExitToast()}
+      </>
     );
   }
 
   // ── Hub mode: show the Studio Hub ────────────────────────────────────────
   if (settings.appMode === 'hub') {
     return (
-      <div style={{ animation: 'hub-return-enter 380ms cubic-bezier(0.0, 0.0, 0.2, 1) both' }}>
-        <StudioHub />
-      </div>
+      <>
+        <div className="app-main-layout" style={{ animation: 'hub-return-enter 380ms cubic-bezier(0.0, 0.0, 0.2, 1) both', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+          <StudioHub />
+        </div>
+        {exitToast && renderExitToast()}
+      </>
     );
   }
 
@@ -746,36 +788,39 @@ export default function App() {
     const groovexIsLight  = activeVis.theme === 'light';
     const groovexBgColor  = groovexIsAmoled ? '#000000' : groovexIsLight ? '#f2f1ef' : '#0e0e0e';
     return (
-      <div style={{
-        position: 'relative', height: '100dvh', overflow: 'hidden',
-        background: groovexBgColor,
-        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
-        transform: exitingToHub ? 'scale(1.10)' : undefined,
-        opacity:   exitingToHub ? 0 : undefined,
-        transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
-      }}>
-        <Suspense fallback={null}><GroovexApp /></Suspense>
+      <>
+        <div className="app-main-layout" style={{
+          position: 'relative', height: '100dvh', overflow: 'hidden',
+          background: groovexBgColor,
+          animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
+          transform: exitingToHub ? 'scale(1.10)' : undefined,
+          opacity:   exitingToHub ? 0 : undefined,
+          transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
+        }}>
+          <Suspense fallback={null}><GroovexApp /></Suspense>
 
-        {groovexSplash !== 'hidden' && (
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 500,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            background: groovexBgColor,
-            opacity:   groovexSplash === 'out' ? 0 : 1,
-            transform: groovexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
-            transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
-            pointerEvents: 'none',
-          }}>
-            <div style={{ color: groovexIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <GroovexLogo size={60} />
+          {groovexSplash !== 'hidden' && (
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 500,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              background: groovexBgColor,
+              opacity:   groovexSplash === 'out' ? 0 : 1,
+              transform: groovexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+              transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+              pointerEvents: 'none',
+            }}>
+              <div style={{ color: groovexIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                <GroovexLogo size={60} />
+              </div>
+              <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                <p style={{ color: groovexIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Groovex</p>
+                <p style={{ color: groovexIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Multitrack practice mixer</p>
+              </div>
             </div>
-            <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <p style={{ color: groovexIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Groovex</p>
-              <p style={{ color: groovexIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Multitrack practice mixer</p>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+        {exitToast && renderExitToast()}
+      </>
     );
   }
 
@@ -785,36 +830,39 @@ export default function App() {
     const vocalexIsLight  = activeVis.theme === 'light';
     const vocalexBgColor  = vocalexIsAmoled ? '#000000' : vocalexIsLight ? '#f2f1ef' : '#0e0e0e';
     return (
-      <div style={{
-        position: 'relative', height: '100dvh', overflow: 'hidden',
-        background: vocalexBgColor,
-        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
-        transform: exitingToHub ? 'scale(1.10)' : undefined,
-        opacity:   exitingToHub ? 0 : undefined,
-        transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
-      }}>
-        <Suspense fallback={null}><VocalexApp /></Suspense>
+      <>
+        <div className="app-main-layout" style={{
+          position: 'relative', height: '100dvh', overflow: 'hidden',
+          background: vocalexBgColor,
+          animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
+          transform: exitingToHub ? 'scale(1.10)' : undefined,
+          opacity:   exitingToHub ? 0 : undefined,
+          transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
+        }}>
+          <Suspense fallback={null}><VocalexApp /></Suspense>
 
-        {vocalexSplash !== 'hidden' && (
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 500,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            background: vocalexBgColor,
-            opacity:   vocalexSplash === 'out' ? 0 : 1,
-            transform: vocalexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
-            transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
-            pointerEvents: 'none',
-          }}>
-            <div style={{ color: vocalexIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <VocalexLogo size={60} />
+          {vocalexSplash !== 'hidden' && (
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 500,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              background: vocalexBgColor,
+              opacity:   vocalexSplash === 'out' ? 0 : 1,
+              transform: vocalexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+              transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+              pointerEvents: 'none',
+            }}>
+              <div style={{ color: vocalexIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                <VocalexLogo size={60} />
+              </div>
+              <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                <p style={{ color: vocalexIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Vocalex</p>
+                <p style={{ color: vocalexIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Vocal tools & training</p>
+              </div>
             </div>
-            <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <p style={{ color: vocalexIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Vocalex</p>
-              <p style={{ color: vocalexIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Vocal tools & training</p>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+        {exitToast && renderExitToast()}
+      </>
     );
   }
 
@@ -824,177 +872,159 @@ export default function App() {
     const stageIsLight  = activeVis.theme === 'light';
     const stageBgColor  = stageIsAmoled ? '#000000' : stageIsLight ? '#f2f1ef' : '#0e0e0e';
     return (
-      <div style={{
-        position: 'relative', height: '100dvh', overflow: 'hidden',
-        background: stageBgColor,
-        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
-        transform: exitingToHub ? 'scale(1.10)' : undefined,
-        opacity:   exitingToHub ? 0 : undefined,
-        transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
-      }}>
-        <Suspense fallback={null}><StagexPanel /></Suspense>
+      <>
+        <div className="app-main-layout" style={{
+          position: 'relative', height: '100dvh', overflow: 'hidden',
+          background: stageBgColor,
+          animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
+          transform: exitingToHub ? 'scale(1.10)' : undefined,
+          opacity:   exitingToHub ? 0 : undefined,
+          transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
+        }}>
+          <Suspense fallback={null}><StagexPanel /></Suspense>
 
-        {/* Stagex splash — shown when entering from hub */}
-        {stageSplash !== 'hidden' && (
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 500,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            background: stageBgColor,
-            opacity:   stageSplash === 'out' ? 0 : 1,
-            transform: stageSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
-            transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
-            pointerEvents: 'none',
-          }}>
-            <div style={{ color: stageIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <StagexLogoIcon size={60} />
+          {/* Stagex splash — shown when entering from hub */}
+          {stageSplash !== 'hidden' && (
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 500,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              background: stageBgColor,
+              opacity:   stageSplash === 'out' ? 0 : 1,
+              transform: stageSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+              transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+              pointerEvents: 'none',
+            }}>
+              <div style={{ color: stageIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                <StagexLogoIcon size={60} />
+              </div>
+              <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                <p style={{ color: stageIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Stagex</p>
+                <p style={{ color: stageIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Stage plot & tech rider</p>
+              </div>
             </div>
-            <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <p style={{ color: stageIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Stagex</p>
-              <p style={{ color: stageIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Stage plot & tech rider</p>
-            </div>
-          </div>
-        )}
-
-      </div>
+          )}
+        </div>
+        {exitToast && renderExitToast()}
+      </>
     );
   }
 
   // ── Drums mode: completely separate environment ──────────────────────────
   if (settings.appMode === 'drums') {
     return (
-      <div style={{
-        position: 'relative', height: '100dvh', overflow: 'hidden',
-        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
-        transform: exitingToHub ? 'scale(1.10)' : undefined,
-        opacity:   exitingToHub ? 0 : undefined,
-        transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
-      }}>
-        <Suspense fallback={null}><DrumEditor /></Suspense>
+      <>
+        <div className="app-main-layout" style={{
+          position: 'relative', height: '100dvh', overflow: 'hidden',
+          animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
+          transform: exitingToHub ? 'scale(1.10)' : undefined,
+          opacity:   exitingToHub ? 0 : undefined,
+          transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
+        }}>
+          <Suspense fallback={null}><DrumEditor /></Suspense>
 
-        {/* Drumex splash — shown when switching from Chordex */}
-        {drumSplash !== 'hidden' && (
+          {/* Drumex splash — shown when switching from Chordex */}
+          {drumSplash !== 'hidden' && (
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 500,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              background: 'var(--app-bg)',
+              opacity:   drumSplash === 'out' ? 0 : 1,
+              transform: drumSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+              transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+              pointerEvents: 'none',
+            }}>
+              <div style={{ color: 'var(--c-text-primary)', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                <DrumexLogo size={60} />
+              </div>
+              <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                <p style={{ color: 'var(--c-text-primary)', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Drumex</p>
+                <p style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Drum sheet editor</p>
+              </div>
+            </div>
+          )}
+        </div>
+        {exitToast && renderExitToast()}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div
+        className="flex flex-col w-full overflow-hidden select-none app-bg app-main-layout"
+        style={{
+          position: 'relative',
+          height: '100dvh',
+          paddingTop: 'env(safe-area-inset-top)',
+          '--panel-dur':      `${durMs}ms`,
+          '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
+          animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
+          transform: exitingToHub ? 'scale(1.10)' : undefined,
+          opacity:   exitingToHub ? 0 : undefined,
+          transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
+        } as React.CSSProperties}
+      >
+
+        {/* Panel container — only mount visible + exiting panels */}
+        <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
+          {ALL_PANELS.map(panel => {
+            const isVisible  = visiblePanel === panel;
+            const isExiting  = exitingPanel === panel;
+            if (!isVisible && !isExiting) return null;
+            const isEntering = isVisible && exitingPanel !== null;
+
+            let animClass = '';
+            if (isEntering) animClass = slideDir === 'right' ? 'panel-enter-right' : 'panel-enter-left';
+            else if (isExiting) animClass = slideDir === 'right' ? 'panel-exit-left' : 'panel-exit-right';
+
+            return (
+              <div
+                key={panel}
+                className={animClass}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  opacity: isExiting && !animClass ? 0 : undefined,
+                  pointerEvents: isVisible && !isExiting ? 'auto' : 'none',
+                  contain: 'layout style paint',
+                }}
+              >
+                <Suspense fallback={null}>
+                  {panel === 'library'  && <LibraryPanel />}
+                  {panel === 'chord'    && <ChordPanel />}
+                  {panel === 'songs'    && <SongsPanel />}
+                  {panel === 'settings' && <SettingsPanel />}
+                </Suspense>
+              </div>
+            );
+          })}
+        </div>
+
+        <BottomNav />
+
+        {/* Chordex splash — shown when switching back from Drumex */}
+        {chordexSplash !== 'hidden' && (
           <div style={{
-            position: 'absolute', inset: 0, zIndex: 500,
+            position: 'fixed', inset: 0, zIndex: 500,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             background: 'var(--app-bg)',
-            opacity:   drumSplash === 'out' ? 0 : 1,
-            transform: drumSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+            opacity:   chordexSplash === 'out' ? 0 : 1,
+            transform: chordexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
             transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
             pointerEvents: 'none',
           }}>
             <div style={{ color: 'var(--c-text-primary)', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <DrumexLogo size={60} />
+              <ChordexLogo size={60} />
             </div>
             <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <p style={{ color: 'var(--c-text-primary)', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Drumex</p>
-              <p style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Drum sheet editor</p>
+              <p style={{ color: 'var(--c-text-primary)', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Chordex</p>
+              <p style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Chord library & songs</p>
             </div>
           </div>
         )}
 
       </div>
-    );
-  }
-
-  return (
-    <div
-      className="flex flex-col w-full overflow-hidden select-none app-bg"
-      style={{
-        position: 'relative',
-        height: '100dvh',
-        paddingTop: 'env(safe-area-inset-top)',
-        '--panel-dur':      `${durMs}ms`,
-        '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
-        animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
-        transform: exitingToHub ? 'scale(1.10)' : undefined,
-        opacity:   exitingToHub ? 0 : undefined,
-        transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
-      } as React.CSSProperties}
-    >
-
-      {/* Panel container — only mount visible + exiting panels */}
-      <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
-        {ALL_PANELS.map(panel => {
-          const isVisible  = visiblePanel === panel;
-          const isExiting  = exitingPanel === panel;
-          if (!isVisible && !isExiting) return null;
-          const isEntering = isVisible && exitingPanel !== null;
-
-          let animClass = '';
-          if (isEntering) animClass = slideDir === 'right' ? 'panel-enter-right' : 'panel-enter-left';
-          else if (isExiting) animClass = slideDir === 'right' ? 'panel-exit-left' : 'panel-exit-right';
-
-          return (
-            <div
-              key={panel}
-              className={animClass}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                opacity: isExiting && !animClass ? 0 : undefined,
-                pointerEvents: isVisible && !isExiting ? 'auto' : 'none',
-                contain: 'layout style paint',
-              }}
-            >
-              <Suspense fallback={null}>
-                {panel === 'library'  && <LibraryPanel />}
-                {panel === 'chord'    && <ChordPanel />}
-                {panel === 'songs'    && <SongsPanel />}
-                {panel === 'settings' && <SettingsPanel />}
-              </Suspense>
-            </div>
-          );
-        })}
-      </div>
-
-      <BottomNav />
-
-      {/* Double-tap exit toast */}
-      {exitToast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 'calc(env(safe-area-inset-bottom) + 88px)',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(24,24,32,0.93)',
-            color: 'var(--c-text-primary)',
-            padding: '10px 22px',
-            borderRadius: '24px',
-            fontSize: '13px',
-            fontFamily: 'Inter, sans-serif',
-            zIndex: 9999,
-            pointerEvents: 'none',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          Press back or swipe again to exit
-        </div>
-      )}
-
-      {/* Chordex splash — shown when switching back from Drumex */}
-      {chordexSplash !== 'hidden' && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 500,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          background: 'var(--app-bg)',
-          opacity:   chordexSplash === 'out' ? 0 : 1,
-          transform: chordexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
-          transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
-          pointerEvents: 'none',
-        }}>
-          <div style={{ color: 'var(--c-text-primary)', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-            <ChordexLogo size={60} />
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-            <p style={{ color: 'var(--c-text-primary)', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Chordex</p>
-            <p style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Chord library & songs</p>
-          </div>
-        </div>
-      )}
-
-    </div>
+      {exitToast && renderExitToast()}
+    </>
   );
 }

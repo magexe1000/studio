@@ -1157,15 +1157,26 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
 
 /* ── Predictive Back Gesture Animations ───────────────────────────────────── */
 
-/* Viewport scaling and border-rounding */
-.predictive-back-active #root,
-.predictive-back-active .app-main-layout {
+/* Black out HTML/body behind the scaling card during gesture to make margins pop */
+.predictive-back-active,
+.predictive-back-active body {
+  background: #000000 !important;
+}
+
+/* Viewport scaling and border-rounding (only when NO subpage/overlay sheet is open) */
+.predictive-back-active:not(.predictive-back-has-overlay) .app-main-layout {
   transform: scale(calc(1 - var(--back-progress) * 0.065)) !important;
   border-radius: calc(var(--back-progress) * 20px) !important;
   transform-origin: calc(50% + var(--back-edge) * 50%) 50% !important;
   overflow: hidden !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
-  transition: transform 90ms linear, border-radius 90ms linear !important;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Viewport layout remains flat when overlays/sheets are open */
+.predictive-back-active.predictive-back-has-overlay .app-main-layout {
+  transform: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 /* Overlay transitions (modals, sheets, sheets-overlays) */
@@ -1177,18 +1188,26 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   transform: translateX(calc(var(--back-progress) * 100% * var(--back-edge))) scale(calc(1 - var(--back-progress) * 0.05)) !important;
   opacity: calc(1 - var(--back-progress) * 0.5) !important;
   transform-origin: center left !important;
-  transition: transform 90ms linear, opacity 90ms linear !important;
 }
 
 /* Transition restore animations when gesture completes/cancels */
-#root,
-.app-main-layout,
-.sheet-overlay,
-.modal-overlay,
-[role="dialog"],
-.settings-panel-sheet,
-.profile-panel-sheet {
+:not(.predictive-back-active) .app-main-layout,
+:not(.predictive-back-active) .sheet-overlay,
+:not(.predictive-back-active) .modal-overlay,
+:not(.predictive-back-active) [role="dialog"],
+:not(.predictive-back-active) .settings-panel-sheet,
+:not(.predictive-back-active) .profile-panel-sheet {
   transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1), 
               opacity 280ms cubic-bezier(0.34, 1.56, 0.64, 1), 
               border-radius 280ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* Instant finger tracking with no lag transition when gesture is active */
+.predictive-back-active .app-main-layout,
+.predictive-back-active .sheet-overlay,
+.predictive-back-active .modal-overlay,
+.predictive-back-active [role="dialog"],
+.predictive-back-active .settings-panel-sheet,
+.predictive-back-active .profile-panel-sheet {
+  transition: none !important;
 }
