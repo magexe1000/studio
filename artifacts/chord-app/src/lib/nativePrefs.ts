@@ -57,4 +57,6 @@ export const NATIVE_PREFS = {
    *  writes this on every boot so the native worker has a baseline
    *  even if the user hasn't opened the app since the last OTA. */
   OTA_INSTALLED: 'studio_ota.installed_version',
+  /** Whether OTA notifications are enabled by the user. */
+  OTA_NOTIFICATIONS_ENABLED: 'studio_ota.notifications_enabled',
 } as const;

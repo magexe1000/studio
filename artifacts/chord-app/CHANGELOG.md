@@ -17,6 +17,12 @@ Conventions:
 
 ---
 
+## 3.0.98
+
+- OTA Delivery System: Corrected the update manifest and server base URLs to point to the case-sensitive MAGEXE1000/Studio repository, resolving update delivery failures.
+- Native Background Worker: Fixed background notification polling URLs inside the native Capacitor service for future APK builds.
+- Workflow Stability: Upgraded GitHub Actions configurations to persistently commit version modifications and prevent repository coordinate drift.
+
 ## 3.0.95
 
 - Bouncy app entry spring animations (opacity, y-offset, scale) across all five sub-apps.

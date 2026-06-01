@@ -3465,7 +3465,7 @@ export default function DrumEditor() {
         )}
 
         {/* ── Prefs tab ─────────────────────────────────────────────────── */}
-        {activeTab === 'prefs' && <DrumPrefsPanel onScroll={drumScrollHide} />}
+        {activeTab === 'prefs' && <DrumPrefsPanel />}
 
       </div>
 

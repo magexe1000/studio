@@ -1,4 +1,4 @@
-﻿name: Build Android APK
+name: Build Android APK
 
 on:
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
 
       - name: Build web assets
         env:
-          VITE_OTA_BASE_URL: https://magexe1000.github.io/Chordex
+          VITE_OTA_BASE_URL: https://MAGEXE1000.github.io/Studio
         run: pnpm --filter @workspace/chord-app run build
 
       - name: Capacitor sync

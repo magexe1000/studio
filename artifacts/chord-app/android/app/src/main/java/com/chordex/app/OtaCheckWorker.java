@@ -48,9 +48,9 @@ public class OtaCheckWorker extends Worker {
      *  (private repo, network blocked, branch rename), we fall back to
      *  the Pages URL. Whichever returns a higher semver wins. */
     private static final String[] VERSION_URLS = new String[] {
-        "https://raw.githubusercontent.com/magexe1000/Chordex/main/docs/version.json",
-        "https://raw.githubusercontent.com/magexe1000/Chordex/master/docs/version.json",
-        "https://magexe1000.github.io/Chordex/version.json",
+        "https://raw.githubusercontent.com/MAGEXE1000/Studio/main/docs/version.json",
+        "https://raw.githubusercontent.com/MAGEXE1000/Studio/master/docs/version.json",
+        "https://MAGEXE1000.github.io/Studio/version.json",
     };
 
     /** Capacitor's default SharedPreferences group used by the

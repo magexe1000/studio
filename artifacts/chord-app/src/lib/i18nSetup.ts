@@ -28,7 +28,7 @@ void i18n.init({
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
   returnNull: false,
-});
+} as any);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const staticData = { en, es, de, fr, zh, pt, it, ja, ko } as any;
