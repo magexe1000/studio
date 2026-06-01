@@ -283,8 +283,8 @@ export default function UpdateIndicator({
           top: 'calc(env(safe-area-inset-top) + 14px)',
           right: isBanner ? '50%' : '14px',
           zIndex: 60,
-          width: isBanner ? 'min(360px, calc(100vw - 28px))' : 38,
-          height: isBanner ? 52 : 38,
+          width: isBanner ? 'min(360px, calc(100vw - 28px))' : 44,
+          height: isBanner ? 52 : 44,
           padding: isBanner ? '0 12px 0 14px' : 0,
           borderRadius: isBanner ? 16 : 999,
           display: 'flex',
@@ -293,14 +293,14 @@ export default function UpdateIndicator({
           justifyContent: isBanner ? 'flex-start' : 'center',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
-          background: `linear-gradient(135deg, ${tintFrom(22)}, ${tint(22)})`,
-          border: `1px solid ${tint(40)}`,
+          background: isBanner ? `linear-gradient(135deg, ${tintFrom(22)}, ${tint(22)})` : 'transparent',
+          border: isBanner ? `1px solid ${tint(40)}` : 'none',
           color: 'var(--c-text-primary)',
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
+          backdropFilter: isBanner ? 'blur(14px)' : 'none',
+          WebkitBackdropFilter: isBanner ? 'blur(14px)' : 'none',
           boxShadow: isBanner
             ? `0 16px 40px ${tint(25)}, inset 0 0 0 1px ${tint(13)}`
-            : `0 4px 14px ${tint(19)}`,
+            : 'none',
           fontFamily: 'Manrope, sans-serif',
           fontSize: 13,
           fontWeight: 700,
@@ -325,24 +325,24 @@ export default function UpdateIndicator({
             'opacity 380ms ease',
             'transform 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
           ].join(', '),
-          animation: isBanner ? undefined : 'pill-pulse 2.6s ease-in-out infinite',
           willChange: 'right, width, height, transform, border-radius',
         }}
       >
         <span
           className="material-symbols-outlined"
           style={{
-            fontSize: 18,
-            color: isBanner ? cTo : 'var(--c-text-primary)',
+            fontSize: isBanner ? 18 : 28,
+            color: cTo,
             flexShrink: 0,
-            transition: 'color 380ms ease',
+            transition: 'color 380ms ease, font-size 380ms ease',
+            filter: isBanner ? undefined : `drop-shadow(0 2px 10px color-mix(in srgb, ${cTo} 60%, transparent))`,
             // Gentle "download bounce" while in pill mode — the arrow
             // slides down a touch, fades, and resets, suggesting an
             // available download without being distracting.
             animation: isBanner ? undefined : 'pill-download-bounce 1.6s ease-in-out infinite',
           }}
         >
-          download
+          cloud_download
         </span>
 
         <span

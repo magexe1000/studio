@@ -184,11 +184,33 @@ export function AnimatedAppHeader({
   const prefersReduced = usePrefersReducedMotion();
   const speedScale = useAnimationSpeed();
 
+  const mergedTitleStyle: React.CSSProperties = {
+    fontFamily: 'Manrope, sans-serif',
+    fontWeight: 900,
+    fontSize: '2.6rem',
+    color: 'var(--c-text-primary)',
+    letterSpacing: '-0.04em',
+    lineHeight: 1,
+    marginTop: '12px',
+    marginBottom: '8px',
+    ...titleStyle,
+  };
+
+  const mergedSubtitleStyle: React.CSSProperties = {
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '13px',
+    color: 'var(--c-text-secondary)',
+    marginTop: '4px',
+    marginBottom: '24px',
+    lineHeight: 1.4,
+    ...subtitleStyle,
+  };
+
   if (prefersReduced) {
     return (
       <>
-        <h2 className={titleClassName} style={titleStyle}>{title}</h2>
-        {subtitle && <p className={subtitleClassName} style={subtitleStyle}>{subtitle}</p>}
+        <h2 className={titleClassName} style={mergedTitleStyle}>{title}</h2>
+        {subtitle && <p className={subtitleClassName} style={mergedSubtitleStyle}>{subtitle}</p>}
       </>
     );
   }
@@ -200,11 +222,11 @@ export function AnimatedAppHeader({
       <h2
         className={titleClassName}
         style={{
-          ...titleStyle,
           display: 'flex',
           flexWrap: 'wrap',
           overflow: 'hidden',
           lineHeight: '1.15',
+          ...mergedTitleStyle,
         }}
       >
         {chars.map((char, index) => {
@@ -236,7 +258,7 @@ export function AnimatedAppHeader({
       {subtitle && (
         <motion.p
           className={subtitleClassName}
-          style={subtitleStyle}
+          style={mergedSubtitleStyle}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{

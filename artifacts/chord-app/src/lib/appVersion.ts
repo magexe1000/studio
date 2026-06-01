@@ -53,18 +53,17 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Premium Animations",
+    heading: "Update Indicator Polish",
     items: [
-      'Bouncy app entry spring animations (scale, opacity, vertical offset) added seamlessly across all 5 apps.',
-      'Matrix-style continuous greeting scramble animation (no dots) that decrypts character-by-character on mount.',
-      'Staggered card and panel list reveals at 60fps for a sleek, progressive loading experience.',
+      'Replaced the solid blue circular update badge with a sleek, borderless floating glass cloud download icon.',
+      'Includes a glowing neon-glow aura accent and a premium bouncy micro-animation.',
     ],
   },
   {
-    heading: "Layout Fixes",
+    heading: "Sub-App Headings Reverted",
     items: [
-      'Restored full flexbox and grid stretching for Chordex Library category buttons, eliminating collapsed blank gaps.',
-      'Harded root application container for Chordex, preventing layout collapse or gray screens on load.',
+      'Restored the original premium large heading styles (2.6rem Manrope font at 900 weight) for sub-app section titles (Songs, Library, Beats).',
+      'Improved vertical spacing and contrast, ensuring titles are clearly distinguished from description text.',
     ],
   },
 ];
@@ -73,18 +72,17 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Animaciones Premium",
+    heading: "Indicador de Actualización",
     items: [
-      'Animaciones de entrada elásticas y dinámicas (escala, opacidad, desplazamiento vertical) agregadas en las 5 aplicaciones.',
-      'Animación de saludo con cifrado continuo tipo Matrix (sin puntos) que se desencripta carácter por carácter.',
-      'Revelación escalonada de tarjetas y listas a 60fps para una experiencia de carga progresiva y fluida.',
+      'Reemplazado el indicador circular azul por un elegante icono de nube de descarga flotante y sin bordes.',
+      'Incluye un aura brillante de acento y una microanimación elástica premium.',
     ],
   },
   {
-    heading: "Correcciones de Diseño",
+    heading: "Títulos de Secciones Restaurados",
     items: [
-      'Se restauró el estiramiento completo de flexbox y cuadrícula para los botones de la biblioteca Chordex, eliminando espacios vacíos.',
-      'Se fortaleció el contenedor raíz de Chordex, evitando colapsos de diseño o pantallas grises.',
+      'Se restauraron los títulos grandes originales (Manrope de 2.6rem con grosor 900) en las secciones de las sub-apps (Canciones, Biblioteca, Beats).',
+      'Mejorado el espaciado vertical y contraste, distinguiendo los títulos del texto descriptivo.',
     ],
   },
 ];
@@ -92,18 +90,17 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Premium-Animationen",
+    heading: "Update-Anzeige Verfeinert",
     items: [
-      'Federnde App-Einstiegsanimationen (Skalierung, Deckkraft, vertikaler Versatz) nahtlos in allen 5 Apps integriert.',
-      'Matrix-ähnliche kontinuierliche Begrüßungs-Verschlüsselungsanimation (ohne Punkte), die sich beim Start entschlüsselt.',
-      'Gestaffelte Karten- und Listenenthüllung bei 60fps für ein elegantes, progressives Ladeerlebnis.',
+      'Der solide blaue kreisförmige Update-Badge wurde durch ein elegantes, rahmenloses schwebendes Glas-Wolken-Download-Symbol ersetzt.',
+      'Bietet ein pulsierendes Neon-Glow-Aura-Design und eine federnde Mikro-Animation.',
     ],
   },
   {
-    heading: "Layout-Korrekturen",
+    heading: "Rubriküberschriften Wiederhergestellt",
     items: [
-      'Vollständige Flexbox- und Grid-Streckung für Chordex-Bibliothek-Kategorie-Schaltflächen wiederhergestellt.',
-      'Chordex-Root-Anwendungscontainer gehärtet, um Layout-Kollaps oder graue Bildschirme beim Laden zu verhindern.',
+      'Die ursprünglichen großen Premium-Überschriften (2.6rem Manrope-Schrift bei 900er Gewicht) für Rubriküberschriften in Sub-Apps (Songs, Library, Beats) wurden wiederhergestellt.',
+      'Verbesserter vertikaler Abstand und Kontrast zur besseren Unterscheidung vom Beschreibungstext.',
     ],
   },
 ];

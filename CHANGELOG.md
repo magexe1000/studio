@@ -17,6 +17,11 @@ Conventions:
 
 ---
 
+## 3.0.99
+
+- Update Indicator Polish: Replaced the solid blue circular update badge with a sleek, borderless floating glass cloud download icon, featuring a pulsing ambient neon accent glow and smooth bouncy micro-animation.
+- Sub-App Typography Reverted: Restored the original premium large section heading sizes (2.6rem Manrope font at 900 weight) across the Songs, Library, and Beats/Drums views to ensure optimal visual hierarchy and layout premiumness.
+
 ## 3.0.98
 
 - OTA Delivery System: Corrected the update manifest and server base URLs to point to the case-sensitive MAGEXE1000/Studio repository, resolving update delivery failures.
