@@ -211,13 +211,36 @@ export async function fetchRemoteVersion(
   const timer = ctrl ? setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS) : null;
 
   try {
-    const results = await Promise.all(urls.map((u) => fetchOne(u, sig)));
-    let best: RemoteVersionInfo | null = null;
-    for (const r of results) {
-      if (!r) continue;
-      if (!best || compareSemver(r.version, best.version) > 0) best = r;
-    }
-    return best;
+    // Race all URL fetches in parallel, resolving immediately on the first
+    // successful fetch of a valid version to bypass slow Pages CDNs and master 404s.
+    return await new Promise<RemoteVersionInfo | null>((resolve) => {
+      let resolved = false;
+      let failedCount = 0;
+      const total = urls.length;
+
+      urls.forEach((url) => {
+        fetchOne(url, sig)
+          .then((res) => {
+            if (resolved) return;
+            if (res) {
+              resolved = true;
+              resolve(res);
+            } else {
+              failedCount++;
+              if (failedCount === total) {
+                resolve(null);
+              }
+            }
+          })
+          .catch(() => {
+            if (resolved) return;
+            failedCount++;
+            if (failedCount === total) {
+              resolve(null);
+            }
+          });
+      });
+    });
   } finally {
     if (timer) clearTimeout(timer);
   }

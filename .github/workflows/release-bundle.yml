@@ -63,7 +63,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.gate.outputs.skip != 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Build OTA bundle
         if: steps.gate.outputs.skip != 'true'
