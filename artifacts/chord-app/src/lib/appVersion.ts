@@ -53,11 +53,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Stable Back Navigation",
+    heading: "Stable Navigation & Settings Polish",
     items: [
-      'Clean Reversion: Fully restored the production-proven v3.0.78 stable back-navigation stack to completely resolve the duplicate-swipe visual flashing bug.',
-      'Fluid Native Gestures: Standard system gestures and physical buttons now trigger clean, zero-flash page and sheet closure instantly exactly once with zero stutters.',
-      'Robust Event Loops: Eliminated the complex local Java callback intercepters, ensuring 100% stable, un-hijacked history pops across all WebView versions.',
+      'Nested Page Back Fix: Re-ordered the back gesture router in Settings so that sub-pages (Language, Updater, Changelog, and About) navigate back to the Settings menu instead of directly exiting to the home screen.',
+      'Footer Cleanup: Removed the duplicate "By Mag, With Love" text block from the main settings view, displaying it cleanly only within the About page.',
+      'Stable Back Navigation: Preserved the reliable v3.0.78 back gesture stack with zero stuttering or duplicate pop actions.',
     ],
   },
   {

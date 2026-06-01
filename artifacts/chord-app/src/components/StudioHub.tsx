@@ -1187,19 +1187,19 @@ function HubSettings({
   useEffect(() => { goBackRef.current = goBack; });
 
   useBackHandler('nested', () => {
-    // 1. If inside profile tab, return to settings tab
+    // 1. If inside a nested view (settingsPage), go back to main Hub
+    if (page !== 'main') {
+      goBack();
+      return true;
+    }
+    // 2. If inside profile tab, return to settings tab
     if (tab === 'profile') {
       setTab('settings');
       return true;
     }
-    // 2. If inside settings tab, return to home tab
+    // 3. If inside settings tab, return to home tab
     if (tab === 'settings') {
       setTab('home');
-      return true;
-    }
-    // 3. If inside a nested view (settingsPage), go back to main Hub
-    if (page !== 'main') {
-      goBack();
       return true;
     }
     return false;
@@ -1659,13 +1659,6 @@ function HubSettings({
       </div>
 
       <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
-
-      <div style={{ padding: '28px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 32, height: 2, borderRadius: 999, background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`, marginBottom: 4 }} />
-        <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>
-          {t.settings.about.footer}
-        </p>
-      </div>
     </div>
   );
 }
