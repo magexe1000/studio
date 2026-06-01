@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.31';
+export const APP_VERSION = '3.1.32';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-01'; // 3.1.31
+export const APP_VERSION_DATE = '2026-06-01'; // 3.1.32
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,11 +53,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Predictive Back Accuracy",
+    heading: "Predictive Back Gestures",
     items: [
-      'In-App Swipe Exclusions: Completely disabled the custom JS touch listener to eliminate accidental back actions and exit toast triggers when swiping or sliding horizontally inside the sub-apps (sliders, sequencer grids, piano keys, drum pads).',
-      'Double Exit Accuracy: Added an active user interaction listener that instantly resets the double-press exit guard on any tap, click, or scroll, preventing accidental app closure during normal play.',
-      'Native back gestures (system-level edge swipes) and custom on-screen header back buttons remain fully operational with gorgeous springy scale-bounce animation feedback.',
+      'Fluid Gesture Preview: Restored the custom JS edge-swipe back listener to render stunning viewport scale-down previews while dragging your finger from the bezel.',
+      'Premium Cancel Animations: Releasing early without completing the gesture now plays a gorgeous spring-back cubic-bezier viewport recovery animation with zero flashing.',
+      'Single-Trigger Logic: Integrated completing swipes directly with history.back() to execute unified single-trigger state updates and 100% correct transitions.',
+      'Accurate Play Guard: Kept interactive in-app play areas (keys, pads, sliders) completely isolated from swipe actions and double-back exit triggers.',
     ],
   },
   {

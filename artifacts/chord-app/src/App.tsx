@@ -520,11 +520,105 @@ export default function App() {
     void initPredictiveBack();
   }, []);
 
-  // 2. Custom JS viewport edge-swipe listener was removed to completely eliminate
-  // accidental back gestures and exit toast triggers during in-app horizontal drags,
-  // scrolls, piano/drum pad touches, or slider adjustments.
-  // Native back gestures (system-level swipes) and custom on-screen back buttons
-  // remain fully functional with premium visual feedback and zero false positives.
+  // 2. Viewport Left Edge Swipe Gesture listener for Web, iOS, and Android < 14.
+  // This simulates the predictive back scaling and peel transition while sliding.
+  useEffect(() => {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isSwiping = false;
+    const threshold = 160; // swipe distance in pixels for 100% progress
+
+    const onTouchStart = (e: TouchEvent) => {
+      // Only trigger if exactly one finger is touching
+      if (e.touches.length !== 1) return;
+
+      const touch = e.touches[0];
+      // Strictly require touch to start extremely close to the left bezel (within 18px)
+      if (touch.clientX < 18) {
+        const target = e.target as HTMLElement;
+        // Do not trigger if touching interactive controls to protect in-app sliding/scrolling
+        if (
+          target && (
+            target.closest('input') ||
+            target.closest('button') ||
+            target.closest('select') ||
+            target.closest('textarea') ||
+            target.closest('canvas') ||
+            target.closest('[role="slider"]') ||
+            target.closest('[role="button"]') ||
+            target.closest('.no-swipe') ||
+            target.closest('.slider') ||
+            target.closest('.knob') ||
+            target.closest('.sequencer') ||
+            target.closest('.piano-key') ||
+            target.closest('.fretboard') ||
+            target.closest('.drum-pad') ||
+            target.closest('a')
+          )
+        ) {
+          return;
+        }
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        isSwiping = true;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isSwiping) return;
+      const touch = e.touches[0];
+      const dX = touch.clientX - touchStartX;
+      const dY = touch.clientY - touchStartY;
+
+      // Cancel if user is swiping vertically more than horizontally, or is swiping highly vertically
+      if (Math.abs(dY) > Math.abs(dX) * 0.8 && dX < 30) {
+        isSwiping = false;
+        clearCssProgress();
+        return;
+      }
+      if (Math.abs(dY) > 40) {
+        isSwiping = false;
+        clearCssProgress();
+        return;
+      }
+
+      if (dX > 0) {
+        // Prevent default browser history actions (iOS native swipe-back) to avoid double-firing
+        if (e.cancelable) e.preventDefault();
+        const progress = Math.min(dX / threshold, 1.0);
+        applyCssProgress(progress, 'left');
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!isSwiping) return;
+      isSwiping = false;
+
+      const touch = e.changedTouches[0];
+      const dX = touch.clientX - touchStartX;
+      const progress = Math.min(dX / threshold, 1.0);
+
+      // Instantly clear CSS progress so we animate back or transition natively
+      clearCssProgress();
+
+      if (progress > 0.45) {
+        // Gesture completed: trigger the canonical native back action.
+        // This fires the popstate / backButton listener exactly once, preventing double-navigation.
+        window.history.back();
+      }
+      // If progress <= 0.45, it cancels and scales back to 100% naturally without navigating.
+    };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: false });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []);
 
   // ── Hub-return exit animation ────────────────────────────────────────────
   const [exitingToHub, setExitingToHub] = useState(false);
