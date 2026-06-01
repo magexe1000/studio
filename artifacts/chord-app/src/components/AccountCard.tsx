@@ -61,6 +61,20 @@ function formatRelative(ms: number | null, lang: string): string {
   return `${Math.floor(sec / 86400)}d ago`;
 }
 
+function getSyncPausedLabel(lang: string): string {
+  switch (lang) {
+    case 'es': return 'Sincronización pausada';
+    case 'de': return 'Synchronisierung pausiert';
+    case 'fr': return 'Synchronisation en pause';
+    case 'it': return 'Sincronizzazione in pausa';
+    case 'pt': return 'Sincronização pausada';
+    case 'ja': return '同期は一時停止中';
+    case 'ko': return '동기화 일시 중지됨';
+    case 'zh': return '同步已暂停';
+    default: return 'Sync is paused';
+  }
+}
+
 /* ─── Privacy & Data Inline SVG Icons ─── */
 
 function DashboardIconSVG({ color = '#a78bfa' }: { color?: string }) {
@@ -213,12 +227,24 @@ function SyncProblemIconSVG() {
   );
 }
 
+function CloudOffIconSVG() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" fill="var(--c-text-secondary)" opacity="0.15" />
+      <circle cx="12" cy="12" r="10" stroke="var(--c-text-secondary)" strokeWidth="1.5" fill="none" />
+      <path d="M2.5 2.5l19 19" stroke="var(--c-text-secondary)" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M7.3 7.3A5.5 5.5 0 009 17h6.5a3.5 3.5 0 002.1-6.3 5.5 5.5 0 00-8.1-4" stroke="var(--c-text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /* ─── End Privacy & Data SVG Icons ─── */
 
 export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSettings }: Props) {
   const tRoot = useT();
   const t = tRoot.hub.accountSection;
   const lang = useChordStore((s) => s.settings.language) ?? 'en';
+  const syncAcrossDevices = useChordStore((s) => s.settings.syncAcrossDevices);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -319,7 +345,9 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
     // sitting idle), show a green check_circle to make "everything is
     // backed up" visually obvious — much friendlier than the neutral
     // cloud icon, which read as ambient/inactive.
-    const isHealthySynced = !isSyncing && !isError && (justSynced || sync.lastSyncedMs != null);
+    // However, if syncAcrossDevices is false, background sync is paused,
+    // so we should show a neutral grey cloud_off and "Sync is paused" text.
+    const isHealthySynced = syncAcrossDevices && !isSyncing && !isError && (justSynced || sync.lastSyncedMs != null);
     const iconName = isSyncing
       ? 'sync'
       : isError
@@ -340,9 +368,11 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
         ? t.syncFailed
         : justSynced
           ? t.syncedJustNow
-          : sync.lastSyncedMs
-            ? `${t.synced} · ${formatRelative(sync.lastSyncedMs, lang)}`
-            : t.notSyncedYet;
+          : !syncAcrossDevices
+            ? getSyncPausedLabel(lang)
+            : sync.lastSyncedMs
+              ? `${t.synced} · ${formatRelative(sync.lastSyncedMs, lang)}`
+              : t.notSyncedYet;
     return (
       <div style={cardStyle}>
         <SyncAnimations />
@@ -1217,6 +1247,17 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       const stored = localStorage.getItem(`chordex_cp_${user.uid}`);
       setCustomPhoto(stored || null);
     } catch { setCustomPhoto(null); }
+
+    const onCoverChanged = (e: Event) => {
+      const detail = (e as CustomEvent<{ uid: string; cover: string | null }>).detail;
+      if (detail && detail.uid === user.uid) {
+        setCustomPhoto(detail.cover);
+      }
+    };
+    window.addEventListener('chordex:user-cover-changed', onCoverChanged);
+    return () => {
+      window.removeEventListener('chordex:user-cover-changed', onCoverChanged);
+    };
   }, [user?.uid]);
 
   // Register a back handler to close any active sheets when open
@@ -1435,6 +1476,11 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       try { localStorage.setItem(`chordex_cp_${user!.uid}`, dataUrl); } catch { /* quota */ }
       setCustomPhoto(dataUrl);
       setUserAvatar(user!.uid, null);
+      window.dispatchEvent(
+        new CustomEvent('chordex:user-cover-changed', {
+          detail: { uid: user!.uid, cover: dataUrl },
+        })
+      );
     };
     reader.readAsDataURL(file);
   }
@@ -1443,6 +1489,11 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     if (!user?.uid) return;
     localStorage.removeItem(`chordex_cp_${user.uid}`);
     setCustomPhoto(null);
+    window.dispatchEvent(
+      new CustomEvent('chordex:user-cover-changed', {
+        detail: { uid: user.uid, cover: null },
+      })
+    );
   }
 
   const canConfirmEmail = !busy
@@ -2353,7 +2404,12 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                             className={sync.phase === 'success' ? 'sync-pop' : ''}
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           >
-                            {sync.phase === 'error' ? <SyncProblemIconSVG /> : <CheckCircleIconSVG />}
+                            {sync.phase === 'error'
+                              ? <SyncProblemIconSVG />
+                              : !settings.syncAcrossDevices
+                                ? <CloudOffIconSVG />
+                                : <CheckCircleIconSVG />
+                            }
                           </span>
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -2362,14 +2418,18 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                               ? (lang === 'es' ? 'Sincronizando...' : 'Syncing...')
                               : sync.phase === 'error'
                                 ? (lang === 'es' ? 'Error al sincronizar' : 'Sync Failed')
-                                : (lang === 'es' ? 'Sincronizado con la nube' : 'Cloud Sync Active')}
+                                : !settings.syncAcrossDevices
+                                  ? getSyncPausedLabel(lang)
+                                  : (lang === 'es' ? 'Sincronizado con la nube' : 'Cloud Sync Active')}
                           </span>
                           <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>
                             {sync.phase === 'error' && sync.error
                               ? sync.error
-                              : sync.lastSyncedMs
-                                ? `${lang === 'es' ? 'Sincronizado' : 'Synced'} · ${formatRelative(sync.lastSyncedMs, lang)}`
-                                : (lang === 'es' ? 'No sincronizado aún' : 'Not synced yet')}
+                              : !settings.syncAcrossDevices
+                                ? (lang === 'es' ? 'Activa "Sincronizar entre dispositivos" para reanudar.' : 'Enable "Sync across devices" to resume.')
+                                : sync.lastSyncedMs
+                                  ? `${lang === 'es' ? 'Sincronizado' : 'Synced'} · ${formatRelative(sync.lastSyncedMs, lang)}`
+                                  : (lang === 'es' ? 'No sincronizado aún' : 'Not synced yet')}
                           </p>
                         </div>
                       </div>

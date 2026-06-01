@@ -1,9 +1,10 @@
-import { doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 import { getFirebaseDb } from './firebase';
 import { subscribeAuth, type AuthUser, signOut } from './auth';
 import { isNative } from './capgoUpdater';
 import { getAllTakes, saveTake, type TakeRecord } from '../vocalex/takesDb';
 import { getAllSessions, saveSession, type LabSession, type LabLayer } from '../vocalex/labSessionDb';
+import { useChordStore } from '../store/useChordStore';
 
 /**
  * Cloud sync engine for Chordex / Drumex / StageX / Vocalex.
@@ -481,6 +482,16 @@ function snapshotProfile(): string | null {
   }
 }
 
+function snapshotProfileCover(): string | null {
+  if (!currentUser) return null;
+  try {
+    const raw = localStorage.getItem(`chordex_cp_${currentUser.uid}`);
+    return raw ? JSON.stringify({ cover: raw }) : null;
+  } catch {
+    return null;
+  }
+}
+
 function snapshotStagex(): Promise<StagexSnapshot | null> {
   if (!stageIframe || !stageIframe.contentWindow) {
     const fallback: StagexSnapshot = {};
@@ -639,15 +650,170 @@ async function restoreVocalexLab(records: SessionSyncRecord[]): Promise<void> {
   }
 }
 
+function mergeChordexState(localRaw: string | null, cloudRaw: string): string {
+  if (!localRaw) return cloudRaw;
+  try {
+    const localObj = JSON.parse(localRaw);
+    const cloudObj = JSON.parse(cloudRaw);
+    if (!localObj.state || !cloudObj.state) return cloudRaw;
+
+    const local = localObj.state;
+    const cloud = cloudObj.state;
+
+    // 1. Favorites
+    const favorites = Array.from(new Set([...(local.favorites || []), ...(cloud.favorites || [])]));
+
+    // 2. Recent Chords
+    const recentChords = Array.from(new Set([...(local.recentChords || []), ...(cloud.recentChords || [])])).slice(0, 10);
+
+    // 3. Progressions (by id, latest wins)
+    const progressionsMap = new Map();
+    (local.progressions || []).forEach((p: any) => progressionsMap.set(p.id, p));
+    (cloud.progressions || []).forEach((p: any) => {
+      progressionsMap.set(p.id, p);
+    });
+    const progressions = Array.from(progressionsMap.values());
+
+    // 4. Presets (by id, latest updatedAt wins)
+    const presetsMap = new Map();
+    (local.presets || []).forEach((p: any) => presetsMap.set(p.id, p));
+    (cloud.presets || []).forEach((p: any) => {
+      const existing = presetsMap.get(p.id);
+      if (!existing || (p.updatedAt || 0) > (existing.updatedAt || 0)) {
+        presetsMap.set(p.id, p);
+      }
+    });
+    const presets = Array.from(presetsMap.values());
+
+    // 5. Custom Chords (by id, latest createdAt wins)
+    const customMap = new Map();
+    (local.customChords || []).forEach((p: any) => customMap.set(p.id, p));
+    (cloud.customChords || []).forEach((p: any) => {
+      const existing = customMap.get(p.id);
+      if (!existing || (p.createdAt || 0) > (existing.createdAt || 0)) {
+        customMap.set(p.id, p);
+      }
+    });
+    const customChords = Array.from(customMap.values());
+
+    // 6. Chord Usage (max count wins)
+    const chordUsage = { ...(local.chordUsage || {}) };
+    for (const [k, v] of Object.entries(cloud.chordUsage || {})) {
+      chordUsage[k] = Math.max(chordUsage[k] ?? 0, v as number);
+    }
+
+    // 7. Settings (cloud overrides local but preserves other fields)
+    const settings = { ...(local.settings || {}), ...(cloud.settings || {}) };
+
+    // 8. Other properties
+    const currentProgressionChords = cloud.currentProgressionChords || local.currentProgressionChords || [];
+    const transpositions = { ...(local.transpositions || {}), ...(cloud.transpositions || {}) };
+    const lastSession = { ...(local.lastSession || {}), ...(cloud.lastSession || {}) };
+
+    const mergedState = {
+      ...local,
+      favorites,
+      recentChords,
+      progressions,
+      presets,
+      customChords,
+      chordUsage,
+      settings,
+      currentProgressionChords,
+      transpositions,
+      lastSession,
+    };
+
+    return JSON.stringify({
+      state: mergedState,
+      version: cloudObj.version || localObj.version || 9,
+    });
+  } catch (err) {
+    console.warn('[sync] failed to merge chordex state:', err);
+    return cloudRaw;
+  }
+}
+
+function mergeDrumexState(localRaw: string | null, cloudRaw: string): string {
+  if (!localRaw) return cloudRaw;
+  try {
+    const localObj = JSON.parse(localRaw);
+    const cloudObj = JSON.parse(cloudRaw);
+    if (!localObj.state || !cloudObj.state) return cloudRaw;
+
+    const local = localObj.state;
+    const cloud = cloudObj.state;
+
+    // 1. Drum Songs (by id, latest updatedAt wins)
+    const songsMap = new Map();
+    (local.drumSongs || []).forEach((s: any) => songsMap.set(s.id, s));
+    (cloud.drumSongs || []).forEach((s: any) => {
+      const existing = songsMap.get(s.id);
+      if (!existing || (s.updatedAt || 0) > (existing.updatedAt || 0)) {
+        songsMap.set(s.id, s);
+      }
+    });
+    const drumSongs = Array.from(songsMap.values());
+
+    // 2. Grooves (by id, latest savedAt wins)
+    const groovesMap = new Map();
+    (local.grooves || []).forEach((g: any) => groovesMap.set(g.id, g));
+    (cloud.grooves || []).forEach((g: any) => {
+      const existing = groovesMap.get(g.id);
+      if (!existing || (g.savedAt || 0) > (existing.savedAt || 0)) {
+        groovesMap.set(g.id, g);
+      }
+    });
+    const grooves = Array.from(groovesMap.values());
+
+    // 3. Other fields
+    const soundMap = { ...(local.soundMap || {}), ...(cloud.soundMap || {}) };
+    const volumeMap = { ...(local.volumeMap || {}), ...(cloud.volumeMap || {}) };
+    const instFX = { ...(local.instFX || {}), ...(cloud.instFX || {}) };
+    const instPlugins = { ...(local.instPlugins || {}), ...(cloud.instPlugins || {}) };
+    const drumPrefs = { ...(local.drumPrefs || {}), ...(cloud.drumPrefs || {}) };
+    const houseInstVelOverride = { ...(local.houseInstVelOverride || {}), ...(cloud.houseInstVelOverride || {}) };
+
+    const mergedState = {
+      ...local,
+      ...cloud,
+      drumSongs,
+      grooves,
+      soundMap,
+      volumeMap,
+      instFX,
+      instPlugins,
+      drumPrefs,
+      houseInstVelOverride,
+    };
+
+    return JSON.stringify({
+      state: mergedState,
+      version: cloudObj.version || localObj.version || 1,
+    });
+  } catch (err) {
+    console.warn('[sync] failed to merge drumex state:', err);
+    return cloudRaw;
+  }
+}
+
 // ── Local restore ────────────────────────────────────────────────────────────
 
 function restoreChordex(raw: string) {
-  try { localStorage.setItem(CHORDEX_LS_KEY, raw); } catch { /* noop */ }
+  try {
+    const local = localStorage.getItem(CHORDEX_LS_KEY);
+    const merged = mergeChordexState(local, raw);
+    localStorage.setItem(CHORDEX_LS_KEY, merged);
+  } catch { /* noop */ }
   triggerStorageEvent(CHORDEX_LS_KEY);
 }
 
 function restoreDrumex(raw: string) {
-  try { localStorage.setItem(DRUMEX_LS_KEY, raw); } catch { /* noop */ }
+  try {
+    const local = localStorage.getItem(DRUMEX_LS_KEY);
+    const merged = mergeDrumexState(local, raw);
+    localStorage.setItem(DRUMEX_LS_KEY, merged);
+  } catch { /* noop */ }
   triggerStorageEvent(DRUMEX_LS_KEY);
 }
 
@@ -676,6 +842,27 @@ function restoreProfile(raw: string) {
     }
   } catch (err) {
     console.warn('[sync] failed to restore profile:', err);
+  }
+}
+
+function restoreProfileCover(raw: string) {
+  if (!currentUser) return;
+  try {
+    const parsed = JSON.parse(raw);
+    const cover = parsed.cover;
+    if (cover) {
+      const existing = localStorage.getItem(`chordex_cp_${currentUser.uid}`);
+      if (existing !== cover) {
+        localStorage.setItem(`chordex_cp_${currentUser.uid}`, cover);
+        window.dispatchEvent(
+          new CustomEvent('chordex:user-cover-changed', {
+            detail: { uid: currentUser.uid, cover },
+          }),
+        );
+      }
+    }
+  } catch (err) {
+    console.warn('[sync] failed to restore profile cover:', err);
   }
 }
 
@@ -756,10 +943,11 @@ async function applyCloudBody(app: SyncAppKey, body: unknown, meta: Meta, cloudU
     return true;
   }
   if (typeof body === 'string') {
-    if (app === 'chordex')       restoreChordex(body);
-    else if (app === 'drumex')   restoreDrumex(body);
-    else if (app === 'drumexUI') restoreDrumexUI(body);
-    else if (app === 'profile')  restoreProfile(body);
+    if (app === 'chordex')            restoreChordex(body);
+    else if (app === 'drumex')        restoreDrumex(body);
+    else if (app === 'drumexUI')      restoreDrumexUI(body);
+    else if (app === 'profile')       restoreProfile(body);
+    else if (app === 'profile-cover') restoreProfileCover(body);
     else return false;
     meta[app] = { lastHash: hashString(body), cloudUpdatedMs };
     return true;
@@ -866,14 +1054,14 @@ async function pullApp(
 
 // ── The single run path ──────────────────────────────────────────────────────
 
-const ALL_APPS: SyncAppKey[] = ['chordex', 'drumex', 'drumexUI', 'stagex', 'vocalex-takes', 'vocalex-lab', 'profile'];
+const ALL_APPS: SyncAppKey[] = ['chordex', 'drumex', 'drumexUI', 'stagex', 'vocalex-takes', 'vocalex-lab', 'profile', 'profile-cover'];
 
 /**
  * Build the parallel work list for a push run. Skipping no-change
  * apps here keeps Firestore traffic minimal.
  */
 async function collectPushWork(meta: Meta): Promise<Array<{ app: SyncAppKey; raw: string | StagexSnapshot | unknown[] }>> {
-  const [chordex, drumex, drumexUI, stagex, vTakes, vLab, profile] = await Promise.all([
+  const [chordex, drumex, drumexUI, stagex, vTakes, vLab, profile, profileCover] = await Promise.all([
     Promise.resolve(snapshotChordex()),
     Promise.resolve(snapshotDrumex()),
     Promise.resolve(snapshotDrumexUI()),
@@ -881,16 +1069,108 @@ async function collectPushWork(meta: Meta): Promise<Array<{ app: SyncAppKey; raw
     snapshotVocalexTakes(),
     snapshotVocalexLab(),
     Promise.resolve(snapshotProfile()),
+    Promise.resolve(snapshotProfileCover()),
   ]);
   const work: Array<{ app: SyncAppKey; raw: string | StagexSnapshot | unknown[] }> = [];
-  if (chordex  && hashString(chordex)                      !== meta.chordex?.lastHash)          work.push({ app: 'chordex',       raw: chordex });
-  if (drumex   && hashString(drumex)                       !== meta.drumex?.lastHash)           work.push({ app: 'drumex',        raw: drumex });
-  if (drumexUI && hashString(drumexUI)                     !== meta.drumexUI?.lastHash)         work.push({ app: 'drumexUI',      raw: drumexUI });
-  if (stagex   && hashString(JSON.stringify(stagex))       !== meta.stagex?.lastHash)           work.push({ app: 'stagex',        raw: stagex });
-  if (vTakes   && hashString(JSON.stringify(vTakes))       !== meta['vocalex-takes']?.lastHash) work.push({ app: 'vocalex-takes', raw: vTakes });
-  if (vLab     && hashString(JSON.stringify(vLab))         !== meta['vocalex-lab']?.lastHash)   work.push({ app: 'vocalex-lab',   raw: vLab });
-  if (profile  && hashString(profile)                      !== meta.profile?.lastHash)          work.push({ app: 'profile',       raw: profile });
+  if (chordex      && hashString(chordex)                      !== meta.chordex?.lastHash)          work.push({ app: 'chordex',       raw: chordex });
+  if (drumex       && hashString(drumex)                       !== meta.drumex?.lastHash)           work.push({ app: 'drumex',        raw: drumex });
+  if (drumexUI     && hashString(drumexUI)                     !== meta.drumexUI?.lastHash)         work.push({ app: 'drumexUI',      raw: drumexUI });
+  if (stagex       && hashString(JSON.stringify(stagex))       !== meta.stagex?.lastHash)           work.push({ app: 'stagex',        raw: stagex });
+  if (vTakes       && hashString(JSON.stringify(vTakes))       !== meta['vocalex-takes']?.lastHash) work.push({ app: 'vocalex-takes', raw: vTakes });
+  if (vLab         && hashString(JSON.stringify(vLab))         !== meta['vocalex-lab']?.lastHash)   work.push({ app: 'vocalex-lab',   raw: vLab });
+  if (profile      && hashString(profile)                      !== meta.profile?.lastHash)          work.push({ app: 'profile',       raw: profile });
+  if (profileCover && hashString(profileCover)                 !== meta['profile-cover']?.lastHash) work.push({ app: 'profile-cover', raw: profileCover });
   return work;
+}
+
+async function triggerAutoBackup(): Promise<void> {
+  if (!currentUser) return;
+  const db = getFirebaseDb();
+  if (!db) return;
+
+  const settings = useChordStore.getState().settings;
+  if (!settings.autoBackup) return;
+
+  const frequency = settings.backupFrequency ?? 'daily'; // 'daily' | 'weekly' | 'monthly'
+  const retention = settings.backupRetention ?? 'forever'; // 'forever' | '90days' | '30days'
+
+  // Read the last auto backup time
+  const lastBackupKey = `chordex_last_auto_backup_ms_${currentUser.uid}`;
+  const lastBackupStr = localStorage.getItem(lastBackupKey);
+  const lastBackupMs = lastBackupStr ? parseInt(lastBackupStr, 10) : 0;
+
+  const now = Date.now();
+  let frequencyMs = 24 * 60 * 60 * 1000; // daily default
+  if (frequency === 'weekly') {
+    frequencyMs = 7 * 24 * 60 * 60 * 1000;
+  } else if (frequency === 'monthly') {
+    frequencyMs = 30 * 24 * 60 * 60 * 1000;
+  }
+
+  if (now - lastBackupMs < frequencyMs) {
+    // Too soon to backup
+    return;
+  }
+
+  console.log(`[sync] Auto Backup triggered (frequency: ${frequency})`);
+
+  try {
+    // 1. Gather all snapshots
+    const [chordex, drumex, drumexUI, stagex, vTakes, vLab, profile, profileCover] = await Promise.all([
+      Promise.resolve(snapshotChordex()),
+      Promise.resolve(snapshotDrumex()),
+      Promise.resolve(snapshotDrumexUI()),
+      snapshotStagex(),
+      snapshotVocalexTakes(),
+      snapshotVocalexLab(),
+      Promise.resolve(snapshotProfile()),
+      Promise.resolve(snapshotProfileCover()),
+    ]);
+
+    const backupData = {
+      chordex,
+      drumex,
+      drumexUI,
+      stagex,
+      'vocalex-takes': vTakes,
+      'vocalex-lab': vLab,
+      profile,
+      'profile-cover': profileCover,
+    };
+
+    // 2. Write backup doc
+    const backupsColl = collection(db, 'users', currentUser.uid, 'backups');
+    const backupDocRef = doc(backupsColl);
+    await setDoc(backupDocRef, {
+      createdAt: serverTimestamp(),
+      deviceId: deviceId(),
+      frequency,
+      data: backupData,
+    });
+
+    localStorage.setItem(lastBackupKey, now.toString());
+    console.log(`[sync] Auto Backup saved successfully to Firestore: ${backupDocRef.id}`);
+
+    // 3. Process retention (delete old backups)
+    if (retention !== 'forever') {
+      const days = retention === '30days' ? 30 : 90;
+      const cutoffMs = now - (days * 24 * 60 * 60 * 1000);
+
+      // Query backups sorted by createdAt desc
+      const q = query(backupsColl, orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      for (const docSnap of snap.docs) {
+        const data = docSnap.data();
+        const createdAt = data.createdAt?.toDate?.()?.getTime() || 0;
+        if (createdAt && createdAt < cutoffMs) {
+          console.log(`[sync] Auto Backup retention: deleting backup ${docSnap.id} older than ${days} days`);
+          await deleteDoc(docSnap.ref);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[sync] Auto Backup failed:', err);
+  }
 }
 
 /**
@@ -1063,6 +1343,7 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
     if (neverStuckHandle) { clearTimeout(neverStuckHandle); neverStuckHandle = null; }
     if (currentUser) {
       void registerDevice(currentUser.uid);
+      void triggerAutoBackup();
     }
     logSuccess(Date.now() - startedAt, pushedCount, pulledCount);
   } catch (e) {
@@ -1165,6 +1446,13 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
 function enqueueRun(reason: RunReason, mode: RunMode = 'push-only'): Promise<void> {
   if (!currentUser) return Promise.resolve();
 
+  // Background ticks, visibilities, beforeunloads, and flush updates are gated by syncAcrossDevices setting.
+  // Explicit manual triggers ('manual' and 'retry') and the critical login 'initial' pull must always run.
+  const syncEnabled = useChordStore.getState().settings.syncAcrossDevices;
+  if (!syncEnabled && reason !== 'manual' && reason !== 'retry' && reason !== 'initial') {
+    return Promise.resolve();
+  }
+
   // If the initial pull has not completed, we MUST force pull-then-push
   // to avoid overwriting cloud data with empty local defaults.
   if (!readFirstPullDone(currentUser.uid)) {
@@ -1255,6 +1543,8 @@ let onMessage: ((e: MessageEvent) => void) | null = null;
 let onVisibility: (() => void) | null = null;
 let onBeforeUnload: (() => void) | null = null;
 let onAvatarChanged: (() => void) | null = null;
+let onCoverChanged: (() => void) | null = null;
+let onOnline: (() => void) | null = null;
 
 export function attachSyncEngine(): void {
   if (attached) return;
@@ -1270,6 +1560,17 @@ export function attachSyncEngine(): void {
     requestFlush();
   };
   window.addEventListener('chordex:user-avatar-changed', onAvatarChanged);
+
+  onCoverChanged = () => {
+    requestFlush();
+  };
+  window.addEventListener('chordex:user-cover-changed', onCoverChanged);
+
+  onOnline = () => {
+    console.info('[sync] network connection restored, triggering flush');
+    void enqueueRun('manual', 'pull-then-push');
+  };
+  window.addEventListener('online', onOnline);
 
   unsubAuth = subscribeAuth((u) => {
     // Bumping the epoch makes any in-flight run discard its results —
@@ -1396,6 +1697,8 @@ export function detachSyncEngine(): void {
   if (neverStuckHandle) { clearTimeout(neverStuckHandle); neverStuckHandle = null; }
   if (onMessage) { window.removeEventListener('message', onMessage); onMessage = null; }
   if (onAvatarChanged) { window.removeEventListener('chordex:user-avatar-changed', onAvatarChanged); onAvatarChanged = null; }
+  if (onCoverChanged) { window.removeEventListener('chordex:user-cover-changed', onCoverChanged); onCoverChanged = null; }
+  if (onOnline) { window.removeEventListener('online', onOnline); onOnline = null; }
   if (onVisibility) { document.removeEventListener('visibilitychange', onVisibility); onVisibility = null; }
   if (onBeforeUnload) { window.removeEventListener('beforeunload', onBeforeUnload); onBeforeUnload = null; }
   pendingFollowup = false;
