@@ -1,6 +1,6 @@
 {
-  "version": "3.1.14",
-  "changelog": "• Google Verification: Added the official Google Search Console meta tag to the index page to verify the domain and ensure robust search engine indexing.",
+  "version": "3.1.15",
+  "changelog": "Version 3.1.15",
   "mandatory": false,
-  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.1.14/bundle-3.1.14.zip"
+  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.15/bundle-3.1.15.zip"
 }
