@@ -7,6 +7,8 @@ import translations from '../lib/i18n';
 import { useT } from '../lib/useT';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
+import SmartLoading from './SmartLoading';
+import { StagexPanelSkeleton } from './StudioSkeleton';
 
 type StageWin = Window & {
   stageGoBack?: () => boolean;
@@ -214,6 +216,7 @@ export default function StagexPanel() {
   const [pressedTab, setPressedTab] = useState<string | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
   const [liveMode, setLiveMode] = useState(false);
+  const [iframeLoading, setIframeLoading] = useState(true);
   const navCollapsed = useNavCollapsed();
   const [expandedStageH, setExpandedStageH] = useState(52);
   const [expandedStageW, setExpandedStageW] = useState(380);
@@ -344,6 +347,7 @@ export default function StagexPanel() {
     const iframe = iframeRef.current;
     if (!iframe) return;
     const handleLoad = () => {
+      setIframeLoading(false);
       iframeReady.current = true;
       try { iframe.contentWindow?.postMessage('stage-core-ping', window.location.origin); } catch {}
       injectAccentVars(iframe, accent.from, accent.to);
@@ -770,6 +774,12 @@ export default function StagexPanel() {
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', display: 'block', backgroundColor: stageBg }}
           allow="clipboard-write"
         />
+
+        {iframeLoading && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: stageBg }}>
+            <SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />
+          </div>
+        )}
 
         {/* ── Live-mode toggle (eye) — stacked 8px above the FAB ── */}
         {curView === 'Editor' && (

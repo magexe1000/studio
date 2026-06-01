@@ -13,10 +13,14 @@ import { APP_VERSION_LABEL } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate } from '../lib/otaUpdate';
+import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
+import StudioUpdateScreen from './StudioUpdateScreen';
 import StudioTitleReveal from './StudioTitleReveal';
 import { EncryptedText } from './ui/encrypted-text';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import ProfileDropdown from './kokonutui/profile-dropdown';
+import SmartLoading from './SmartLoading';
+import { StudioSkeletonProfile, StudioSkeletonList } from './StudioSkeleton';
 
 // AccountCard pulls Firebase (auth + firestore). Lazy-load it so Firebase
 // stays out of the initial bundle graph; only fetched when Settings tab opens.
@@ -376,7 +380,7 @@ export default function StudioHub() {
           <>
             <style>{HUB_SETTINGS_CSS}</style>
             <ProfileHeaderBack onBack={() => { setTab('settings'); }} />
-            <Suspense fallback={<div style={{ padding: 32, textAlign: 'center', color: 'var(--c-text-muted)' }}>…</div>}>
+            <Suspense fallback={<SmartLoading fallbackSkeleton={<div style={{ padding: '0 20px 80px' }}><StudioSkeletonProfile /></div>} />}>
               {authUser ? (
                 <div style={{ padding: '0 0 100px', animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
                 <AccountSettingsPage
@@ -956,6 +960,10 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   const { settings, updateSettings } = useChordStore();
   const lang = settings.language ?? 'en';
 
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+
   const L = lang === 'es'
     ? {
         version: 'Versión',
@@ -999,6 +1007,57 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         howItWorksBody: 'OTA updates download in the background and apply on the next launch — no reinstall needed.',
         title: 'Updater',
       };
+
+  const handleDownloadAndUpdate = async () => {
+    if (downloading) return;
+    setErrMsg(null);
+    const canCapgoUpdate = isNative() && !!ota.downloadUrl && ota.remoteVersion !== null;
+    if (canCapgoUpdate) {
+      setDownloading(true);
+      setProgress(0);
+      const res = await applyUpdate({
+        url: ota.downloadUrl!,
+        version: ota.remoteVersion!,
+        onProgress: (p) => setProgress((prev) => Math.max(prev, p)),
+      });
+      setDownloading(false);
+      if (!res.ok) {
+        setErrMsg(res.error ?? 'Update failed');
+      }
+      return;
+    }
+    if (isNative()) {
+      setErrMsg(
+        "Update available but the server didn't publish a download link. Try again later.",
+      );
+      return;
+    }
+    // Web reload fallback
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch {
+      /* ignore */
+    }
+    setDownloading(true);
+    setProgress(1.0);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    await fadeToBlackAndReload(() => {
+      window.location.reload();
+    });
+  };
+
+  if (downloading) {
+    return (
+      <StudioUpdateScreen
+        progress={progress}
+        accentFrom={accent.from}
+        accentTo={accent.to}
+      />
+    );
+  }
 
   const statusColor = ota.loading
     ? 'var(--c-text-secondary)'
@@ -1055,15 +1114,25 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
           {L.checkNow}
         </button>
         {ota.updateAvailable && ota.downloadUrl && (
-          <a
-            href={ota.downloadUrl}
-            target="_blank"
-            rel="noreferrer"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '0 16px 16px', marginTop: 12, padding: '13px', borderRadius: 12, background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)', textDecoration: 'none', boxShadow: `0 4px 16px ${accent.to}44` }}
+          <button
+            type="button"
+            onClick={handleDownloadAndUpdate}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              margin: '0 16px 16px', marginTop: 12, padding: '13px', borderRadius: 12,
+              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
+              fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
+              border: 'none', cursor: 'pointer', boxShadow: `0 4px 16px ${accent.to}44`
+            }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>download</span>
             {L.download(ota.remoteVersion ?? '')}
-          </a>
+          </button>
+        )}
+        {errMsg && (
+          <p style={{ margin: '8px 18px 12px', fontSize: 11, color: '#f87171', fontFamily: 'Inter', fontWeight: 600, textAlign: 'center' }}>
+            {errMsg}
+          </p>
         )}
       </div>
 

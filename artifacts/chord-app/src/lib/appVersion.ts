@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.43';
+export const APP_VERSION = '3.1.44';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-01'; // 3.1.43
+export const APP_VERSION_DATE = '2026-06-01'; // 3.1.44
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,32 +53,17 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Stable Navigation & Settings Polish",
+    heading: "OTA Updates & Visual Reload",
     items: [
-      'Nested Page Back Fix: Re-ordered the back gesture router in Settings so that sub-pages (Language, Updater, Changelog, and About) navigate back to the Settings menu instead of directly exiting to the home screen.',
-      'Footer Cleanup: Removed the duplicate "By Mag, With Love" text block from the main settings view, displaying it cleanly only within the About page.',
-      'Stable Back Navigation: Preserved the reliable v3.0.78 back gesture stack with zero stuttering or duplicate pop actions.',
+      'Direct Update Support: Clicking updates in settings installs them directly in-app, avoiding external redirects.',
+      'Smooth Reload Transition: Updates fade the screen to black smoothly before triggering the reload to prevent visual flashes.',
     ],
   },
   {
-    heading: "Apple Glass Navigation",
+    heading: "Drumex Sequencer Polish",
     items: [
-      'iOS-Style Transparency: Overhauled all bottom navigation bars across Studio Hub, Chordex, Stage, Vocalex, Groovex, and Drumex to feature highly transparent glass backgrounds (40% opacity) in Light Mode.',
-      'Dynamic Theme Support: Fixed a styling bug to ensure bottom bars correctly sync to pristine Light Mode under the Dynamic Theme during daytime.',
-    ],
-  },
-  {
-    heading: "Apple Glass & Exit Toast",
-    items: [
-      'Apple Glassmorphism: Refined the Light Mode bottom navigation bars in both the main Hub and Chordex to use highly transparent, Apple-style white glass background values.',
-      'Sleek Exit Toast: Re-styled the double-swipe exit toast in Light Mode into a beautiful translucent white overlay with high-contrast borders and shadows.',
-    ],
-  },
-  {
-    heading: "Studio Hub Light Theme",
-    items: [
-      'Pristine Hub Nav: Upgraded the bottom navigation bar of the main Studio Hub in White/Light mode with a clean translucent white glass background.',
-      'Active Pill Contrast: Elevated the sliding pill on the Hub tabs to a pristine floating white card with high-contrast shadows and clean borders.',
+      'Disable Keyboard Auto-open: Disables automatic virtual keyboard presentation when launching the new beat dialog in Drumex.',
+      'Default Kit Selection: Sets the premium multi-velocity \'House Kit\' as the default kit for new beats in Drumex.',
     ],
   },
 ];
@@ -87,22 +72,17 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Sincronización de Perfiles",
+    heading: "Actualizaciones OTA y Recarga",
     items: [
-      'Avatares Sincronizados: El avatar seleccionado ahora se guarda y sincroniza en Firestore, haciéndose visible al instante en todos tus dispositivos.',
+      'Instalación Directa: Las actualizaciones se instalan directamente en la app sin redirigir a enlaces externos.',
+      'Transición Suave: La pantalla se desvanece a negro suavemente antes de recargar para evitar parpadeos visuales.',
     ],
   },
   {
-    heading: "Sincronización Multidispositivo",
+    heading: "Mejoras en Drumex",
     items: [
-      'Protección de Datos: Se mejoró la lógica de inicio en nuevos dispositivos para evitar que el estado local vacío sobrescriba los datos de la nube.',
-      'Persistencia Mejorada: Se optimizaron las sesiones activas y la persistencia de autenticación para evitar cierres de sesión inesperados.',
-    ],
-  },
-  {
-    heading: "SEO y Descubrimiento",
-    items: [
-      'Verificación de Google: Se añadió la etiqueta meta de verificación oficial para indexar la aplicación en Google Search Console.',
+      'Comportamiento del Teclado: Se desactivó el enfoque automático del teclado al crear un nuevo ritmo.',
+      'Kit por Defecto: El kit \'House Kit\' de alta calidad ahora se selecciona por defecto.',
     ],
   },
 ];
@@ -110,22 +90,17 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Profil- und Avatar-Synchronisierung",
+    heading: "OTA-Updates & Übergang",
     items: [
-      'Synchronisierte Profilbilder: Ausgewählte Avatare werden jetzt in Firestore gespeichert und synchronisiert, sodass sie auf allen Geräten sofort sichtbar sind.',
+      'Direktes Update: Updates werden direkt in der App installiert, ohne auf externe Links umzuleiten.',
+      'Sanfter Übergang: Der Bildschirm blendet vor dem Neuladen sanft nach Schwarz aus, um Flackern zu verhindern.',
     ],
   },
   {
-    heading: "Robuste Multigeräte-Synchronisierung",
+    heading: "Drumex-Sequenzer-Politur",
     items: [
-      'Datenverlustschutz: Verbesserter Erstsynchronisierungsschutz verhindert das Überschreiben bestehender Cloud-Daten mit leeren lokalen Standardwerten.',
-      'Verbesserte Persistenz: Sitzungsüberwachung optimiert und Firebase Auth-Persistenz explizit auf Browserspeicher gesetzt für zuverlässigere Verbindungen.',
-    ],
-  },
-  {
-    heading: "SEO & Auffindbarkeit",
-    items: [
-      'Google-Verifizierung: Google Site-Verification Meta-Tag hinzugefügt, um die StudioXX-PWA in der Google Search Console zu indizieren.',
+      'Tastatur-Verhalten: Die Tastatur wird beim Erstellen eines neuen Beats nicht mehr automatisch geöffnet.',
+      'Standard-Kit: Das hochwertige \'House Kit\' ist nun standardmäßig für neue Beats ausgewählt.',
     ],
   },
 ];

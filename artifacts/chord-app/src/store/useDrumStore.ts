@@ -433,8 +433,8 @@ export const useDrumStore = create<DrumStore>()(
       soundMap:          {},
       volumeMap:         {},
       masterVolume:      0.82,
-      kitType:           null,
-      activeInstruments: KIT_INSTRUMENTS.ludwig,
+      kitType:           'house',
+      activeInstruments: KIT_INSTRUMENTS.house,
       drumSongs:         [],
       instFX:            {},
       instPlugins:       {},
@@ -834,20 +834,20 @@ export const useDrumStore = create<DrumStore>()(
           kitType?: KitType | null;
           [k: string]: unknown;
         };
-        const kitType = s.kitType ?? null;
+        const kitType = s.kitType ?? 'house';
         const migratedPatterns = migratePatterns(s.patterns ?? [defaultPattern()]);
         const migratedSongs = (s.drumSongs ?? []).map(song => ({
           ...song,
           patterns: migratePatterns(song.patterns ?? []),
         }));
         // Remove folded instruments from activeInstruments
-        const filtered = (s.activeInstruments ?? KIT_INSTRUMENTS[kitType ?? 'ludwig'])
+        const filtered = (s.activeInstruments ?? KIT_INSTRUMENTS[kitType])
           .filter((i: DrumInstrument) => i !== 'hihat-open' && i !== 'hihat-foot' && i !== 'ride');
         return {
           ...s,
           patterns: migratedPatterns,
           drumSongs: migratedSongs,
-          activeInstruments: filtered.length > 0 ? filtered : KIT_INSTRUMENTS[kitType ?? 'ludwig'],
+          activeInstruments: filtered.length > 0 ? filtered : KIT_INSTRUMENTS[kitType],
           drumPrefs: { ...DEFAULT_DRUM_PREFS, ...(s.drumPrefs as Partial<DrumPrefs> ?? {}) },
         };
       },

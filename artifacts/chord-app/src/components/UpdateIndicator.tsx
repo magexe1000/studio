@@ -34,7 +34,7 @@ import AnimatedActionButton from './animata/container/animated-border-trail';
 import StudioUpdateScreen from './StudioUpdateScreen';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
-import { applyUpdate, isNative } from '../lib/capgoUpdater';
+import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
 import { DownloadIcon } from './DownloadIcon';
 
 /** How long the full banner stays visible before auto-minimizing. */
@@ -480,15 +480,20 @@ function UpdateModal({
       );
       return;
     }
-    onClose();
     try {
       if ('caches' in window) {
-        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
       }
     } catch {
       /* ignore */
     }
-    setTimeout(() => window.location.reload(), 120);
+    setDownloading(true);
+    setProgress(1.0);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    await fadeToBlackAndReload(() => {
+      window.location.reload();
+    });
   };
 
   if (downloading) {

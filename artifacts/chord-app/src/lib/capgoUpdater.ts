@@ -328,15 +328,17 @@ export async function applyUpdate(
       }
       // Wait 800ms for the count-up animation to reach 100% smoothly in the UI
       await new Promise((resolve) => setTimeout(resolve, 800));
-      // Mark the new bundle as the next-to-load and reload.
-      await CapacitorUpdater.set({ id: downloaded.id });
-      // `set()` already reloads, but call reload() defensively in case
-      // the plugin's behaviour drifts in a future version.
-      try {
-        await CapacitorUpdater.reload();
-      } catch {
-        /* set() handled the reload */
-      }
+      // Fade to black first, then call set() which reloads
+      await fadeToBlackAndReload(async () => {
+        await CapacitorUpdater.set({ id: downloaded.id });
+        // `set()` already reloads, but call reload() defensively in case
+        // the plugin's behaviour drifts in a future version.
+        try {
+          await CapacitorUpdater.reload();
+        } catch {
+          /* set() handled the reload */
+        }
+      });
       return { ok: true };
     } finally {
       if (progressListener) {
@@ -354,3 +356,33 @@ export async function applyUpdate(
     return { ok: false, error: msg };
   }
 }
+
+/**
+ * Smoothly fades the screen to black using a full-screen transition,
+ * then invokes the given reload/restart callback.
+ */
+export async function fadeToBlackAndReload(
+  reloadCallback: () => void | Promise<void>
+): Promise<void> {
+  const overlay = document.createElement('div');
+  overlay.id = 'update-fade-overlay';
+  overlay.style.position = 'fixed';
+  overlay.style.inset = '0';
+  overlay.style.backgroundColor = '#000000';
+  overlay.style.zIndex = '999999';
+  overlay.style.opacity = '0';
+  overlay.style.transition = 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)';
+  overlay.style.pointerEvents = 'all';
+  document.body.appendChild(overlay);
+
+  // Trigger layout to ensure opacity transition runs
+  overlay.getBoundingClientRect();
+  overlay.style.opacity = '1';
+
+  // Wait for the transition to finish
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  // Perform the reload
+  await reloadCallback();
+}
+

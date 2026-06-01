@@ -17,6 +17,13 @@ Conventions:
 
 ---
 
+## 3.1.44
+
+- Direct Update Support: Clicking updates in settings installs them directly in-app, avoiding external redirects.
+- Smooth Reload Transition: Updates fade the screen to black smoothly before triggering the reload to prevent visual flashes.
+- Disable Keyboard Auto-open: Disables automatic virtual keyboard presentation when launching the new beat dialog in Drumex.
+- Default Kit Selection: Sets the premium multi-velocity 'House Kit' as the default kit for new beats in Drumex.
+
 ## 3.1.14
 
 - Google Verification: Added the official Google Search Console meta tag to the index page to verify the domain and ensure robust search engine indexing.

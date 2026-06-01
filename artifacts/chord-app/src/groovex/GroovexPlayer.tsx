@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import VinylLottie from '../components/lottie/VinylLottie';
 import LoadingLottie from '../components/lottie/LoadingLottie';
+import { GroovexMixerSkeleton } from '../components/StudioSkeleton';
 import { useScrollHide } from '../lib/navScroll';
 import { SONG_CATALOG } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
@@ -470,7 +471,7 @@ export default function GroovexPlayer() {
         )}
 
         {phase === 'downloading' && (
-          <section className="gx-fade-up-2" style={{ marginBottom: 36 }}>
+          <section className="gx-fade-up-2" style={{ marginBottom: 36, display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div style={{
               background: 'var(--gx-surface)', borderRadius: 20, padding: '22px 24px',
               display: 'flex', flexDirection: 'column', gap: 14,
@@ -495,6 +496,20 @@ export default function GroovexPlayer() {
                 accentTo="var(--gx-accent)"
                 height={6}
               />
+            </div>
+
+            {/* Mixer Tracks loading placeholders */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <h3 style={{
+                fontSize: 11, fontWeight: 700, color: 'var(--c-text-secondary)',
+                letterSpacing: '0.18em', textTransform: 'uppercase', margin: '0 0 4px 4px',
+                fontFamily: 'Inter, sans-serif',
+              }}>{t.groovex.stemsMixer}</h3>
+              <div style={{
+                background: 'var(--gx-surface)', borderRadius: 20, padding: '20px 20px',
+              }}>
+                <GroovexMixerSkeleton tracksCount={song.stems.length || 4} />
+              </div>
             </div>
           </section>
         )}

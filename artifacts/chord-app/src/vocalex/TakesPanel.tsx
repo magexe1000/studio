@@ -5,6 +5,8 @@ import {
   type TakeRecord,
 } from './takesDb';
 import LoadingLottie from '../components/lottie/LoadingLottie';
+import SmartLoading from '../components/SmartLoading';
+import { VocalexTakesSkeleton } from '../components/StudioSkeleton';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
 import { analyzeAudio, type VocalAnalysis, type AnalysisLabels } from './vocalAnalysis';
 import { useT } from '../lib/useT';
@@ -129,10 +131,15 @@ export default function TakesPanel() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <LoadingLottie width={48} />
-          <span style={{ color: 'var(--vx-text-2)', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>{t.vocalex.loading}</span>
-        </div>
+        <SmartLoading
+          fallbackSkeleton={<VocalexTakesSkeleton />}
+          subtleLoading={
+            <div style={{ padding: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+              <div style={{ width: 24, height: 24, border: '2.5px solid var(--vx-text)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <span style={{ color: 'var(--vx-text-2)', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>{t.vocalex.loading}</span>
+            </div>
+          }
+        />
       ) : takes.length === 0 ? (
         <div style={{
           padding: '48px 24px', textAlign: 'center',

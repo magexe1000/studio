@@ -3,6 +3,16 @@ import { createPortal, flushSync } from 'react-dom';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
+import SmartLoading from './components/SmartLoading';
+import {
+  StudioHubSkeleton,
+  VocalexTakesSkeleton,
+  GroovexAppSkeleton,
+  StagexPanelSkeleton,
+  DrumEditorSkeleton,
+  ChordexPanelSkeleton,
+  StudioSkeletonList,
+} from './components/StudioSkeleton';
 import { ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
@@ -860,7 +870,7 @@ export default function App() {
     return (
       <>
         <div className="app-main-layout" style={{ height: '100dvh', overflow: 'hidden' }}>
-          <Suspense fallback={null}>
+          <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioSkeletonList count={3} />} />}>
             <PendingDeletionScreen
               phase="pending"
               user={accountState.user}
@@ -878,7 +888,7 @@ export default function App() {
     return (
       <>
         <div className="app-main-layout" style={{ height: '100dvh', overflow: 'hidden' }}>
-          <Suspense fallback={null}>
+          <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioSkeletonList count={3} />} />}>
             <DisabledAccountScreen user={accountState.user} />
           </Suspense>
         </div>
@@ -892,7 +902,7 @@ export default function App() {
     return (
       <>
         <div className="app-main-layout" style={{ animation: 'hub-return-enter 380ms cubic-bezier(0.0, 0.0, 0.2, 1) both', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
-          <Suspense fallback={null}>
+          <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioHubSkeleton />} />}>
             <StudioHub />
           </Suspense>
         </div>
@@ -915,7 +925,7 @@ export default function App() {
           opacity:   exitingToHub ? 0 : undefined,
           transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
         }}>
-          <Suspense fallback={null}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
+          <Suspense fallback={<SmartLoading fallbackSkeleton={<GroovexAppSkeleton />} />}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
 
           {groovexSplash !== 'hidden' && (
             <div style={{
@@ -956,7 +966,7 @@ export default function App() {
           opacity:   exitingToHub ? 0 : undefined,
           transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
         }}>
-          <Suspense fallback={null}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
+          <Suspense fallback={<SmartLoading fallbackSkeleton={<VocalexTakesSkeleton />} />}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
 
           {vocalexSplash !== 'hidden' && (
             <div style={{
@@ -997,7 +1007,7 @@ export default function App() {
           opacity:   exitingToHub ? 0 : undefined,
           transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
         }}>
-          <Suspense fallback={null}><AppEntryTransition><StagexPanel /></AppEntryTransition></Suspense>
+          <Suspense fallback={<SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />}><AppEntryTransition><StagexPanel /></AppEntryTransition></Suspense>
 
           {/* Stagex splash — shown when entering from hub */}
           {stageSplash !== 'hidden' && (
@@ -1035,7 +1045,7 @@ export default function App() {
           opacity:   exitingToHub ? 0 : undefined,
           transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
         }}>
-          <Suspense fallback={null}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense>
+          <Suspense fallback={<SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} />}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense>
 
           {/* Drumex splash — shown when switching from Chordex */}
           {drumSplash !== 'hidden' && (
@@ -1094,7 +1104,7 @@ export default function App() {
                   contain: 'layout style paint',
                 }}
               >
-                <Suspense fallback={null}>
+                <Suspense fallback={<SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} />}>
                   {panel === 'library'  && <LibraryPanel />}
                   {panel === 'chord'    && <ChordPanel />}
                   {panel === 'songs'    && <SongsPanel />}

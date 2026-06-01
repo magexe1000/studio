@@ -1276,3 +1276,92 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   }
 }
 
+/* Custom loading skeletons shimmer system */
+@keyframes studio-shimmer-anim {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.studio-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--app-surface-high) !important;
+}
+
+.studio-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.04) 75%,
+    rgba(255, 255, 255, 0) 100%
+  ) !important;
+  animation: studio-shimmer-anim 1.6s infinite linear !important;
+}
+
+:root.light .studio-shimmer {
+  background-color: var(--app-surface-low) !important;
+}
+
+:root.light .studio-shimmer::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.02) 25%,
+    rgba(0, 0, 0, 0.06) 50%,
+    rgba(0, 0, 0, 0.02) 75%,
+    rgba(0, 0, 0, 0) 100%
+  ) !important;
+}
+
+/* Subtle accent loading line for smart loading (150-400ms) */
+@keyframes studio-accent-loader-anim {
+  0% {
+    left: -30%;
+    width: 30%;
+  }
+  50% {
+    left: 100%;
+    width: 30%;
+  }
+  100% {
+    left: -30%;
+    width: 30%;
+  }
+}
+
+.studio-accent-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(128, 128, 128, 0.1);
+  z-index: 10000;
+  overflow: hidden;
+}
+
+.studio-accent-loader::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -30%;
+  width: 30%;
+  background: var(--accent-from, var(--color-primary-container, #007aff));
+  animation: studio-accent-loader-anim 1.5s infinite ease-in-out;
+}
+
+
