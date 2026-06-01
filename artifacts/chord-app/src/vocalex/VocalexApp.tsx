@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react';
-import { useBackHandler } from '../lib/backStack';
+import { useBackHandler, triggerBackFeedbackAnimation } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { useT } from '../lib/useT';
@@ -286,7 +286,10 @@ export default function VocalexApp() {
           transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
         }}>
           <button
-            onClick={() => headerBack?.()}
+            onClick={() => {
+              triggerBackFeedbackAnimation();
+              headerBack?.();
+            }}
             data-testid="vocalex-back-button"
             aria-label="Back"
             style={{

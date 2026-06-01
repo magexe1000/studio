@@ -1233,3 +1233,46 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   pointer-events: none;
 }
 
+/* Programmatic premium scale-bounce animation for button presses */
+.predictive-back-press-active .app-main-layout {
+  animation: predictiveBackPressAnim 280ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.predictive-back-press-active .sheet-overlay,
+.predictive-back-press-active .modal-overlay,
+.predictive-back-press-active [role="dialog"],
+.predictive-back-press-active .settings-panel-sheet,
+.predictive-back-press-active .profile-panel-sheet {
+  animation: predictiveBackPressOverlayAnim 280ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+@keyframes predictiveBackPressAnim {
+  0% {
+    transform: scale(1);
+    border-radius: 0px;
+  }
+  35% {
+    transform: scale(0.95);
+    border-radius: 16px;
+  }
+  100% {
+    transform: scale(1);
+    border-radius: 0px;
+  }
+}
+
+@keyframes predictiveBackPressOverlayAnim {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  35% {
+    transform: scale(0.96);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+

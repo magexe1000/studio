@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.28';
+export const APP_VERSION = '3.1.30';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-01'; // 3.1.28
+export const APP_VERSION_DATE = '2026-06-01'; // 3.1.30
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -52,6 +52,14 @@ export interface ChangelogSection {
 }
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
+  {
+    heading: "Predictive Back Accuracy",
+    items: [
+      'In-App Swipe Exclusions: Completely disabled the custom JS touch listener to eliminate accidental back actions and exit toast triggers when swiping or sliding horizontally inside the sub-apps (sliders, sequencer grids, piano keys, drum pads).',
+      'Double Exit Accuracy: Added an active user interaction listener that instantly resets the double-press exit guard on any tap, click, or scroll, preventing accidental app closure during normal play.',
+      'Native back gestures (system-level edge swipes) and custom on-screen header back buttons remain fully operational with gorgeous springy scale-bounce animation feedback.',
+    ],
+  },
   {
     heading: "Apple Glass Navigation",
     items: [

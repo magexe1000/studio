@@ -40,6 +40,17 @@ export function pushBackHandler(priority: BackPriority, fn: () => boolean): () =
   return () => { _entries = _entries.filter(e => e.id !== id); };
 }
 
+export function triggerBackFeedbackAnimation(): void {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  root.classList.remove('predictive-back-press-active');
+  void root.offsetHeight; // Force reflow
+  root.classList.add('predictive-back-press-active');
+  setTimeout(() => {
+    root.classList.remove('predictive-back-press-active');
+  }, 285);
+}
+
 /**
  * Try all registered handlers from highest to lowest priority.
  * Returns true if any handler consumed the back event.
@@ -49,7 +60,10 @@ export function handleGlobalBack(): boolean {
     const matching = _entries.filter(e => e.priority === priority);
     if (matching.length > 0) {
       const handler = matching[matching.length - 1];
-      if (handler.fn()) return true;
+      if (handler.fn()) {
+        triggerBackFeedbackAnimation();
+        return true;
+      }
     }
   }
   return false;

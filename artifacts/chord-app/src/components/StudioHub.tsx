@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
-import { useBackHandler } from '../lib/backStack';
+import { useBackHandler, triggerBackFeedbackAnimation } from '../lib/backStack';
 import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
 import { subscribeSyncStatus, syncNow, type SyncStatus } from '../lib/sync';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
@@ -375,14 +375,14 @@ export default function StudioHub() {
         {tab === 'profile' && (
           <>
             <style>{HUB_SETTINGS_CSS}</style>
-            <ProfileHeaderBack onBack={() => setTab('settings')} />
+            <ProfileHeaderBack onBack={() => { triggerBackFeedbackAnimation(); setTab('settings'); }} />
             <Suspense fallback={<div style={{ padding: 32, textAlign: 'center', color: 'var(--c-text-muted)' }}>…</div>}>
               {authUser ? (
                 <div style={{ padding: '0 0 100px', animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
                 <AccountSettingsPage
                   accent={accent}
                   cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}
-                  onBack={() => setTab('settings')}
+                  onBack={() => { triggerBackFeedbackAnimation(); setTab('settings'); }}
                 />
                 </div>
               ) : (
@@ -1155,6 +1155,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
     setPageKey(k => k + 1);
   }
   function goBack() {
+    triggerBackFeedbackAnimation();
     snapshotScroll(page);
     pendingRestoreRef.current = 'main';
     setSlideDir('back');

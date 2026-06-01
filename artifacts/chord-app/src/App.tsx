@@ -5,7 +5,7 @@ import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
 import { ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
-import { handleGlobalBack, hasBackEntries } from './lib/backStack';
+import { handleGlobalBack, hasBackEntries, triggerBackFeedbackAnimation } from './lib/backStack';
 import { initPredictiveBack, applyCssProgress, clearCssProgress } from './lib/predictiveBack';
 import { useStatusBar } from './lib/useStatusBar';
 import { AppEntryTransition } from './components/AppAnimationSystem';
@@ -435,7 +435,7 @@ export default function App() {
     jsonLdEl.textContent = JSON.stringify(structuredData, null, 2);
   }, [settings.appMode]);
 
-  // ── Global back navigation ───────────────────────────────────────────────
+  // ── Global back navigation & Exit Guard ──────────────────────────────────
   const [exitToast, setExitToast] = useState(false);
   const lastBackTime = useRef(0);
   const exitToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -453,11 +453,12 @@ export default function App() {
         const state = useChordStore.getState();
         const appMode = state.settings.appMode;
         if (appMode && appMode !== 'hub') {
+          triggerBackFeedbackAnimation();
           state.updateSettings({ appMode: 'hub' });
         } else {
           const now = Date.now();
-          if (now - lastBackTime.current < 2000) {
-            // Second press within 2 s → exit / minimize
+          if (now - lastBackTime.current < 1500) {
+            // Second press within 1.5 s → exit / minimize
             import('@capacitor/app')
               .then(({ App: CapApp }) => CapApp.exitApp())
               .catch(() => {});
@@ -488,104 +489,42 @@ export default function App() {
       })
       .catch(() => {});
 
+    // Active user interaction listener to reset the double-exit guard.
+    // If the user interacts with the app (tap/click/drag), they did not mean to exit.
+    const resetExitGuard = () => {
+      if (lastBackTime.current > 0) {
+        lastBackTime.current = 0;
+        setExitToast(false);
+        if (exitToastTimer.current) {
+          clearTimeout(exitToastTimer.current);
+          exitToastTimer.current = null;
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', resetExitGuard, { passive: true });
+    window.addEventListener('mousedown', resetExitGuard, { passive: true });
+
     return () => {
       window.removeEventListener('popstate', handlePop);
       capRemove?.();
+      window.removeEventListener('touchstart', resetExitGuard);
+      window.removeEventListener('mousedown', resetExitGuard);
       if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
     };
   }, []);
 
-  // ── Predictive Back Gesture (Android 14+ & Custom Web/iOS Viewport Swipe) ───
+  // ── Predictive Back Gesture (Android 14+ Native Gesture API Integration) ───
   // 1. Loads native plugin for Android 14+
   useEffect(() => {
     void initPredictiveBack();
   }, []);
 
-  // 2. Viewport Left Edge Swipe Gesture listener for Web, iOS, and Android < 14
-  useEffect(() => {
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let isSwiping = false;
-    const threshold = 160; // swipe distance in pixels for 100% progress
-
-    const onTouchStart = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      // Only trigger if swipe starts within 35px of the left edge
-      if (touch.clientX < 35) {
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
-        isSwiping = true;
-      }
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!isSwiping) return;
-      const touch = e.touches[0];
-      const dX = touch.clientX - touchStartX;
-      const dY = touch.clientY - touchStartY;
-
-      // If user is swiping vertically more than horizontally, cancel
-      if (Math.abs(dY) > Math.abs(dX) && dX < 20) {
-        isSwiping = false;
-        clearCssProgress();
-        return;
-      }
-
-      if (dX > 0) {
-        // Prevent default browser history actions (iOS swipe-back)
-        if (e.cancelable) e.preventDefault();
-        const progress = Math.min(dX / threshold, 1.0);
-        applyCssProgress(progress, 'left');
-      }
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (!isSwiping) return;
-      isSwiping = false;
-      const touch = e.changedTouches[0];
-      const dX = touch.clientX - touchStartX;
-      const progress = Math.min(dX / threshold, 1.0);
-
-      clearCssProgress();
-
-      if (progress > 0.45) {
-        // Trigger back action
-        const handled = handleGlobalBack();
-        if (!handled) {
-          const state = useChordStore.getState();
-          const appMode = state.settings.appMode;
-          if (appMode && appMode !== 'hub') {
-            // If in sub-app, return to Hub
-            const customEvent = new CustomEvent('studio-hub-return');
-            window.dispatchEvent(customEvent);
-          } else {
-            // If in Hub root, double-swipe to exit!
-            const now = Date.now();
-            if (now - lastBackTime.current < 2000) {
-              import('@capacitor/app')
-                .then(({ App: CapApp }) => CapApp.exitApp())
-                .catch(() => {});
-            } else {
-              lastBackTime.current = now;
-              setExitToast(true);
-              if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
-              exitToastTimer.current = setTimeout(() => setExitToast(false), 2000);
-            }
-          }
-        }
-      }
-    };
-
-    window.addEventListener('touchstart', onTouchStart, { passive: false });
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onTouchEnd, { passive: true });
-
-    return () => {
-      window.removeEventListener('touchstart', onTouchStart);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onTouchEnd);
-    };
-  }, []);
+  // 2. Custom JS viewport edge-swipe listener was removed to completely eliminate
+  // accidental back gestures and exit toast triggers during in-app horizontal drags,
+  // scrolls, piano/drum pad touches, or slider adjustments.
+  // Native back gestures (system-level swipes) and custom on-screen back buttons
+  // remain fully functional with premium visual feedback and zero false positives.
 
   // ── Hub-return exit animation ────────────────────────────────────────────
   const [exitingToHub, setExitingToHub] = useState(false);
