@@ -17,6 +17,12 @@ Conventions:
 
 ---
 
+## 3.1.0
+
+- Studio Pricing Section: Implemented the premium Aceternity "Pricing with header and icons" block in Profile → Subscription & Billing, showing Free, Core, and Pro tiers with checklist bullet points and disabled lock CTAs.
+- Full Custom Accent Integration: Embedded theme-integrated custom active accent color highlights and glows for the recommended Core plan, adaptive checkmarks, and background layers.
+- Scroll-Safe Mobile Layout: Hardened layout coordinates and wrapping elements inside a scrollable bottom sheet to prevent cutoff, safe-area overlap, or horizontal overflows on smaller viewports.
+
 ## 3.0.99
 
 - Update Indicator Polish: Replaced the solid blue circular update badge with a sleek, borderless floating glass cloud download icon, featuring a pulsing ambient neon accent glow and smooth bouncy micro-animation.

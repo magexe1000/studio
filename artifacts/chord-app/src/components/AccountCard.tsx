@@ -30,6 +30,7 @@ import {
   type AvatarIcon,
 } from '../lib/userAvatar';
 import { useBackHandler } from '../lib/backStack';
+import StudioPricingSection from './StudioPricingSection';
 
 type Props = {
   accent: { from: string; to: string; mid: string };
@@ -1751,29 +1752,33 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
           <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={lang === 'es' ? 'Suscripción y facturación' : 'Subscription & Billing'} onClose={closeSheet} />
-            <div style={{ padding: '16px 22px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%',
-                background: `${accent.from}18`, border: `1px solid ${accent.from}30`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 28, color: accent.from, fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 20, color: 'var(--c-text-primary)', margin: 0 }}>
-                  {lang === 'es' ? 'Próximamente' : 'Coming soon'}
-                </p>
-                <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', margin: '10px 0 0', lineHeight: 1.7 }}>
-                  {lang === 'es'
-                    ? 'Estamos preparando planes premium con funciones exclusivas. Por ahora, disfruta del plan gratuito.'
-                    : "We're working on premium plans with exclusive features. For now, enjoy the free plan."}
-                </p>
-              </div>
-              <div style={{
-                width: '100%', padding: '14px 16px',
-                background: `${accent.from}10`, border: `1px solid ${accent.from}25`,
-                borderRadius: 14, display: 'flex', alignItems: 'center', gap: 12,
-              }}>
+            <div
+              style={{
+                padding: '16px 22px 32px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 20,
+                maxHeight: 'calc(82vh - env(safe-area-inset-bottom) - 80px)',
+                overflowY: 'auto',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+              className="no-scrollbar animate-fade-in"
+            >
+              {/* Current plan badge */}
+              <div
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: `${accent.from}10`,
+                  border: `1px solid ${accent.from}25`,
+                  borderRadius: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  boxSizing: 'border-box',
+                }}
+              >
                 <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, fontVariationSettings: "'FILL' 1" }}>verified</span>
                 <div>
                   <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>
@@ -1784,6 +1789,9 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                   </p>
                 </div>
               </div>
+
+              {/* Aceternity Pricing Section */}
+              <StudioPricingSection accent={accent} lang={lang} />
             </div>
           </div>
         </div>,

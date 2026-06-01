@@ -53,17 +53,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Update Indicator Polish",
+    heading: "Studio Pricing Section",
     items: [
-      'Replaced the solid blue circular update badge with a sleek, borderless floating glass cloud download icon.',
-      'Includes a glowing neon-glow aura accent and a premium bouncy micro-animation.',
-    ],
-  },
-  {
-    heading: "Sub-App Headings Reverted",
-    items: [
-      'Restored the original premium large heading styles (2.6rem Manrope font at 900 weight) for sub-app section titles (Songs, Library, Beats).',
-      'Improved vertical spacing and contrast, ensuring titles are clearly distinguished from description text.',
+      'Implemented the elegant Aceternity "Pricing with header and icons" section in Profile → Subscription & Billing.',
+      'Features 3 premium tiers (Free, Core, Pro) marked as "Coming soon" with disabled locks.',
+      'Includes premium dark glass recommended highlights, Google Material symbol feature lists, and full scroll-safe mobile responsiveness.',
     ],
   },
 ];
@@ -72,17 +66,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Indicador de Actualización",
+    heading: "Precios de Studio",
     items: [
-      'Reemplazado el indicador circular azul por un elegante icono de nube de descarga flotante y sin bordes.',
-      'Incluye un aura brillante de acento y una microanimación elástica premium.',
-    ],
-  },
-  {
-    heading: "Títulos de Secciones Restaurados",
-    items: [
-      'Se restauraron los títulos grandes originales (Manrope de 2.6rem con grosor 900) en las secciones de las sub-apps (Canciones, Biblioteca, Beats).',
-      'Mejorado el espaciado vertical y contraste, distinguiendo los títulos del texto descriptivo.',
+      'Implementada la sección de precios elástica "Pricing con cabecera e iconos" de Aceternity en Perfil → Suscripción y Facturación.',
+      'Presenta 3 planes premium (Gratis, Core, Pro) marcados como "Próximamente" con candados desactivados.',
+      'Incluye el plan Core recomendado destacado, listas de características con símbolos de Google, y adaptabilidad móvil.',
     ],
   },
 ];
@@ -90,17 +78,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Update-Anzeige Verfeinert",
+    heading: "Studio-Preise",
     items: [
-      'Der solide blaue kreisförmige Update-Badge wurde durch ein elegantes, rahmenloses schwebendes Glas-Wolken-Download-Symbol ersetzt.',
-      'Bietet ein pulsierendes Neon-Glow-Aura-Design und eine federnde Mikro-Animation.',
-    ],
-  },
-  {
-    heading: "Rubriküberschriften Wiederhergestellt",
-    items: [
-      'Die ursprünglichen großen Premium-Überschriften (2.6rem Manrope-Schrift bei 900er Gewicht) für Rubriküberschriften in Sub-Apps (Songs, Library, Beats) wurden wiederhergestellt.',
-      'Verbesserter vertikaler Abstand und Kontrast zur besseren Unterscheidung vom Beschreibungstext.',
+      'Die elegante Aceternity-Preissektion "Pricing mit Header und Icons" wurde unter Profil → Abonnement & Abrechnung implementiert.',
+      'Bietet 3 Premium-Tarife (Free, Core, Pro), die als "Coming soon" mit gesperrten CTAs gekennzeichnet sind.',
+      'Inklusive premium hervorgehobenem Core-Plan, Google Material-Symbolen in Feature-Listen und voller mobiler Responsivität.',
     ],
   },
 ];

@@ -59,10 +59,15 @@ if (existsSync(appVersionPath)) {
     if (versionArgIndex !== -1 && process.argv[versionArgIndex + 1]) {
       nextVersion = process.argv[versionArgIndex + 1];
     } else {
-      // Auto-increment the patch version
+      // Auto-increment the patch version (rolling over from 99 to minor version)
       const parts = currentVersion.split('.');
       if (parts.length === 3 && parts.every(p => /^\d+$/.test(p))) {
-        parts[2] = String(Number(parts[2]) + 1);
+        if (parts[2] === '99') {
+          parts[1] = String(Number(parts[1]) + 1);
+          parts[2] = '0';
+        } else {
+          parts[2] = String(Number(parts[2]) + 1);
+        }
         nextVersion = parts.join('.');
       }
     }
