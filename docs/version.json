@@ -1,6 +1,6 @@
 {
-  "version": "3.0.97",
-  "changelog": "Version 3.0.97",
+  "version": "3.0.98",
+  "changelog": "• OTA Delivery System: Corrected the update manifest and server base URLs to point to the case-sensitive MAGEXE1000/Studio repository, resolving update delivery failures.\n• Native Background Worker: Fixed background notification polling URLs inside the native Capacitor service for future APK builds.\n• Workflow Stability: Upgraded GitHub Actions configurations to persistently commit version modifications and prevent repository coordinate drift.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.0.97/bundle-3.0.97.zip"
+  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.0.98/bundle-3.0.98.zip"
 }
