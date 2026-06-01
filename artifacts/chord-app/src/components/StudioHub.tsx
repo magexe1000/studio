@@ -224,6 +224,20 @@ export default function StudioHub() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [introFinished, setIntroFinished] = useState(() => {
+    if (typeof document !== 'undefined' && !document.getElementById('intro') && !document.querySelector('[data-solar-intro]')) {
+      return true;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (introFinished) return;
+    const handler = () => setIntroFinished(true);
+    window.addEventListener('studio-intro-done', handler, { once: true });
+    return () => window.removeEventListener('studio-intro-done', handler);
+  }, [introFinished]);
+
   const sessionIdx = getSessionIndex();
   const greetName = authUser?.displayName?.trim() || settings.hubUserName;
   const { greeting, subtitle } = useMemo(
@@ -286,13 +300,19 @@ export default function StudioHub() {
               {/* Welcome header */}
               <div style={{ padding: '22px 22px 18px' }}>
                 <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-                  <EncryptedText
-                    text={greeting}
-                    onlyOnce={true}
-                    revealDelayMs={35}
-                    flipDelayMs={45}
-                    encryptedClassName="text-[var(--accent-from)] opacity-60 font-mono"
-                  />
+                  {introFinished ? (
+                    <EncryptedText
+                      text={greeting}
+                      onlyOnce={true}
+                      revealDelayMs={35}
+                      flipDelayMs={45}
+                      encryptedClassName="text-[var(--accent-from)] opacity-60 font-mono"
+                    />
+                  ) : (
+                    <span className="text-[var(--accent-from)] opacity-60 font-mono">
+                      {greeting.split("").map((c) => (c === " " ? " " : "•")).join("")}
+                    </span>
+                  )}
                 </p>
                 <p style={{ fontSize: 14, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>
                   {subtitle}
