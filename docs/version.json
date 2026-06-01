@@ -1,6 +1,6 @@
 {
-  "version": "3.1.2",
-  "changelog": "• Perfect Vertical Centering: Refactored the internal background layout wrapper to be a flexbox centering container, ensuring the update column is perfectly centered on small phones, tall screens, WebViews, and PWA mode.\n• OTA Spacing Refinements: Fine-tuned vertical element gap (20px) to balance the percentage, progress line, and rotating messages with a clean, cohesive visual rhythm.",
+  "version": "3.1.3",
+  "changelog": "• Profile Spacing & Scrolling Fix: Added bottom padding (100px) to the profile container for signed-in users, preventing navigation bar collisions and enabling full scrollability.\n• Cloud Sync System Integration: Embedded a fully functional real-time sync control panel inside Storage & Session settings. It displays the connection state (\"In Sync\", \"Syncing...\", and \"Not Synced\" / connection errors) and provides a manual \"Sync Now\" button.\n• Accent Color Harmony: The Cloud Sync indicators dynamically blend with the user's active theme accent color.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.2/bundle-3.1.2.zip"
+  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.3/bundle-3.1.3.zip"
 }
