@@ -15,6 +15,10 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.1.50
+
+- Drumex Audio Fix: Restored original high-quality Opus samples for the House drum kit on the web, fixing a 404 loading error that forced library previews to fall back to synthesis.
+
 ## 3.1.49
 
 - Seamless Intro Transition: Added a solid black cover overlay that fades out to the theme background on app startup, matching the updater's fade-to-black restart sequence for a completely seamless, flash-free transition.

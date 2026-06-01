@@ -55,6 +55,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "OTA Updates & Visual Polish",
     items: [
+      'Drumex Audio Fix: Restored original high-quality Opus samples for the House drum kit on the web, fixing a 404 loading error that forced library previews to fall back to synthesis.',
       'Liquid Glass Indicators: Overhauled checking/up-to-date status badges into refracting liquid glass pills matching the nav bar.',
       'Refined Update Badge: Minimized corner update badge is now a beautiful liquid glass ball containing a clean download icon.',
       'Direct update installation: Clicking update in settings installs it immediately in-app, with a smooth fade-to-black restart.',
@@ -76,6 +77,7 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Actualizaciones y Diseñó",
     items: [
+      'Corrección de Audio en Drumex: Se restauraron las muestras Opus de alta calidad originales para el kit House en la web, solucionando un error de carga 404.',
       'Indicadores Liquid Glass: Rediseño completo de las etiquetas de verificación/actualización en cápsulas de vidrio líquido refractivo.',
       'Insignia de Actualización: La insignia de esquina ahora es una esfera de vidrio líquido con un icono limpio de descarga.',
       'Instalación Directa: Instala actualizaciones directamente desde los ajustes con un desvanecimiento a negro suave y sin tirones.',
@@ -96,9 +98,10 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
     heading: "OTA-Updates & Design",
     items: [
+      'Drumex Audio-Fix: Die originalen, hochwertigen Opus-Samples für das House-Schlagzeug-Kit wurden im Web wiederhergestellt, wodurch ein 404-Fehler behoben wurde.',
       'Liquid Glass Indikatoren: Die Statusanzeigen für Updates wurden in lichtbrechende Liquid Glass-Kapseln überarbeitet.',
       'Update-Badge: Das minimierte Update-Symbol in der Ecke ist nun eine elegante Glaskugel mit sauberem Download-Symbol.',
-      'Direktes Update: Updates werden direkt in der App installiert, mit einem flüssigen Ausblenden nach Schwarz.',
+      'Directes Update: Updates werden direkt in der App installiert, mit einem flüssigen Ausblenden nach Schwarz.',
       'Nahtloser Intro-Übergang: Blendet die Startanimation aus dem Schwarz ein, passend zum Ausblenden des Updaters für einen blitzfreien Übergang.',
     ],
   },

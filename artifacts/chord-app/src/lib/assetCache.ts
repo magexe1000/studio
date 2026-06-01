@@ -72,7 +72,11 @@ function isNative(): boolean {
  *   - seed failed → returns the original path (best-effort fallback)
  */
 export async function drumAssetUrl(p: string): Promise<string> {
-  if (!isNative()) return p;
+  if (!isNative()) {
+    const base = (import.meta.env.BASE_URL ?? '/').replace(/\/?$/, '/');
+    const trimmed = p.replace(/^\/+/, '');
+    return `${base}${trimmed}`;
+  }
   // Implicit dependency: every audio caller awaits this, so the seed
   // can't be skipped just because the caller forgot to kick it off
   // from main.tsx.

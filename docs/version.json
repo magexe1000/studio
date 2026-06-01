@@ -1,6 +1,6 @@
 {
   "version": "3.1.50",
-  "changelog": "Version 3.1.50",
+  "changelog": "• Drumex Audio Fix: Restored original high-quality Opus samples for the House drum kit on the web, fixing a 404 loading error that forced library previews to fall back to synthesis.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.50/bundle-3.1.50.zip"
+  "downloadUrl": "https://raw.githubusercontent.com/MAGEXE1000/Studio/main/docs/bundles/bundle-3.1.50.zip"
 }
