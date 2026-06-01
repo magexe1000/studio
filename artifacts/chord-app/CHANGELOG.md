@@ -15,7 +15,18 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
----
+## 3.1.47
+
+- Liquid Glass Indicators: Overhauled checking/up-to-date status badges into refracting liquid glass pills matching the nav bar.
+- Refined Update Badge: Minimized corner update badge is now a beautiful liquid glass ball containing a clean download icon.
+
+## 3.1.45
+
+- Liquid Glass Indicators: Overhauled checking/up-to-date status badges into refracting liquid glass pills matching the nav bar.
+- Refined Update Badge: Minimized corner update badge is now a beautiful liquid glass ball containing a clean download icon.
+- Direct update installation: Clicking update in settings installs it immediately in-app, with a smooth fade-to-black restart.
+- Disable Keyboard Auto-open: Sequencer doesn't focus or auto-open keyboard when launching a new beat.
+- Default Kit Selection: House kit is selected by default for new beats.
 
 ## 3.1.44
 

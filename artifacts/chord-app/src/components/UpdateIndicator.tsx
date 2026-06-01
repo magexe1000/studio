@@ -28,7 +28,7 @@
  *   download is also a single shot to the newest manifest.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import StudioSpinner from './animata/progress/spinner';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import StudioUpdateScreen from './StudioUpdateScreen';
@@ -36,6 +36,57 @@ import { useOtaUpdate } from '../lib/otaUpdate';
 import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
 import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
 import { DownloadIcon } from './DownloadIcon';
+import { useChordStore } from '../store/useChordStore';
+import {
+  enableLiquidGlass,
+  tagLiquidTarget,
+  untagLiquidTarget,
+} from '../lib/liquidGlass';
+
+function CheckIconSvg() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      fill="none"
+      stroke="#22c55e"
+      strokeWidth="3.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function SpinnerSvg({ cFrom, cTo }: { cFrom: string; cTo: string }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3.2"
+      strokeLinecap="round"
+      style={{
+        animation: 'lg-spin-spinner 1s linear infinite',
+        flexShrink: 0,
+      }}
+    >
+      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.15)" />
+      <path d="M12 2a10 10 0 0 1 10 10" stroke="url(#lg-spinner-grad-indicator)" />
+      <defs>
+        <linearGradient id="lg-spinner-grad-indicator" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={cFrom} />
+          <stop offset="100%" stopColor={cTo} />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
 
 /** How long the full banner stays visible before auto-minimizing. */
 const BANNER_AUTO_MINIMIZE_MS = 6000;
@@ -119,6 +170,25 @@ export default function UpdateIndicator({
   const [entered, setEntered] = useState(false);
   const [laterVersion, setLaterVersion] = useState<string | null>(readLaterVersion);
 
+  const checkRef = useRef<HTMLDivElement | null>(null);
+  const pillRef = useRef<HTMLButtonElement | null>(null);
+
+  const { settings } = useChordStore();
+  const hubVis = settings.perApp?.hub ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
+  const isLight = (() => {
+    if (hubVis.theme === 'light') return true;
+    if (hubVis.theme === 'system') {
+      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
+    }
+    if (hubVis.theme === 'dynamic') {
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      return h >= lightStart && h < lightEnd;
+    }
+    return false;
+  })();
+
   // Wipe the legacy "dismissed forever" key on mount so users who tapped
   // Later in a previous build aren't stuck without an indicator.
   useEffect(() => { clearLegacyDismissed(); }, []);
@@ -182,19 +252,49 @@ export default function UpdateIndicator({
     };
   }, [ota.loading, ota.updateAvailable]);
 
+  // Tag "Up to date" check indicator with Liquid Glass
+  useEffect(() => {
+    const el = checkRef.current;
+    if (!el) return;
+    enableLiquidGlass();
+    tagLiquidTarget(el);
+    return () => {
+      untagLiquidTarget(el);
+    };
+  }, [checkPhase]);
+
+  // Tag "Update available" indicator with Liquid Glass
+  useEffect(() => {
+    const el = pillRef.current;
+    if (!el) return;
+    enableLiquidGlass();
+    tagLiquidTarget(el);
+    return () => {
+      untagLiquidTarget(el);
+    };
+  }, [phase, ota.updateAvailable]);
+
   if (!ota.updateAvailable) {
     if (checkPhase === 'gone') return null;
     const fading = checkPhase === 'fading';
     const isOk   = checkPhase === 'ok' || fading;
     const cFrom = `var(--accent-from, ${accentFrom})`;
     const cTo   = `var(--accent-to, ${accentTo})`;
-    const tint  = (pct: number) =>
-      `color-mix(in srgb, ${cTo} ${pct}%, transparent)`;
-    const tintFrom = (pct: number) =>
-      `color-mix(in srgb, ${cFrom} ${pct}%, transparent)`;
+
+    const amoledBg = isLight
+      ? 'rgba(255, 255, 255, 0.40)'
+      : 'rgba(26, 26, 30, 0.72)';
+    const fallbackBorder = isLight
+      ? '1px solid rgba(0, 0, 0, 0.08)'
+      : '1px solid rgba(255, 255, 255, 0.28)';
+    const fallbackShadow = isLight
+      ? '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1.5px 0 rgba(255, 255, 255, 0.70)'
+      : '0 12px 48px rgba(0, 0, 0, 0.50), inset 0 1.5px 0 rgba(255, 255, 255, 0.08)';
+
     return (
       <>
         <div
+          ref={checkRef}
           aria-live="polite"
           aria-label={isOk ? 'App is up to date' : 'Checking for updates'}
           style={{
@@ -203,32 +303,33 @@ export default function UpdateIndicator({
             right: 14,
             zIndex: 60,
             height: 32,
-            padding: '0 12px 0 10px',
+            padding: '0 14px 0 10px',
             borderRadius: 999,
             display: 'flex',
             alignItems: 'center',
             gap: 7,
             whiteSpace: 'nowrap',
-            background: `linear-gradient(135deg, ${tintFrom(18)}, ${tint(18)})`,
-            border: `1px solid ${tint(32)}`,
+            background: amoledBg,
+            border: fallbackBorder,
             color: 'var(--c-text-primary)',
-            backdropFilter: 'blur(14px)',
-            WebkitBackdropFilter: 'blur(14px)',
-            boxShadow: `0 4px 14px ${tint(15)}`,
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            boxShadow: fallbackShadow,
             fontFamily: 'Manrope, sans-serif',
             fontSize: 12,
             fontWeight: 700,
             letterSpacing: '-0.005em',
             opacity: entered && !fading ? 1 : 0,
-            transition: 'opacity 900ms cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: entered && !fading ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.95)',
+            transition: 'opacity 800ms cubic-bezier(0.16, 1, 0.3, 1), transform 800ms cubic-bezier(0.16, 1, 0.3, 1)',
             pointerEvents: 'none',
             willChange: 'transform, opacity',
           }}
         >
           {isOk ? (
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#22c55e' }}>check_circle</span>
+            <CheckIconSvg />
           ) : (
-            <StudioSpinner outerSize="h-4 w-4" childSize="h-3 w-3" colorFrom={cFrom} colorTo={cTo} />
+            <SpinnerSvg cFrom={cFrom} cTo={cTo} />
           )}
           <span>{isOk ? 'Up to date' : 'Checking\u2026'}</span>
         </div>
@@ -269,9 +370,20 @@ export default function UpdateIndicator({
   const tint  = (pct: number) => `color-mix(in srgb, ${cTo} ${pct}%, transparent)`;
   const tintFrom = (pct: number) => `color-mix(in srgb, ${cFrom} ${pct}%, transparent)`;
 
+  const amoledBg = isLight
+    ? 'rgba(255, 255, 255, 0.40)'
+    : 'rgba(26, 26, 30, 0.72)';
+  const fallbackBorder = isLight
+    ? '1px solid rgba(0, 0, 0, 0.08)'
+    : '1px solid rgba(255, 255, 255, 0.28)';
+  const fallbackShadow = isBanner
+    ? (isLight ? '0 16px 40px rgba(0, 0, 0, 0.12), inset 0 1.5px 0 rgba(255, 255, 255, 0.70)' : '0 16px 40px rgba(0, 0, 0, 0.40), inset 0 1.5px 0 rgba(255, 255, 255, 0.08)')
+    : (isLight ? '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1.5px 0 rgba(255, 255, 255, 0.70)' : '0 12px 48px rgba(0, 0, 0, 0.50), inset 0 1.5px 0 rgba(255, 255, 255, 0.08)');
+
   return (
     <>
       <button
+        ref={pillRef}
         type="button"
         onClick={() => setOpen(true)}
         aria-label={
@@ -294,14 +406,12 @@ export default function UpdateIndicator({
           justifyContent: isBanner ? 'flex-start' : 'center',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
-          background: `linear-gradient(135deg, ${tintFrom(22)}, ${tint(22)})`,
-          border: `1px solid ${tint(40)}`,
+          background: amoledBg,
+          border: fallbackBorder,
           color: 'var(--c-text-primary)',
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
-          boxShadow: isBanner
-            ? `0 16px 40px ${tint(25)}, inset 0 0 0 1px ${tint(13)}`
-            : `0 8px 24px ${tint(25)}, inset 0 0 0 1px ${tint(13)}`,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: fallbackShadow,
           fontFamily: 'Manrope, sans-serif',
           fontSize: 13,
           fontWeight: 700,
@@ -309,6 +419,8 @@ export default function UpdateIndicator({
           textAlign: 'left',
           cursor: 'pointer',
           opacity: entered ? 1 : 0,
+          outline: 'none',
+          WebkitTapHighlightColor: 'transparent',
           transform: [
             isBanner ? 'translateX(50%)' : 'translateX(0)',
             entered ? 'translateY(0)' : 'translateY(-16px)',
@@ -337,16 +449,18 @@ export default function UpdateIndicator({
             width: isBanner ? 18 : 24,
             height: isBanner ? 18 : 24,
             flexShrink: 0,
-            filter: isBanner ? undefined : `drop-shadow(0 2px 10px color-mix(in srgb, ${cTo} 60%, transparent))`,
+            filter: isBanner ? undefined : 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25))',
             animation: isBanner ? undefined : 'pill-download-bounce 1.6s ease-in-out infinite',
+            transition: 'width 620ms cubic-bezier(0.34, 1.12, 0.64, 1), height 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
           }}
         >
-          <DownloadIcon size={isBanner ? 18 : 24} color={cTo} />
+          <DownloadIcon size={isBanner ? 18 : 24} color={isLight ? cTo : '#fff'} />
         </span>
 
         <span
           style={{
-            flex: 1,
+            position: isBanner ? 'static' : 'absolute',
+            flex: isBanner ? 1 : undefined,
             opacity: isBanner ? 1 : 0,
             transform: isBanner ? 'translateX(0)' : 'translateX(-8px)',
             transition: isBanner
@@ -378,6 +492,7 @@ export default function UpdateIndicator({
           }}
           className="material-symbols-outlined"
           style={{
+            position: isBanner ? 'static' : 'absolute',
             fontSize: 18,
             color: 'var(--c-text-secondary)',
             flexShrink: 0,
@@ -425,6 +540,10 @@ export default function UpdateIndicator({
           45%  { transform: translateY(2px);  opacity: 1; }
           60%  { transform: translateY(2px);  opacity: 1; }
           100% { transform: translateY(-3px); opacity: 0.55; }
+        }
+        @keyframes lg-spin-spinner {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
       `}</style>
     </>

@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.46';
+export const APP_VERSION = '3.1.47';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-01'; // 3.1.46
+export const APP_VERSION_DATE = '2026-06-01'; // 3.1.47
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,17 +53,18 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "OTA Updates & Visual Reload",
+    heading: "OTA Updates & Visual Polish",
     items: [
-      'Direct Update Support: Clicking updates in settings installs them directly in-app, avoiding external redirects.',
-      'Smooth Reload Transition: Updates fade the screen to black smoothly before triggering the reload to prevent visual flashes.',
+      'Liquid Glass Indicators: Overhauled checking/up-to-date status badges into refracting liquid glass pills matching the nav bar.',
+      'Refined Update Badge: Minimized corner update badge is now a beautiful liquid glass ball containing a clean download icon.',
+      'Direct update installation: Clicking update in settings installs it immediately in-app, with a smooth fade-to-black restart.',
     ],
   },
   {
-    heading: "Drumex Sequencer Polish",
+    heading: "Drumex Polish",
     items: [
-      'Disable Keyboard Auto-open: Disables automatic virtual keyboard presentation when launching the new beat dialog in Drumex.',
-      'Default Kit Selection: Sets the premium multi-velocity \'House Kit\' as the default kit for new beats in Drumex.',
+      'Disable Keyboard Auto-open: Sequencer doesn\'t focus or auto-open keyboard when launching a new beat.',
+      'Default Kit Selection: House kit is selected by default for new beats.',
     ],
   },
 ];
@@ -72,17 +73,18 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Actualizaciones OTA y Recarga",
+    heading: "Actualizaciones y Diseñó",
     items: [
-      'Instalación Directa: Las actualizaciones se instalan directamente en la app sin redirigir a enlaces externos.',
-      'Transición Suave: La pantalla se desvanece a negro suavemente antes de recargar para evitar parpadeos visuales.',
+      'Indicadores Liquid Glass: Rediseño completo de las etiquetas de verificación/actualización en cápsulas de vidrio líquido refractivo.',
+      'Insignia de Actualización: La insignia de esquina ahora es una esfera de vidrio líquido con un icono limpio de descarga.',
+      'Instalación Directa: Instala actualizaciones directamente desde los ajustes con un desvanecimiento a negro suave y sin tirones.',
     ],
   },
   {
     heading: "Mejoras en Drumex",
     items: [
-      'Comportamiento del Teclado: Se desactivó el enfoque automático del teclado al crear un nuevo ritmo.',
-      'Kit por Defecto: El kit \'House Kit\' de alta calidad ahora se selecciona por defecto.',
+      'Teclado Desactivado: El secuenciador ya no enfoca ni abre automáticamente el teclado al crear un nuevo ritmo.',
+      'Selección por Defecto: El kit de alta calidad \'House Kit\' está seleccionado por defecto.',
     ],
   },
 ];
@@ -90,17 +92,18 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "OTA-Updates & Übergang",
+    heading: "OTA-Updates & Design",
     items: [
-      'Direktes Update: Updates werden direkt in der App installiert, ohne auf externe Links umzuleiten.',
-      'Sanfter Übergang: Der Bildschirm blendet vor dem Neuladen sanft nach Schwarz aus, um Flackern zu verhindern.',
+      'Liquid Glass Indikatoren: Die Statusanzeigen für Updates wurden in lichtbrechende Liquid Glass-Kapseln überarbeitet.',
+      'Update-Badge: Das minimierte Update-Symbol in der Ecke ist nun eine elegante Glaskugel mit sauberem Download-Symbol.',
+      'Direktes Update: Updates werden direkt in der App installiert, mit einem flüssigen Ausblenden nach Schwarz.',
     ],
   },
   {
-    heading: "Drumex-Sequenzer-Politur",
+    heading: "Drumex-Politur",
     items: [
-      'Tastatur-Verhalten: Die Tastatur wird beim Erstellen eines neuen Beats nicht mehr automatisch geöffnet.',
-      'Standard-Kit: Das hochwertige \'House Kit\' ist nun standardmäßig für neue Beats ausgewählt.',
+      'Disable Keyboard Auto-open: Die Tastatur wird beim Erstellen eines neuen Beats nicht mehr automatisch geöffnet.',
+      'Standard-Kit: Das hochwertige \'House Kit\' ist nun standardmäßig ausgewählt.',
     ],
   },
 ];
