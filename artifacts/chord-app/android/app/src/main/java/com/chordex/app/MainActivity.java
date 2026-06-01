@@ -25,7 +25,6 @@ public class MainActivity extends BridgeActivity {
                 splashScreenView -> splashScreenView.remove()
             );
         }
-        registerPlugin(PredictiveBackPlugin.class);
         super.onCreate(savedInstanceState);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         scheduleOtaBackgroundCheck();

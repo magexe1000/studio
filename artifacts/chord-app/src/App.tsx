@@ -5,7 +5,7 @@ import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
 import { ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
-import { handleGlobalBack, hasBackEntries, triggerBackFeedbackAnimation, getTopBackEntry } from './lib/backStack';
+import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 import { AppEntryTransition } from './components/AppAnimationSystem';
 // Lazy-load StudioHub — it's 1400+ lines and pulls in SettingControls,
@@ -434,10 +434,9 @@ export default function App() {
     jsonLdEl.textContent = JSON.stringify(structuredData, null, 2);
   }, [settings.appMode]);
 
-  // ── Global back navigation & Exit Guard ──────────────────────────────────
+  // ── Global back navigation ────────────────────────────────────────────────
   const [exitToast, setExitToast] = useState(false);
   const lastBackTime = useRef(0);
-  const lastBackTriggerTime = useRef(0);
   const exitToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -447,34 +446,20 @@ export default function App() {
     window.history.pushState({ chordex: 'app' }, '');
 
     const onBack = () => {
-      const now = Date.now();
-      if (now - lastBackTriggerTime.current < 120) {
-        // Prevent double-triggering from popstate + backButton event overlap
-        return;
-      }
-      lastBackTriggerTime.current = now;
-
       const handled = handleGlobalBack();
 
       if (!handled) {
-        const state = useChordStore.getState();
-        const appMode = state.settings.appMode;
-        if (appMode && appMode !== 'hub') {
-          triggerBackFeedbackAnimation();
-          state.updateSettings({ appMode: 'hub' });
+        const now = Date.now();
+        if (now - lastBackTime.current < 2000) {
+          // Second press within 2 s → exit / minimize
+          import('@capacitor/app')
+            .then(({ App: CapApp }) => CapApp.exitApp())
+            .catch(() => {});
         } else {
-          const nowExit = Date.now();
-          if (nowExit - lastBackTime.current < 1500) {
-            // Second press within 1.5 s → exit / minimize
-            import('@capacitor/app')
-              .then(({ App: CapApp }) => CapApp.exitApp())
-              .catch(() => {});
-          } else {
-            lastBackTime.current = nowExit;
-            setExitToast(true);
-            if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
-            exitToastTimer.current = setTimeout(() => setExitToast(false), 2000);
-          }
+          lastBackTime.current = now;
+          setExitToast(true);
+          if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
+          exitToastTimer.current = setTimeout(() => setExitToast(false), 2000);
         }
       }
 
@@ -482,17 +467,8 @@ export default function App() {
       window.history.pushState({ chordex: 'app' }, '');
     };
 
-    // Web: popstate fires when browser / WebView pops history.
-    // In native platforms, the Capacitor backButton event is the authoritative trigger,
-    // so we skip popstate logic to prevent duplicate executions.
-    const handlePop = () => {
-      const isNative = typeof window !== 'undefined' &&
-        (window as any).Capacitor &&
-        (window as any).Capacitor.isNativePlatform &&
-        (window as any).Capacitor.isNativePlatform();
-      if (isNative) return;
-      onBack();
-    };
+    // Web: popstate fires when browser / WebView pops history
+    const handlePop = () => onBack();
     window.addEventListener('popstate', handlePop);
 
     // Native Android: Capacitor's backButton is the authoritative event
@@ -505,27 +481,9 @@ export default function App() {
       })
       .catch(() => {});
 
-    // Active user interaction listener to reset the double-exit guard.
-    // If the user interacts with the app (tap/click/drag), they did not mean to exit.
-    const resetExitGuard = () => {
-      if (lastBackTime.current > 0) {
-        lastBackTime.current = 0;
-        setExitToast(false);
-        if (exitToastTimer.current) {
-          clearTimeout(exitToastTimer.current);
-          exitToastTimer.current = null;
-        }
-      }
-    };
-
-    window.addEventListener('touchstart', resetExitGuard, { passive: true });
-    window.addEventListener('mousedown', resetExitGuard, { passive: true });
-
     return () => {
       window.removeEventListener('popstate', handlePop);
       capRemove?.();
-      window.removeEventListener('touchstart', resetExitGuard);
-      window.removeEventListener('mousedown', resetExitGuard);
       if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
     };
   }, []);

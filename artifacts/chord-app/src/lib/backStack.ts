@@ -14,82 +14,30 @@
 //   useBackHandler('sheet', () => { if (open) { setOpen(false); return true; } return false; });
 
 import { useEffect } from 'react';
-import { PredictiveBack } from '../plugins/PredictiveBack';
 
 export type BackPriority = 'modal' | 'sheet' | 'overlay' | 'nested' | 'panel';
 
 const PRIORITY_ORDER: BackPriority[] = ['modal', 'sheet', 'overlay', 'nested', 'panel'];
 
-export interface BackEntry {
+interface BackEntry {
   id: string;
   priority: BackPriority;
-  app?: string;
-  view?: string;
   fn: () => boolean;
 }
 
 let _entries: BackEntry[] = [];
 let _idSeq = 0;
 
-function syncNativePredictiveBackState() {
-  try {
-    void PredictiveBack.setEnabled({ enabled: _entries.length > 0 });
-  } catch {
-    // Native plugin not available — silently degrade
-  }
-}
-
 /**
  * Register a back handler at the given priority level.
- * Context parameters `app` and `view` are optional and provide context for gestures.
  * Returns a cleanup function — call it (or return it from useEffect) to deregister.
+ *
+ * Within the same priority level, the most-recently-registered handler wins.
  */
-export function pushBackHandler(
-  priority: BackPriority,
-  fn: () => boolean,
-): () => void;
-export function pushBackHandler(
-  priority: BackPriority,
-  app: string,
-  view: string,
-  fn: () => boolean,
-): () => void;
-export function pushBackHandler(
-  priority: BackPriority,
-  arg2: string | (() => boolean),
-  arg3?: string,
-  arg4?: () => boolean,
-): () => void {
+export function pushBackHandler(priority: BackPriority, fn: () => boolean): () => void {
   const id = `bh_${++_idSeq}`;
-  let app: string | undefined;
-  let view: string | undefined;
-  let fn: () => boolean;
-
-  if (typeof arg2 === 'function') {
-    fn = arg2;
-  } else {
-    app = arg2;
-    view = arg3;
-    fn = arg4!;
-  }
-
-  _entries.push({ id, priority, app, view, fn });
-  syncNativePredictiveBackState();
-  return () => {
-    _entries = _entries.filter(e => e.id !== id);
-    syncNativePredictiveBackState();
-  };
-}
-
-export function triggerBackFeedbackAnimation(): void {
-  if (typeof document === 'undefined') return;
-  const root = document.documentElement;
-  root.classList.remove('predictive-back-press-active');
-  void root.offsetHeight; // Force reflow
-  root.classList.add('predictive-back-press-active');
-  setTimeout(() => {
-    root.classList.remove('predictive-back-press-active');
-  }, 285);
+  _entries.push({ id, priority, fn });
+  return () => { _entries = _entries.filter(e => e.id !== id); };
 }
 
 /**
@@ -101,10 +49,7 @@ export function handleGlobalBack(): boolean {
     const matching = _entries.filter(e => e.priority === priority);
     if (matching.length > 0) {
       const handler = matching[matching.length - 1];
-      if (handler.fn()) {
-        triggerBackFeedbackAnimation();
-        return true;
-      }
+      if (handler.fn()) return true;
     }
   }
   return false;
@@ -122,64 +67,26 @@ export function setBackHandler(fn: (() => boolean) | null): void {
   if (fn) _legacyCleanup = pushBackHandler('panel', fn);
 }
 
-// ── React hooks & Helpers ───────────────────────────────────────────────────
-
-/** Get the top-most active back handler. */
-export function getTopBackEntry(): BackEntry | null {
-  for (const priority of PRIORITY_ORDER) {
-    const matching = _entries.filter(e => e.priority === priority);
-    if (matching.length > 0) {
-      return matching[matching.length - 1];
-    }
-  }
-  return null;
-}
+// ── React hook ───────────────────────────────────────────────────────────────
 
 /**
  * Register a back handler while the component is mounted.
  * Auto-deregisters on unmount. Re-registers when deps change.
+ *
+ * @example
+ *   useBackHandler('modal', () => {
+ *     if (!isOpen) return false;
+ *     setIsOpen(false);
+ *     return true;
+ *   }, [isOpen]);
  */
 export function useBackHandler(
   priority: BackPriority,
   fn: () => boolean,
-  deps?: unknown[],
-): void;
-export function useBackHandler(
-  priority: BackPriority,
-  app: string,
-  view: string,
-  fn: () => boolean,
-  deps?: unknown[],
-): void;
-export function useBackHandler(
-  priority: BackPriority,
-  arg2: string | (() => boolean),
-  arg3?: string | unknown[],
-  arg4?: () => boolean,
-  arg5?: unknown[],
+  deps: unknown[] = [],
 ): void {
-  let app: string | undefined;
-  let view: string | undefined;
-  let fn: () => boolean;
-  let deps: unknown[] = [];
-
-  if (typeof arg2 === 'function') {
-    fn = arg2;
-    deps = (arg3 as unknown[]) ?? [];
-  } else {
-    app = arg2;
-    view = arg3 as string;
-    fn = arg4!;
-    deps = arg5 ?? [];
-  }
-
   useEffect(() => {
-    return pushBackHandler(priority, app!, view!, fn);
+    return pushBackHandler(priority, fn);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
-}
-
-/** Check if there are active registered back handlers. */
-export function hasBackEntries(): boolean {
-  return _entries.length > 0;
 }

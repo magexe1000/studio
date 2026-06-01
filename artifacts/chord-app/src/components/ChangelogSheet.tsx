@@ -107,7 +107,7 @@ export default function ChangelogSheet({
   }, [mounted]);
 
   // Register with global back stack to support closing via back swipe or back button
-  useBackHandler('sheet', 'hub', 'changelog', () => {
+  useBackHandler('sheet', () => {
     if (open) {
       onClose();
       return true;

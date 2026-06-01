@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
-import { setBackHandler, triggerBackFeedbackAnimation } from '../lib/backStack';
+import { setBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import translations from '../lib/i18n';
 import { useT } from '../lib/useT';
@@ -614,7 +614,6 @@ export default function StagexPanel() {
         }}>
           <button
             onClick={() => {
-              triggerBackFeedbackAnimation();
               // Drive the iframe directly using React's known view, so we don't
               // depend on the iframe's internal state.currentView staying in sync.
               // Optimistically update curView so the toolbar swaps instantly.

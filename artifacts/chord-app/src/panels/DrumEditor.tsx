@@ -29,7 +29,7 @@ import {
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import DrumPrefsPanel from './DrumPrefsPanel';
 import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
-import { setBackHandler, triggerBackFeedbackAnimation } from '../lib/backStack';
+import { setBackHandler } from '../lib/backStack';
 import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern } from '../lib/drumLibrary';
@@ -2369,7 +2369,6 @@ export default function DrumEditor() {
 
   // ── Back ─────────────────────────────────────────────────────────────────
   const handleBack = () => {
-    triggerBackFeedbackAnimation();
     if (inEditor) {
       if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
       setShowHamburger(false); setShowBpmPanel(false);

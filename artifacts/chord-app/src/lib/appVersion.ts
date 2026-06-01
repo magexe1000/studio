@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.40';
+export const APP_VERSION = '3.1.41';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-01'; // 3.1.40
+export const APP_VERSION_DATE = '2026-06-01'; // 3.1.41
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,12 +53,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Predictive Back Gestures",
+    heading: "Stable Back Navigation",
     items: [
-      'Fluid Gesture Preview: Restored the custom JS edge-swipe back listener to render stunning viewport scale-down previews while dragging your finger from the bezel.',
-      'Premium Cancel Animations: Releasing early without completing the gesture now plays a gorgeous spring-back cubic-bezier viewport recovery animation with zero flashing.',
-      'Single-Trigger Logic: Integrated completing swipes directly with history.back() to execute unified single-trigger state updates and 100% correct transitions.',
-      'Accurate Play Guard: Kept interactive in-app play areas (keys, pads, sliders) completely isolated from swipe actions and double-back exit triggers.',
+      'Clean Reversion: Fully restored the production-proven v3.0.78 stable back-navigation stack to completely resolve the duplicate-swipe visual flashing bug.',
+      'Fluid Native Gestures: Standard system gestures and physical buttons now trigger clean, zero-flash page and sheet closure instantly exactly once with zero stutters.',
+      'Robust Event Loops: Eliminated the complex local Java callback intercepters, ensuring 100% stable, un-hijacked history pops across all WebView versions.',
     ],
   },
   {

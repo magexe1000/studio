@@ -3,7 +3,7 @@ import { useGroovexStore, type GroovexView } from './useGroovexStore';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
-import { useBackHandler, triggerBackFeedbackAnimation } from '../lib/backStack';
+import { useBackHandler } from '../lib/backStack';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { useNavCollapsed, useNavHidden } from '../lib/navScroll';
 
@@ -25,7 +25,6 @@ export default function GroovexApp() {
   }
 
   function handleBack() {
-    triggerBackFeedbackAnimation();
     if (view === 'player') {
       navigate('library');
     } else {
