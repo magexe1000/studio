@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import AppSpinner from './AppSpinner';
 import StudioSpinner from './animata/progress/spinner';
 import AnimatedActionButton from './animata/container/animated-border-trail';
+import StudioAuthCard from './StudioAuthCard';
 import {
   isFirebaseConfigured,
   signInGoogle,
@@ -62,10 +63,6 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
   const t = tRoot.hub.accountSection;
   const lang = useChordStore((s) => s.settings.language) ?? 'en';
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [mode, setMode] = useState<Mode>('idle');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [sync, setSync] = useState<SyncStatus>(() => ({
@@ -124,15 +121,18 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
     finally { setBusy(false); }
   }
 
-  async function doEmail() {
-    if (!email.trim() || !password) { setErr(t.errMissing); return; }
+  async function doEmailSubmit(submitMode: 'email-signin' | 'email-register', submitEmail: string, submitPassword: string, submitName?: string) {
+    if (!submitEmail.trim() || !submitPassword) { setErr(t.errMissing); return; }
     setBusy(true); setErr(null);
     try {
-      if (mode === 'email-signin') await signInEmail(email, password);
-      else await registerEmail(email, password, name);
-      setMode('idle'); setEmail(''); setPassword(''); setName('');
-    } catch (e) { setErr(prettyErr(e, lang)); }
-    finally { setBusy(false); }
+      if (submitMode === 'email-signin') await signInEmail(submitEmail, submitPassword);
+      else await registerEmail(submitEmail, submitPassword, submitName || '');
+    } catch (e) {
+      setErr(prettyErr(e, lang));
+      throw e;
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function doSyncNow() {
@@ -310,125 +310,15 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
 
   // ── Signed out ──
   return (
-    <div style={cardStyle}>
-      <div style={{ padding: '15px 18px 4px' }}>
-        <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>{t.title}</p>
-        <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.4 }}>{t.subtitle}</p>
-      </div>
-
-      {mode === 'idle' && (
-        <div style={{ padding: '12px 14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button onClick={doGoogle} disabled={busy} style={primaryBtn(accent)}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>account_circle</span>
-            {t.continueGoogle}
-          </button>
-          <button onClick={() => { setMode('email-signin'); setErr(null); }} disabled={busy} style={secondaryBtn()}>
-            {t.continueEmail}
-          </button>
-          <button onClick={() => { setMode('email-register'); setErr(null); }} disabled={busy} style={textBtn()}>
-            {t.createAccount}
-          </button>
-        </div>
-      )}
-
-      {(mode === 'email-signin' || mode === 'email-register') && (
-        <div style={{ padding: '10px 14px 16px', display: 'flex', flexDirection: 'column', gap: 0 }}>
-          {/* Card header */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '12px 14px',
-            background: `linear-gradient(135deg, ${accent.from}14, ${accent.to}0c)`,
-            border: `1px solid ${accent.from}28`,
-            borderRadius: '14px 14px 0 0',
-            borderBottom: 'none',
-          }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 9,
-              background: `linear-gradient(135deg, ${accent.from}30, ${accent.to}20)`,
-              border: `1px solid ${accent.from}35`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 17, color: accent.from }}>mail</span>
-            </div>
-            <div>
-              <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 13, color: 'var(--c-text-primary)', margin: 0 }}>
-                {mode === 'email-signin' ? t.signIn : t.register}
-              </p>
-              <p style={{ fontFamily: 'Inter', fontSize: 10.5, color: 'var(--c-text-secondary)', margin: '1px 0 0' }}>
-                {mode === 'email-signin' ? t.emailPlaceholder : t.namePlaceholder}
-              </p>
-            </div>
-          </div>
-
-          {/* Card body */}
-          <div style={{
-            background: 'var(--app-surface-high)',
-            border: `1px solid ${accent.from}20`,
-            borderRadius: '0 0 14px 14px',
-            padding: '14px 14px 12px',
-            display: 'flex', flexDirection: 'column', gap: 8,
-          }}>
-            {mode === 'email-register' && (
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t.namePlaceholder}
-                autoComplete="name"
-                style={inputStyle(accent)}
-              />
-            )}
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t.emailPlaceholder}
-              autoComplete="email"
-              type="email"
-              style={inputStyle(accent)}
-            />
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t.passwordPlaceholder}
-              autoComplete={mode === 'email-signin' ? 'current-password' : 'new-password'}
-              type="password"
-              style={inputStyle(accent)}
-            />
-            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-              <button onClick={() => { setMode('idle'); setErr(null); }} disabled={busy} style={{ ...secondaryBtn(), flex: 1 }}>
-                {t.cancel}
-              </button>
-              <AnimatedActionButton
-                onClick={doEmail}
-                disabled={busy}
-                wrapStyle={{ flex: 1 }}
-                style={{
-                  ...primaryBtn(accent),
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}
-              >
-                {busy ? <AppSpinner size={14} color="white" strokeWidth={2} /> : null}
-                {mode === 'email-signin' ? t.signIn : t.register}
-              </AnimatedActionButton>
-            </div>
-            {mode === 'email-signin' ? (
-              <button onClick={() => { setMode('email-register'); setErr(null); }} style={textBtn()}>
-                {t.switchToRegister}
-              </button>
-            ) : (
-              <button onClick={() => { setMode('email-signin'); setErr(null); }} style={textBtn()}>
-                {t.switchToSignIn}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {err && (
-        <div style={{ padding: '0 18px 14px' }}>
-          <p style={{ fontSize: 12, color: '#ff6b6b', margin: 0 }}>{err}</p>
-        </div>
-      )}
-    </div>
+    <StudioAuthCard
+      accent={accent}
+      t={t}
+      busy={busy}
+      err={err}
+      setErr={setErr}
+      doGoogle={doGoogle}
+      doEmailSubmit={doEmailSubmit}
+    />
   );
 }
 

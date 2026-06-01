@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import StudioProgressBar from './StudioProgressBar';
+import StudioUpdateAuroraBackground from './StudioUpdateAuroraBackground';
 
 /**
  * StudioUpdateScreen — fullscreen overlay during OTA download.
@@ -101,141 +102,28 @@ export default function StudioUpdateScreen({
         inset: 0,
         zIndex: 9100,
         overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         background: 'var(--app-bg, #0a0a0c)',
       }}
     >
-      {/* ── SVG goo filter ─────────────────────────────────────────────── */}
-      <svg
-        aria-hidden="true"
-        style={{ position: 'absolute', width: 0, height: 0, top: 0, left: 0 }}
+      <StudioUpdateAuroraBackground
+        accentFrom={accentFrom}
+        accentTo={accentTo}
+        className="w-full h-full flex items-center justify-center"
       >
-        <defs>
-          <filter id="su-goo">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="16" result="blur" />
-            <feColorMatrix
-              in="blur"
-              mode="matrix"
-              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8"
-              result="goo"
-            />
-            <feBlend in="SourceGraphic" in2="goo" />
-          </filter>
-        </defs>
-      </svg>
-
-      {/* ── Blobs — warm neutral, relaxing atmosphere ───────────────────── */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          filter: 'url(#su-goo) blur(44px)',
-        }}
-      >
-        {/* Primary — slow vertical drift */}
-        <motion.div
+        <div
           style={{
-            position: 'absolute',
-            width: '85%',
-            height: '85%',
-            top: '7%',
-            left: '7%',
-            borderRadius: '50%',
-            mixBlendMode: 'screen',
-            background: `radial-gradient(circle at center, ${blobA} 0%, transparent 62%)`,
-            willChange: 'transform',
-          }}
-          animate={{ y: [-55, 55, -55] }}
-          transition={{ duration: 30, ease: 'easeInOut', repeat: Infinity }}
-        />
-
-        {/* Second — slow orbit */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            inset: 0,
+            position: 'relative',
+            zIndex: 1,
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            transformOrigin: 'calc(50% - 360px) 50%',
-            willChange: 'transform',
+            gap: 32,
+            padding: '0 36px',
+            width: '100%',
+            maxWidth: 360,
+            margin: '0 auto',
           }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 24, ease: 'linear', repeat: Infinity }}
         >
-          <div
-            style={{
-              width: '70%',
-              height: '70%',
-              borderRadius: '50%',
-              mixBlendMode: 'screen',
-              background: `radial-gradient(circle at center, ${blobB} 0%, transparent 58%)`,
-            }}
-          />
-        </motion.div>
-
-        {/* Third — opposite slow orbit */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transformOrigin: 'calc(50% + 360px) 50%',
-            willChange: 'transform',
-          }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 42, ease: 'linear', repeat: Infinity }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              width: '68%',
-              height: '68%',
-              top: 'calc(50% + 130px)',
-              left: 'calc(50% - 380px)',
-              borderRadius: '50%',
-              mixBlendMode: 'screen',
-              background: `radial-gradient(circle at center, ${blobC} 0%, transparent 58%)`,
-            }}
-          />
-        </motion.div>
-
-        {/* Fourth — slow horizontal drift */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            width: '75%',
-            height: '75%',
-            top: '12%',
-            left: '12%',
-            borderRadius: '50%',
-            mixBlendMode: 'screen',
-            background: `radial-gradient(circle at center, ${blobD} 0%, transparent 62%)`,
-            willChange: 'transform',
-          }}
-          animate={{ x: [-45, 45, -45] }}
-          transition={{ duration: 38, ease: 'easeInOut', repeat: Infinity }}
-        />
-      </div>
-
-      {/* ── Centered content ────────────────────────────────────────────── */}
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 32,
-          padding: '0 36px',
-          width: '100%',
-          maxWidth: 360,
-        }}
-      >
         {/* ── Loader: theme-aware rings, 210×210 ── */}
         <motion.div
           style={{ position: 'relative', width: 210, height: 210, flexShrink: 0 }}
@@ -374,6 +262,7 @@ export default function StudioUpdateScreen({
           {displayMsg}
         </motion.p>
       </div>
+      </StudioUpdateAuroraBackground>
     </div>
   );
 }

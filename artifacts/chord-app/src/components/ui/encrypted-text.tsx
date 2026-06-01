@@ -9,12 +9,10 @@ type EncryptedTextProps = {
   className?: string;
   /**
    * Time in milliseconds between revealing each subsequent real character.
-   * Defaults to 50ms.
+   * Lower is faster. Defaults to 50ms per character.
    */
   revealDelayMs?: number;
-  /**
-   * Custom characters set used for the gibberish/encrypted effect.
-   */
+  /** Optional custom character set to use for the gibberish effect. */
   charset?: string;
   /**
    * Time in milliseconds between gibberish flips for unrevealed characters.
@@ -64,8 +62,12 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
   onlyOnce = false,
 }) => {
   const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true });
+  
+  // Standard IntersectionObserver visibility hook from Framer Motion
+  const inViewSignal = useInView(ref, { once: true });
+  const [isInView, setIsInView] = useState(false);
 
+  // Checks if this specific text has already completed decryption during this launch session
   const alreadyAnimated = onlyOnce && animatedTextsCache.has(text);
 
   const [revealCount, setRevealCount] = useState<number>(() =>
@@ -78,6 +80,23 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
   const scrambleCharsRef = useRef<string[]>(
     text ? generateGibberishPreservingSpaces(text, charset).split("") : [],
   );
+
+  // Sync state if IntersectionObserver reports visible
+  useEffect(() => {
+    if (inViewSignal) {
+      setIsInView(true);
+    }
+  }, [inViewSignal]);
+
+  // Robust Visibility Fallback:
+  // If IntersectionObserver is blocked, delayed, or disabled due to styling/zoom transitions,
+  // we force the animation to begin after 150ms so that the text never remains stuck or scrambled.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInView(true);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!isInView || alreadyAnimated) {
