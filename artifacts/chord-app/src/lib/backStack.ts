@@ -90,3 +90,8 @@ export function useBackHandler(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }
+
+/** Check if there are active registered back handlers. */
+export function hasBackEntries(): boolean {
+  return _entries.length > 0;
+}

@@ -17,6 +17,16 @@ Conventions:
 
 ---
 
+## 3.0.79
+
+- Predictive Back Gestures: Platform-agnostic viewport swipe gesture support added for Web, iOS, and Android (<14) with fluid GPU-composited peeling animation.
+- Centralized Back Navigation: Captured active sheet overlays in the Profile sections (Personal Info, Security, Devices, etc.) to close step-by-step on back/swipe instead of exiting settings.
+- UI Polish: Fixed redundant top-header back button in settings, replaced the broken update icon with a subsetted `cloud_download` icon to prevent text rendering, fixed the button clipping WebView bug, and upgraded the update progress rings with thicker, vibrant theme-accented colors.
+
+## 3.0.78
+
+- Release Pipeline: Fully automated the version-bumping and release date updates across source code and manifests.
+
 ## 3.0.76
 
 - Stagex: 46 new full-color illustrated SVG icons for every stage element (mics, drums, instruments, amps, monitors, and utilities).

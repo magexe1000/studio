@@ -550,7 +550,7 @@ function UpdateModal({
                 <span className="material-symbols-outlined" style={{
                   fontSize: 26, color: accentFrom,
                   fontVariationSettings: "'FILL' 1",
-                }}>system_update_alt</span>
+                }}>cloud_download</span>
               </div>
 
               <p style={{

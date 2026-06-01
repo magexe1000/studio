@@ -88,11 +88,11 @@ export default function StudioUpdateScreen({
   const blobC = 'rgba(255, 248, 235, 0.35)'; // warm cream
   const blobD = 'rgba(200, 195, 255, 0.28)'; // pale periwinkle
 
-  // Ring color — crisp white on dark, near-black on light.
-  const ring = 'var(--c-text-primary)';
-  // Opacity helper for ring layers
-  const ringAlpha = (a: number) =>
-    `color-mix(in srgb, ${ring} ${Math.round(a * 100)}%, transparent)`;
+  // Opacity helpers using primary accent colors (high contrast and vibrant visibility)
+  const ringAlpha1 = (a: number) =>
+    `color-mix(in srgb, ${accentFrom} ${Math.round(a * 100)}%, transparent)`;
+  const ringAlpha2 = (a: number) =>
+    `color-mix(in srgb, ${accentTo} ${Math.round(a * 100)}%, transparent)`;
 
   return (
     <div
@@ -242,16 +242,16 @@ export default function StudioUpdateScreen({
           animate={{ scale: [1, 1.012, 1] }}
           transition={{ duration: 4.5, repeat: Infinity, ease: [0.4, 0, 0.6, 1] }}
         >
-          {/* Ring 1 — outermost thin, fast */}
+          {/* Ring 1 — outermost thick, fast */}
           <motion.div
             style={{
               position: 'absolute',
               inset: 0,
               borderRadius: '50%',
-              background: `conic-gradient(from 0deg, transparent 0deg, ${ringAlpha(0.9)} 90deg, transparent 180deg)`,
-              mask: 'radial-gradient(circle at 50% 50%, transparent 35%, black 37%, black 39%, transparent 41%)',
+              background: `conic-gradient(from 0deg, transparent 0deg, ${ringAlpha1(0.95)} 90deg, transparent 180deg)`,
+              mask: 'radial-gradient(circle at 50% 50%, transparent 31%, black 33%, black 39%, transparent 41%)',
               WebkitMask:
-                'radial-gradient(circle at 50% 50%, transparent 35%, black 37%, black 39%, transparent 41%)',
+                'radial-gradient(circle at 50% 50%, transparent 31%, black 33%, black 39%, transparent 41%)',
               willChange: 'transform',
             }}
             animate={{ rotate: [0, 360] }}
@@ -264,10 +264,10 @@ export default function StudioUpdateScreen({
               position: 'absolute',
               inset: 0,
               borderRadius: '50%',
-              background: `conic-gradient(from 0deg, transparent 0deg, ${ringAlpha(1)} 120deg, ${ringAlpha(0.5)} 240deg, transparent 360deg)`,
-              mask: 'radial-gradient(circle at 50% 50%, transparent 42%, black 44%, black 49%, transparent 51%)',
+              background: `conic-gradient(from 0deg, transparent 0deg, ${ringAlpha2(1)} 120deg, ${ringAlpha2(0.5)} 240deg, transparent 360deg)`,
+              mask: 'radial-gradient(circle at 50% 50%, transparent 39%, black 41%, black 49%, transparent 51%)',
               WebkitMask:
-                'radial-gradient(circle at 50% 50%, transparent 42%, black 44%, black 49%, transparent 51%)',
+                'radial-gradient(circle at 50% 50%, transparent 39%, black 41%, black 49%, transparent 51%)',
               willChange: 'transform',
             }}
             animate={{ rotate: [0, 360] }}
@@ -280,10 +280,10 @@ export default function StudioUpdateScreen({
               position: 'absolute',
               inset: 0,
               borderRadius: '50%',
-              background: `conic-gradient(from 180deg, transparent 0deg, ${ringAlpha(0.5)} 45deg, transparent 90deg)`,
-              mask: 'radial-gradient(circle at 50% 50%, transparent 53%, black 55%, black 57%, transparent 59%)',
+              background: `conic-gradient(from 180deg, transparent 0deg, ${ringAlpha1(0.6)} 45deg, transparent 90deg)`,
+              mask: 'radial-gradient(circle at 50% 50%, transparent 49%, black 51%, black 59%, transparent 61%)',
               WebkitMask:
-                'radial-gradient(circle at 50% 50%, transparent 53%, black 55%, black 57%, transparent 59%)',
+                'radial-gradient(circle at 50% 50%, transparent 49%, black 51%, black 59%, transparent 61%)',
               willChange: 'transform',
             }}
             animate={{ rotate: [0, -360] }}
@@ -296,10 +296,10 @@ export default function StudioUpdateScreen({
               position: 'absolute',
               inset: 0,
               borderRadius: '50%',
-              background: `conic-gradient(from 270deg, transparent 0deg, ${ringAlpha(0.55)} 20deg, transparent 40deg)`,
-              mask: 'radial-gradient(circle at 50% 50%, transparent 62%, black 63%, black 64.5%, transparent 65.5%)',
+              background: `conic-gradient(from 270deg, transparent 0deg, ${ringAlpha2(0.65)} 20deg, transparent 40deg)`,
+              mask: 'radial-gradient(circle at 50% 50%, transparent 59%, black 61%, black 66%, transparent 68%)',
               WebkitMask:
-                'radial-gradient(circle at 50% 50%, transparent 62%, black 63%, black 64.5%, transparent 65.5%)',
+                'radial-gradient(circle at 50% 50%, transparent 59%, black 61%, black 66%, transparent 68%)',
               willChange: 'transform',
             }}
             animate={{ rotate: [0, 360] }}

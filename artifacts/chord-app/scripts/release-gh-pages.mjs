@@ -29,7 +29,7 @@
  *   pnpm release:gh-pages
  */
 import { spawnSync } from 'node:child_process';
-import { cpSync, rmSync, existsSync } from 'node:fs';
+import { cpSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -43,6 +43,57 @@ if (!otaBase) {
   console.error('    PowerShell: $env:OTA_BASE_URL = "https://magexe1000.github.io/Chordex"');
   console.error('    bash:       export OTA_BASE_URL=https://magexe1000.github.io/Chordex');
   process.exit(1);
+}
+
+// ── Auto-bump APP_VERSION in src/lib/appVersion.ts ────────────────────
+const appVersionPath = path.join(pkgRoot, 'src', 'lib', 'appVersion.ts');
+if (existsSync(appVersionPath)) {
+  const versionSrc = readFileSync(appVersionPath, 'utf8');
+  const versionMatch = versionSrc.match(/export\s+const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+  if (versionMatch) {
+    const currentVersion = versionMatch[1];
+    
+    // Check if custom version is passed via command line (e.g., --version 3.0.79)
+    const versionArgIndex = process.argv.indexOf('--version');
+    let nextVersion = null;
+    if (versionArgIndex !== -1 && process.argv[versionArgIndex + 1]) {
+      nextVersion = process.argv[versionArgIndex + 1];
+    } else {
+      // Auto-increment the patch version
+      const parts = currentVersion.split('.');
+      if (parts.length === 3 && parts.every(p => /^\d+$/.test(p))) {
+        parts[2] = String(Number(parts[2]) + 1);
+        nextVersion = parts.join('.');
+      }
+    }
+    
+    if (nextVersion && nextVersion !== currentVersion) {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
+      let newSrc = versionSrc;
+      newSrc = newSrc.replace(
+        /export\s+const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/,
+        `export const APP_VERSION = '${nextVersion}'`
+      );
+      newSrc = newSrc.replace(
+        /export\s+const\s+APP_VERSION_DATE\s*=\s*['"]([^'"]+)['"]\s*;\s*\/\/\s*[^\r\n]*/,
+        `export const APP_VERSION_DATE = '${dateString}'; // ${nextVersion}`
+      );
+      
+      writeFileSync(appVersionPath, newSrc, 'utf8');
+      console.log(`release-gh-pages: → Auto-bumped version in appVersion.ts: ${currentVersion} → ${nextVersion} (date: ${dateString})`);
+    } else {
+      console.log(`release-gh-pages: → Keeping current version ${currentVersion}`);
+    }
+  } else {
+    console.warn(`release-gh-pages: ⚠ Could not find APP_VERSION in ${appVersionPath}`);
+  }
+} else {
+  console.warn(`release-gh-pages: ⚠ ${appVersionPath} does not exist. Skipping auto-bump.`);
 }
 
 function run(cmd, args, extraEnv = {}) {

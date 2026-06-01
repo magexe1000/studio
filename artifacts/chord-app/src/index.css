@@ -1154,3 +1154,41 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
      kill all animations instantly so nothing moves. */
   [data-solar-intro] * { animation: none !important; transition: none !important; }
 }
+
+/* ── Predictive Back Gesture Animations ───────────────────────────────────── */
+
+/* Viewport scaling and border-rounding */
+.predictive-back-active #root,
+.predictive-back-active .app-main-layout {
+  transform: scale(calc(1 - var(--back-progress) * 0.065)) !important;
+  border-radius: calc(var(--back-progress) * 20px) !important;
+  transform-origin: calc(50% + var(--back-edge) * 50%) 50% !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+  transition: transform 90ms linear, border-radius 90ms linear !important;
+}
+
+/* Overlay transitions (modals, sheets, sheets-overlays) */
+.predictive-back-active .sheet-overlay,
+.predictive-back-active .modal-overlay,
+.predictive-back-active [role="dialog"],
+.predictive-back-active .settings-panel-sheet,
+.predictive-back-active .profile-panel-sheet {
+  transform: translateX(calc(var(--back-progress) * 100% * var(--back-edge))) scale(calc(1 - var(--back-progress) * 0.05)) !important;
+  opacity: calc(1 - var(--back-progress) * 0.5) !important;
+  transform-origin: center left !important;
+  transition: transform 90ms linear, opacity 90ms linear !important;
+}
+
+/* Transition restore animations when gesture completes/cancels */
+#root,
+.app-main-layout,
+.sheet-overlay,
+.modal-overlay,
+[role="dialog"],
+.settings-panel-sheet,
+.profile-panel-sheet {
+  transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1), 
+              opacity 280ms cubic-bezier(0.34, 1.56, 0.64, 1), 
+              border-radius 280ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}

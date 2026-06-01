@@ -49,14 +49,14 @@ export function onBackCancelled(fn: SimpleListener): () => void {
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
 
-function applyCssProgress(progress: number, edge: 'left' | 'right') {
+export function applyCssProgress(progress: number, edge: 'left' | 'right') {
   const root = document.documentElement;
   root.style.setProperty('--back-progress', String(progress));
   root.style.setProperty('--back-edge', edge === 'right' ? '1' : '-1');
   root.classList.add('predictive-back-active');
 }
 
-function clearCssProgress() {
+export function clearCssProgress() {
   const root = document.documentElement;
   root.style.removeProperty('--back-progress');
   root.style.removeProperty('--back-edge');

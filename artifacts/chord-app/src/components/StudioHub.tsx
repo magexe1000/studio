@@ -354,24 +354,7 @@ export default function StudioHub() {
 
         {/* ── SETTINGS TAB ── */}
         {tab === 'settings' && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', padding: '8px 8px 0', paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
-              <button
-                onClick={() => setTab('home')}
-                style={{
-                  width: 40, height: 40, borderRadius: 12,
-                  background: 'transparent', border: 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', outline: 'none',
-                  WebkitTapHighlightColor: 'transparent',
-                  color: 'var(--c-text-secondary)',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 24 }}>chevron_left</span>
-              </button>
-            </div>
-            <HubSettings accent={accent} scrollRef={scrollRef} authUser={authUser} onProfile={() => setTab('profile')} />
-          </>
+          <HubSettings accent={accent} scrollRef={scrollRef} authUser={authUser} onProfile={() => setTab('profile')} />
         )}
       </div>
 

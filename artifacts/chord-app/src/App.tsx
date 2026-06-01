@@ -4,8 +4,8 @@ import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
 import { ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
-import { handleGlobalBack } from './lib/backStack';
-import { initPredictiveBack } from './lib/predictiveBack';
+import { handleGlobalBack, hasBackEntries } from './lib/backStack';
+import { initPredictiveBack, applyCssProgress, clearCssProgress } from './lib/predictiveBack';
 import { useStatusBar } from './lib/useStatusBar';
 // Lazy-load StudioHub — it's 1400+ lines and pulls in SettingControls,
 // ApplyToSheet, ChangelogSheet, and all logo variants. Keeping it out of
@@ -330,13 +330,82 @@ export default function App() {
     };
   }, []);
 
-  // ── Predictive Back Gesture (Android 14+) ───────────────────────────────
-  // Loads the native plugin once on mount. No-ops silently on web/iOS and
-  // Android < 14. The plugin sends backStarted / backProgressed / backCancelled
-  // events that predictiveBack.ts converts into CSS vars + a dim overlay,
-  // giving a live visual response to the back swipe gesture.
+  // ── Predictive Back Gesture (Android 14+ & Custom Web/iOS Viewport Swipe) ───
+  // 1. Loads native plugin for Android 14+
   useEffect(() => {
     void initPredictiveBack();
+  }, []);
+
+  // 2. Viewport Left Edge Swipe Gesture listener for Web, iOS, and Android < 14
+  useEffect(() => {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isSwiping = false;
+    const threshold = 160; // swipe distance in pixels for 100% progress
+
+    const onTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      // Only trigger if swipe starts within 35px of the left edge
+      if (touch.clientX < 35) {
+        // Only allow swiping if there are active handlers registered in the back stack!
+        if (hasBackEntries()) {
+          touchStartX = touch.clientX;
+          touchStartY = touch.clientY;
+          isSwiping = true;
+        }
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isSwiping) return;
+      const touch = e.touches[0];
+      const dX = touch.clientX - touchStartX;
+      const dY = touch.clientY - touchStartY;
+
+      // If user is swiping vertically more than horizontally, cancel
+      if (Math.abs(dY) > Math.abs(dX) && dX < 20) {
+        isSwiping = false;
+        clearCssProgress();
+        return;
+      }
+
+      if (dX > 0) {
+        // Prevent default browser history actions (iOS swipe-back)
+        if (e.cancelable) e.preventDefault();
+        const progress = Math.min(dX / threshold, 1.0);
+        applyCssProgress(progress, 'left');
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!isSwiping) return;
+      isSwiping = false;
+      const touch = e.changedTouches[0];
+      const dX = touch.clientX - touchStartX;
+      const progress = Math.min(dX / threshold, 1.0);
+
+      clearCssProgress();
+
+      if (progress > 0.45) {
+        // Trigger back action
+        const handled = handleGlobalBack();
+        if (!handled) {
+          // If not handled, return to Hub
+          const customEvent = new CustomEvent('studio-hub-return');
+          window.dispatchEvent(customEvent);
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: false });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
   }, []);
 
   // ── Hub-return exit animation ────────────────────────────────────────────

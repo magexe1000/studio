@@ -28,6 +28,7 @@ import {
   subscribeUserAvatar,
   type AvatarIcon,
 } from '../lib/userAvatar';
+import { useBackHandler } from '../lib/backStack';
 
 type Props = {
   accent: { from: string; to: string; mid: string };
@@ -1004,6 +1005,20 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       setCustomPhoto(stored || null);
     } catch { setCustomPhoto(null); }
   }, [user?.uid]);
+
+  // Register a back handler to close any active sheets when open
+  useBackHandler('sheet', () => {
+    if (pickerOpen) {
+      setPickerClosing(true);
+      setTimeout(() => { setPickerOpen(false); setPickerClosing(false); }, 280);
+      return true;
+    }
+    if (sheet !== 'none') {
+      closeSheet();
+      return true;
+    }
+    return false;
+  }, [sheet, pickerOpen]);
 
   if (!user || !isFirebaseConfigured) return null;
 

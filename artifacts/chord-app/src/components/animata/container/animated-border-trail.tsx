@@ -52,7 +52,7 @@ export default function AnimatedActionButton({
   return (
     <div
       className={cn("relative overflow-hidden p-px", wrapClassName)}
-      style={{ borderRadius: br, display: "block", ...wrapStyle }}
+      style={{ borderRadius: br, display: "block", transform: "translateZ(0)", isolation: "isolate", ...wrapStyle }}
     >
       {/* Animata: rotating conic-gradient border layer */}
       <div
