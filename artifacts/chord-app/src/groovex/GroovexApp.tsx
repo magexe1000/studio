@@ -110,13 +110,23 @@ function GroovexNav({ view, setView, hasActiveSong }: {
 }) {
   const { settings } = useChordStore();
   const groovexVis = settings.perApp?.groovex ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
-  const isLight = groovexVis.theme === 'light' ||
-    (groovexVis.theme === 'system' && typeof window !== 'undefined' &&
-     window.matchMedia('(prefers-color-scheme: light)').matches);
+  const isLight = (() => {
+    if (groovexVis.theme === 'light') return true;
+    if (groovexVis.theme === 'system') {
+      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
+    }
+    if (groovexVis.theme === 'dynamic') {
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      return h >= lightStart && h < lightEnd;
+    }
+    return false;
+  })();
   const accent = ACCENT_COLORS[groovexVis.accentColor as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue;
   const amoledBg = groovexVis.amoledMode
     ? 'rgba(0,0,0,0.96)'
-    : (isLight ? 'rgba(255,255,255,0.82)' : 'rgba(26,26,30,0.82)');
+    : (isLight ? 'rgba(255, 255, 255, 0.40)' : 'rgba(26,26,30,0.82)');
 
   const t = useT();
   const items: { id: GroovexView; icon: string; label: string }[] = [
@@ -198,6 +208,7 @@ function GroovexNav({ view, setView, hasActiveSong }: {
   return (
     <nav
       ref={navRef}
+      className="glass-nav"
       style={{
         position: 'fixed',
         bottom: 'var(--nav-safe-bottom)',

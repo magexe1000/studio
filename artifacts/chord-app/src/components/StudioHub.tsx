@@ -1726,11 +1726,23 @@ function HubNav({ tab, setTab, accent }: {
   }, [tab]);
 
   const hubVis2 = settings.perApp?.hub ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
-  const isLight = hubVis2.theme === 'light' || (hubVis2.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+  const isLight = (() => {
+    if (hubVis2.theme === 'light') return true;
+    if (hubVis2.theme === 'system') {
+      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
+    }
+    if (hubVis2.theme === 'dynamic') {
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      return h >= lightStart && h < lightEnd;
+    }
+    return false;
+  })();
   const bg = isLight
     ? hubVis2.amoledMode
       ? 'rgba(255, 255, 255, 0.92)'
-      : 'rgba(255, 255, 255, 0.65)'
+      : 'rgba(255, 255, 255, 0.40)'
     : hubVis2.amoledMode
       ? 'rgba(4,4,4,0.88)'
       : 'rgba(26,26,30,0.72)';
@@ -1738,6 +1750,7 @@ function HubNav({ tab, setTab, accent }: {
   return (
     <nav
       ref={navRef}
+      className="glass-nav"
       style={{
         position: 'fixed',
         bottom: 'var(--nav-safe-bottom)',

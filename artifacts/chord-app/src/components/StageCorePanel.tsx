@@ -292,7 +292,19 @@ export default function StagexPanel() {
   const stageVis  = settings.perApp?.stage ?? { theme: 'dark' as const, accentColor: 'blue' as const, amoledMode: false };
   const accentKey = (stageVis.accentColor ?? settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
   const accent    = ACCENT_COLORS[accentKey] ?? ACCENT_COLORS.blue;
-  const isLight   = stageVis.theme === 'light';
+  const isLight   = (() => {
+    if (stageVis.theme === 'light') return true;
+    if (stageVis.theme === 'system') {
+      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
+    }
+    if (stageVis.theme === 'dynamic') {
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      return h >= lightStart && h < lightEnd;
+    }
+    return false;
+  })();
   const isAmoled  = stageVis.amoledMode;
 
   const iframeSrc = useRef(
@@ -509,7 +521,7 @@ export default function StagexPanel() {
   const stagePillBg = isAmoled
     ? 'rgba(4,4,4,0.88)'
     : isLight
-      ? 'rgba(240,240,242,0.82)'
+      ? 'rgba(255, 255, 255, 0.40)'
       : 'rgba(26,26,30,0.82)';
 
   /* ── Pill measurement helpers ───────────────────────────── */
@@ -902,6 +914,7 @@ export default function StagexPanel() {
         {/* ── Glassmorphism bottom nav — matches Chordex BottomNav ── */}
         <div
           ref={stageNavRef}
+          className="glass-nav"
           style={{
             position: 'absolute',
             bottom: 'max(10px, env(safe-area-inset-bottom))',

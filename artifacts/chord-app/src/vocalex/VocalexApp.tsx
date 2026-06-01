@@ -92,7 +92,19 @@ export default function VocalexApp() {
   const appKey = 'vocalex' as AppKey;
   const activeVis = settings.perApp?.[appKey] ?? { theme: 'dark' as const, accentColor: 'blue' as const, amoledMode: false };
   const accent = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
-  const isLight = activeVis.theme === 'light' || (activeVis.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
+  const isLight = (() => {
+    if (activeVis.theme === 'light') return true;
+    if (activeVis.theme === 'system') {
+      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
+    }
+    if (activeVis.theme === 'dynamic') {
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      return h >= lightStart && h < lightEnd;
+    }
+    return false;
+  })();
 
   const durMs = settings.animationSpeed === 'fast' ? 200 : settings.animationSpeed === 'reduced' ? 0 : 280;
 
@@ -255,7 +267,7 @@ export default function VocalexApp() {
   const amoledBg = activeVis.amoledMode
     ? 'rgba(4,4,4,0.88)'
     : isLight
-      ? 'rgba(240,240,242,0.82)'
+      ? 'rgba(255, 255, 255, 0.40)'
       : 'rgba(26,26,30,0.82)';
 
   return (

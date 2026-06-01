@@ -526,7 +526,7 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
   }, [activeTab]);
 
   return (
-    <nav ref={navRef} style={{
+    <nav ref={navRef} className="glass-nav" style={{
       position: 'fixed', left: '50%',
       transform: `translateX(-50%) translateY(${hidden ? 'calc(100% + 32px)' : '0px'})`,
       bottom: 'max(10px, env(safe-area-inset-bottom))',
@@ -535,7 +535,7 @@ function DrumNav({ activeTab, setTab, accent, isLight, isAmoled, hidden }: {
       height: `${expandedH}px`,
       borderRadius: '2rem',
       border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
-      background: isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)'),
+      background: isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(255, 255, 255, 0.40)' : 'rgba(26,26,30,0.82)'),
       boxShadow: isLight
         ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
         : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
@@ -1617,9 +1617,19 @@ export default function DrumEditor() {
 
   // ── Theme — use per-app drums theme, fall back to global ─────────────────
   const drumsVis = settings.perApp?.drums ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
-  const isLight = drumsVis.theme === 'light' ||
-    (drumsVis.theme === 'system' && typeof window !== 'undefined' &&
-     window.matchMedia('(prefers-color-scheme: light)').matches);
+  const isLight = (() => {
+    if (drumsVis.theme === 'light') return true;
+    if (drumsVis.theme === 'system') {
+      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
+    }
+    if (drumsVis.theme === 'dynamic') {
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      return h >= lightStart && h < lightEnd;
+    }
+    return false;
+  })();
   const isAmoled = !isLight && (drumsVis.amoledMode ?? false);
   // SVG/canvas colors — CSS vars can't be used directly in SVG props
   const noteColor  = isLight ? '#111118' : '#f0f0f2';
