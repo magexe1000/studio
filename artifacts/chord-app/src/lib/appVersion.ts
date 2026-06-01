@@ -53,12 +53,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "OTA Update Screen Polish",
+    heading: "Cloud Sync & Profile Fixes",
     items: [
-      'Removed the unwanted circular loader rings/artifacts from the top of the update screen.',
-      'Re-centered and restructured the UI elements into a clean, vertically balanced column.',
-      'Stacked elements in strict logical order (Percentage -> Progress Bar -> Status Message) with perfect vertical and horizontal centering across small/tall phones, WebViews, and PWA mode.',
-      'Retained the stunning calming Aurora background fully visible behind the content.',
+      'Profile Spacing & Scrolling: Added 100px bottom padding to the profile layout, preventing navigation bar overlaps and restoring full scrollability.',
+      'Cloud Sync Integration: Embedded a fully functional real-time sync control panel inside Storage & Session settings, showing In Sync, Syncing, and Error/Not Synced states.',
+      'One-Tap Manual Sync: Added a premium manual sync button to instantly sync favorites, presets, and progressions across your devices.',
     ],
   },
 ];
@@ -67,12 +66,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Diseño de Pantalla de Actualización",
+    heading: "Sincronización y Perfil",
     items: [
-      'Eliminados los anillos/artefactos de carga circulares de la parte superior de la pantalla.',
-      'Se re-centró y reestructuró la interfaz en una columna limpia y equilibrada.',
-      'Elementos organizados en orden vertical estricto (Porcentaje -> Barra de progreso -> Mensaje rotativo) con centrado perfecto vertical y horizontal en cualquier dispositivo.',
-      'Se mantuvo el hermoso fondo Aurora animado totalmente visible detrás del contenido.',
+      'Espaciado del Perfil: Añadido margen inferior de 100px al diseño del perfil, evitando solapamientos con la barra de navegación y permitiendo un scroll perfecto.',
+      'Sincronización en la Nube: Panel de sincronización en tiempo real integrado en Ajustes → Almacenamiento y Sesión, mostrando los estados Sincronizado, Sincronizando y Error.',
+      'Sincronización Manual: Botón premium para sincronizar favoritos, presets y progresiones al instante entre todos tus dispositivos.',
     ],
   },
 ];
@@ -80,12 +78,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "OTA-Update-Bildschirm verfeinert",
+    heading: "Cloud-Sync & Profil-Fixes",
     items: [
-      'Unerwünschte kreisförmige Laderinge/-artefakte wurden oben vom Update-Bildschirm entfernt.',
-      'Die Benutzeroberfläche wurde in einer sauberen, vertikal ausgewogenen Spalte zentriert und neu strukturiert.',
-      'Elemente in streng logischer Reihenfolge angeordnet (Prozentsatz -> Fortschrittsbalken -> Statusmeldung) mit perfekter vertikaler und horizontaler Zentrierung auf allen Geräten.',
-      'Der atemberaubende, beruhigende Aurora-Hintergrund bleibt vollständig hinter dem Inhalt sichtbar.',
+      'Profil-Abstand & Scrollen: 100px unterer Abstand hinzugefügt, um Überlappungen mit der Navigationsleiste zu verhindern und volles Scrollen zu ermöglichen.',
+      'Cloud-Sync-Integration: Ein voll funktionsfähiges Echtzeit-Sync-Panel wurde unter Einstellungen → Speicher & Sitzung integriert.',
+      'Manuelle Sinc: Premium-Button zum sofortigen Synchronisieren von Favoriten, Presets und Song-Fortschritten auf allen Geräten.',
     ],
   },
 ];

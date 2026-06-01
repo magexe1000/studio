@@ -17,6 +17,12 @@ Conventions:
 
 ---
 
+## 3.1.3
+
+- Profile Spacing & Scrolling Fix: Added bottom padding (100px) to the profile container for signed-in users, preventing navigation bar collisions and enabling full scrollability.
+- Cloud Sync System Integration: Embedded a fully functional real-time sync control panel inside Storage & Session settings. It displays the connection state ("In Sync", "Syncing...", and "Not Synced" / connection errors) and provides a manual "Sync Now" button.
+- Accent Color Harmony: The Cloud Sync indicators dynamically blend with the user's active theme accent color.
+
 ## 3.1.2
 
 - Perfect Vertical Centering: Refactored the internal background layout wrapper to be a flexbox centering container, ensuring the update column is perfectly centered on small phones, tall screens, WebViews, and PWA mode.

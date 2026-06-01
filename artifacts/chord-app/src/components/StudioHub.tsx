@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { useBackHandler } from '../lib/backStack';
 import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
+import { subscribeSyncStatus, syncNow, type SyncStatus } from '../lib/sync';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useNavHidden, useNavCollapsed, useScrollHide } from '../lib/navScroll';
@@ -396,7 +397,7 @@ export default function StudioHub() {
             </div>
             <Suspense fallback={<div style={{ padding: 32, textAlign: 'center', color: 'var(--c-text-muted)' }}>…</div>}>
               {authUser ? (
-                <div style={{ animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
+                <div style={{ padding: '0 0 100px', animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
                 <AccountSettingsPage
                   accent={accent}
                   cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}
@@ -782,6 +783,14 @@ const HUB_SETTINGS_CSS = `
     cursor: pointer;
     border: none;
   }
+  @keyframes sync-spin-kf {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .sync-spin {
+    animation: sync-spin-kf 1.1s linear infinite;
+    display: inline-block;
+  }
 `;
 
 function SettingsNavRow({
@@ -1050,6 +1059,21 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
 function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { from: string; to: string; mid: string }; scrollRef?: React.RefObject<HTMLDivElement | null>; authUser?: AuthUser | null; onProfile?: () => void }) {
   const { settings, updateSettings, updatePerApp } = useChordStore();
   const t = useT();
+  const lang = settings.language ?? 'en';
+
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({
+    signedIn: false,
+    phase: 'idle',
+    syncing: false,
+    lastSyncedMs: null,
+    error: null,
+  });
+
+  useEffect(() => {
+    return subscribeSyncStatus((s) => {
+      setSyncStatus(s);
+    });
+  }, []);
   const [page, setPage] = useState<SettingsPageId>('main');
   const [pageKey, setPageKey] = useState(0);
   const [slideDir, setSlideDir] = useState<'forward' | 'back'>('forward');
@@ -1374,14 +1398,34 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
         </div>
       </div>
     );
-  }
-
-  /* ── STORAGE ────────────────────────────────────────────────────── */
+  }  /* ── STORAGE ────────────────────────────────────────────────────── */
   if (page === 'storage') {
+    const isSyncing = syncStatus.phase === 'syncing';
+    const isSuccess = syncStatus.phase === 'success';
+    const isError = syncStatus.phase === 'error';
+    const hasLastSync = syncStatus.lastSyncedMs !== null;
+
+    let lastSyncText = '';
+    if (hasLastSync) {
+      const diffMs = Date.now() - (syncStatus.lastSyncedMs ?? 0);
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) {
+        lastSyncText = lang === 'es' ? 'Sincronizado ahora mismo' : 'Synced just now';
+      } else {
+        lastSyncText = lang === 'es' 
+          ? `Sincronizado hace ${diffMins} min` 
+          : `Synced ${diffMins}m ago`;
+      }
+    } else {
+      lastSyncText = lang === 'es' ? 'No sincronizado aún' : 'Not synced yet';
+    }
+
     return (
       <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={(t.hub as { studioSettings?: { storageSession?: string } }).studioSettings?.storageSession ?? 'Storage & Session'} onBack={goBack} />
+        
+        {/* On-device Storage */}
         <SettingsSectionLabel>{(t.hub as { studioSettings?: { data?: string } }).studioSettings?.data ?? 'Data'}</SettingsSectionLabel>
         <div style={cardStyle}>
           <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1392,11 +1436,140 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
             <Toggle value={settings.restoreLastSession} onChange={v => updateSettings({ restoreLastSession: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
         </div>
+
+        {/* Cloud Sync */}
+        <SettingsSectionLabel>{lang === 'es' ? 'Sincronización en la Nube' : 'Cloud Sync'}</SettingsSectionLabel>
+        <div style={cardStyle}>
+          {!syncStatus.signedIn ? (
+            <div style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 42, height: 42, borderRadius: '50%',
+                  background: 'rgba(128,128,128,0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--c-text-secondary)',
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 22 }}>cloud_off</span>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 15, color: 'var(--c-text-primary)' }}>
+                    {lang === 'es' ? 'Sincronización desactivada' : 'Sync is disabled'}
+                  </p>
+                  <p style={{ margin: '4px 0 0', fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.45 }}>
+                    {lang === 'es' 
+                      ? 'Inicia sesión para sincronizar tus favoritos, presets y progresiones entre dispositivos automáticamente.' 
+                      : 'Sign in to automatically sync your favorites, presets, and progressions across all your devices.'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { goBack(); onProfile?.(); }}
+                style={{
+                  width: '100%', height: 40, borderRadius: 12,
+                  background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                  border: 'none', color: '#fff',
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer', outline: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  boxShadow: `0 4px 14px ${accent.to}35`,
+                  WebkitTapHighlightColor: 'transparent',
+                  transition: 'transform 150ms ease',
+                }}
+                onPointerDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
+                onPointerUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>login</span>
+                {lang === 'es' ? 'Iniciar sesión' : 'Sign In to Sync'}
+              </button>
+            </div>
+          ) : (
+            <div style={{ padding: '18px 18px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%',
+                  background: isError 
+                    ? 'rgba(239, 68, 68, 0.1)' 
+                    : isSyncing 
+                      ? `${accent.from}15` 
+                      : '#10b98115',
+                  border: `1.5px solid ${
+                    isError 
+                      ? 'rgba(239, 68, 68, 0.25)' 
+                      : isSyncing 
+                        ? `${accent.from}40` 
+                        : '#10b98140'
+                  }`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: isError ? '#ef4444' : isSyncing ? accent.from : '#10b981',
+                  boxShadow: `0 0 12px ${
+                    isError 
+                      ? 'rgba(239, 68, 68, 0.15)' 
+                      : isSyncing 
+                        ? `${accent.from}20` 
+                        : '#10b98120'
+                  }`,
+                }}>
+                  {isSyncing ? (
+                    <span className="material-symbols-outlined sync-spin" style={{ fontSize: 24 }}>sync</span>
+                  ) : isError ? (
+                    <span className="material-symbols-outlined" style={{ fontSize: 22 }}>cloud_off</span>
+                  ) : (
+                    <span className="material-symbols-outlined" style={{ fontSize: 22 }}>cloud_done</span>
+                  )}
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 15, color: 'var(--c-text-primary)' }}>
+                    {isSyncing 
+                      ? (lang === 'es' ? 'Sincronizando...' : 'Syncing...')
+                      : isError 
+                        ? (lang === 'es' ? 'Error al sincronizar' : 'Not Synced')
+                        : (lang === 'es' ? 'Sincronizado' : 'In Sync')}
+                  </p>
+                  
+                  <p style={{ margin: '3px 0 0', fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)' }}>
+                    {isError 
+                      ? (syncStatus.error || (lang === 'es' ? 'Problema de conexión' : 'Connection issue'))
+                      : lastSyncText}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  try { await syncNow(); } catch { /* noop */ }
+                }}
+                disabled={isSyncing}
+                style={{
+                  width: '100%', height: 42, borderRadius: 12,
+                  background: 'rgba(128,128,128,0.08)',
+                  border: '1px solid rgba(128,128,128,0.12)',
+                  color: 'var(--c-text-primary)',
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                  cursor: isSyncing ? 'not-allowed' : 'pointer', 
+                  outline: 'none',
+                  opacity: isSyncing ? 0.6 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  WebkitTapHighlightColor: 'transparent',
+                  transition: 'background 150ms ease, transform 150ms ease',
+                }}
+                onPointerDown={(e) => { if (!isSyncing) e.currentTarget.style.transform = 'scale(0.98)'; }}
+                onPointerUp={(e) => { if (!isSyncing) e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                <span className={`material-symbols-outlined ${isSyncing ? 'sync-spin' : ''}`} style={{ fontSize: 18 }}>
+                  sync
+                </span>
+                {isSyncing 
+                  ? (lang === 'es' ? 'Sincronizando...' : 'Syncing...') 
+                  : (lang === 'es' ? 'Sincronizar ahora' : 'Sync Now')}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
-  /* ── PRIVACY ────────────────────────────────────────────────────── */
   if (page === 'privacy') {
     return (
       <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
