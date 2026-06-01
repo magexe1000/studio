@@ -5,7 +5,7 @@ import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
 import { ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './components/ChordexLogo';
 import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
-import { handleGlobalBack, hasBackEntries, triggerBackFeedbackAnimation } from './lib/backStack';
+import { handleGlobalBack, hasBackEntries, triggerBackFeedbackAnimation, getTopBackEntry } from './lib/backStack';
 import { initPredictiveBack, applyCssProgress, clearCssProgress } from './lib/predictiveBack';
 import { useStatusBar } from './lib/useStatusBar';
 import { AppEntryTransition } from './components/AppAnimationSystem';
@@ -558,6 +558,21 @@ export default function App() {
         ) {
           return;
         }
+
+        // Contextual preview: Check if the back action closes an overlay/sheet
+        const topEntry = getTopBackEntry();
+        const hasOverlay = topEntry && (
+          topEntry.priority === 'modal' ||
+          topEntry.priority === 'sheet' ||
+          topEntry.priority === 'overlay'
+        );
+        const root = document.documentElement;
+        if (hasOverlay) {
+          root.classList.add('predictive-back-has-overlay');
+        } else {
+          root.classList.remove('predictive-back-has-overlay');
+        }
+
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
         isSwiping = true;

@@ -497,7 +497,14 @@ export default function StudioHub() {
 
         {/* ── SETTINGS TAB ── */}
         {tab === 'settings' && (
-          <HubSettings accent={accent} scrollRef={scrollRef} authUser={authUser} onProfile={() => setTab('profile')} />
+          <HubSettings
+            accent={accent}
+            scrollRef={scrollRef}
+            authUser={authUser}
+            onProfile={() => setTab('profile')}
+            tab={tab}
+            setTab={setTab}
+          />
         )}
       </div>
 
@@ -1084,7 +1091,21 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   );
 }
 
-function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { from: string; to: string; mid: string }; scrollRef?: React.RefObject<HTMLDivElement | null>; authUser?: AuthUser | null; onProfile?: () => void }) {
+function HubSettings({
+  accent,
+  scrollRef,
+  authUser,
+  onProfile,
+  tab,
+  setTab,
+}: {
+  accent: { from: string; to: string; mid: string };
+  scrollRef?: React.RefObject<HTMLDivElement | null>;
+  authUser?: AuthUser | null;
+  onProfile?: () => void;
+  tab: HubTab;
+  setTab: React.Dispatch<React.SetStateAction<HubTab>>;
+}) {
   const { settings, updateSettings, updatePerApp } = useChordStore();
   const t = useT();
   const lang = settings.language ?? 'en';
@@ -1166,27 +1187,28 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
   const goBackRef = useRef(goBack);
   useEffect(() => { goBackRef.current = goBack; });
 
-  useBackHandler('nested', () => {
-    if (page !== 'main') { goBack(); return true; }
+  useBackHandler('nested', 'hub', 'navigation', () => {
+    // 1. If inside profile tab, return to settings tab
+    if (tab === 'profile') {
+      triggerBackFeedbackAnimation();
+      setTab('settings');
+      return true;
+    }
+    // 2. If inside settings tab, return to home tab
+    if (tab === 'settings') {
+      triggerBackFeedbackAnimation();
+      setTab('home');
+      return true;
+    }
+    // 3. If inside a nested view (settingsPage), go back to main Hub
+    if (page !== 'main') {
+      goBack();
+      return true;
+    }
     return false;
-  }, [page]);
+  }, [page, tab]);
 
-  useEffect(() => {
-    if (page === 'main') return;
-    let startX = 0, startY = 0;
-    const onStart = (e: TouchEvent) => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; };
-    const onEnd = (e: TouchEvent) => {
-      const dx = e.changedTouches[0].clientX - startX;
-      const dy = Math.abs(e.changedTouches[0].clientY - startY);
-      if (startX < 40 && dx > 60 && dy < 80) goBackRef.current();
-    };
-    document.addEventListener('touchstart', onStart, { passive: true });
-    document.addEventListener('touchend', onEnd, { passive: true });
-    return () => {
-      document.removeEventListener('touchstart', onStart);
-      document.removeEventListener('touchend', onEnd);
-    };
-  }, [page]);
+
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--app-surface)',

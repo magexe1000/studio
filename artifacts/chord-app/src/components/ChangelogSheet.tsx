@@ -35,6 +35,7 @@ import {
   type ChangelogSection,
 } from '../lib/appVersion';
 import { useT } from '../lib/useT';
+import { useBackHandler } from '../lib/backStack';
 
 type Props = {
   open: boolean;
@@ -104,6 +105,15 @@ export default function ChangelogSheet({
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, [mounted]);
+
+  // Register with global back stack to support closing via back swipe or back button
+  useBackHandler('sheet', 'hub', 'changelog', () => {
+    if (open) {
+      onClose();
+      return true;
+    }
+    return false;
+  }, [open, onClose]);
 
   if (!mounted) return null;
 
