@@ -17,7 +17,7 @@ Conventions:
 
 ---
 
-## 3.1.3
+## 3.1.4
 
 - Centered Theme Transitions: Refactored theme switching reveals to start perfectly from the viewport center using viewport units (vw/vh/vmax) for zero coordinate drift on mobile.
 - Butter-Smooth OTA Progress: Enforced strictly monotonic updates up to 100% with a 800ms visual closure delay for satisfying completion displays.
