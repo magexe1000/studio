@@ -491,7 +491,7 @@ export default function LiveMode({ preset, onClose, transposeOffset = 0 }: LiveM
             style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', zIndex: 10 }} />
 
           <div onClick={e => e.stopPropagation()}
-            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: '#111', borderRadius: '1.5rem 1.5rem 0 0', zIndex: 11, animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both', paddingBottom: 'max(28px, env(safe-area-inset-bottom))' }}>
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: '#111', borderRadius: '1.5rem 1.5rem 0 0', zIndex: 11, animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', paddingBottom: 'max(28px, env(safe-area-inset-bottom))' }}>
 
             <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
               <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'rgba(255,255,255,0.15)' }} />

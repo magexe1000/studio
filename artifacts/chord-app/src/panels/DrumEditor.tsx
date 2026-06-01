@@ -1432,7 +1432,7 @@ function DrumImportModal({ accent, onImport, onClose }: {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
           <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.25)' }} />
         </div>
@@ -3497,7 +3497,7 @@ export default function DrumEditor() {
       {showSaveGroove && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200 }} onClick={() => setShowSaveGroove(false)}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)' }} />
-          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both', paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
             <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
               <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.25)' }} />
             </div>
@@ -3553,7 +3553,7 @@ export default function DrumEditor() {
       {showMixerSheet && inEditor && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
           <div onClick={() => setShowMixerSheet(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
               <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
             </div>
@@ -3628,7 +3628,7 @@ export default function DrumEditor() {
         return (
           <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
             <div onClick={() => setShowFXSheet(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 300ms cubic-bezier(0.34,1.56,0.64,1) both', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               {/* drag handle */}
               <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
                 <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
@@ -3747,7 +3747,7 @@ export default function DrumEditor() {
         return (
           <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
             <div onClick={() => setShowCreateForm(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both', maxHeight: '92vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '92vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
               <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
                 <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
               </div>

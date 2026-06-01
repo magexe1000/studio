@@ -2053,7 +2053,7 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
       <div style={{
         position: 'relative', width: '100%', background: 'var(--app-bg)',
         borderRadius: '1.5rem 1.5rem 0 0',
-        animation: 'sheet-up 300ms cubic-bezier(0.34,1.42,0.64,1) both',
+        animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
         maxHeight: '92dvh', display: 'flex', flexDirection: 'column',
         paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
       }}>
@@ -2304,7 +2304,7 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 150 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', maxHeight: '80dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', maxHeight: '80dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both' }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
           <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'rgba(72,72,72,0.3)' }} />
         </div>
@@ -2420,7 +2420,7 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
             padding: '12px 16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
             background: 'var(--app-surface)',
             borderTop: '1px solid rgba(72,72,72,0.1)',
-            animation: 'sheet-up 240ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
+            animation: 'sheet-up 300ms cubic-bezier(0.16, 1, 0.3, 1) both',
           }}>
             <button onClick={confirm} className="btn-smooth"
               style={{ width: '100%', padding: '15px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px', boxShadow: `0 4px 20px ${accent.to}50` }}>
@@ -2446,7 +2446,7 @@ function PresetForm({ initial, onSave, onCancel, accent }: { initial?: FormData;
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 150 }}>
       <div onClick={onCancel} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both' }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
           <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'rgba(72,72,72,0.3)' }} />
         </div>
@@ -3572,7 +3572,7 @@ export default function SongsPanel() {
       {showDeleteId && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 150, display: 'flex', alignItems: 'flex-end' }}>
           <div onClick={() => setShowDeleteId(null)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
-          <div style={{ position: 'relative', width: '100%', background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', padding: '20px', animation: 'sheet-up 280ms ease both' }}>
+          <div style={{ position: 'relative', width: '100%', background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', padding: '20px', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both' }}>
             <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '18px', marginBottom: '8px' }}>{t.songs.confirmDelete}</p>
             <div style={{ display: 'flex', gap: '10px', paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
               <button onClick={() => setShowDeleteId(null)} className="btn-smooth" style={{ flex: 1, padding: '14px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700 }}>{t.songs.cancel}</button>

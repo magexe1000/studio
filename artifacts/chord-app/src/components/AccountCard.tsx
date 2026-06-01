@@ -576,8 +576,8 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
   }
 
   const sheetAnim = closing
-    ? 'sheet-down 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both'
-    : 'sheet-up 340ms cubic-bezier(0.34, 1.42, 0.64, 1) both';
+    ? 'sheet-down 300ms cubic-bezier(0.16, 1, 0.3, 1) both'
+    : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both';
 
   const overlayAnim = closing
     ? 'fade-out 280ms ease both'
@@ -911,8 +911,8 @@ type AvatarPickerSheetProps = {
 
 function AvatarPickerSheet({ accent, currentIcon, hasGooglePhoto, closing, t, onPick, onClose }: AvatarPickerSheetProps) {
   const sheetAnim = closing
-    ? 'sheet-down 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both'
-    : 'sheet-up 340ms cubic-bezier(0.34, 1.42, 0.64, 1) both';
+    ? 'sheet-down 300ms cubic-bezier(0.16, 1, 0.3, 1) both'
+    : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both';
   const overlayAnim = closing ? 'fade-out 280ms ease both' : 'sync-fade-in 200ms ease both';
 
   const overlayStyle: React.CSSProperties = {
@@ -1501,8 +1501,8 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     && emailInput.trim().toLowerCase() === emailToConfirm;
 
   const sheetAnim = sheetClosing
-    ? 'sheet-down 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both'
-    : 'sheet-up 340ms cubic-bezier(0.34, 1.42, 0.64, 1) both';
+    ? 'sheet-down 300ms cubic-bezier(0.16, 1, 0.3, 1) both'
+    : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both';
   const overlayAnim = sheetClosing ? 'fade-out 280ms ease both' : 'sync-fade-in 200ms ease both';
   const overlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 9999, animation: overlayAnim };
   const backdropStyle: React.CSSProperties = {

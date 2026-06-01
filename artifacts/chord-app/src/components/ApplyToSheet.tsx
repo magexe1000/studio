@@ -109,8 +109,8 @@ export default function ApplyToSheet({ show, onApply, onClose }: ApplyToSheetPro
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)',
           transform: `translate3d(0, ${sheetTranslate}, 0)`,
           transition: open
-            ? 'transform 260ms cubic-bezier(0.34,1.08,0.64,1)'
-            : 'transform 200ms cubic-bezier(0.4,0,1,1)',
+            ? 'transform 400ms cubic-bezier(0.16, 1, 0.3, 1)'
+            : 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)',
           boxShadow: '0 -8px 40px rgba(0,0,0,0.4)',
           willChange: 'transform',
           backfaceVisibility: 'hidden' as const,

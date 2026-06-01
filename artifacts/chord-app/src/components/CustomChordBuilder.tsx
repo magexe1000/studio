@@ -657,8 +657,8 @@ export default function CustomChordBuilder({ accent, editChord, onSave, onClose:
         height: '82dvh',
         display: 'flex', flexDirection: 'column',
         animation: closing
-          ? 'sheet-down 300ms cubic-bezier(0.4, 0, 1, 1) both'
-          : 'sheet-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
+          ? 'sheet-down 300ms cubic-bezier(0.16, 1, 0.3, 1) both'
+          : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
         overflow: 'hidden',
       }}>
         {/* Drag handle */}

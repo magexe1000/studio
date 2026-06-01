@@ -1202,9 +1202,9 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
 :not(.predictive-back-active) [role="dialog"],
 :not(.predictive-back-active) .settings-panel-sheet,
 :not(.predictive-back-active) .profile-panel-sheet {
-  transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1), 
-              opacity 280ms cubic-bezier(0.34, 1.56, 0.64, 1), 
-              border-radius 280ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), 
+              opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), 
+              border-radius 300ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 /* Instant finger tracking with no lag transition when gesture is active */
@@ -1216,3 +1216,20 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
 .predictive-back-active .profile-panel-sheet {
   transition: none !important;
 }
+
+/* Underflow safety panels to prevent bottom gaps during springy gestures, bounces, or keyboard resizes */
+.profile-panel-sheet::after,
+.settings-panel-sheet::after,
+.sheet-overlay [role="dialog"]::after,
+[role="dialog"]::after {
+  content: '';
+  position: absolute;
+  top: 99%; /* overlap slightly to prevent line bleed */
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: inherit;
+  border-radius: 0;
+  pointer-events: none;
+}
+

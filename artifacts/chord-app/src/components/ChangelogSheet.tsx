@@ -141,7 +141,7 @@ export default function ChangelogSheet({
 
   const sheetTransition = drag > 0
     ? 'none'
-    : 'transform 320ms cubic-bezier(0.34, 1.32, 0.64, 1)';
+    : 'transform 400ms cubic-bezier(0.16, 1, 0.3, 1)';
 
   return createPortal(
     <div
@@ -191,7 +191,7 @@ export default function ChangelogSheet({
           transition: sheetTransition,
           animation: closing
             ? undefined
-            : drag > 0 ? undefined : 'cl-sheet-up 360ms cubic-bezier(0.34, 1.32, 0.64, 1) both',
+            : drag > 0 ? undefined : 'cl-sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
           paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
           touchAction: 'pan-y',
         }}
