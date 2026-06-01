@@ -1,6 +1,6 @@
 {
-  "version": "3.1.44",
-  "changelog": "• Direct Update Support: Clicking updates in settings installs them directly in-app, avoiding external redirects.\n• Smooth Reload Transition: Updates fade the screen to black smoothly before triggering the reload to prevent visual flashes.\n• Disable Keyboard Auto-open: Disables automatic virtual keyboard presentation when launching the new beat dialog in Drumex.\n• Default Kit Selection: Sets the premium multi-velocity 'House Kit' as the default kit for new beats in Drumex.",
+  "version": "3.1.45",
+  "changelog": "Version 3.1.45",
   "mandatory": false,
-  "downloadUrl": "https://raw.githubusercontent.com/MAGEXE1000/Studio/main/docs/bundles/bundle-3.1.44.zip"
+  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.45/bundle-3.1.45.zip"
 }
