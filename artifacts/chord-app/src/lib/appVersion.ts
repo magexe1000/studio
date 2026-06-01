@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.22';
+export const APP_VERSION = '3.1.23';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-01'; // 3.1.22
+export const APP_VERSION_DATE = '2026-06-01'; // 3.1.23
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,17 +53,17 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
+    heading: "Studio Hub Light Theme",
+    items: [
+      'Pristine Hub Nav: Upgraded the bottom navigation bar of the main Studio Hub in White/Light mode with a clean translucent white glass background.',
+      'Active Pill Contrast: Elevated the sliding pill on the Hub tabs to a pristine floating white card with high-contrast shadows and clean borders.',
+    ],
+  },
+  {
     heading: "Animated Update Icon",
     items: [
       'Interactive Download Icon: Integrated a gorgeous, state-of-the-art animated download component to represent update availability.',
       'Smooth Motion: Employs sleek drawing animations and group pulses on the arrow, tray, and shaft when hovered or tapped.',
-    ],
-  },
-  {
-    heading: "Light Mode Bottom Bar",
-    items: [
-      'Pristine Visuals: Replaced muddy grey background with a clean, high-clarity translucent white glassmorphism background in Light/White mode.',
-      'Active Sliding Pill: Upgraded the active indicator to a premium floating white card with high-contrast soft shadows and crisp borders for immaculate readability.',
     ],
   },
 ];
