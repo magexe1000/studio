@@ -1,6 +1,6 @@
 {
-  "version": "3.1.1",
-  "changelog": "• OTA Update Layout Restructured: Completely removed the large rotating conic-gradient circular loader rings from the top of the update screen, cleaning up the visual presentation.\n• Vertically Re-Centered Column: Redesigned the update screen to be vertically balanced, centering all elements perfectly on tall phones, small screens, and WebViews.\n• Logically Ordered Elements: Aligned interface layers in strict logical order (Large Percentage -> Progress Bar -> Rotating Status Message) with premium spacing and a 6px thicker progress line.\n• Intact Aurora Background: Retained the gorgeous calming Aurora animation fully visible behind the text and progress bar during downloads.",
+  "version": "3.1.2",
+  "changelog": "• Perfect Vertical Centering: Refactored the internal background layout wrapper to be a flexbox centering container, ensuring the update column is perfectly centered on small phones, tall screens, WebViews, and PWA mode.\n• OTA Spacing Refinements: Fine-tuned vertical element gap (20px) to balance the percentage, progress line, and rotating messages with a clean, cohesive visual rhythm.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.1/bundle-3.1.1.zip"
+  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.2/bundle-3.1.2.zip"
 }
