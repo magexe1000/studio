@@ -1,6 +1,6 @@
 {
-  "version": "3.1.0",
-  "changelog": "• Studio Pricing Section: Implemented the premium Aceternity \"Pricing with header and icons\" block in Profile → Subscription & Billing, showing Free, Core, and Pro tiers with checklist bullet points and disabled lock CTAs.\n• Full Custom Accent Integration: Embedded theme-integrated custom active accent color highlights and glows for the recommended Core plan, adaptive checkmarks, and background layers.\n• Scroll-Safe Mobile Layout: Hardened layout coordinates and wrapping elements inside a scrollable bottom sheet to prevent cutoff, safe-area overlap, or horizontal overflows on smaller viewports.",
+  "version": "3.1.1",
+  "changelog": "• OTA Update Layout Restructured: Completely removed the large rotating conic-gradient circular loader rings from the top of the update screen, cleaning up the visual presentation.\n• Vertically Re-Centered Column: Redesigned the update screen to be vertically balanced, centering all elements perfectly on tall phones, small screens, and WebViews.\n• Logically Ordered Elements: Aligned interface layers in strict logical order (Large Percentage -> Progress Bar -> Rotating Status Message) with premium spacing and a 6px thicker progress line.\n• Intact Aurora Background: Retained the gorgeous calming Aurora animation fully visible behind the text and progress bar during downloads.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.0/bundle-3.1.0.zip"
+  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.1/bundle-3.1.1.zip"
 }
