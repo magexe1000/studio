@@ -2,5 +2,5 @@
   "version": "3.0.95",
   "changelog": "• Bouncy app entry spring animations (opacity, y-offset, scale) across all five sub-apps.\n• Seamless Matrix-style character scrambling greeting text (no dots) that decrypts dynamically on startup.\n• High-performance staggered revealing list items and bouncy spring text headers at 60fps.\n• Restored full stretching grid layouts for category cards in the Chordex library panel.",
   "mandatory": false,
-  "downloadUrl": "https://raw.githubusercontent.com/magexe1000/Chordex/main/docs/bundles/bundle-3.0.95.zip"
+  "downloadUrl": "https://raw.githubusercontent.com/MAGEXE1000/Studio/main/docs/bundles/bundle-3.0.95.zip"
 }
