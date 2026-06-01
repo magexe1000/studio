@@ -1,6 +1,6 @@
 {
-  "version": "3.1.11",
-  "changelog": "• Search Engine Indexability: Created five standalone, premium static HTML landing pages under the public directory (copied directly to /stagex/, /chordex/, etc.) containing curated JSON-LD structured data, rich inline SVGs, and interactive FAQ sections, enabling 100% crawler discoverability.\n• Dynamic Metadata Synchronization: Engineered a dynamic SPA document header synchronization system in App.tsx that programmatically updates document title, description meta, keywords, canonical URLs, and Open Graph/Twitter Card tags as the user switches active apps.\n• Query Parameter Deep-Linking: Integrated backwards-compatible query parameter support (?app=mode) to let landing page call-to-actions boot directly into their respective sub-app targets on launch.\n• Robots & Sitemaps: Generated robots.txt and sitemap.xml files optimized for search crawlers, mapping high-priority sub-app entry points and shielding internal development resources.",
+  "version": "3.1.12",
+  "changelog": "Version 3.1.12",
   "mandatory": false,
-  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.11/bundle-3.1.11.zip"
+  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.12/bundle-3.1.12.zip"
 }
