@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.84';
+export const APP_VERSION = '3.0.85';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-31'; // 3.0.84
+export const APP_VERSION_DATE = '2026-05-31'; // 3.0.85
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -57,12 +57,13 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
     items: [
       'Vibrant left-edge swipe gestures now work globally across all sub-apps, overlays, and tabs to return to the Hub.',
       'Profile sheets (Personal Info, Security, Devices, etc.) now close in sequence on back swipe rather than exiting settings.',
+      'Added exit warning toast at the bottom of the Studio Hub on swipe back.',
     ],
   },
   {
-    heading: "UI Polish",
+    heading: "Visual Sync",
     items: [
-      'Removed redundant top back button in the Hub settings tab.',
+      'Synchronized all cosmic solar intro layers to prevent flashing and stuttering on app load.',
       'Fixed update modal layout with a clean cloud download icon and repaired button border clipping.',
       'Spinning update loader rings are now thicker, higher contrast, and colored with active theme accents.',
     ],
@@ -77,12 +78,13 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
     items: [
       'Los gestos de deslizamiento desde el borde izquierdo ahora funcionan de manera global en todas las sub-aplicaciones, paneles y pestañas para volver al Hub.',
       'Las hojas de perfil (Información personal, Seguridad, Dispositivos, etc.) ahora se cierran en secuencia al deslizar para volver, en lugar de salir de los ajustes.',
+      'Se agregó un aviso de salida en la parte inferior del Studio Hub al deslizar hacia atrás.',
     ],
   },
   {
     heading: "Ajustes visuales",
     items: [
-      'Se eliminó el botón de retroceso superior redundante en la pestaña de ajustes del Hub.',
+      'Se sincronizaron todas las capas de la introducción solar cósmica para evitar parpadeos y retrasos en la carga.',
       'Se corrigió el diseño del modal de actualización con un ícono limpio de descarga en la nube y se reparó el recorte del borde del botón.',
       'El anillo giratorio de carga de actualización ahora es más grueso, tiene mayor contraste y está coloreado con los acentos del tema activo.',
     ],
@@ -96,12 +98,13 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
     items: [
       'Lebendige Wischgesten vom linken Rand funktionieren jetzt global in allen Sub-Apps, Overlays und Tabs, um zum Hub zurückzukehren.',
       'Profilseiten (Persönliche Daten, Sicherheit, Geräte usw.) schließen sich jetzt nacheinander beim Zurückwischen, anstatt die Einstellungen zu verlassen.',
+      'Beendigungs-Hinweis-Toast am unteren Rand des Studio Hub beim Zurückwischen hinzugefügt.',
     ],
   },
   {
     heading: "UI-Feinschliff",
     items: [
-      'Redundanter oberer Zurück-Button im Hub-Einstellungs-Tab entfernt.',
+      'Alle kosmischen Solar-Intro-Ebenen wurden synchronisiert, um Flackern und Ruckeln beim App-Start zu verhindern.',
       'Layout des Update-Modals mit einem sauberen Cloud-Download-Symbol korrigiert und Button-Rahmen-Clipping behoben.',
       'Der rotierende Ladekreis für Updates ist jetzt dicker, kontrastreicher und mit den aktiven Themen-Akzenten eingefärbt.',
     ],

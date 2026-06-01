@@ -17,6 +17,12 @@ Conventions:
 
 ---
 
+## 3.0.85
+
+- Predictive Back Gestures: Refined high-performance viewport card-peeling transitions and blacked out background contrast.
+- Studio Hub Exit: Fixed missing warning toast inside the Studio Hub by rendering the portal globally.
+- Startup Timing: Synchronized all cosmic solar intro layers with requestAnimationFrame loops to prevent flashing.
+
 ## 3.0.84
 
 - Predictive Back Gestures: Platform-agnostic viewport swipe gesture support added for Web, iOS, and Android (<14) with fluid GPU-composited peeling animation.
