@@ -1,0 +1,1 @@
+import{u as e}from"./index-BM8s1w4x.js";function n(){try{return e.getState().settings.lowLatencyMode?{latencyHint:"interactive"}:{latencyHint:"balanced"}}catch{return{}}}function i(){const t=window.AudioContext||window.webkitAudioContext;return new t(n())}export{i as c};
