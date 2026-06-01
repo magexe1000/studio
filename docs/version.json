@@ -1,6 +1,6 @@
 {
   "version": "3.1.5",
-  "changelog": "Version 3.1.5",
+  "changelog": "• Fixed Broken Icons: Replaced all Material Symbol font glyphs in Privacy & Data with native inline SVGs — icons now render instantly with zero font-loading failures.\n• Official Brand Icons: Connected Services section now shows real Google, Dropbox, OneDrive, and GitHub logos instead of generic placeholders.\n• Decluttered Layout: Privacy & Data section split into 6 clean, separated cards with premium spacing, glassmorphism borders, and subtle shadows.\n• Fixed Dropdown Arrows: Select controls now use crisp vector chevrons instead of broken keyboard_arrow_down text.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.5/bundle-3.1.5.zip"
+  "downloadUrl": "https://github.com/magexe1000/Chordex/releases/download/v3.1.5/bundle-3.1.5.zip"
 }

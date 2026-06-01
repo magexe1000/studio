@@ -53,12 +53,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "UI & Animation Refinements",
+    heading: "Privacy & Data Overhaul",
     items: [
-      'Centered Theme Transitions: Refactored theme switching reveals to start perfectly from the viewport center using viewport units (vw/vh/vmax) for zero coordinate drift on mobile.',
-      'Butter-Smooth OTA Progress: Enforced strictly monotonic updates up to 100% with a 800ms visual closure delay for satisfying completion displays.',
-      'Modernized Color Accent Bar: Swapped the blocky accent slider for a thin HSL track, dynamic glowing donut thumb ring, and color details card.',
-      'Aligned Profile Back Button: Replaced the old chevron with a unified back button matching other settings sheets in height, padding, and arrow icon.',
+      'Fixed Broken Icons: Replaced all Material Symbol font glyphs with native inline SVGs — icons now render instantly with zero font-loading failures.',
+      'Official Brand Icons: Connected Services now show real Google, Dropbox, OneDrive, and GitHub logos instead of generic placeholders.',
+      'Decluttered Layout: Privacy & Data section split into 6 clean, separated cards with premium spacing, glassmorphism borders, and subtle shadows.',
+      'Fixed Dropdown Arrows: Select controls now use crisp vector chevrons instead of broken keyboard_arrow_down text.',
     ],
   },
 ];
@@ -67,12 +67,12 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Refinamientos Visuales y Animación",
+    heading: "Rediseño de Privacidad y Datos",
     items: [
-      'Transiciones de Tema Centradas: Animaciones de revelado centradas en el viewport (usando vw/vh/vmax) para una consistencia absoluta en móviles.',
-      'Progreso de Actualización Fluido: Progreso estrictamente creciente hasta el 100% y retraso de 800ms para permitir una animación de cierre impecable.',
-      'Barra de Acento Moderna: Deslizador de acento customizado con un riel delgado de 10px, un anillo con brillo HSL dinámico y una tarjeta de información premium.',
-      'Botón de Perfil Alineado: Botón de regreso unificado con la apariencia de los otros paneles en altura, margen y flecha clásica.',
+      'Iconos Corregidos: Todos los iconos de Material Symbols reemplazados con SVGs inline nativos — se renderizan al instante sin fallos de carga de fuentes.',
+      'Iconos de Marca Oficiales: Servicios Conectados ahora muestran los logos reales de Google, Dropbox, OneDrive y GitHub.',
+      'Diseño Organizado: Sección de Privacidad y Datos dividida en 6 tarjetas limpias y separadas con espaciado premium y bordes glassmorfismo.',
+      'Flechas de Selectores Corregidas: Los selectores ahora usan chevrones vectoriales nítidos en lugar de texto roto.',
     ],
   },
 ];
@@ -80,12 +80,12 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Visual- & Animations-Verbesserungen",
+    heading: "Überarbeitung Datenschutz & Daten",
     items: [
-      'Zentrierte Theme-Übergänge: Übergänge starten jetzt exakt aus der Viewport-Mitte unter Verwendung von vw/vh/vmax für verzerrungsfreies Rendern auf Mobilgeräten.',
-      'Flüssiger OTA-Fortschritt: Streng monotoner Fortschritt bis 100% mit einer Verzögerung von 800ms für einen sauberen visuellen Abschluss.',
-      'Moderner Farbakzent-Schieberegler: Farbregler mit schlankem 10px Track, dynamisch leuchtendem Ring-Thumb und informativer Farbkarte.',
-      'Ausgerichteter Profil-Zurück-Button: Vereinheitlichter Zurück-Button, der in Höhe, Polsterung und Pfeilsymbol exakt den anderen Einstellungsseiten entspricht.',
+      'Icons Repariert: Alle Material-Symbol-Font-Glyphen durch native Inline-SVGs ersetzt — Icons werden sofort ohne Font-Ladefehler angezeigt.',
+      'Offizielle Marken-Icons: Verbundene Dienste zeigen jetzt echte Google-, Dropbox-, OneDrive- und GitHub-Logos.',
+      'Aufgeräumtes Layout: Datenschutz-Bereich in 6 saubere, getrennte Karten mit Premium-Abständen und Glasmorphismus-Rändern aufgeteilt.',
+      'Dropdown-Pfeile Repariert: Auswahlelemente verwenden jetzt klare Vektor-Chevrons statt fehlerhaftem Text.',
     ],
   },
 ];

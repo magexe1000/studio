@@ -17,6 +17,13 @@ Conventions:
 
 ---
 
+## 3.1.5
+
+- Fixed Broken Icons: Replaced all Material Symbol font glyphs in Privacy & Data with native inline SVGs — icons now render instantly with zero font-loading failures.
+- Official Brand Icons: Connected Services section now shows real Google, Dropbox, OneDrive, and GitHub logos instead of generic placeholders.
+- Decluttered Layout: Privacy & Data section split into 6 clean, separated cards with premium spacing, glassmorphism borders, and subtle shadows.
+- Fixed Dropdown Arrows: Select controls now use crisp vector chevrons instead of broken keyboard_arrow_down text.
+
 ## 3.1.4
 
 - Centered Theme Transitions: Refactored theme switching reveals to start perfectly from the viewport center using viewport units (vw/vh/vmax) for zero coordinate drift on mobile.

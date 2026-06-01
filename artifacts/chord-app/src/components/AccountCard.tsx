@@ -61,6 +61,160 @@ function formatRelative(ms: number | null, lang: string): string {
   return `${Math.floor(sec / 86400)}d ago`;
 }
 
+/* ─── Privacy & Data Inline SVG Icons ─── */
+
+function DashboardIconSVG({ color = '#a78bfa' }: { color?: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="3" width="8" height="8" rx="2" fill={color} />
+      <rect x="13" y="3" width="8" height="8" rx="2" fill={color} opacity="0.5" />
+      <rect x="3" y="13" width="8" height="8" rx="2" fill={color} opacity="0.5" />
+      <rect x="13" y="13" width="8" height="8" rx="2" fill={color} opacity="0.3" />
+    </svg>
+  );
+}
+
+function BackupSyncIconSVG({ color = '#10b981' }: { color?: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill={color} opacity="0.85" />
+      <path d="M12 10l-3 3h2v4h2v-4h2l-3-3z" fill="white" opacity="0.95" />
+    </svg>
+  );
+}
+
+function AnalyticsIconSVG({ color = '#f59e0b' }: { color?: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="13" width="4" height="7" rx="1" fill={color} opacity="0.5" />
+      <rect x="10" y="9" width="4" height="11" rx="1" fill={color} opacity="0.75" />
+      <rect x="16" y="4" width="4" height="16" rx="1" fill={color} />
+    </svg>
+  );
+}
+
+function RetentionIconSVG({ color = '#0891b2' }: { color?: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="2" fill="none" opacity="0.3" />
+      <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="2" fill="none" strokeDasharray="57" strokeDashoffset="14" strokeLinecap="round" />
+      <path d="M12 7v5l3 3" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LinkIconSVG({ color = '#db2777' }: { color?: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function StorageIconSVG({ color = '#14b8a6' }: { color?: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="12" cy="6" rx="8" ry="3" fill={color} opacity="0.85" />
+      <path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6" stroke={color} strokeWidth="1.5" fill="none" />
+      <path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" stroke={color} strokeWidth="1.5" fill="none" />
+    </svg>
+  );
+}
+
+function GoogleIconSVG() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" fill="#FFC107" />
+      <path d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" fill="#FF3D00" />
+      <path d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0124 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" fill="#4CAF50" />
+      <path d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 01-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" fill="#1976D2" />
+    </svg>
+  );
+}
+
+function DropboxIconSVG() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M14 6l-10 6.5 10 6.5 10-6.5z" fill="#1E88E5" />
+      <path d="M34 6l-10 6.5 10 6.5 10-6.5z" fill="#1E88E5" />
+      <path d="M4 25.5l10 6.5 10-6.5-10-6.5z" fill="#1E88E5" />
+      <path d="M34 25.5l10-6.5-10-6.5-10 6.5z" fill="#1E88E5" />
+      <path d="M14 34l10-6.5-10-6.5-10 6.5z" fill="#1E88E5" opacity="0.7" />
+      <path d="M34 34l-10-6.5 10-6.5 10 6.5z" fill="#1E88E5" opacity="0.7" />
+    </svg>
+  );
+}
+
+function OneDriveIconSVG() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M28.4 16.6c-1.5-3-4.6-5.1-8.2-5.1-4.1 0-7.5 2.7-8.7 6.4C7.3 18.7 4 22.5 4 27c0 5 4 9 9 9h22c4.4 0 8-3.6 8-8 0-4.2-3.2-7.6-7.3-8l-.1-.1c-.9-2-3.1-3.3-5.5-3.3h-1.7z" fill="#0364B8" />
+      <path d="M20.2 11.5c3.6 0 6.7 2.1 8.2 5.1h1.7c2.4 0 4.6 1.3 5.5 3.3l.1.1c4.1.4 7.3 3.8 7.3 8 0 4.4-3.6 8-8 8H17l3.2-24.4z" fill="#0078D4" opacity="0.9" />
+    </svg>
+  );
+}
+
+function GitHubIconSVG() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+    </svg>
+  );
+}
+
+function DownloadIconSVG() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+function TrashIconSVG() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
+  );
+}
+
+function ChevronDownIconSVG() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function CheckCircleIconSVG() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" fill="#10b981" opacity="0.15" />
+      <circle cx="12" cy="12" r="10" stroke="#10b981" strokeWidth="1.5" fill="none" />
+      <path d="M8 12l3 3 5-5" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SyncProblemIconSVG() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" fill="#ef4444" opacity="0.15" />
+      <circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="1.5" fill="none" />
+      <path d="M12 8v4" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="16" r="1" fill="#ef4444" />
+    </svg>
+  );
+}
+
+/* ─── End Privacy & Data SVG Icons ─── */
+
 export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSettings }: Props) {
   const tRoot = useT();
   const t = tRoot.hub.accountSection;
@@ -1986,6 +2140,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
         document.body,
       )}
 
+
       {/* ── Privacy & Data sheet ── */}
       {sheet === 'privacy-data' && createPortal(
         <div style={overlayStyle}>
@@ -1999,7 +2154,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                 padding: '12px 22px 32px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 16,
+                gap: 20, // Clear, separated breathing room
                 maxHeight: 'calc(80vh - env(safe-area-inset-bottom) - 80px)',
                 overflowY: 'auto',
                 width: '100%',
@@ -2009,20 +2164,21 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
             >
               {/* Card 1: Privacy Dashboard */}
               <div style={{
-                background: 'rgba(128,128,128,0.06)',
+                background: 'var(--app-surface-high, rgba(128,128,128,0.05))',
                 borderRadius: 16,
-                padding: '16px 18px',
+                padding: '20px 22px',
                 border: '1px solid rgba(128,128,128,0.08)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 4,
+                gap: 6,
                 boxSizing: 'border-box',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
               }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, fontVariationSettings: "'FILL' 1" }}>dashboard</span>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <DashboardIconSVG color={accent.from} />
                   {lang === 'es' ? 'Panel de Privacidad' : 'Privacy Dashboard'}
                 </p>
-                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
                   {lang === 'es' ? 'Resumen rápido de tu configuración de privacidad.' : 'Quick overview of your privacy settings.'}
                 </p>
                 <div style={{
@@ -2031,25 +2187,25 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                   gap: 10,
                   marginTop: 12,
                 }}>
-                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <p style={{ fontFamily: 'Inter', fontSize: 10, color: 'var(--c-text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{lang === 'es' ? 'Análisis' : 'Analytics'}</p>
                     <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0, color: settings.privacyAnalytics ? '#10b981' : 'var(--c-text-secondary)' }}>
                       {settings.privacyAnalytics ? (lang === 'es' ? 'Activo' : 'Enabled') : (lang === 'es' ? 'Inactivo' : 'Disabled')}
                     </p>
                   </div>
-                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <p style={{ fontFamily: 'Inter', fontSize: 10, color: 'var(--c-text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Backup</p>
                     <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0, color: (settings.autoBackup || sync.signedIn) ? '#10b981' : 'var(--c-text-secondary)' }}>
                       {(settings.autoBackup || sync.signedIn) ? (lang === 'es' ? 'Activo' : 'Enabled') : (lang === 'es' ? 'Backup off' : 'Backup off')}
                     </p>
                   </div>
-                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 3, gridColumn: 'span 2' }}>
+                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 3, gridColumn: 'span 2' }}>
                     <p style={{ fontFamily: 'Inter', fontSize: 10, color: 'var(--c-text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{lang === 'es' ? 'Última exportación' : 'Last Export Date'}</p>
                     <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0, color: 'var(--c-text-primary)' }}>
                       {settings.lastExportDate === 'Never exported' ? (lang === 'es' ? 'Nunca exportado' : 'Never exported') : settings.lastExportDate}
                     </p>
                   </div>
-                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 3, gridColumn: 'span 2' }}>
+                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 3, gridColumn: 'span 2' }}>
                     <p style={{ fontFamily: 'Inter', fontSize: 10, color: 'var(--c-text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{lang === 'es' ? 'Servicios conectados' : 'Connected Services'}</p>
                     <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0, color: 'var(--c-text-primary)' }}>
                       {isGoogleUser ? (lang === 'es' ? '1 servicio conectado (Google)' : '1 service connected (Google)') : (lang === 'es' ? 'Sin servicios conectados' : 'No services connected')}
@@ -2060,20 +2216,21 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
 
               {/* Card 2: Backup & Sync */}
               <div style={{
-                background: 'rgba(128,128,128,0.06)',
+                background: 'var(--app-surface-high, rgba(128,128,128,0.05))',
                 borderRadius: 16,
-                padding: '16px 18px',
+                padding: '20px 22px',
                 border: '1px solid rgba(128,128,128,0.08)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 4,
+                gap: 6,
                 boxSizing: 'border-box',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
               }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#10b981', fontVariationSettings: "'FILL' 1" }}>cloud_upload</span>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <BackupSyncIconSVG color="#10b981" />
                   {lang === 'es' ? 'Copia y Sincronización' : 'Backup & Sync'}
                 </p>
-                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
                   {lang === 'es' ? 'Gestiona tus copias en la nube y preferencias de sincronización.' : 'Manage cloud backups and sync preferences.'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
@@ -2120,10 +2277,10 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           <StudioSpinner outerSize="h-[18px] w-[18px]" childSize="h-[14px] w-[14px]" colorFrom={accent.from} colorTo={accent.to} />
                         ) : (
                           <span
-                            className={`material-symbols-outlined ${sync.phase === 'success' ? 'sync-pop' : ''}`}
-                            style={{ fontSize: 20, color: sync.phase === 'error' ? '#ff6b6b' : '#10b981', fontVariationSettings: "'FILL' 1" }}
+                            className={sync.phase === 'success' ? 'sync-pop' : ''}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           >
-                            {sync.phase === 'error' ? 'sync_problem' : 'check_circle'}
+                            {sync.phase === 'error' ? <SyncProblemIconSVG /> : <CheckCircleIconSVG />}
                           </span>
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -2169,20 +2326,21 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
 
               {/* Card 3: Analytics & Diagnostics */}
               <div style={{
-                background: 'rgba(128,128,128,0.06)',
+                background: 'var(--app-surface-high, rgba(128,128,128,0.05))',
                 borderRadius: 16,
-                padding: '16px 18px',
+                padding: '20px 22px',
                 border: '1px solid rgba(128,128,128,0.08)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 4,
+                gap: 6,
                 boxSizing: 'border-box',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
               }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#f59e0b', fontVariationSettings: "'FILL' 1" }}>insights</span>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <AnalyticsIconSVG color="#f59e0b" />
                   {lang === 'es' ? 'Análisis y Diagnósticos' : 'Analytics & Diagnostics'}
                 </p>
-                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
                   {lang === 'es' ? 'Ayuda a mejorar Studio compartiendo estadísticas de uso de forma anónima.' : 'Help improve Studio by sharing anonymous usage data.'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
@@ -2200,20 +2358,21 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
 
               {/* Card 4: Data Retention */}
               <div style={{
-                background: 'rgba(128,128,128,0.06)',
+                background: 'var(--app-surface-high, rgba(128,128,128,0.05))',
                 borderRadius: 16,
-                padding: '16px 18px',
+                padding: '20px 22px',
                 border: '1px solid rgba(128,128,128,0.08)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 4,
+                gap: 6,
                 boxSizing: 'border-box',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
               }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#0891b2', fontVariationSettings: "'FILL' 1" }}>history</span>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <RetentionIconSVG color="#0891b2" />
                   {lang === 'es' ? 'Retención de Datos' : 'Data Retention'}
                 </p>
-                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
                   {lang === 'es' ? 'Controla cuánto tiempo conserva Studio tus copias de seguridad.' : 'Control how long Studio keeps your data.'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
@@ -2237,27 +2396,28 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
 
               {/* Card 5: Connected Services */}
               <div style={{
-                background: 'rgba(128,128,128,0.06)',
+                background: 'var(--app-surface-high, rgba(128,128,128,0.05))',
                 borderRadius: 16,
-                padding: '16px 18px',
+                padding: '20px 22px',
                 border: '1px solid rgba(128,128,128,0.08)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 4,
+                gap: 6,
                 boxSizing: 'border-box',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
               }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#db2777', fontVariationSettings: "'FILL' 1" }}>link</span>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <LinkIconSVG color="#db2777" />
                   {lang === 'es' ? 'Servicios Conectados' : 'Connected Services'}
                 </p>
-                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
                   {lang === 'es' ? 'Gestiona los servicios externos vinculados a tu cuenta.' : 'Manage third-party services connected to your account.'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-                      <span style={{ fontSize: 18, lineHeight: 1 }}>🌐</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>Google</span>
+                      <GoogleIconSVG />
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>Google</span>
                     </div>
                     <span style={{
                       fontSize: 10.5,
@@ -2273,13 +2433,15 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                       {isGoogleUser ? (lang === 'es' ? 'Conectado' : 'Connected') : (lang === 'es' ? 'No conectado' : 'Not connected')}
                     </span>
                   </div>
-                  {['Dropbox', 'OneDrive', 'GitHub'].map((service) => (
-                    <div key={service} style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 0.55 }}>
+                  {[
+                    { name: 'Dropbox', icon: <DropboxIconSVG /> },
+                    { name: 'OneDrive', icon: <OneDriveIconSVG /> },
+                    { name: 'GitHub', icon: <GitHubIconSVG /> }
+                  ].map((service) => (
+                    <div key={service.name} style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 0.55 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-                        <span style={{ fontSize: 18, lineHeight: 1 }}>
-                          {service === 'Dropbox' ? '📦' : service === 'OneDrive' ? '☁️' : '💻'}
-                        </span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>{service}</span>
+                        {service.icon}
+                        <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>{service.name}</span>
                       </div>
                       <span style={{
                         fontSize: 9,
@@ -2302,20 +2464,21 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
 
               {/* Card 6: Storage & Export */}
               <div style={{
-                background: 'rgba(128,128,128,0.06)',
+                background: 'var(--app-surface-high, rgba(128,128,128,0.05))',
                 borderRadius: 16,
-                padding: '16px 18px',
+                padding: '20px 22px',
                 border: '1px solid rgba(128,128,128,0.08)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 4,
+                gap: 6,
                 boxSizing: 'border-box',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
               }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#14b8a6', fontVariationSettings: "'FILL' 1" }}>save</span>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <StorageIconSVG color="#14b8a6" />
                   {lang === 'es' ? 'Almacenamiento y Copia' : 'Storage & Export'}
                 </p>
-                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
                   {lang === 'es' ? 'Gestiona el uso de almacenamiento local y descarga copias de tus datos.' : 'Manage storage usage and download copies of your data.'}
                 </p>
                 
@@ -2352,11 +2515,11 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 6,
+                      gap: 8,
                       cursor: 'pointer',
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>
+                    <DownloadIconSVG />
                     {lang === 'es' ? 'Exportar datos' : 'Export Data'}
                   </button>
                   <button
@@ -2375,14 +2538,14 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 6,
+                      gap: 8,
                       cursor: clearingCache ? 'not-allowed' : 'pointer',
                     }}
                   >
                     {clearingCache ? (
                       <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span>
                     ) : (
-                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_sweep</span>
+                      <TrashIconSVG />
                     )}
                     {lang === 'es' ? 'Borrar caché' : 'Clear Cache'}
                   </button>
@@ -2431,7 +2594,7 @@ function SelectControl<T extends string>({
           background: 'rgba(128,128,128,0.12)',
           border: '1px solid rgba(128,128,128,0.18)',
           borderRadius: '8px',
-          padding: '6px 30px 6px 12px',
+          padding: '6px 32px 6px 12px',
           fontSize: '13px',
           fontFamily: 'Manrope',
           fontWeight: 700,
@@ -2446,21 +2609,22 @@ function SelectControl<T extends string>({
           </option>
         ))}
       </select>
-      <span
-        className="material-symbols-outlined"
+      <div
         style={{
           position: 'absolute',
-          right: '8px',
+          right: '10px',
           top: '50%',
           transform: 'translateY(-50%)',
-          fontSize: '16px',
           color: 'var(--c-text-secondary)',
           pointerEvents: 'none',
           opacity: 0.7,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        keyboard_arrow_down
-      </span>
+        <ChevronDownIconSVG />
+      </div>
     </div>
   );
 }
