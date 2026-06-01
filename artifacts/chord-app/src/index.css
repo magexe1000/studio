@@ -502,7 +502,7 @@ html.light [style*="border:1px solid #161717"] {
 }
 [data-studio-theme-vt="active"] ::view-transition-new(root) {
   /* JS animates clip-path from this initial value → full coverage */
-  clip-path: var(--studio-theme-vt-clip-from, circle(0px at 50% 50%));
+  clip-path: var(--studio-theme-vt-clip-from, circle(0px at 50vw 50vh));
   animation: none;
   opacity: 1;
   z-index: 2;

@@ -465,7 +465,7 @@ function UpdateModal({
       const res = await applyUpdate({
         url: downloadUrl!,
         version: toVersion,
-        onProgress: (p) => setProgress(p),
+        onProgress: (p) => setProgress((prev) => Math.max(prev, p)),
       });
       setDownloading(false);
       if (!res.ok) {

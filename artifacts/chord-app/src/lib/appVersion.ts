@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.2';
+export const APP_VERSION = '3.1.3';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-01'; // 3.1.2
+export const APP_VERSION_DATE = '2026-06-01'; // 3.1.3
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,11 +53,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Cloud Sync & Profile Fixes",
+    heading: "UI & Animation Refinements",
     items: [
-      'Profile Spacing & Scrolling: Added 100px bottom padding to the profile layout, preventing navigation bar overlaps and restoring full scrollability.',
-      'Cloud Sync Integration: Embedded a fully functional real-time sync control panel inside Storage & Session settings, showing In Sync, Syncing, and Error/Not Synced states.',
-      'One-Tap Manual Sync: Added a premium manual sync button to instantly sync favorites, presets, and progressions across your devices.',
+      'Centered Theme Transitions: Refactored theme switching reveals to start perfectly from the viewport center using viewport units (vw/vh/vmax) for zero coordinate drift on mobile.',
+      'Butter-Smooth OTA Progress: Enforced strictly monotonic updates up to 100% with a 800ms visual closure delay for satisfying completion displays.',
+      'Modernized Color Accent Bar: Swapped the blocky accent slider for a thin HSL track, dynamic glowing donut thumb ring, and color details card.',
+      'Aligned Profile Back Button: Replaced the old chevron with a unified back button matching other settings sheets in height, padding, and arrow icon.',
     ],
   },
 ];
@@ -66,11 +67,12 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Sincronización y Perfil",
+    heading: "Refinamientos Visuales y Animación",
     items: [
-      'Espaciado del Perfil: Añadido margen inferior de 100px al diseño del perfil, evitando solapamientos con la barra de navegación y permitiendo un scroll perfecto.',
-      'Sincronización en la Nube: Panel de sincronización en tiempo real integrado en Ajustes → Almacenamiento y Sesión, mostrando los estados Sincronizado, Sincronizando y Error.',
-      'Sincronización Manual: Botón premium para sincronizar favoritos, presets y progresiones al instante entre todos tus dispositivos.',
+      'Transiciones de Tema Centradas: Animaciones de revelado centradas en el viewport (usando vw/vh/vmax) para una consistencia absoluta en móviles.',
+      'Progreso de Actualización Fluido: Progreso estrictamente creciente hasta el 100% y retraso de 800ms para permitir una animación de cierre impecable.',
+      'Barra de Acento Moderna: Deslizador de acento customizado con un riel delgado de 10px, un anillo con brillo HSL dinámico y una tarjeta de información premium.',
+      'Botón de Perfil Alineado: Botón de regreso unificado con la apariencia de los otros paneles en altura, margen y flecha clásica.',
     ],
   },
 ];
@@ -78,11 +80,12 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Cloud-Sync & Profil-Fixes",
+    heading: "Visual- & Animations-Verbesserungen",
     items: [
-      'Profil-Abstand & Scrollen: 100px unterer Abstand hinzugefügt, um Überlappungen mit der Navigationsleiste zu verhindern und volles Scrollen zu ermöglichen.',
-      'Cloud-Sync-Integration: Ein voll funktionsfähiges Echtzeit-Sync-Panel wurde unter Einstellungen → Speicher & Sitzung integriert.',
-      'Manuelle Sinc: Premium-Button zum sofortigen Synchronisieren von Favoriten, Presets und Song-Fortschritten auf allen Geräten.',
+      'Zentrierte Theme-Übergänge: Übergänge starten jetzt exakt aus der Viewport-Mitte unter Verwendung von vw/vh/vmax für verzerrungsfreies Rendern auf Mobilgeräten.',
+      'Flüssiger OTA-Fortschritt: Streng monotoner Fortschritt bis 100% mit einer Verzögerung von 800ms für einen sauberen visuellen Abschluss.',
+      'Moderner Farbakzent-Schieberegler: Farbregler mit schlankem 10px Track, dynamisch leuchtendem Ring-Thumb und informativer Farbkarte.',
+      'Ausgerichteter Profil-Zurück-Button: Vereinheitlichter Zurück-Button, der in Höhe, Polsterung und Pfeilsymbol exakt den anderen Einstellungsseiten entspricht.',
     ],
   },
 ];

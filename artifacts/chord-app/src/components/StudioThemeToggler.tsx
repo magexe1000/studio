@@ -64,65 +64,57 @@ function getClipPaths(
   switch (variant) {
     case 'circle':
       return [
-        `circle(0px at ${cx}px ${cy}px)`,
-        `circle(${maxR}px at ${cx}px ${cy}px)`,
+        'circle(0px at 50vw 50vh)',
+        'circle(120vmax at 50vw 50vh)',
       ];
 
-    case 'square': {
-      const h = Math.max(Math.max(cx, vw - cx), Math.max(cy, vh - cy)) * 1.05;
-      const pts = [`${cx-h}px ${cy-h}px`, `${cx+h}px ${cy-h}px`, `${cx+h}px ${cy+h}px`, `${cx-h}px ${cy+h}px`].join(', ');
-      return [polygonCollapsed(cx, cy, 4), `polygon(${pts})`];
-    }
+    case 'square':
+      return [
+        'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh)',
+        'polygon(-100vw -100vh, 200vw -100vh, 200vw 200vh, -100vw 200vh)',
+      ];
 
-    case 'triangle': {
-      const s = maxR * 2.2;
-      const dx = (Math.sqrt(3) / 2) * s;
-      const pts = [`${cx}px ${cy-s}px`, `${cx+dx}px ${cy+0.5*s}px`, `${cx-dx}px ${cy+0.5*s}px`].join(', ');
-      return [polygonCollapsed(cx, cy, 3), `polygon(${pts})`];
-    }
+    case 'triangle':
+      return [
+        'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh)',
+        'polygon(50vw -150vh, 250vw 150vh, -150vw 150vh)',
+      ];
 
-    case 'diamond': {
-      const R = maxR * Math.SQRT2;
-      const pts = [`${cx}px ${cy-R}px`, `${cx+R}px ${cy}px`, `${cx}px ${cy+R}px`, `${cx-R}px ${cy}px`].join(', ');
-      return [polygonCollapsed(cx, cy, 4), `polygon(${pts})`];
-    }
+    case 'diamond':
+      return [
+        'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh)',
+        'polygon(50vw -100vh, 200vw 50vh, 50vw 200vh, -100vw 50vh)',
+      ];
 
-    case 'hexagon': {
-      const R = maxR * Math.SQRT2;
-      const pts = Array.from({ length: 6 }, (_, i) => {
-        const a = -Math.PI / 2 + (i * Math.PI) / 3;
-        return `${cx + R * Math.cos(a)}px ${cy + R * Math.sin(a)}px`;
-      });
-      return [polygonCollapsed(cx, cy, 6), `polygon(${pts.join(', ')})`];
-    }
+    case 'hexagon':
+      return [
+        'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh)',
+        'polygon(50vw -100vh, 180vw -25vh, 180vw 125vh, 50vw 200vh, -80vw 125vh, -80vw -25vh)',
+      ];
 
-    case 'rectangle': {
-      const hw = Math.max(cx, vw - cx);
-      const hh = Math.max(cy, vh - cy);
-      const pts = [`${cx-hw}px ${cy-hh}px`, `${cx+hw}px ${cy-hh}px`, `${cx+hw}px ${cy+hh}px`, `${cx-hw}px ${cy+hh}px`].join(', ');
-      return [polygonCollapsed(cx, cy, 4), `polygon(${pts})`];
-    }
+    case 'rectangle':
+      return [
+        'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh)',
+        'polygon(-100vw -100vh, 200vw -100vh, 200vw 200vh, -100vw 200vh)',
+      ];
 
     case 'star': {
-      const R = maxR * Math.SQRT2 * 1.03;
+      const collapsed = 'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh)';
+      const verts: string[] = [];
       const ir = 0.42;
-      const star = (r: number) => {
-        const verts: string[] = [];
-        for (let i = 0; i < 5; i++) {
-          const oa = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
-          verts.push(`${cx + r * Math.cos(oa)}px ${cy + r * Math.sin(oa)}px`);
-          const ia = oa + Math.PI / 5;
-          verts.push(`${cx + r * ir * Math.cos(ia)}px ${cy + r * ir * Math.sin(ia)}px`);
-        }
-        return `polygon(${verts.join(', ')})`;
-      };
-      return [star(Math.max(2, R * 0.025)), star(R)];
+      for (let i = 0; i < 5; i++) {
+        const oa = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+        verts.push(`calc(50vw + ${150 * Math.cos(oa)}vmax) calc(50vh + ${150 * Math.sin(oa)}vmax)`);
+        const ia = oa + Math.PI / 5;
+        verts.push(`calc(50vw + ${150 * ir * Math.cos(ia)}vmax) calc(50vh + ${150 * ir * Math.sin(ia)}vmax)`);
+      }
+      return [collapsed, `polygon(${verts.join(', ')})`];
     }
 
     default:
       return [
-        `circle(0px at ${cx}px ${cy}px)`,
-        `circle(${maxR}px at ${cx}px ${cy}px)`,
+        'circle(0px at 50vw 50vh)',
+        'circle(120vmax at 50vw 50vh)',
       ];
   }
 }

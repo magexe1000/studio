@@ -118,6 +118,15 @@ export interface AppSettings {
   customAccentHue: number;
   dynamicLightStart: number;
   dynamicLightEnd: number;
+  privacyAnalytics: boolean;
+  privacyCrashReports: boolean;
+  privacyPerfReports: boolean;
+  autoBackup: boolean;
+  syncAcrossDevices: boolean;
+  backupFrequency: 'manual' | 'daily' | 'weekly' | 'monthly';
+  backupRetention: 'forever' | '90days' | '30days';
+  autoCleanTemp: boolean;
+  lastExportDate: string;
 }
 
 interface ChordStore {
@@ -269,6 +278,15 @@ export const useChordStore = create<ChordStore>()(
         customAccentHue: 220,
         dynamicLightStart: 7,
         dynamicLightEnd: 20,
+        privacyAnalytics: false,
+        privacyCrashReports: false,
+        privacyPerfReports: false,
+        autoBackup: false,
+        syncAcrossDevices: false,
+        backupFrequency: 'manual',
+        backupRetention: 'forever',
+        autoCleanTemp: false,
+        lastExportDate: 'Never exported',
         perApp: {
           hub:    { theme: 'dark', accentColor: 'blue', amoledMode: false },
           chords: { theme: 'dark', accentColor: 'blue', amoledMode: false },
@@ -666,7 +684,7 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
-      version: 8,
+      version: 9,
       migrate: (stored: unknown, fromVersion: number) => {
         const s = stored as Record<string, unknown>;
         if (fromVersion < 1) {
@@ -755,6 +773,20 @@ export const useChordStore = create<ChordStore>()(
           // v3.0.57: 7 new languages added. No-op for existing users —
           // they keep whatever they had picked. New installs get device
           // language via the initial state in the store. Marker only.
+        }
+        if (fromVersion < 9) {
+          if (s.settings && typeof s.settings === 'object') {
+            const settings = s.settings as Record<string, unknown>;
+            if (typeof settings.privacyAnalytics !== 'boolean') settings.privacyAnalytics = false;
+            if (typeof settings.privacyCrashReports !== 'boolean') settings.privacyCrashReports = false;
+            if (typeof settings.privacyPerfReports !== 'boolean') settings.privacyPerfReports = false;
+            if (typeof settings.autoBackup !== 'boolean') settings.autoBackup = false;
+            if (typeof settings.syncAcrossDevices !== 'boolean') settings.syncAcrossDevices = false;
+            if (typeof settings.backupFrequency !== 'string') settings.backupFrequency = 'manual';
+            if (typeof settings.backupRetention !== 'string') settings.backupRetention = 'forever';
+            if (typeof settings.autoCleanTemp !== 'boolean') settings.autoCleanTemp = false;
+            if (typeof settings.lastExportDate !== 'string') settings.lastExportDate = 'Never exported';
+          }
         }
         return s;
       },

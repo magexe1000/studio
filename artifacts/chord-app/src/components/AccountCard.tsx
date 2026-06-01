@@ -31,6 +31,8 @@ import {
 } from '../lib/userAvatar';
 import { useBackHandler } from '../lib/backStack';
 import StudioPricingSection from './StudioPricingSection';
+import { Capacitor } from '@capacitor/core';
+import { Toggle } from './SettingControls';
 
 type Props = {
   accent: { from: string; to: string; mid: string };
@@ -881,6 +883,147 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  const settings = useChordStore((s) => s.settings);
+  const updateSettings = useChordStore((s) => s.updateSettings);
+  const [localUsage, setLocalUsage] = useState<string>('0 KB');
+  const [clearingCache, setClearingCache] = useState(false);
+
+  const [sync, setSync] = useState<SyncStatus>(() => ({
+    signedIn: false,
+    phase: 'idle',
+    syncing: false,
+    lastSyncedMs: null,
+    error: null,
+  }));
+  useEffect(() => subscribeSyncStatus(setSync), []);
+
+  async function doSyncNow() {
+    setBusy(true);
+    try { await syncNow(); }
+    finally { setBusy(false); }
+  }
+
+  async function doRetry() {
+    setBusy(true);
+    try { await retrySync(); }
+    finally { setBusy(false); }
+  }
+
+  const refreshStorageSize = async () => {
+    let lsBytes = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          const val = localStorage.getItem(key) ?? '';
+          lsBytes += (key.length + val.length) * 2;
+        }
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+
+    let dbBytes = 0;
+    try {
+      const { getCacheSize } = await import('../groovex/stemCache');
+      const sizeInfo = await getCacheSize();
+      dbBytes = sizeInfo.totalBytes;
+    } catch (e) {
+      console.warn(e);
+    }
+
+    const totalBytes = lsBytes + dbBytes;
+    setLocalUsage(formatBytes(totalBytes));
+  };
+
+  useEffect(() => {
+    if (sheet === 'privacy-data') {
+      refreshStorageSize();
+    }
+  }, [sheet]);
+
+  function formatBytes(b: number): string {
+    if (b === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(b) / Math.log(k));
+    return parseFloat((b / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  async function doExportData() {
+    try {
+      const backup: Record<string, string> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          backup[key] = localStorage.getItem(key) ?? '';
+        }
+      }
+
+      const content = JSON.stringify(backup, null, 2);
+      const now = new Date();
+      const dateString = now.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const fileName = `studio_backup_${now.toISOString().split('T')[0]}.json`;
+
+      if (Capacitor.isNativePlatform()) {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const bytes = new TextEncoder().encode(content);
+        const binary = Array.from(bytes, b => String.fromCharCode(b)).join('');
+        const base64 = btoa(binary);
+
+        try {
+          await Filesystem.writeFile({ path: `Download/${fileName}`, data: base64, directory: Directory.ExternalStorage, recursive: true });
+          showToast(lang === 'es' ? 'Copia de seguridad guardada' : 'Backup saved successfully');
+        } catch {
+          try {
+            await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.External, recursive: true });
+            showToast(lang === 'es' ? 'Copia de seguridad guardada' : 'Backup saved successfully');
+          } catch {
+            showToast(lang === 'es' ? 'Error al guardar archivo' : 'Failed to save export file');
+          }
+        }
+      } else {
+        const blob = new Blob([content], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast(lang === 'es' ? 'Datos exportados correctamente' : 'Data exported successfully');
+      }
+
+      updateSettings({ lastExportDate: dateString });
+    } catch (e) {
+      console.error(e);
+      showToast(lang === 'es' ? 'Error al exportar datos' : 'Export failed');
+    }
+  }
+
+  async function doClearCache() {
+    setClearingCache(true);
+    try {
+      const { clearAllCache } = await import('../groovex/stemCache');
+      await clearAllCache();
+      showToast(lang === 'es' ? 'Caché de audio eliminada' : 'Audio cache cleared successfully');
+      await refreshStorageSize();
+    } catch (e) {
+      console.error(e);
+      showToast(lang === 'es' ? 'Error al borrar caché' : 'Failed to clear cache');
+    } finally {
+      setClearingCache(false);
+    }
+  }
 
   useEffect(() => subscribeAuth(setUser), []);
   useEffect(() => {
@@ -1850,29 +1993,475 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
           <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={lang === 'es' ? 'Privacidad y datos' : 'Privacy & Data'} onClose={closeSheet} />
-            <div style={{ padding: '8px 22px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-primary)', opacity: 0.65, fontVariationSettings: "'FILL' 1" }}>download</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>
-                    {lang === 'es' ? 'Exportar mis datos' : 'Export my data'}
-                  </p>
-                  <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>
-                    {lang === 'es' ? 'Próximamente' : 'Coming soon'}
-                  </p>
+            
+            <div
+              style={{
+                padding: '12px 22px 32px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                maxHeight: 'calc(80vh - env(safe-area-inset-bottom) - 80px)',
+                overflowY: 'auto',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+              className="no-scrollbar animate-fade-in"
+            >
+              {/* Card 1: Privacy Dashboard */}
+              <div style={{
+                background: 'rgba(128,128,128,0.06)',
+                borderRadius: 16,
+                padding: '16px 18px',
+                border: '1px solid rgba(128,128,128,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                boxSizing: 'border-box',
+              }}>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, fontVariationSettings: "'FILL' 1" }}>dashboard</span>
+                  {lang === 'es' ? 'Panel de Privacidad' : 'Privacy Dashboard'}
+                </p>
+                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                  {lang === 'es' ? 'Resumen rápido de tu configuración de privacidad.' : 'Quick overview of your privacy settings.'}
+                </p>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 10,
+                  marginTop: 12,
+                }}>
+                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <p style={{ fontFamily: 'Inter', fontSize: 10, color: 'var(--c-text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{lang === 'es' ? 'Análisis' : 'Analytics'}</p>
+                    <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0, color: settings.privacyAnalytics ? '#10b981' : 'var(--c-text-secondary)' }}>
+                      {settings.privacyAnalytics ? (lang === 'es' ? 'Activo' : 'Enabled') : (lang === 'es' ? 'Inactivo' : 'Disabled')}
+                    </p>
+                  </div>
+                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <p style={{ fontFamily: 'Inter', fontSize: 10, color: 'var(--c-text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Backup</p>
+                    <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0, color: (settings.autoBackup || sync.signedIn) ? '#10b981' : 'var(--c-text-secondary)' }}>
+                      {(settings.autoBackup || sync.signedIn) ? (lang === 'es' ? 'Activo' : 'Enabled') : (lang === 'es' ? 'Backup off' : 'Backup off')}
+                    </p>
+                  </div>
+                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 3, gridColumn: 'span 2' }}>
+                    <p style={{ fontFamily: 'Inter', fontSize: 10, color: 'var(--c-text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{lang === 'es' ? 'Última exportación' : 'Last Export Date'}</p>
+                    <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0, color: 'var(--c-text-primary)' }}>
+                      {settings.lastExportDate === 'Never exported' ? (lang === 'es' ? 'Nunca exportado' : 'Never exported') : settings.lastExportDate}
+                    </p>
+                  </div>
+                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 3, gridColumn: 'span 2' }}>
+                    <p style={{ fontFamily: 'Inter', fontSize: 10, color: 'var(--c-text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{lang === 'es' ? 'Servicios conectados' : 'Connected Services'}</p>
+                    <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, margin: 0, color: 'var(--c-text-primary)' }}>
+                      {isGoogleUser ? (lang === 'es' ? '1 servicio conectado (Google)' : '1 service connected (Google)') : (lang === 'es' ? 'Sin servicios conectados' : 'No services connected')}
+                    </p>
+                  </div>
                 </div>
               </div>
-              <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.7 }}>
-                {lang === 'es'
-                  ? 'Tus datos se almacenan de forma segura. Nunca compartimos tu información con terceros sin tu consentimiento.'
-                  : 'Your data is stored securely. We never share your information with third parties without your consent.'}
-              </p>
+
+              {/* Card 2: Backup & Sync */}
+              <div style={{
+                background: 'rgba(128,128,128,0.06)',
+                borderRadius: 16,
+                padding: '16px 18px',
+                border: '1px solid rgba(128,128,128,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                boxSizing: 'border-box',
+              }}>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#10b981', fontVariationSettings: "'FILL' 1" }}>cloud_upload</span>
+                  {lang === 'es' ? 'Copia y Sincronización' : 'Backup & Sync'}
+                </p>
+                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                  {lang === 'es' ? 'Gestiona tus copias en la nube y preferencias de sincronización.' : 'Manage cloud backups and sync preferences.'}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
+                  <SettingRowUI label={lang === 'es' ? 'Copia automática' : 'Auto Backup'} desc={lang === 'es' ? 'Respaldar automáticamente tus datos.' : 'Automatically back up your Studio data.'}>
+                    <Toggle value={settings.autoBackup} onChange={(v) => updateSettings({ autoBackup: v })} accentFrom={accent.from} accentTo={accent.to} />
+                  </SettingRowUI>
+                  <SettingRowUI label={lang === 'es' ? 'Sincronizar dispositivos' : 'Sync Across Devices'} desc={lang === 'es' ? 'Mantén tus datos sincronizados en todos tus dispositivos.' : 'Keep your Studio data synced across your devices.'}>
+                    <Toggle value={settings.syncAcrossDevices} onChange={(v) => updateSettings({ syncAcrossDevices: v })} accentFrom={accent.from} accentTo={accent.to} />
+                  </SettingRowUI>
+                  <SettingRowUI label={lang === 'es' ? 'Frecuencia de copia' : 'Backup Frequency'}>
+                    <SelectControl
+                      value={settings.backupFrequency}
+                      options={[
+                        { value: 'manual', label: 'Manual' },
+                        { value: 'daily', label: lang === 'es' ? 'Diario' : 'Daily' },
+                        { value: 'weekly', label: lang === 'es' ? 'Semanal' : 'Weekly' },
+                        { value: 'monthly', label: lang === 'es' ? 'Mensual' : 'Monthly' },
+                      ]}
+                      onChange={(v) => updateSettings({ backupFrequency: v })}
+                      accent={accent}
+                    />
+                  </SettingRowUI>
+                </div>
+
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(128,128,128,0.08)' }}>
+                  {!sync.signedIn ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)' }}>cloud_off</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                          {lang === 'es' ? 'Sincronización desactivada' : 'Sync is disabled'}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', lineHeight: 1.45, margin: 0 }}>
+                        {lang === 'es'
+                          ? 'Inicia sesión con tu cuenta para respaldar tus proyectos en la nube automáticamente.'
+                          : 'Sign in with your account to back up your projects to the cloud automatically.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {sync.phase === 'syncing' ? (
+                          <StudioSpinner outerSize="h-[18px] w-[18px]" childSize="h-[14px] w-[14px]" colorFrom={accent.from} colorTo={accent.to} />
+                        ) : (
+                          <span
+                            className={`material-symbols-outlined ${sync.phase === 'success' ? 'sync-pop' : ''}`}
+                            style={{ fontSize: 20, color: sync.phase === 'error' ? '#ff6b6b' : '#10b981', fontVariationSettings: "'FILL' 1" }}
+                          >
+                            {sync.phase === 'error' ? 'sync_problem' : 'check_circle'}
+                          </span>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                            {sync.phase === 'syncing'
+                              ? (lang === 'es' ? 'Sincronizando...' : 'Syncing...')
+                              : sync.phase === 'error'
+                                ? (lang === 'es' ? 'Error al sincronizar' : 'Sync Failed')
+                                : (lang === 'es' ? 'Sincronizado con la nube' : 'Cloud Sync Active')}
+                          </span>
+                          <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>
+                            {sync.phase === 'error' && sync.error
+                              ? sync.error
+                              : sync.lastSyncedMs
+                                ? `${lang === 'es' ? 'Sincronizado' : 'Synced'} · ${formatRelative(sync.lastSyncedMs, lang)}`
+                                : (lang === 'es' ? 'No sincronizado aún' : 'Not synced yet')}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={sync.phase === 'error' ? doRetry : doSyncNow}
+                        disabled={busy || sync.phase === 'syncing'}
+                        style={{
+                          ...pillBtn(accent, sync.phase === 'error'),
+                          width: '100%',
+                          padding: '10px 0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          borderRadius: 10,
+                        }}
+                      >
+                        <span className={`material-symbols-outlined ${sync.phase === 'syncing' ? 'sync-spin' : ''}`} style={{ fontSize: 16 }}>
+                          sync
+                        </span>
+                        {sync.phase === 'error' ? (lang === 'es' ? 'Reintentar' : 'Retry') : (lang === 'es' ? 'Sincronizar ahora' : 'Sync Now')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Card 3: Analytics & Diagnostics */}
+              <div style={{
+                background: 'rgba(128,128,128,0.06)',
+                borderRadius: 16,
+                padding: '16px 18px',
+                border: '1px solid rgba(128,128,128,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                boxSizing: 'border-box',
+              }}>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#f59e0b', fontVariationSettings: "'FILL' 1" }}>insights</span>
+                  {lang === 'es' ? 'Análisis y Diagnósticos' : 'Analytics & Diagnostics'}
+                </p>
+                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                  {lang === 'es' ? 'Ayuda a mejorar Studio compartiendo estadísticas de uso de forma anónima.' : 'Help improve Studio by sharing anonymous usage data.'}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
+                  <SettingRowUI label={lang === 'es' ? 'Métricas anónimas' : 'Anonymous Analytics'} desc={lang === 'es' ? 'Compartir estadísticas de uso anónimas.' : 'Share anonymous usage data to improve Studio.'}>
+                    <Toggle value={settings.privacyAnalytics} onChange={(v) => updateSettings({ privacyAnalytics: v })} accentFrom={accent.from} accentTo={accent.to} />
+                  </SettingRowUI>
+                  <SettingRowUI label={lang === 'es' ? 'Reportes de fallos' : 'Crash Reports'} desc={lang === 'es' ? 'Enviar reportes de errores de forma anónima.' : 'Send crash reports to help fix bugs.'}>
+                    <Toggle value={settings.privacyCrashReports} onChange={(v) => updateSettings({ privacyCrashReports: v })} accentFrom={accent.from} accentTo={accent.to} />
+                  </SettingRowUI>
+                  <SettingRowUI label={lang === 'es' ? 'Reportes de rendimiento' : 'Performance Reports'} desc={lang === 'es' ? 'Compartir estadísticas de rendimiento anónimas.' : 'Share anonymous performance data.'}>
+                    <Toggle value={settings.privacyPerfReports} onChange={(v) => updateSettings({ privacyPerfReports: v })} accentFrom={accent.from} accentTo={accent.to} />
+                  </SettingRowUI>
+                </div>
+              </div>
+
+              {/* Card 4: Data Retention */}
+              <div style={{
+                background: 'rgba(128,128,128,0.06)',
+                borderRadius: 16,
+                padding: '16px 18px',
+                border: '1px solid rgba(128,128,128,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                boxSizing: 'border-box',
+              }}>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#0891b2', fontVariationSettings: "'FILL' 1" }}>history</span>
+                  {lang === 'es' ? 'Retención de Datos' : 'Data Retention'}
+                </p>
+                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                  {lang === 'es' ? 'Controla cuánto tiempo conserva Studio tus copias de seguridad.' : 'Control how long Studio keeps your data.'}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
+                  <SettingRowUI label={lang === 'es' ? 'Retención de copias' : 'Backup Retention'}>
+                    <SelectControl
+                      value={settings.backupRetention}
+                      options={[
+                        { value: 'forever', label: lang === 'es' ? 'Mantener para siempre' : 'Keep backups forever' },
+                        { value: '90days', label: lang === 'es' ? 'Borrar tras 90 días' : 'Delete old backups after 90 days' },
+                        { value: '30days', label: lang === 'es' ? 'Borrar tras 30 días' : 'Delete old backups after 30 days' },
+                      ]}
+                      onChange={(v) => updateSettings({ backupRetention: v })}
+                      accent={accent}
+                    />
+                  </SettingRowUI>
+                  <SettingRowUI label={lang === 'es' ? 'Limpieza de temporales' : 'Auto-clean Temp Files'} desc={lang === 'es' ? 'Eliminar caché de archivos de audio no necesarios.' : 'Automatically remove temporary files and cached data.'}>
+                    <Toggle value={settings.autoCleanTemp} onChange={(v) => updateSettings({ autoCleanTemp: v })} accentFrom={accent.from} accentTo={accent.to} />
+                  </SettingRowUI>
+                </div>
+              </div>
+
+              {/* Card 5: Connected Services */}
+              <div style={{
+                background: 'rgba(128,128,128,0.06)',
+                borderRadius: 16,
+                padding: '16px 18px',
+                border: '1px solid rgba(128,128,128,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                boxSizing: 'border-box',
+              }}>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#db2777', fontVariationSettings: "'FILL' 1" }}>link</span>
+                  {lang === 'es' ? 'Servicios Conectados' : 'Connected Services'}
+                </p>
+                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                  {lang === 'es' ? 'Gestiona los servicios externos vinculados a tu cuenta.' : 'Manage third-party services connected to your account.'}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+                  <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                      <span style={{ fontSize: 18, lineHeight: 1 }}>🌐</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>Google</span>
+                    </div>
+                    <span style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      fontFamily: 'Manrope',
+                      color: isGoogleUser ? '#10b981' : 'var(--c-text-secondary)',
+                      background: isGoogleUser ? 'rgba(16,185,129,0.12)' : 'rgba(128,128,128,0.1)',
+                      border: `1px solid ${isGoogleUser ? 'rgba(16,185,129,0.25)' : 'rgba(128,128,128,0.15)'}`,
+                      borderRadius: 6,
+                      padding: '3px 8px',
+                      textTransform: 'uppercase',
+                    }}>
+                      {isGoogleUser ? (lang === 'es' ? 'Conectado' : 'Connected') : (lang === 'es' ? 'No conectado' : 'Not connected')}
+                    </span>
+                  </div>
+                  {['Dropbox', 'OneDrive', 'GitHub'].map((service) => (
+                    <div key={service} style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 0.55 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                        <span style={{ fontSize: 18, lineHeight: 1 }}>
+                          {service === 'Dropbox' ? '📦' : service === 'OneDrive' ? '☁️' : '💻'}
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>{service}</span>
+                      </div>
+                      <span style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        fontFamily: 'Manrope',
+                        color: 'var(--c-text-secondary)',
+                        background: 'rgba(128,128,128,0.12)',
+                        border: '1px solid rgba(128,128,128,0.18)',
+                        borderRadius: 6,
+                        padding: '3px 8px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}>
+                        {lang === 'es' ? 'Próximamente' : 'Coming soon'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Card 6: Storage & Export */}
+              <div style={{
+                background: 'rgba(128,128,128,0.06)',
+                borderRadius: 16,
+                padding: '16px 18px',
+                border: '1px solid rgba(128,128,128,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                boxSizing: 'border-box',
+              }}>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 14.5, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#14b8a6', fontVariationSettings: "'FILL' 1" }}>save</span>
+                  {lang === 'es' ? 'Almacenamiento y Copia' : 'Storage & Export'}
+                </p>
+                <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                  {lang === 'es' ? 'Gestiona el uso de almacenamiento local y descarga copias de tus datos.' : 'Manage storage usage and download copies of your data.'}
+                </p>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
+                  <SettingRowUI label={lang === 'es' ? 'Restaurar última sesión' : 'Restore Last Session'} desc={lang === 'es' ? 'Abrir automáticamente la última app y pestaña activa.' : 'Automatically restore last active app, tab, and view on start.'}>
+                    <Toggle value={settings.restoreLastSession} onChange={(v) => updateSettings({ restoreLastSession: v })} accentFrom={accent.from} accentTo={accent.to} />
+                  </SettingRowUI>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
+                    <div>
+                      <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>
+                        {lang === 'es' ? 'Uso de almacenamiento' : 'Storage Usage'}
+                      </p>
+                      <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '2px 0 0' }}>
+                        {lang === 'es' ? 'Uso total (datos + caché de audio)' : 'Total local usage (data + audio cache)'}
+                      </p>
+                    </div>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Inter', color: 'var(--c-text-primary)' }}>{localUsage}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                  <button
+                    onClick={doExportData}
+                    style={{
+                      flex: 1,
+                      padding: '10px 0',
+                      borderRadius: 12,
+                      background: `${accent.from}15`,
+                      border: `1px solid ${accent.from}30`,
+                      color: accent.from,
+                      fontFamily: 'Manrope',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>
+                    {lang === 'es' ? 'Exportar datos' : 'Export Data'}
+                  </button>
+                  <button
+                    onClick={doClearCache}
+                    disabled={clearingCache}
+                    style={{
+                      flex: 1,
+                      padding: '10px 0',
+                      borderRadius: 12,
+                      background: 'rgba(255,107,107,0.08)',
+                      border: '1px solid rgba(255,107,107,0.20)',
+                      color: '#ff6b6b',
+                      fontFamily: 'Manrope',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      cursor: clearingCache ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {clearingCache ? (
+                      <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span>
+                    ) : (
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_sweep</span>
+                    )}
+                    {lang === 'es' ? 'Borrar caché' : 'Clear Cache'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>,
         document.body,
       )}
     </>
+  );
+}
+
+function SettingRowUI({ label, desc, children }: { label: string; desc?: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
+      <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
+        <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>{label}</p>
+        {desc && <p style={{ fontSize: 11, marginTop: 2, lineHeight: 1.3, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '2px 0 0' }}>{desc}</p>}
+      </div>
+      <div style={{ flexShrink: 0 }}>{children}</div>
+    </div>
+  );
+}
+
+function SelectControl<T extends string>({
+  value,
+  options,
+  onChange,
+  accent,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  accent: { from: string; to: string };
+}) {
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        style={{
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          background: 'rgba(128,128,128,0.12)',
+          border: '1px solid rgba(128,128,128,0.18)',
+          borderRadius: '8px',
+          padding: '6px 30px 6px 12px',
+          fontSize: '13px',
+          fontFamily: 'Manrope',
+          fontWeight: 700,
+          color: 'var(--c-text-primary)',
+          outline: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value} style={{ background: 'var(--app-surface)', color: 'var(--c-text-primary)' }}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <span
+        className="material-symbols-outlined"
+        style={{
+          position: 'absolute',
+          right: '8px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          fontSize: '16px',
+          color: 'var(--c-text-secondary)',
+          pointerEvents: 'none',
+          opacity: 0.7,
+        }}
+      >
+        keyboard_arrow_down
+      </span>
+    </div>
   );
 }
 

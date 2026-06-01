@@ -322,6 +322,12 @@ export async function applyUpdate(
         url: options.url,
         version: options.version,
       });
+      // Force progress to 100% when download completes
+      if (options.onProgress) {
+        options.onProgress(1.0);
+      }
+      // Wait 800ms for the count-up animation to reach 100% smoothly in the UI
+      await new Promise((resolve) => setTimeout(resolve, 800));
       // Mark the new bundle as the next-to-load and reload.
       await CapacitorUpdater.set({ id: downloaded.id });
       // `set()` already reloads, but call reload() defensively in case

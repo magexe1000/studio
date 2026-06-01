@@ -375,26 +375,7 @@ export default function StudioHub() {
         {tab === 'profile' && (
           <>
             <style>{HUB_SETTINGS_CSS}</style>
-            <div style={{
-              display: 'flex', alignItems: 'center',
-              padding: '8px 8px 0',
-              paddingTop: 'max(8px, env(safe-area-inset-top))',
-            }}>
-              <button
-                onClick={() => setTab('settings')}
-                style={{
-                  width: 38, height: 38, borderRadius: 12,
-                  background: 'rgba(128,128,128,0.10)',
-                  border: '1px solid rgba(128,128,128,0.12)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', outline: 'none',
-                  WebkitTapHighlightColor: 'transparent',
-                  color: 'var(--c-text-secondary)',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>chevron_left</span>
-              </button>
-            </div>
+            <ProfileHeaderBack onBack={() => setTab('settings')} />
             <Suspense fallback={<div style={{ padding: 32, textAlign: 'center', color: 'var(--c-text-muted)' }}>…</div>}>
               {authUser ? (
                 <div style={{ padding: '0 0 100px', animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
@@ -711,7 +692,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'appearance' | 'language' | 'storage' | 'privacy' | 'about' | 'ai-assistant' | 'updater';
+type SettingsPageId = 'main' | 'appearance' | 'language' | 'privacy' | 'about' | 'ai-assistant' | 'updater';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -756,32 +737,51 @@ const HUB_SETTINGS_CSS = `
   input[type=range].hue-slider {
     -webkit-appearance: none;
     appearance: none;
-    height: 28px;
-    border-radius: 14px;
+    height: 10px;
+    border-radius: 5px;
     outline: none;
     cursor: pointer;
     display: block;
     width: 100%;
+    margin: 14px 0;
   }
   input[type=range].hue-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background: #fff;
-    border: 2px solid rgba(0,0,0,0.18);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    background: hsl(var(--slider-hue, 0), 85%, 60%);
+    border: 3px solid #ffffff;
+    box-shadow: 
+      0 2px 8px rgba(0,0,0,0.35),
+      0 0 10px hsla(var(--slider-hue, 0), 85%, 60%, 0.4);
     cursor: pointer;
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+  input[type=range].hue-slider:active::-webkit-slider-thumb {
+    transform: scale(1.18);
+    box-shadow: 
+      0 3px 12px rgba(0,0,0,0.45),
+      0 0 16px hsla(var(--slider-hue, 0), 85%, 60%, 0.6);
   }
   input[type=range].hue-slider::-moz-range-thumb {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background: #fff;
-    border: 2px solid rgba(0,0,0,0.18);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    background: hsl(var(--slider-hue, 0), 85%, 60%);
+    border: 3px solid #ffffff;
+    box-shadow: 
+      0 2px 8px rgba(0,0,0,0.35),
+      0 0 10px hsla(var(--slider-hue, 0), 85%, 60%, 0.4);
     cursor: pointer;
+    transition: transform 120ms ease, box-shadow 120ms ease;
     border: none;
+  }
+  input[type=range].hue-slider:active::-moz-range-thumb {
+    transform: scale(1.18);
+    box-shadow: 
+      0 3px 12px rgba(0,0,0,0.45),
+      0 0 16px hsla(var(--slider-hue, 0), 85%, 60%, 0.6);
   }
   @keyframes sync-spin-kf {
     from { transform: rotate(0deg); }
@@ -894,6 +894,34 @@ function SettingsSubHeader({ title, onBack }: { title: string; onBack: () => voi
         <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
       </button>
       <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>{title}</p>
+    </div>
+  );
+}
+
+function ProfileHeaderBack({ onBack }: { onBack: () => void }) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', padding: '0 20px', paddingTop: 32, paddingBottom: 16, animation: 'hub-row-fade 300ms ease both' }}>
+      <button
+        onClick={onBack}
+        onPointerDown={() => setPressed(true)}
+        onPointerUp={() => setPressed(false)}
+        onPointerLeave={() => setPressed(false)}
+        onPointerCancel={() => setPressed(false)}
+        style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: 'rgba(128,128,128,0.10)',
+          border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+          color: 'var(--c-text-primary)',
+          flexShrink: 0,
+          transform: pressed ? 'scale(0.91)' : 'scale(1)',
+          transition: 'transform 130ms cubic-bezier(0.34,1.15,0.64,1)',
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
+      </button>
     </div>
   );
 }
@@ -1285,9 +1313,43 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
                         type="range" className="hue-slider"
                         min={0} max={359} value={hue}
                         onChange={e => updateSettings({ customAccentHue: Number(e.target.value) })}
-                        style={{ background: 'linear-gradient(to right, hsl(0,80%,60%), hsl(30,80%,60%), hsl(60,80%,60%), hsl(90,80%,60%), hsl(120,80%,60%), hsl(150,80%,60%), hsl(180,80%,60%), hsl(210,80%,60%), hsl(240,80%,60%), hsl(270,80%,60%), hsl(300,80%,60%), hsl(330,80%,60%), hsl(360,80%,60%))' }}
+                        style={{ 
+                          background: 'linear-gradient(to right, hsl(0,80%,55%), hsl(30,80%,55%), hsl(60,80%,55%), hsl(90,80%,55%), hsl(120,80%,55%), hsl(150,80%,55%), hsl(180,80%,55%), hsl(210,80%,55%), hsl(240,80%,55%), hsl(270,80%,55%), hsl(300,80%,55%), hsl(330,80%,55%), hsl(360,80%,55%))',
+                          '--slider-hue': String(hue)
+                        } as React.CSSProperties}
                       />
-                      <div style={{ height: 24, borderRadius: 8, marginTop: 8, background: `linear-gradient(135deg, hsl(${hue}, 75%, 65%), hsl(${(hue + 25) % 360}, 85%, 42%))`, boxShadow: `0 2px 8px hsla(${hue}, 70%, 55%, 0.4)` }} />
+                      <div style={{ 
+                        height: 48, 
+                        borderRadius: 14, 
+                        marginTop: 12, 
+                        background: `linear-gradient(135deg, hsl(${hue}, 75%, 65%), hsl(${(hue + 25) % 360}, 85%, 42%))`, 
+                        boxShadow: `0 4px 20px hsla(${hue}, 75%, 55%, 0.25)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'linear-gradient(to bottom, rgba(255,255,255,0.08), transparent)',
+                          pointerEvents: 'none'
+                        }} />
+                        <span style={{ 
+                          fontFamily: 'Manrope', 
+                          fontWeight: 800, 
+                          fontSize: '11px', 
+                          color: '#ffffff', 
+                          textTransform: 'uppercase', 
+                          letterSpacing: '0.15em',
+                          textShadow: '0 1px 4px rgba(0,0,0,0.25)',
+                          zIndex: 1
+                        }}>
+                          Custom Hue {hue}°
+                        </span>
+                      </div>
                     </div>
                   )}
                 </>
@@ -1395,176 +1457,6 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
               </button>
             );
           })}
-        </div>
-      </div>
-    );
-  }  /* ── STORAGE ────────────────────────────────────────────────────── */
-  if (page === 'storage') {
-    const isSyncing = syncStatus.phase === 'syncing';
-    const isSuccess = syncStatus.phase === 'success';
-    const isError = syncStatus.phase === 'error';
-    const hasLastSync = syncStatus.lastSyncedMs !== null;
-
-    let lastSyncText = '';
-    if (hasLastSync) {
-      const diffMs = Date.now() - (syncStatus.lastSyncedMs ?? 0);
-      const diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 1) {
-        lastSyncText = lang === 'es' ? 'Sincronizado ahora mismo' : 'Synced just now';
-      } else {
-        lastSyncText = lang === 'es' 
-          ? `Sincronizado hace ${diffMins} min` 
-          : `Synced ${diffMins}m ago`;
-      }
-    } else {
-      lastSyncText = lang === 'es' ? 'No sincronizado aún' : 'Not synced yet';
-    }
-
-    return (
-      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-        <style>{HUB_SETTINGS_CSS}</style>
-        <SettingsSubHeader title={(t.hub as { studioSettings?: { storageSession?: string } }).studioSettings?.storageSession ?? 'Storage & Session'} onBack={goBack} />
-        
-        {/* On-device Storage */}
-        <SettingsSectionLabel>{(t.hub as { studioSettings?: { data?: string } }).studioSettings?.data ?? 'Data'}</SettingsSectionLabel>
-        <div style={cardStyle}>
-          <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{t.settings.about.storage}</span>
-            <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{t.settings.about.storageValue}</span>
-          </div>
-          <SettingRow label={t.hub.restoreLastSession} desc={t.hub.restoreLastSessionDesc}>
-            <Toggle value={settings.restoreLastSession} onChange={v => updateSettings({ restoreLastSession: v })} accentFrom={accent.from} accentTo={accent.to} />
-          </SettingRow>
-        </div>
-
-        {/* Cloud Sync */}
-        <SettingsSectionLabel>{lang === 'es' ? 'Sincronización en la Nube' : 'Cloud Sync'}</SettingsSectionLabel>
-        <div style={cardStyle}>
-          {!syncStatus.signedIn ? (
-            <div style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 42, height: 42, borderRadius: '50%',
-                  background: 'rgba(128,128,128,0.08)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--c-text-secondary)',
-                }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 22 }}>cloud_off</span>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 15, color: 'var(--c-text-primary)' }}>
-                    {lang === 'es' ? 'Sincronización desactivada' : 'Sync is disabled'}
-                  </p>
-                  <p style={{ margin: '4px 0 0', fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.45 }}>
-                    {lang === 'es' 
-                      ? 'Inicia sesión para sincronizar tus favoritos, presets y progresiones entre dispositivos automáticamente.' 
-                      : 'Sign in to automatically sync your favorites, presets, and progressions across all your devices.'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => { goBack(); onProfile?.(); }}
-                style={{
-                  width: '100%', height: 40, borderRadius: 12,
-                  background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                  border: 'none', color: '#fff',
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                  cursor: 'pointer', outline: 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  boxShadow: `0 4px 14px ${accent.to}35`,
-                  WebkitTapHighlightColor: 'transparent',
-                  transition: 'transform 150ms ease',
-                }}
-                onPointerDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
-                onPointerUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>login</span>
-                {lang === 'es' ? 'Iniciar sesión' : 'Sign In to Sync'}
-              </button>
-            </div>
-          ) : (
-            <div style={{ padding: '18px 18px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: '50%',
-                  background: isError 
-                    ? 'rgba(239, 68, 68, 0.1)' 
-                    : isSyncing 
-                      ? `${accent.from}15` 
-                      : '#10b98115',
-                  border: `1.5px solid ${
-                    isError 
-                      ? 'rgba(239, 68, 68, 0.25)' 
-                      : isSyncing 
-                        ? `${accent.from}40` 
-                        : '#10b98140'
-                  }`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: isError ? '#ef4444' : isSyncing ? accent.from : '#10b981',
-                  boxShadow: `0 0 12px ${
-                    isError 
-                      ? 'rgba(239, 68, 68, 0.15)' 
-                      : isSyncing 
-                        ? `${accent.from}20` 
-                        : '#10b98120'
-                  }`,
-                }}>
-                  {isSyncing ? (
-                    <span className="material-symbols-outlined sync-spin" style={{ fontSize: 24 }}>sync</span>
-                  ) : isError ? (
-                    <span className="material-symbols-outlined" style={{ fontSize: 22 }}>cloud_off</span>
-                  ) : (
-                    <span className="material-symbols-outlined" style={{ fontSize: 22 }}>cloud_done</span>
-                  )}
-                </div>
-
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 15, color: 'var(--c-text-primary)' }}>
-                    {isSyncing 
-                      ? (lang === 'es' ? 'Sincronizando...' : 'Syncing...')
-                      : isError 
-                        ? (lang === 'es' ? 'Error al sincronizar' : 'Not Synced')
-                        : (lang === 'es' ? 'Sincronizado' : 'In Sync')}
-                  </p>
-                  
-                  <p style={{ margin: '3px 0 0', fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)' }}>
-                    {isError 
-                      ? (syncStatus.error || (lang === 'es' ? 'Problema de conexión' : 'Connection issue'))
-                      : lastSyncText}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={async () => {
-                  try { await syncNow(); } catch { /* noop */ }
-                }}
-                disabled={isSyncing}
-                style={{
-                  width: '100%', height: 42, borderRadius: 12,
-                  background: 'rgba(128,128,128,0.08)',
-                  border: '1px solid rgba(128,128,128,0.12)',
-                  color: 'var(--c-text-primary)',
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                  cursor: isSyncing ? 'not-allowed' : 'pointer', 
-                  outline: 'none',
-                  opacity: isSyncing ? 0.6 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  WebkitTapHighlightColor: 'transparent',
-                  transition: 'background 150ms ease, transform 150ms ease',
-                }}
-                onPointerDown={(e) => { if (!isSyncing) e.currentTarget.style.transform = 'scale(0.98)'; }}
-                onPointerUp={(e) => { if (!isSyncing) e.currentTarget.style.transform = 'scale(1)'; }}
-              >
-                <span className={`material-symbols-outlined ${isSyncing ? 'sync-spin' : ''}`} style={{ fontSize: 18 }}>
-                  sync
-                </span>
-                {isSyncing 
-                  ? (lang === 'es' ? 'Sincronizando...' : 'Syncing...') 
-                  : (lang === 'es' ? 'Sincronizar ahora' : 'Sync Now')}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -1758,11 +1650,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
         <SettingsNavRow icon="auto_awesome" iconColor={accent.from} title={(t.hub as { studioSettings?: { aiAssistant?: string } }).studioSettings?.aiAssistant ?? 'AI Assistant'} desc={(t.hub as { studioSettings?: { aiAssistantDesc?: string } }).studioSettings?.aiAssistantDesc ?? 'Smart chord suggestions and analysis'} onPress={() => navigate('ai-assistant')} last delay={120} />
       </div>
 
-      {/* Storage & Data */}
-      <SettingsSectionLabel delay={170}>{(t.hub as { studioSettings?: { storageData?: string } }).studioSettings?.storageData ?? 'Storage & Data'}</SettingsSectionLabel>
-      <div style={cardStyle}>
-        <SettingsNavRow icon="save" iconColor={accent.from} title={(t.hub as { studioSettings?: { storageSession?: string } }).studioSettings?.storageSession ?? 'Storage & Session'} desc={t.settings.about.storageValue} onPress={() => navigate('storage')} last delay={180} />
-      </div>
+
 
       {/* System & About */}
       <SettingsSectionLabel delay={200}>{(t.hub as { studioSettings?: { systemAbout?: string } }).studioSettings?.systemAbout ?? 'System & About'}</SettingsSectionLabel>

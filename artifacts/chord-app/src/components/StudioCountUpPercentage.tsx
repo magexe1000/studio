@@ -19,7 +19,7 @@ export default function StudioCountUpPercentage({
   const [currentPct, setCurrentPct] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
   const animationRef = useRef<number | null>(null);
-  const prevTargetRef = useRef<number>(0);
+  const renderedPctRef = useRef<number>(0);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -32,14 +32,15 @@ export default function StudioCountUpPercentage({
   useEffect(() => {
     if (reducedMotion) {
       setCurrentPct(targetPct);
-      prevTargetRef.current = targetPct;
+      renderedPctRef.current = targetPct;
       return;
     }
 
-    const startVal = prevTargetRef.current;
+    const startVal = renderedPctRef.current;
     const endVal = targetPct;
     if (startVal === endVal) {
       setCurrentPct(endVal);
+      renderedPctRef.current = endVal;
       return;
     }
 
@@ -55,11 +56,10 @@ export default function StudioCountUpPercentage({
       
       const current = Math.round(startVal + (endVal - startVal) * easeOut);
       setCurrentPct(current);
+      renderedPctRef.current = current;
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animateCount);
-      } else {
-        prevTargetRef.current = endVal;
       }
     };
 

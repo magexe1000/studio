@@ -19,6 +19,10 @@ Conventions:
 
 ## 3.1.3
 
+- Centered Theme Transitions: Refactored theme switching reveals to start perfectly from the viewport center using viewport units (vw/vh/vmax) for zero coordinate drift on mobile.
+- Butter-Smooth OTA Progress: Enforced strictly monotonic updates up to 100% with a 800ms visual closure delay for satisfying completion displays.
+- Modernized Color Accent Bar: Swapped the blocky accent slider for a thin HSL track, dynamic glowing donut thumb ring, and color details card.
+- Aligned Profile Back Button: Replaced the old chevron with a unified back button matching other settings sheets in height, padding, and arrow icon.
 - Profile Spacing & Scrolling Fix: Added bottom padding (100px) to the profile container for signed-in users, preventing navigation bar collisions and enabling full scrollability.
 - Cloud Sync System Integration: Embedded a fully functional real-time sync control panel inside Storage & Session settings. It displays the connection state ("In Sync", "Syncing...", and "Not Synced" / connection errors) and provides a manual "Sync Now" button.
 - Accent Color Harmony: The Cloud Sync indicators dynamically blend with the user's active theme accent color.
