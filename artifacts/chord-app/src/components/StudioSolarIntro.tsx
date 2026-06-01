@@ -119,11 +119,12 @@ export default function StudioSolarIntro() {
     const ENTER_DUR     = 380; // fade-in duration per planet
 
     let raf: number;
-    const t0 = performance.now();
+    let t0: number | null = null;
     let fadeOutFired = false;
     let doneFired    = false;
 
     const tick = (now: number) => {
+      if (t0 === null) t0 = now;
       const elapsed = now - t0;
 
       if (elapsed >= FADEOUT_END) {

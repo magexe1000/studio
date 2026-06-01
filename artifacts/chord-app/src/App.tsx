@@ -353,14 +353,9 @@ export default function App() {
       const touch = e.touches[0];
       // Only trigger if swipe starts within 35px of the left edge
       if (touch.clientX < 35) {
-        const appMode = useChordStore.getState().settings.appMode;
-        const inSubApp = appMode && appMode !== 'hub';
-        // Allow swiping if there are active handlers registered in the back stack, OR if we are inside a sub-app
-        if (hasBackEntries() || inSubApp) {
-          touchStartX = touch.clientX;
-          touchStartY = touch.clientY;
-          isSwiping = true;
-        }
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        isSwiping = true;
       }
     };
 
@@ -398,9 +393,26 @@ export default function App() {
         // Trigger back action
         const handled = handleGlobalBack();
         if (!handled) {
-          // If not handled, return to Hub
-          const customEvent = new CustomEvent('studio-hub-return');
-          window.dispatchEvent(customEvent);
+          const state = useChordStore.getState();
+          const appMode = state.settings.appMode;
+          if (appMode && appMode !== 'hub') {
+            // If in sub-app, return to Hub
+            const customEvent = new CustomEvent('studio-hub-return');
+            window.dispatchEvent(customEvent);
+          } else {
+            // If in Hub root, double-swipe to exit!
+            const now = Date.now();
+            if (now - lastBackTime.current < 2000) {
+              import('@capacitor/app')
+                .then(({ App: CapApp }) => CapApp.exitApp())
+                .catch(() => {});
+            } else {
+              lastBackTime.current = now;
+              setExitToast(true);
+              if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
+              exitToastTimer.current = setTimeout(() => setExitToast(false), 2000);
+            }
+          }
         }
       }
     };
@@ -958,7 +970,7 @@ export default function App() {
             whiteSpace: 'nowrap',
           }}
         >
-          Press back again to exit
+          Press back or swipe again to exit
         </div>
       )}
 

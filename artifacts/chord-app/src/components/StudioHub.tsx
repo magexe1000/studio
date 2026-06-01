@@ -752,7 +752,8 @@ function GlobalHint() {
   );
 }
 
-function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
+function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
+  className?: string;
   style: React.CSSProperties;
   cardStyle: React.CSSProperties;
   accent: { from: string; to: string; mid: string };
@@ -817,7 +818,7 @@ function HubUpdaterPage({ style, cardStyle, accent, onBack }: {
       : L.upToDate;
 
   return (
-    <div style={style}>
+    <div className={className} style={style}>
       <style>{HUB_SETTINGS_CSS}</style>
       <SettingsSubHeader title={L.title} onBack={onBack} />
 
@@ -1003,7 +1004,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
   if (page === 'appearance') {
     return (
       <div key={pageKey}>
-        <div style={subStyle}>
+        <div className="settings-panel-sheet" style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={t.settings.sections.appearance} onBack={goBack} />
 
@@ -1177,7 +1178,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
     ];
     const currentLang = settings.language ?? 'en';
     return (
-      <div key={pageKey} style={subStyle}>
+      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={t.settings.sections.language} onBack={goBack} />
         <div style={{ ...cardStyle, animation: 'hub-row-fade 320ms ease both' }}>
@@ -1229,7 +1230,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
   /* ── STORAGE ────────────────────────────────────────────────────── */
   if (page === 'storage') {
     return (
-      <div key={pageKey} style={subStyle}>
+      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={(t.hub as { studioSettings?: { storageSession?: string } }).studioSettings?.storageSession ?? 'Storage & Session'} onBack={goBack} />
         <SettingsSectionLabel>{(t.hub as { studioSettings?: { data?: string } }).studioSettings?.data ?? 'Data'}</SettingsSectionLabel>
@@ -1249,7 +1250,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
   /* ── PRIVACY ────────────────────────────────────────────────────── */
   if (page === 'privacy') {
     return (
-      <div key={pageKey} style={subStyle}>
+      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={(t.hub as { studioSettings?: { privacySecurity?: string } }).studioSettings?.privacySecurity ?? 'Privacy & Security'} onBack={goBack} />
         <SettingsSectionLabel>{(t.hub as { studioSettings?: { accountControls?: string } }).studioSettings?.accountControls ?? 'Account Controls'}</SettingsSectionLabel>
@@ -1263,7 +1264,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
   /* ── AI ASSISTANT ───────────────────────────────────────────────── */
   if (page === 'ai-assistant') {
     return (
-      <div key={pageKey} style={subStyle}>
+      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={(t.hub as { studioSettings?: { aiAssistant?: string } }).studioSettings?.aiAssistant ?? 'AI Assistant'} onBack={goBack} />
 
@@ -1289,6 +1290,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
     return (
       <HubUpdaterPage
         key={pageKey}
+        className="settings-panel-sheet"
         style={subStyle}
         cardStyle={cardStyle}
         accent={accent}
@@ -1308,7 +1310,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
       { key: 'vocalex', label: 'Vocalex', node: <VocalexLogo size={34} /> },
     ];
     return (
-      <div key={pageKey} style={subStyle}>
+      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={t.settings.sections.about} onBack={goBack} />
 

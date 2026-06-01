@@ -17,7 +17,7 @@ Conventions:
 
 ---
 
-## 3.0.82
+## 3.0.84
 
 - Predictive Back Gestures: Platform-agnostic viewport swipe gesture support added for Web, iOS, and Android (<14) with fluid GPU-composited peeling animation.
 - Centralized Back Navigation: Captured active sheet overlays in the Profile sections (Personal Info, Security, Devices, etc.) to close step-by-step on back/swipe instead of exiting settings.

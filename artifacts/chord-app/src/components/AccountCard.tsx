@@ -570,7 +570,7 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
       {sheet === 'signout' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <div style={{ padding: '8px 22px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)', margin: 0 }}>
@@ -604,7 +604,7 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
       {sheet === 'delete' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <div style={{ padding: '8px 22px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: '#ff6b6b', margin: 0 }}>
@@ -859,7 +859,7 @@ function AvatarPickerSheet({ accent, currentIcon, hasGooglePhoto, closing, t, on
     <div style={overlayStyle}>
       <SheetAnimations />
       <div style={backdropStyle} onClick={onClose} />
-      <div style={sheetStyle}>
+      <div className="profile-panel-sheet" style={sheetStyle}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
           <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.3)' }} />
         </div>
@@ -1469,7 +1469,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'signout' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={L.signOutTitle} onClose={closeSheet} />
             <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5, margin: '8px 22px 20px' }}>{L.signOutBody}</p>
@@ -1489,7 +1489,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'editname' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={L.editNameTitle} onClose={closeSheet} />
             <div style={{ padding: '8px 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1519,7 +1519,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'password' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={L.passwordTitle} onClose={closeSheet} />
             <div style={{ padding: '8px 22px 20px' }}>
@@ -1542,7 +1542,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'verifyemail' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={L.verifyTitle} onClose={closeSheet} />
             <div style={{ padding: '8px 22px 20px' }}>
@@ -1565,7 +1565,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'disable' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={L.disableTitle} onClose={closeSheet} titleColor="#f59e0b" />
             <div style={{ padding: '8px 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1611,7 +1611,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'delete' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={L.deleteTitle} onClose={closeSheet} titleColor="#ff6b6b" />
             <div style={{ padding: '8px 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1649,7 +1649,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'personal-info' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={lang === 'es' ? 'Información personal' : 'Personal Information'} onClose={closeSheet} />
             {/* Avatar */}
@@ -1745,7 +1745,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'security-login' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={lang === 'es' ? 'Seguridad y acceso' : 'Security & Login'} onClose={closeSheet} />
             <div style={{ padding: '6px 22px 0' }}>
@@ -1858,7 +1858,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'subscription' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={lang === 'es' ? 'Suscripción y facturación' : 'Subscription & Billing'} onClose={closeSheet} />
             <div style={{ padding: '16px 22px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
@@ -1904,7 +1904,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'devices-sessions' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={lang === 'es' ? 'Dispositivos y sesiones' : 'Devices & Sessions'} onClose={closeSheet} />
             <div style={{ padding: '8px 22px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1949,7 +1949,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'privacy-data' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div style={sheetStyle}>
+          <div className="profile-panel-sheet" style={sheetStyle}>
             {dragPill}
             <SheetHeader title={lang === 'es' ? 'Privacidad y datos' : 'Privacy & Data'} onClose={closeSheet} />
             <div style={{ padding: '8px 22px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
