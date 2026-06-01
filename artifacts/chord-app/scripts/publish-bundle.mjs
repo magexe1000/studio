@@ -208,11 +208,11 @@ await new Promise((resolve, reject) => {
   // The audio-manifest.json must stay in the bundle so the seeder
   // (running in OLDER versions, before they get this slim build) can
   // still find it on the first slim install.
-  const slim = process.env.OTA_SLIM === '1';
+  const slim = process.env.OTA_SLIM !== '0';
   const ignore = ['bundles/**', 'version.json'];
   if (slim) {
     ignore.push('drums/**');
-    console.log('publish-bundle: → OTA_SLIM=1 — excluding drums/** from bundle');
+    console.log('publish-bundle: → OTA_SLIM=1 (default) — excluding drums/** from bundle');
   }
   archive.glob('**/*', {
     cwd: bundleSourceDir,

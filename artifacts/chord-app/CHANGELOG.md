@@ -17,6 +17,12 @@ Conventions:
 
 ---
 
+## 3.1.7
+
+- Slim Release Bundles: Excluded large drum audio samples (~38 MB) from the OTA update package by default, as they are already cached persistently in the native device directory.
+- Reduced Bundle Size: Shrank OTA release bundle size from ~53 MB to ~5 MB.
+- Faster Deployments: Reduced OTA release upload times from 5 minutes to under 30 seconds.
+
 ## 3.1.6
 
 - Fixed Broken Icons: Replaced all Material Symbol font glyphs in Privacy & Data with native inline SVGs — icons now render instantly with zero font-loading failures.

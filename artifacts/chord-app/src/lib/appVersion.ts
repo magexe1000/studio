@@ -53,12 +53,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Privacy & Data Overhaul",
+    heading: "OTA Upload Optimization",
     items: [
-      'Fixed Broken Icons: Replaced all Material Symbol font glyphs with native inline SVGs — icons now render instantly with zero font-loading failures.',
-      'Official Brand Icons: Connected Services now show real Google, Dropbox, OneDrive, and GitHub logos instead of generic placeholders.',
-      'Decluttered Layout: Privacy & Data section split into 6 clean, separated cards with premium spacing, glassmorphism borders, and subtle shadows.',
-      'Fixed Dropdown Arrows: Select controls now use crisp vector chevrons instead of broken keyboard_arrow_down text.',
+      'Slim Release Bundles: Excluded large drum audio samples (~38 MB) from the OTA update package by default, as they are already cached persistently in the native device directory.',
+      'Reduced Bundle Size: Shrank OTA release bundle size from ~53 MB to ~5 MB.',
+      'Faster Deployments: Reduced OTA release upload times from 5 minutes to under 30 seconds.',
     ],
   },
 ];
@@ -67,12 +66,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Rediseño de Privacidad y Datos",
+    heading: "Carga OTA Optimizada",
     items: [
-      'Iconos Corregidos: Todos los iconos de Material Symbols reemplazados con SVGs inline nativos — se renderizan al instante sin fallos de carga de fuentes.',
-      'Iconos de Marca Oficiales: Servicios Conectados ahora muestran los logos reales de Google, Dropbox, OneDrive y GitHub.',
-      'Diseño Organizado: Sección de Privacidad y Datos dividida en 6 tarjetas limpias y separadas con espaciado premium y bordes glassmorfismo.',
-      'Flechas de Selectores Corregidas: Los selectores ahora usan chevrones vectoriales nítidos en lugar de texto roto.',
+      'Paquetes Slim: Se excluyeron las muestras de batería (~38 MB) del paquete de actualización OTA, ya que están almacenadas en caché en el dispositivo.',
+      'Tamaño Reducido: Se redujo el tamaño del paquete de lanzamiento de ~53 MB a ~5 MB.',
+      'Cargas Rápidas: Se redujo el tiempo de subida de la versión OTA de 5 minutos a menos de 30 segundos.',
     ],
   },
 ];
@@ -80,12 +78,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Überarbeitung Datenschutz & Daten",
+    heading: "OTA-Upload-Optimierung",
     items: [
-      'Icons Repariert: Alle Material-Symbol-Font-Glyphen durch native Inline-SVGs ersetzt — Icons werden sofort ohne Font-Ladefehler angezeigt.',
-      'Offizielle Marken-Icons: Verbundene Dienste zeigen jetzt echte Google-, Dropbox-, OneDrive- und GitHub-Logos.',
-      'Aufgeräumtes Layout: Datenschutz-Bereich in 6 saubere, getrennte Karten mit Premium-Abständen und Glasmorphismus-Rändern aufgeteilt.',
-      'Dropdown-Pfeile Repariert: Auswahlelemente verwenden jetzt klare Vektor-Chevrons statt fehlerhaftem Text.',
+      'Slim-Release-Bundles: Große Schlagzeug-Audiosamples (~38 MB) standardmäßig aus dem OTA-Updatepaket ausgeschlossen, da sie bereits auf dem Gerät zwischengespeichert sind.',
+      'Reduzierte Bundle-Größe: Größe des OTA-Release-Bundles von ~53 MB auf ~5 MB reduziert.',
+      'Schnellere Bereitstellung: OTA-Release-Uploadzeiten von 5 Minuten auf unter 30 Sekunden verkürzt.',
     ],
   },
 ];
