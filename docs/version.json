@@ -1,6 +1,6 @@
 {
-  "version": "3.1.47",
-  "changelog": "• Liquid Glass Indicators: Overhauled checking/up-to-date status badges into refracting liquid glass pills matching the nav bar.\n• Refined Update Badge: Minimized corner update badge is now a beautiful liquid glass ball containing a clean download icon.",
+  "version": "3.1.48",
+  "changelog": "Version 3.1.48",
   "mandatory": false,
-  "downloadUrl": "https://raw.githubusercontent.com/MAGEXE1000/Studio/main/docs/bundles/bundle-3.1.47.zip"
+  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.48/bundle-3.1.48.zip"
 }
