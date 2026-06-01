@@ -18,7 +18,7 @@ import {
   getSignInProviders,
   type AuthUser,
 } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus } from '../lib/sync';
+import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus, subscribeDevices, deviceId, revokeDeviceSession } from '../lib/sync';
 import { scheduleAccountDeletion, disableAccount } from '../lib/accountStatus';
 import { useT } from '../lib/useT';
 import { useChordStore } from '../store/useChordStore';
@@ -1008,6 +1008,21 @@ function SheetHeader({ title, onClose, titleColor }: {
   );
 }
 
+function formatLastActive(ms: number, lang: string): string {
+  const diff = Date.now() - ms;
+  if (diff < 10000) return lang === 'es' ? 'Activo ahora' : 'Active just now';
+  const mins = Math.floor(diff / 60000);
+  if (mins === 0) return lang === 'es' ? 'Activo hace menos de un minuto' : 'Active less than a minute ago';
+  if (mins === 1) return lang === 'es' ? 'Activo hace 1 minuto' : 'Active 1 minute ago';
+  if (mins < 60) return lang === 'es' ? `Activo hace ${mins} minutos` : `Active ${mins} minutes ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours === 1) return lang === 'es' ? 'Activo hace 1 hora' : 'Active 1 hour ago';
+  if (hours < 24) return lang === 'es' ? `Activo hace ${hours} horas` : `Active ${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return lang === 'es' ? 'Activo ayer' : 'Active yesterday';
+  return lang === 'es' ? `Activo hace ${days} días` : `Active ${days} days ago`;
+}
+
 // ── Account Settings Page ────────────────────────────────────────────────────
 type AccountActiveSheet = 'none' | 'signout' | 'disable' | 'delete' | 'editname' | 'password' | 'verifyemail'
   | 'personal-info' | 'security-login' | 'subscription' | 'devices-sessions' | 'privacy-data';
@@ -1037,6 +1052,16 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [devices, setDevices] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user || sheet !== 'devices-sessions') {
+      setDevices([]);
+      return;
+    }
+    const unsub = subscribeDevices(user.uid, setDevices);
+    return unsub;
+  }, [user, sheet]);
 
   const settings = useChordStore((s) => s.settings);
   const updateSettings = useChordStore((s) => s.updateSettings);
@@ -2103,37 +2128,85 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
             {dragPill}
             <SheetHeader title={lang === 'es' ? 'Dispositivos y sesiones' : 'Devices & Sessions'} onClose={closeSheet} />
             <div style={{ padding: '8px 22px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ background: 'rgba(128,128,128,0.06)', borderRadius: 14, padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-primary)', opacity: 0.7 }}>smartphone</span>
-                  <div>
-                    <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>
-                      {lang === 'es' ? 'Este dispositivo' : 'This device'}
-                    </p>
-                    <p style={{ fontFamily: 'Inter', fontSize: 11.5, color: '#10b981', margin: '2px 0 0', fontWeight: 600 }}>
-                      ● {lang === 'es' ? 'Sesión activa' : 'Active session'}
-                    </p>
+              {!user ? (
+                <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', margin: 0, textAlign: 'center', padding: '20px 0' }}>
+                  {lang === 'es' ? 'Inicia sesión para gestionar tus dispositivos.' : 'Sign in to manage your devices.'}
+                </p>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '320px', overflowY: 'auto', paddingRight: 4 }}>
+                    {devices.map((device) => {
+                      const isMe = device.id === deviceId();
+                      return (
+                        <div
+                          key={device.id}
+                          style={{
+                            background: 'rgba(128,128,128,0.06)',
+                            borderRadius: 14,
+                            padding: '12px 14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            border: isMe ? `1px solid color-mix(in srgb, var(--accent-to, #a855f7) 20%, transparent)` : '1px solid transparent',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 20, color: isMe ? 'var(--accent-to, #a855f7)' : 'var(--c-text-primary)', opacity: isMe ? 1 : 0.7 }}>
+                              {device.platform === 'native' ? 'smartphone' : 'laptop_mac'}
+                            </span>
+                            <div>
+                              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)', margin: 0 }}>
+                                {device.name} {isMe && `(${lang === 'es' ? 'Este dispositivo' : 'This device'})`}
+                              </p>
+                              <p style={{ fontFamily: 'Inter', fontSize: 11, color: isMe ? '#10b981' : 'var(--c-text-muted)', margin: '2px 0 0', fontWeight: isMe ? 600 : 400 }}>
+                                {isMe ? `● ${lang === 'es' ? 'Sesión activa' : 'Active session'}` : formatLastActive(device.lastActive, lang)}
+                              </p>
+                            </div>
+                          </div>
+                          {!isMe && (
+                            <button
+                              onClick={async () => {
+                                if (confirm(lang === 'es' ? '¿Revocar esta sesión? El dispositivo tendrá que iniciar sesión de nuevo.' : 'Revoke this session? The device will be signed out.')) {
+                                  await revokeDeviceSession(user.uid, device.id);
+                                }
+                              }}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                padding: 6,
+                                borderRadius: 8,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                color: '#ff6b6b',
+                              }}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              </div>
-              <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.6 }}>
-                {lang === 'es'
-                  ? 'La gestión de múltiples dispositivos estará disponible próximamente.'
-                  : 'Multi-device session management is coming soon.'}
-              </p>
-              <button
-                onClick={() => { closeSheet(); setTimeout(() => openSheet('signout'), 310); }}
-                style={{
-                  width: '100%', padding: '13px 0', borderRadius: 12,
-                  background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.20)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  color: '#ff6b6b', fontFamily: 'Manrope', fontWeight: 700, fontSize: 14,
-                  cursor: 'pointer',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
-                {lang === 'es' ? 'Cerrar sesión' : 'Sign out of this device'}
-              </button>
+                  
+                  <div style={{ height: 1, background: 'rgba(128,128,128,0.1)', margin: '4px 0' }} />
+                  
+                  <button
+                    onClick={() => { closeSheet(); setTimeout(() => openSheet('signout'), 310); }}
+                    style={{
+                      width: '100%', padding: '13px 0', borderRadius: 12,
+                      background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.20)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      color: '#ff6b6b', fontFamily: 'Manrope', fontWeight: 700, fontSize: 14,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
+                    {lang === 'es' ? 'Cerrar sesión' : 'Sign out of this device'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>,

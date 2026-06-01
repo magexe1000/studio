@@ -17,6 +17,16 @@ Conventions:
 
 ---
 
+## 3.1.10
+
+- Active Devices & Sessions Sync: Built a fully working, secure, real-time active devices tracking and revoking system using Firestore.
+- Device Footprint Parser: Automatically parses and formats browser/OS details on sign-in (e.g. "Chrome on Windows", "Safari on iOS").
+- Real-Time Device Sessions Subscription: Displays dynamic active sessions, localized relative elapsed time, and custom revocation options.
+- Session Revocation Checker: Listen to your own active session status in Firestore and auto-signout in real-time if revoked by another device.
+- Update Indicator Overhaul: Redesigned the minimized pill to have a premium frosted glass circular container and native vector inline SVGs, bypassing broken external font ligatures.
+- Hub Settings Refactoring: Renamed "Content & Language" to "Language" (Spanish: "Idioma" or text fallback), removed the "AI Assistant" row completely, and added bottom border-radius to the remaining card row.
+- Centered Circular Theme Transitions: Implemented full-page expanding theme transitions from the exact center of the screen using the View Transitions API and native CSS keyframes, featuring prefers-reduced-motion fallback and quick-tap transition blocking.
+
 ## 3.1.7
 
 - Slim Release Bundles: Excluded large drum audio samples (~38 MB) from the OTA update package by default, as they are already cached persistently in the native device directory.

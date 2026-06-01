@@ -488,11 +488,8 @@ html.light [style*="border:1px solid #161717"] {
   to   { opacity: 0; }
 }
 
-/* ===== StudioThemeToggler — MagicUI clip-path reveal ===== */
-/* When data-studio-theme-vt="active" the toggler drives its own clip-path
-   animation on ::view-transition-new(root) and suppresses the generic fade. */
+/* ===== Circular Reveal Transition ===== */
 [data-studio-theme-vt="active"] ::view-transition-group(root) {
-  /* Suppress browser's own group animation — JS drives the reveal */
   animation: none;
 }
 [data-studio-theme-vt="active"] ::view-transition-old(root) {
@@ -501,12 +498,20 @@ html.light [style*="border:1px solid #161717"] {
   z-index: 1;
 }
 [data-studio-theme-vt="active"] ::view-transition-new(root) {
-  /* JS animates clip-path from this initial value → full coverage */
-  clip-path: var(--studio-theme-vt-clip-from, circle(0px at 50vw 50vh));
-  animation: none;
+  clip-path: circle(0px at var(--x, 50%) var(--y, 50%));
+  animation: reveal var(--studio-theme-vt-duration, 500ms) cubic-bezier(0.22, 1, 0.36, 1) both;
   opacity: 1;
   z-index: 2;
   will-change: clip-path;
+}
+
+@keyframes reveal {
+  from {
+    clip-path: circle(0px at var(--x, 50%) var(--y, 50%));
+  }
+  to {
+    clip-path: circle(var(--r, 120vmax) at var(--x, 50%) var(--y, 50%));
+  }
 }
 
 /* When theme is transitioning, add color transitions to all elements

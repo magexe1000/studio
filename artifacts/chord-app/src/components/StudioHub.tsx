@@ -692,7 +692,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'appearance' | 'language' | 'privacy' | 'about' | 'ai-assistant' | 'updater';
+type SettingsPageId = 'main' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -1475,29 +1475,6 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
     );
   }
 
-  /* ── AI ASSISTANT ───────────────────────────────────────────────── */
-  if (page === 'ai-assistant') {
-    return (
-      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-        <style>{HUB_SETTINGS_CSS}</style>
-        <SettingsSubHeader title={(t.hub as { studioSettings?: { aiAssistant?: string } }).studioSettings?.aiAssistant ?? 'AI Assistant'} onBack={goBack} />
-
-        <SettingsSectionLabel>{(t.hub as { studioSettings?: { intelligence?: string } }).studioSettings?.intelligence ?? 'Intelligence'}</SettingsSectionLabel>
-        <div style={cardStyle}>
-          <SettingRow label={t.settings.rows.chordAssistant ?? 'Chord Assistant'} desc={(t.hub as { studioSettings?: { chordAssistantDesc?: string } }).studioSettings?.chordAssistantDesc ?? 'Smart chord suggestions and progression analysis'}>
-            <Toggle value={settings.chordAssistant} onChange={v => updateSettings({ chordAssistant: v })} accentFrom={accent.from} accentTo={accent.to} />
-          </SettingRow>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '14px 4px 0', padding: '12px 14px', borderRadius: 12, background: 'rgba(128,128,128,0.06)', border: '1px solid rgba(128,128,128,0.09)' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 15, color: 'var(--c-text-secondary)', flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-          <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 11.5, margin: 0, lineHeight: 1.6 }}>
-            {(t.hub as { studioSettings?: { aiHint?: string } }).studioSettings?.aiHint ?? 'More AI features — smart suggestions, progression tips, and conflict detection — are coming in a future update.'}
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   /* ── UPDATER ─────────────────────────────────────────────────────── */
   if (page === 'updater') {
@@ -1643,11 +1620,10 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
         <SettingsNavRow icon="palette" iconColor={accent.from} title={t.settings.sections.appearance} desc={(t.hub as { studioSettings?: { appearanceDesc?: string } }).studioSettings?.appearanceDesc ?? 'Theme, colors, display & performance'} onPress={() => navigate('appearance')} last delay={80} />
       </div>
 
-      {/* Content & Language */}
-      <SettingsSectionLabel delay={100}>{(t.hub as { studioSettings?: { contentLanguage?: string } }).studioSettings?.contentLanguage ?? 'Content & Language'}</SettingsSectionLabel>
+      {/* Language */}
+      <SettingsSectionLabel delay={100}>{t.settings.sections.language}</SettingsSectionLabel>
       <div style={cardStyle}>
-        <SettingsNavRow icon="language" iconColor={accent.from} title={t.settings.sections.language} desc={(t.hub as { studioSettings?: { languageDesc?: string } }).studioSettings?.languageDesc ?? 'App display language'} onPress={() => navigate('language')} delay={110} />
-        <SettingsNavRow icon="auto_awesome" iconColor={accent.from} title={(t.hub as { studioSettings?: { aiAssistant?: string } }).studioSettings?.aiAssistant ?? 'AI Assistant'} desc={(t.hub as { studioSettings?: { aiAssistantDesc?: string } }).studioSettings?.aiAssistantDesc ?? 'Smart chord suggestions and analysis'} onPress={() => navigate('ai-assistant')} last delay={120} />
+        <SettingsNavRow icon="language" iconColor={accent.from} title={t.settings.sections.language} desc={(t.hub as { studioSettings?: { languageDesc?: string } }).studioSettings?.languageDesc ?? 'App display language'} onPress={() => navigate('language')} last delay={110} />
       </div>
 
 

@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.7';
+export const APP_VERSION = '3.1.10';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-01'; // 3.1.7
+export const APP_VERSION_DATE = '2026-06-01'; // 3.1.10
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,11 +53,18 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "OTA Upload Optimization",
+    heading: "Active Devices Sync",
     items: [
-      'Slim Release Bundles: Excluded large drum audio samples (~38 MB) from the OTA update package by default, as they are already cached persistently in the native device directory.',
-      'Reduced Bundle Size: Shrank OTA release bundle size from ~53 MB to ~5 MB.',
-      'Faster Deployments: Reduced OTA release upload times from 5 minutes to under 30 seconds.',
+      'Real-Time Devices Sync: Active devices register their platform/browser on sign-in and sync dynamically in the cloud.',
+      'Session Revocation: Remotely terminate another device session. Revoked devices will automatically sign out in real-time.',
+      'Redesigned Devices List: Premium dynamic sessions sheet showing device names and active elapsed durations.',
+    ],
+  },
+  {
+    heading: "UI & Settings Overhauls",
+    items: [
+      'Update Indicator: Replaced broken font ligatures with a native vector CloudDownloadIconSVG inside a circular frosted glass container.',
+      'Sleek Settings Categories: Refactored categories, renamed Content & Language to Language, and removed AI Assistant row.',
     ],
   },
 ];
@@ -66,11 +73,18 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Carga OTA Optimizada",
+    heading: "Sincronización de Dispositivos",
     items: [
-      'Paquetes Slim: Se excluyeron las muestras de batería (~38 MB) del paquete de actualización OTA, ya que están almacenadas en caché en el dispositivo.',
-      'Tamaño Reducido: Se redujo el tamaño del paquete de lanzamiento de ~53 MB a ~5 MB.',
-      'Cargas Rápidas: Se redujo el tiempo de subida de la versión OTA de 5 minutos a menos de 30 segundos.',
+      'Sincronización en Tiempo Real: Los dispositivos registran su plataforma/navegador al iniciar sesión y se sincronizan en la nube.',
+      'Revocación de Sesiones: Cierra de forma remota la sesión de otro dispositivo. Los dispositivos revocados cerrarán sesión automáticamente en tiempo real.',
+      'Lista de Sesiones Rediseñada: Panel de sesiones dinámico y premium que muestra los nombres y duración activa.',
+    ],
+  },
+  {
+    heading: "Rediseño de UI y Ajustes",
+    items: [
+      'Indicador de Actualización: Se reemplazaron los broken ligatures con un componente nativo CloudDownloadIconSVG en un contenedor circular frosted glass.',
+      'Categorías de Ajustes Limpias: Se simplificaron las categorías, renombrando "Contenido e Idioma" a "Idioma" y eliminando el Asistente AI.',
     ],
   },
 ];
@@ -78,11 +92,18 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "OTA-Upload-Optimierung",
+    heading: "Gerätesynchronisierung",
     items: [
-      'Slim-Release-Bundles: Große Schlagzeug-Audiosamples (~38 MB) standardmäßig aus dem OTA-Updatepaket ausgeschlossen, da sie bereits auf dem Gerät zwischengespeichert sind.',
-      'Reduzierte Bundle-Größe: Größe des OTA-Release-Bundles von ~53 MB auf ~5 MB reduziert.',
-      'Schnellere Bereitstellung: OTA-Release-Uploadzeiten von 5 Minuten auf unter 30 Sekunden verkürzt.',
+      'Echtzeit-Synchronisierung: Aktive Geräte registrieren ihre Plattform/Browser bei der Anmeldung und synchronisieren sich dynamisch in der Cloud.',
+      'Sitzungswiderruf: Beenden Sie eine Sitzung auf einem anderen Gerät aus der Ferne. Widerrufene Geräte werden in Echtzeit automatisch abgemeldet.',
+      'Neues Sitzungsverzeichnis: Premium-Sitzungsübersicht mit Gerätenamen und aktiver Dauer.',
+    ],
+  },
+  {
+    heading: "UI & Einstellungsänderungen",
+    items: [
+      'Update-Indikator: Die beschädigte Symbol-Liga wurde durch ein natives Vektor-CloudDownloadIconSVG in einem kreisförmigen Milchglasbehälter ersetzt.',
+      'Einstellungskategorien: Einstellungsmenü überarbeitet, "Inhalt & Sprache" in "Sprache" umbenannt und die Zeile "KI-Assistent" entfernt.',
     ],
   },
 ];

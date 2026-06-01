@@ -49,86 +49,6 @@ export interface StudioThemeTogglerProps {
   duration?: number;
 }
 
-// ── Clip-path helpers (ported from MagicUI official source) ───────────────
-
-function polygonCollapsed(cx: number, cy: number, n: number): string {
-  return `polygon(${Array.from({ length: n }, () => `${cx}px ${cy}px`).join(', ')})`;
-}
-
-function getClipPaths(
-  variant: TransitionVariant,
-  cx: number, cy: number,
-  maxR: number,
-  vw: number, vh: number,
-): [string, string] {
-  switch (variant) {
-    case 'circle':
-      return [
-        'circle(0px at 50vw 50vh)',
-        'circle(120vmax at 50vw 50vh)',
-      ];
-
-    case 'square':
-      return [
-        'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh)',
-        'polygon(-100vw -100vh, 200vw -100vh, 200vw 200vh, -100vw 200vh)',
-      ];
-
-    case 'triangle':
-      return [
-        'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh)',
-        'polygon(50vw -150vh, 250vw 150vh, -150vw 150vh)',
-      ];
-
-    case 'diamond':
-      return [
-        'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh)',
-        'polygon(50vw -100vh, 200vw 50vh, 50vw 200vh, -100vw 50vh)',
-      ];
-
-    case 'hexagon':
-      return [
-        'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh)',
-        'polygon(50vw -100vh, 180vw -25vh, 180vw 125vh, 50vw 200vh, -80vw 125vh, -80vw -25vh)',
-      ];
-
-    case 'rectangle':
-      return [
-        'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh)',
-        'polygon(-100vw -100vh, 200vw -100vh, 200vw 200vh, -100vw 200vh)',
-      ];
-
-    case 'star': {
-      const collapsed = 'polygon(50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh, 50vw 50vh)';
-      const verts: string[] = [];
-      const ir = 0.42;
-      for (let i = 0; i < 5; i++) {
-        const oa = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
-        verts.push(`calc(50vw + ${150 * Math.cos(oa)}vmax) calc(50vh + ${150 * Math.sin(oa)}vmax)`);
-        const ia = oa + Math.PI / 5;
-        verts.push(`calc(50vw + ${150 * ir * Math.cos(ia)}vmax) calc(50vh + ${150 * ir * Math.sin(ia)}vmax)`);
-      }
-      return [collapsed, `polygon(${verts.join(', ')})`];
-    }
-
-    default:
-      return [
-        'circle(0px at 50vw 50vh)',
-        'circle(120vmax at 50vw 50vh)',
-      ];
-  }
-}
-
-// ── DOM class helper ──────────────────────────────────────────────────────
-
-function applyThemeClasses(theme: Theme, amoled: boolean) {
-  const root = document.documentElement;
-  root.classList.remove('light', 'theme-system', 'amoled');
-  if (theme === 'light')        root.classList.add('light');
-  else if (theme === 'system')  root.classList.add('theme-system');
-  if (amoled)                   root.classList.add('amoled');
-}
-
 // ── Static option list ────────────────────────────────────────────────────
 
 type LabelKey = 'system' | 'light' | 'dark' | 'amoled';
@@ -162,56 +82,12 @@ export default function StudioThemeToggler({
       : newTheme === currentTheme && !currentAmoled;
     if (alreadyActive) return;
 
-    const vw = window.visualViewport?.width  ?? window.innerWidth;
-    const vh = window.visualViewport?.height ?? window.innerHeight;
-    const cx = vw / 2;
-    const cy = vh / 2;
-    const maxR = Math.hypot(cx, cy);
-
-    const [clipFrom, clipTo] = getClipPaths(variant, cx, cy, maxR, vw, vh);
-
-    if (typeof document.startViewTransition !== 'function') {
-      applyThemeClasses(newTheme, newAmoled);
-      onChange(newTheme, newAmoled);
-      return;
-    }
-
     const root = document.documentElement;
-    root.dataset.studioThemeVt = 'active';
-    root.style.setProperty('--studio-theme-vt-duration', `${duration}ms`);
-    root.style.setProperty('--studio-theme-vt-clip-from', clipFrom);
+    const isTransitioning = root.dataset.studioThemeVt === 'active';
+    if (isTransitioning) return;
 
-    const cleanup = () => {
-      delete root.dataset.studioThemeVt;
-      root.style.removeProperty('--studio-theme-vt-duration');
-      root.style.removeProperty('--studio-theme-vt-clip-from');
-      onChange(newTheme, newAmoled);
-    };
-
-    const transition = document.startViewTransition(() => {
-      flushSync(() => { applyThemeClasses(newTheme, newAmoled); });
-    });
-
-    if (typeof transition?.finished?.finally === 'function') {
-      transition.finished.finally(cleanup);
-    } else {
-      cleanup();
-    }
-
-    transition?.ready?.then(() => {
-      root.animate(
-        { clipPath: [clipFrom, clipTo] },
-        {
-          duration,
-          // Fast-out: starts at full velocity (masks snapshot-capture delay),
-          // then decelerates smoothly — no aggressive punch-through.
-          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-          fill: 'forwards',
-          pseudoElement: '::view-transition-new(root)',
-        },
-      );
-    });
-  }, [currentTheme, currentAmoled, variant, duration, onChange]);
+    onChange(newTheme, newAmoled);
+  }, [currentTheme, currentAmoled, onChange]);
 
   return (
     <div

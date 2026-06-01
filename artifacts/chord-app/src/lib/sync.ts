@@ -1,6 +1,7 @@
-import { doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { getFirebaseDb } from './firebase';
-import { subscribeAuth, type AuthUser } from './auth';
+import { subscribeAuth, type AuthUser, signOut } from './auth';
+import { isNative } from './capgoUpdater';
 import { getAllTakes, saveTake, type TakeRecord } from '../vocalex/takesDb';
 import { getAllSessions, saveSession, type LabSession, type LabLayer } from '../vocalex/labSessionDb';
 
@@ -188,6 +189,7 @@ const INITIAL_RETRY_MS = 8_000;
  * any successful sync, on auth-change, and on detach.
  */
 let neverStuckHandle: ReturnType<typeof setTimeout> | null = null;
+let unsubDeviceSession: (() => void) | null = null;
 
 type RunReason = 'initial' | 'tick' | 'manual' | 'visibility' | 'beforeunload' | 'flush' | 'retry';
 type RunMode = 'pull-then-push' | 'push-only';
@@ -339,7 +341,7 @@ function writeFirstPullDone(uid: string): void {
   } catch { /* noop */ }
 }
 
-function deviceId(): string {
+export function deviceId(): string {
   try {
     let id = localStorage.getItem(DEVICE_ID_KEY);
     if (!id) {
@@ -348,6 +350,101 @@ function deviceId(): string {
     }
     return id;
   } catch { return 'dev_unknown'; }
+}
+
+export function getDeviceDetails() {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  let os = 'Unknown OS';
+  if (/windows/i.test(ua)) os = 'Windows';
+  else if (/macintosh|mac os x/i.test(ua)) os = 'macOS';
+  else if (/android/i.test(ua)) os = 'Android';
+  else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
+  else if (/linux/i.test(ua)) os = 'Linux';
+
+  let browser = 'Web Browser';
+  if (/chrome|crios/i.test(ua) && !/edge|edg/i.test(ua) && !/opr/i.test(ua)) browser = 'Chrome';
+  else if (/safari/i.test(ua) && !/chrome|crios/i.test(ua)) browser = 'Safari';
+  else if (/firefox|fxios/i.test(ua)) browser = 'Firefox';
+  else if (/edge|edg/i.test(ua)) browser = 'Edge';
+  else if (/opr/i.test(ua)) browser = 'Opera';
+
+  const isNativeApp = isNative();
+  const name = isNativeApp 
+    ? `Chordex App (${os})` 
+    : `${browser} on ${os}`;
+
+  return {
+    name,
+    userAgent: ua,
+    platform: isNativeApp ? 'native' : 'web',
+    lastActive: Date.now(),
+  };
+}
+
+export async function registerDevice(uid: string): Promise<void> {
+  const db = getFirebaseDb();
+  if (!db) return;
+  const id = deviceId();
+  const ref = doc(db, 'users', uid, 'devices', id);
+  const details = getDeviceDetails();
+  try {
+    await setDoc(ref, {
+      ...details,
+      lastActive: serverTimestamp(),
+    }, { merge: true });
+  } catch (err) {
+    console.warn('[sync] failed to register device:', err);
+  }
+}
+
+export async function unregisterDevice(uid: string): Promise<void> {
+  const db = getFirebaseDb();
+  if (!db) return;
+  const id = deviceId();
+  const ref = doc(db, 'users', uid, 'devices', id);
+  try {
+    await deleteDoc(ref);
+  } catch (err) {
+    console.warn('[sync] failed to unregister device:', err);
+  }
+}
+
+export async function revokeDeviceSession(uid: string, targetDeviceId: string): Promise<void> {
+  const db = getFirebaseDb();
+  if (!db) return;
+  const ref = doc(db, 'users', uid, 'devices', targetDeviceId);
+  try {
+    await deleteDoc(ref);
+  } catch (err) {
+    console.warn('[sync] failed to revoke session:', err);
+  }
+}
+
+export function subscribeDevices(uid: string, callback: (devices: any[]) => void): () => void {
+  const db = getFirebaseDb();
+  if (!db) {
+    callback([]);
+    return () => {};
+  }
+  const ref = collection(db, 'users', uid, 'devices');
+  const q = query(ref, orderBy('lastActive', 'desc'));
+  return onSnapshot(q, (snap) => {
+    const list: any[] = [];
+    snap.forEach((doc) => {
+      const data = doc.data();
+      list.push({
+        id: doc.id,
+        name: data.name || 'Unknown Device',
+        platform: data.platform || 'web',
+        userAgent: data.userAgent || '',
+        lastActive: data.lastActive?.toMillis() || Date.now(),
+      });
+    });
+    callback(list);
+  }, (err) => {
+    console.warn('[sync] subscribeDevices error:', err);
+    callback([]);
+  });
 }
 
 // ── Hash ────────────────────────────────────────────────────────────────────
@@ -925,6 +1022,9 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
     // from a prior failure / sign-in.
     if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
     if (neverStuckHandle) { clearTimeout(neverStuckHandle); neverStuckHandle = null; }
+    if (currentUser) {
+      void registerDevice(currentUser.uid);
+    }
     logSuccess(Date.now() - startedAt, pushedCount, pulledCount);
   } catch (e) {
     const isTimeout = e instanceof SyncTimeoutError;
@@ -1124,6 +1224,7 @@ export function attachSyncEngine(): void {
     // we never want a write under a stale uid, and we never want a
     // pre-signin `pullAll` to land into a now-signed-out world.
     epoch += 1;
+    const priorUser = currentUser;
     currentUser = u;
     pendingFollowup = false;
     runPromise = null; // forget the lock; the in-flight run will see epoch shift and bail.
@@ -1136,7 +1237,33 @@ export function attachSyncEngine(): void {
 
     if (neverStuckHandle) { clearTimeout(neverStuckHandle); neverStuckHandle = null; }
 
+    if (unsubDeviceSession) {
+      unsubDeviceSession();
+      unsubDeviceSession = null;
+    }
+
+    if (!u && priorUser) {
+      void unregisterDevice(priorUser.uid);
+    }
+
     if (u) {
+      void registerDevice(u.uid).then(() => {
+        const db = getFirebaseDb();
+        if (!db || currentUser?.uid !== u.uid) return;
+        const myId = deviceId();
+        const sessionRef = doc(db, 'users', u.uid, 'devices', myId);
+        let sessionExisted = false;
+        unsubDeviceSession = onSnapshot(sessionRef, (snap) => {
+          if (currentUser?.uid === u.uid) {
+            if (snap.exists()) {
+              sessionExisted = true;
+            } else if (sessionExisted) {
+              console.info('[sync] active session revoked, signing out');
+              void signOut();
+            }
+          }
+        });
+      });
       // OPTIMISTIC STAMP: if this uid has previously completed a full
       // round-trip on this device (FIRST_PULL_DONE_KEY), assume we're
       // still in sync and show "Synced just now" immediately. This kills

@@ -36,6 +36,15 @@ import { useOtaUpdate } from '../lib/otaUpdate';
 import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
 import { applyUpdate, isNative } from '../lib/capgoUpdater';
 
+function CloudDownloadIconSVG({ size = 24, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 13v8M8 17l4 4 4-4" />
+      <path d="M20.38 8.57A9 9 0 0 0 4.05 11.5A5.5 5.5 0 0 0 5.5 22h13A4.5 4.5 0 0 0 22 17.5a4.5 4.5 0 0 0-1.62-8.93z" />
+    </svg>
+  );
+}
+
 /** How long the full banner stays visible before auto-minimizing. */
 const BANNER_AUTO_MINIMIZE_MS = 6000;
 
@@ -293,14 +302,14 @@ export default function UpdateIndicator({
           justifyContent: isBanner ? 'flex-start' : 'center',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
-          background: isBanner ? `linear-gradient(135deg, ${tintFrom(22)}, ${tint(22)})` : 'transparent',
-          border: isBanner ? `1px solid ${tint(40)}` : 'none',
+          background: `linear-gradient(135deg, ${tintFrom(22)}, ${tint(22)})`,
+          border: `1px solid ${tint(40)}`,
           color: 'var(--c-text-primary)',
-          backdropFilter: isBanner ? 'blur(14px)' : 'none',
-          WebkitBackdropFilter: isBanner ? 'blur(14px)' : 'none',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
           boxShadow: isBanner
             ? `0 16px 40px ${tint(25)}, inset 0 0 0 1px ${tint(13)}`
-            : 'none',
+            : `0 8px 24px ${tint(25)}, inset 0 0 0 1px ${tint(13)}`,
           fontFamily: 'Manrope, sans-serif',
           fontSize: 13,
           fontWeight: 700,
@@ -329,20 +338,18 @@ export default function UpdateIndicator({
         }}
       >
         <span
-          className="material-symbols-outlined"
           style={{
-            fontSize: isBanner ? 18 : 28,
-            color: cTo,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: isBanner ? 18 : 24,
+            height: isBanner ? 18 : 24,
             flexShrink: 0,
-            transition: 'color 380ms ease, font-size 380ms ease',
             filter: isBanner ? undefined : `drop-shadow(0 2px 10px color-mix(in srgb, ${cTo} 60%, transparent))`,
-            // Gentle "download bounce" while in pill mode — the arrow
-            // slides down a touch, fades, and resets, suggesting an
-            // available download without being distracting.
             animation: isBanner ? undefined : 'pill-download-bounce 1.6s ease-in-out infinite',
           }}
         >
-          cloud_download
+          <CloudDownloadIconSVG size={isBanner ? 18 : 24} color={cTo} />
         </span>
 
         <span
@@ -547,10 +554,7 @@ function UpdateModal({
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: `0 0 20px color-mix(in srgb, ${accentFrom} 18%, transparent)`,
               }}>
-                <span className="material-symbols-outlined" style={{
-                  fontSize: 26, color: accentFrom,
-                  fontVariationSettings: "'FILL' 1",
-                }}>cloud_download</span>
+                <CloudDownloadIconSVG size={26} color={accentFrom} />
               </div>
 
               <p style={{

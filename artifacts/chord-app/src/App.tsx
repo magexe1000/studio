@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
@@ -551,10 +551,12 @@ export default function App() {
       themeTimerRef.current = null;
     }
 
-    const applyTheme = () => {
+    const applyTheme = (skipTransitioningClass = false) => {
       const root = document.documentElement;
 
-      root.classList.add('theme-transitioning');
+      if (!skipTransitioningClass) {
+        root.classList.add('theme-transitioning');
+      }
 
       activeVis.amoledMode ? root.classList.add('amoled') : root.classList.remove('amoled');
 
@@ -580,17 +582,61 @@ export default function App() {
       }
       tag.content = color;
 
-      themeTimerRef.current = setTimeout(() => {
-        root.classList.remove('theme-transitioning');
-        themeTimerRef.current = null;
-      }, 350);
+      if (!skipTransitioningClass) {
+        themeTimerRef.current = setTimeout(() => {
+          root.classList.remove('theme-transitioning');
+          themeTimerRef.current = null;
+        }, 350);
+      }
     };
 
     if (changed && 'startViewTransition' in document) {
-      try {
-        (document as any).startViewTransition(applyTheme);
-      } catch {
-        applyTheme();
+      const root = document.documentElement;
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (reduceMotion) {
+        try {
+          (document as any).startViewTransition(() => {
+            flushSync(() => applyTheme(true));
+          });
+        } catch {
+          applyTheme();
+        }
+      } else {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const cx = vw / 2;
+        const cy = vh / 2;
+        const maxR = Math.hypot(cx, cy);
+
+        root.style.setProperty('--x', `${cx}px`);
+        root.style.setProperty('--y', `${cy}px`);
+        root.style.setProperty('--r', `${maxR}px`);
+        root.style.setProperty('--studio-theme-vt-duration', '500ms');
+        root.dataset.studioThemeVt = 'active';
+
+        const cleanup = () => {
+          delete root.dataset.studioThemeVt;
+          root.style.removeProperty('--x');
+          root.style.removeProperty('--y');
+          root.style.removeProperty('--r');
+          root.style.removeProperty('--studio-theme-vt-duration');
+        };
+
+        try {
+          const transition = (document as any).startViewTransition(() => {
+            flushSync(() => applyTheme(true));
+          });
+
+          if (transition && typeof transition.finished?.finally === 'function') {
+            transition.finished.finally(cleanup);
+          } else {
+            setTimeout(cleanup, 500);
+          }
+        } catch {
+          cleanup();
+          applyTheme();
+        }
       }
     } else {
       applyTheme();
