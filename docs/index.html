@@ -153,7 +153,7 @@
         will-change: transform;
         transform: translate(-50%, -50%) scale(1);
         opacity: 0;
-        animation: center-fade-in 850ms 50ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        animation: center-fade-in 1000ms 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
         color: var(--intro-color);
       }
       @keyframes center-fade-in {
@@ -182,7 +182,7 @@
         display: flex; align-items: center; justify-content: center;
         will-change: transform, opacity;
         opacity: 0;
-        animation: orb-fade-in 700ms 200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        animation: orb-fade-in 800ms 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
         color: var(--intro-color);
       }
       @keyframes orb-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -196,7 +196,7 @@
         .orbiter, #intro-center { opacity: 1 !important; }
       }
     </style>
-    <script type="module" crossorigin src="/Studio/assets/index-DvRspa1m.js"></script>
+    <script type="module" crossorigin src="/Studio/assets/index-Cm3sLMxf.js"></script>
     <link rel="modulepreload" crossorigin href="/Studio/assets/capacitor-gkgpYtx8.js">
     <link rel="modulepreload" crossorigin href="/Studio/assets/react-vendor-DETPMv4k.js">
     <link rel="modulepreload" crossorigin href="/Studio/assets/zustand-Ci4EvhWN.js">
@@ -206,6 +206,8 @@
     <div id="intro" aria-hidden="true">
       <div id="intro-stars"></div>
       <div id="intro-glow"></div>
+      <!-- Cover overlay to fade in from black/previous state -->
+      <div id="intro-cover" style="position: absolute; inset: 0; background: #000000; z-index: 100; pointer-events: none; opacity: 1; transition: opacity 1000ms cubic-bezier(0.25, 1, 0.5, 1);"></div>
 
       <div id="intro-center" data-intro-id="studio">
         <div class="logo">
@@ -298,6 +300,17 @@
         var intro    = document.getElementById('intro');
         var center   = document.getElementById('intro-center');
         if (!intro || !center) return;
+
+        // Trigger fade out of the cover overlay on load
+        var cover = document.getElementById('intro-cover');
+        if (cover) {
+          requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+              cover.style.opacity = '0';
+            });
+          });
+        }
+
         var orbiterEls = intro.querySelectorAll('.orbiter');
         if (orbiterEls.length === 0) return;
 

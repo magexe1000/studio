@@ -1,6 +1,6 @@
 {
-  "version": "3.1.48",
-  "changelog": "Version 3.1.48",
+  "version": "3.1.49",
+  "changelog": "• Seamless Intro Transition: Added a solid black cover overlay that fades out to the theme background on app startup, matching the updater's fade-to-black restart sequence for a completely seamless, flash-free transition.\n• Refined Entrance Timing: Delayed the center logo and orbiters zoom-in animations to let them bloom gradually after the cover fades out, preventing abrupt startup flashes.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.48/bundle-3.1.48.zip"
+  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.49/bundle-3.1.49.zip"
 }

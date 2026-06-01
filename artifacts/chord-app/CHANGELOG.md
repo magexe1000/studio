@@ -15,6 +15,16 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.1.49
+
+- Seamless Intro Transition: Added a solid black cover overlay that fades out to the theme background on app startup, matching the updater's fade-to-black restart sequence for a completely seamless, flash-free transition.
+- Refined Entrance Timing: Delayed the center logo and orbiters zoom-in animations to let them bloom gradually after the cover fades out, preventing abrupt startup flashes.
+
+## 3.1.48
+
+- Seamless Intro Transition: Added a cover overlay to `#intro` that fades out from the active theme background on app startup, matching the updater's fade-to-black restart sequence.
+- Refined Entrance Timing: Delayed the center logo and orbiters zoom-in animations to let them bloom gradually after the cover fades out, preventing abrupt startup flashes.
+
 ## 3.1.47
 
 - Liquid Glass Indicators: Overhauled checking/up-to-date status badges into refracting liquid glass pills matching the nav bar.

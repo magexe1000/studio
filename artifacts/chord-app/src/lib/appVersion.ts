@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.48';
+export const APP_VERSION = '3.1.49';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-01'; // 3.1.48
+export const APP_VERSION_DATE = '2026-06-01'; // 3.1.49
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -58,6 +58,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
       'Liquid Glass Indicators: Overhauled checking/up-to-date status badges into refracting liquid glass pills matching the nav bar.',
       'Refined Update Badge: Minimized corner update badge is now a beautiful liquid glass ball containing a clean download icon.',
       'Direct update installation: Clicking update in settings installs it immediately in-app, with a smooth fade-to-black restart.',
+      'Seamless Intro Transition: Fades in the app startup animation from black, matching the updater\'s fade-to-black reload for a flash-free transition.',
     ],
   },
   {
@@ -78,6 +79,7 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
       'Indicadores Liquid Glass: Rediseño completo de las etiquetas de verificación/actualización en cápsulas de vidrio líquido refractivo.',
       'Insignia de Actualización: La insignia de esquina ahora es una esfera de vidrio líquido con un icono limpio de descarga.',
       'Instalación Directa: Instala actualizaciones directamente desde los ajustes con un desvanecimiento a negro suave y sin tirones.',
+      'Transición de Intro Fluida: Desvanece la animación de inicio desde negro para coincidir con el reinicio del actualizador y evitar destellos.',
     ],
   },
   {
@@ -97,6 +99,7 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
       'Liquid Glass Indikatoren: Die Statusanzeigen für Updates wurden in lichtbrechende Liquid Glass-Kapseln überarbeitet.',
       'Update-Badge: Das minimierte Update-Symbol in der Ecke ist nun eine elegante Glaskugel mit sauberem Download-Symbol.',
       'Direktes Update: Updates werden direkt in der App installiert, mit einem flüssigen Ausblenden nach Schwarz.',
+      'Nahtloser Intro-Übergang: Blendet die Startanimation aus dem Schwarz ein, passend zum Ausblenden des Updaters für einen blitzfreien Übergang.',
     ],
   },
   {
