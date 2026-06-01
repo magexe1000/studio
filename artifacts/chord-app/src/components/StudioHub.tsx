@@ -202,6 +202,18 @@ export default function StudioHub() {
 
   useEffect(() => subscribeAuth(setAuthUser), []);
 
+  useBackHandler('nested', () => {
+    if (tab === 'profile') {
+      setTab('settings');
+      return true;
+    }
+    if (tab === 'settings') {
+      setTab('home');
+      return true;
+    }
+    return false;
+  }, [tab]);
+
   const launchApp = useCallback((appMode: 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex') => {
     setZooming(true);
     setTimeout(() => {

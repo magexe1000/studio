@@ -53,19 +53,18 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Profile & Account",
+    heading: "Back Navigation",
     items: [
-      'Completely redesigned account settings with five grouped sections: Personal Information, Security & Login, Subscription & Billing, Devices & Sessions, and Privacy & Data.',
-      'Each section opens its own dedicated sheet with relevant controls and information.',
-      'Upload a custom profile photo from your device — stored locally and applied instantly across the app.',
-      'New back button in the profile tab for quick navigation back to Settings.',
+      'Vibrant left-edge swipe gestures now work globally across all sub-apps, overlays, and tabs to return to the Hub.',
+      'Profile sheets (Personal Info, Security, Devices, etc.) now close in sequence on back swipe rather than exiting settings.',
     ],
   },
   {
-    heading: "Fixes & Polish",
+    heading: "UI Polish",
     items: [
-      'Fixed missing icons throughout the app — lock, shield, devices, workspace_premium, smartphone, and others now render correctly.',
-      'Studio title animation now plays reliably on every launch, including on devices with Reduced Motion enabled.',
+      'Removed redundant top back button in the Hub settings tab.',
+      'Fixed update modal layout with a clean cloud download icon and repaired button border clipping.',
+      'Spinning update loader rings are now thicker, higher contrast, and colored with active theme accents.',
     ],
   },
 ];
@@ -74,19 +73,18 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Perfil y cuenta",
+    heading: "Navegación de retroceso",
     items: [
-      'Configuración de cuenta completamente rediseñada con cinco secciones agrupadas: Información personal, Seguridad e inicio de sesión, Suscripción, Dispositivos y sesiones, y Privacidad y datos.',
-      'Cada sección abre su propio panel con controles específicos.',
-      'Sube una foto de perfil personalizada desde tu dispositivo — se guarda localmente y se aplica de inmediato.',
-      'Nuevo botón de retroceso en la pestaña de perfil para volver rápidamente a Ajustes.',
+      'Los gestos de deslizamiento desde el borde izquierdo ahora funcionan de manera global en todas las sub-aplicaciones, paneles y pestañas para volver al Hub.',
+      'Las hojas de perfil (Información personal, Seguridad, Dispositivos, etc.) ahora se cierran en secuencia al deslizar para volver, en lugar de salir de los ajustes.',
     ],
   },
   {
-    heading: "Correcciones y pulido",
+    heading: "Ajustes visuales",
     items: [
-      'Se corrigieron íconos faltantes en toda la app — lock, shield, devices, workspace_premium, smartphone y otros ahora se muestran correctamente.',
-      'La animación del título Studio ahora se reproduce correctamente en cada arranque, incluyendo en dispositivos con Movimiento reducido activado.',
+      'Se eliminó el botón de retroceso superior redundante en la pestaña de ajustes del Hub.',
+      'Se corrigió el diseño del modal de actualización con un ícono limpio de descarga en la nube y se reparó el recorte del borde del botón.',
+      'El anillo giratorio de carga de actualización ahora es más grueso, tiene mayor contraste y está coloreado con los acentos del tema activo.',
     ],
   },
 ];
@@ -94,19 +92,18 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Profil & Konto",
+    heading: "Zurück-Navigation",
     items: [
-      'Vollständig überarbeitete Kontoeinstellungen mit fünf gruppierten Bereichen: Persönliche Daten, Sicherheit & Anmeldung, Abonnement, Geräte & Sitzungen und Datenschutz.',
-      'Jeder Bereich öffnet sein eigenes Panel mit den zugehörigen Einstellungen.',
-      'Lade ein eigenes Profilfoto von deinem Gerät hoch — lokal gespeichert und sofort sichtbar.',
-      'Neuer Zurück-Button im Profil-Tab für schnelle Navigation zurück zu Einstellungen.',
+      'Lebendige Wischgesten vom linken Rand funktionieren jetzt global in allen Sub-Apps, Overlays und Tabs, um zum Hub zurückzukehren.',
+      'Profilseiten (Persönliche Daten, Sicherheit, Geräte usw.) schließen sich jetzt nacheinander beim Zurückwischen, anstatt die Einstellungen zu verlassen.',
     ],
   },
   {
-    heading: "Korrekturen & Feinschliff",
+    heading: "UI-Feinschliff",
     items: [
-      'Fehlende Icons in der gesamten App behoben — lock, shield, devices, workspace_premium, smartphone und weitere werden jetzt korrekt angezeigt.',
-      'Die Studio-Titelanimation wird nun bei jedem Start zuverlässig abgespielt, auch auf Geräten mit aktivierter Bewegungsreduzierung.',
+      'Redundanter oberer Zurück-Button im Hub-Einstellungs-Tab entfernt.',
+      'Layout des Update-Modals mit einem sauberen Cloud-Download-Symbol korrigiert und Button-Rahmen-Clipping behoben.',
+      'Der rotierende Ladekreis für Updates ist jetzt dicker, kontrastreicher und mit den aktiven Themen-Akzenten eingefärbt.',
     ],
   },
 ];

@@ -291,17 +291,23 @@ export default function App() {
       const handled = handleGlobalBack();
 
       if (!handled) {
-        const now = Date.now();
-        if (now - lastBackTime.current < 2000) {
-          // Second press within 2 s → exit / minimize
-          import('@capacitor/app')
-            .then(({ App: CapApp }) => CapApp.exitApp())
-            .catch(() => {});
+        const state = useChordStore.getState();
+        const appMode = state.settings.appMode;
+        if (appMode && appMode !== 'hub') {
+          state.updateSettings({ appMode: 'hub' });
         } else {
-          lastBackTime.current = now;
-          setExitToast(true);
-          if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
-          exitToastTimer.current = setTimeout(() => setExitToast(false), 2000);
+          const now = Date.now();
+          if (now - lastBackTime.current < 2000) {
+            // Second press within 2 s → exit / minimize
+            import('@capacitor/app')
+              .then(({ App: CapApp }) => CapApp.exitApp())
+              .catch(() => {});
+          } else {
+            lastBackTime.current = now;
+            setExitToast(true);
+            if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
+            exitToastTimer.current = setTimeout(() => setExitToast(false), 2000);
+          }
         }
       }
 
@@ -347,8 +353,10 @@ export default function App() {
       const touch = e.touches[0];
       // Only trigger if swipe starts within 35px of the left edge
       if (touch.clientX < 35) {
-        // Only allow swiping if there are active handlers registered in the back stack!
-        if (hasBackEntries()) {
+        const appMode = useChordStore.getState().settings.appMode;
+        const inSubApp = appMode && appMode !== 'hub';
+        // Allow swiping if there are active handlers registered in the back stack, OR if we are inside a sub-app
+        if (hasBackEntries() || inSubApp) {
           touchStartX = touch.clientX;
           touchStartY = touch.clientY;
           isSwiping = true;
