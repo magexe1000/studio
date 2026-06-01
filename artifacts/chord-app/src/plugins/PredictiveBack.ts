@@ -17,6 +17,7 @@ export interface BackProgressData {
 }
 
 export interface PredictiveBackPlugin extends Plugin {
+  setEnabled(options: { enabled: boolean }): Promise<void>;
   addListener(
     eventName: 'backStarted',
     listenerFunc: (data: BackProgressData) => void,

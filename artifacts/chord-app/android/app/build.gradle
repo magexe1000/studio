@@ -50,7 +50,7 @@ android {
 
 repositories {
     flatDir{
-        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+        dirs 'libs'
     }
 }
 
@@ -63,7 +63,7 @@ dependencies {
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
-    implementation project(':capacitor-cordova-android-plugins')
+    // implementation project(':capacitor-cordova-android-plugins')
     // Explicit dependency to guarantee GoogleSignIn is in the APK.
     // The capacitor-firebase/authentication plugin transitively pulls
     // play-services-auth, but in some build setups the class

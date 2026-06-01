@@ -14,6 +14,7 @@
 //   useBackHandler('sheet', () => { if (open) { setOpen(false); return true; } return false; });
 
 import { useEffect } from 'react';
+import { PredictiveBack } from '../plugins/PredictiveBack';
 
 export type BackPriority = 'modal' | 'sheet' | 'overlay' | 'nested' | 'panel';
 
@@ -29,6 +30,14 @@ export interface BackEntry {
 
 let _entries: BackEntry[] = [];
 let _idSeq = 0;
+
+function syncNativePredictiveBackState() {
+  try {
+    void PredictiveBack.setEnabled({ enabled: _entries.length > 0 });
+  } catch {
+    // Native plugin not available — silently degrade
+  }
+}
 
 /**
  * Register a back handler at the given priority level.
@@ -65,7 +74,11 @@ export function pushBackHandler(
   }
 
   _entries.push({ id, priority, app, view, fn });
-  return () => { _entries = _entries.filter(e => e.id !== id); };
+  syncNativePredictiveBackState();
+  return () => {
+    _entries = _entries.filter(e => e.id !== id);
+    syncNativePredictiveBackState();
+  };
 }
 
 export function triggerBackFeedbackAnimation(): void {
