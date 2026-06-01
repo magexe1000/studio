@@ -17,6 +17,13 @@ Conventions:
 
 ---
 
+## 3.1.11
+
+- Search Engine Indexability: Created five standalone, premium static HTML landing pages under the public directory (copied directly to /stagex/, /chordex/, etc.) containing curated JSON-LD structured data, rich inline SVGs, and interactive FAQ sections, enabling 100% crawler discoverability.
+- Dynamic Metadata Synchronization: Engineered a dynamic SPA document header synchronization system in App.tsx that programmatically updates document title, description meta, keywords, canonical URLs, and Open Graph/Twitter Card tags as the user switches active apps.
+- Query Parameter Deep-Linking: Integrated backwards-compatible query parameter support (?app=mode) to let landing page call-to-actions boot directly into their respective sub-app targets on launch.
+- Robots & Sitemaps: Generated robots.txt and sitemap.xml files optimized for search crawlers, mapping high-priority sub-app entry points and shielding internal development resources.
+
 ## 3.1.10
 
 - Active Devices & Sessions Sync: Built a fully working, secure, real-time active devices tracking and revoking system using Firestore.

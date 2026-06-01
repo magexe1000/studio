@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Allow: /stagex/
+Allow: /chordex/
+Allow: /drumex/
+Allow: /vocalex/
+Allow: /groovex/
+
+# Block development and internal paths
+Disallow: /bundles/
+Disallow: /version.json
+Disallow: /audio-manifest.json
+Disallow: /.replit
+Disallow: /replit.md
+
+Sitemap: https://MAGEXE1000.github.io/Studio/sitemap.xml

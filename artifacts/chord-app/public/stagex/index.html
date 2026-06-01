@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stagex — Professional Stage Plot & Tech Rider Creator | Studio</title>
+  <meta name="description" content="Create clear, professional stage plots and technical riders for sound engineers. Add band members, speakers, instruments, and mic stands with Stagex.">
+  <meta name="keywords" content="stage plot, stage plot maker, stage plot creator, stage plot app, tech rider creator, tech rider generator, stage manager tools, band stage plot, musician tools, live sound tools, band management tools">
+  <link rel="canonical" href="https://MAGEXE1000.github.io/Studio/stagex/" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://MAGEXE1000.github.io/Studio/stagex/" />
+  <meta property="og:title" content="Stagex — Professional Stage Plot & Tech Rider Creator" />
+  <meta property="og:description" content="Create clear, professional stage plots and technical riders for sound engineers. Add band members, speakers, instruments, and mic stands with Stagex." />
+  <meta property="og:image" content="https://MAGEXE1000.github.io/Studio/opengraph.jpg" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://MAGEXE1000.github.io/Studio/stagex/" />
+  <meta property="twitter:title" content="Stagex — Professional Stage Plot & Tech Rider Creator" />
+  <meta property="twitter:description" content="Create clear, professional stage plots and technical riders for sound engineers. Add band members, speakers, instruments, and mic stands with Stagex." />
+  <meta property="twitter:image" content="https://MAGEXE1000.github.io/Studio/opengraph.jpg" />
+
+  <!-- Fonts & Material Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Outfit:wght@600;800&family=Material+Symbols+Outlined&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0a0a0c;
+      --surface: rgba(18, 18, 22, 0.7);
+      --border: rgba(128, 128, 128, 0.12);
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.15);
+      --text: #e1e1e6;
+      --text-muted: #888896;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Manrope', sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    
+    .glow-bg {
+      position: absolute;
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    header {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .btn-launch {
+      padding: 10px 20px;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, var(--accent), #1d4ed8);
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .btn-launch:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.45);
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+
+    .tagline {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(32px, 6vw, 48px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 18px;
+    }
+
+    .tagline span {
+      background: linear-gradient(135deg, #60a5fa, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .description {
+      font-size: clamp(16px, 2.5vw, 18px);
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 32px;
+      font-weight: 500;
+    }
+
+    /* Interactive Vector Screenshot Mockup */
+    .mockup-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 12px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      margin-bottom: 80px;
+      overflow: hidden;
+    }
+
+    .mockup-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding-left: 8px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .dot.red { background: #ff5f56; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #27c93f; }
+
+    .mockup-screen {
+      aspect-ratio: 16/9;
+      background: #0f0f12;
+      border-radius: 12px;
+      display: flex;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    /* Grid representation */
+    .stage-grid {
+      flex: 1;
+      position: relative;
+      background-size: 30px 30px;
+      background-image: 
+        linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+      border-right: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stage-canvas {
+      position: absolute;
+      inset: 20px;
+      border: 2px dashed rgba(59, 130, 246, 0.3);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(59, 130, 246, 0.02);
+    }
+
+    /* Interactive mock elements */
+    .mock-element {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      gap: 4px;
+    }
+
+    .mock-element span {
+      font-size: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 6px;
+      color: var(--accent);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    /* Sidebar representation */
+    .stage-sidebar {
+      width: 25%;
+      background: rgba(18, 18, 22, 0.85);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-left: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .sidebar-item {
+      height: 32px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .sidebar-item span {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+
+    /* Features Grid */
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 40px;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 80px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.2s ease;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(59, 130, 246, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .feature-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* FAQ Section */
+    .faq-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 80px;
+    }
+
+    details {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+      cursor: pointer;
+    }
+
+    details:last-of-type {
+      border-bottom: none;
+    }
+
+    summary {
+      font-weight: 700;
+      font-size: 16px;
+      color: #fff;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::after {
+      content: '+';
+      font-size: 20px;
+      color: var(--text-muted);
+      transition: transform 0.2s ease;
+    }
+
+    details[open] summary::after {
+      content: '−';
+    }
+
+    details p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+
+    /* Footer call to action */
+    .cta-banner {
+      text-align: center;
+      background: radial-gradient(circle at center, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px;
+      backdrop-filter: blur(12px);
+    }
+
+    .cta-banner h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    .cta-banner p {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    footer-note {
+      text-align: center;
+      margin-top: 48px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+
+  <!-- Structured Data JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://MAGEXE1000.github.io/Studio/#organization",
+        "name": "Mag Studio",
+        "url": "https://MAGEXE1000.github.io/Studio/",
+        "logo": "https://MAGEXE1000.github.io/Studio/icon-512.png"
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://MAGEXE1000.github.io/Studio/#webapp-stage",
+        "url": "https://MAGEXE1000.github.io/Studio/stagex/",
+        "name": "Stagex — Professional Stage Plot & Tech Rider Creator",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any",
+        "description": "Create clear, professional stage plots and technical riders for sound engineers. Add band members, speakers, instruments, and mic stands with Stagex.",
+        "browserRequirements": "Requires JavaScript and HTML5 canvas.",
+        "publisher": {
+          "@id": "https://MAGEXE1000.github.io/Studio/#organization"
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <div class="glow-bg"></div>
+
+  <header>
+    <a href="../" class="brand">
+      <!-- Studio sine wave -->
+      <svg viewBox="0 0 512 512" fill="none">
+        <path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256" stroke="white" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      Studio
+    </a>
+    <a href="../?app=stage" class="btn-launch">Launch App</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1 class="tagline">Create Professional <span>Stage Plots</span> & Technical Riders</h1>
+      <p class="description">Stagex is a premium tool designed for musicians, band managers, and live sound engineers. Lay out your stage plot visually in seconds.</p>
+      <a href="../?app=stage" class="btn-launch" style="padding: 14px 32px; font-size: 16px;">Create Your Plot Now</a>
+    </section>
+
+    <!-- Visual Interactive Screenshot Mockup -->
+    <section class="mockup-container">
+      <div class="mockup-header">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="stage-grid">
+          <div class="stage-canvas">
+            <!-- Simulated Stage Plot Elements -->
+            <div class="mock-element" style="top: 15%; left: 15%;">
+              <span class="material-symbols-outlined">album</span>
+              Drums
+            </div>
+            <div class="mock-element" style="top: 25%; left: 48%;">
+              <span class="material-symbols-outlined">piano</span>
+              Keys
+            </div>
+            <div class="mock-element" style="top: 55%; left: 30%;">
+              <span class="material-symbols-outlined">electric_guitar</span>
+              Guitar
+            </div>
+            <div class="mock-element" style="top: 60%; left: 65%;">
+              <span class="material-symbols-outlined">mic</span>
+              Vocal Mic
+            </div>
+            <div class="mock-element" style="top: 75%; left: 10%;">
+              <span class="material-symbols-outlined">hearing</span>
+              Monitor
+            </div>
+          </div>
+        </div>
+        <div class="stage-sidebar">
+          <p class="sidebar-title">Instruments</p>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">album</span>
+            Drum Kit
+          </div>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">piano</span>
+            Keyboard
+          </div>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">mic</span>
+            Vocal Microphone
+          </div>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">hearing</span>
+            Stage Wedge
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section>
+      <h2 class="section-title">Everything You Need for Live Sound Setup</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">grid_view</span>
+          </div>
+          <h3>Visual Drag & Drop Grid</h3>
+          <p>Easily place band members, speakers, instruments, direct boxes, monitors, and mic stands on a responsive grid representing the stage space.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">edit_note</span>
+          </div>
+          <h3>Technical Rider Creator</h3>
+          <p>Generate detailed inputs/outputs lists, vocal mic specs, power drop placements, and general crew requests right alongside the visual plot.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">picture_as_pdf</span>
+          </div>
+          <h3>PDF Exporting & Sharing</h3>
+          <p>Download clean, high-resolution PDF copies of your stage layout and tech rider to email straight to festival sound engineers and stage managers.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq-container">
+      <h2 class="section-title" style="margin-bottom: 24px;">Frequently Asked Questions</h2>
+      
+      <details>
+        <summary>What is a Stage Plot?</summary>
+        <p>A stage plot is a graphic illustration showing where each band member stands, where instruments are placed, and what audio gear (like microphones, DIs, monitors, and power drops) is required. Stagex helps you generate this in seconds.</p>
+      </details>
+      
+      <details>
+        <summary>Why is a Technical Rider important?</summary>
+        <p>A tech rider lists the exact technical requirements of a band or performer (e.g. input list, microphone choices, monitor mixes) to ensure the venue crew has the correct gear prepped and patched before soundcheck.</p>
+      </details>
+
+      <details>
+        <summary>Is Stagex free to use?</summary>
+        <p>Yes! Stagex is completely free and integrated directly into the Studio suite, allowing you to build, customize, and save plots and tech riders locally.</p>
+      </details>
+    </section>
+
+    <!-- Call to action -->
+    <section class="cta-banner">
+      <h2>Ready to Organize Your Next Gig?</h2>
+      <p>Start designing your band's stage plot and technical rider with Stagex today. Clean layouts, pristine PDF exports.</p>
+      <a href="../?app=stage" class="btn-launch" style="padding: 12px 28px;">Open Stagex App</a>
+    </section>
+
+    <p class="footer-note">StudioXX by Mag. All rights reserved.</p>
+  </main>
+</body>
+</html>

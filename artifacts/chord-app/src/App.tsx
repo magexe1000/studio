@@ -225,6 +225,31 @@ export default function App() {
   // seeded to 'hub' for fresh installs so the legacy behavior matches.
   useEffect(() => {
     const validApps: readonly AppKey[] = ['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex'] as const;
+
+    // Check query params first for direct link deep-linking
+    const queryApp = new URLSearchParams(window.location.search).get('app');
+    const isQueryAppValid = queryApp && validApps.includes(queryApp as AppKey);
+    if (isQueryAppValid) {
+      const mode = queryApp as AppKey;
+      prevAppMode.current = mode;
+      updateSettings({ appMode: mode });
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('app');
+        window.history.replaceState({}, '', url.toString());
+      } catch { /* noop */ }
+      
+      // Schedule preloads
+      const picks: Array<() => Promise<unknown>> = [
+        libraryImport, chordImport, songsImport, settingsImport, stagexImport,
+      ];
+      if (mode === 'drums')   picks.push(drumImport);
+      if (mode === 'groovex') picks.push(groovexImport);
+      if (mode === 'vocalex') picks.push(vocalexImport);
+      schedulePreload(picks);
+      return;
+    }
+
     const restoreEnabled = useChordStore.getState().settings.restoreLastSession;
     const saved = restoreEnabled ? useChordStore.getState().lastSession?.app : undefined;
     const restoredApp: AppKey | null = saved && validApps.includes(saved) ? saved : null;
@@ -277,6 +302,138 @@ export default function App() {
     schedulePreload(picks);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Dynamic SEO & Metadata Syncer
+  useEffect(() => {
+    const mode = settings.appMode ?? 'hub';
+    
+    // Metadata dictionary
+    const metaMap: Record<AppKey, { title: string; desc: string; keywords: string }> = {
+      hub: {
+        title: 'Studio by Mag — Organization, Rehearsal & Practice Tools',
+        desc: 'StudioXX is the premium integrated toolkit for musicians, band managers, and live sound engineers. Manage chords, build drum sheets, create stage plots, practice vocals, and play multitracks.',
+        keywords: 'musician tools, band management tools, studioxx, studio xx, studio by mag, mag studio, rehearsal tools, chord library app, stage plot app'
+      },
+      chords: {
+        title: 'Chordex — Chord Library, Songs & Guitar Tools | Studio',
+        desc: 'Explore guitar chords, search interactive chord diagrams, find fingerings, transpositions, and manage your band\'s song library in Chordex.',
+        keywords: 'chord library app, guitar chord finder, musician tools, guitar chords, chord library'
+      },
+      drums: {
+        title: 'Drumex — Drum Sheets & Practice Tools | Studio',
+        desc: 'Build Snare drum sheets, practice rudiments with visual indicators, adjust timing and speed, and access interactive practice tools in Drumex.',
+        keywords: 'drum sheets, snare rudiments, practice tools, drum practice, rhythm tools'
+      },
+      stage: {
+        title: 'Stagex — Professional Stage Plot & Tech Rider Creator | Studio',
+        desc: 'Create clear, professional stage plots and detailed technical riders for sound engineers. Add band members, speakers, instruments, and mic stands.',
+        keywords: 'stage plot, stage plot maker, stage plot creator, stage plot app, tech rider creator, tech rider generator, stage manager tools, band stage plot'
+      },
+      groovex: {
+        title: 'Groovex — Multitrack Practice & Rehearsal Studio | Studio',
+        desc: 'Unleash your rehearsal with multitrack practice tools. Load tracks, adjust levels, mute stems, and loop sections with a gorgeous liquid glass UI.',
+        keywords: 'multitrack practice app, rehearsal tools, multitrack player, band tools'
+      },
+      vocalex: {
+        title: 'Vocalex — Vocal Practice & Training Studio | Studio',
+        desc: 'Train your vocals, trace pitch in real-time, record takes, practice scales, and master your singing with feedback inside Vocalex.',
+        keywords: 'vocal practice app, vocal training, pitch tracker, singing practice, musician tools'
+      }
+    };
+
+    const metadata = metaMap[mode] || metaMap.hub;
+
+    // 1. Update document title
+    document.title = metadata.title;
+
+    // 2. Helper to find/create meta tag
+    const setMeta = (name: string, content: string) => {
+      let el = document.querySelector(`meta[name="${name}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute('name', name);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    };
+
+    const setPropertyMeta = (property: string, content: string) => {
+      let el = document.querySelector(`meta[property="${property}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute('property', property);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    };
+
+    // 3. Update description and keywords
+    setMeta('description', metadata.desc);
+    setMeta('keywords', metadata.keywords);
+
+    // 4. Update canonical link
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+    const canonicalBase = 'https://MAGEXE1000.github.io/Studio';
+    const relativePath = mode === 'hub' ? '/' : `/${mode}/`;
+    canonical.setAttribute('href', `${canonicalBase}${relativePath}`);
+
+    // 5. Update Open Graph and Twitter Card tags
+    setPropertyMeta('og:title', metadata.title);
+    setPropertyMeta('og:description', metadata.desc);
+    setPropertyMeta('og:url', `${canonicalBase}${relativePath}`);
+    setPropertyMeta('og:type', 'website');
+    setPropertyMeta('og:image', 'https://MAGEXE1000.github.io/Studio/opengraph.jpg');
+
+    setMeta('twitter:card', 'summary_large_image');
+    setMeta('twitter:title', metadata.title);
+    setMeta('twitter:description', metadata.desc);
+    setMeta('twitter:image', 'https://MAGEXE1000.github.io/Studio/opengraph.jpg');
+
+    // 6. JSON-LD Structured Data
+    let jsonLdEl = document.getElementById('studio-structured-data');
+    if (!jsonLdEl) {
+      jsonLdEl = document.createElement('script');
+      jsonLdEl.setAttribute('id', 'studio-structured-data');
+      jsonLdEl.setAttribute('type', 'application/ld+json');
+      document.head.appendChild(jsonLdEl);
+    }
+
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'Organization',
+          '@id': 'https://MAGEXE1000.github.io/Studio/#organization',
+          'name': 'Mag Studio',
+          'url': 'https://MAGEXE1000.github.io/Studio/',
+          'logo': 'https://MAGEXE1000.github.io/Studio/icon-512.png',
+          'sameAs': [
+            'https://github.com/MAGEXE1000/Studio'
+          ]
+        },
+        {
+          '@type': 'WebApplication',
+          '@id': `https://MAGEXE1000.github.io/Studio/#webapp-${mode}`,
+          'url': `${canonicalBase}${relativePath}`,
+          'name': metadata.title.split(' | ')[0],
+          'applicationCategory': 'MultimediaApplication',
+          'operatingSystem': 'Any',
+          'description': metadata.desc,
+          'browserRequirements': 'Requires JavaScript and HTML5 canvas.',
+          'publisher': {
+            '@id': 'https://MAGEXE1000.github.io/Studio/#organization'
+          }
+        }
+      ]
+    };
+
+    jsonLdEl.textContent = JSON.stringify(structuredData, null, 2);
+  }, [settings.appMode]);
 
   // ── Global back navigation ───────────────────────────────────────────────
   const [exitToast, setExitToast] = useState(false);

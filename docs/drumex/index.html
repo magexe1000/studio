@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drumex — Professional Drum Sheet & Practice Tools | Studio</title>
+  <meta name="description" content="Build Snare drum sheets, practice rudiments with visual indicators, adjust timing and speed, and access interactive practice tools in Drumex.">
+  <meta name="keywords" content="drum sheet and practice tools, drum sheet, drum practice, metronome app, rhythm generator, drum rudiments, musician tools">
+  <link rel="canonical" href="https://MAGEXE1000.github.io/Studio/drumex/" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://MAGEXE1000.github.io/Studio/drumex/" />
+  <meta property="og:title" content="Drumex — Professional Drum Sheet & Practice Tools" />
+  <meta property="og:description" content="Build Snare drum sheets, practice rudiments with visual indicators, adjust timing and speed, and access interactive practice tools in Drumex." />
+  <meta property="og:image" content="https://MAGEXE1000.github.io/Studio/opengraph.jpg" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" href="https://MAGEXE1000.github.io/Studio/drumex/" />
+  <meta property="twitter:title" content="Drumex — Professional Drum Sheet & Practice Tools" />
+  <meta property="twitter:description" content="Build Snare drum sheets, practice rudiments with visual indicators, adjust timing and speed, and access interactive practice tools in Drumex." />
+  <meta property="twitter:image" content="https://MAGEXE1000.github.io/Studio/opengraph.jpg" />
+
+  <!-- Fonts & Material Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Outfit:wght@600;800&family=Material+Symbols+Outlined&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0a0a0c;
+      --surface: rgba(18, 18, 22, 0.7);
+      --border: rgba(128, 128, 128, 0.12);
+      --accent: #ef4444;
+      --accent-glow: rgba(239, 68, 68, 0.15);
+      --text: #e1e1e6;
+      --text-muted: #888896;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Manrope', sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    
+    .glow-bg {
+      position: absolute;
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    header {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .btn-launch {
+      padding: 10px 20px;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, var(--accent), #dc2626);
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .btn-launch:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.45);
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+
+    .tagline {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(32px, 6vw, 48px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 18px;
+    }
+
+    .tagline span {
+      background: linear-gradient(135deg, #f87171, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .description {
+      font-size: clamp(16px, 2.5vw, 18px);
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 32px;
+      font-weight: 500;
+    }
+
+    /* Interactive Vector Screenshot Mockup */
+    .mockup-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 12px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      margin-bottom: 80px;
+      overflow: hidden;
+    }
+
+    .mockup-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding-left: 8px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .dot.red { background: #ff5f56; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #27c93f; }
+
+    .mockup-screen {
+      aspect-ratio: 16/9;
+      background: #0f0f12;
+      border-radius: 12px;
+      display: flex;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    /* Drum editor visualizer */
+    .drum-editor {
+      flex: 1;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-right: 1px solid rgba(255,255,255,0.05);
+      position: relative;
+    }
+
+    .drum-pad-wrapper {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      border: 4px solid var(--accent);
+      background: radial-gradient(circle, rgba(239, 68, 68, 0.05) 0%, transparent 80%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .drum-pad-center {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #fff;
+      opacity: 0.85;
+    }
+
+    .drum-step-grid {
+      display: flex;
+      gap: 6px;
+      margin-top: 24px;
+    }
+
+    .drum-step {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-muted);
+    }
+
+    .drum-step.active {
+      background: var(--accent);
+      border-color: #fff;
+      color: #000;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+    }
+
+    /* Sidebar representation */
+    .drum-sidebar {
+      width: 30%;
+      background: rgba(18, 18, 22, 0.85);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-left: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .sidebar-item {
+      height: 32px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .sidebar-item span {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+
+    /* Features Grid */
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 40px;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 80px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.2s ease;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(239, 68, 68, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: rgba(239, 68, 68, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .feature-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* FAQ Section */
+    .faq-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 80px;
+    }
+
+    details {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+      cursor: pointer;
+    }
+
+    details:last-of-type {
+      border-bottom: none;
+    }
+
+    summary {
+      font-weight: 700;
+      font-size: 16px;
+      color: #fff;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::after {
+      content: '+';
+      font-size: 20px;
+      color: var(--text-muted);
+      transition: transform 0.2s ease;
+    }
+
+    details[open] summary::after {
+      content: '−';
+    }
+
+    details p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+
+    /* Footer call to action */
+    .cta-banner {
+      text-align: center;
+      background: radial-gradient(circle at center, rgba(239, 68, 68, 0.08) 0%, transparent 70%);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px;
+      backdrop-filter: blur(12px);
+    }
+
+    .cta-banner h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    .cta-banner p {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    footer-note {
+      text-align: center;
+      margin-top: 48px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+
+  <!-- Structured Data JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://MAGEXE1000.github.io/Studio/#organization",
+        "name": "Mag Studio",
+        "url": "https://MAGEXE1000.github.io/Studio/",
+        "logo": "https://MAGEXE1000.github.io/Studio/icon-512.png"
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://MAGEXE1000.github.io/Studio/#webapp-drums",
+        "url": "https://MAGEXE1000.github.io/Studio/drumex/",
+        "name": "Drumex — Professional Drum Sheet & Practice Tools",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any",
+        "description": "Build Snare drum sheets, practice rudiments with visual indicators, adjust timing and speed, and access interactive practice tools in Drumex.",
+        "browserRequirements": "Requires JavaScript and HTML5 canvas.",
+        "publisher": {
+          "@id": "https://MAGEXE1000.github.io/Studio/#organization"
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <div class="glow-bg"></div>
+
+  <header>
+    <a href="../" class="brand">
+      <!-- Studio sine wave -->
+      <svg viewBox="0 0 512 512" fill="none">
+        <path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256" stroke="white" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      Studio
+    </a>
+    <a href="../?app=drums" class="btn-launch">Launch App</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1 class="tagline">Interactive <span>Drum Editor</span> & Practice Tools</h1>
+      <p class="description">Drumex is a premium practice engine for drummers. Compose snare drum rudiment sheets, tweak tempos, and practice with high-fidelity feedback.</p>
+      <a href="../?app=drums" class="btn-launch" style="padding: 14px 32px; font-size: 16px;">Launch Drumex Studio</a>
+    </section>
+
+    <!-- Visual Interactive Screenshot Mockup -->
+    <section class="mockup-container">
+      <div class="mockup-header">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="drum-editor">
+          <div class="drum-pad-wrapper">
+            <span class="material-symbols-outlined" style="font-size:36px; color:var(--accent);">album</span>
+          </div>
+          <!-- Simulated rhythm tracker -->
+          <div class="drum-step-grid">
+            <div class="drum-step active">R</div>
+            <div class="drum-step">L</div>
+            <div class="drum-step active">R</div>
+            <div class="drum-step active">R</div>
+            <div class="drum-step">L</div>
+            <div class="drum-step active">R</div>
+            <div class="drum-step">L</div>
+            <div class="drum-step active">L</div>
+          </div>
+        </div>
+        <div class="drum-sidebar">
+          <p class="sidebar-title">Rudiments</p>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">sprint</span>
+            Single Stroke
+          </div>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">sprint</span>
+            Double Stroke
+          </div>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">sprint</span>
+            Paradiddle
+          </div>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">sprint</span>
+            Flam Accent
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section>
+      <h2 class="section-title">Master Your Speed, Precision, and Timing</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">schema</span>
+          </div>
+          <h3>Custom Snare Editor</h3>
+          <p>Compose custom drum sheets with accurate Right/Left (R/L) hands indicators. Hear your grooves played back with ultra-crisp audio samples.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">speed</span>
+          </div>
+          <h3>Ramping Metronome</h3>
+          <p>Tweak BPM, customize timing signatures, and loop complex subdivisions. Set auto-speed-increments to build up muscle memory progressively.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">insights</span>
+          </div>
+          <h3>Visual Practice Coach</h3>
+          <p>Follow a dynamic, fluid visual indicator of drum beats. Ideal for practicing rudiments, rolls, syncopated rhythms, and timing drills.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq-container">
+      <h2 class="section-title" style="margin-bottom: 24px;">Frequently Asked Questions</h2>
+      
+      <details>
+        <summary>What is Drumex?</summary>
+        <p>Drumex is a professional drum sheet builder, rudiment metronome, and visual practice suite built directly inside Studio, dedicated to training rhythm and execution.</p>
+      </details>
+      
+      <details>
+        <summary>Can I import custom rhythm sheets?</summary>
+        <p>You can create, edit, save, and load your custom Snare drum sheet patterns right inside the browser-based editor. All settings store securely on your device.</p>
+      </details>
+
+      <details>
+        <summary>Is the metronome audio precise?</summary>
+        <p>Yes. Drumex utilizes highly precise Web Audio API schedulers rather than standard JS setIntervals, ensuring drift-free, sample-accurate, professional timing.</p>
+      </details>
+    </section>
+
+    <!-- Call to action -->
+    <section class="cta-banner">
+      <h2>Level Up Your Rhythm Practice</h2>
+      <p>Compose drum loops, master paradigms and flams, and lock down your timing with a premium audio studio.</p>
+      <a href="../?app=drums" class="btn-launch" style="padding: 12px 28px;">Open Drumex App</a>
+    </section>
+
+    <p class="footer-note">StudioXX by Mag. All rights reserved.</p>
+  </main>
+</body>
+</html>
