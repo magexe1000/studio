@@ -915,6 +915,15 @@ export default function App() {
   }, [activePanel, durMs]);
 
   const renderExitToast = () => {
+    const isLight = activeVis.theme === 'light' ||
+      (activeVis.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) ||
+      (activeVis.theme === 'dynamic' && (() => {
+        const h = new Date().getHours();
+        const lightStart = settings.dynamicLightStart ?? 7;
+        const lightEnd   = settings.dynamicLightEnd   ?? 20;
+        return h >= lightStart && h < lightEnd;
+      })());
+
     return createPortal(
       <div
         id="exit-toast"
@@ -923,8 +932,8 @@ export default function App() {
           bottom: 'max(28px, calc(env(safe-area-inset-bottom) + 88px))',
           left: '50%',
           transform: 'translateX(-50%)',
-          background: 'rgba(24,24,32,0.93)',
-          color: 'var(--c-text-primary)',
+          background: isLight ? 'rgba(255, 255, 255, 0.90)' : 'rgba(24,24,32,0.93)',
+          color: isLight ? '#1a1a1a' : 'var(--c-text-primary)',
           padding: '10px 22px',
           borderRadius: '24px',
           fontSize: '13px',
@@ -932,7 +941,8 @@ export default function App() {
           zIndex: 99999,
           pointerEvents: 'none',
           backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255,255,255,0.08)',
+          boxShadow: isLight ? '0 8px 24px rgba(0,0,0,0.08)' : '0 8px 24px rgba(0,0,0,0.30)',
           whiteSpace: 'nowrap',
         }}
       >

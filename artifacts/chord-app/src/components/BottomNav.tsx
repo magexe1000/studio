@@ -138,8 +138,8 @@ export default function BottomNav() {
   const isLight  = activeVis.theme === 'light' || (activeVis.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const amoledBg = isLight
     ? activeVis.amoledMode
-      ? 'rgba(255, 255, 255, 0.95)'
-      : 'rgba(255, 255, 255, 0.75)'
+      ? 'rgba(255, 255, 255, 0.92)'
+      : 'rgba(255, 255, 255, 0.65)'
     : activeVis.amoledMode
       ? 'rgba(4,4,4,0.88)'
       : 'rgba(26,26,30,0.72)';

@@ -1729,8 +1729,8 @@ function HubNav({ tab, setTab, accent }: {
   const isLight = hubVis2.theme === 'light' || (hubVis2.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const bg = isLight
     ? hubVis2.amoledMode
-      ? 'rgba(255, 255, 255, 0.95)'
-      : 'rgba(255, 255, 255, 0.75)'
+      ? 'rgba(255, 255, 255, 0.92)'
+      : 'rgba(255, 255, 255, 0.65)'
     : hubVis2.amoledMode
       ? 'rgba(4,4,4,0.88)'
       : 'rgba(26,26,30,0.72)';
