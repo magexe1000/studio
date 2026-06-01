@@ -2,6 +2,8 @@ import { initializeApp, type FirebaseApp } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
+  setPersistence,
+  browserLocalPersistence,
   type Auth,
 } from 'firebase/auth';
 import {
@@ -67,6 +69,9 @@ function init() {
     appId: config.appId!,
   });
   _auth = getAuth(_app);
+  setPersistence(_auth, browserLocalPersistence).catch((err) => {
+    console.warn('[firebase] failed to set auth persistence:', err);
+  });
 
   // Use initializeFirestore (NOT getFirestore) so we can configure two
   // critical things up front:

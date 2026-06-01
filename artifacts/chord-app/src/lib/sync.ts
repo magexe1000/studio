@@ -468,6 +468,19 @@ function snapshotChordex(): string | null { return readLocalRaw(CHORDEX_LS_KEY);
 function snapshotDrumex():  string | null { return readLocalRaw(DRUMEX_LS_KEY); }
 function snapshotDrumexUI(): string | null { return readLocalRaw(DRUMEX_UI_KEY); }
 
+function snapshotProfile(): string | null {
+  if (!currentUser) return null;
+  try {
+    const raw = localStorage.getItem('chordex_user_avatar_v1');
+    if (!raw) return null;
+    const map = JSON.parse(raw);
+    const av = map[currentUser.uid];
+    return av ? JSON.stringify({ avatar: av }) : null;
+  } catch {
+    return null;
+  }
+}
+
 function snapshotStagex(): Promise<StagexSnapshot | null> {
   if (!stageIframe || !stageIframe.contentWindow) {
     const fallback: StagexSnapshot = {};
@@ -643,6 +656,29 @@ function restoreDrumexUI(raw: string) {
   triggerStorageEvent(DRUMEX_UI_KEY);
 }
 
+function restoreProfile(raw: string) {
+  if (!currentUser) return;
+  try {
+    const parsed = JSON.parse(raw);
+    const av = parsed.avatar;
+    if (av) {
+      const existingRaw = localStorage.getItem('chordex_user_avatar_v1');
+      const map = existingRaw ? JSON.parse(existingRaw) : {};
+      if (map[currentUser.uid] !== av) {
+        map[currentUser.uid] = av;
+        localStorage.setItem('chordex_user_avatar_v1', JSON.stringify(map));
+        window.dispatchEvent(
+          new CustomEvent('chordex:user-avatar-changed', {
+            detail: { uid: currentUser.uid, icon: av },
+          }),
+        );
+      }
+    }
+  } catch (err) {
+    console.warn('[sync] failed to restore profile:', err);
+  }
+}
+
 function restoreStagex(snap: StagexSnapshot) {
   for (const k of STAGEX_KEYS) {
     const v = snap[k];
@@ -723,6 +759,7 @@ async function applyCloudBody(app: SyncAppKey, body: unknown, meta: Meta, cloudU
     if (app === 'chordex')       restoreChordex(body);
     else if (app === 'drumex')   restoreDrumex(body);
     else if (app === 'drumexUI') restoreDrumexUI(body);
+    else if (app === 'profile')  restoreProfile(body);
     else return false;
     meta[app] = { lastHash: hashString(body), cloudUpdatedMs };
     return true;
@@ -829,20 +866,21 @@ async function pullApp(
 
 // ── The single run path ──────────────────────────────────────────────────────
 
-const ALL_APPS: SyncAppKey[] = ['chordex', 'drumex', 'drumexUI', 'stagex', 'vocalex-takes', 'vocalex-lab'];
+const ALL_APPS: SyncAppKey[] = ['chordex', 'drumex', 'drumexUI', 'stagex', 'vocalex-takes', 'vocalex-lab', 'profile'];
 
 /**
  * Build the parallel work list for a push run. Skipping no-change
  * apps here keeps Firestore traffic minimal.
  */
 async function collectPushWork(meta: Meta): Promise<Array<{ app: SyncAppKey; raw: string | StagexSnapshot | unknown[] }>> {
-  const [chordex, drumex, drumexUI, stagex, vTakes, vLab] = await Promise.all([
+  const [chordex, drumex, drumexUI, stagex, vTakes, vLab, profile] = await Promise.all([
     Promise.resolve(snapshotChordex()),
     Promise.resolve(snapshotDrumex()),
     Promise.resolve(snapshotDrumexUI()),
     snapshotStagex(),
     snapshotVocalexTakes(),
     snapshotVocalexLab(),
+    Promise.resolve(snapshotProfile()),
   ]);
   const work: Array<{ app: SyncAppKey; raw: string | StagexSnapshot | unknown[] }> = [];
   if (chordex  && hashString(chordex)                      !== meta.chordex?.lastHash)          work.push({ app: 'chordex',       raw: chordex });
@@ -851,6 +889,7 @@ async function collectPushWork(meta: Meta): Promise<Array<{ app: SyncAppKey; raw
   if (stagex   && hashString(JSON.stringify(stagex))       !== meta.stagex?.lastHash)           work.push({ app: 'stagex',        raw: stagex });
   if (vTakes   && hashString(JSON.stringify(vTakes))       !== meta['vocalex-takes']?.lastHash) work.push({ app: 'vocalex-takes', raw: vTakes });
   if (vLab     && hashString(JSON.stringify(vLab))         !== meta['vocalex-lab']?.lastHash)   work.push({ app: 'vocalex-lab',   raw: vLab });
+  if (profile  && hashString(profile)                      !== meta.profile?.lastHash)          work.push({ app: 'profile',       raw: profile });
   return work;
 }
 
@@ -1125,6 +1164,13 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
  */
 function enqueueRun(reason: RunReason, mode: RunMode = 'push-only'): Promise<void> {
   if (!currentUser) return Promise.resolve();
+
+  // If the initial pull has not completed, we MUST force pull-then-push
+  // to avoid overwriting cloud data with empty local defaults.
+  if (!readFirstPullDone(currentUser.uid)) {
+    mode = 'pull-then-push';
+  }
+
   if (runPromise) {
     pendingFollowup = true;
     return runPromise;
@@ -1208,6 +1254,7 @@ let attached = false;
 let onMessage: ((e: MessageEvent) => void) | null = null;
 let onVisibility: (() => void) | null = null;
 let onBeforeUnload: (() => void) | null = null;
+let onAvatarChanged: (() => void) | null = null;
 
 export function attachSyncEngine(): void {
   if (attached) return;
@@ -1218,6 +1265,11 @@ export function attachSyncEngine(): void {
     handleStageMessage(e.data);
   };
   window.addEventListener('message', onMessage);
+
+  onAvatarChanged = () => {
+    requestFlush();
+  };
+  window.addEventListener('chordex:user-avatar-changed', onAvatarChanged);
 
   unsubAuth = subscribeAuth((u) => {
     // Bumping the epoch makes any in-flight run discard its results —
@@ -1247,9 +1299,9 @@ export function attachSyncEngine(): void {
     }
 
     if (u) {
-      void registerDevice(u.uid).then(() => {
-        const db = getFirebaseDb();
-        if (!db || currentUser?.uid !== u.uid) return;
+      void registerDevice(u.uid);
+      const db = getFirebaseDb();
+      if (db) {
         const myId = deviceId();
         const sessionRef = doc(db, 'users', u.uid, 'devices', myId);
         let sessionExisted = false;
@@ -1263,7 +1315,7 @@ export function attachSyncEngine(): void {
             }
           }
         });
-      });
+      }
       // OPTIMISTIC STAMP: if this uid has previously completed a full
       // round-trip on this device (FIRST_PULL_DONE_KEY), assume we're
       // still in sync and show "Synced just now" immediately. This kills
@@ -1343,6 +1395,7 @@ export function detachSyncEngine(): void {
   if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
   if (neverStuckHandle) { clearTimeout(neverStuckHandle); neverStuckHandle = null; }
   if (onMessage) { window.removeEventListener('message', onMessage); onMessage = null; }
+  if (onAvatarChanged) { window.removeEventListener('chordex:user-avatar-changed', onAvatarChanged); onAvatarChanged = null; }
   if (onVisibility) { document.removeEventListener('visibilitychange', onVisibility); onVisibility = null; }
   if (onBeforeUnload) { window.removeEventListener('beforeunload', onBeforeUnload); onBeforeUnload = null; }
   pendingFollowup = false;
