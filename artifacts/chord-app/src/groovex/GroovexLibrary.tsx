@@ -5,6 +5,7 @@ import type { SongMeta } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
 import { useT } from '../lib/useT';
 import { useScrollHide } from '../lib/navScroll';
+import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
 
 export default function GroovexLibrary() {
   const { searchQuery, setSearchQuery, filterArtist, setFilterArtist, filterGenre, setFilterGenre, sortBy, setSortBy, setView, setActiveSong, addRecentSong, recentSongs } = useGroovexStore();
@@ -68,10 +69,12 @@ export default function GroovexLibrary() {
     <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
         <section style={{ paddingTop: 32, marginBottom: 32 }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}>{t.groovex.libraryTitle}</h2>
-          <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0, fontWeight: 600 }}>
-            {t.groovex.sessionsAvailable(SONG_CATALOG.length)}
-          </p>
+          <AnimatedAppHeader
+            title={t.groovex.libraryTitle}
+            subtitle={t.groovex.sessionsAvailable(SONG_CATALOG.length)}
+            titleStyle={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.03em', margin: '0 0 6px', color: 'var(--c-text-primary)' }}
+            subtitleStyle={{ fontSize: 12, color: 'var(--c-text-secondary)', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0, fontWeight: 600 }}
+          />
         </section>
 
         <section style={{ marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -172,10 +175,12 @@ export default function GroovexLibrary() {
                   {group} <span style={{ opacity: 0.5 }}>({songs.length})</span>
                 </p>
               )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {songs.map(song => (
-                  <SongRow key={song.id} song={song} onOpen={() => openSong(song)} />
-                ))}
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <StaggeredReveal staggerInterval={40}>
+                  {songs.map(song => (
+                    <SongRow key={song.id} song={song} onOpen={() => openSong(song)} />
+                  ))}
+                </StaggeredReveal>
               </div>
             </div>
           ))}

@@ -119,7 +119,11 @@ export default function StudioAuthCard({
 
             {/* Continue with Email */}
             <button
-              onClick={() => handleModeChange("email-signin")}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleModeChange("email-signin");
+              }}
               disabled={busy}
               type="button"
               className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer outline-none border active:scale-[0.98]"
@@ -130,7 +134,10 @@ export default function StudioAuthCard({
                 boxShadow: `0 4px 18px color-mix(in srgb, ${accent.to} 25%, transparent)`,
               }}
             >
-              <span className="material-symbols-outlined text-[18px]">mail</span>
+              <svg className="w-[18px] h-[18px] opacity-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2" />
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+              </svg>
               {t.continueEmail}
             </button>
 

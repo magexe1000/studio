@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.0.85';
+export const APP_VERSION = '3.0.95';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-05-31'; // 3.0.85
+export const APP_VERSION_DATE = '2026-05-31'; // 3.0.95
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,19 +53,18 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Back Navigation",
+    heading: "Premium Animations",
     items: [
-      'Vibrant left-edge swipe gestures now work globally across all sub-apps, overlays, and tabs to return to the Hub.',
-      'Profile sheets (Personal Info, Security, Devices, etc.) now close in sequence on back swipe rather than exiting settings.',
-      'Added exit warning toast at the bottom of the Studio Hub on swipe back.',
+      'Bouncy app entry spring animations (scale, opacity, vertical offset) added seamlessly across all 5 apps.',
+      'Matrix-style continuous greeting scramble animation (no dots) that decrypts character-by-character on mount.',
+      'Staggered card and panel list reveals at 60fps for a sleek, progressive loading experience.',
     ],
   },
   {
-    heading: "Visual Sync",
+    heading: "Layout Fixes",
     items: [
-      'Synchronized all cosmic solar intro layers to prevent flashing and stuttering on app load.',
-      'Fixed update modal layout with a clean cloud download icon and repaired button border clipping.',
-      'Spinning update loader rings are now thicker, higher contrast, and colored with active theme accents.',
+      'Restored full flexbox and grid stretching for Chordex Library category buttons, eliminating collapsed blank gaps.',
+      'Harded root application container for Chordex, preventing layout collapse or gray screens on load.',
     ],
   },
 ];
@@ -74,19 +73,18 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Navegación de retroceso",
+    heading: "Animaciones Premium",
     items: [
-      'Los gestos de deslizamiento desde el borde izquierdo ahora funcionan de manera global en todas las sub-aplicaciones, paneles y pestañas para volver al Hub.',
-      'Las hojas de perfil (Información personal, Seguridad, Dispositivos, etc.) ahora se cierran en secuencia al deslizar para volver, en lugar de salir de los ajustes.',
-      'Se agregó un aviso de salida en la parte inferior del Studio Hub al deslizar hacia atrás.',
+      'Animaciones de entrada elásticas y dinámicas (escala, opacidad, desplazamiento vertical) agregadas en las 5 aplicaciones.',
+      'Animación de saludo con cifrado continuo tipo Matrix (sin puntos) que se desencripta carácter por carácter.',
+      'Revelación escalonada de tarjetas y listas a 60fps para una experiencia de carga progresiva y fluida.',
     ],
   },
   {
-    heading: "Ajustes visuales",
+    heading: "Correcciones de Diseño",
     items: [
-      'Se sincronizaron todas las capas de la introducción solar cósmica para evitar parpadeos y retrasos en la carga.',
-      'Se corrigió el diseño del modal de actualización con un ícono limpio de descarga en la nube y se reparó el recorte del borde del botón.',
-      'El anillo giratorio de carga de actualización ahora es más grueso, tiene mayor contraste y está coloreado con los acentos del tema activo.',
+      'Se restauró el estiramiento completo de flexbox y cuadrícula para los botones de la biblioteca Chordex, eliminando espacios vacíos.',
+      'Se fortaleció el contenedor raíz de Chordex, evitando colapsos de diseño o pantallas grises.',
     ],
   },
 ];
@@ -94,19 +92,18 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Zurück-Navigation",
+    heading: "Premium-Animationen",
     items: [
-      'Lebendige Wischgesten vom linken Rand funktionieren jetzt global in allen Sub-Apps, Overlays und Tabs, um zum Hub zurückzukehren.',
-      'Profilseiten (Persönliche Daten, Sicherheit, Geräte usw.) schließen sich jetzt nacheinander beim Zurückwischen, anstatt die Einstellungen zu verlassen.',
-      'Beendigungs-Hinweis-Toast am unteren Rand des Studio Hub beim Zurückwischen hinzugefügt.',
+      'Federnde App-Einstiegsanimationen (Skalierung, Deckkraft, vertikaler Versatz) nahtlos in allen 5 Apps integriert.',
+      'Matrix-ähnliche kontinuierliche Begrüßungs-Verschlüsselungsanimation (ohne Punkte), die sich beim Start entschlüsselt.',
+      'Gestaffelte Karten- und Listenenthüllung bei 60fps für ein elegantes, progressives Ladeerlebnis.',
     ],
   },
   {
-    heading: "UI-Feinschliff",
+    heading: "Layout-Korrekturen",
     items: [
-      'Alle kosmischen Solar-Intro-Ebenen wurden synchronisiert, um Flackern und Ruckeln beim App-Start zu verhindern.',
-      'Layout des Update-Modals mit einem sauberen Cloud-Download-Symbol korrigiert und Button-Rahmen-Clipping behoben.',
-      'Der rotierende Ladekreis für Updates ist jetzt dicker, kontrastreicher und mit den aktiven Themen-Akzenten eingefärbt.',
+      'Vollständige Flexbox- und Grid-Streckung für Chordex-Bibliothek-Kategorie-Schaltflächen wiederhergestellt.',
+      'Chordex-Root-Anwendungscontainer gehärtet, um Layout-Kollaps oder graue Bildschirme beim Laden zu verhindern.',
     ],
   },
 ];

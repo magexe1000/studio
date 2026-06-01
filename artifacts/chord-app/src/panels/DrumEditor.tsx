@@ -28,6 +28,7 @@ import {
 } from '../lib/drumAudio';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import DrumPrefsPanel from './DrumPrefsPanel';
+import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
 import { setBackHandler } from '../lib/backStack';
 import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
@@ -2802,8 +2803,10 @@ export default function DrumEditor() {
         {activeTab === 'songs' && !inEditor && (
           <div onScroll={drumScrollHide} style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }} className="no-scrollbar panel-enter-left">
             <div style={{ padding: '0 20px', marginTop: 12, marginBottom: 24 }}>
-              <h2 style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '2.6rem', color: 'var(--c-text-primary)', letterSpacing: '-0.04em', lineHeight: 1, margin: 0 }}>Beats</h2>
-              <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 13, marginTop: 4, margin: '4px 0 0' }}>Your drum songs</p>
+              <AnimatedAppHeader
+                title="Beats"
+                subtitle="Your drum songs"
+              />
             </div>
             {drumSongs.length === 0 ? (
               <div className="spring-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', margin: '0 20px', background: 'var(--app-surface)', borderRadius: '1.5rem', gap: 16 }}>
@@ -2821,7 +2824,8 @@ export default function DrumEditor() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '0 20px' }}>
-                {drumSongs.map(song => {
+                <StaggeredReveal staggerInterval={40}>
+                  {drumSongs.map(song => {
                   const isDeleting = deletingId === song.id;
                   const isEditing  = editingSong?.id === song.id;
                   const kitLabel   = song.kitType ? KIT_LABEL[song.kitType] : 'No kit';
@@ -2889,6 +2893,7 @@ export default function DrumEditor() {
                     </div>
                   );
                 })}
+                </StaggeredReveal>
               </div>
             )}
           </div>

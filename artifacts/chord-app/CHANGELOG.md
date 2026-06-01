@@ -17,6 +17,13 @@ Conventions:
 
 ---
 
+## 3.0.95
+
+- Bouncy app entry spring animations (opacity, y-offset, scale) across all five sub-apps.
+- Seamless Matrix-style character scrambling greeting text (no dots) that decrypts dynamically on startup.
+- High-performance staggered revealing list items and bouncy spring text headers at 60fps.
+- Restored full stretching grid layouts for category cards in the Chordex library panel.
+
 ## 3.0.76
 
 - Stagex: 46 new full-color illustrated SVG icons for every stage element (mics, drums, instruments, amps, monitors, and utilities).

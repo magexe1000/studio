@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import AppSpinner from './AppSpinner';
 import AnimatedProgressBar from './AnimatedProgressBar';
+import StudioCountUpPercentage from './StudioCountUpPercentage';
 
 const MESSAGES = [
   "Sit tight, we're almost there",
@@ -69,7 +70,6 @@ export default function UpdateLoadingScreen({ progress, accentFrom, accentTo }: 
         <AppSpinner size={52} color={accentFrom} strokeWidth={3} />
       </div>
 
-      {/* Progress percentage */}
       <p style={{
         position: 'relative', zIndex: 1,
         fontFamily: 'Manrope, sans-serif',
@@ -78,7 +78,7 @@ export default function UpdateLoadingScreen({ progress, accentFrom, accentTo }: 
         margin: 0, lineHeight: 1,
         letterSpacing: '-0.03em',
       }}>
-        {pct}<span style={{ fontSize: 16, marginLeft: 2, opacity: 0.7 }}>%</span>
+        <StudioCountUpPercentage value={progress} /><span style={{ fontSize: 16, marginLeft: 2, opacity: 0.7 }}>%</span>
       </p>
 
       {/* Progress bar */}

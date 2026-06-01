@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 
 interface StudioUpdateAuroraBackgroundProps extends React.HTMLProps<HTMLDivElement> {
   children?: React.ReactNode;
@@ -27,60 +26,67 @@ export default function StudioUpdateAuroraBackground({
   }, []);
 
   // Soft purple-blue neutral fallbacks for the aurora color bands
-  const c1 = accentFrom;
-  const c2 = accentTo;
-  const c3 = "var(--app-surface-high, rgba(128,128,128,0.15))";
-  
-  // Custom, dynamically-tinted linear gradient matching the app's visual identity!
-  const auroraStyle: React.CSSProperties = {
-    "--white-gradient": "radial-gradient(circle at 50% 50%, white 30%, transparent 100%)",
-    "--dark-gradient": "radial-gradient(circle at 50% 50%, black 15%, transparent 100%)",
-    "--transparent": "transparent",
-    "--aurora": `repeating-linear-gradient(100deg, ${c1} 0%, ${c2} 8%, ${c3} 15%, ${c1} 22%, ${c2} 30%)`,
-    position: "absolute",
-    inset: "-10px",
-    opacity: 0.38,
-    filter: "blur(50px) saturate(1.4)",
-    willChange: "transform",
-    // Pause animation if the user prefers reduced motion
-    animation: reducedMotion ? "none" : "studio-aurora 36s linear infinite",
-  } as React.CSSProperties;
+  const c1 = accentFrom || "#3b82f6";
+  const c2 = accentTo || "#8b5cf6";
+  const c3 = "var(--app-surface-high, rgba(128,128,128,0.14))";
 
   return (
     <div
-      className={cn(
-        "relative flex flex-col items-center justify-center bg-zinc-950 text-slate-100 overflow-hidden w-full h-full",
-        className
-      )}
+      className={className}
+      style={{
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        width: "100%",
+        height: "100%",
+        background: "var(--app-bg, #0a0a0c)",
+        ...props.style,
+      }}
       {...props}
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Colorful aurora layer */}
         <div
-          className={cn(
-            "absolute inset-0 after:content-[''] after:absolute after:inset-0",
-            "after:[background-image:var(--white-gradient),var(--aurora)] after:[background-size:300%,_200%]",
-            "after:mix-blend-difference dark:after:mix-blend-screen",
-            "[background-image:var(--dark-gradient),var(--aurora)] [background-size:300%,_200%]",
-            showRadialGradient &&
-              "[mask-image:radial-gradient(circle_at_50%_40%,black_30%,transparent_90%)]"
-          )}
-          style={auroraStyle}
+          style={{
+            position: "absolute",
+            inset: "-20%",
+            backgroundImage: `repeating-linear-gradient(100deg, ${c1} 0%, ${c2} 10%, ${c3} 20%, ${c1} 30%, ${c2} 40%)`,
+            backgroundSize: "300% 200%",
+            opacity: 0.42,
+            filter: "blur(60px) saturate(1.5)",
+            willChange: "transform",
+            animation: reducedMotion ? "none" : "studio-aurora 32s linear infinite",
+          }}
         />
+
+        {/* Ambient depth overlay — radial mask blending edges into surface background */}
+        {showRadialGradient && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "radial-gradient(circle at 50% 40%, transparent 25%, var(--app-bg, #0a0a0c) 80%)",
+            }}
+          />
+        )}
       </div>
-      
-      {/* Scope keyframe animations locally so they are fully self-contained */}
+
+      {/* Local keyframe animations for robust standalone compilation */}
       <style>{`
         @keyframes studio-aurora {
           0% {
-            background-position: 0% 50%, 0% 50%;
+            background-position: 0% 50%;
             transform: scale(1) rotate(0deg);
           }
           50% {
-            background-position: 150% 100%, 150% 100%;
-            transform: scale(1.08) rotate(2deg);
+            background-position: 100% 50%;
+            transform: scale(1.08) rotate(2.5deg);
           }
           100% {
-            background-position: 300% 50%, 300% 50%;
+            background-position: 0% 50%;
             transform: scale(1) rotate(0deg);
           }
         }

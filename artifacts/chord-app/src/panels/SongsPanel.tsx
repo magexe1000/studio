@@ -14,6 +14,7 @@ import { useScrollHide, setNavHidden } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { setBackHandler } from '../lib/backStack';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
+import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
 
 /* ──────────────────── PDF EXPORT CONFIG ──────────────────── */
 export interface ExportConfig {
@@ -3465,10 +3466,10 @@ export default function SongsPanel() {
 
       {/* Scrollable list (nav auto-hides here) */}
       <div ref={listScrollRef} className="flex-1 overflow-y-auto no-scrollbar px-5 pb-32">
-        <div style={{ marginTop: '12px', marginBottom: '24px' }}>
-          <h2 style={{ fontFamily: 'Manrope', fontWeight: 900, fontSize: '2.6rem', color: 'var(--c-text-primary)', letterSpacing: '-0.04em', lineHeight: 1 }}>{t.songs.title}</h2>
-          <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '13px', marginTop: '4px' }}>{t.songs.subtitle}</p>
-        </div>
+        <AnimatedAppHeader
+          title={t.songs.title}
+          subtitle={t.songs.subtitle}
+        />
 
         {/* Empty state */}
         {presets.length === 0 && (
@@ -3496,7 +3497,8 @@ export default function SongsPanel() {
 
         {/* Preset list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {presets.map(preset => (
+          <StaggeredReveal staggerInterval={40}>
+            {presets.map(preset => (
             <div key={preset.id} className="card-hover"
               style={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(72,72,72,0.06)' }}>
               {/* Clickable main area */}
@@ -3561,7 +3563,8 @@ export default function SongsPanel() {
                 </button>
               </div>
             </div>
-          ))}
+            ))}
+          </StaggeredReveal>
         </div>
       </div>
 

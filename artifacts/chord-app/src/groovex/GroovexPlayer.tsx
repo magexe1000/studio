@@ -13,6 +13,7 @@ import {
 import { downloadStem, getSongCacheStatus, clearSongCache, type DownloadProgress } from './stemCache';
 import { useT } from '../lib/useT';
 import StudioProgressBar from '../components/StudioProgressBar';
+import StudioCountUpPercentage from '../components/StudioCountUpPercentage';
 
 type PlayerPhase = 'idle' | 'downloading' | 'ready';
 
@@ -485,7 +486,7 @@ export default function GroovexPlayer() {
                   </div>
                 </div>
                 <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--gx-accent)', fontFamily: 'Inter' }}>
-                  {Math.round(overallProgress)}%
+                  <StudioCountUpPercentage value={overallProgress} />%
                 </span>
               </div>
               <StudioProgressBar

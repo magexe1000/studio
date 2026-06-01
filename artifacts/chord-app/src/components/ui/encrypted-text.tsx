@@ -25,6 +25,8 @@ type EncryptedTextProps = {
   revealedClassName?: string;
   /** If true, the animation will only run once per app launch session */
   onlyOnce?: boolean;
+  /** If true, scramble continuously without revealing characters */
+  paused?: boolean;
 };
 
 const DEFAULT_CHARSET =
@@ -60,6 +62,7 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
   encryptedClassName,
   revealedClassName,
   onlyOnce = false,
+  paused = false,
 }) => {
   const ref = useRef<HTMLSpanElement>(null);
   
@@ -70,8 +73,12 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
   // Checks if this specific text has already completed decryption during this launch session
   const alreadyAnimated = onlyOnce && animatedTextsCache.has(text);
 
+  // Track if this instance has finished animating during this mount lifecycle
+  const hasAnimatedRef = useRef(alreadyAnimated);
+  const isAnimated = alreadyAnimated || hasAnimatedRef.current;
+
   const [revealCount, setRevealCount] = useState<number>(() =>
-    alreadyAnimated ? text.length : 0
+    isAnimated ? text.length : 0
   );
 
   const animationFrameRef = useRef<number | null>(null);
@@ -99,7 +106,7 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!isInView || alreadyAnimated) {
+    if (!isInView || isAnimated) {
       if (isInView && onlyOnce) {
         animatedTextsCache.add(text);
       }
@@ -114,23 +121,37 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
     startTimeRef.current = performance.now();
     lastFlipTimeRef.current = startTimeRef.current;
     setRevealCount(0);
-    animatedTextsCache.add(text);
+    if (!paused) {
+      animatedTextsCache.add(text);
+    }
 
     let isCancelled = false;
 
     const update = (now: number) => {
       if (isCancelled) return;
 
-      const elapsedMs = now - startTimeRef.current;
       const totalLength = text.length;
-      const currentRevealCount = Math.min(
-        totalLength,
-        Math.floor(elapsedMs / Math.max(1, revealDelayMs)),
-      );
+      let currentRevealCount = 0;
+
+      if (paused) {
+        // Keep shifting the start time so the elapsed duration stays 0,
+        // but let the character scrambling logic run below continuously.
+        startTimeRef.current = now;
+      } else {
+        const elapsedMs = now - startTimeRef.current;
+        currentRevealCount = Math.min(
+          totalLength,
+          Math.floor(elapsedMs / Math.max(1, revealDelayMs)),
+        );
+      }
 
       setRevealCount(currentRevealCount);
 
-      if (currentRevealCount >= totalLength) {
+      if (!paused && currentRevealCount >= totalLength) {
+        hasAnimatedRef.current = true;
+        if (onlyOnce) {
+          animatedTextsCache.add(text);
+        }
         return;
       }
 
@@ -161,7 +182,7 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isInView, text, revealDelayMs, charset, flipDelayMs, onlyOnce, alreadyAnimated]);
+  }, [isInView, text, revealDelayMs, charset, flipDelayMs, onlyOnce, isAnimated, paused]);
 
   if (!text) return null;
 
@@ -173,7 +194,7 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
       role="text"
     >
       {text.split("").map((char, index) => {
-        const isRevealed = index < revealCount;
+        const isRevealed = isAnimated || index < revealCount;
         const displayChar = isRevealed
           ? char
           : char === " "

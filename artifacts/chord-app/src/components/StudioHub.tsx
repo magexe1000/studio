@@ -182,6 +182,8 @@ function getGreetingPair(name?: string, idx?: number, lang: string = 'en'): Gree
   };
 }
 
+let _sessionIntroFinished = false;
+
 export default function StudioHub() {
   const { settings, updateSettings } = useChordStore();
   const t = useT();
@@ -197,11 +199,31 @@ export default function StudioHub() {
   const [tab, setTab]       = useState<HubTab>('home');
   const [zooming, setZooming] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [successAnimationState, setSuccessAnimationState] = useState<'entering' | 'exiting' | 'hidden'>('hidden');
+  const [successName, setSuccessName] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const lastUserRef = useRef<AuthUser | null>(null);
 
   useScrollHide(scrollRef);
 
-  useEffect(() => subscribeAuth(setAuthUser), []);
+  useEffect(() => {
+    return subscribeAuth((user) => {
+      if (!lastUserRef.current && user) {
+        // Successful login transition!
+        setSuccessName(user.displayName || user.email || 'User');
+        setSuccessAnimationState('entering');
+        setTimeout(() => {
+          setSuccessAnimationState('exiting');
+          setTimeout(() => {
+            setSuccessAnimationState('hidden');
+          }, 450); // wait for exit animation to complete
+        }, 1800); // linger success check for 1.8 seconds
+      }
+      lastUserRef.current = user;
+      setAuthUser(user);
+    });
+  }, []);
 
   useBackHandler('nested', () => {
     if (tab === 'profile') {
@@ -225,15 +247,23 @@ export default function StudioHub() {
   }, []);
 
   const [introFinished, setIntroFinished] = useState(() => {
+    if (_sessionIntroFinished) return true;
     if (typeof document !== 'undefined' && !document.getElementById('intro') && !document.querySelector('[data-solar-intro]')) {
+      _sessionIntroFinished = true;
       return true;
     }
     return false;
   });
 
   useEffect(() => {
-    if (introFinished) return;
-    const handler = () => setIntroFinished(true);
+    if (introFinished) {
+      _sessionIntroFinished = true;
+      return;
+    }
+    const handler = () => {
+      _sessionIntroFinished = true;
+      setIntroFinished(true);
+    };
     window.addEventListener('studio-intro-done', handler, { once: true });
     return () => window.removeEventListener('studio-intro-done', handler);
   }, [introFinished]);
@@ -300,19 +330,14 @@ export default function StudioHub() {
               {/* Welcome header */}
               <div style={{ padding: '22px 22px 18px' }}>
                 <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-                  {introFinished ? (
-                    <EncryptedText
-                      text={greeting}
-                      onlyOnce={true}
-                      revealDelayMs={35}
-                      flipDelayMs={45}
-                      encryptedClassName="text-[var(--accent-from)] opacity-60 font-mono"
-                    />
-                  ) : (
-                    <span className="text-[var(--accent-from)] opacity-60 font-mono">
-                      {greeting.split("").map((c) => (c === " " ? " " : "•")).join("")}
-                    </span>
-                  )}
+                  <EncryptedText
+                    text={greeting}
+                    onlyOnce={false}
+                    paused={!introFinished}
+                    revealDelayMs={35}
+                    flipDelayMs={45}
+                    encryptedClassName="text-[var(--accent-from)] opacity-60 font-mono"
+                  />
                 </p>
                 <p style={{ fontSize: 14, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>
                   {subtitle}
@@ -380,6 +405,17 @@ export default function StudioHub() {
                 </div>
               ) : (
                 <div style={{ padding: '0 20px 80px', animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <StudioFamilyOrbit
+                      items={[
+                        { key: 'chordex', label: 'Chordex', node: <ChordexLogo size={34} /> },
+                        { key: 'drumex',  label: 'Drumex',  node: <DrumexLogo size={34} /> },
+                        { key: 'stagex',  label: 'Stagex',  node: <StagexLogoIcon size={34} /> },
+                        { key: 'groovex', label: 'Groovex', node: <GroovexLogo size={34} /> },
+                        { key: 'vocalex', label: 'Vocalex', node: <VocalexLogo size={34} /> },
+                      ]}
+                    />
+                  </div>
                   <AccountCard
                     accent={accent}
                     cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)', marginBottom: 12 }}
@@ -388,6 +424,92 @@ export default function StudioHub() {
                 </div>
               )}
             </Suspense>
+
+            {/* Premium Login Success Check Overlay */}
+            {successAnimationState !== 'hidden' && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  zIndex: 9999,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(10, 10, 12, 0.72)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  animation: successAnimationState === 'entering'
+                    ? 'success-fade-in-blur 0.4s cubic-bezier(0.16, 1, 0.3, 1) both'
+                    : 'success-fade-out-blur 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+                }}
+              >
+                <style>{`
+                  @keyframes success-fade-in-blur {
+                    from { opacity: 0; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); }
+                    to { opacity: 1; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+                  }
+                  @keyframes success-fade-out-blur {
+                    from { opacity: 1; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); transform: scale(1); }
+                    to { opacity: 0; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); transform: scale(0.95); filter: blur(8px); }
+                  }
+                  @keyframes success-pop {
+                    0% { transform: scale(0.85) translateY(12px); opacity: 0; }
+                    100% { transform: scale(1) translateY(0); opacity: 1; }
+                  }
+                  @keyframes draw-circle {
+                    0% { stroke-dashoffset: 166; }
+                    100% { stroke-dashoffset: 0; }
+                  }
+                  @keyframes draw-check {
+                    0% { stroke-dashoffset: 48; }
+                    100% { stroke-dashoffset: 0; }
+                  }
+                  .success-card {
+                    padding: 36px 28px;
+                    border-radius: 28px;
+                    background: var(--app-surface, rgba(20, 20, 24, 0.8));
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+                    text-align: center;
+                    max-width: 320px;
+                    width: calc(100% - 40px);
+                    animation: success-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+                  }
+                  .success-svg {
+                    width: 72px;
+                    height: 72px;
+                    display: block;
+                    margin: 0 auto 20px;
+                  }
+                  .success-circle {
+                    stroke-dasharray: 166;
+                    stroke-dashoffset: 166;
+                    stroke-linecap: round;
+                    animation: draw-circle 0.65s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+                    animation-delay: 0.05s;
+                  }
+                  .success-check {
+                    stroke-dasharray: 48;
+                    stroke-dashoffset: 48;
+                    animation: draw-check 0.4s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+                    animation-delay: 0.68s;
+                  }
+                `}</style>
+                <div className="success-card">
+                  <svg className="success-svg" viewBox="0 0 52 52" fill="none">
+                    <circle className="success-circle" cx="26" cy="26" r="25" stroke="#10b981" strokeWidth="4" />
+                    <path className="success-check" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                  </svg>
+                  <h3 style={{ margin: '0 0 8px', fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)' }}>
+                    {t.hub.accountSection.signedIn}
+                  </h3>
+                  <p style={{ margin: 0, fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.4, wordBreak: 'break-all' }}>
+                    {successName}
+                  </p>
+                </div>
+              </div>
+            )}
           </>
         )}
 

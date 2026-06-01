@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useT } from '../lib/useT';
 import { setVocalexBack } from './headerBack';
+import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
 
 interface Tip {
   title: string;
@@ -243,23 +244,22 @@ export default function PracticePanel() {
 
   return (
     <div style={{ padding: '16px 20px', minHeight: '100%' }}>
-      <h2 style={{
-        fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 24,
-        color: 'var(--vx-text)', margin: '0 0 6px',
-        animation: 'pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) both',
-      }}>
-        {t.vocalex.tipsTitle}
-      </h2>
-      <p style={{
-        fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-3)',
-        margin: '0 0 28px', lineHeight: 1.5,
-        animation: 'pp-fade-up 400ms cubic-bezier(0.22,1,0.36,1) 60ms both',
-      }}>
-        {t.vocalex.tipsSubtitle}
-      </p>
+      <AnimatedAppHeader
+        title={t.vocalex.tipsTitle}
+        subtitle={t.vocalex.tipsSubtitle}
+        titleStyle={{
+          fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 24,
+          color: 'var(--vx-text)', margin: '0 0 6px',
+        }}
+        subtitleStyle={{
+          fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-3)',
+          margin: '0 0 28px', lineHeight: 1.5,
+        }}
+      />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {sections.map((section, i) => (
+        <StaggeredReveal staggerInterval={40}>
+          {sections.map((section, i) => (
           <div
             key={section.id}
             onClick={() => goToSection(section.id)}
@@ -312,6 +312,7 @@ export default function PracticePanel() {
             </span>
           </div>
         ))}
+        </StaggeredReveal>
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { setBackHandler } from '../lib/backStack';
 import { playChord, stopChordPlayback } from '../lib/guitarAudio';
+import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
 
 // ── Category definitions ──────────────────────────────────────
 const CATEGORIES: {
@@ -592,15 +593,12 @@ export default function LibraryPanel() {
       {(mainTab === 'explore' ? showDefault || showSearch : true) && (
         <div className="flex-none px-5 pb-3">
           {/* Title */}
-          <h2 className="font-extrabold tracking-tighter leading-none mb-3"
-            style={{ fontSize: '2.6rem', color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
-            {mainTab === 'explore' ? t.library.title : t.library.tabDiscover}
-          </h2>
-          <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', marginBottom: '14px' }}>
-            {mainTab === 'explore'
+          <AnimatedAppHeader
+            title={mainTab === 'explore' ? t.library.title : t.library.tabDiscover}
+            subtitle={mainTab === 'explore'
               ? t.library.subtitle
               : (t.library as { discoverSubtitle?: string }).discoverSubtitle ?? 'Real songs, iconic progressions, filtered by genre.'}
-          </p>
+          />
 
           {/* Explore / Discover switcher */}
           <div className="flex mb-4 p-1 rounded-xl gap-1" style={{ background: 'var(--app-surface)' }}>
@@ -694,7 +692,8 @@ export default function LibraryPanel() {
           <div key="default-grid" className="flex flex-col justify-between h-full pb-32 content-enter">
             <div className="flex-1 px-5 py-4">
               <div className="grid grid-cols-2 gap-3">
-                {CATEGORIES.map(cat => (
+                <StaggeredReveal staggerInterval={40}>
+                  {CATEGORIES.map(cat => (
                   <button key={cat.type} data-testid={`category-${cat.type}`}
                     onClick={() => setActiveType(cat.type)}
                     className={`card-hover relative overflow-hidden text-left p-5 ${cat.wide ? 'col-span-2' : ''}`}
@@ -729,8 +728,9 @@ export default function LibraryPanel() {
                     )}
                   </button>
                 ))}
-              </div>
+              </StaggeredReveal>
             </div>
+          </div>
 
             {/* Recent / Favorites strip */}
             {(recentList.length > 0 || favoritesList.length > 0) && (

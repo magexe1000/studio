@@ -8,6 +8,7 @@ import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
 import { handleGlobalBack, hasBackEntries } from './lib/backStack';
 import { initPredictiveBack, applyCssProgress, clearCssProgress } from './lib/predictiveBack';
 import { useStatusBar } from './lib/useStatusBar';
+import { AppEntryTransition } from './components/AppAnimationSystem';
 // Lazy-load StudioHub — it's 1400+ lines and pulls in SettingControls,
 // ApplyToSheet, ChangelogSheet, and all logo variants. Keeping it out of
 // the main bundle saves significant parse+eval time on cold launch.
@@ -792,12 +793,11 @@ export default function App() {
         <div className="app-main-layout" style={{
           position: 'relative', height: '100dvh', overflow: 'hidden',
           background: groovexBgColor,
-          animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
           transform: exitingToHub ? 'scale(1.10)' : undefined,
           opacity:   exitingToHub ? 0 : undefined,
           transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
         }}>
-          <Suspense fallback={null}><GroovexApp /></Suspense>
+          <Suspense fallback={null}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
 
           {groovexSplash !== 'hidden' && (
             <div style={{
@@ -834,12 +834,11 @@ export default function App() {
         <div className="app-main-layout" style={{
           position: 'relative', height: '100dvh', overflow: 'hidden',
           background: vocalexBgColor,
-          animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
           transform: exitingToHub ? 'scale(1.10)' : undefined,
           opacity:   exitingToHub ? 0 : undefined,
           transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
         }}>
-          <Suspense fallback={null}><VocalexApp /></Suspense>
+          <Suspense fallback={null}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
 
           {vocalexSplash !== 'hidden' && (
             <div style={{
@@ -876,12 +875,11 @@ export default function App() {
         <div className="app-main-layout" style={{
           position: 'relative', height: '100dvh', overflow: 'hidden',
           background: stageBgColor,
-          animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
           transform: exitingToHub ? 'scale(1.10)' : undefined,
           opacity:   exitingToHub ? 0 : undefined,
           transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
         }}>
-          <Suspense fallback={null}><StagexPanel /></Suspense>
+          <Suspense fallback={null}><AppEntryTransition><StagexPanel /></AppEntryTransition></Suspense>
 
           {/* Stagex splash — shown when entering from hub */}
           {stageSplash !== 'hidden' && (
@@ -915,12 +913,11 @@ export default function App() {
       <>
         <div className="app-main-layout" style={{
           position: 'relative', height: '100dvh', overflow: 'hidden',
-          animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
           transform: exitingToHub ? 'scale(1.10)' : undefined,
           opacity:   exitingToHub ? 0 : undefined,
           transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
         }}>
-          <Suspense fallback={null}><DrumEditor /></Suspense>
+          <Suspense fallback={null}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense>
 
           {/* Drumex splash — shown when switching from Chordex */}
           {drumSplash !== 'hidden' && (
@@ -950,7 +947,7 @@ export default function App() {
 
   return (
     <>
-      <div
+      <AppEntryTransition
         className="flex flex-col w-full overflow-hidden select-none app-bg app-main-layout"
         style={{
           position: 'relative',
@@ -958,13 +955,11 @@ export default function App() {
           paddingTop: 'env(safe-area-inset-top)',
           '--panel-dur':      `${durMs}ms`,
           '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
-          animation: 'mode-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both',
           transform: exitingToHub ? 'scale(1.10)' : undefined,
           opacity:   exitingToHub ? 0 : undefined,
           transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
         } as React.CSSProperties}
       >
-
         {/* Panel container — only mount visible + exiting panels */}
         <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
           {ALL_PANELS.map(panel => {
@@ -1023,7 +1018,7 @@ export default function App() {
           </div>
         )}
 
-      </div>
+      </AppEntryTransition>
       {exitToast && renderExitToast()}
     </>
   );
