@@ -136,7 +136,7 @@
         .orbiter, #intro-center { opacity: 1 !important; }
       }
     </style>
-    <script type="module" crossorigin src="/Chordex/assets/index-BV7iN8jm.js"></script>
+    <script type="module" crossorigin src="/Chordex/assets/index-CylRc9rg.js"></script>
     <link rel="modulepreload" crossorigin href="/Chordex/assets/capacitor-CWwSkqgv.js">
     <link rel="modulepreload" crossorigin href="/Chordex/assets/react-vendor-DETPMv4k.js">
     <link rel="modulepreload" crossorigin href="/Chordex/assets/zustand-Ci4EvhWN.js">
@@ -259,16 +259,16 @@
         // Speed profile (deg/ms): smooth → dramatic accel → settle
         var BASE_OMEGA   = 360 / 8500;
         var PEAK_OMEGA   = 360 / 900;
-        var ACCEL_START  = 1600;
-        var ACCEL_END    = 2800;
+        var ACCEL_START  = 600;
+        var ACCEL_END    = 1200;
 
         // Settle starts when targets are known AND minimum spin time elapsed.
         // Falls back to t=3000 if React hasn't mounted yet.
-        var SETTLE_DURATION = 1200;  // ms to lerp from orbit → target
-        var FADE_OVERLAP    = 620;   // intro fade starts this many ms before settle ends
-        var FADE_DURATION   = 1100;  // long crossfade so hub reveals gradually
-        var MIN_SPIN_TIME   = 2800;  // don't settle before this
-        var MAX_WAIT_TIME   = 4500;  // hard cap — settle even without targets
+        var SETTLE_DURATION = 1000;  // ms to lerp from orbit → target
+        var FADE_OVERLAP    = 550;   // intro fade starts this many ms before settle ends
+        var FADE_DURATION   = 900;   // long crossfade so hub reveals gradually
+        var MIN_SPIN_TIME   = 1200;  // don't settle before this
+        var MAX_WAIT_TIME   = 2600;  // hard cap — settle even without targets
 
         // Default fallback targets (relative to viewport center) if measurement fails
         function fallbackTargets() {

@@ -1037,7 +1037,9 @@ export default function App() {
     return (
       <>
         <div className="app-main-layout" style={{ animation: 'hub-return-enter 380ms cubic-bezier(0.0, 0.0, 0.2, 1) both', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
-          <StudioHub />
+          <Suspense fallback={null}>
+            <StudioHub />
+          </Suspense>
         </div>
         {exitToast && renderExitToast()}
       </>

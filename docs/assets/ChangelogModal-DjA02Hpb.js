@@ -1,0 +1,1 @@
+import{j as s}from"./react-vendor-DETPMv4k.js";import{u as e}from"./otaUpdate-sENf4_2e.js";import{C as r}from"./ChangelogSheet-BY46vIGA.js";import"./capacitor-CWwSkqgv.js";import"./index-CylRc9rg.js";import"./zustand-Ci4EvhWN.js";function l(){const{show:o,dismiss:t}=e();return s.jsx(r,{open:o,onClose:t})}export{l as default};
