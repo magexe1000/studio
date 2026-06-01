@@ -1,1 +1,0 @@
-import{r as e,j as r}from"./react-vendor-Ba_v5pp2.js";import{C as s}from"./ChangelogSheet-lEK0AOFu.js";import"./index-DD5Gf7hv.js";import"./capacitor-CWwSkqgv.js";import"./zustand-Ck-ysL_r.js";function l(){const[t,o]=e.useState(!0);return r.jsx(s,{open:t,onClose:()=>o(!1)})}export{l as default};
