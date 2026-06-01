@@ -437,6 +437,7 @@ export default function App() {
   // ── Global back navigation & Exit Guard ──────────────────────────────────
   const [exitToast, setExitToast] = useState(false);
   const lastBackTime = useRef(0);
+  const lastBackTriggerTime = useRef(0);
   const exitToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -446,6 +447,13 @@ export default function App() {
     window.history.pushState({ chordex: 'app' }, '');
 
     const onBack = () => {
+      const now = Date.now();
+      if (now - lastBackTriggerTime.current < 120) {
+        // Prevent double-triggering from popstate + backButton event overlap
+        return;
+      }
+      lastBackTriggerTime.current = now;
+
       const handled = handleGlobalBack();
 
       if (!handled) {
@@ -455,14 +463,14 @@ export default function App() {
           triggerBackFeedbackAnimation();
           state.updateSettings({ appMode: 'hub' });
         } else {
-          const now = Date.now();
-          if (now - lastBackTime.current < 1500) {
+          const nowExit = Date.now();
+          if (nowExit - lastBackTime.current < 1500) {
             // Second press within 1.5 s → exit / minimize
             import('@capacitor/app')
               .then(({ App: CapApp }) => CapApp.exitApp())
               .catch(() => {});
           } else {
-            lastBackTime.current = now;
+            lastBackTime.current = nowExit;
             setExitToast(true);
             if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
             exitToastTimer.current = setTimeout(() => setExitToast(false), 2000);
@@ -474,8 +482,17 @@ export default function App() {
       window.history.pushState({ chordex: 'app' }, '');
     };
 
-    // Web: popstate fires when browser / WebView pops history
-    const handlePop = () => onBack();
+    // Web: popstate fires when browser / WebView pops history.
+    // In native platforms, the Capacitor backButton event is the authoritative trigger,
+    // so we skip popstate logic to prevent duplicate executions.
+    const handlePop = () => {
+      const isNative = typeof window !== 'undefined' &&
+        (window as any).Capacitor &&
+        (window as any).Capacitor.isNativePlatform &&
+        (window as any).Capacitor.isNativePlatform();
+      if (isNative) return;
+      onBack();
+    };
     window.addEventListener('popstate', handlePop);
 
     // Native Android: Capacitor's backButton is the authoritative event
