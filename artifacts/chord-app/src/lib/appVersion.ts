@@ -53,11 +53,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Studio Pricing Section",
+    heading: "OTA Update Screen Polish",
     items: [
-      'Implemented the elegant Aceternity "Pricing with header and icons" section in Profile → Subscription & Billing.',
-      'Features 3 premium tiers (Free, Core, Pro) marked as "Coming soon" with disabled locks.',
-      'Includes premium dark glass recommended highlights, Google Material symbol feature lists, and full scroll-safe mobile responsiveness.',
+      'Removed the unwanted circular loader rings/artifacts from the top of the update screen.',
+      'Re-centered and restructured the UI elements into a clean, vertically balanced column.',
+      'Stacked elements in strict logical order: Large Percentage -> Progress Bar -> Rotating Status Message.',
+      'Retained the stunning calming Aurora background fully visible behind the content.',
     ],
   },
 ];
@@ -66,11 +67,12 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Precios de Studio",
+    heading: "Diseño de Pantalla de Actualización",
     items: [
-      'Implementada la sección de precios elástica "Pricing con cabecera e iconos" de Aceternity en Perfil → Suscripción y Facturación.',
-      'Presenta 3 planes premium (Gratis, Core, Pro) marcados como "Próximamente" con candados desactivados.',
-      'Incluye el plan Core recomendado destacado, listas de características con símbolos de Google, y adaptabilidad móvil.',
+      'Eliminados los anillos/artefactos de carga circulares de la parte superior de la pantalla.',
+      'Se re-centró y reestructuró la interfaz en una columna limpia y equilibrada.',
+      'Elementos organizados en orden vertical estricto: Porcentaje Grande -> Barra de Progreso -> Mensaje Rotativo.',
+      'Se mantuvo el hermoso fondo Aurora animado totalmente visible detrás del contenido.',
     ],
   },
 ];
@@ -78,11 +80,12 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Studio-Preise",
+    heading: "OTA-Update-Bildschirm verfeinert",
     items: [
-      'Die elegante Aceternity-Preissektion "Pricing mit Header und Icons" wurde unter Profil → Abonnement & Abrechnung implementiert.',
-      'Bietet 3 Premium-Tarife (Free, Core, Pro), die als "Coming soon" mit gesperrten CTAs gekennzeichnet sind.',
-      'Inklusive premium hervorgehobenem Core-Plan, Google Material-Symbolen in Feature-Listen und voller mobiler Responsivität.',
+      'Unerwünschte kreisförmige Laderinge/-artefakte wurden oben vom Update-Bildschirm entfernt.',
+      'Die Benutzeroberfläche wurde in einer sauberen, vertikal ausgewogenen Spalte zentriert und neu strukturiert.',
+      'Elemente in streng logischer Reihenfolge angeordnet: Großer Prozentsatz -> Fortschrittsbalken -> Rotierende Statusmeldung.',
+      'Der atemberaubende, beruhigende Aurora-Hintergrund bleibt vollständig hinter dem Inhalt sichtbar.',
     ],
   },
 ];

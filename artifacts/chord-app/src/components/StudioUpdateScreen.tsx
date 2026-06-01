@@ -118,151 +118,72 @@ export default function StudioUpdateScreen({
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 32,
+            gap: 20,
             padding: '0 36px',
             width: '100%',
             maxWidth: 360,
             margin: '0 auto',
+            textAlign: 'center',
           }}
         >
-        {/* ── Loader: theme-aware rings, 210×210 ── */}
-        <motion.div
-          style={{ position: 'relative', width: 210, height: 210, flexShrink: 0 }}
-          animate={{ scale: [1, 1.012, 1] }}
-          transition={{ duration: 4.5, repeat: Infinity, ease: [0.4, 0, 0.6, 1] }}
-        >
-          {/* Ring 1 — outermost thick, fast */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '50%',
-              background: `conic-gradient(from 0deg, transparent 0deg, ${ringAlpha1(0.95)} 90deg, transparent 180deg)`,
-              mask: 'radial-gradient(circle at 50% 50%, transparent 31%, black 33%, black 39%, transparent 41%)',
-              WebkitMask:
-                'radial-gradient(circle at 50% 50%, transparent 31%, black 33%, black 39%, transparent 41%)',
-              willChange: 'transform',
-            }}
-            animate={{ rotate: [0, 360] }}
-            transition={{ duration: 2.8, repeat: Infinity, ease: 'linear' }}
-          />
-
-          {/* Ring 2 — primary wide, medium */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '50%',
-              background: `conic-gradient(from 0deg, transparent 0deg, ${ringAlpha2(1)} 120deg, ${ringAlpha2(0.5)} 240deg, transparent 360deg)`,
-              mask: 'radial-gradient(circle at 50% 50%, transparent 39%, black 41%, black 49%, transparent 51%)',
-              WebkitMask:
-                'radial-gradient(circle at 50% 50%, transparent 39%, black 41%, black 49%, transparent 51%)',
-              willChange: 'transform',
-            }}
-            animate={{ rotate: [0, 360] }}
-            transition={{ duration: 2.4, repeat: Infinity, ease: [0.4, 0, 0.6, 1] }}
-          />
-
-          {/* Ring 3 — counter-rotating, slow, dim */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '50%',
-              background: `conic-gradient(from 180deg, transparent 0deg, ${ringAlpha1(0.6)} 45deg, transparent 90deg)`,
-              mask: 'radial-gradient(circle at 50% 50%, transparent 49%, black 51%, black 59%, transparent 61%)',
-              WebkitMask:
-                'radial-gradient(circle at 50% 50%, transparent 49%, black 51%, black 59%, transparent 61%)',
-              willChange: 'transform',
-            }}
-            animate={{ rotate: [0, -360] }}
-            transition={{ duration: 4.2, repeat: Infinity, ease: [0.4, 0, 0.6, 1] }}
-          />
-
-          {/* Ring 4 — tiny dot arc, outermost */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '50%',
-              background: `conic-gradient(from 270deg, transparent 0deg, ${ringAlpha2(0.65)} 20deg, transparent 40deg)`,
-              mask: 'radial-gradient(circle at 50% 50%, transparent 59%, black 61%, black 66%, transparent 68%)',
-              WebkitMask:
-                'radial-gradient(circle at 50% 50%, transparent 59%, black 61%, black 66%, transparent 68%)',
-              willChange: 'transform',
-            }}
-            animate={{ rotate: [0, 360] }}
-            transition={{ duration: 3.6, repeat: Infinity, ease: 'linear' }}
-          />
-
-          {/* Progress % — centered inside rings */}
+          {/* ── Percentage: large, bold, centered ── */}
           <div
             style={{
-              position: 'absolute',
-              inset: 0,
               display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
+              alignItems: 'baseline',
               justifyContent: 'center',
-              gap: 2,
+              fontFamily: 'Manrope, sans-serif',
+              fontWeight: 900,
+              fontSize: '5.2rem',
+              lineHeight: 1,
+              letterSpacing: '-0.04em',
+              color: 'var(--c-text-primary)',
             }}
           >
+            <StudioCountUpPercentage value={progress} />
             <span
               style={{
                 fontFamily: 'Manrope, sans-serif',
                 fontWeight: 800,
-                fontSize: 42,
-                lineHeight: 1,
-                letterSpacing: '-0.04em',
-                color: 'var(--c-text-primary)',
-              }}
-            >
-              <StudioCountUpPercentage value={progress} />
-            </span>
-            <span
-              style={{
-                fontFamily: 'Manrope, sans-serif',
-                fontWeight: 700,
-                fontSize: 13,
-                letterSpacing: '0.04em',
-                color: 'var(--c-text-primary)',
-                opacity: 0.55,
+                fontSize: '2.4rem',
+                opacity: 0.8,
+                marginLeft: 2,
               }}
             >
               %
             </span>
           </div>
-        </motion.div>
 
-        {/* Progress bar — accent-colored, full width */}
-        <div style={{ width: '100%' }}>
-          <StudioProgressBar
-            value={progress * 100}
-            accentFrom={accentFrom}
-            accentTo={accentTo}
-            height={4}
-          />
+          {/* ── Progress bar ── */}
+          <div style={{ width: '100%', marginTop: 4, marginBottom: 4 }}>
+            <StudioProgressBar
+              value={progress * 100}
+              accentFrom={accentFrom}
+              accentTo={accentTo}
+              height={6}
+            />
+          </div>
+
+          {/* ── Status message ── */}
+          <motion.p
+            key={displayMsg}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
+            style={{
+              margin: 0,
+              fontFamily: 'Manrope, sans-serif',
+              fontWeight: 700,
+              fontSize: 16,
+              color: 'var(--c-text-primary)',
+              textAlign: 'center',
+              letterSpacing: '-0.015em',
+              opacity: 0.9,
+            }}
+          >
+            {displayMsg}
+          </motion.p>
         </div>
-
-        {/* Status message — cycles through shuffled pool, then done message */}
-        <motion.p
-          key={displayMsg}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
-          style={{
-            margin: 0,
-            fontFamily: 'Manrope, sans-serif',
-            fontWeight: 700,
-            fontSize: 16,
-            color: 'var(--c-text-primary)',
-            textAlign: 'center',
-            letterSpacing: '-0.015em',
-          }}
-        >
-          {displayMsg}
-        </motion.p>
-      </div>
       </StudioUpdateAuroraBackground>
     </div>
   );

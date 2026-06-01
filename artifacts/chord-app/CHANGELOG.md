@@ -17,6 +17,13 @@ Conventions:
 
 ---
 
+## 3.1.1
+
+- OTA Update Layout Restructured: Completely removed the large rotating conic-gradient circular loader rings from the top of the update screen, cleaning up the visual presentation.
+- Vertically Re-Centered Column: Redesigned the update screen to be vertically balanced, centering all elements perfectly on tall phones, small screens, and WebViews.
+- Logically Ordered Elements: Aligned interface layers in strict logical order (Large Percentage -> Progress Bar -> Rotating Status Message) with premium spacing and a 6px thicker progress line.
+- Intact Aurora Background: Retained the gorgeous calming Aurora animation fully visible behind the text and progress bar during downloads.
+
 ## 3.1.0
 
 - Studio Pricing Section: Implemented the premium Aceternity "Pricing with header and icons" block in Profile → Subscription & Billing, showing Free, Core, and Pro tiers with checklist bullet points and disabled lock CTAs.
