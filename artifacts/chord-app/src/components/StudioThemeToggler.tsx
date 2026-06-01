@@ -172,10 +172,9 @@ export default function StudioThemeToggler({
 
     const vw = window.visualViewport?.width  ?? window.innerWidth;
     const vh = window.visualViewport?.height ?? window.innerHeight;
-    const { top, left, width, height } = btn.getBoundingClientRect();
-    const cx = left + width  / 2;
-    const cy = top  + height / 2;
-    const maxR = Math.hypot(Math.max(cx, vw - cx), Math.max(cy, vh - cy));
+    const cx = vw / 2;
+    const cy = vh / 2;
+    const maxR = Math.hypot(cx, cy);
 
     const [clipFrom, clipTo] = getClipPaths(variant, cx, cy, maxR, vw, vh);
 

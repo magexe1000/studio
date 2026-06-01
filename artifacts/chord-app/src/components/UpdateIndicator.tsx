@@ -614,13 +614,15 @@ function UpdateModal({
                   type="button"
                   onClick={onLater}
                   style={{
-                    flex: 1, padding: '11px 14px', borderRadius: 12,
+                    flex: 1, height: 42, borderRadius: 12,
                     background: 'transparent',
                     border: '1px solid rgba(128,128,128,0.22)',
                     color: 'var(--c-text-secondary)',
                     fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
                     cursor: 'pointer',
                     WebkitTapHighlightColor: 'transparent',
+                    display: 'flex', alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
                   Remind me later
@@ -628,11 +630,11 @@ function UpdateModal({
                 <AnimatedActionButton
                   type="button"
                   onClick={handleReload}
-                  wrapStyle={{ flex: 2 }}
+                  wrapStyle={{ flex: 2, height: 42 }}
                   borderRadius={12}
                   trailColor={accentTo}
                   style={{
-                    padding: '11px 14px',
+                    height: '100%',
                     background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
                     border: 'none', color: 'white',
                     fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,

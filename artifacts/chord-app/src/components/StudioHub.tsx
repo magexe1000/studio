@@ -904,6 +904,15 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
   const [pageKey, setPageKey] = useState(0);
   const [slideDir, setSlideDir] = useState<'forward' | 'back'>('forward');
 
+  const [customPhoto, setCustomPhoto] = useState<string | null>(null);
+  useEffect(() => {
+    if (!authUser?.uid) { setCustomPhoto(null); return; }
+    try {
+      const stored = localStorage.getItem(`chordex_cp_${authUser.uid}`);
+      setCustomPhoto(stored || null);
+    } catch { setCustomPhoto(null); }
+  }, [authUser?.uid]);
+
   const hubVis: PerAppVisuals = settings.perApp?.hub ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
   const [pending, setPending] = useState<Partial<PerAppVisuals> | null>(null);
   const [showSheet, setShowSheet] = useState(false);
@@ -1338,7 +1347,7 @@ function HubSettings({ accent, scrollRef, authUser, onProfile }: { accent: { fro
       {(() => {
         const name    = authUser?.displayName || authUser?.email || '';
         const email   = authUser?.email || '';
-        const photo   = authUser?.photoURL;
+        const photo   = customPhoto || authUser?.photoURL;
         const initial = (name[0] ?? 'S').toUpperCase();
         const hasUser = !!authUser;
         return (
