@@ -17,7 +17,7 @@ Conventions:
 
 ---
 
-## 3.1.5
+## 3.1.6
 
 - Fixed Broken Icons: Replaced all Material Symbol font glyphs in Privacy & Data with native inline SVGs — icons now render instantly with zero font-loading failures.
 - Official Brand Icons: Connected Services section now shows real Google, Dropbox, OneDrive, and GitHub logos instead of generic placeholders.
