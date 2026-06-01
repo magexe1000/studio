@@ -657,10 +657,10 @@ export default function App() {
   // Show/hide the nav based on panel and preset state.
   // Hidden (and locked so scroll can't override) only when inside the preset editor.
   useEffect(() => {
-    const inPreset = !!(activePresetId && visiblePanel === 'songs');
+    const inPreset = !!(activePresetId && activePanel === 'songs');
     setNavLocked(inPreset);
     setNavHidden(inPreset);
-  }, [activePresetId, visiblePanel]);
+  }, [activePresetId, activePanel]);
 
   // Apply CSS vars for accent color (re-runs when appMode or per-app accent changes)
   // Wrap in the same theme-transitioning class so every element cross-fades to the
@@ -1163,27 +1163,19 @@ export default function App() {
           transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
         } as React.CSSProperties}
       >
-        {/* Panel container — only mount visible + exiting panels */}
+        {/* Panel container — mount only the active panel instantly */}
         <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
           {ALL_PANELS.map(panel => {
-            const isVisible  = visiblePanel === panel;
-            const isExiting  = exitingPanel === panel;
-            if (!isVisible && !isExiting) return null;
-            const isEntering = isVisible && exitingPanel !== null;
-
-            let animClass = '';
-            if (isEntering) animClass = slideDir === 'right' ? 'panel-enter-right' : 'panel-enter-left';
-            else if (isExiting) animClass = slideDir === 'right' ? 'panel-exit-left' : 'panel-exit-right';
+            const isVisible = activePanel === panel;
+            if (!isVisible) return null;
 
             return (
               <div
                 key={panel}
-                className={animClass}
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  opacity: isExiting && !animClass ? 0 : undefined,
-                  pointerEvents: isVisible && !isExiting ? 'auto' : 'none',
+                  pointerEvents: 'auto',
                   contain: 'layout style paint',
                 }}
               >

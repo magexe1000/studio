@@ -151,10 +151,10 @@ export default function BottomNav() {
   // setting is off or the platform isn't supported).
   useLiquidGlassNav(navRef);
 
-  // Fixed nav height — matches the button content (8+22+4+10+8 = 52px) plus
-  // the inner wrapper's 6px top/bottom padding, totalling exactly 64px.
-  // Dynamic measurement introduced a race condition and was always 64 anyway.
-  const NAV_HEIGHT_PX = 64;
+  // Fixed nav height — matches the button content (6+22+3+9+6 = 46px) plus
+  // the inner wrapper's 4px top/bottom padding, totalling exactly 54px.
+  // Dynamic measurement introduced a race condition and was always 56 anyway.
+  const NAV_HEIGHT_PX = 56;
   const [expandedW, setExpandedW] = useState(350);
   useEffect(() => {
     if (navRef.current) setExpandedW(navRef.current.offsetWidth);
@@ -231,8 +231,8 @@ export default function BottomNav() {
       style={{
         bottom: 'var(--nav-safe-bottom)',
         left: '50%',
-        width: '90%',
-        maxWidth: '28rem',
+        width: '88%',
+        maxWidth: '360px',
         height: `${NAV_HEIGHT_PX}px`,
         borderRadius: '2rem',
         border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
@@ -264,7 +264,7 @@ export default function BottomNav() {
       <div style={{
         position: 'absolute', inset: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-        padding: '6px 8px',
+        padding: '4px 6px',
         opacity: navCollapsed ? 0 : 1,
         transition: navCollapsed ? 'opacity 100ms ease' : 'opacity 350ms ease 180ms',
         willChange: 'opacity',
@@ -315,8 +315,8 @@ export default function BottomNav() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '4px',
-              padding: '8px 4px',
+              gap: '3px',
+              padding: '6px 4px',
               borderRadius: '9999px',
               background: 'transparent',
               border: 'none',
@@ -336,7 +336,7 @@ export default function BottomNav() {
             <span style={{
               fontFamily: 'Manrope, sans-serif',
               fontWeight: 700,
-              fontSize: '9.5px',
+              fontSize: '9px',
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
               lineHeight: 1,
