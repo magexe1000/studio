@@ -73,9 +73,9 @@ jobs:
         run: pnpm --filter @workspace/chord-app run release:gh-pages
 
       - name: Read built version
-         id: version
-         if: steps.gate.outputs.skip != 'true'
-         run: echo "version=$(node -p "require('./docs/version.json').version")" >> "$GITHUB_OUTPUT"
+        id: version
+        if: steps.gate.outputs.skip != 'true'
+        run: echo "version=$(node -p "require('./docs/version.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Commit and push docs/
         if: steps.gate.outputs.skip != 'true'
