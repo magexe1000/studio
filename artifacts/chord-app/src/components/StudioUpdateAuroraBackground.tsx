@@ -92,7 +92,18 @@ export default function StudioUpdateAuroraBackground({
         }
       `}</style>
 
-      <div style={{ position: "relative", zIndex: 2, width: "100%", height: "100%" }}>
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         {children}
       </div>
     </div>
