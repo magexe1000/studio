@@ -13,6 +13,7 @@ import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import StudioTitleReveal from './StudioTitleReveal';
+import { EncryptedText } from './ui/encrypted-text';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import ProfileDropdown from './kokonutui/profile-dropdown';
 
@@ -285,7 +286,13 @@ export default function StudioHub() {
               {/* Welcome header */}
               <div style={{ padding: '22px 22px 18px' }}>
                 <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-                  {greeting}
+                  <EncryptedText
+                    text={greeting}
+                    onlyOnce={true}
+                    revealDelayMs={35}
+                    flipDelayMs={45}
+                    encryptedClassName="text-[var(--accent-from)] opacity-60 font-mono"
+                  />
                 </p>
                 <p style={{ fontSize: 14, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>
                   {subtitle}
