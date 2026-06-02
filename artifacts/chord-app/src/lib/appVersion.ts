@@ -53,26 +53,17 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Device Permissions",
+    heading: "Vocalex Permissions",
     items: [
-      'Startup Permissions Prompt: Beautiful glassmorphic modal asking for Microphone and Notifications permission on startup if they aren\'t already granted, ensuring smooth integration with modern browser User Gesture security policies.',
+      'WebView Permission Bypass: Automatically auto-grant WebView permission requests for WebRTC microphone streams, resolving cached site-level locks when OS permissions are active.',
     ],
   },
   {
-    heading: "Subscription & Security",
+    heading: "Direct APK Upgrades",
     items: [
-      'UID-Based Access Control: Absolute administration bypass granted strictly via static Firebase UID lists.',
-      'Real-Time Profile Listeners: Installed a real-time onSnapshot listener synced with Google servers to prevent client manipulation.',
-      'Developer Details Card: Check your active UID, provider, dynamic badge, and copy your UID instantly with a success toast.',
-      'Interactive Pricing Tier: Choose between Free, Core, and Pro levels with dynamic billing tier highlighting and Coming Soon checkouts.',
-    ],
-  },
-  {
-    heading: "Visual Updates & FAQ",
-    items: [
-      'FAQ Symbol Fix: Resolved the text-fallback bug where the Help & FAQ accordion icon rendered the raw word "HELP".',
-      'Auto-Update Startup Checker: Forced OTA updates check to run immediately on startup, bypassing toggles on launch so updates are always detected automatically.',
-      'Full Material Symbols Load: Swapped out the fragile, extremely long subsetted font URL with the full robust CDN reference, permanently fixing plain-text overlapping icon bugs across the entire app.',
+      'In-App Direct Downloader: Added a clean warning card and button to download and install native APK updates directly from your settings panel when running an outdated shell.',
+      'Split Updater Layout: Segregated Over-the-Air (OTA) interface updates and App System Wrapper (APK) updates into explicit sections with clear descriptions detailing their differences.',
+      'Download Progress Feedback: Added immediate visual timer feedback (1% to 15%) during downloader network handshakes to prevent the page from appearing stuck at 0%.',
     ],
   },
 ];
@@ -81,26 +72,17 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Permisos de Dispositivo",
+    heading: "Permisos de Vocalex",
     items: [
-      'Solicitud de Permisos al Inicio: Hermosa ventana modal que solicita permisos de Micrófono y Notificaciones al abrir la app si aún no se han concedido, asegurando un inicio sin bloqueos en navegadores modernos.',
+      'Bypass de Permisos en WebView: Concesión automática de solicitudes de micrófono para transmisiones WebRTC, resolviendo bloqueos de sitio en caché cuando el permiso del SO está activo.',
     ],
   },
   {
-    heading: "Suscripción y Seguridad",
+    heading: "Actualizaciones Directas de APK",
     items: [
-      'Control de Acceso UID: Omisión total de límites de facturación mediante listas estáticas de UID de Firebase.',
-      'Sincronización en Tiempo Real: Se agregó un oyente Firestore onSnapshot directo para evitar alteración local.',
-      'Detalles de Desarrollador: Visualiza tu UID activo, rol y proveedor con copiado rápido y toast de confirmación.',
-      'Tarifas Interactivas: Elige entre planes Gratis, Core y Pro con resaltado de plan activo y alertas interactivas.',
-    ],
-  },
-  {
-    heading: "Diseño y FAQ",
-    items: [
-      'Icono de FAQ Reparado: Se corrigió el error visual donde el icono de Ayuda y FAQ se dibujaba como la palabra "HELP".',
-      'Detector de Actualizaciones al Inicio: Se forzó el chequeo de actualizaciones al abrir la app para que siempre se busquen de forma automática.',
-      'Carga Completa de Material Symbols: Se reemplazó la URL de fuentes optimizada por la referencia completa de la CDN para solucionar de forma permanente los textos superpuestos en todos los iconos.',
+      'Instalador Directo en la App: Se agregó una sección con advertencia y botón para descargar e instalar actualizaciones de APK nativas directamente desde el panel de ajustes.',
+      'Diseño de Actualizador Dividido: Se separaron las actualizaciones OTA de interfaz y las actualizaciones de APK de sistema en secciones explícitas con descripciones detalladas.',
+      'Progreso Inmediato de Descarga: Se implementó un indicador de progreso de carga inicial (1% a 15%) para evitar la apariencia de pantalla congelada en 0% durante la conexión.',
     ],
   },
 ];
@@ -108,26 +90,17 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Geräteberechtigungen",
+    heading: "Vocalex-Berechtigungen",
     items: [
-      'Berechtigungsabfrage beim Start: Elegantes Berechtigungs-Modal für Mikrofon und Benachrichtigungen, das beim App-Start angezeigt wird, falls diese noch nicht erteilt wurden, um Blockierungen durch Sicherheitsrichtlinien moderner Browser zu verhindern.',
+      'WebView-Berechtigungsumgehung: Automatische Freigabe von WebView-Mikrofonabfragen für WebRTC, um dauerhafte Blockierungen bei aktiven Betriebssystemberechtigungen zu beheben.',
     ],
   },
   {
-    heading: "Abonnements & Sicherheit",
+    heading: "Direkte APK-Upgrades",
     items: [
-      'UID-Zugriffskontrolle: Vollständiger Administrator-Bypass basierend auf statischen Firebase-UID-Listen.',
-      'Echtzeit-Profil-Listener: Firestore onSnapshot-Verbindung zur direkten Validierung der Benutzerberechtigungen.',
-      'Entwickler-Details: UID, E-Mail-Adresse und Berechtigungsrolle einsehen sowie UID direkt per Fingertipp kopieren.',
-      'Interaktive Tarife: Wahlweise Free, Core und Pro Pläne mit Live-Highlighting und Benachrichtigung bei Upgrades.',
-    ],
-  },
-  {
-    heading: "FAQ & Design-Korrekturen",
-    items: [
-      'FAQ-Symbol Behoben: Render-Bug gelöst, bei dem das Akkordeon-Symbol fälschlicherweise als Text "HELP" gezeichnet wurde.',
-      'Auto-Update beim Start: Das Suchen nach OTA-Updates wird nun sofort beim App-Start erzwungen, damit Updates immer direkt erkannt werden.',
-      'Vollständiger Material Symbols-Import: Fragile, überlange optimierte Font-URL durch die vollständige, robuste CDN-Referenz ersetzt, um fehlerhafte Textdarstellungen bei allen Icons dauerhaft zu beheben.',
+      'Direkter In-App-Downloader: Warnkarte und Schaltfläche zum direkten Herunterladen und Installieren nativer APK-Updates aus dem Einstellungsfenster bei veraltetem App-Wrapper.',
+      'Getrenntes Updater-Layout: Explizite Trennung von Over-the-Air (OTA) Interface-Updates und App System Wrapper (APK) Updates mit klaren Beschreibungen der Unterschiede.',
+      'Download-Fortschrittsanzeige: Sofortige Fortschrittsanzeige (1% bis 15%) während der Netzwerkverbindung, damit die Anzeige beim Downloadstart nicht bei 0% einfriert.',
     ],
   },
 ];
