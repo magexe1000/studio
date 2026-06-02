@@ -1,9 +1,9 @@
 {
-  "created_at": "2026-06-02T23:33:57.147Z",
+  "created_at": "2026-06-02T23:42:57.309Z",
   "version": "3.2.4",
   "description": "Version 3.2.4",
   "download_url": "https://github.com/MAGEXE1000/Studio/releases/download/v3.2.4/Studio-3.2.4.apk",
   "signature_download_url": "",
-  "sha256": "c57ac1939f44a0ea52e5b9c54ec49c8daf3e9c1b10b6c2803b04809dae783d05",
+  "sha256": "3196eab3ca790faf5a24724c2660c32bdd7dc4cb5fe6bf1f03d3ac1b479d36e0",
   "update_type": "both"
 }
