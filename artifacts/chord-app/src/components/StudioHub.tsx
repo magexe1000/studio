@@ -702,7 +702,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater';
+type SettingsPageId = 'main' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'help';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -1291,6 +1291,19 @@ function HubSettings({
     animation: `${slideAnim} 300ms cubic-bezier(0.25,0.46,0.45,0.94) both`,
   };
 
+  /* ── HELP & FAQ ─────────────────────────────────────────────────── */
+  if (page === 'help') {
+    return (
+      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+        <style>{HUB_SETTINGS_CSS}</style>
+        <SettingsSubHeader title="Help & FAQ" onBack={goBack} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+          <HelpAccordion accent={accent} lang={lang} />
+        </div>
+      </div>
+    );
+  }
+
   /* ── APPEARANCE ─────────────────────────────────────────────────── */
   if (page === 'appearance') {
     return (
@@ -1718,6 +1731,12 @@ function HubSettings({
 
 
 
+      {/* Help & Support */}
+      <SettingsSectionLabel delay={150}>Help & Support</SettingsSectionLabel>
+      <div style={cardStyle}>
+        <SettingsNavRow icon="help" iconColor={accent.from} title="Help & FAQ" desc="Frequently asked questions and solutions" onPress={() => navigate('help')} last delay={160} />
+      </div>
+
       {/* System & About */}
       <SettingsSectionLabel delay={200}>{(t.hub as { studioSettings?: { systemAbout?: string } }).studioSettings?.systemAbout ?? 'System & About'}</SettingsSectionLabel>
       <div style={cardStyle}>
@@ -1950,5 +1969,166 @@ function HubNav({ tab, setTab, accent }: {
       })}
       </div>
     </nav>
+  );
+}
+
+/* ── HELP ACCORDION ───────────────────────────────────────────────── */
+interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+const FAQ_ITEMS: Record<string, FAQItem[]> = {
+  en: [
+    {
+      question: "How do OTA updates work?",
+      answer: "Studio automatically checks for updates in the background on launch. When an update is detected, a banner drops down at the top of the Hub with an option to install immediately or remind you later."
+    },
+    {
+      question: "What is Performance Mode?",
+      answer: "Performance Mode disables expensive real-time visual effects, such as blur filters and heavy GPU animations, to prioritize battery life and maximize responsiveness on older devices. You can toggle this in the Appearance preferences."
+    },
+    {
+      question: "How do I backup my songs and kits?",
+      answer: "All your songs in Chordex and custom kits in Drumex are automatically synced and backed up to your account securely. Simply sign in from the Account page to sync data across all your devices."
+    },
+    {
+      question: "Why is there no sound in Drumex?",
+      answer: "Ensure your device's media volume is turned up and that silent mode is disabled. If you are on the web, click the screen to enable browser audio context permissions."
+    },
+    {
+      question: "How do I connect external MIDI devices?",
+      answer: "Studio supports standard MIDI-over-USB and Bluetooth MIDI devices. Connect your controller, and it will be auto-detected in Drumex and Stagex for real-time play."
+    }
+  ],
+  es: [
+    {
+      question: "¿Cómo funcionan las actualizaciones OTA?",
+      answer: "Studio busca actualizaciones automáticamente en segundo plano al iniciar. Cuando se detecta una actualización, aparece un banner en la parte superior con la opción de instalarla inmediatamente o recordarlo más tarde."
+    },
+    {
+      question: "¿Qué es el Modo de Rendimiento?",
+      answer: "El Modo de Rendimiento desactiva efectos visuales pesados en tiempo real (como desenfoques y animaciones pesadas de GPU) para ahorrar batería y maximizar la fluidez en dispositivos antiguos. Puedes activarlo en preferencias de Apariencia."
+    },
+    {
+      question: "¿Cómo guardo mis canciones y kits?",
+      answer: "Todas tus canciones de Chordex y kits personalizados de Drumex se respaldan automáticamente de forma segura. Inicia sesión en la sección Cuenta para sincronizar tus datos en todos tus dispositivos."
+    },
+    {
+      question: "¿Por qué no hay sonido en Drumex?",
+      answer: "Asegúrate de que el volumen de tu dispositivo esté alto y de que el modo silencioso esté desactivado. En la versión web, haz clic en la pantalla para otorgar permisos de audio del navegador."
+    },
+    {
+      question: "¿Cómo conecto dispositivos MIDI externos?",
+      answer: "Studio admite controladores MIDI por USB y Bluetooth estándar. Conecta tu controlador y se detectará automáticamente en Drumex y Stagex para tocar en tiempo real."
+    }
+  ],
+  de: [
+    {
+      question: "Wie funktionieren OTA-Updates?",
+      answer: "Studio sucht beim Start automatisch im Hintergrund nach Updates. Wenn ein Update verfügbar ist, erscheint oben ein Banner mit der Option, es sofort zu installieren oder später erinnert zu werden."
+    },
+    {
+      question: "Was ist der Leistungsmodus?",
+      answer: "Der Leistungsmodus deaktiviert rechenintensive visuelle Effekte (wie Weichzeichner und GPU-Animationen), um die Akkulaufzeit zu verlängern und die Reaktionsgeschwindigkeit auf älteren Geräten zu maximieren."
+    },
+    {
+      question: "Wie sichere ich meine Songs und Kits?",
+      answer: "Alle Ihre Songs in Chordex und benutzerdefinierten Kits in Drumex werden automatisch sicher in Ihrem Konto gesichert. Melden Sie sich einfach auf der Kontoseite an, um die Daten auf all Ihren Geräten zu synchronisieren."
+    },
+    {
+      question: "Warum gibt es in Drumex keinen Ton?",
+      answer: "Stellen Sie sicher, dass die Medienlautstärke Ihres Geräts eingeschaltet und der Stummmodus deaktiviert ist. Klicken Sie im Web auf den Bildschirm, um die Audioberechtigung des Browsers zu aktivieren."
+    },
+    {
+      question: "Wie verbinde ich externe MIDI-Geräte?",
+      answer: "Studio unterstützt Standard-MIDI-über-USB und Bluetooth-MIDI-Geräte. Schließen Sie Ihren Controller an, und er wird in Drumex und Stagex automatisch erkannt."
+    }
+  ]
+};
+
+function HelpAccordion({ accent, lang }: { accent: { from: string; to: string }; lang: string }) {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const faqList = FAQ_ITEMS[lang] ?? FAQ_ITEMS.en;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {faqList.map((item, idx) => {
+        const isOpen = openIdx === idx;
+        return (
+          <div
+            key={idx}
+            className="spring-in"
+            style={{
+              background: 'var(--app-surface)',
+              border: '1px solid rgba(128,128,128,0.1)',
+              borderRadius: 14,
+              overflow: 'hidden',
+              boxShadow: isOpen ? '0 8px 24px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.02)',
+              transition: 'box-shadow 300ms ease, border-color 300ms ease',
+              borderColor: isOpen ? `color-mix(in srgb, ${accent.from} 30%, rgba(128,128,128,0.1))` : 'rgba(128,128,128,0.1)',
+            }}
+          >
+            <button
+              onClick={() => setOpenIdx(isOpen ? null : idx)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 18px',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+                color: 'var(--c-text-primary)',
+                fontFamily: 'Manrope, sans-serif',
+                fontWeight: 700,
+                fontSize: 14,
+                gap: 12,
+                outline: 'none',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <span style={{ transition: 'color 200ms ease', color: isOpen ? accent.from : 'var(--c-text-primary)' }}>
+                {item.question}
+              </span>
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), color 200ms ease',
+                  fontSize: 20,
+                  color: isOpen ? accent.from : 'var(--c-text-secondary)',
+                }}
+              >
+                expand_more
+              </span>
+            </button>
+            <div
+              style={{
+                maxHeight: isOpen ? 160 : 0,
+                opacity: isOpen ? 1 : 0,
+                overflow: 'hidden',
+                transition: 'max-height 300ms cubic-bezier(0.25, 1, 0.5, 1), opacity 240ms ease',
+              }}
+            >
+              <div
+                style={{
+                  padding: '0 18px 16px',
+                  fontSize: '13px',
+                  lineHeight: '1.6',
+                  color: 'var(--c-text-secondary)',
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 500,
+                }}
+              >
+                {item.answer}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
