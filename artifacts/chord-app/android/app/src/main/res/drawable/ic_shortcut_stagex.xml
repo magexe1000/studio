@@ -17,7 +17,7 @@
         <!-- Platform -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M 2,10 H 14 C 14.55,10 15,10.45 15,11 V 11.5 C 15,12.05 14.55,12.5 14,12.5 H 2 C 1.45,12.5 1,12.05 1,11.5 V 11 C 1,10.45 1.45,10 Z" />
+            android:pathData="M 2,10 H 14 C 14.55,10 15,10.45 15,11 V 11.5 C 15,12.05 14.55,12.5 14,12.5 H 2 C 1.45,12.5 1,12.05 1,11.5 V 11 C 1,10.45 1.45,10 2,10 Z" />
         <!-- Left Speaker Box -->
         <path
             android:strokeColor="#FFFFFF"
@@ -26,11 +26,11 @@
         <!-- Left Speaker Cones -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M 2.75,6.2 m -0.8,0 a 0.8,0.8 0 1,1 1.6,0 a 0.8,0.8 0 1,1 -1.6,0" />
+            android:pathData="M 2.75,5.4 A 0.8,0.8 0 1,1 2.75,7 A 0.8,0.8 0 1,1 2.75,5.4" />
         <path
             android:fillColor="#FFFFFF"
             android:fillAlpha="0.6"
-            android:pathData="M 2.75,8.1 m -0.55,0 a 0.55,0.55 0 1,1 1.1,0 a 0.55,0.55 0 1,1 -1.1,0" />
+            android:pathData="M 2.75,7.55 A 0.55,0.55 0 1,1 2.75,8.65 A 0.55,0.55 0 1,1 2.75,7.55" />
         <!-- Right Speaker Box -->
         <path
             android:strokeColor="#FFFFFF"
@@ -39,11 +39,11 @@
         <!-- Right Speaker Cones -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M 13.25,6.2 m -0.8,0 a 0.8,0.8 0 1,1 1.6,0 a 0.8,0.8 0 1,1 -1.6,0" />
+            android:pathData="M 13.25,5.4 A 0.8,0.8 0 1,1 13.25,7 A 0.8,0.8 0 1,1 13.25,5.4" />
         <path
             android:fillColor="#FFFFFF"
             android:fillAlpha="0.6"
-            android:pathData="M 13.25,8.1 m -0.55,0 a 0.55,0.55 0 1,1 1.1,0 a 0.55,0.55 0 1,1 -1.1,0" />
+            android:pathData="M 13.25,7.55 A 0.55,0.55 0 1,1 13.25,8.65 A 0.55,0.55 0 1,1 13.25,7.55" />
         <!-- Mic Stand -->
         <path
             android:strokeColor="#FFFFFF"
@@ -52,6 +52,6 @@
         <!-- Mic Head -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M 8,3.2 m -1.2,0 a 1.2,1.2 0 1,1 2.4,0 a 1.2,1.2 0 1,1 -2.4,0" />
+            android:pathData="M 8,2 A 1.2,1.2 0 1,1 8,4.4 A 1.2,1.2 0 1,1 8,2" />
     </group>
 </vector>

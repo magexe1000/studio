@@ -27,6 +27,7 @@ import { APP_VERSION, compareSemver, normalizeSemver } from './appVersion';
 import { isNative, notifyOtaAvailable } from './capgoUpdater';
 import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 import { useChordStore } from '../store/useChordStore';
+import { logActivity } from './activityLogger';
 
 let cachedNativeVersion: string | null = null;
 export async function getNativeVersion(): Promise<string | null> {
@@ -653,6 +654,12 @@ export function applyUpdate(): Promise<void> {
     if (updateType === 'apk' || updateType === 'both') {
       updateGlobalState({ updateState: 'applied' });
       localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
+      if (updateType === 'both') {
+        logActivity('ota_install', `Installing OTA app update (v${remoteVersion})`, 'Studio');
+        logActivity('apk_install', `Installing APK system update (v${remoteVersion})`, 'Studio');
+      } else {
+        logActivity('apk_install', `Installing APK system update (v${remoteVersion})`, 'Studio');
+      }
       try {
         const filePath = localStorage.getItem('studio:downloadedApkPath');
         if (!filePath) {
@@ -689,6 +696,7 @@ export function applyUpdate(): Promise<void> {
 
     updateGlobalState({ updateState: 'applied' });
     localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
+    logActivity('ota_install', `Installing OTA app update (v${remoteVersion})`, 'Studio');
 
     if (isNative()) {
       try {

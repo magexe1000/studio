@@ -31,6 +31,7 @@ import {
   type AvatarIcon,
 } from '../lib/userAvatar';
 import { useBackHandler } from '../lib/backStack';
+import { logActivity, getActivityEmoji } from '../lib/activityLogger';
 import StudioPricingSection from './StudioPricingSection';
 import { Capacitor } from '@capacitor/core';
 import { Toggle } from './SettingControls';
@@ -1193,6 +1194,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
   }, [user, sheet]);
 
   const settings = useChordStore((s) => s.settings);
+  const activityLog = useChordStore((s) => s.activityLog ?? []);
   const updateSettings = useChordStore((s) => s.updateSettings);
   const [localUsage, setLocalUsage] = useState<string>('0 KB');
   const [clearingCache, setClearingCache] = useState(false);
@@ -1317,6 +1319,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
         showToast(lang === 'es' ? 'Datos exportados correctamente' : 'Data exported successfully');
       }
 
+      logActivity('backup', lang === 'es' ? 'Copia de seguridad manual exportada' : 'Manual backup exported', 'Studio');
       updateSettings({ lastExportDate: dateString });
     } catch (e) {
       console.error(e);
@@ -1788,6 +1791,62 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
           <SettingsRow icon="workspace_premium" label={lang === 'es' ? 'Suscripción y facturación' : 'Subscription & Billing'} badge={lang === 'es' ? 'Próximamente' : 'Coming soon'} onPress={() => openSheet('subscription')} />
           <SettingsRow icon="devices" label={lang === 'es' ? 'Dispositivos y sesiones' : 'Devices & Sessions'} onPress={() => openSheet('devices-sessions')} />
           <SettingsRow icon="shield" label={lang === 'es' ? 'Privacidad y datos' : 'Privacy & Data'} onPress={() => openSheet('privacy-data')} last />
+        </div>
+
+        {/* Activity Timeline Section */}
+        <div style={{ marginTop: 24, animation: 'hub-row-fade 380ms ease 85ms both' }}>
+          <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '0 0 10px' }}>
+            {lang === 'es' ? 'Línea de Tiempo de Actividad' : 'Activity Timeline'}
+          </p>
+          <div style={{
+            ...cardStyle,
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            background: 'var(--app-surface-high, rgba(128,128,128,0.06))',
+            border: '1px solid rgba(128,128,128,0.12)',
+          }}>
+            <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.45 }}>
+              {lang === 'es' ? 'Mira tu actividad reciente en el ecosistema Studio.' : 'See your recent activity across Studio.'}
+            </p>
+
+            {/* List of activity items */}
+            {activityLog && activityLog.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+                {activityLog.map((event: any) => {
+                  const emoji = getActivityEmoji(event.type, event.subtitle);
+                  return (
+                    <div key={event.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      <span style={{ fontSize: 16, width: 20, textAlign: 'center' }}>{emoji}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontFamily: 'Manrope', fontWeight: 750, fontSize: 13, color: 'var(--c-text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {event.title}
+                        </p>
+                        {event.subtitle && (
+                          <p style={{ fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-secondary)', margin: '1px 0 0', opacity: 0.8 }}>
+                            {event.subtitle}
+                          </p>
+                        )}
+                      </div>
+                      <span style={{ fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-secondary)', whiteSpace: 'nowrap', opacity: 0.6 }}>
+                        {formatElapsedTime(event.timestamp, lang)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 24, color: 'var(--c-text-secondary)', opacity: 0.5 }}>
+                  history
+                </span>
+                <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: 0, opacity: 0.7 }}>
+                  {lang === 'es' ? 'No hay actividad registrada aún' : 'No recorded activity yet'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Developer / Account Details Card */}
@@ -2901,6 +2960,64 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                   </button>
                 </div>
               </div>
+
+              {/* Card 7: Activity History */}
+              <div style={{
+                background: 'var(--app-surface-high, rgba(128,128,128,0.05))',
+                borderRadius: 16,
+                padding: '20px 22px',
+                border: '1px solid rgba(128,128,128,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                boxSizing: 'border-box',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+              }}>
+                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span className="material-symbols-outlined" style={{ color: '#ec4899', fontSize: 20 }}>history</span>
+                  {lang === 'es' ? 'Historial de Actividad' : 'Activity History'}
+                </p>
+                <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
+                  {lang === 'es' ? 'Controla el registro local de tu actividad en el ecosistema Studio.' : 'Manage the local log of your activity across the Studio ecosystem.'}
+                </p>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
+                  <SettingRowUI label={lang === 'es' ? 'Habilitar historial' : 'Enable Activity History'} desc={lang === 'es' ? 'Registrar inicios de app, proyectos, exportaciones, etc.' : 'Log app launches, projects, exports, etc.'}>
+                    <Toggle value={settings.activityHistoryEnabled !== false} onChange={(v) => updateSettings({ activityHistoryEnabled: v })} accentFrom={accent.from} accentTo={accent.to} />
+                  </SettingRowUI>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                  <button
+                    onClick={() => {
+                      const confirmClear = window.confirm(lang === 'es' ? '¿Estás seguro de que deseas borrar todo el historial de actividad?' : 'Are you sure you want to clear your entire activity history?');
+                      if (confirmClear) {
+                        useChordStore.setState({ activityLog: [] });
+                        showToast(lang === 'es' ? 'Historial borrado' : 'Activity history cleared');
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '10px 0',
+                      borderRadius: 12,
+                      background: 'rgba(255,107,107,0.08)',
+                      border: '1px solid rgba(255,107,107,0.20)',
+                      color: '#ff6b6b',
+                      fontFamily: 'Manrope',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_sweep</span>
+                    {lang === 'es' ? 'Borrar historial' : 'Clear History'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>,
@@ -2977,6 +3094,24 @@ function SelectControl<T extends string>({
       </div>
     </div>
   );
+}
+
+function formatElapsedTime(timestamp: number, lang: string): string {
+  const diffMs = Date.now() - timestamp;
+  if (diffMs < 0) return lang === 'es' ? 'ahora mismo' : 'just now';
+
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return lang === 'es' ? 'hace un momento' : 'just now';
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return lang === 'es' ? `hace ${diffMin} min` : `${diffMin}m ago`;
+
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return lang === 'es' ? `hace ${diffHr} h` : `${diffHr}h ago`;
+
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay === 1) return lang === 'es' ? 'ayer' : 'yesterday';
+  return lang === 'es' ? `hace ${diffDay} d` : `${diffDay}d ago`;
 }
 
 function SheetAnimations() {

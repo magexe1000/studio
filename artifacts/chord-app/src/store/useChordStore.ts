@@ -128,6 +128,7 @@ export interface AppSettings {
   backupRetention: 'forever' | '90days' | '30days';
   autoCleanTemp: boolean;
   lastExportDate: string;
+  activityHistoryEnabled: boolean;
 }
 
 interface ChordStore {
@@ -145,6 +146,7 @@ interface ChordStore {
   transpositions: Record<string, number>; // presetId → semitone offset (view-only, not stored in preset)
   customChords: CustomChord[];
   chordUsage: Record<string, number>;
+  activityLog?: any[];
 
   /**
    * Persisted "where was the user last?" snapshot — used at app launch to
@@ -288,6 +290,7 @@ export const useChordStore = create<ChordStore>()(
         backupRetention: 'forever',
         autoCleanTemp: false,
         lastExportDate: 'Never exported',
+        activityHistoryEnabled: true,
         perApp: {
           hub:    { theme: 'dark', accentColor: 'blue', amoledMode: false },
           chords: { theme: 'dark', accentColor: 'blue', amoledMode: false },
@@ -308,6 +311,7 @@ export const useChordStore = create<ChordStore>()(
       transpositions: {},
       customChords: [],
       chordUsage: {},
+      activityLog: [],
       lastSession: { app: 'hub' },
 
       trackChordUsage: (chordId) => {
@@ -453,6 +457,9 @@ export const useChordStore = create<ChordStore>()(
         const now = Date.now();
         const preset: SongPreset = { ...data, id, createdAt: now, updatedAt: now };
         set((state) => ({ presets: [...state.presets, preset], activePresetId: id }));
+        import('../lib/activityLogger').then(({ logActivity }) => {
+          logActivity('project_create', `Created ${preset.name}`, 'Chordex');
+        }).catch(() => {});
         return id;
       },
 

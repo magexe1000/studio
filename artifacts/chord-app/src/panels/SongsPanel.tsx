@@ -15,6 +15,7 @@ import { useT } from '../lib/useT';
 import { setBackHandler } from '../lib/backStack';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
+import { logActivity } from '../lib/activityLogger';
 
 /* ──────────────────── PDF EXPORT CONFIG ──────────────────── */
 export interface ExportConfig {
@@ -214,6 +215,7 @@ function buildPrintPianoSVG(keys: number[], dark = false, accentColor = '#679cff
 }
 
 async function exportPresetToPDF(preset: SongPreset, cfg: ExportConfig = DEFAULT_EXPORT_CONFIG, transposeOffset = 0, storedCustomChords: CustomChord[] = [], accentColor = '#679cff', pdfName = '', mode: 'save' | 'share' = 'share'): Promise<boolean> {
+  logActivity('export', `Exported ${preset.name} to PDF`, 'Chordex');
   const dark    = cfg.theme === 'dark';
   const style   = cfg.exportStyle ?? 'elegant';
   const compact = style === 'compact';
@@ -1698,6 +1700,7 @@ export interface ChordexJsonFile {
 }
 
 async function exportPresetToJSON(preset: SongPreset, mode: 'save' | 'share' = 'share'): Promise<boolean> {
+  logActivity('export', `Exported ${preset.name} to JSON`, 'Chordex');
   const idToName = new Map(getAllChords().map(c => [c.id, c.name]));
   const file: ChordexJsonFile = {
     _app: 'Chordex',
@@ -2008,6 +2011,7 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
 
   const doImport = (nameOverride?: string, replaceId?: string) => {
     if (!parsed) return;
+    logActivity('import', `Imported ${nameOverride ?? parsed.name}`, 'Chordex');
     onImport({
       name: nameOverride ?? parsed.name,
       artist: parsed.artist,
@@ -2671,6 +2675,16 @@ export default function SongsPanel() {
     setNavHidden(anySheetOpen || inEditor);
     return () => setNavHidden(false);
   }, [showForm, showPicker, showDeleteId, exportModalPreset, showLive, showImport, showCustomBuilder, activePreset]);
+
+  const lastOpenedId = useRef<string | null>(null);
+  useEffect(() => {
+    if (activePreset && activePreset.id !== lastOpenedId.current) {
+      logActivity('project_open', `Opened ${activePreset.name}`, 'Chordex');
+      lastOpenedId.current = activePreset.id;
+    } else if (!activePreset) {
+      lastOpenedId.current = null;
+    }
+  }, [activePreset]);
 
   const handleImport = useCallback((
     data: Omit<SongPreset, 'id' | 'createdAt' | 'updatedAt'>,

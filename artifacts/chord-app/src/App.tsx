@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
 import type { AppKey } from './store/useChordStore';
 import BottomNav from './components/BottomNav';
@@ -18,6 +19,7 @@ import { setNavHidden, setNavLocked, resetNav } from './lib/navScroll';
 import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 import { AppEntryTransition } from './components/AppAnimationSystem';
+import { logActivity } from './lib/activityLogger';
 // Lazy-load StudioHub — it's 1400+ lines and pulls in SettingControls,
 // ApplyToSheet, ChangelogSheet, and all logo variants. Keeping it out of
 // the main bundle saves significant parse+eval time on cold launch.
@@ -724,11 +726,71 @@ export default function App() {
     // Reset both hidden and collapsed on every app-mode switch.
     // setNavHidden(false) alone left the nav in a collapsed-pill state if the
     // user had scrolled down in the previous app before switching.
-    if (prevAppMode.current !== settings.appMode) resetNav();
+    if (prevAppMode.current !== settings.appMode) {
+      resetNav();
+      const appNameMap = {
+        chords: 'Chordex',
+        drums: 'Drumex',
+        stage: 'Stagex',
+        groovex: 'Groovex',
+        vocalex: 'Vocalex',
+      };
+      const name = appNameMap[settings.appMode as keyof typeof appNameMap];
+      if (name) {
+        logActivity('app_launch', `Opened ${name}`, name);
+      }
+    }
     prevAppMode.current = settings.appMode;
     return () => splashTimers.current.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.appMode]);
+
+  // Track initial cold start launch and user auth changes
+  const prevUserUid = useRef<string | null>(null);
+  const isInitialAuth = useRef(true);
+  useEffect(() => {
+    // 1. Cold start launch log
+    const startApp = useChordStore.getState().settings.appMode || 'hub';
+    const appNameMap = {
+      chords: 'Chordex',
+      drums: 'Drumex',
+      stage: 'Stagex',
+      groovex: 'Groovex',
+      vocalex: 'Vocalex',
+      hub: 'Studio Hub',
+    };
+    const startName = appNameMap[startApp as keyof typeof appNameMap];
+    if (startName) {
+      logActivity('app_launch', `Opened ${startName}`, startName);
+    }
+
+    // 2. Auth changes subscription
+    let cancelled = false;
+    let unsubAuth: (() => void) | null = null;
+    import('./lib/auth').then(({ subscribeAuth }) => {
+      if (cancelled) return;
+      unsubAuth = subscribeAuth((user) => {
+        if (cancelled) return;
+        if (isInitialAuth.current) {
+          prevUserUid.current = user ? user.uid : null;
+          isInitialAuth.current = false;
+          return;
+        }
+        if (user && prevUserUid.current !== user.uid) {
+          logActivity('login', 'Logged In');
+          prevUserUid.current = user.uid;
+        } else if (!user && prevUserUid.current !== null) {
+          logActivity('logout', 'Logged Out');
+          prevUserUid.current = null;
+        }
+      });
+    }).catch(() => {});
+
+    return () => {
+      cancelled = true;
+      unsubAuth?.();
+    };
+  }, []);
 
   // Which panel is fully visible (the "live" one)
   const [visiblePanel, setVisiblePanel] = useState(activePanel);
@@ -1079,248 +1141,392 @@ export default function App() {
     );
   }
 
-  // ── Hub mode: show the Studio Hub ────────────────────────────────────────
-  if (settings.appMode === 'hub') {
-    return (
-      <>
-        <div className="app-main-layout" style={{ animation: 'hub-return-enter 380ms cubic-bezier(0.0, 0.0, 0.2, 1) both', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+  // ── Hub mode & Sub-app stack ──────────────────────────────────────────────
+  const isSubAppActive = settings.appMode !== 'hub';
+
+  // Groovex theme configuration
+  const groovexIsAmoled = activeVis.amoledMode;
+  const groovexIsLight  = activeVis.theme === 'light';
+  const groovexBgColor  = groovexIsAmoled ? '#000000' : groovexIsLight ? '#f2f1ef' : '#0e0e0e';
+
+  // Vocalex theme configuration
+  const vocalexIsAmoled = activeVis.amoledMode;
+  const vocalexIsLight  = activeVis.theme === 'light';
+  const vocalexBgColor  = vocalexIsAmoled ? '#000000' : vocalexIsLight ? '#f2f1ef' : '#0e0e0e';
+
+  // Stagex theme configuration
+  const stageIsAmoled = activeVis.amoledMode;
+  const stageIsLight  = activeVis.theme === 'light';
+  const stageBgColor  = stageIsAmoled ? '#000000' : stageIsLight ? '#f2f1ef' : '#0e0e0e';
+
+  // Global MutationObserver to scale background down when sheets/modals open
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const overlays = document.querySelectorAll('div');
+      let modalExists = false;
+      for (let i = 0; i < overlays.length; i++) {
+        const el = overlays[i];
+        const style = el.getAttribute('style') || '';
+        const isFixed = style.includes('position: fixed') || style.includes('position:fixed');
+        const hasInset = style.includes('inset: 0') || style.includes('inset:0') || (style.includes('bottom: 0') && style.includes('top: 0'));
+        const hasHighZ = style.includes('z-index: 200') || style.includes('z-index:200') || style.includes('z-index: 999') || style.includes('z-index:999');
+        if (isFixed && (hasInset || hasHighZ || el.classList.contains('profile-panel-sheet'))) {
+          if (el.id !== 'exit-toast') {
+            modalExists = true;
+            break;
+          }
+        }
+      }
+      
+      if (modalExists) {
+        document.documentElement.classList.add('has-modal-open');
+      } else {
+        document.documentElement.classList.remove('has-modal-open');
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      document.documentElement.classList.remove('has-modal-open');
+    };
+  }, []);
+
+  // Global Swipe back gesture detection
+  const subAppWrapperRef = useRef<HTMLDivElement | null>(null);
+  const hubWrapperRef = useRef<HTMLDivElement | null>(null);
+  const touchState = useRef({
+    isSwiping: false,
+    startX: 0,
+    currentX: 0,
+  });
+
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      const isSubApp = useChordStore.getState().settings.appMode !== 'hub';
+      if (!isSubApp) return;
+
+      const touch = e.touches[0];
+      // Only start swipe from left edge (first 35px)
+      if (touch.clientX < 35) {
+        touchState.current.isSwiping = true;
+        touchState.current.startX = touch.clientX;
+        touchState.current.currentX = touch.clientX;
+        
+        // Remove transitions temporarily for instant response
+        if (subAppWrapperRef.current) {
+          subAppWrapperRef.current.style.transition = 'none';
+        }
+        if (hubWrapperRef.current) {
+          hubWrapperRef.current.style.transition = 'none';
+        }
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!touchState.current.isSwiping) return;
+
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchState.current.startX;
+      touchState.current.currentX = touch.clientX;
+
+      if (deltaX > 0) {
+        e.preventDefault();
+
+        // Translate the active sub-page to the right
+        if (subAppWrapperRef.current) {
+          subAppWrapperRef.current.style.transform = `translateX(${deltaX}px)`;
+        }
+
+        // Scale up the background Hub
+        if (hubWrapperRef.current) {
+          const progress = Math.min(1, deltaX / window.innerWidth);
+          const scale = 0.985 + (0.015 * progress);
+          const opacity = 0.9 + (0.1 * progress);
+          const borderVal = 20 - (20 * progress);
+          hubWrapperRef.current.style.transform = `scale(${scale}) translateY(${8 - (8 * progress)}px)`;
+          hubWrapperRef.current.style.opacity = `${opacity}`;
+          hubWrapperRef.current.style.borderRadius = `${borderVal}px`;
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (!touchState.current.isSwiping) return;
+      touchState.current.isSwiping = false;
+
+      const deltaX = touchState.current.currentX - touchState.current.startX;
+      const vw = window.innerWidth;
+
+      // Re-enable transitions
+      if (subAppWrapperRef.current) {
+        subAppWrapperRef.current.style.transition = 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)';
+      }
+      if (hubWrapperRef.current) {
+        hubWrapperRef.current.style.transition = 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), border-radius 300ms cubic-bezier(0.16, 1, 0.3, 1)';
+      }
+
+      if (deltaX > vw * 0.25) {
+        // Swipe success -> exit to hub
+        if (subAppWrapperRef.current) {
+          subAppWrapperRef.current.style.transform = `translateX(${vw}px)`;
+        }
+        if (hubWrapperRef.current) {
+          hubWrapperRef.current.style.transform = 'scale(1) translateY(0)';
+          hubWrapperRef.current.style.opacity = '1';
+          hubWrapperRef.current.style.borderRadius = '0px';
+        }
+        setTimeout(() => {
+          updateSettings({ appMode: 'hub' });
+          if (subAppWrapperRef.current) {
+            subAppWrapperRef.current.style.transform = '';
+          }
+        }, 300);
+      } else {
+        // Swipe cancelled -> snap back
+        if (subAppWrapperRef.current) {
+          subAppWrapperRef.current.style.transform = 'translateX(0)';
+        }
+        if (hubWrapperRef.current) {
+          hubWrapperRef.current.style.transform = 'scale(0.985) translateY(8px)';
+          hubWrapperRef.current.style.opacity = '0.9';
+          hubWrapperRef.current.style.borderRadius = '20px';
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: false });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [updateSettings]);
+
+  return (
+    <>
+      <div style={{ position: 'relative', width: '100vw', height: '100dvh', overflow: 'hidden', background: '#000000' }}>
+        
+        {/* Layer 1: Studio Hub (Base) */}
+        <div
+          ref={hubWrapperRef}
+          className="app-main-layout"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 1,
+            height: '100dvh',
+            overflow: 'hidden',
+            // Layered navigation transition style: previous page scale 1 -> 0.985, opacity 1 -> 0.9
+            transform: isSubAppActive ? 'scale(0.985) translateY(8px)' : 'scale(1) translateY(0)',
+            opacity: isSubAppActive ? 0.9 : 1,
+            pointerEvents: isSubAppActive ? 'none' : 'auto',
+            transition: 'transform 450ms cubic-bezier(0.16, 1, 0.3, 1), opacity 450ms cubic-bezier(0.16, 1, 0.3, 1), border-radius 450ms cubic-bezier(0.16, 1, 0.3, 1)',
+            borderRadius: isSubAppActive ? '20px' : '0px',
+            willChange: 'transform, opacity, border-radius',
+          }}
+        >
           <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioHubSkeleton />} />}>
             <StudioHub />
           </Suspense>
         </div>
-        {exitToast && renderExitToast()}
-      </>
-    );
-  }
 
-  // ── Groovex mode: multitrack practice mixer ─────────────────────────
-  if (settings.appMode === 'groovex') {
-    const groovexIsAmoled = activeVis.amoledMode;
-    const groovexIsLight  = activeVis.theme === 'light';
-    const groovexBgColor  = groovexIsAmoled ? '#000000' : groovexIsLight ? '#f2f1ef' : '#0e0e0e';
-    return (
-      <>
-        <div className="app-main-layout" style={{
-          position: 'relative', height: '100dvh', overflow: 'hidden',
-          background: groovexBgColor,
-          transform: exitingToHub ? 'scale(1.10)' : undefined,
-          opacity:   exitingToHub ? 0 : undefined,
-          transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
-        }}>
-          <Suspense fallback={<SmartLoading fallbackSkeleton={<GroovexAppSkeleton />} />}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
+        {/* Layer 2: Sub-App Stack (presents on top of the Hub) */}
+        <AnimatePresence mode="popLayout">
+          {isSubAppActive && (
+            <motion.div
+              ref={subAppWrapperRef}
+              key={settings.appMode}
+              initial={{ y: '100dvh', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100dvh', opacity: 0 }}
+              transition={{
+                type: 'spring',
+                stiffness: 300,
+                damping: 32,
+                mass: 0.9,
+              }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 2,
+                background: 'var(--app-bg)',
+                boxShadow: '0 -16px 40px rgba(0,0,0,0.5)',
+                willChange: 'transform, opacity',
+              }}
+            >
+              {settings.appMode === 'groovex' && (
+                <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: groovexBgColor }}>
+                  <Suspense fallback={<SmartLoading fallbackSkeleton={<GroovexAppSkeleton />} />}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
+                  {groovexSplash !== 'hidden' && (
+                    <div style={{
+                      position: 'absolute', inset: 0, zIndex: 500,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      background: groovexBgColor,
+                      opacity:   groovexSplash === 'out' ? 0 : 1,
+                      transform: groovexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+                      transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+                      pointerEvents: 'none',
+                    }}>
+                      <div style={{ color: groovexIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                        <GroovexLogo size={60} />
+                      </div>
+                      <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                        <p style={{ color: groovexIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Groovex</p>
+                        <p style={{ color: groovexIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Multitrack practice mixer</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-          {groovexSplash !== 'hidden' && (
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 500,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              background: groovexBgColor,
-              opacity:   groovexSplash === 'out' ? 0 : 1,
-              transform: groovexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
-              transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
-              pointerEvents: 'none',
-            }}>
-              <div style={{ color: groovexIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                <GroovexLogo size={60} />
-              </div>
-              <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                <p style={{ color: groovexIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Groovex</p>
-                <p style={{ color: groovexIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Multitrack practice mixer</p>
-              </div>
-            </div>
+              {settings.appMode === 'vocalex' && (
+                <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: vocalexBgColor }}>
+                  <Suspense fallback={<SmartLoading fallbackSkeleton={<VocalexTakesSkeleton />} />}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
+                  {vocalexSplash !== 'hidden' && (
+                    <div style={{
+                      position: 'absolute', inset: 0, zIndex: 500,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      background: vocalexBgColor,
+                      opacity:   vocalexSplash === 'out' ? 0 : 1,
+                      transform: vocalexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+                      transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,15), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+                      pointerEvents: 'none',
+                    }}>
+                      <div style={{ color: vocalexIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                        <VocalexLogo size={60} />
+                      </div>
+                      <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                        <p style={{ color: vocalexIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Vocalex</p>
+                        <p style={{ color: vocalexIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Vocal tools & training</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {settings.appMode === 'stage' && (
+                <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: stageBgColor }}>
+                  <Suspense fallback={<SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />}><AppEntryTransition><StagexPanel /></AppEntryTransition></Suspense>
+                  {stageSplash !== 'hidden' && (
+                    <div style={{
+                      position: 'absolute', inset: 0, zIndex: 500,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      background: stageBgColor,
+                      opacity:   stageSplash === 'out' ? 0 : 1,
+                      transform: stageSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+                      transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+                      pointerEvents: 'none',
+                    }}>
+                      <div style={{ color: stageIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                        <StagexLogoIcon size={60} />
+                      </div>
+                      <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                        <p style={{ color: stageIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Stagex</p>
+                        <p style={{ color: stageIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Stage plot & tech rider</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {settings.appMode === 'drums' && (
+                <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+                  <Suspense fallback={<SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} />}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense>
+                  {drumSplash !== 'hidden' && (
+                    <div style={{
+                      position: 'absolute', inset: 0, zIndex: 500,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      background: 'var(--app-bg)',
+                      opacity:   drumSplash === 'out' ? 0 : 1,
+                      transform: drumSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+                      transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+                      pointerEvents: 'none',
+                    }}>
+                      <div style={{ color: 'var(--c-text-primary)', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                        <DrumexLogo size={60} />
+                      </div>
+                      <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                        <p style={{ color: 'var(--c-text-primary)', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Drumex</p>
+                        <p style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Drum sheet editor</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {settings.appMode === 'chords' && (
+                <div className="app-sub-app-container" style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden', userSelect: 'none', background: 'var(--app-bg)' }}>
+                  <AppEntryTransition
+                    className="flex flex-col w-full overflow-hidden select-none app-bg"
+                    style={{
+                      position: 'relative',
+                      height: '100%',
+                      paddingTop: 'env(safe-area-inset-top)',
+                      '--panel-dur':      `${durMs}ms`,
+                      '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
+                    } as React.CSSProperties}
+                  >
+                    <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
+                      {ALL_PANELS.map(panel => {
+                        const isVisible = activePanel === panel;
+                        if (!isVisible) return null;
+
+                        return (
+                          <div
+                            key={panel}
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              pointerEvents: 'auto',
+                              contain: 'layout style paint',
+                            }}
+                          >
+                            <Suspense fallback={<SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} />}>
+                              {panel === 'library'  && <LibraryPanel />}
+                              {panel === 'chord'    && <ChordPanel />}
+                              {panel === 'songs'    && <SongsPanel />}
+                              {panel === 'settings' && <SettingsPanel />}
+                            </Suspense>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <BottomNav />
+
+                    {chordexSplash !== 'hidden' && (
+                      <div style={{
+                        position: 'fixed', inset: 0, zIndex: 500,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        background: 'var(--app-bg)',
+                        opacity:   chordexSplash === 'out' ? 0 : 1,
+                        transform: chordexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
+                        transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+                        pointerEvents: 'none',
+                      }}>
+                        <div style={{ color: 'var(--c-text-primary)', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                          <ChordexLogo size={60} />
+                        </div>
+                        <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                          <p style={{ color: 'var(--c-text-primary)', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Chordex</p>
+                          <p style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Chord library & songs</p>
+                        </div>
+                      </div>
+                    )}
+                  </AppEntryTransition>
+                </div>
+              )}
+            </motion.div>
           )}
-        </div>
-        {exitToast && renderExitToast()}
-      </>
-    );
-  }
+        </AnimatePresence>
 
-  // ── Vocalex mode: vocal tools & training ─────────────────────────
-  if (settings.appMode === 'vocalex') {
-    const vocalexIsAmoled = activeVis.amoledMode;
-    const vocalexIsLight  = activeVis.theme === 'light';
-    const vocalexBgColor  = vocalexIsAmoled ? '#000000' : vocalexIsLight ? '#f2f1ef' : '#0e0e0e';
-    return (
-      <>
-        <div className="app-main-layout" style={{
-          position: 'relative', height: '100dvh', overflow: 'hidden',
-          background: vocalexBgColor,
-          transform: exitingToHub ? 'scale(1.10)' : undefined,
-          opacity:   exitingToHub ? 0 : undefined,
-          transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
-        }}>
-          <Suspense fallback={<SmartLoading fallbackSkeleton={<VocalexTakesSkeleton />} />}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
-
-          {vocalexSplash !== 'hidden' && (
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 500,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              background: vocalexBgColor,
-              opacity:   vocalexSplash === 'out' ? 0 : 1,
-              transform: vocalexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
-              transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,15), transform 330ms cubic-bezier(0.4,0,0.2,1)',
-              pointerEvents: 'none',
-            }}>
-              <div style={{ color: vocalexIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                <VocalexLogo size={60} />
-              </div>
-              <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                <p style={{ color: vocalexIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Vocalex</p>
-                <p style={{ color: vocalexIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Vocal tools & training</p>
-              </div>
-            </div>
-          )}
-        </div>
-        {exitToast && renderExitToast()}
-      </>
-    );
-  }
-
-  // ── Stagex mode: full-screen iframe wrapper ─────────────────────────
-  if (settings.appMode === 'stage') {
-    const stageIsAmoled = activeVis.amoledMode;
-    const stageIsLight  = activeVis.theme === 'light';
-    const stageBgColor  = stageIsAmoled ? '#000000' : stageIsLight ? '#f2f1ef' : '#0e0e0e';
-    return (
-      <>
-        <div className="app-main-layout" style={{
-          position: 'relative', height: '100dvh', overflow: 'hidden',
-          background: stageBgColor,
-          transform: exitingToHub ? 'scale(1.10)' : undefined,
-          opacity:   exitingToHub ? 0 : undefined,
-          transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
-        }}>
-          <Suspense fallback={<SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />}><AppEntryTransition><StagexPanel /></AppEntryTransition></Suspense>
-
-          {/* Stagex splash — shown when entering from hub */}
-          {stageSplash !== 'hidden' && (
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 500,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              background: stageBgColor,
-              opacity:   stageSplash === 'out' ? 0 : 1,
-              transform: stageSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
-              transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
-              pointerEvents: 'none',
-            }}>
-              <div style={{ color: stageIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                <StagexLogoIcon size={60} />
-              </div>
-              <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                <p style={{ color: stageIsLight ? '#1a1a1a' : '#ffffff', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Stagex</p>
-                <p style={{ color: stageIsLight ? '#6b6b6b' : 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Stage plot & tech rider</p>
-              </div>
-            </div>
-          )}
-        </div>
-        {exitToast && renderExitToast()}
-      </>
-    );
-  }
-
-  // ── Drums mode: completely separate environment ──────────────────────────
-  if (settings.appMode === 'drums') {
-    return (
-      <>
-        <div className="app-main-layout" style={{
-          position: 'relative', height: '100dvh', overflow: 'hidden',
-          transform: exitingToHub ? 'scale(1.10)' : undefined,
-          opacity:   exitingToHub ? 0 : undefined,
-          transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
-        }}>
-          <Suspense fallback={<SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} />}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense>
-
-          {/* Drumex splash — shown when switching from Chordex */}
-          {drumSplash !== 'hidden' && (
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 500,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--app-bg)',
-              opacity:   drumSplash === 'out' ? 0 : 1,
-              transform: drumSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
-              transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
-              pointerEvents: 'none',
-            }}>
-              <div style={{ color: 'var(--c-text-primary)', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                <DrumexLogo size={60} />
-              </div>
-              <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                <p style={{ color: 'var(--c-text-primary)', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Drumex</p>
-                <p style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Drum sheet editor</p>
-              </div>
-            </div>
-          )}
-        </div>
-        {exitToast && renderExitToast()}
-      </>
-    );
-  }
-
-  return (
-    <>
-      <AppEntryTransition
-        className="flex flex-col w-full overflow-hidden select-none app-bg app-main-layout"
-        style={{
-          position: 'relative',
-          height: '100dvh',
-          paddingTop: 'env(safe-area-inset-top)',
-          '--panel-dur':      `${durMs}ms`,
-          '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
-          transform: exitingToHub ? 'scale(1.10)' : undefined,
-          opacity:   exitingToHub ? 0 : undefined,
-          transition: exitingToHub ? 'transform 370ms cubic-bezier(0.4,0,1,1), opacity 270ms ease-in' : undefined,
-        } as React.CSSProperties}
-      >
-        {/* Panel container — mount only the active panel instantly */}
-        <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
-          {ALL_PANELS.map(panel => {
-            const isVisible = activePanel === panel;
-            if (!isVisible) return null;
-
-            return (
-              <div
-                key={panel}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  pointerEvents: 'auto',
-                  contain: 'layout style paint',
-                }}
-              >
-                <Suspense fallback={<SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} />}>
-                  {panel === 'library'  && <LibraryPanel />}
-                  {panel === 'chord'    && <ChordPanel />}
-                  {panel === 'songs'    && <SongsPanel />}
-                  {panel === 'settings' && <SettingsPanel />}
-                </Suspense>
-              </div>
-            );
-          })}
-        </div>
-
-        <BottomNav />
-
-        {/* Chordex splash — shown when switching back from Drumex */}
-        {chordexSplash !== 'hidden' && (
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 500,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--app-bg)',
-            opacity:   chordexSplash === 'out' ? 0 : 1,
-            transform: chordexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
-            transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
-            pointerEvents: 'none',
-          }}>
-            <div style={{ color: 'var(--c-text-primary)', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <ChordexLogo size={60} />
-            </div>
-            <div style={{ textAlign: 'center', marginTop: 14, animation: 'splash-wordmark-in 380ms 80ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
-              <p style={{ color: 'var(--c-text-primary)', fontSize: 22, fontWeight: 800, fontFamily: 'Manrope, sans-serif', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Chordex</p>
-              <p style={{ color: 'var(--c-text-secondary)', fontSize: 12, fontFamily: 'Manrope, sans-serif', margin: 0 }}>Chord library & songs</p>
-            </div>
-          </div>
-        )}
-
-      </AppEntryTransition>
+      </div>
       {exitToast && renderExitToast()}
     </>
   );

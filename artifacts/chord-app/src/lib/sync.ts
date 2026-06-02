@@ -6,6 +6,7 @@ import { getAllTakes, saveTake, type TakeRecord } from '../vocalex/takesDb';
 import { getAllSessions, saveSession, type LabSession, type LabLayer } from '../vocalex/labSessionDb';
 import { useChordStore } from '../store/useChordStore';
 import { secureReadLocal, secureWriteLocal } from './security';
+import { logActivity } from './activityLogger';
 
 /**
  * Cloud sync engine for Chordex / Drumex / StageX / Vocalex.
@@ -1155,6 +1156,7 @@ async function triggerAutoBackup(): Promise<void> {
 
     localStorage.setItem(lastBackupKey, now.toString());
     console.log(`[sync] Auto Backup saved successfully to Firestore: ${backupDocRef.id}`);
+    logActivity('backup', `Auto backup saved successfully`, 'Studio');
 
     // 3. Process retention (delete old backups)
     if (retention !== 'forever') {
@@ -1351,6 +1353,9 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
       void triggerAutoBackup();
     }
     logSuccess(Date.now() - startedAt, pushedCount, pulledCount);
+    if (pushedCount > 0 || pulledCount > 0) {
+      logActivity('cloud_sync', `Synced ${pushedCount} push / ${pulledCount} pull`, 'Studio');
+    }
   } catch (e) {
     const isTimeout = e instanceof SyncTimeoutError;
     const errMsg = (e as Error)?.message ?? '';

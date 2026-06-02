@@ -17,6 +17,7 @@ import {
 import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from './firebase';
 import { isNative } from './capgoUpdater';
 import { syncProfileListener } from './permissions';
+import { logActivity } from './activityLogger';
 
 export type AuthUser = {
   uid: string;
@@ -133,11 +134,13 @@ export async function signInGoogle(): Promise<void> {
     }
     const credential = GoogleAuthProvider.credential(result.credential.idToken);
     await signInWithCredential(auth, credential);
+    logActivity('login', 'Signed in with Google', 'Studio');
     return;
   }
 
   try {
     await signInWithPopup(auth, googleProvider);
+    logActivity('login', 'Signed in with Google', 'Studio');
   } catch (e: unknown) {
     const code = (e as { code?: string })?.code ?? '';
     // User dismissed — don't retry, don't navigate away.
@@ -159,6 +162,7 @@ export async function signInEmail(email: string, password: string): Promise<void
   const auth = getFirebaseAuth();
   if (!auth) throw new Error('Firebase not configured');
   await signInWithEmailAndPassword(auth, email.trim(), password);
+  logActivity('login', 'Signed in with Email', 'Studio');
 }
 
 export async function registerEmail(email: string, password: string, displayName?: string): Promise<void> {
@@ -168,6 +172,7 @@ export async function registerEmail(email: string, password: string, displayName
   if (displayName && cred.user) {
     try { await updateProfile(cred.user, { displayName: displayName.trim() }); } catch { /* noop */ }
   }
+  logActivity('login', 'Registered new account', 'Studio');
 }
 
 export async function signOut(): Promise<void> {
@@ -187,6 +192,7 @@ export async function signOut(): Promise<void> {
     }
   }
   await fbSignOut(auth);
+  logActivity('logout', 'Signed out of session', 'Studio');
 }
 
 /**
