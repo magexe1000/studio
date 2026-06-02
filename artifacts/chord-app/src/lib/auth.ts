@@ -16,6 +16,7 @@ import {
 } from 'firebase/auth';
 import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from './firebase';
 import { isNative } from './capgoUpdater';
+import { syncProfileListener } from './permissions';
 
 export type AuthUser = {
   uid: string;
@@ -42,7 +43,11 @@ export function subscribeAuth(cb: (u: AuthUser | null) => void): () => void {
   }
   // Resolve any in-flight redirect result so signed-in state shows up after a Google redirect.
   getRedirectResult(auth).catch(() => {});
-  return onAuthStateChanged(auth, (u) => cb(toAuthUser(u)));
+  return onAuthStateChanged(auth, (u) => {
+    const authUser = toAuthUser(u);
+    syncProfileListener(authUser);
+    cb(authUser);
+  });
 }
 
 /**

@@ -1,5 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { UserProfile } from '../lib/permissions';
+import { AuthUser } from '../lib/auth';
 
 interface PricingPlan {
   id: string;
@@ -90,10 +92,47 @@ interface Props {
     mid: string;
   };
   lang?: 'en' | 'es' | string;
+  profile?: UserProfile | null;
+  user?: AuthUser | null;
+  onShowToast?: (msg: string) => void;
 }
 
-export default function StudioPricingSection({ accent, lang = 'en' }: Props) {
+export default function StudioPricingSection({ accent, lang = 'en', profile, user, onShowToast }: Props) {
   const isEs = lang === 'es';
+
+  const getPlanStatus = (planId: string): 'active' | 'admin_bypass' | 'included' | 'downgraded' | 'available' => {
+    if (!profile) {
+      return planId === 'free' ? 'active' : 'available';
+    }
+
+    const role = profile.role;
+    const isPremiumValid = profile.subscriptionStatus === 'active' || profile.subscriptionStatus === 'past_due';
+
+    if (role === 'admin') {
+      return 'admin_bypass';
+    }
+
+    if (planId === 'free') {
+      return (role === 'free' || !isPremiumValid) ? 'active' : 'downgraded';
+    }
+
+    if (planId === 'core') {
+      return (isPremiumValid && role === 'core') ? 'active' : (isPremiumValid && role === 'pro' ? 'included' : 'available');
+    }
+
+    if (planId === 'pro') {
+      return (isPremiumValid && role === 'pro') ? 'active' : 'available';
+    }
+
+    return 'available';
+  };
+
+  const handleCheckout = (planId: string) => {
+    const msg = isEs
+      ? '¡Próximamente! La pasarela de pago y facturación se está finalizando. Los administradores pueden omitir las restricciones agregando su UID en adminConfig.ts.'
+      : 'Coming Soon! Checkout and billing flows are currently being finalized. Admins can bypass restrictions immediately by adding their UID to code configuration.';
+    onShowToast?.(msg);
+  };
 
   return (
     <div style={{ width: '100%', fontFamily: 'Inter, sans-serif' }}>
@@ -290,10 +329,11 @@ export default function StudioPricingSection({ accent, lang = 'en' }: Props) {
               </ul>
 
               {/* ── CTA Button ── */}
-              <button
-                type="button"
-                disabled
-                style={{
+              {(() => {
+                const status = getPlanStatus(plan.id);
+                let btnText = isEs ? 'Elegir Plan' : 'Select Plan';
+                let btnIcon = 'shopping_bag';
+                let btnStyle: React.CSSProperties = {
                   width: '100%',
                   height: 40,
                   borderRadius: 12,
@@ -304,33 +344,91 @@ export default function StudioPricingSection({ accent, lang = 'en' }: Props) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
-                  cursor: 'not-allowed',
-                  border: plan.isRecommended
-                    ? 'none'
-                    : '1px solid rgba(128,128,128,0.18)',
-                  background: plan.isRecommended
-                    ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
-                    : 'var(--app-surface-lowest, rgba(128,128,128,0.04))',
-                  color: plan.isRecommended ? 'white' : 'var(--c-text-secondary)',
-                  opacity: 0.65,
-                  boxShadow: plan.isRecommended
-                    ? `0 4px 14px color-mix(in srgb, ${accent.to} 20%, transparent)`
-                    : 'none',
-                  transition: 'opacity 150ms ease',
+                  cursor: 'pointer',
                   boxSizing: 'border-box',
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    fontSize: 15,
-                    fontVariationSettings: "'FILL' 1",
-                  }}
-                >
-                  lock
-                </span>
-                {isEs ? 'Próximamente' : 'Coming soon'}
-              </button>
+                  transition: 'all 200ms ease',
+                };
+
+                if (status === 'active') {
+                  btnText = isEs ? 'Plan Activo' : 'Active Plan';
+                  btnIcon = 'check_circle';
+                  btnStyle = {
+                    ...btnStyle,
+                    border: `1.5px solid #10b981`,
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    color: '#10b981',
+                    cursor: 'default',
+                  };
+                } else if (status === 'admin_bypass') {
+                  btnText = isEs ? 'Acceso de Admin' : 'Admin Active';
+                  btnIcon = 'shield';
+                  btnStyle = {
+                    ...btnStyle,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #fbbf24, #ea580c)',
+                    color: 'white',
+                    boxShadow: '0 4px 14px rgba(234, 88, 12, 0.25)',
+                    cursor: 'default',
+                  };
+                } else if (status === 'included') {
+                  btnText = isEs ? 'Incluido en Pro' : 'Included in Pro';
+                  btnIcon = 'verified';
+                  btnStyle = {
+                    ...btnStyle,
+                    border: '1px solid rgba(128,128,128,0.18)',
+                    background: 'var(--app-surface-lowest, rgba(128,128,128,0.04))',
+                    color: 'var(--c-text-secondary)',
+                    cursor: 'default',
+                    opacity: 0.8,
+                  };
+                } else if (status === 'downgraded') {
+                  btnText = isEs ? 'Bajar de Plan' : 'Downgrade';
+                  btnIcon = 'info';
+                  btnStyle = {
+                    ...btnStyle,
+                    border: '1px solid rgba(128,128,128,0.18)',
+                    background: 'var(--app-surface-lowest, rgba(128,128,128,0.04))',
+                    color: 'var(--c-text-secondary)',
+                  };
+                } else {
+                  // available / upgrade
+                  btnText = isEs ? 'Suscribirse' : 'Subscribe';
+                  btnIcon = plan.isRecommended ? 'bolt' : 'workspace_premium';
+                  btnStyle = {
+                    ...btnStyle,
+                    border: plan.isRecommended ? 'none' : '1px solid rgba(128,128,128,0.18)',
+                    background: plan.isRecommended
+                      ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
+                      : 'var(--app-surface-lowest, rgba(128,128,128,0.04))',
+                    color: plan.isRecommended ? 'white' : 'var(--c-text-primary)',
+                    boxShadow: plan.isRecommended
+                      ? `0 4px 14px color-mix(in srgb, ${accent.to} 20%, transparent)`
+                      : 'none',
+                  };
+                }
+
+                const isInteractive = status === 'available' || status === 'downgraded';
+
+                return (
+                  <button
+                    type="button"
+                    onClick={isInteractive ? () => handleCheckout(plan.id) : undefined}
+                    style={btnStyle}
+                    className={isInteractive ? 'hover-scale' : undefined}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        fontSize: 15,
+                        fontVariationSettings: status === 'admin_bypass' || plan.isRecommended ? "'FILL' 1" : undefined,
+                      }}
+                    >
+                      {btnIcon}
+                    </span>
+                    {btnText}
+                  </button>
+                );
+              })()}
             </motion.div>
           );
         })}

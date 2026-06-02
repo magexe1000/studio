@@ -33,6 +33,15 @@ import { useBackHandler } from '../lib/backStack';
 import StudioPricingSection from './StudioPricingSection';
 import { Capacitor } from '@capacitor/core';
 import { Toggle } from './SettingControls';
+import {
+  subscribeUserProfile,
+  isAdminUser,
+  isBetaTesterUser,
+  hasCoreAccessUser,
+  hasProAccessUser,
+  type UserProfile,
+  type UserRole
+} from '../lib/permissions';
 
 type Props = {
   accent: { from: string; to: string; mid: string };
@@ -59,6 +68,84 @@ function formatRelative(ms: number | null, lang: string): string {
   if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
   if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
   return `${Math.floor(sec / 86400)}d ago`;
+}
+
+function renderRoleBadge(role: UserRole | undefined, lang: string, accent: any) {
+  const isEs = lang === 'es';
+  switch (role) {
+    case 'admin':
+      return (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '3px 9px', borderRadius: 9999,
+          background: 'linear-gradient(135deg, #fbbf24, #ea580c)',
+          border: '1.5px solid #d97706',
+          boxShadow: '0 2px 8px rgba(234, 88, 12, 0.25)',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 12, color: '#ffffff', fontVariationSettings: "'FILL' 1" }}>shield</span>
+          <span style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 10, color: '#ffffff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Admin
+          </span>
+        </div>
+      );
+    case 'beta_tester':
+      return (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '3px 9px', borderRadius: 9999,
+          background: 'rgba(167, 139, 250, 0.15)',
+          border: '1.5px solid rgba(167, 139, 250, 0.4)',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 12, color: '#a78bfa', fontVariationSettings: "'FILL' 1" }}>science</span>
+          <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: '#a78bfa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Beta Tester
+          </span>
+        </div>
+      );
+    case 'pro':
+      return (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '3px 9px', borderRadius: 9999,
+          background: 'rgba(16, 185, 129, 0.15)',
+          border: '1.5px solid rgba(16, 185, 129, 0.4)',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 12, color: '#10b981', fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
+          <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: '#10b981', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Pro Member
+          </span>
+        </div>
+      );
+    case 'core':
+      return (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '3px 9px', borderRadius: 9999,
+          background: 'rgba(56, 189, 248, 0.15)',
+          border: '1.5px solid rgba(56, 189, 248, 0.4)',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 12, color: '#38bdf8', fontVariationSettings: "'FILL' 1" }}>bolt</span>
+          <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: '#38bdf8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Core Member
+          </span>
+        </div>
+      );
+    case 'free':
+    default:
+      return (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '3px 9px', borderRadius: 9999,
+          background: 'rgba(128, 128, 128, 0.12)',
+          border: '1.5px solid rgba(128, 128, 128, 0.25)',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 12, color: 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 1" }}>face</span>
+          <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: 'var(--c-text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            {isEs ? 'Gratis' : 'Free'}
+          </span>
+        </div>
+      );
+  }
 }
 
 function getSyncPausedLabel(lang: string): string {
@@ -261,6 +348,8 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerClosing, setPickerClosing] = useState(false);
 
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  useEffect(() => subscribeUserProfile(setProfile), []);
   useEffect(() => subscribeAuth(setUser), []);
   useEffect(() => subscribeSyncStatus(setSync), []);
   // Reset photo-failed flag when the user (or photo URL) changes so a
@@ -408,13 +497,16 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
               <span>{initial}</span>
             )}
           </button>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {user.displayName || user.email}
             </p>
-            <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user.displayName ? user.email : t.signedIn}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {renderRoleBadge(profile?.role, lang, accent)}
+              <span style={{ fontSize: 10, color: 'var(--c-text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user.displayName ? user.email : t.signedIn}
+              </span>
+            </div>
           </div>
           {onAccountSettings && (
             <button
@@ -1069,6 +1161,8 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
   const progCount   = useChordStore(s => s.progressions?.length ?? 0);
   const presetCount = useChordStore(s => s.presets?.length      ?? 0);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  useEffect(() => subscribeUserProfile(setProfile), []);
   const [avatarIcon, setAvatarIcon] = useState<AvatarIcon | null>(null);
   const [photoFailed, setPhotoFailed] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -1640,18 +1734,9 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
               {user.email}
             </p>
           )}
-          {/* Free Member badge */}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            marginTop: 10, padding: '4px 12px 4px 10px',
-            borderRadius: 9999,
-            background: `${accent.from}18`,
-            border: `1px solid ${accent.from}35`,
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 13, color: accent.from, fontVariationSettings: "'FILL' 1" }}>verified</span>
-            <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: accent.from, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              {lang === 'es' ? 'Miembro Gratis' : 'Free Member'}
-            </span>
+          {/* Dynamic Role Badge */}
+          <div style={{ marginTop: 10 }}>
+            {renderRoleBadge(profile?.role, lang, accent)}
           </div>
         </div>
 
@@ -1694,12 +1779,115 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
           <SettingsRow icon="shield" label={lang === 'es' ? 'Privacidad y datos' : 'Privacy & Data'} onPress={() => openSheet('privacy-data')} last />
         </div>
 
+        {/* Developer / Account Details Card */}
+        {user && (
+          <div style={{ marginTop: 24, animation: 'hub-row-fade 380ms ease 100ms both' }}>
+            <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, color: 'var(--c-text-secondary)', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '0 0 10px' }}>
+              {lang === 'es' ? 'Detalles de Desarrollador / Cuenta' : 'Developer / Account Details'}
+            </p>
+            <div style={{
+              ...cardStyle,
+              padding: '16px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 14,
+              background: 'var(--app-surface-high, rgba(128,128,128,0.06))',
+              border: '1px solid rgba(128,128,128,0.12)',
+            }}>
+              {/* UID Row */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontFamily: 'Inter', fontSize: 10.5, fontWeight: 600, color: 'var(--c-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {lang === 'es' ? 'Identificador de Usuario (UID)' : 'User Identifier (UID)'}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <code style={{
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    color: 'var(--c-text-primary)',
+                    background: 'var(--app-surface-lowest, rgba(128,128,128,0.04))',
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    wordBreak: 'break-all',
+                    flex: 1,
+                    border: '1px solid rgba(128,128,128,0.08)',
+                  }}>
+                    {user.uid}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(user.uid);
+                      showToast(lang === 'es' ? '¡UID copiado al portapapeles!' : 'UID copied to clipboard!');
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 6,
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      color: accent.from,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'background-color 200ms',
+                    }}
+                    className="hover-bg-surface-lowest"
+                    title={lang === 'es' ? 'Copiar UID' : 'Copy UID'}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>content_copy</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Email Row */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontFamily: 'Inter', fontSize: 10.5, fontWeight: 600, color: 'var(--c-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {lang === 'es' ? 'Correo Electrónico' : 'Email Address'}
+                </span>
+                <span style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-primary)', fontWeight: 500 }}>
+                  {user.email || (lang === 'es' ? 'No disponible' : 'Not available')}
+                </span>
+              </div>
+
+              {/* Entitlement Role Row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ fontFamily: 'Inter', fontSize: 10.5, fontWeight: 600, color: 'var(--c-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {lang === 'es' ? 'Rol y Privilegios' : 'Entitlement Role'}
+                  </span>
+                  <span style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-primary)', fontWeight: 500 }}>
+                    {profile?.role ? profile.role.toUpperCase() : 'FREE'}
+                  </span>
+                </div>
+                {renderRoleBadge(profile?.role, lang, accent)}
+              </div>
+
+              {/* Authentication Provider Row */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontFamily: 'Inter', fontSize: 10.5, fontWeight: 600, color: 'var(--c-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {lang === 'es' ? 'Proveedor de Autenticación' : 'Authentication Provider'}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-secondary)' }}>
+                    {getSignInProviders().includes('google.com') ? 'public' : 'lock'}
+                  </span>
+                  <span style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>
+                    {getSignInProviders().length > 0
+                      ? getSignInProviders().map(p => p.replace('.com', '')).join(', ')
+                      : 'Email & Password'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Sign Out — prominent red button */}
         <button
           type="button"
           onClick={() => openSheet('signout')}
           style={{
-            width: '100%', marginTop: 16, padding: '15px 0',
+            width: '100%', marginTop: 24, padding: '15px 0',
             borderRadius: '1.25rem',
             background: 'rgba(255,107,107,0.07)',
             border: '1px solid rgba(255,107,107,0.18)',
@@ -2155,16 +2343,30 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                 <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, fontVariationSettings: "'FILL' 1" }}>verified</span>
                 <div>
                   <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: 'var(--c-text-primary)', margin: 0 }}>
-                    {lang === 'es' ? 'Plan actual · Gratis' : 'Current plan · Free'}
+                    {lang === 'es'
+                      ? `Plan actual · ${profile?.role ? profile.role.toUpperCase() : 'GRATIS'}`
+                      : `Current plan · ${profile?.role ? profile.role.toUpperCase() : 'FREE'}`}
                   </p>
                   <p style={{ fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>
-                    {lang === 'es' ? 'Acceso completo a las funciones básicas' : 'Full access to core features'}
+                    {profile?.role === 'admin'
+                      ? (lang === 'es' ? 'Acceso de administrador completo e ilimitado' : 'Full unlimited administrator access bypass')
+                      : profile?.role === 'pro'
+                      ? (lang === 'es' ? 'Suite de producción profesional activa' : 'Active professional production suite access')
+                      : profile?.role === 'core'
+                      ? (lang === 'es' ? 'Funciones avanzadas y almacenamiento en la nube activos' : 'Active advanced tools & cloud storage access')
+                      : (lang === 'es' ? 'Acceso estándar a las funciones básicas' : 'Standard access to basic creation tools')}
                   </p>
                 </div>
               </div>
 
               {/* Aceternity Pricing Section */}
-              <StudioPricingSection accent={accent} lang={lang} />
+              <StudioPricingSection
+                accent={accent}
+                lang={lang}
+                profile={profile}
+                user={user}
+                onShowToast={showToast}
+              />
             </div>
           </div>
         </div>,
