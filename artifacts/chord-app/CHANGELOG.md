@@ -15,6 +15,13 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.1.51
+
+- Startup Lag Fixed: Eliminated intro animation stuttering by offloading all motion calculations to GPU compositor layers.
+- Battery & Performance: Optimized rendering loops and cleaned up heavy CPU overhead to improve device battery life.
+- Dead Code Cleaned: Safely removed unused test, demo, and legacy animation components, slimming down the bundle size.
+- Drumex Audio Fix: Restored original high-quality Opus samples for the House drum kit on the web, fixing a 404 loading error.
+
 ## 3.1.50
 
 - Drumex Audio Fix: Restored original high-quality Opus samples for the House drum kit on the web, fixing a 404 loading error that forced library previews to fall back to synthesis.

@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-01'; // 3.1.51
+export const APP_VERSION_DATE = '2026-06-02'; // 3.1.51
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,11 +55,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "OTA Updates & Visual Polish",
     items: [
-      'Drumex Audio Fix: Restored original high-quality Opus samples for the House drum kit on the web, fixing a 404 loading error that forced library previews to fall back to synthesis.',
-      'Liquid Glass Indicators: Overhauled checking/up-to-date status badges into refracting liquid glass pills matching the nav bar.',
-      'Refined Update Badge: Minimized corner update badge is now a beautiful liquid glass ball containing a clean download icon.',
-      'Direct update installation: Clicking update in settings installs it immediately in-app, with a smooth fade-to-black restart.',
-      'Seamless Intro Transition: Fades in the app startup animation from black, matching the updater\'s fade-to-black reload for a flash-free transition.',
+      'Startup Lag Fixed: Eliminated intro animation stuttering by offloading all motion calculations to GPU compositor layers.',
+      'Battery & Performance: Optimized rendering loops and cleaned up heavy CPU overhead to improve device battery life.',
+      'Dead Code Cleaned: Safely removed unused test, demo, and legacy animation components, slimming down the bundle size.',
+      'Drumex Audio Fix: Restored original high-quality Opus samples for the House drum kit on the web, fixing a 404 loading error.',
     ],
   },
   {
@@ -77,17 +76,16 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Actualizaciones y Diseñó",
     items: [
-      'Corrección de Audio en Drumex: Se restauraron las muestras Opus de alta calidad originales para el kit House en la web, solucionando un error de carga 404.',
-      'Indicadores Liquid Glass: Rediseño completo de las etiquetas de verificación/actualización en cápsulas de vidrio líquido refractivo.',
-      'Insignia de Actualización: La insignia de esquina ahora es una esfera de vidrio líquido con un icono limpio de descarga.',
-      'Instalación Directa: Instala actualizaciones directamente desde los ajustes con un desvanecimiento a negro suave y sin tirones.',
-      'Transición de Intro Fluida: Desvanece la animación de inicio desde negro para coincidir con el reinicio del actualizador y evitar destellos.',
+      'Sin Tirones en Inicio: Se eliminó el lag de la animación de entrada delegando todo el movimiento a capas de composición de la GPU.',
+      'Batería y Rendimiento: Se optimizaron los bucles de renderizado y redujo el uso de CPU para extender la duración de la batería.',
+      'Código Muerto Limpiado: Eliminación segura de componentes de prueba y animaciones obsoletas, reduciendo el tamaño del paquete.',
+      'Corrección de Audio en Drumex: Se restauraron las muestras Opus de alta calidad para el kit House, corrigiendo el error 404.',
     ],
   },
   {
     heading: "Mejoras en Drumex",
     items: [
-      'Teclado Desactivado: El secuenciador ya no enfoca ni abre automáticamente el teclado al crear un nuevo ritmo.',
+      'Teclado Desactivado: El secuenciador ya no abre automáticamente el teclado al crear un nuevo ritmo.',
       'Selección por Defecto: El kit de alta calidad \'House Kit\' está seleccionado por defecto.',
     ],
   },
@@ -98,11 +96,10 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
     heading: "OTA-Updates & Design",
     items: [
-      'Drumex Audio-Fix: Die originalen, hochwertigen Opus-Samples für das House-Schlagzeug-Kit wurden im Web wiederhergestellt, wodurch ein 404-Fehler behoben wurde.',
-      'Liquid Glass Indikatoren: Die Statusanzeigen für Updates wurden in lichtbrechende Liquid Glass-Kapseln überarbeitet.',
-      'Update-Badge: Das minimierte Update-Symbol in der Ecke ist nun eine elegante Glaskugel mit sauberem Download-Symbol.',
-      'Directes Update: Updates werden direkt in der App installiert, mit einem flüssigen Ausblenden nach Schwarz.',
-      'Nahtloser Intro-Übergang: Blendet die Startanimation aus dem Schwarz ein, passend zum Ausblenden des Updaters für einen blitzfreien Übergang.',
+      'Start-Verzögerung Behoben: Intro-Ruckeln eliminiert, indem alle Berechnungen auf GPU-Kompositionsebenen verlagert wurden.',
+      'Akku & Leistung: Render-Schleifen optimiert und CPU-Overhead minimiert, um die Akkulaufzeit des Geräts zu verlängern.',
+      'Unbenutzter Code Entfernt: Nicht verwendete Test- und Animationskomponenten sicher gelöscht, um das Paket zu verkleinern.',
+      'Drumex Audio-Fix: Die originalen, hochwertigen Opus-Samples für das House-Kit wurden im Web wiederhergestellt.',
     ],
   },
   {
