@@ -107,38 +107,276 @@ export default function App() {
     return () => { cancelled = true; unsub?.(); };
   }, []);
 
-  // Request startup permissions for notifications and microphone (required by Vocalex / OTA updates)
+  // Scan permission states on startup, showing a glassmorphic dialog if permissions are not granted
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+
   useEffect(() => {
-    const requestStartupPermissions = async () => {
-      // 1. Microphone permission request
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach((track) => track.stop());
-      } catch (err) {
-        console.warn('[Permissions] Microphone permission request skipped or denied:', err);
+    const checkStartupPermissions = async () => {
+      // Avoid prompting if the user has already declined in this session
+      if (sessionStorage.getItem('studio:dismissedPermissions') === '1') {
+        return;
       }
 
-      // 2. Notification permission request
+      let hasNotification = false;
+      if ('Notification' in window) {
+        hasNotification = Notification.permission === 'granted';
+      }
+
+      let hasMic = false;
       try {
-        if (typeof window !== 'undefined') {
-          if ('Notification' in window && Notification.permission === 'default') {
-            await Notification.requestPermission();
-          }
-          // Native Capacitor notification permission request
-          const { Capacitor } = await import('@capacitor/core');
-          if (Capacitor.isNativePlatform()) {
-            const { LocalNotifications } = await import('@capacitor/local-notifications');
-            await LocalNotifications.requestPermissions();
-          }
+        if (navigator.permissions && navigator.permissions.query) {
+          const micStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          hasMic = micStatus.state === 'granted';
         }
-      } catch (err) {
-        console.warn('[Permissions] Notification permission request skipped or denied:', err);
+      } catch (e) {
+        console.warn('[Permissions] Failed to check microphone status via Permissions API:', e);
+      }
+
+      let hasNativeNotification = true;
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const { LocalNotifications } = await import('@capacitor/local-notifications');
+          const status = await LocalNotifications.checkPermissions();
+          hasNativeNotification = status.display === 'granted';
+        }
+      } catch (e) {
+        console.warn('[Permissions] Failed to check native notifications:', e);
+      }
+
+      // If either permission has not been granted, trigger the beautiful dialog
+      if (!hasNotification || !hasMic || !hasNativeNotification) {
+        setTimeout(() => {
+          setShowPermissionModal(true);
+        }, 1200);
       }
     };
 
-    const timer = setTimeout(requestStartupPermissions, 1500);
-    return () => clearTimeout(timer);
+    checkStartupPermissions();
   }, []);
+
+  const handleRequestPermissions = async () => {
+    // 1. Microphone permission request
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
+    } catch (err) {
+      console.warn('[Permissions] Microphone permission request skipped or denied:', err);
+    }
+
+    // 2. Notification permission request
+    try {
+      if ('Notification' in window) {
+        await Notification.requestPermission();
+      }
+      // Capacitor native notification request
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        await LocalNotifications.requestPermissions();
+      }
+    } catch (err) {
+      console.warn('[Permissions] Notification permission request skipped or denied:', err);
+    }
+
+    sessionStorage.setItem('studio:dismissedPermissions', '1');
+    setShowPermissionModal(false);
+  };
+
+  const handleDismissPermissions = () => {
+    sessionStorage.setItem('studio:dismissedPermissions', '1');
+    setShowPermissionModal(false);
+  };
+
+  const renderPermissionModal = () => {
+    if (!showPermissionModal) return null;
+
+    return createPortal(
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(10, 10, 12, 0.72)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          padding: '16px',
+        }}
+      >
+        <style>{`
+          @keyframes permissions-fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes permissions-pop {
+            0% { transform: scale(0.92) translateY(20px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+          }
+          .permissions-card {
+            max-width: 420px;
+            width: 100%;
+            padding: 36px 28px;
+            border-radius: 28px;
+            background: rgba(20, 20, 24, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+            text-align: center;
+            font-family: 'Manrope', sans-serif;
+            color: #ffffff;
+            animation: permissions-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+          }
+          .permission-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            text-align: left;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: all 0.2s ease;
+          }
+          .permission-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.08);
+          }
+          .permission-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.15), rgba(139, 92, 246, 0.15));
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+            flex-shrink: 0;
+          }
+          .permission-details h4 {
+            margin: 0 0 4px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #f3f4f6;
+          }
+          .permission-details p {
+            margin: 0;
+            font-size: 12.5px;
+            line-height: 1.5;
+            color: #9ca3af;
+          }
+          .permission-btn-primary {
+            background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+            color: #ffffff;
+            border: none;
+            border-radius: 14px;
+            padding: 15px 28px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            width: 100%;
+            margin-bottom: 12px;
+            outline: none;
+          }
+          .permission-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px rgba(139, 92, 246, 0.45);
+          }
+          .permission-btn-primary:active {
+            transform: translateY(1px);
+          }
+          .permission-btn-secondary {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 13px 28px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            width: 100%;
+            outline: none;
+          }
+          .permission-btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.2);
+          }
+        `}</style>
+        <div className="permissions-card">
+          <div
+            style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #a78bfa, #8b5cf6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px',
+              boxShadow: '0 0 24px rgba(139, 92, 246, 0.4)',
+              color: '#ffffff',
+            }}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+
+          <h2 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 8px', letterSpacing: '-0.02em', color: '#ffffff' }}>
+            Device Access Required
+          </h2>
+          <p style={{ fontSize: '14px', lineHeight: '1.5', color: '#9ca3af', margin: '0 0 24px' }}>
+            To unlock the full potential of Studio, please enable these essential device permissions.
+          </p>
+
+          <div style={{ marginBottom: '24px' }}>
+            <div className="permission-row">
+              <div className="permission-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+              </div>
+              <div className="permission-details">
+                <h4>Microphone Access</h4>
+                <p>Enables real-time scale, pitch, and vocal resonance tracing. Required for Vocalex practice tools.</p>
+              </div>
+            </div>
+
+            <div className="permission-row">
+              <div className="permission-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+              </div>
+              <div className="permission-details">
+                <h4>System Notifications</h4>
+                <p>Provides critical OTA software update alerts and cloud synchronization notifications.</p>
+              </div>
+            </div>
+          </div>
+
+          <button onClick={handleRequestPermissions} className="permission-btn-primary">
+            Enable Permissions
+          </button>
+          <button onClick={handleDismissPermissions} className="permission-btn-secondary">
+            Not Now
+          </button>
+        </div>
+      </div>,
+      document.body
+    );
+  };
 
   // Whenever we leave the lockdown screen (e.g. user tapped Restore), force
   // the bottom nav back into a clean visible state. The lockdown screen
@@ -944,6 +1182,7 @@ export default function App() {
           </Suspense>
         </div>
         {exitToast && renderExitToast()}
+        {renderPermissionModal()}
       </>
     );
   }
@@ -958,6 +1197,7 @@ export default function App() {
           </Suspense>
         </div>
         {exitToast && renderExitToast()}
+        {renderPermissionModal()}
       </>
     );
   }
@@ -972,6 +1212,7 @@ export default function App() {
           </Suspense>
         </div>
         {exitToast && renderExitToast()}
+        {renderPermissionModal()}
       </>
     );
   }
@@ -1013,6 +1254,7 @@ export default function App() {
           )}
         </div>
         {exitToast && renderExitToast()}
+        {renderPermissionModal()}
       </>
     );
   }
@@ -1040,7 +1282,7 @@ export default function App() {
               background: vocalexBgColor,
               opacity:   vocalexSplash === 'out' ? 0 : 1,
               transform: vocalexSplash === 'out' ? 'scale(1.05)' : 'scale(1)',
-              transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,1), transform 330ms cubic-bezier(0.4,0,0.2,1)',
+              transition: 'opacity 330ms cubic-bezier(0.4,0,0.2,15), transform 330ms cubic-bezier(0.4,0,0.2,1)',
               pointerEvents: 'none',
             }}>
               <div style={{ color: vocalexIsLight ? '#1a1a1a' : '#ffffff', animation: 'splash-logo-in 420ms cubic-bezier(0.34,1.56,0.64,1) both' }}>
@@ -1054,6 +1296,7 @@ export default function App() {
           )}
         </div>
         {exitToast && renderExitToast()}
+        {renderPermissionModal()}
       </>
     );
   }
@@ -1096,6 +1339,7 @@ export default function App() {
           )}
         </div>
         {exitToast && renderExitToast()}
+        {renderPermissionModal()}
       </>
     );
   }
@@ -1134,6 +1378,7 @@ export default function App() {
           )}
         </div>
         {exitToast && renderExitToast()}
+        {renderPermissionModal()}
       </>
     );
   }
@@ -1205,6 +1450,7 @@ export default function App() {
 
       </AppEntryTransition>
       {exitToast && renderExitToast()}
+      {renderPermissionModal()}
     </>
   );
 }

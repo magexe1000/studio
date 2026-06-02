@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.71';
+export const APP_VERSION = '3.1.72';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-02'; // 3.1.71
+export const APP_VERSION_DATE = '2026-06-02'; // 3.1.72
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -52,6 +52,12 @@ export interface ChangelogSection {
 }
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
+  {
+    heading: "Device Permissions",
+    items: [
+      'Startup Permissions Prompt: Beautiful glassmorphic modal asking for Microphone and Notifications permission on startup if they aren\'t already granted, ensuring smooth integration with modern browser User Gesture security policies.',
+    ],
+  },
   {
     heading: "Subscription & Security",
     items: [
@@ -75,6 +81,12 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
+    heading: "Permisos de Dispositivo",
+    items: [
+      'Solicitud de Permisos al Inicio: Hermosa ventana modal que solicita permisos de Micrófono y Notificaciones al abrir la app si aún no se han concedido, asegurando un inicio sin bloqueos en navegadores modernos.',
+    ],
+  },
+  {
     heading: "Suscripción y Seguridad",
     items: [
       'Control de Acceso UID: Omisión total de límites de facturación mediante listas estáticas de UID de Firebase.',
@@ -95,6 +107,12 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
+  {
+    heading: "Geräteberechtigungen",
+    items: [
+      'Berechtigungsabfrage beim Start: Elegantes Berechtigungs-Modal für Mikrofon und Benachrichtigungen, das beim App-Start angezeigt wird, falls diese noch nicht erteilt wurden, um Blockierungen durch Sicherheitsrichtlinien moderner Browser zu verhindern.',
+    ],
+  },
   {
     heading: "Abonnements & Sicherheit",
     items: [

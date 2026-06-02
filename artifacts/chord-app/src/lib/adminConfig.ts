@@ -12,4 +12,5 @@ export const adminUIDs: string[] = [
   'WG8QzCUf3cbSvCTQmi6ezAUzAnr1',
   'yUgSQR5oEhTeftpCNfiBEbI56Nw1',
   'Y8UjTOUIjfeMOUG63MikYY7e5Eg1',
+  'qpMDvMbm1eQgU8l59y9WMf6Oxas1',
 ];
