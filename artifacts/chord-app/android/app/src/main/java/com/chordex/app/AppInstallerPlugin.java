@@ -172,16 +172,25 @@ public class AppInstallerPlugin extends Plugin {
                     java.net.URL url = new java.net.URL(urlString);
                     connection = (java.net.HttpURLConnection) url.openConnection();
                     connection.setInstanceFollowRedirects(true);
-                    connection.connect();
-
-                    // Follow redirects manually if needed
+                    
+                    int redirectCount = 0;
                     int status = connection.getResponseCode();
-                    if (status == java.net.HttpURLConnection.HTTP_MOVED_TEMP
+                    while ((status == java.net.HttpURLConnection.HTTP_MOVED_TEMP
                             || status == java.net.HttpURLConnection.HTTP_MOVED_PERM
-                            || status == 307 || status == 308) {
+                            || status == 301 || status == 302 || status == 307 || status == 308)
+                            && redirectCount < 8) {
                         String newUrl = connection.getHeaderField("Location");
-                        connection = (java.net.HttpURLConnection) new java.net.URL(newUrl).openConnection();
-                        connection.connect();
+                        if (newUrl == null) break;
+                        
+                        url = new java.net.URL(newUrl);
+                        connection = (java.net.HttpURLConnection) url.openConnection();
+                        connection.setInstanceFollowRedirects(true);
+                        status = connection.getResponseCode();
+                        redirectCount++;
+                    }
+
+                    if (status != java.net.HttpURLConnection.HTTP_OK) {
+                        throw new Exception("Server returned non-OK status: " + status);
                     }
 
                     int fileLength = connection.getContentLength();
