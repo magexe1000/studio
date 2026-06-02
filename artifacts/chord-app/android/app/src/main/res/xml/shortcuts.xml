@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="vocalex"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_vocalex_short"
+        android:shortcutLongLabel="@string/shortcut_vocalex_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.chordex.app"
+            android:targetClass="com.chordex.app.MainActivity"
+            android:data="https://localhost/?app=vocalex" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="updater"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_updater_short"
+        android:shortcutLongLabel="@string/shortcut_updater_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.chordex.app"
+            android:targetClass="com.chordex.app.MainActivity"
+            android:data="https://localhost/?page=updater" />
+    </shortcut>
+</shortcuts>

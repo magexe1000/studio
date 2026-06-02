@@ -83,6 +83,7 @@ dependencies {
     // build fails with "cannot access ListenableFuture". The :1.0 stub is
     // the official Google-recommended fix and is ~1 KB.
     implementation "com.google.guava:guava:33.2.1-android"
+    implementation "androidx.security:security-crypto:1.0.0"
 }
 
 apply from: 'capacitor.build.gradle'

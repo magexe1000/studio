@@ -146,6 +146,116 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Listen for shared files on launch or runtime
+  useEffect(() => {
+    let active = true;
+
+    const handleSharedJson = async (jsonString: string, fileName: string) => {
+      try {
+        const confirmRestore = window.confirm(
+          `Do you want to restore the backup file "${fileName}"?\nThis will overwrite your current settings and local database.`
+        );
+        if (!confirmRestore) return;
+
+        const data = JSON.parse(jsonString);
+        localStorage.clear();
+        for (const [key, value] of Object.entries(data)) {
+          if (typeof value === 'string') {
+            localStorage.setItem(key, value);
+          }
+        }
+        window.location.reload();
+      } catch (err) {
+        console.error('[SharedFile] Failed to import backup JSON:', err);
+        alert('Failed to import backup: invalid data format.');
+      }
+    };
+
+    const handleSharedAudio = async (filePath: string, fileName: string) => {
+      try {
+        const { Filesystem } = await import('@capacitor/filesystem');
+        const fileData = await Filesystem.readFile({ path: filePath });
+        const base64Data = fileData.data;
+
+        // Convert base64 to Blob
+        const response = await fetch(`data:audio/3gp;base64,${base64Data}`);
+        const blob = await response.blob();
+
+        const { saveTake, extractWaveformPeaks, blobToAudioBuffer } = await import('./vocalex/takesDb');
+        const audioBuffer = await blobToAudioBuffer(blob);
+        const durationMs = audioBuffer.duration * 1000;
+        const peaks = extractWaveformPeaks(audioBuffer);
+        const sampleRate = audioBuffer.sampleRate;
+
+        const takeName = fileName.replace(/\.[^.]+$/, '');
+        const id = Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+        await saveTake({
+          id,
+          name: takeName,
+          createdAt: Date.now(),
+          durationMs,
+          audioBlob: blob,
+          waveformPeaks: peaks,
+          sampleRate,
+        });
+
+        alert(`Successfully imported audio file "${fileName}" into Vocalex Takes!`);
+        window.dispatchEvent(new CustomEvent('chordex:takes-updated'));
+      } catch (err) {
+        console.error('[SharedFile] Failed to import audio file:', err);
+        alert('Failed to import shared audio track.');
+      }
+    };
+
+    const onSharedJsonEvent = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.data) {
+        handleSharedJson(detail.data, detail.fileName || 'backup.json');
+      }
+    };
+
+    const onSharedAudioEvent = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.data) {
+        handleSharedAudio(detail.data, detail.fileName || 'track.wav');
+      }
+    };
+
+    window.addEventListener('chordex:shared-json', onSharedJsonEvent);
+    window.addEventListener('chordex:shared-audio', onSharedAudioEvent);
+
+    const checkColdStartSharedFile = async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const { AppInstaller } = await import('./lib/apkDownloader');
+          const shared = await AppInstaller.getSharedFile();
+          if (shared && !shared.none && shared.data) {
+            if (shared.type === 'json') {
+              await handleSharedJson(shared.data, shared.fileName || 'backup.json');
+            } else if (shared.type === 'audio') {
+              await handleSharedAudio(shared.data, shared.fileName || 'track.wav');
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[SharedFile] Cold start check failed:', err);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      if (active) checkColdStartSharedFile();
+    }, 1500);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      window.removeEventListener('chordex:shared-json', onSharedJsonEvent);
+      window.removeEventListener('chordex:shared-audio', onSharedAudioEvent);
+    };
+  }, []);
+
 
   // Whenever we leave the lockdown screen (e.g. user tapped Restore), force
   // the bottom nav back into a clean visible state. The lockdown screen

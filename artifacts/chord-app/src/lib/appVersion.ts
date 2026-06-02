@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.90';
+export const APP_VERSION = '3.1.91';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-02'; // 3.1.90
+export const APP_VERSION_DATE = '2026-06-02'; // 3.1.91
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,10 +53,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Storage & Media Permissions",
+    heading: "Wrapper Enhancements",
     items: [
-      'Native Media & Document Permissions: Declared and requested permissions for external storage, images, audio, and video, ensuring the profile section can access photo files and backup exports function correctly.',
-      'Dynamic Permission Requests: Automatically prompts for notifications, media files, and storage on startup after a brief delay, and dynamically verifies them before picking files or performing native backups.',
+      'App Launcher Shortcuts: Added long-press launcher shortcuts for "Vocalex Practice" and "Check Updates" to deep-link directly into sub-panels.',
+      'Native File Association: Intercepted system file intents, allowing files shared or opened from other apps (JSON backups and audio files) to import directly.',
+      'Encrypted Storage: Implemented hardware-backed EncryptedSharedPreferences to handle sensitive keychain assets securely.',
     ],
   },
 ];
@@ -65,10 +66,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Permisos de Medios y Almacenamiento",
+    heading: "Mejoras de Wrapper Nativas",
     items: [
-      'Permisos Nativos de Medios y Documentos: Declarados y solicitados permisos para almacenamiento externo, imágenes, audio y video, garantizando que la sección de perfil acceda a fotos y que la exportación de copias de seguridad funcione correctamente.',
-      'Solicitudes Dinámicas de Permisos: Solicita automáticamente notificaciones, archivos multimedia y almacenamiento al iniciar la app tras un breve retraso, y los verifica dinámicamente antes de seleccionar archivos o realizar respaldos nativos.',
+      'Accesos Directos del Iniciador: Se agregaron accesos directos al mantener presionado el ícono para "Vocalex Practice" y "Check Updates" para ingresar directo.',
+      'Asociación de Archivos Nativos: Se interceptaron intents del sistema para abrir o compartir archivos (.json de respaldo y audio) de otras apps e importarlos directo.',
+      'Almacenamiento Cifrado: Se integró EncryptedSharedPreferences respaldado por hardware para guardar activos sensibles de forma segura.',
     ],
   },
 ];
@@ -76,10 +78,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Speicher- und Medienberechtigungen",
+    heading: "Wrapper-Verbesserungen",
     items: [
-      'Native Medien- und Dokumentenberechtigungen: Berechtigungen für externen Speicher, Bilder, Audio und Video deklariert und angefordert, um den Zugriff des Profilbereichs auf Fotos und den Export von Backups sicherzustellen.',
-      'Dynamische Berechtigungsabfragen: Fragt beim Start nach Benachrichtigungen, Mediendateien und Speicher nach einer kurzen Verzögerung und überprüft diese vor der Dateiauswahl oder Datensicherung.',
+      'Launcher-Verknüpfungen: Schnellzugriff per Gedrückthalten für "Vocalex Practice" und "Check Updates" direkt in die jeweiligen App-Bereiche.',
+      'Native Dateiverknüpfung: System-Dateizugriffe abgefangen, um geteilte Backup-Dateien (JSON) oder Audiodateien direkt in die App zu importieren.',
+      'Verschlüsselter Speicher: Integration von hardwaregestützten EncryptedSharedPreferences zur sicheren Speicherung sensibler Schlüsseldaten.',
     ],
   },
 ];

@@ -12,6 +12,9 @@ import com.getcapacitor.PluginMethod;
 import android.Manifest;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
+import android.content.SharedPreferences;
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKeys;
 import java.io.File;
 import java.net.URI;
 
@@ -40,6 +43,85 @@ import java.net.URI;
     }
 )
 public class AppInstallerPlugin extends Plugin {
+
+    private SharedPreferences getSecurePreferences() throws Exception {
+        Context context = getContext();
+        String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+        return EncryptedSharedPreferences.create(
+            "secure_prefs",
+            masterKeyAlias,
+            context,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        );
+    }
+
+    @PluginMethod
+    public void getSharedFile(PluginCall call) {
+        if (MainActivity.lastSharedFile != null) {
+            call.resolve(MainActivity.lastSharedFile);
+            MainActivity.lastSharedFile = null; // Clear after delivery
+        } else {
+            JSObject empty = new JSObject();
+            empty.put("none", true);
+            call.resolve(empty);
+        }
+    }
+
+    @PluginMethod
+    public void setSecureValue(PluginCall call) {
+        String key = call.getString("key");
+        String value = call.getString("value");
+        if (key == null) {
+            call.reject("key is required");
+            return;
+        }
+        try {
+            SharedPreferences prefs = getSecurePreferences();
+            if (value == null) {
+                prefs.edit().remove(key).apply();
+            } else {
+                prefs.edit().putString(key, value).apply();
+            }
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to write to secure storage: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void getSecureValue(PluginCall call) {
+        String key = call.getString("key");
+        if (key == null) {
+            call.reject("key is required");
+            return;
+        }
+        try {
+            SharedPreferences prefs = getSecurePreferences();
+            String val = prefs.getString(key, null);
+            JSObject result = new JSObject();
+            result.put("value", val);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to read from secure storage: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void removeSecureValue(PluginCall call) {
+        String key = call.getString("key");
+        if (key == null) {
+            call.reject("key is required");
+            return;
+        }
+        try {
+            SharedPreferences prefs = getSecurePreferences();
+            prefs.edit().remove(key).apply();
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to delete from secure storage: " + e.getMessage(), e);
+        }
+    }
 
     @PluginMethod
     public void installApk(PluginCall call) {

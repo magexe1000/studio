@@ -4,4 +4,8 @@
     <string name="title_activity_main">Studio</string>
     <string name="package_name">com.chordex.app</string>
     <string name="custom_url_scheme">com.chordex.app</string>
+    <string name="shortcut_vocalex_short">Vocalex</string>
+    <string name="shortcut_vocalex_long">Vocalex Practice</string>
+    <string name="shortcut_updater_short">Updates</string>
+    <string name="shortcut_updater_long">Check Updates</string>
 </resources>

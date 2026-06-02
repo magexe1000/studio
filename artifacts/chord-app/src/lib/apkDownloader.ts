@@ -5,6 +5,10 @@ export interface AppInstallerPlugin {
   installApk(options: { filePath: string }): Promise<void>;
   checkPermissions(): Promise<any>;
   requestPermissions(options?: { aliases?: string[] }): Promise<any>;
+  getSharedFile(): Promise<{ none?: boolean; type?: 'json' | 'audio'; data?: string; fileName?: string }>;
+  setSecureValue(options: { key: string; value: string | null }): Promise<void>;
+  getSecureValue(options: { key: string }): Promise<{ value: string | null }>;
+  removeSecureValue(options: { key: string }): Promise<void>;
 }
 
 export const AppInstaller = registerPlugin<AppInstallerPlugin>('AppInstaller');
