@@ -250,162 +250,287 @@ export async function fetchRemoteVersion(
  * Best-effort: compare the remote version against the bundle's version
  * and return whether an update is available. All errors swallowed.
  */
-export async function checkForUpdate(): Promise<OtaState> {
-  const remote = await fetchRemoteVersion();
-  if (!remote) {
-    return { ...INITIAL_STATE, loading: false };
-  }
-  const cmp = compareSemver(remote.version, APP_VERSION);
-  return {
-    updateAvailable: cmp > 0,
-    remoteVersion: remote.version,
-    changelog: remote.changelog ?? null,
-    mandatory: remote.mandatory === true,
-    downloadUrl: remote.downloadUrl ?? null,
-    loading: false,
-  };
+export type OtaUpdateState = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'applied' | 'dismissed' | 'error';
+
+export interface CentralizedOtaState {
+  updateState: OtaUpdateState;
+  updateAvailable: boolean;
+  remoteVersion: string | null;
+  changelog: string | null;
+  mandatory: boolean;
+  downloadUrl: string | null;
+  loading: boolean;
+  progress: number;
+  error: string | null;
 }
+
+let globalOtaState: CentralizedOtaState = {
+  updateState: 'idle',
+  updateAvailable: false,
+  remoteVersion: null,
+  changelog: null,
+  mandatory: false,
+  downloadUrl: null,
+  loading: true,
+  progress: 0,
+  error: null,
+};
+
+const stateListeners = new Set<(state: CentralizedOtaState) => void>();
+
+function updateGlobalState(updates: Partial<CentralizedOtaState>) {
+  globalOtaState = { ...globalOtaState, ...updates };
+  stateListeners.forEach((l) => l(globalOtaState));
+}
+
+let activeCheckPromise: Promise<CentralizedOtaState> | null = null;
+let activeDownloadPromise: Promise<void> | null = null;
+let activeApplyPromise: Promise<void> | null = null;
 
 /**
- * React hook: returns OTA state and aggressively refreshes it.
- *
- * Originally we only fetched ONCE on mount, which meant a user who left
- * the app open all day never saw a release shipped during that day, and
- * a user who background/foregrounded only saw a fresh check on cold
- * start. This version checks:
- *
- *  1. Immediately on mount.
- *  2. Every time the app comes back to the foreground:
- *      - Capacitor `App.appStateChange` (`isActive: true`) on native.
- *      - `document.visibilitychange` → `document.visibilityState ===
- *        'visible'` on web/PWA.
- *  3. On a 5-minute interval while the app is visible. The interval is
- *     paused when the document goes hidden (no point burning battery
- *     polling in the background — the native WorkManager worker handles
- *     "while truly closed" coverage).
- *
- * All listeners are torn down on unmount. Concurrent fetches are
- * collapsed via the `inFlight` ref so a quick visibility flap doesn't
- * stack three identical requests.
+ * Centralized checkForUpdate: racing fetches in parallel, resolving
+ * immediately, checking seen/dismissed locks, and locking concurrent requests.
  */
-export interface UseOtaUpdateResult extends OtaState {
-  /** Force a fresh check right now (used by the manual "Check now" button). */
-  checkNow: () => Promise<void>;
-}
+export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
+  if (activeCheckPromise) return activeCheckPromise;
 
-export function useOtaUpdate(): UseOtaUpdateResult {
-  const [state, setState] = useState<OtaState>(INITIAL_STATE);
-  const inFlight = useRef(false);
-  const mounted = useRef(true);
-  // Read user toggles. We pull primitives so this hook re-runs only when
-  // these specific flags change, not on every settings update.
-  const otaAutoCheck = useChordStore((s) => s.settings.otaAutoCheck ?? true);
-  const otaNotifications = useChordStore((s) => s.settings.otaNotifications ?? true);
-  // Mirror the latest values into refs so the long-lived listeners
-  // installed in the mount effect always see fresh values without
-  // needing to re-mount the listeners (which would cancel in-flight
-  // fetches every time the user toggled a switch).
-  const autoCheckRef = useRef(otaAutoCheck);
-  const notificationsRef = useRef(otaNotifications);
-  useEffect(() => { autoCheckRef.current = otaAutoCheck; }, [otaAutoCheck]);
-  useEffect(() => {
-    notificationsRef.current = otaNotifications;
-    // Mirror the toggle to native SharedPreferences so the Android
-    // background worker (`OtaCheckWorker.java`) honors it too. Without
-    // this, the in-app notifications respect the toggle but the
-    // background worker — which is what surfaces notifications when
-    // the app is fully closed — keeps firing regardless.
-    void nativeSet(NATIVE_PREFS.OTA_NOTIFICATIONS_ENABLED, otaNotifications ? 'true' : 'false');
-  }, [otaNotifications]);
-
-  // Stable abort controller for manual checks. Recreated on each call
-  // so a previous slow request can be cancelled cleanly when the user
-  // hits "Check now" again.
-  const manualCtrl = useRef<AbortController | null>(null);
-
-  const runCheckImpl = useCallback(async (signal: AbortSignal, isManual: boolean) => {
-    // The `inFlight` flag deduplicates background triggers (visibility,
-    // focus, online, periodic poll) so a quick flap doesn't stack
-    // identical requests. A MANUAL check, however, must NEVER be
-    // silently dropped — the user just tapped the button and expects
-    // visible feedback. We bypass the gate for manual calls; the
-    // resulting overlap with an in-flight auto-check is harmless
-    // because both writes go through the same `setState` reducer and
-    // the final value wins.
-    if (inFlight.current && !isManual) return;
-    inFlight.current = true;
-    if (isManual) {
-      setState((prev) => ({ ...prev, loading: true }));
+  activeCheckPromise = (async () => {
+    // Return early if download/apply is already in progress or completed
+    if (globalOtaState.updateState === 'downloading' || 
+        globalOtaState.updateState === 'ready' || 
+        globalOtaState.updateState === 'applied') {
+      return globalOtaState;
     }
+
+    updateGlobalState({ updateState: 'checking', loading: true });
     try {
-      const remote = await fetchRemoteVersion(signal);
-      if (!mounted.current) return;
+      const remote = await fetchRemoteVersion();
       if (!remote) {
-        setState((prev) =>
-          prev.loading ? { ...INITIAL_STATE, loading: false } : { ...prev, loading: false },
-        );
-        return;
+        updateGlobalState({ updateState: 'idle', updateAvailable: false, loading: false });
+        return globalOtaState;
       }
+
       const cmp = compareSemver(remote.version, APP_VERSION);
-      setState({
-        updateAvailable: cmp > 0,
+      if (cmp <= 0) {
+        updateGlobalState({ updateState: 'idle', updateAvailable: false, loading: false });
+        return globalOtaState;
+      }
+
+      // Check if already applied or dismissed in persistent storage
+      const applied = localStorage.getItem('studio:appliedUpdateVersion');
+      if (applied === remote.version) {
+        updateGlobalState({ updateState: 'applied', updateAvailable: false, loading: false });
+        return globalOtaState;
+      }
+
+      const dismissed = localStorage.getItem('studio:laterUpdateVersion');
+      const isDismissed = dismissed === remote.version;
+
+      updateGlobalState({
+        updateState: isDismissed ? 'dismissed' : 'available',
+        updateAvailable: true,
         remoteVersion: remote.version,
         changelog: remote.changelog ?? null,
         mandatory: remote.mandatory === true,
         downloadUrl: remote.downloadUrl ?? null,
         loading: false,
       });
-      // v3.0.57: Removed the in-app local notification (notifyOtaAvailable).
-      // It duplicated the system notification posted by the WorkManager
-      // background worker (OtaCheckWorker.java), so the user saw two
-      // notifications for the same update — one with the proper info
-      // icon and one with the generic launcher icon. The background
-      // worker handles all OS-level notifications now; the in-app
-      // banner (UpdateIndicator) is the in-app surface.
-    } finally {
-      inFlight.current = false;
-    }
-  }, []);
 
-  const checkNow = useCallback(async () => {
-    if (manualCtrl.current) manualCtrl.current.abort();
-    const ctrl = new AbortController();
-    manualCtrl.current = ctrl;
-    await runCheckImpl(ctrl.signal, true);
-  }, [runCheckImpl]);
+      // System notification if never seen and not already dismissed
+      const notified = localStorage.getItem('studio:notifiedUpdateVersion');
+      if (notified !== remote.version && !isDismissed) {
+        await notifyOtaAvailable(remote.version);
+      }
+
+      return globalOtaState;
+    } catch (err) {
+      console.warn('[OTA] Check failed:', err);
+      updateGlobalState({ updateState: 'error', error: String(err), loading: false });
+      return globalOtaState;
+    } finally {
+      activeCheckPromise = null;
+    }
+  })();
+
+  return activeCheckPromise;
+}
+
+/**
+ * Centralized downloadUpdate: locks the download process and mirrors progress globally.
+ */
+export function downloadUpdate(): Promise<void> {
+  if (activeDownloadPromise) return activeDownloadPromise;
+
+  if (globalOtaState.updateState === 'ready' || globalOtaState.updateState === 'applied') {
+    return Promise.resolve();
+  }
+
+  if (!isNative()) {
+    // Web: instant download/ready transition (handled on apply reload)
+    updateGlobalState({ updateState: 'ready', progress: 1.0 });
+    return Promise.resolve();
+  }
+
+  const { downloadUrl, remoteVersion } = globalOtaState;
+  if (!downloadUrl || !remoteVersion) {
+    updateGlobalState({ updateState: 'error', error: 'No download URL available' });
+    return Promise.resolve();
+  }
+
+  activeDownloadPromise = (async () => {
+    updateGlobalState({ updateState: 'downloading', progress: 0, error: null });
+    try {
+      const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+
+      let progressListener: { remove: () => Promise<void> } | undefined;
+      progressListener = await CapacitorUpdater.addListener(
+        'download',
+        (info: { percent?: number }) => {
+          if (typeof info?.percent === 'number') {
+            updateGlobalState({ progress: Math.max(0, Math.min(1, info.percent / 100)) });
+          }
+        },
+      );
+
+      try {
+        const downloaded = await CapacitorUpdater.download({
+          url: downloadUrl,
+          version: remoteVersion,
+        });
+        updateGlobalState({ progress: 1.0, updateState: 'ready' });
+        localStorage.setItem('studio:downloadedBundleId', downloaded.id);
+      } finally {
+        if (progressListener) {
+          await progressListener.remove().catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.error('[OTA] Download failed:', err);
+      updateGlobalState({ updateState: 'error', error: err instanceof Error ? err.message : 'Download failed' });
+    } finally {
+      activeDownloadPromise = null;
+    }
+  })();
+
+  return activeDownloadPromise;
+}
+
+/**
+ * Centralized applyUpdate: locks activation, saves history, and reloads WebView.
+ */
+export function applyUpdate(): Promise<void> {
+  if (activeApplyPromise) return activeApplyPromise;
+
+  const { remoteVersion } = globalOtaState;
+  if (!remoteVersion) return Promise.resolve();
+
+  activeApplyPromise = (async () => {
+    updateGlobalState({ updateState: 'applied' });
+    localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
+
+    if (isNative()) {
+      try {
+        const downloadedId = localStorage.getItem('studio:downloadedBundleId');
+        if (!downloadedId) {
+          throw new Error('No downloaded bundle found.');
+        }
+
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+        const { fadeToBlackAndReload } = await import('./capgoUpdater');
+
+        await fadeToBlackAndReload(async () => {
+          await CapacitorUpdater.set({ id: downloadedId });
+          try {
+            await CapacitorUpdater.reload();
+          } catch {
+            /* reload handled by set() */
+          }
+        });
+      } catch (err) {
+        console.error('[OTA] Apply failed:', err);
+        updateGlobalState({ updateState: 'error', error: err instanceof Error ? err.message : 'Apply failed' });
+      }
+    } else {
+      // Web: clear caches and reload page
+      try {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+      } catch {
+        /* ignore */
+      }
+      const { fadeToBlackAndReload } = await import('./capgoUpdater');
+      await fadeToBlackAndReload(() => {
+        window.location.reload();
+      });
+    }
+  })();
+
+  return activeApplyPromise;
+}
+
+/**
+ * Centralized dismissUpdate: saves state in persistent storage.
+ */
+export function dismissUpdate(): void {
+  const { remoteVersion } = globalOtaState;
+  if (!remoteVersion) return;
+  localStorage.setItem('studio:laterUpdateVersion', remoteVersion);
+  updateGlobalState({ updateState: 'dismissed' });
+}
+
+/**
+ * Centralized markUpdateSeen: tracks seen versions.
+ */
+export function markUpdateSeen(): void {
+  const { remoteVersion } = globalOtaState;
+  if (!remoteVersion) return;
+  localStorage.setItem('studio:notifiedUpdateVersion', remoteVersion);
+  void nativeSet(NATIVE_PREFS.OTA_REMOTE_SEEN, remoteVersion);
+}
+
+export interface UseOtaUpdateResult extends CentralizedOtaState {
+  checkNow: () => Promise<void>;
+  downloadUpdate: () => Promise<void>;
+  applyUpdate: () => Promise<void>;
+  dismissUpdate: () => void;
+  markUpdateSeen: () => void;
+}
+
+export function useOtaUpdate(): UseOtaUpdateResult {
+  const [state, setState] = useState<CentralizedOtaState>(globalOtaState);
+  const autoCheck = useChordStore((s) => s.settings.otaAutoCheck ?? true);
+  const autoCheckRef = useRef(autoCheck);
 
   useEffect(() => {
-    mounted.current = true;
-    const ctrl = new AbortController();
+    autoCheckRef.current = autoCheck;
+  }, [autoCheck]);
 
-    const runCheck = async () => {
-      // Honor the user's auto-check toggle. The MANUAL "Check now"
-      // button bypasses this via `checkNow`.
+  useEffect(() => {
+    const listener = (newState: CentralizedOtaState) => {
+      setState(newState);
+    };
+    stateListeners.add(listener);
+
+    // Initial check on mount
+    if (globalOtaState.updateState === 'idle') {
+      void checkForUpdate();
+    }
+
+    const runCheck = () => {
       if (!autoCheckRef.current) return;
-      await runCheckImpl(ctrl.signal, false);
+      void checkForUpdate();
     };
 
-    // Mark our currently running bundle so the native background worker
-    // has a baseline even before the user has dismissed any banner.
-    void nativeSet(NATIVE_PREFS.OTA_INSTALLED, APP_VERSION);
-
-    // 1. Initial check on mount.
-    // ALWAYS run the startup check on cold start to ensure updates are detected immediately,
-    // bypassing the periodic background poll setting.
-    void runCheckImpl(ctrl.signal, false);
-
-    // 2a. Web: visibility transitions → re-check on becoming visible.
-    //     Also listen for `focus` and `pageshow` (back/forward cache),
-    //     because some Android WebViews fire neither visibilitychange
-    //     nor appStateChange when the user swipes away the keyboard or
-    //     dismisses a system dialog. The runCheck dedup means stacking
-    //     these listeners costs nothing.
+    // 2a. Web visibility, focus, pageshow, online listeners
     const onVisibility = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        void runCheck();
+        runCheck();
       }
     };
-    const onFocus = () => { void runCheck(); };
+    const onFocus = () => { runCheck(); };
+
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', onVisibility);
     }
@@ -415,39 +540,38 @@ export function useOtaUpdate(): UseOtaUpdateResult {
       window.addEventListener('online', onFocus);
     }
 
-    // 2b. Native (Capacitor): listen for the app coming back to the
-    //     foreground. This fires even when visibilitychange does not.
+    // 2b. Native (Capacitor) State change listeners
     let nativeListener: { remove: () => Promise<void> } | undefined;
     if (isNative()) {
       void (async () => {
         try {
           const { App } = await import('@capacitor/app');
           nativeListener = await App.addListener('appStateChange', (s) => {
-            if (s.isActive) void runCheck();
+            if (s.isActive) runCheck();
           });
         } catch {
-          /* plugin unavailable — visibilitychange path still works */
+          /* plugin unavailable */
         }
       })();
     }
 
-    // 3. Periodic foreground poll. Uses a self-rescheduling timeout so
-    //    the next tick is always exactly POLL_MS after the previous
-    //    completion (no thundering herd if a fetch is slow).
+    // 3. Periodic foreground poll
     let pollTimer: ReturnType<typeof setTimeout> | null = null;
     const schedulePoll = () => {
       pollTimer = setTimeout(async () => {
         if (typeof document === 'undefined' || document.visibilityState === 'visible') {
-          await runCheck();
+          runCheck();
         }
-        if (mounted.current) schedulePoll();
+        if (stateListeners.has(listener)) schedulePoll();
       }, FOREGROUND_POLL_MS);
     };
     schedulePoll();
 
+    // Mirror current installed bundle version as baseline
+    void nativeSet(NATIVE_PREFS.OTA_INSTALLED, APP_VERSION);
+
     return () => {
-      mounted.current = false;
-      ctrl.abort();
+      stateListeners.delete(listener);
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', onVisibility);
       }
@@ -458,14 +582,21 @@ export function useOtaUpdate(): UseOtaUpdateResult {
       }
       if (pollTimer) clearTimeout(pollTimer);
       if (nativeListener) void nativeListener.remove().catch(() => {});
-      if (manualCtrl.current) {
-        manualCtrl.current.abort();
-        manualCtrl.current = null;
-      }
     };
-  }, [runCheckImpl]);
+  }, []);
 
-  return { ...state, checkNow };
+  const checkNow = async () => {
+    await checkForUpdate(true);
+  };
+
+  return {
+    ...state,
+    checkNow,
+    downloadUpdate,
+    applyUpdate,
+    dismissUpdate,
+    markUpdateSeen,
+  };
 }
 
 /* ──────────────────────────────────────────────────────────────────── *

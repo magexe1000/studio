@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import AppSpinner from './AppSpinner';
+import { Circle, Layers3, BadgeCheck, FlaskConical, ShieldCheck } from 'lucide-react';
 import StudioSpinner from './animata/progress/spinner';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import StudioAuthCard from './StudioAuthCard';
@@ -72,77 +73,81 @@ function formatRelative(ms: number | null, lang: string): string {
 
 function renderRoleBadge(role: UserRole | undefined, lang: string, accent: any) {
   const isEs = lang === 'es';
+  const badgeStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '3px 8px',
+    borderRadius: '6px',
+    fontSize: '11px',
+    fontWeight: 600,
+    fontFamily: 'Manrope, sans-serif',
+    letterSpacing: '-0.015em',
+    boxShadow: 'none',
+    border: '1px solid transparent',
+  };
+  const iconSize = 13;
+
   switch (role) {
     case 'admin':
       return (
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '3px 9px', borderRadius: 9999,
-          background: 'linear-gradient(135deg, #fbbf24, #ea580c)',
-          border: '1.5px solid #d97706',
-          boxShadow: '0 2px 8px rgba(234, 88, 12, 0.25)',
+          ...badgeStyle,
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+          color: '#ef4444',
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 12, color: '#ffffff', fontVariationSettings: "'FILL' 1" }}>shield</span>
-          <span style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 10, color: '#ffffff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Admin
-          </span>
+          <ShieldCheck size={iconSize} style={{ strokeWidth: 2.2 }} />
+          <span>Admin</span>
         </div>
       );
     case 'beta_tester':
       return (
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '3px 9px', borderRadius: 9999,
-          background: 'rgba(167, 139, 250, 0.15)',
-          border: '1.5px solid rgba(167, 139, 250, 0.4)',
+          ...badgeStyle,
+          background: 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.2)',
+          color: '#f59e0b',
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 12, color: '#a78bfa', fontVariationSettings: "'FILL' 1" }}>science</span>
-          <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: '#a78bfa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Beta Tester
-          </span>
+          <FlaskConical size={iconSize} style={{ strokeWidth: 2.2 }} />
+          <span>{isEs ? 'Probador Beta' : 'Beta Tester'}</span>
         </div>
       );
     case 'pro':
       return (
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '3px 9px', borderRadius: 9999,
-          background: 'rgba(16, 185, 129, 0.15)',
-          border: '1.5px solid rgba(16, 185, 129, 0.4)',
+          ...badgeStyle,
+          background: 'rgba(168, 85, 247, 0.08)',
+          border: '1px solid rgba(168, 85, 247, 0.2)',
+          color: '#a855f7',
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 12, color: '#10b981', fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
-          <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: '#10b981', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Pro Member
-          </span>
+          <BadgeCheck size={iconSize} style={{ strokeWidth: 2.2 }} />
+          <span>Pro</span>
         </div>
       );
     case 'core':
       return (
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '3px 9px', borderRadius: 9999,
-          background: 'rgba(56, 189, 248, 0.15)',
-          border: '1.5px solid rgba(56, 189, 248, 0.4)',
+          ...badgeStyle,
+          background: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          color: '#3b82f6',
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 12, color: '#38bdf8', fontVariationSettings: "'FILL' 1" }}>bolt</span>
-          <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: '#38bdf8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Core Member
-          </span>
+          <Layers3 size={iconSize} style={{ strokeWidth: 2.2 }} />
+          <span>Core</span>
         </div>
       );
     case 'free':
     default:
       return (
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '3px 9px', borderRadius: 9999,
-          background: 'rgba(128, 128, 128, 0.12)',
-          border: '1.5px solid rgba(128, 128, 128, 0.25)',
+          ...badgeStyle,
+          background: 'rgba(128, 128, 128, 0.08)',
+          border: '1px solid rgba(128, 128, 128, 0.2)',
+          color: 'var(--c-text-secondary, #94a3b8)',
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 12, color: 'var(--c-text-secondary)', fontVariationSettings: "'FILL' 1" }}>face</span>
-          <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, color: 'var(--c-text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            {isEs ? 'Gratis' : 'Free'}
-          </span>
+          <Circle size={iconSize} style={{ strokeWidth: 2.2 }} />
+          <span>{isEs ? 'Gratis' : 'Free'}</span>
         </div>
       );
   }

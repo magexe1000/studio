@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { UserProfile } from '../lib/permissions';
 import { AuthUser } from '../lib/auth';
+import { Circle, Layers3, BadgeCheck, ShieldCheck, CheckCircle, Info, HelpCircle } from 'lucide-react';
 
 interface PricingPlan {
   id: string;
@@ -228,17 +229,22 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
 
               {/* ── Plan Header info ── */}
               <div style={{ marginBottom: 16 }}>
-                <p
-                  style={{
-                    fontFamily: 'Manrope',
-                    fontWeight: 800,
-                    fontSize: '1.25rem',
-                    color: 'var(--c-text-primary)',
-                    margin: 0,
-                  }}
-                >
-                  {planName}
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  {plan.id === 'free' && <Circle size={18} color="#94a3b8" style={{ strokeWidth: 2.2, flexShrink: 0 }} />}
+                  {plan.id === 'core' && <Layers3 size={18} color="#3b82f6" style={{ strokeWidth: 2.2, flexShrink: 0 }} />}
+                  {plan.id === 'pro' && <BadgeCheck size={18} color="#a855f7" style={{ strokeWidth: 2.2, flexShrink: 0 }} />}
+                  <p
+                    style={{
+                      fontFamily: 'Manrope',
+                      fontWeight: 800,
+                      fontSize: '1.25rem',
+                      color: 'var(--c-text-primary)',
+                      margin: 0,
+                    }}
+                  >
+                    {planName}
+                  </p>
+                </div>
                 <p
                   style={{
                     fontSize: '12px',
@@ -332,7 +338,6 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
               {(() => {
                 const status = getPlanStatus(plan.id);
                 let btnText = isEs ? 'Elegir Plan' : 'Select Plan';
-                let btnIcon = 'shopping_bag';
                 let btnStyle: React.CSSProperties = {
                   width: '100%',
                   height: 40,
@@ -348,10 +353,12 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
                   boxSizing: 'border-box',
                   transition: 'all 200ms ease',
                 };
+                let IconComp: React.ComponentType<any> | null = null;
+                const iconSize = 14;
 
                 if (status === 'active') {
                   btnText = isEs ? 'Plan Activo' : 'Active Plan';
-                  btnIcon = 'check_circle';
+                  IconComp = CheckCircle;
                   btnStyle = {
                     ...btnStyle,
                     border: `1.5px solid #10b981`,
@@ -361,18 +368,17 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
                   };
                 } else if (status === 'admin_bypass') {
                   btnText = isEs ? 'Acceso de Admin' : 'Admin Active';
-                  btnIcon = 'shield';
+                  IconComp = ShieldCheck;
                   btnStyle = {
                     ...btnStyle,
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #fbbf24, #ea580c)',
-                    color: 'white',
-                    boxShadow: '0 4px 14px rgba(234, 88, 12, 0.25)',
+                    border: '1px solid #ef4444',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    color: '#ef4444',
                     cursor: 'default',
                   };
                 } else if (status === 'included') {
                   btnText = isEs ? 'Incluido en Pro' : 'Included in Pro';
-                  btnIcon = 'verified';
+                  IconComp = BadgeCheck;
                   btnStyle = {
                     ...btnStyle,
                     border: '1px solid rgba(128,128,128,0.18)',
@@ -383,7 +389,7 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
                   };
                 } else if (status === 'downgraded') {
                   btnText = isEs ? 'Bajar de Plan' : 'Downgrade';
-                  btnIcon = 'info';
+                  IconComp = Info;
                   btnStyle = {
                     ...btnStyle,
                     border: '1px solid rgba(128,128,128,0.18)',
@@ -393,7 +399,10 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
                 } else {
                   // available / upgrade
                   btnText = isEs ? 'Suscribirse' : 'Subscribe';
-                  btnIcon = plan.isRecommended ? 'bolt' : 'workspace_premium';
+                  if (plan.id === 'core') IconComp = Layers3;
+                  else if (plan.id === 'pro') IconComp = BadgeCheck;
+                  else IconComp = Circle;
+                  
                   btnStyle = {
                     ...btnStyle,
                     border: plan.isRecommended ? 'none' : '1px solid rgba(128,128,128,0.18)',
@@ -416,15 +425,7 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
                     style={btnStyle}
                     className={isInteractive ? 'hover-scale' : undefined}
                   >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{
-                        fontSize: 15,
-                        fontVariationSettings: status === 'admin_bypass' || plan.isRecommended ? "'FILL' 1" : undefined,
-                      }}
-                    >
-                      {btnIcon}
-                    </span>
+                    {IconComp && <IconComp size={iconSize} style={{ strokeWidth: 2.2 }} />}
                     {btnText}
                   </button>
                 );

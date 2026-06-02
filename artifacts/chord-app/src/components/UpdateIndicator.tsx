@@ -199,8 +199,14 @@ export default function UpdateIndicator({
   // Auto-OPEN the update modal whenever an update is available.
   useEffect(() => {
     if (!ota.updateAvailable || !ota.remoteVersion) return;
+    if (ota.updateState === 'dismissed') return;
+
+    const autoOpened = readAutoOpenedVersion();
+    if (autoOpened === ota.remoteVersion) return;
+
     setOpen(true);
-  }, [ota.updateAvailable, ota.remoteVersion]);
+    writeAutoOpenedVersion(ota.remoteVersion);
+  }, [ota.updateAvailable, ota.remoteVersion, ota.updateState]);
 
   // CHECK-STATUS PILL ─────────────────────────────────────────────────
   // When there's NO update available we still want the user to see that
@@ -549,50 +555,18 @@ function UpdateModal({
   onClose: () => void;
   onLater: () => void;
 }) {
-  const [downloading, setDownloading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [errMsg, setErrMsg] = useState<string | null>(null);
-  const canCapgoUpdate = isNative() && !!downloadUrl && toVersion !== '—';
+  const ota = useOtaUpdate();
+  const downloading = ota.updateState === 'downloading' || ota.updateState === 'ready' || ota.updateState === 'applied';
+  const progress = ota.progress;
+  const errMsg = ota.error;
 
   const handleReload = async () => {
     if (downloading) return;
-    setErrMsg(null);
-    if (canCapgoUpdate) {
-      setDownloading(true);
-      setProgress(0);
-      const res = await applyUpdate({
-        url: downloadUrl!,
-        version: toVersion,
-        onProgress: (p) => setProgress((prev) => Math.max(prev, p)),
-      });
-      setDownloading(false);
-      if (!res.ok) {
-        setErrMsg(res.error ?? 'Update failed');
-        return;
-      }
-      onClose();
+    if (isNative() && !downloadUrl) {
       return;
     }
-    if (isNative()) {
-      setErrMsg(
-        "Update available but the server didn't publish a download link. Try again later.",
-      );
-      return;
-    }
-    try {
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((k) => caches.delete(k)));
-      }
-    } catch {
-      /* ignore */
-    }
-    setDownloading(true);
-    setProgress(1.0);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    await fadeToBlackAndReload(() => {
-      window.location.reload();
-    });
+    await ota.downloadUpdate();
+    await ota.applyUpdate();
   };
 
   if (downloading) {
