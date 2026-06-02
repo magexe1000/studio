@@ -11,6 +11,8 @@ export interface AppInstallerPlugin {
   setSecureValue(options: { key: string; value: string | null }): Promise<void>;
   getSecureValue(options: { key: string }): Promise<{ value: string | null }>;
   removeSecureValue(options: { key: string }): Promise<void>;
+  canRequestPackageInstalls(): Promise<{ value: boolean }>;
+  openUnknownAppSourcesSettings(): Promise<void>;
 }
 
 export const AppInstaller = registerPlugin<AppInstallerPlugin>('AppInstaller');

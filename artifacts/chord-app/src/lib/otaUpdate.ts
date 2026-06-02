@@ -488,7 +488,7 @@ export function downloadUpdate(): Promise<void> {
     }
 
     activeDownloadPromise = (async () => {
-      updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading app update', error: null });
+      updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading update', error: null });
       try {
         const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         const { downloadApk } = await import('./apkDownloader');
@@ -502,7 +502,7 @@ export function downloadUpdate(): Promise<void> {
               otaProgress = Math.max(0, Math.min(1, info.percent / 100));
               updateGlobalState({ 
                 progress: otaProgress * 0.2,
-                statusText: 'Downloading app update'
+                statusText: 'Downloading update'
               });
             }
           },
@@ -526,15 +526,12 @@ export function downloadUpdate(): Promise<void> {
           const apkProgress = Math.max(0, Math.min(1, percent / 100));
           updateGlobalState({ 
             progress: 0.2 + apkProgress * 0.8,
-            statusText: 'Downloading system update'
+            statusText: 'Downloading update'
           });
         });
 
-        updateGlobalState({ progress: 1.0, statusText: 'Preparing update' });
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        updateGlobalState({ statusText: 'Verifying update' });
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
+        await new Promise((resolve) => setTimeout(resolve, 300));
 
         updateGlobalState({ statusText: 'Ready to install', updateState: 'ready' });
         localStorage.setItem('studio:downloadedApkPath', filePath);
@@ -561,22 +558,19 @@ export function downloadUpdate(): Promise<void> {
     }
 
     activeDownloadPromise = (async () => {
-      updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading app update', error: null });
+      updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading update', error: null });
       try {
         const { downloadApk } = await import('./apkDownloader');
         
         const filePath = await downloadApk(apkUrl, (percent) => {
           updateGlobalState({ 
             progress: Math.max(0, Math.min(1, percent / 100)),
-            statusText: 'Downloading app update'
+            statusText: 'Downloading update'
           });
         });
 
-        updateGlobalState({ progress: 1.0, statusText: 'Preparing update' });
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        updateGlobalState({ statusText: 'Verifying update' });
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
+        await new Promise((resolve) => setTimeout(resolve, 300));
 
         updateGlobalState({ statusText: 'Ready to install', updateState: 'ready' });
         localStorage.setItem('studio:downloadedApkPath', filePath);

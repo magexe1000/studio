@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.2.4'; // Unified Updater & Simple APK updates
+export const APP_VERSION = '3.2.5'; // Unified Updater & Simple APK updates
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-02'; // 3.2.4
+export const APP_VERSION_DATE = '2026-06-02'; // 3.2.5
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,17 +53,10 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Visual Polishes",
+    heading: "APK Update Flow",
     items: [
-      'Reverted layered depth transition effects when switching app modes for a flat, snappy, and responsive feel.',
-      'Removed screen zoom scaling transitions on overlays and modals to avoid visual layout bugs and keep display elements fully scaled.',
-    ],
-  },
-  {
-    heading: "Shortcuts & Launcher",
-    items: [
-      'Launcher Shortcuts Deep Linking: Successfully resolved issue where long-press home screen app shortcuts did not route to the selected app mode.',
-      'Added Vocalex support directly into launcher shortcuts.',
+      'Morphe-style Updates: Implemented fully background APK updates directly inside Studio, downloading packages silently without launching browser windows.',
+      'Install Unknown Apps Permission handling: Guided permission blocks to Android settings and automated installer launches upon return.',
     ],
   },
 ];
@@ -72,17 +65,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Ajustes Visuales",
+    heading: "Actualizaciones de APK",
     items: [
-      'Se revirtieron los efectos de transición de profundidad al cambiar de modo para un rendimiento plano y veloz.',
-      'Se eliminó el zoom de pantalla en modales para evitar problemas de visualización y mantener el diseño a tamaño completo.',
-    ],
-  },
-  {
-    heading: "Accesos Directos",
-    items: [
-      'Enlaces de Accesos Directos: Se corrigió el problema por el cual los accesos del launcher no redirigían a la aplicación seleccionada.',
-      'Se añadió soporte para Vocalex directamente en los accesos del launcher.',
+      'Actualizaciones Estilo Morphe: Actualizaciones de APK en segundo plano directo en Studio sin abrir ventanas del navegador.',
+      'Permisos de Orígenes Desconocidos: Se redireccionan los bloqueos de permisos a los ajustes de Android y se automatiza la instalación al regresar.',
     ],
   },
 ];
@@ -90,17 +76,10 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Visuelle Verbesserungen",
+    heading: "APK-Update-Vorgang",
     items: [
-      'Übergangseffekte für Tiefenschärfe beim Wechseln des App-Modus für ein flaches, schnelles Gefühl entfernt.',
-      'Bildschirm-Skalierungszoom bei Overlays und Modals entfernt, um Darstellungsfehler zu vermeiden und das Layout vollflächig zu halten.',
-    ],
-  },
-  {
-    heading: "Verknüpfungen",
-    items: [
-      'Deep Linking für Launcher-Verknüpfungen: Fehler behoben, bei dem Launcher-Direktlinks nicht in den ausgewählten App-Modus leiteten.',
-      'Direkte Unterstützung für Vocalex in den Launcher-Verknüpfungen hinzugefügt.',
+      'Morphe-Stil Updates: Integrierter Hintergrund-APK-Download direkt in Studio ohne externe Browserfenster.',
+      'Berechtigung für unbekannte Apps: Verbesserte Menüführung zur Berechtigungsseite und automatischer Installationsstart bei Rückkehr.',
     ],
   },
 ];

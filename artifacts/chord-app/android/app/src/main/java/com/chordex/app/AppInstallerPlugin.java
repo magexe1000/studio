@@ -336,6 +336,33 @@ public class AppInstallerPlugin extends Plugin {
         }).start();
     }
 
+    @PluginMethod
+    public void canRequestPackageInstalls(PluginCall call) {
+        JSObject result = new JSObject();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            result.put("value", getContext().getPackageManager().canRequestPackageInstalls());
+        } else {
+            result.put("value", true);
+        }
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void openUnknownAppSourcesSettings(PluginCall call) {
+        try {
+            Context context = getContext();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Intent settingsIntent = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                settingsIntent.setData(Uri.parse("package:" + context.getPackageName()));
+                settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(settingsIntent);
+            }
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to open settings: " + e.getMessage(), e);
+        }
+    }
+
     private void triggerInstallation(File file, PluginCall call) {
         try {
             Context context = getContext();

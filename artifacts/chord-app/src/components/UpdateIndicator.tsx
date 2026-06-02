@@ -559,6 +559,7 @@ function UpdateModal({
   onLater: () => void;
 }) {
   const ota = useOtaUpdate();
+  const [permissionBlocked, setPermissionBlocked] = useState(false);
   
   // For APK updates, we do NOT show the fullscreen progress overlay when state is 'ready',
   // because we want to show the "Install Studio update?" confirmation dialog instead.
@@ -580,11 +581,65 @@ function UpdateModal({
 
   const handleInstallApk = async () => {
     try {
+      if (isNative()) {
+        const { AppInstaller } = await import('../lib/apkDownloader');
+        const hasPerm = (await AppInstaller.canRequestPackageInstalls()).value;
+        if (!hasPerm) {
+          setPermissionBlocked(true);
+          return;
+        }
+      }
       await ota.applyUpdate();
     } catch (err) {
       console.error('[UpdateIndicator] APK Install failed:', err);
     }
   };
+
+  const handleOpenSettings = async () => {
+    try {
+      const { AppInstaller } = await import('../lib/apkDownloader');
+      await AppInstaller.openUnknownAppSourcesSettings();
+    } catch (err) {
+      console.error('[UpdateIndicator] Failed to open settings:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!permissionBlocked) return;
+
+    let active = true;
+    let nativeListener: { remove: () => Promise<void> } | undefined;
+
+    const checkPerm = async () => {
+      try {
+        const { AppInstaller } = await import('../lib/apkDownloader');
+        const hasPerm = (await AppInstaller.canRequestPackageInstalls()).value;
+        if (hasPerm && active) {
+          setPermissionBlocked(false);
+          await ota.applyUpdate();
+        }
+      } catch (err) {
+        console.warn('[Permissions] Failed to query status:', err);
+      }
+    };
+
+    import('@capacitor/app').then(async ({ App }) => {
+      if (!active) return;
+      nativeListener = await App.addListener('appStateChange', (s) => {
+        if (s.isActive) {
+          checkPerm();
+        }
+      });
+    }).catch(() => {});
+
+    window.addEventListener('focus', checkPerm);
+
+    return () => {
+      active = false;
+      window.removeEventListener('focus', checkPerm);
+      nativeListener?.remove().catch(() => {});
+    };
+  }, [permissionBlocked, ota]);
 
   const handleOpenGitHub = async () => {
     try {
@@ -597,6 +652,95 @@ function UpdateModal({
       onClose();
     }
   };
+
+  if (permissionBlocked) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={() => setPermissionBlocked(false)}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9000,
+          background: 'rgba(0,0,0,0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          animation: 'fade-in 200ms ease-out both',
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            maxWidth: 380,
+            width: '100%',
+            background: 'var(--app-surface)',
+            borderRadius: 22,
+            overflow: 'hidden',
+            border: '1px solid rgba(128,128,128,0.15)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+            animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
+            padding: 24,
+            textAlign: 'center',
+          }}
+        >
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#eab308' }}>security</span>
+            <p style={{
+              margin: 0, fontSize: 18, fontWeight: 800,
+              color: 'var(--c-text-primary)',
+              fontFamily: 'Manrope', letterSpacing: '-0.02em',
+            }}>Automatic installation blocked</p>
+            
+            <p style={{
+              margin: '6px 0 0', fontSize: 13,
+              color: 'var(--c-text-secondary)',
+              fontFamily: 'Inter', lineHeight: 1.55,
+            }}>
+              Please enable the 'Install unknown apps' permission for Studio in Android system settings to install the update.
+            </p>
+            
+            <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
+              <button
+                type="button"
+                onClick={() => setPermissionBlocked(false)}
+                style={{
+                  flex: 1, height: 42, borderRadius: 12,
+                  background: 'transparent',
+                  border: '1px solid rgba(128,128,128,0.22)',
+                  color: 'var(--c-text-secondary)',
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenSettings}
+                style={{
+                  flex: 1, height: 42, borderRadius: 12,
+                  background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
+                  border: 'none', color: 'white',
+                  fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
+                  cursor: 'pointer',
+                  boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
+                }}
+              >
+                Open Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isDownloading) {
     return (
@@ -743,14 +887,14 @@ function UpdateModal({
               margin: 0, fontSize: 20, fontWeight: 800,
               color: 'var(--c-text-primary)',
               fontFamily: 'Manrope', letterSpacing: '-0.02em',
-            }}>Install Studio update?</p>
+            }}>Install update?</p>
             
             <p style={{
               margin: '6px 0 0', fontSize: 13,
               color: 'var(--c-text-secondary)',
               fontFamily: 'Inter', lineHeight: 1.55,
             }}>
-              Studio downloaded a native update. Android will ask for confirmation before installing.
+              Android will ask for confirmation before installing.
             </p>
 
             <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
@@ -841,10 +985,9 @@ function UpdateModal({
             color: 'var(--c-text-primary)',
             fontFamily: 'Manrope', letterSpacing: '-0.02em',
           }}>
-            {isApkFlow ? 'App update available' : 'Studio update available'}
+            App update available
           </p>
 
-          {/* Do NOT show separate APK version badge/numbers to the user if it is APK flow */}
           {!isApkFlow && (
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -862,23 +1005,6 @@ function UpdateModal({
               }}>v{toVersion}</span>
             </div>
           )}
-          {isApkFlow && (
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              padding: '4px 11px', borderRadius: 9999,
-              background: `color-mix(in srgb, #f59e0b 14%, transparent)`,
-              border: `1px solid color-mix(in srgb, #f59e0b 28%, transparent)`,
-            }}>
-              <span style={{
-                width: 6, height: 6, borderRadius: '50%',
-                background: '#f59e0b', display: 'block', flexShrink: 0,
-              }} />
-              <span style={{
-                fontSize: 11, fontWeight: 700, color: '#f59e0b',
-                fontFamily: 'Manrope', letterSpacing: '0.04em',
-              }}>Native update required</span>
-            </div>
-          )}
         </div>
 
         <div style={{
@@ -892,7 +1018,7 @@ function UpdateModal({
             fontFamily: 'Inter', lineHeight: 1.55,
           }}>
             {isApkFlow 
-              ? 'A native system update is required. Studio will download the package and guide you to install it.'
+              ? 'A system update is required. Studio will download and guide you through the installation.'
               : `Version ${toVersion} is ready. You're on ${fromLabel}.`
             }
           </p>
