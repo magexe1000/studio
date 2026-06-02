@@ -2,6 +2,10 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Release OTA bundle"]
+    types:
+      - completed
 
 permissions:
   contents: write
@@ -9,6 +13,7 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v4
