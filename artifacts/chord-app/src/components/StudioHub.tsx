@@ -1248,6 +1248,15 @@ function HubSettings({
     } catch { setCustomPhoto(null); }
   }, [authUser?.uid]);
 
+  // Notifications Page State Hooks (declared at top level to satisfy Rules of Hooks)
+  const [pushPermission, setPushPermission] = useState(() => getNotificationPermissionState());
+  const [subscribing, setSubscribing] = useState(false);
+  const [pushToggleVal, setPushToggleVal] = useState(() => getNotificationPermissionState() === 'granted');
+
+  useEffect(() => {
+    setPushToggleVal(pushPermission === 'granted');
+  }, [pushPermission]);
+
   useEffect(() => {
     const handleRoute = () => {
       sessionStorage.removeItem('studio:routeToUpdater');
@@ -1629,9 +1638,6 @@ function HubSettings({
   /* ── NOTIFICATIONS ───────────────────────────────────────────────── */
   if (page === 'notifications') {
     const isSupported = isPushSupported();
-    const [pushPermission, setPushPermission] = useState(getNotificationPermissionState());
-    const [subscribing, setSubscribing] = useState(false);
-    const [pushToggleVal, setPushToggleVal] = useState(pushPermission === 'granted');
 
     const handlePushToggle = async (checked: boolean) => {
       if (!isSupported) return;
