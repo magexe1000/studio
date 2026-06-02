@@ -9,7 +9,7 @@ import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import StudioThemeToggler from './StudioThemeToggler';
 import ApplyToSheet from './ApplyToSheet';
-import { APP_VERSION_LABEL } from '../lib/appVersion';
+import { APP_VERSION_LABEL, compareSemver, APP_VERSION } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate } from '../lib/otaUpdate';
@@ -987,6 +987,20 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [errMsg, setErrMsg] = useState<string | null>(null);
+  const [nativeVersion, setNativeVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isNative()) {
+      import('@capacitor/app')
+        .then(({ App }) => App.getInfo())
+        .then((info) => {
+          setNativeVersion(info.version);
+        })
+        .catch((err) => {
+          console.warn('[Updater] Failed to get native app info:', err);
+        });
+    }
+  }, []);
 
   const L = lang === 'es'
     ? {
@@ -1009,6 +1023,9 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         howItWorks: 'Cómo funciona',
         howItWorksBody: 'Las actualizaciones OTA se descargan en segundo plano y se aplican al reabrir la app — sin reinstalar.',
         title: 'Actualizaciones',
+        apkShell: 'Versión APK',
+        downloadApk: 'Instalar actualización APK',
+        downloadApkDesc: 'Se requiere actualización de la APK nativa para aplicar cambios internos de seguridad y permisos de micrófono.',
       }
     : {
         version: 'Version',
@@ -1030,6 +1047,9 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         howItWorks: 'How it works',
         howItWorksBody: 'OTA updates download in the background and apply on the next launch — no reinstall needed.',
         title: 'Updater',
+        apkShell: 'APK Wrapper',
+        downloadApk: 'Install APK Update',
+        downloadApkDesc: 'Native APK upgrade is required to apply system permission fixes.',
       };
 
   const handleDownloadAndUpdate = async () => {
@@ -1120,6 +1140,12 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
           <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.installed}</span>
           <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{APP_VERSION_LABEL}</span>
         </div>
+        {isNative() && nativeVersion && (
+          <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.apkShell}</span>
+            <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{nativeVersion}</span>
+          </div>
+        )}
         <div style={{ padding: '15px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.latest}</span>
           <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>
@@ -1173,6 +1199,30 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
           <p style={{ margin: '8px 18px 12px', fontSize: 11, color: '#f87171', fontFamily: 'Inter', fontWeight: 600, textAlign: 'center' }}>
             {errMsg}
           </p>
+        )}
+        {isNative() && nativeVersion && compareSemver(ota.remoteVersion ?? APP_VERSION, nativeVersion) > 0 && (
+          <div style={{ padding: '16px 18px', borderTop: '1px solid rgba(128,128,128,0.07)', background: 'rgba(245, 158, 11, 0.06)' }}>
+            <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 12.5, margin: '0 0 10px', lineHeight: 1.4 }}>
+              {L.downloadApkDesc}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                const targetVer = ota.remoteVersion ?? APP_VERSION;
+                window.open(`https://github.com/MAGEXE1000/Studio/releases/download/v${targetVer}/studio-debug.apk`, '_system');
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                width: '100%', padding: '13px', borderRadius: 12,
+                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
+                border: 'none', cursor: 'pointer', boxShadow: `0 4px 16px ${accent.to}44`
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>download_for_offline</span>
+              {L.downloadApk}
+            </button>
+          </div>
         )}
       </div>
 
