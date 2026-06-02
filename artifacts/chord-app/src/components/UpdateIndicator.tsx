@@ -140,11 +140,7 @@ function clearLegacyDismissed(): void {
 type Phase = 'banner' | 'pill';
 
 function readInitialPhase(): Phase {
-  try {
-    return sessionStorage.getItem(BANNER_SHOWN_KEY) === '1' ? 'pill' : 'banner';
-  } catch {
-    return 'banner';
-  }
+  return 'banner';
 }
 
 function markBannerShown(): void {
@@ -198,29 +194,13 @@ export default function UpdateIndicator({
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Auto-minimize the banner after BANNER_AUTO_MINIMIZE_MS.
-  useEffect(() => {
-    if (!ota.updateAvailable || phase !== 'banner') return;
-    const t = window.setTimeout(() => {
-      setPhase('pill');
-      markBannerShown();
-    }, BANNER_AUTO_MINIMIZE_MS);
-    return () => window.clearTimeout(t);
-  }, [ota.updateAvailable, phase]);
+  // Auto-minimize disabled per user request so the banner remains fully visible.
 
-  // Auto-OPEN the update modal once per remote version, UNLESS the
-  // user has already tapped "Later" for that exact version (or newer).
+  // Auto-OPEN the update modal whenever an update is available.
   useEffect(() => {
     if (!ota.updateAvailable || !ota.remoteVersion) return;
-    if (
-      laterVersion &&
-      compareSemver(laterVersion, ota.remoteVersion) >= 0
-    ) return;
-    const already = readAutoOpenedVersion();
-    if (already && compareSemver(already, ota.remoteVersion) >= 0) return;
-    writeAutoOpenedVersion(ota.remoteVersion);
     setOpen(true);
-  }, [ota.updateAvailable, ota.remoteVersion, laterVersion]);
+  }, [ota.updateAvailable, ota.remoteVersion]);
 
   // CHECK-STATUS PILL ─────────────────────────────────────────────────
   // When there's NO update available we still want the user to see that

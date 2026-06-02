@@ -15,6 +15,11 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.1.55
+
+- Update Indicator Improvements: Enabled the update banner to remain wide and fully visible instead of auto-minimizing.
+- Auto-open Update Modal: Enabled the update popup modal to re-open on reload when an update is pending, ensuring "Remind me later" only suppresses it for the current session.
+
 ## 3.1.53
 
 - Bouncy Animations: Implemented premium spring-loaded entry animations across headers, titles, subtitles, and preferences sections of all apps.
