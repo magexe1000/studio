@@ -40,6 +40,7 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Required by @capacitor/local-notifications on Android 13+ to
          surface the "update available — version X.Y.Z" notification.
          The plugin requests it at runtime; this declaration is what
