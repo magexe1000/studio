@@ -23,19 +23,19 @@
         <path
             android:strokeColor="#FFFFFF"
             android:strokeWidth="1.3"
-            android:strokeLinecap="round"
+            android:strokeLineCap="round"
             android:pathData="M 4,8.5 C 4,11.26 5.79,13 8,13 C 10.21,13 12,11.26 12,8.5" />
         <!-- Stand -->
         <path
             android:strokeColor="#FFFFFF"
             android:strokeWidth="1.3"
-            android:strokeLinecap="round"
+            android:strokeLineCap="round"
             android:pathData="M 8,13 L 8,14" />
         <!-- Base -->
         <path
             android:strokeColor="#FFFFFF"
             android:strokeWidth="1.3"
-            android:strokeLinecap="round"
+            android:strokeLineCap="round"
             android:pathData="M 6,14 L 10,14" />
     </group>
 </vector>
