@@ -14,6 +14,7 @@ import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
+import { resolveApkUrl, downloadAndInstallApk } from '../lib/apkDownloader';
 import StudioUpdateScreen from './StudioUpdateScreen';
 import StudioTitleReveal from './StudioTitleReveal';
 import { EncryptedText } from './ui/encrypted-text';
@@ -1123,6 +1124,37 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
     });
   };
 
+  const handleApkDownloadAndInstall = async (targetVer?: string) => {
+    if (downloading) return;
+    setErrMsg(null);
+    setDownloading(true);
+    setProgress(0.01);
+
+    try {
+      const apkUrl = await resolveApkUrl(targetVer);
+      console.log('[Updater] Resolved APK URL:', apkUrl);
+
+      await downloadAndInstallApk(apkUrl, (percent) => {
+        setProgress(percent / 100);
+      });
+
+      setProgress(1.0);
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      setDownloading(false);
+    } catch (err: any) {
+      console.error('[Updater] In-app APK update failed:', err);
+      setDownloading(false);
+      setErrMsg(
+        lang === 'es'
+          ? 'Error al descargar la APK. Abriendo página de descargas en el navegador...'
+          : 'Failed to download APK. Opening the release page in your browser...'
+      );
+
+      const fallbackUrl = `https://github.com/MAGEXE1000/Studio/releases/tag/v${targetVer || ota.remoteVersion || APP_VERSION}`;
+      window.open(fallbackUrl, '_system');
+    }
+  };
+
   if (downloading) {
     return (
       <StudioUpdateScreen
@@ -1239,8 +1271,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
                 <button
                   type="button"
                   onClick={() => {
-                    const targetVer = ota.remoteVersion ?? APP_VERSION;
-                    window.open(`https://github.com/MAGEXE1000/Studio/releases/download/v${targetVer}/studio-debug.apk`, '_system');
+                    void handleApkDownloadAndInstall(ota.remoteVersion ?? APP_VERSION);
                   }}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -1263,8 +1294,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
                 <button
                   type="button"
                   onClick={() => {
-                    const targetVer = ota.remoteVersion ?? APP_VERSION;
-                    window.open(`https://github.com/MAGEXE1000/Studio/releases/download/v${targetVer}/studio-debug.apk`, '_system');
+                    void handleApkDownloadAndInstall(nativeVersion ?? APP_VERSION);
                   }}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,

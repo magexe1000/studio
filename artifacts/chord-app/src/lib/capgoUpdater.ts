@@ -195,6 +195,24 @@ export async function notifyOtaAvailable(version: string): Promise<void> {
     if (isNative()) {
       try {
         const { LocalNotifications } = await import('@capacitor/local-notifications');
+        const { App } = await import('@capacitor/app');
+        const info = await App.getInfo();
+        const nativeVer = info.version;
+
+        const isNativeUpgrade = compareSemver(v, nativeVer) > 0;
+        const isEs = navigator.language?.startsWith('es');
+
+        const title = isNativeUpgrade
+          ? (isEs ? 'Actualización de Sistema Studio (APK)' : 'Studio Native System Update (APK)')
+          : (isEs ? 'Actualización de Interfaz Studio (OTA)' : 'Studio Interface Update (OTA)');
+        const body = isNativeUpgrade
+          ? (isEs 
+              ? `La versión ${v} requiere reinstalar la APK para aplicar cambios de permisos y seguridad.` 
+              : `Version ${v} requires reinstalling the APK for native system and permission fixes.`)
+          : (isEs 
+              ? `La versión ${v} está lista. ¡Cambios visuales aplicados al instante en segundo plano!` 
+              : `Version ${v} UI improvements are ready. Applied instantly in the background!`);
+
         // Android 13+ requires explicit grant of POST_NOTIFICATIONS.
         // checkPermissions() returns 'granted' / 'denied' / 'prompt'.
         // If the user has previously denied, don't re-prompt — that
@@ -213,8 +231,8 @@ export async function notifyOtaAvailable(version: string): Promise<void> {
               // version means the same version can never produce two
               // simultaneous visible notifications even if dedup misfires.
               id: hash31(`ota:${v}`),
-              title: 'Studio update available',
-              body: `Version ${v} is ready to install.`,
+              title,
+              body,
               // Tiny delay so the notification fires from the system
               // scheduler (more reliable than "show now" on some OEMs).
               schedule: { at: new Date(Date.now() + 200) },
@@ -238,8 +256,13 @@ export async function notifyOtaAvailable(version: string): Promise<void> {
       let perm = Notification.permission;
       if (perm === 'default') perm = await Notification.requestPermission();
       if (perm !== 'granted') return;
-      new Notification('Studio update available', {
-        body: `Version ${v} is ready to install.`,
+      const isEs = navigator.language?.startsWith('es');
+      const title = isEs ? 'Actualización de Interfaz Studio (OTA)' : 'Studio Interface Update (OTA)';
+      const body = isEs 
+        ? `La versión ${v} está lista. ¡Cambios visuales aplicados al instante!` 
+        : `Version ${v} UI improvements are ready. Applied instantly!`;
+      new Notification(title, {
+        body,
         tag: `ota:${v}`,
       });
       writeNotifiedVersion(v);

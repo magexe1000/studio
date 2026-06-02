@@ -190,6 +190,32 @@ public class OtaCheckWorker extends Worker {
             pi = PendingIntent.getActivity(ctx, 0, launch, flags);
         }
 
+        // Read native version to determine update type
+        String nativeVersion = "0.0.0";
+        try {
+            nativeVersion = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to get native version name: " + e.getMessage());
+        }
+
+        boolean isNativeUpgrade = compareSemver(version, nativeVersion) > 0;
+        // Detect system locale for English vs Spanish
+        boolean isEs = java.util.Locale.getDefault().getLanguage().equals("es");
+
+        String title;
+        String body;
+        if (isNativeUpgrade) {
+            title = isEs ? "Actualización de Sistema Studio (APK)" : "Studio Native System Update (APK)";
+            body = isEs 
+                ? "La versión " + version + " requiere reinstalar la APK para aplicar cambios de permisos y seguridad."
+                : "Version " + version + " requires reinstalling the APK for native system and permission fixes.";
+        } else {
+            title = isEs ? "Actualización de Interfaz Studio (OTA)" : "Studio Interface Update (OTA)";
+            body = isEs
+                ? "La versión " + version + " está lista. ¡Cambios visuales aplicados al instante en segundo plano!"
+                : "Version " + version + " UI improvements are ready. Applied instantly in the background!";
+        }
+
         // v3.0.57: Use a dedicated info-style notification icon ("i" in
         // a circle) instead of the launcher icon. Android tints status-
         // bar icons to white, so the colored launcher icon was rendering
@@ -208,10 +234,9 @@ public class OtaCheckWorker extends Worker {
 
         NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(icon)
-            .setContentTitle("Studio update available")
-            .setContentText("Version " + version + " is ready. Tap to install.")
-            .setStyle(new NotificationCompat.BigTextStyle()
-                .bigText("Version " + version + " is ready. Open Studio to install."))
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT);
         if (pi != null) b.setContentIntent(pi);
