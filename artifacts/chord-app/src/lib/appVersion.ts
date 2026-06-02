@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.89';
+export const APP_VERSION = '3.1.90';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-02'; // 3.1.89
+export const APP_VERSION_DATE = '2026-06-02'; // 3.1.90
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,18 +53,10 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Vocalex Permissions",
+    heading: "Storage & Media Permissions",
     items: [
-      'WebView Permission Bypass: Automatically auto-grant WebView permission requests for WebRTC microphone streams, resolving cached site-level locks when OS permissions are active.',
-    ],
-  },
-  {
-    heading: "Direct APK Upgrades",
-    items: [
-      'In-App Direct Downloader: Added a clean warning card and button to download and install native APK updates directly from your settings panel when running an outdated shell.',
-      'In-App Package Installer: Downloads system updates and launches the Android package installer directly inside the app, resolving 404 download errors by dynamically querying GitHub Release assets.',
-      'Split Updater Layout: Segregated Over-the-Air (OTA) interface updates and App System Wrapper (APK) updates into explicit sections with clear descriptions detailing their differences.',
-      'Download Progress Feedback: Added immediate visual timer feedback (1% to 15%) during downloader network handshakes to prevent the page from appearing stuck at 0%.',
+      'Native Media & Document Permissions: Declared and requested permissions for external storage, images, audio, and video, ensuring the profile section can access photo files and backup exports function correctly.',
+      'Dynamic Permission Requests: Automatically prompts for notifications, media files, and storage on startup after a brief delay, and dynamically verifies them before picking files or performing native backups.',
     ],
   },
 ];
@@ -73,18 +65,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Permisos de Vocalex",
+    heading: "Permisos de Medios y Almacenamiento",
     items: [
-      'Bypass de Permisos en WebView: Concesión automática de solicitudes de micrófono para transmisiones WebRTC, resolviendo bloqueos de sitio en caché cuando el permiso del SO está activo.',
-    ],
-  },
-  {
-    heading: "Actualizaciones Directas de APK",
-    items: [
-      'Instalador Directo en la App: Se agregó una sección con advertencia y botón para descargar e instalar actualizaciones de APK nativas directamente desde el panel de ajustes.',
-      'Instalador de Paquetes en la App: Descarga actualizaciones de sistema e inicia el instalador de Android directamente en la app, resolviendo errores 404 mediante consulta dinámica de GitHub.',
-      'Diseño de Actualizador Dividido: Se separaron las actualizaciones OTA de interfaz y las actualizaciones de APK de sistema en secciones explícitas con descripciones detalladas.',
-      'Progreso Inmediato de Descarga: Se implementó un indicador de progreso de carga inicial (1% a 15%) para evitar la apariencia de pantalla congelada en 0% durante la conexión.',
+      'Permisos Nativos de Medios y Documentos: Declarados y solicitados permisos para almacenamiento externo, imágenes, audio y video, garantizando que la sección de perfil acceda a fotos y que la exportación de copias de seguridad funcione correctamente.',
+      'Solicitudes Dinámicas de Permisos: Solicita automáticamente notificaciones, archivos multimedia y almacenamiento al iniciar la app tras un breve retraso, y los verifica dinámicamente antes de seleccionar archivos o realizar respaldos nativos.',
     ],
   },
 ];
@@ -92,17 +76,10 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Vocalex-Berechtigungen",
+    heading: "Speicher- und Medienberechtigungen",
     items: [
-      'WebView-Berechtigungsumgehung: Automatische Freigabe von WebView-Mikrofonabfragen für WebRTC, um dauerhafte Blockierungen bei aktiven Betriebssystemberechtigungen zu beheben.',
-    ],
-  },
-  {
-    heading: "Direkte APK-Upgrades",
-    items: [
-      'Direkter In-App-Downloader: Warnkarte und Schaltfläche zum direkten Herunterladen und Installieren nativer APK-Updates aus dem Einstellungsfenster bei veraltetem App-Wrapper.',
-      'Getrenntes Updater-Layout: Explizite Trennung von Over-the-Air (OTA) Interface-Updates und App System Wrapper (APK) Updates mit klaren Beschreibungen der Unterschiede.',
-      'Download-Fortschrittsanzeige: Sofortige Fortschrittsanzeige (1% bis 15%) während der Netzwerkverbindung, damit die Anzeige beim Downloadstart nicht bei 0% einfriert.',
+      'Native Medien- und Dokumentenberechtigungen: Berechtigungen für externen Speicher, Bilder, Audio und Video deklariert und angefordert, um den Zugriff des Profilbereichs auf Fotos und den Export von Backups sicherzustellen.',
+      'Dynamische Berechtigungsabfragen: Fragt beim Start nach Benachrichtigungen, Mediendateien und Speicher nach einer kurzen Verzögerung und überprüft diese vor der Dateiauswahl oder Datensicherung.',
     ],
   },
 ];

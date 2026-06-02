@@ -125,12 +125,15 @@ export default function App() {
             }
             try {
               const { Filesystem } = await import('@capacitor/filesystem');
+              const { AppInstaller } = await import('./lib/apkDownloader');
+              
               const fsPerm = await Filesystem.checkPermissions();
               if (fsPerm.publicStorage !== 'granted') {
                 await Filesystem.requestPermissions();
               }
+              await AppInstaller.requestPermissions();
             } catch (err) {
-              console.warn('[Permissions] Filesystem permission request failed:', err);
+              console.warn('[Permissions] Filesystem and Media permission request failed:', err);
             }
           }
         }

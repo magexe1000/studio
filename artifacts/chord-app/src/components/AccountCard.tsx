@@ -1282,6 +1282,12 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       const fileName = `studio_backup_${now.toISOString().split('T')[0]}.json`;
 
       if (Capacitor.isNativePlatform()) {
+        try {
+          const { AppInstaller } = await import('../lib/apkDownloader');
+          await AppInstaller.requestPermissions();
+        } catch (e) {
+          console.warn('[Export] Permissions request failed:', e);
+        }
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
         const bytes = new TextEncoder().encode(content);
         const binary = Array.from(bytes, b => String.fromCharCode(b)).join('');
@@ -2124,7 +2130,17 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={async () => {
+                    if (Capacitor.isNativePlatform()) {
+                      try {
+                        const { AppInstaller } = await import('../lib/apkDownloader');
+                        await AppInstaller.requestPermissions();
+                      } catch (e) {
+                        console.warn('[Profile] Permissions request failed:', e);
+                      }
+                    }
+                    fileInputRef.current?.click();
+                  }}
                   style={{
                     padding: '8px 14px', borderRadius: 10, fontSize: 12, fontWeight: 700,
                     background: `${accent.from}18`, border: `1px solid ${accent.from}30`,

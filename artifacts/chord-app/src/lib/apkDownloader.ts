@@ -3,6 +3,8 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 
 export interface AppInstallerPlugin {
   installApk(options: { filePath: string }): Promise<void>;
+  checkPermissions(): Promise<any>;
+  requestPermissions(options?: { aliases?: string[] }): Promise<any>;
 }
 
 export const AppInstaller = registerPlugin<AppInstallerPlugin>('AppInstaller');

@@ -9,11 +9,36 @@ import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import android.Manifest;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
 import java.io.File;
 import java.net.URI;
 
-@CapacitorPlugin(name = "AppInstaller")
+@CapacitorPlugin(
+    name = "AppInstaller",
+    permissions = {
+        @Permission(
+            alias = "images",
+            strings = { Manifest.permission.READ_MEDIA_IMAGES }
+        ),
+        @Permission(
+            alias = "audio",
+            strings = { Manifest.permission.READ_MEDIA_AUDIO }
+        ),
+        @Permission(
+            alias = "video",
+            strings = { Manifest.permission.READ_MEDIA_VIDEO }
+        ),
+        @Permission(
+            alias = "storage",
+            strings = {
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            }
+        )
+    }
+)
 public class AppInstallerPlugin extends Plugin {
 
     @PluginMethod
