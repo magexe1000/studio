@@ -1,0 +1,171 @@
+name: Release Pipeline
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Release Type"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - "both"
+          - "ota"
+          - "apk"
+      note:
+        description: "Optional release note"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 2
+
+      - name: Skip and Detect Release Type
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual trigger. Release Type: ${{ github.event.inputs.release_type }}"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "release_type=${{ github.event.inputs.release_type }}" >> "$GITHUB_OUTPUT"
+            echo "note=${{ github.event.inputs.note }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # On push to main, detect changes
+          CHANGED=$(git diff --name-only HEAD^ HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          # Only run if files in artifacts/chord-app changed
+          if ! echo "$CHANGED" | grep -qE '^artifacts/chord-app/'; then
+            echo "No chord-app changes in this push. Skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Check if changes contain native files
+          HAS_ANDROID=false
+          if echo "$CHANGED" | grep -qE '^artifacts/chord-app/android/'; then
+            HAS_ANDROID=true
+          fi
+
+          # Check if changes contain web/config files
+          HAS_WEB=false
+          if echo "$CHANGED" | grep -qE '^artifacts/chord-app/(src|public|index\.html|package\.json|vite\.config)'; then
+            HAS_WEB=true
+          fi
+
+          if [ "$HAS_ANDROID" = "true" ] && [ "$HAS_WEB" = "true" ]; then
+            TYPE="both"
+          elif [ "$HAS_ANDROID" = "true" ]; then
+            TYPE="apk"
+          elif [ "$HAS_WEB" = "true" ]; then
+            TYPE="ota"
+          else
+            TYPE="both" # Default fallback
+          fi
+
+          echo "Detected release type: $TYPE"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "release_type=$TYPE" >> "$GITHUB_OUTPUT"
+          echo "note=" >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@v4
+        if: steps.gate.outputs.skip != 'true'
+        with:
+          version: 10.26.1
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.skip != 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        if: steps.gate.outputs.skip != 'true'
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Build and Publish OTA Bundle
+        if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'ota' || steps.gate.outputs.release_type == 'both')
+        env:
+          OTA_BASE_URL: https://MAGEXE1000.github.io/Studio
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm --filter @workspace/chord-app run release:gh-pages --no-bump
+
+      - name: Build Web Assets (for APK-only)
+        if: steps.gate.outputs.skip != 'true' && steps.gate.outputs.release_type == 'apk'
+        env:
+          VITE_OTA_BASE_URL: https://MAGEXE1000.github.io/Studio
+        run: pnpm --filter @workspace/chord-app run build
+
+      - name: Capacitor Sync
+        if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
+        working-directory: artifacts/chord-app
+        run: pnpm exec cap sync android
+
+      - name: Build Debug APK
+        if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
+        working-directory: artifacts/chord-app/android
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Write and Update Release Metadata
+        if: steps.gate.outputs.skip != 'true'
+        env:
+          RELEASE_TYPE: ${{ steps.gate.outputs.release_type }}
+        run: node artifacts/chord-app/scripts/generate-release-metadata.mjs
+
+      - name: Upload APK Asset to GitHub Release
+        if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./artifacts/chord-app/package.json').version")
+          TAG="v$VERSION"
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" --title "$TAG" --notes "Release $TAG"
+          fi
+          FILE_NAME="Studio-$VERSION.apk"
+          cp artifacts/chord-app/android/app/build/outputs/apk/debug/app-debug.apk "./$FILE_NAME"
+          gh release upload "$TAG" "./$FILE_NAME" --clobber
+
+      - name: Commit and Push Release Metadata to main
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs artifacts/chord-app/src/lib/appVersion.ts artifacts/chord-app/package.json artifacts/chord-app/android/app/build.gradle artifacts/chord-app/public/version.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          VERSION=$(node -p "require('./artifacts/chord-app/package.json').version")
+          NOTE="${{ steps.gate.outputs.note }}"
+          if [ -n "$NOTE" ]; then
+            git commit -m "release v$VERSION — $NOTE"
+          else
+            git commit -m "release v$VERSION"
+          fi
+          git push origin HEAD:main

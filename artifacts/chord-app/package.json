@@ -1,6 +1,6 @@
 {
   "name": "@workspace/chord-app",
-  "version": "3.2.5",
+  "version": "3.2.4",
   "private": true,
   "type": "module",
   "scripts": {

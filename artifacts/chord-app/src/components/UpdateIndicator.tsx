@@ -339,6 +339,17 @@ export default function UpdateIndicator({
     if (ota.remoteVersion) {
       writeLaterVersion(ota.remoteVersion);
       setLaterVersion(ota.remoteVersion);
+      try {
+        const key = 'studio:dismissedVersions';
+        const val = localStorage.getItem(key);
+        const list = val ? JSON.parse(val) : [];
+        if (!list.includes(ota.remoteVersion)) {
+          list.push(ota.remoteVersion);
+          localStorage.setItem(key, JSON.stringify(list));
+        }
+      } catch (err) {
+        console.warn('[OTA] Failed to write dismissedVersion:', err);
+      }
     }
     setPhase('pill');
     markBannerShown();
@@ -985,7 +996,7 @@ function UpdateModal({
             color: 'var(--c-text-primary)',
             fontFamily: 'Manrope', letterSpacing: '-0.02em',
           }}>
-            App update available
+            {isApkFlow ? 'Studio update available' : 'App update available'}
           </p>
 
           {!isApkFlow && (
@@ -1018,7 +1029,7 @@ function UpdateModal({
             fontFamily: 'Inter', lineHeight: 1.55,
           }}>
             {isApkFlow 
-              ? 'A system update is required. Studio will download and guide you through the installation.'
+              ? 'Native update required. Studio will download and guide you through the installation.'
               : `Version ${toVersion} is ready. You're on ${fromLabel}.`
             }
           </p>
@@ -1067,7 +1078,7 @@ function UpdateModal({
                 justifyContent: 'center', gap: 7,
               }}
             >
-              {isApkFlow ? 'Update Studio' : 'Update now'}
+              {isApkFlow ? 'Install update' : 'Update now'}
             </AnimatedActionButton>
           </div>
         </div>

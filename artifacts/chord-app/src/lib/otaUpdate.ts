@@ -69,6 +69,27 @@ function removeSessionItem(key: string): void {
   }
 }
 
+function getStoredList(key: string): string[] {
+  try {
+    const val = localStorage.getItem(key);
+    return val ? JSON.parse(val) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addToStoredList(key: string, value: string) {
+  try {
+    const list = getStoredList(key);
+    if (!list.includes(value)) {
+      list.push(value);
+      localStorage.setItem(key, JSON.stringify(list));
+    }
+  } catch (err) {
+    console.warn(`[OTA] Failed to write key ${key} to storage`, err);
+  }
+}
+
 const LAST_SEEN_KEY = 'studio:lastSeenVersion';
 const FETCH_TIMEOUT_MS = 6000;
 /** How often to re-check for updates while the app is open and visible.
@@ -158,28 +179,26 @@ function versionJsonUrls(): string[] {
   const urls: string[] = [];
 
   if (remoteBase) {
-    // GitHub Pages → derive a sibling raw.githubusercontent URL.
-    // Match both `https://USER.github.io/REPO` and `https://USER.github.io`
-    // (user/organization site). The repo for a project site IS the path
-    // segment; for a user site it's `USER.github.io`.
+    // GitHub Pages → derive sibling raw.githubusercontent URLs.
     const m = remoteBase.match(/^https:\/\/([^.]+)\.github\.io(?:\/([^/?#]+))?$/i);
     if (m) {
       const user = m[1];
       const repo = m[2] ?? `${user}.github.io`;
-      // The publish script writes to `docs/`, served by Pages from the
-      // repo root. So the source file is at `docs/version.json` on the
-      // default branch. We try `main` first, fall back to `master`.
       urls.push(
+        `https://raw.githubusercontent.com/${user}/${repo}/main/docs/app-release.json?t=${t}`,
         `https://raw.githubusercontent.com/${user}/${repo}/main/docs/version.json?t=${t}`,
-        `https://raw.githubusercontent.com/${user}/${repo}/master/docs/version.json?t=${t}`,
+        `https://raw.githubusercontent.com/${user}/${repo}/master/docs/app-release.json?t=${t}`,
+        `https://raw.githubusercontent.com/${user}/${repo}/master/docs/version.json?t=${t}`
       );
     }
+    urls.push(`${remoteBase}/app-release.json?t=${t}`);
     urls.push(`${remoteBase}/version.json?t=${t}`);
   }
 
   // Web / PWA / dev preview / iframe — same-origin always works.
   if (!isNative()) {
     const localBase = import.meta.env.BASE_URL || '/';
+    urls.push(`${localBase}app-release.json?t=${t}`);
     urls.push(`${localBase}version.json?t=${t}`);
   }
 
@@ -207,30 +226,30 @@ async function fetchOne(
       method: 'GET',
       cache: 'no-store',
       signal,
-      // NOTE: do NOT add Cache-Control / Pragma headers here. They are
-      // NOT in the CORS-safelisted request-header list, so they would
-      // upgrade this simple GET to a preflighted OPTIONS request —
-      // raw.githubusercontent.com does not respond to OPTIONS for
-      // arbitrary paths, and the fetch silently fails with a CORS
-      // error. The `?t=Date.now()` cache buster on the URL is enough
-      // to defeat browser/CDN caching without triggering preflight.
     });
     if (!res.ok) return null;
     const json = (await res.json()) as unknown;
     if (!json || typeof json !== 'object') return null;
     const obj = json as Record<string, unknown>;
     if (typeof obj.version !== 'string' || !obj.version.trim()) return null;
+    
+    // Map new app-release.json fields to RemoteVersionInfo fields
+    const changelog = typeof obj.description === 'string' ? obj.description : (typeof obj.changelog === 'string' ? obj.changelog : undefined);
+    const downloadUrl = typeof obj.downloadUrl === 'string' ? obj.downloadUrl : (typeof obj.ota_download_url === 'string' ? obj.ota_download_url : undefined);
+    const updateType = (obj.update_type === 'ota' || obj.update_type === 'apk' || obj.update_type === 'both' || obj.update_type === 'none') 
+      ? obj.update_type 
+      : ((obj.updateType === 'ota' || obj.updateType === 'apk' || obj.updateType === 'both' || obj.updateType === 'none') ? obj.updateType : undefined);
+    const apkUrl = typeof obj.download_url === 'string' ? obj.download_url : (typeof obj.apkUrl === 'string' ? obj.apkUrl : undefined);
+    const apkSha256 = typeof obj.sha256 === 'string' ? obj.sha256 : (typeof obj.apkSha256 === 'string' ? obj.apkSha256 : undefined);
+    
     return {
       version: obj.version,
-      changelog: typeof obj.changelog === 'string' ? obj.changelog : undefined,
+      changelog,
       mandatory: obj.mandatory === true,
-      downloadUrl:
-        typeof obj.downloadUrl === 'string' && /^https?:\/\//.test(obj.downloadUrl)
-          ? obj.downloadUrl
-          : undefined,
-      updateType: (obj.updateType === 'ota' || obj.updateType === 'apk' || obj.updateType === 'both' || obj.updateType === 'none') ? obj.updateType : undefined,
-      apkUrl: typeof obj.apkUrl === 'string' ? obj.apkUrl : undefined,
-      apkSha256: typeof obj.apkSha256 === 'string' ? obj.apkSha256 : undefined,
+      downloadUrl,
+      updateType,
+      apkUrl,
+      apkSha256,
       releaseNotes: Array.isArray(obj.releaseNotes) ? (obj.releaseNotes.filter(item => typeof item === 'string') as string[]) : undefined,
     };
   } catch {
@@ -410,14 +429,15 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       }
 
       // Check if already applied or dismissed in persistent storage
-      const applied = localStorage.getItem('studio:appliedUpdateVersion');
-      if (applied === remote.version) {
-        updateGlobalState({ updateState: 'applied', updateAvailable: false, updateType, loading: false });
+      const appliedList = getStoredList('studio:appliedVersions');
+      const installedList = getStoredList('studio:installedVersions');
+      if (appliedList.includes(remote.version) || installedList.includes(remote.version) || compareSemver(remote.version, APP_VERSION) <= 0) {
+        updateGlobalState({ updateState: 'idle', updateAvailable: false, updateType, loading: false });
         return globalOtaState;
       }
 
-      const dismissed = getSessionItem('studio:laterUpdateVersion');
-      const isDismissed = dismissed === remote.version;
+      const dismissedList = getStoredList('studio:dismissedVersions');
+      const isDismissed = dismissedList.includes(remote.version) || getSessionItem('studio:laterUpdateVersion') === remote.version;
 
       updateGlobalState({
         updateState: isDismissed ? 'dismissed' : 'available',
@@ -434,11 +454,11 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       });
 
       // System notification if never seen and not already dismissed
-      const notified = localStorage.getItem('studio:notifiedUpdateVersion');
-      if (notified !== remote.version && !isDismissed) {
+      const notifiedList = getStoredList('studio:notifiedVersions');
+      if (!notifiedList.includes(remote.version) && !isDismissed) {
+        addToStoredList('studio:notifiedVersions', remote.version);
         await notifyOtaAvailable(remote.version);
       }
-
       return globalOtaState;
     } catch (err) {
       console.warn('[OTA] Check failed:', err);
@@ -459,6 +479,7 @@ export function downloadUpdate(): Promise<void> {
   if (activeDownloadPromise) return activeDownloadPromise;
 
   const { updateType, apkUrl, downloadUrl, remoteVersion } = globalOtaState;
+  const ver = remoteVersion || '';
 
   if (globalOtaState.updateState === 'ready' || globalOtaState.updateState === 'applied') {
     if (updateType === 'apk' || updateType === 'both') {
@@ -512,7 +533,7 @@ export function downloadUpdate(): Promise<void> {
         try {
           downloadedBundle = await CapacitorUpdater.download({
             url: downloadUrl,
-            version: remoteVersion,
+            version: ver,
           });
           updateGlobalState({ progress: 0.2 });
         } finally {
@@ -530,12 +551,23 @@ export function downloadUpdate(): Promise<void> {
           });
         });
 
+        // Compute/Verify SHA-256 if expected hash is available
+        const expectedHash = globalOtaState.apkSha256;
+        if (expectedHash) {
+          const { verifyApkSha256 } = await import('./apkDownloader');
+          const isValid = await verifyApkSha256(filePath, expectedHash);
+          if (!isValid) {
+            throw new Error('APK hash verification failed (corrupted download)');
+          }
+        }
+
         updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
         await new Promise((resolve) => setTimeout(resolve, 300));
 
         updateGlobalState({ statusText: 'Ready to install', updateState: 'ready' });
         localStorage.setItem('studio:downloadedApkPath', filePath);
         localStorage.setItem('studio:downloadedBundleId', downloadedBundle.id);
+        addToStoredList('studio:downloadedVersions', ver);
       } catch (err) {
         console.error('[OTA] Both update failed:', err);
         updateGlobalState({ 
@@ -569,12 +601,23 @@ export function downloadUpdate(): Promise<void> {
           });
         });
 
+        // Compute/Verify SHA-256 if expected hash is available
+        const expectedHash = globalOtaState.apkSha256;
+        if (expectedHash) {
+          const { verifyApkSha256 } = await import('./apkDownloader');
+          const isValid = await verifyApkSha256(filePath, expectedHash);
+          if (!isValid) {
+            throw new Error('APK hash verification failed (corrupted download)');
+          }
+        }
+
         updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
         await new Promise((resolve) => setTimeout(resolve, 300));
 
         updateGlobalState({ statusText: 'Ready to install', updateState: 'ready' });
         localStorage.setItem('studio:downloadedApkPath', filePath);
         localStorage.removeItem('studio:downloadedBundleId');
+        addToStoredList('studio:downloadedVersions', ver);
       } catch (err) {
         console.error('[OTA] APK download failed:', err);
         updateGlobalState({ 
@@ -602,7 +645,7 @@ export function downloadUpdate(): Promise<void> {
 
       let progressListener: { remove: () => Promise<void> } | undefined;
       progressListener = await CapacitorUpdater.addListener(
-        'download',
+         'download',
         (info: { percent?: number }) => {
           if (typeof info?.percent === 'number') {
             updateGlobalState({ progress: Math.max(0, Math.min(1, info.percent / 100)) });
@@ -613,11 +656,12 @@ export function downloadUpdate(): Promise<void> {
       try {
         const downloaded = await CapacitorUpdater.download({
           url: downloadUrl,
-          version: remoteVersion,
+          version: ver,
         });
         updateGlobalState({ progress: 1.0, updateState: 'ready' });
         localStorage.setItem('studio:downloadedBundleId', downloaded.id);
         localStorage.removeItem('studio:downloadedApkPath');
+        addToStoredList('studio:downloadedVersions', ver);
       } finally {
         if (progressListener) {
           await progressListener.remove().catch(() => {});
@@ -648,6 +692,8 @@ export function applyUpdate(): Promise<void> {
     if (updateType === 'apk' || updateType === 'both') {
       updateGlobalState({ updateState: 'applied' });
       localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
+      addToStoredList('studio:installedVersions', remoteVersion);
+      addToStoredList('studio:appliedVersions', remoteVersion);
       if (updateType === 'both') {
         logActivity('ota_install', `Installing OTA app update (v${remoteVersion})`, 'Studio');
         logActivity('apk_install', `Installing APK system update (v${remoteVersion})`, 'Studio');
@@ -690,6 +736,8 @@ export function applyUpdate(): Promise<void> {
 
     updateGlobalState({ updateState: 'applied' });
     localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
+    addToStoredList('studio:installedVersions', remoteVersion);
+    addToStoredList('studio:appliedVersions', remoteVersion);
     logActivity('ota_install', `Installing OTA app update (v${remoteVersion})`, 'Studio');
 
     if (isNative()) {

@@ -209,3 +209,58 @@ export async function downloadApk(
     throw err;
   }
 }
+
+/**
+ * Verifies the SHA-256 hash of a file at the given absolute path.
+ */
+export async function verifyApkSha256(filePath: string, expectedHash: string): Promise<boolean> {
+  if (!expectedHash) {
+    console.warn('[apkDownloader] No expected hash provided for verification.');
+    return true; // Skip if no hash provided
+  }
+  try {
+    const result = await Filesystem.readFile({
+      path: filePath
+    });
+    
+    const base64Data = typeof result.data === 'string' ? result.data : '';
+    if (!base64Data) {
+      console.warn('[apkDownloader] Empty file content read for hash verification.');
+      return false;
+    }
+    
+    // Convert base64 to binary array buffer
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const hashBuffer = await crypto.subtle.digest('SHA-256', bytes.buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    const matches = hashHex.toLowerCase() === expectedHash.toLowerCase();
+    console.log(`[apkDownloader] SHA-256 verification: Expected=${expectedHash.toLowerCase()}, Computed=${hashHex}, Matches=${matches}`);
+    return matches;
+  } catch (err) {
+    console.error('[apkDownloader] Error verifying APK SHA-256:', err);
+    return false;
+  }
+}
+
+/**
+ * Triggers the native Android package installer for the given APK.
+ */
+export async function openApkInstaller(filePath: string): Promise<void> {
+  console.log(`[apkDownloader] Requesting native APK installation for path: ${filePath}`);
+  await AppInstaller.installApk({ filePath });
+}
+
+/**
+ * Directs the user to the system settings page to enable 'Install unknown apps'.
+ */
+export async function openInstallPermissionSettings(): Promise<void> {
+  console.log('[apkDownloader] Opening unknown app sources settings');
+  await AppInstaller.openUnknownAppSourcesSettings();
+}

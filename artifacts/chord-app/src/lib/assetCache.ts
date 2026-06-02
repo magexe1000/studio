@@ -163,7 +163,12 @@ async function doSeed(): Promise<void> {
       const trimmed = file.replace(/^\/+/, '');
       const dataPath = `${SEED_DIR}/${trimmed}`;
       try {
-        const resp = await fetch(file, { cache: 'force-cache' });
+        let resp = await fetch(file, { cache: 'force-cache' });
+        if (!resp.ok) {
+          const remoteBase = (import.meta.env.VITE_OTA_BASE_URL || 'https://MAGEXE1000.github.io/Studio').replace(/\/$/, '');
+          const fileUrl = `${remoteBase}/${file.replace(/^\/+/, '')}`;
+          resp = await fetch(fileUrl);
+        }
         if (!resp.ok) {
           failed++;
           continue;
