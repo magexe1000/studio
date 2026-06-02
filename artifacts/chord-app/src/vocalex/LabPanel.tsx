@@ -547,7 +547,13 @@ function AddTrackSheet({ session, onAdd, onClose }: {
 
   const startRec = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      } catch (constraintsErr) {
+        console.warn('[LabPanel] getUserMedia with constraints failed, falling back to simple audio:', constraintsErr);
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
       const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
       const rec = new MediaRecorder(stream, { mimeType: mime });
       chunksRef.current = [];

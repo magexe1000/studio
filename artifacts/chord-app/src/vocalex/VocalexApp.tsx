@@ -19,7 +19,7 @@ const NAV_ORDER: VocalexPanel[] = ['practice', 'pitch', 'vocalLab', 'takes'];
 function IconMic({ active }: { active: boolean }) {
   const sw = active ? 2 : 1.6;
   return (
-    <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
       <rect x="9" y="5" width="6" height="10" rx="3" strokeWidth={sw} />
       <path d="M5 12a7 7 0 0 0 14 0" strokeWidth={sw} />
       <line x1="12" y1="19" x2="12" y2="22" strokeWidth={sw} />
@@ -31,7 +31,7 @@ function IconMic({ active }: { active: boolean }) {
 function IconPitch({ active }: { active: boolean }) {
   const sw = active ? 2 : 1.6;
   return (
-    <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
       <polyline points="4,18 8,10 12,14 16,6 20,12" strokeWidth={sw} />
       <circle cx="20" cy="12" r="1.5" fill={active ? 'currentColor' : 'none'} strokeWidth={sw * 0.7} />
     </svg>
@@ -41,7 +41,7 @@ function IconPitch({ active }: { active: boolean }) {
 function IconLab({ active }: { active: boolean }) {
   const sw = active ? 2 : 1.6;
   return (
-    <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
       <path d="M9 3h6M10 3v6.5L4.5 19a1.5 1.5 0 0 0 1.3 2.2h12.4a1.5 1.5 0 0 0 1.3-2.2L14 9.5V3" strokeWidth={sw} />
       {active && <path d="M7 15h10" strokeWidth={sw} strokeOpacity={0.4} />}
     </svg>
@@ -52,7 +52,7 @@ function IconTakes({ active }: { active: boolean }) {
   const sw = active ? 2 : 1.6;
   const ao = active ? 1 : 0;
   return (
-    <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+    <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
       <rect x="3" y="3" width="18" height="18" rx="3" strokeWidth={sw} />
       <path d="M3 9h18" strokeWidth={sw} />
       <circle cx="12" cy="15" r="3" fill="currentColor" fillOpacity={ao} strokeWidth={sw} style={{ transition: 'fill-opacity 140ms ease' }} />
@@ -135,7 +135,7 @@ export default function VocalexApp() {
   useLiquidGlassNav(navRef);
   // Fixed nav height — same rationale as BottomNav: always 64px, dynamic
   // measurement was a race condition that returned 64 anyway.
-  const NAV_HEIGHT_PX = 64;
+  const NAV_HEIGHT_PX = 56;
   const [expandedW, setExpandedW] = useState(350);
   useEffect(() => {
     if (navRef.current) setExpandedW(navRef.current.offsetWidth);
@@ -247,11 +247,13 @@ export default function VocalexApp() {
     }
   }, [activeTab]);
 
-  const amoledBg = activeVis.amoledMode
-    ? 'rgba(4,4,4,0.88)'
-    : isLight
-      ? 'rgba(255, 255, 255, 0.40)'
-      : 'rgba(26,26,30,0.82)';
+  const amoledBg = isLight
+    ? activeVis.amoledMode
+      ? 'rgba(255, 255, 255, 0.92)'
+      : 'rgba(255, 255, 255, 0.40)'
+    : activeVis.amoledMode
+      ? 'rgba(4,4,4,0.88)'
+      : 'rgba(26,26,30,0.72)';
 
   return (
     <div style={{
@@ -338,14 +340,14 @@ export default function VocalexApp() {
           position: 'fixed',
           bottom: 'var(--nav-safe-bottom)',
           left: '50%',
-          width: '90%',
-          maxWidth: '28rem',
+          width: '88%',
+          maxWidth: '360px',
           height: `${NAV_HEIGHT_PX}px`,
           borderRadius: '2rem',
-          border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
+          border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.32)'}`,
           background: amoledBg,
           boxShadow: isLight
-            ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
+            ? '0 8px 32px rgba(0,0,0,0.08), 0 1.5px 0 rgba(255,255,255,0.70) inset'
             : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
           zIndex: 50,
           overflow: 'hidden',
@@ -369,7 +371,7 @@ export default function VocalexApp() {
         <div style={{
           position: 'absolute', inset: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-          padding: '6px 8px',
+          padding: '4px 6px',
           opacity: navCollapsed ? 0 : 1,
           transition: navCollapsed ? 'opacity 100ms ease' : 'opacity 350ms ease 180ms',
           willChange: 'opacity',
@@ -382,10 +384,10 @@ export default function VocalexApp() {
             width: pill.right - pill.left,
             height: 'calc(100% - 8px)',
             borderRadius: '9999px',
-            background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.09)',
-            border: isLight ? '1.5px solid rgba(0,0,0,0.14)' : '1.5px solid rgba(255,255,255,0.30)',
+            background: isLight ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.09)',
+            border: isLight ? '1.5px solid rgba(0,0,0,0.06)' : '1.5px solid rgba(255,255,255,0.30)',
             boxShadow: isLight
-              ? 'inset 0 1px 0 rgba(255,255,255,0.90), 0 2px 8px rgba(0,0,0,0.10)'
+              ? 'inset 0 1px 0 rgba(255,255,255,0.95), 0 2px 8px rgba(0,0,0,0.08)'
               : 'inset 0 1px 0 rgba(255,255,255,0.40), 0 2px 16px rgba(255,255,255,0.06)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
@@ -414,8 +416,8 @@ export default function VocalexApp() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '4px',
-                padding: '8px 4px',
+                gap: '3px',
+                padding: '6px 4px',
                 borderRadius: '9999px',
                 background: 'transparent',
                 border: 'none',
@@ -432,7 +434,7 @@ export default function VocalexApp() {
               <span style={{
                 fontFamily: 'Manrope, sans-serif',
                 fontWeight: 700,
-                fontSize: '9.5px',
+                fontSize: '9px',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
                 lineHeight: 1,

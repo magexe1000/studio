@@ -86,9 +86,15 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
     if (audioCtxRef.current) return;
     try {
       setPermError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+        });
+      } catch (constraintsErr) {
+        console.warn('[PitchPanel] getUserMedia with constraints failed, falling back to simple audio:', constraintsErr);
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
       streamRef.current = stream;
       const ctx = createAudioContext();
       audioCtxRef.current = ctx;

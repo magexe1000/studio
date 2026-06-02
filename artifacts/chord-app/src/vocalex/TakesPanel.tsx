@@ -311,15 +311,21 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
   }, []);
 
   const acquireMic = useCallback(async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-        sampleRate: { ideal: 48000 },
-        channelCount: { ideal: 1 },
-      },
-    });
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          sampleRate: { ideal: 48000 },
+          channelCount: { ideal: 1 },
+        },
+      });
+    } catch (constraintsErr) {
+      console.warn('[TakesPanel] getUserMedia with constraints failed, falling back to simple audio:', constraintsErr);
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
     streamRef.current = stream;
 
     const ctx = createAudioContext();

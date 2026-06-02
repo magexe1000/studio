@@ -71,9 +71,14 @@ export class PracticeDetector {
   async start(onUpdate: (state: DetectorState) => void) {
     this.onUpdate = onUpdate;
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-      });
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+        });
+      } catch (constraintsErr) {
+        console.warn('[PracticeDetector] getUserMedia with constraints failed, falling back to simple audio:', constraintsErr);
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
       this.ctx = createAudioContext();
       const src = this.ctx.createMediaStreamSource(this.stream);
       this.analyser = this.ctx.createAnalyser();
