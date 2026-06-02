@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.2.3'; // Unified Updater & Simple APK updates
+export const APP_VERSION = '3.2.4'; // Unified Updater & Simple APK updates
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-02'; // 3.2.3
+export const APP_VERSION_DATE = '2026-06-02'; // 3.2.4
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,11 +53,17 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Wrapper Enhancements",
+    heading: "Visual Polishes",
     items: [
-      'App Launcher Shortcuts: Added long-press launcher shortcuts for "Vocalex Practice" and "Check Updates" to deep-link directly into sub-panels.',
-      'Native File Association: Intercepted system file intents, allowing files shared or opened from other apps (JSON backups and audio files) to import directly.',
-      'Encrypted Storage: Implemented hardware-backed EncryptedSharedPreferences to handle sensitive keychain assets securely.',
+      'Reverted layered depth transition effects when switching app modes for a flat, snappy, and responsive feel.',
+      'Removed screen zoom scaling transitions on overlays and modals to avoid visual layout bugs and keep display elements fully scaled.',
+    ],
+  },
+  {
+    heading: "Shortcuts & Launcher",
+    items: [
+      'Launcher Shortcuts Deep Linking: Successfully resolved issue where long-press home screen app shortcuts did not route to the selected app mode.',
+      'Added Vocalex support directly into launcher shortcuts.',
     ],
   },
 ];
@@ -66,11 +72,17 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Mejoras de Wrapper Nativas",
+    heading: "Ajustes Visuales",
     items: [
-      'Accesos Directos del Iniciador: Se agregaron accesos directos al mantener presionado el ícono para "Vocalex Practice" y "Check Updates" para ingresar directo.',
-      'Asociación de Archivos Nativos: Se interceptaron intents del sistema para abrir o compartir archivos (.json de respaldo y audio) de otras apps e importarlos directo.',
-      'Almacenamiento Cifrado: Se integró EncryptedSharedPreferences respaldado por hardware para guardar activos sensibles de forma segura.',
+      'Se revirtieron los efectos de transición de profundidad al cambiar de modo para un rendimiento plano y veloz.',
+      'Se eliminó el zoom de pantalla en modales para evitar problemas de visualización y mantener el diseño a tamaño completo.',
+    ],
+  },
+  {
+    heading: "Accesos Directos",
+    items: [
+      'Enlaces de Accesos Directos: Se corrigió el problema por el cual los accesos del launcher no redirigían a la aplicación seleccionada.',
+      'Se añadió soporte para Vocalex directamente en los accesos del launcher.',
     ],
   },
 ];
@@ -78,11 +90,17 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Wrapper-Verbesserungen",
+    heading: "Visuelle Verbesserungen",
     items: [
-      'Launcher-Verknüpfungen: Schnellzugriff per Gedrückthalten für "Vocalex Practice" und "Check Updates" direkt in die jeweiligen App-Bereiche.',
-      'Native Dateiverknüpfung: System-Dateizugriffe abgefangen, um geteilte Backup-Dateien (JSON) oder Audiodateien direkt in die App zu importieren.',
-      'Verschlüsselter Speicher: Integration von hardwaregestützten EncryptedSharedPreferences zur sicheren Speicherung sensibler Schlüsseldaten.',
+      'Übergangseffekte für Tiefenschärfe beim Wechseln des App-Modus für ein flaches, schnelles Gefühl entfernt.',
+      'Bildschirm-Skalierungszoom bei Overlays und Modals entfernt, um Darstellungsfehler zu vermeiden und das Layout vollflächig zu halten.',
+    ],
+  },
+  {
+    heading: "Verknüpfungen",
+    items: [
+      'Deep Linking für Launcher-Verknüpfungen: Fehler behoben, bei dem Launcher-Direktlinks nicht in den ausgewählten App-Modus leiteten.',
+      'Direkte Unterstützung für Vocalex in den Launcher-Verknüpfungen hinzugefügt.',
     ],
   },
 ];

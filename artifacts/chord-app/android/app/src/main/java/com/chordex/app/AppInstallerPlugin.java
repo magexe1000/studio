@@ -196,7 +196,10 @@ public class AppInstallerPlugin extends Plugin {
                     int fileLength = connection.getContentLength();
                     input = new java.io.BufferedInputStream(connection.getInputStream());
                     
-                    File cacheDir = getContext().getCacheDir();
+                    File cacheDir = getContext().getExternalCacheDir();
+                    if (cacheDir == null) {
+                        cacheDir = getContext().getCacheDir();
+                    }
                     File apkFile = new File(cacheDir, "update.apk");
                     if (apkFile.exists()) {
                         apkFile.delete();
@@ -283,7 +286,10 @@ public class AppInstallerPlugin extends Plugin {
                     int fileLength = connection.getContentLength();
                     input = new java.io.BufferedInputStream(connection.getInputStream());
                     
-                    File cacheDir = getContext().getCacheDir();
+                    File cacheDir = getContext().getExternalCacheDir();
+                    if (cacheDir == null) {
+                        cacheDir = getContext().getCacheDir();
+                    }
                     File apkFile = new File(cacheDir, "update.apk");
                     if (apkFile.exists()) {
                         apkFile.delete();
@@ -333,6 +339,19 @@ public class AppInstallerPlugin extends Plugin {
     private void triggerInstallation(File file, PluginCall call) {
         try {
             Context context = getContext();
+            
+            // Check for INSTALL_PACKAGES permission on Android 8.0+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!context.getPackageManager().canRequestPackageInstalls()) {
+                    Intent settingsIntent = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                    settingsIntent.setData(Uri.parse("package:" + context.getPackageName()));
+                    settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(settingsIntent);
+                    call.reject("Please enable install permission for this app and try again.");
+                    return;
+                }
+            }
+
             Intent intent = new Intent(Intent.ACTION_VIEW);
             Uri apkUri;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

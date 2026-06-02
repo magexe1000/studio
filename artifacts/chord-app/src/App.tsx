@@ -258,6 +258,72 @@ export default function App() {
     };
   }, []);
 
+  // Handle Android shortcuts / deep linking
+  useEffect(() => {
+    let active = true;
+    let urlListener: any = null;
+
+    const handleLaunchUrl = (urlStr: string) => {
+      try {
+        console.log('[DeepLink] Handling URL:', urlStr);
+        let appParam: string | null = null;
+        if (urlStr.includes('app=')) {
+          const match = urlStr.match(/[?&]app=([^&#]+)/);
+          if (match) {
+            appParam = match[1];
+          }
+        } else {
+          const url = new URL(urlStr);
+          appParam = url.searchParams.get('app');
+        }
+
+        if (appParam) {
+          const validModes = ['chords', 'drums', 'stage', 'groovex', 'vocalex', 'hub'];
+          if (validModes.includes(appParam)) {
+            console.log('[DeepLink] Switching app mode to:', appParam);
+            const store = useChordStore.getState();
+            store.updateSettings({ appMode: appParam as any });
+          }
+        }
+      } catch (err) {
+        console.warn('[DeepLink] Failed to parse URL:', urlStr, err);
+      }
+    };
+
+    import('@capacitor/app')
+      .then(async ({ App: CapApp }) => {
+        if (!active) return;
+
+        // 1. Handle app launch URL (cold start fallback)
+        try {
+          const launchUrl = await CapApp.getLaunchUrl();
+          if (launchUrl && launchUrl.url) {
+            handleLaunchUrl(launchUrl.url);
+          }
+        } catch (err) {
+          console.warn('[DeepLink] Failed to get launch URL:', err);
+        }
+
+        // 2. Handle app opened via URL (hot start while running)
+        try {
+          urlListener = await CapApp.addListener('appUrlOpen', (event: any) => {
+            if (event && event.url) {
+              handleLaunchUrl(event.url);
+            }
+          });
+        } catch (err) {
+          console.warn('[DeepLink] Failed to add appUrlOpen listener:', err);
+        }
+      })
+      .catch((err) => {
+        console.warn('[DeepLink] Failed to load @capacitor/app plugin:', err);
+      });
+
+    return () => {
+      active = false;
+      urlListener?.remove();
+    };
+  }, []);
 
   // Whenever we leave the lockdown screen (e.g. user tapped Restore), force
   // the bottom nav back into a clean visible state. The lockdown screen
@@ -1159,38 +1225,7 @@ export default function App() {
   const stageIsLight  = activeVis.theme === 'light';
   const stageBgColor  = stageIsAmoled ? '#000000' : stageIsLight ? '#f2f1ef' : '#0e0e0e';
 
-  // Global MutationObserver to scale background down when sheets/modals open
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      const overlays = document.querySelectorAll('div');
-      let modalExists = false;
-      for (let i = 0; i < overlays.length; i++) {
-        const el = overlays[i];
-        const style = el.getAttribute('style') || '';
-        const isFixed = style.includes('position: fixed') || style.includes('position:fixed');
-        const hasInset = style.includes('inset: 0') || style.includes('inset:0') || (style.includes('bottom: 0') && style.includes('top: 0'));
-        const hasHighZ = style.includes('z-index: 200') || style.includes('z-index:200') || style.includes('z-index: 999') || style.includes('z-index:999');
-        if (isFixed && (hasInset || hasHighZ || el.classList.contains('profile-panel-sheet'))) {
-          if (el.id !== 'exit-toast') {
-            modalExists = true;
-            break;
-          }
-        }
-      }
-      
-      if (modalExists) {
-        document.documentElement.classList.add('has-modal-open');
-      } else {
-        document.documentElement.classList.remove('has-modal-open');
-      }
-    });
 
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => {
-      observer.disconnect();
-      document.documentElement.classList.remove('has-modal-open');
-    };
-  }, []);
 
   // Global Swipe back gesture detection
   const subAppWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -1217,9 +1252,6 @@ export default function App() {
         if (subAppWrapperRef.current) {
           subAppWrapperRef.current.style.transition = 'none';
         }
-        if (hubWrapperRef.current) {
-          hubWrapperRef.current.style.transition = 'none';
-        }
       }
     };
 
@@ -1237,17 +1269,6 @@ export default function App() {
         if (subAppWrapperRef.current) {
           subAppWrapperRef.current.style.transform = `translateX(${deltaX}px)`;
         }
-
-        // Scale up the background Hub
-        if (hubWrapperRef.current) {
-          const progress = Math.min(1, deltaX / window.innerWidth);
-          const scale = 0.985 + (0.015 * progress);
-          const opacity = 0.9 + (0.1 * progress);
-          const borderVal = 20 - (20 * progress);
-          hubWrapperRef.current.style.transform = `scale(${scale}) translateY(${8 - (8 * progress)}px)`;
-          hubWrapperRef.current.style.opacity = `${opacity}`;
-          hubWrapperRef.current.style.borderRadius = `${borderVal}px`;
-        }
       }
     };
 
@@ -1262,19 +1283,11 @@ export default function App() {
       if (subAppWrapperRef.current) {
         subAppWrapperRef.current.style.transition = 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)';
       }
-      if (hubWrapperRef.current) {
-        hubWrapperRef.current.style.transition = 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), border-radius 300ms cubic-bezier(0.16, 1, 0.3, 1)';
-      }
 
       if (deltaX > vw * 0.25) {
         // Swipe success -> exit to hub
         if (subAppWrapperRef.current) {
           subAppWrapperRef.current.style.transform = `translateX(${vw}px)`;
-        }
-        if (hubWrapperRef.current) {
-          hubWrapperRef.current.style.transform = 'scale(1) translateY(0)';
-          hubWrapperRef.current.style.opacity = '1';
-          hubWrapperRef.current.style.borderRadius = '0px';
         }
         setTimeout(() => {
           updateSettings({ appMode: 'hub' });
@@ -1286,11 +1299,6 @@ export default function App() {
         // Swipe cancelled -> snap back
         if (subAppWrapperRef.current) {
           subAppWrapperRef.current.style.transform = 'translateX(0)';
-        }
-        if (hubWrapperRef.current) {
-          hubWrapperRef.current.style.transform = 'scale(0.985) translateY(8px)';
-          hubWrapperRef.current.style.opacity = '0.9';
-          hubWrapperRef.current.style.borderRadius = '20px';
         }
       }
     };
@@ -1322,13 +1330,7 @@ export default function App() {
             zIndex: 1,
             height: '100dvh',
             overflow: 'hidden',
-            // Layered navigation transition style: previous page scale 1 -> 0.985, opacity 1 -> 0.9
-            transform: isSubAppActive ? 'scale(0.985) translateY(8px)' : 'scale(1) translateY(0)',
-            opacity: isSubAppActive ? 0.9 : 1,
             pointerEvents: isSubAppActive ? 'none' : 'auto',
-            transition: 'transform 450ms cubic-bezier(0.16, 1, 0.3, 1), opacity 450ms cubic-bezier(0.16, 1, 0.3, 1), border-radius 450ms cubic-bezier(0.16, 1, 0.3, 1)',
-            borderRadius: isSubAppActive ? '20px' : '0px',
-            willChange: 'transform, opacity, border-radius',
           }}
         >
           <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioHubSkeleton />} />}>
@@ -1342,22 +1344,19 @@ export default function App() {
             <motion.div
               ref={subAppWrapperRef}
               key={settings.appMode}
-              initial={{ y: '100dvh', opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '100dvh', opacity: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{
-                type: 'spring',
-                stiffness: 300,
-                damping: 32,
-                mass: 0.9,
+                duration: 0.28,
+                ease: 'easeInOut',
               }}
               style={{
                 position: 'absolute',
                 inset: 0,
                 zIndex: 2,
                 background: 'var(--app-bg)',
-                boxShadow: '0 -16px 40px rgba(0,0,0,0.5)',
-                willChange: 'transform, opacity',
+                willChange: 'opacity',
               }}
             >
               {settings.appMode === 'groovex' && (

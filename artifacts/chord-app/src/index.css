@@ -1364,7 +1364,7 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   animation: studio-accent-loader-anim 1.5s infinite ease-in-out;
 }
 
-/* Page depth effect when any sheet or modal overlay is open */
+/* Page depth effect when any sheet or modal overlay is open (disabled to fix zoomed-out visual bug)
 .has-modal-open .app-main-layout,
 .has-modal-open .app-sub-app-container {
   transform: scale(0.96) translateY(-8px) !important;
@@ -1377,5 +1377,6 @@ html.has-modal-open,
 html.has-modal-open body {
   background: #000000 !important;
 }
+*/
 
 
