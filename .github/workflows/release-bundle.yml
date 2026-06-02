@@ -38,11 +38,7 @@ jobs:
           CHANGED=$(git diff --name-only HEAD^ HEAD)
           echo "Changed files:"
           echo "$CHANGED"
-          if echo "$CHANGED" | grep -qE '^artifacts/chord-app/(android/|patch-android\.cjs|capacitor\.config)'; then
-            echo "::warning::Native Android files changed in this push. Skipping OTA release — rebuild and ship the APK manually."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+
           if ! echo "$CHANGED" | grep -qE '^artifacts/chord-app/'; then
             echo "No chord-app changes in this push. Skipping."
             echo "skip=true" >> "$GITHUB_OUTPUT"
