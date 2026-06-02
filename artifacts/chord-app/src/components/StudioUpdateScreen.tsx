@@ -55,12 +55,14 @@ interface StudioUpdateScreenProps {
   progress: number;
   accentFrom: string;
   accentTo: string;
+  statusText?: string | null;
 }
 
 export default function StudioUpdateScreen({
   progress,
   accentFrom,
   accentTo,
+  statusText,
 }: StudioUpdateScreenProps) {
   const pct = Math.round(progress * 100);
   const isDone = pct >= 100;
@@ -81,7 +83,7 @@ export default function StudioUpdateScreen({
     return () => clearInterval(id);
   }, [isDone, messages.length]);
 
-  const displayMsg = isDone ? doneMsg : messages[msgIdx];
+  const displayMsg = statusText || (isDone ? doneMsg : messages[msgIdx]);
 
   // Blob palette — warm-neutral, relaxing, theme-independent.
   // Screen blend mode on a dark bg turns these into gentle glows.

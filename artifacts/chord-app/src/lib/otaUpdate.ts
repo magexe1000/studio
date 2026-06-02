@@ -28,6 +28,22 @@ import { isNative, notifyOtaAvailable } from './capgoUpdater';
 import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 import { useChordStore } from '../store/useChordStore';
 
+let cachedNativeVersion: string | null = null;
+export async function getNativeVersion(): Promise<string | null> {
+  if (cachedNativeVersion) return cachedNativeVersion;
+  if (!isNative()) return null;
+  try {
+    const { App } = await import('@capacitor/app');
+    const info = await App.getInfo();
+    cachedNativeVersion = info.version;
+    return cachedNativeVersion;
+  } catch (err) {
+    console.warn('[ota] Failed to get native version:', err);
+    return null;
+  }
+}
+
+
 function getSessionItem(key: string): string | null {
   try {
     return sessionStorage.getItem(key);
@@ -72,6 +88,10 @@ export interface RemoteVersionInfo {
    * — service-worker reload handles bundle swaps in the browser.
    */
   downloadUrl?: string;
+  updateType?: 'ota' | 'apk' | 'both' | 'none';
+  apkUrl?: string;
+  apkSha256?: string;
+  releaseNotes?: string[];
 }
 
 export interface OtaState {
@@ -207,6 +227,10 @@ async function fetchOne(
         typeof obj.downloadUrl === 'string' && /^https?:\/\//.test(obj.downloadUrl)
           ? obj.downloadUrl
           : undefined,
+      updateType: (obj.updateType === 'ota' || obj.updateType === 'apk' || obj.updateType === 'both' || obj.updateType === 'none') ? obj.updateType : undefined,
+      apkUrl: typeof obj.apkUrl === 'string' ? obj.apkUrl : undefined,
+      apkSha256: typeof obj.apkSha256 === 'string' ? obj.apkSha256 : undefined,
+      releaseNotes: Array.isArray(obj.releaseNotes) ? (obj.releaseNotes.filter(item => typeof item === 'string') as string[]) : undefined,
     };
   } catch {
     return null;
@@ -286,6 +310,11 @@ export interface CentralizedOtaState {
   loading: boolean;
   progress: number;
   error: string | null;
+  updateType: 'ota' | 'apk' | 'both' | 'none';
+  apkUrl: string | null;
+  apkSha256: string | null;
+  releaseNotes: string[] | null;
+  statusText: string | null;
 }
 
 let globalOtaState: CentralizedOtaState = {
@@ -298,6 +327,11 @@ let globalOtaState: CentralizedOtaState = {
   loading: true,
   progress: 0,
   error: null,
+  updateType: 'none',
+  apkUrl: null,
+  apkSha256: null,
+  releaseNotes: null,
+  statusText: null,
 };
 
 const stateListeners = new Set<(state: CentralizedOtaState) => void>();
@@ -342,15 +376,42 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       }
 
       const cmp = compareSemver(remote.version, APP_VERSION);
-      if (cmp <= 0) {
-        updateGlobalState({ updateState: 'idle', updateAvailable: false, loading: false });
+      let updateType: 'ota' | 'apk' | 'both' | 'none' = 'none';
+      let apkUrl: string | null = null;
+
+      if (cmp > 0) {
+        if (remote.updateType === 'apk' || remote.updateType === 'both' || remote.updateType === 'ota') {
+          updateType = remote.updateType;
+        } else if (isNative()) {
+          const natVer = await getNativeVersion();
+          if (natVer && compareSemver(remote.version, natVer) > 0) {
+            updateType = remote.downloadUrl ? 'both' : 'apk';
+          } else {
+            updateType = 'ota';
+          }
+        } else {
+          updateType = 'ota';
+        }
+      }
+
+      if (updateType === 'none') {
+        updateGlobalState({ updateState: 'idle', updateAvailable: false, updateType: 'none', loading: false });
         return globalOtaState;
+      }
+
+      if (updateType === 'apk' || updateType === 'both') {
+        if (remote.apkUrl) {
+          apkUrl = remote.apkUrl;
+        } else {
+          const { resolveApkUrl } = await import('./apkDownloader');
+          apkUrl = await resolveApkUrl(remote.version);
+        }
       }
 
       // Check if already applied or dismissed in persistent storage
       const applied = localStorage.getItem('studio:appliedUpdateVersion');
       if (applied === remote.version) {
-        updateGlobalState({ updateState: 'applied', updateAvailable: false, loading: false });
+        updateGlobalState({ updateState: 'applied', updateAvailable: false, updateType, loading: false });
         return globalOtaState;
       }
 
@@ -364,6 +425,10 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         changelog: remote.changelog ?? null,
         mandatory: remote.mandatory === true,
         downloadUrl: remote.downloadUrl ?? null,
+        updateType,
+        apkUrl,
+        apkSha256: remote.apkSha256 ?? null,
+        releaseNotes: remote.releaseNotes ?? null,
         loading: false,
       });
 
@@ -392,11 +457,20 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 export function downloadUpdate(): Promise<void> {
   if (activeDownloadPromise) return activeDownloadPromise;
 
+  const { updateType, apkUrl, downloadUrl, remoteVersion } = globalOtaState;
+
   if (globalOtaState.updateState === 'ready' || globalOtaState.updateState === 'applied') {
-    // Safety check: if native, verify the bundle ID actually exists, otherwise force re-download
-    const downloadedId = localStorage.getItem('studio:downloadedBundleId');
-    if (!isNative() || downloadedId) {
-      return Promise.resolve();
+    if (updateType === 'apk' || updateType === 'both') {
+      const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
+      if (downloadedPath) {
+        return Promise.resolve();
+      }
+    } else {
+      // Safety check: if native, verify the bundle ID actually exists, otherwise force re-download
+      const downloadedId = localStorage.getItem('studio:downloadedBundleId');
+      if (!isNative() || downloadedId) {
+        return Promise.resolve();
+      }
     }
   }
 
@@ -406,7 +480,48 @@ export function downloadUpdate(): Promise<void> {
     return Promise.resolve();
   }
 
-  const { downloadUrl, remoteVersion } = globalOtaState;
+  if (updateType === 'apk' || updateType === 'both') {
+    if (!apkUrl) {
+      updateGlobalState({ updateState: 'error', error: 'No APK download URL available' });
+      return Promise.reject(new Error('No APK download URL available'));
+    }
+
+    activeDownloadPromise = (async () => {
+      updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading app update', error: null });
+      try {
+        const { downloadApk } = await import('./apkDownloader');
+        
+        const filePath = await downloadApk(apkUrl, (percent) => {
+          updateGlobalState({ 
+            progress: Math.max(0, Math.min(1, percent / 100)),
+            statusText: 'Downloading app update'
+          });
+        });
+
+        updateGlobalState({ progress: 1.0, statusText: 'Preparing update' });
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        updateGlobalState({ statusText: 'Verifying update' });
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        updateGlobalState({ statusText: 'Ready to install', updateState: 'ready' });
+        localStorage.setItem('studio:downloadedApkPath', filePath);
+        localStorage.removeItem('studio:downloadedBundleId');
+      } catch (err) {
+        console.error('[OTA] APK download failed:', err);
+        updateGlobalState({ 
+          updateState: 'error', 
+          error: err instanceof Error ? err.message : 'Download failed',
+          statusText: null
+        });
+        throw err;
+      } finally {
+        activeDownloadPromise = null;
+      }
+    })();
+    return activeDownloadPromise;
+  }
+
   if (!downloadUrl || !remoteVersion) {
     updateGlobalState({ updateState: 'error', error: 'No download URL available' });
     return Promise.reject(new Error('No download URL available'));
@@ -434,6 +549,7 @@ export function downloadUpdate(): Promise<void> {
         });
         updateGlobalState({ progress: 1.0, updateState: 'ready' });
         localStorage.setItem('studio:downloadedBundleId', downloaded.id);
+        localStorage.removeItem('studio:downloadedApkPath');
       } finally {
         if (progressListener) {
           await progressListener.remove().catch(() => {});
@@ -457,10 +573,34 @@ export function downloadUpdate(): Promise<void> {
 export function applyUpdate(): Promise<void> {
   if (activeApplyPromise) return activeApplyPromise;
 
-  const { remoteVersion } = globalOtaState;
+  const { remoteVersion, updateType } = globalOtaState;
   if (!remoteVersion) return Promise.resolve();
 
   activeApplyPromise = (async () => {
+    if (updateType === 'apk' || updateType === 'both') {
+      updateGlobalState({ updateState: 'applied' });
+      localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
+      try {
+        const filePath = localStorage.getItem('studio:downloadedApkPath');
+        if (!filePath) {
+          throw new Error('No downloaded APK path found.');
+        }
+        const { AppInstaller } = await import('./apkDownloader');
+        await AppInstaller.installApk({ filePath });
+      } catch (err) {
+        console.error('[OTA] APK install failed:', err);
+        updateGlobalState({ 
+          updateState: 'error', 
+          error: err instanceof Error ? err.message : 'Installation failed' 
+        });
+        localStorage.removeItem('studio:appliedUpdateVersion');
+        throw err;
+      } finally {
+        activeApplyPromise = null;
+      }
+      return;
+    }
+
     updateGlobalState({ updateState: 'applied' });
     localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
 

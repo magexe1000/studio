@@ -458,9 +458,9 @@ export default function UpdateIndicator({
             pointerEvents: isBanner ? 'auto' : 'none',
           }}
         >
-          {ota.remoteVersion
-            ? `Version ${ota.remoteVersion} available`
-            : 'New update available'}
+          {ota.updateType === 'ota'
+            ? (ota.remoteVersion ? `Version ${ota.remoteVersion} available` : 'Studio update available')
+            : 'App update available'}
         </span>
 
         <span
@@ -559,33 +559,237 @@ function UpdateModal({
   onLater: () => void;
 }) {
   const ota = useOtaUpdate();
-  const downloading = ota.updateState === 'downloading' || ota.updateState === 'ready' || ota.updateState === 'applied';
+  
+  // For APK updates, we do NOT show the fullscreen progress overlay when state is 'ready',
+  // because we want to show the "Install Studio update?" confirmation dialog instead.
+  const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
+  
+  const isDownloading = ota.updateState === 'downloading' || ota.updateState === 'applied' || (!isApkFlow && ota.updateState === 'ready');
   const progress = ota.progress;
-  const errMsg = ota.error;
 
-  const handleReload = async () => {
-    if (downloading) return;
-    if (isNative() && !downloadUrl) {
-      return;
-    }
+  const handleStartUpdate = async () => {
     try {
       await ota.downloadUpdate();
-      await ota.applyUpdate();
+      if (!isApkFlow) {
+        await ota.applyUpdate();
+      }
     } catch (err) {
-      console.error('[UpdateIndicator] Download or apply failed:', err);
+      console.error('[UpdateIndicator] Start update failed:', err);
     }
   };
 
-  if (downloading) {
+  const handleInstallApk = async () => {
+    try {
+      await ota.applyUpdate();
+    } catch (err) {
+      console.error('[UpdateIndicator] APK Install failed:', err);
+    }
+  };
+
+  const handleOpenGitHub = async () => {
+    try {
+      const { resolveReleasePageUrl } = await import('../lib/apkDownloader');
+      const fallbackUrl = await resolveReleasePageUrl(ota.remoteVersion ?? undefined);
+      window.open(fallbackUrl, '_system');
+      onClose();
+    } catch (err) {
+      window.open('https://github.com/MAGEXE1000/Studio/releases', '_system');
+      onClose();
+    }
+  };
+
+  if (isDownloading) {
     return (
       <StudioUpdateScreen
         progress={progress}
         accentFrom={accentFrom}
         accentTo={accentTo}
+        statusText={ota.statusText}
       />
     );
   }
 
+  // Fallback Error UI
+  if (ota.updateState === 'error') {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9000,
+          background: 'rgba(0,0,0,0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          animation: 'fade-in 200ms ease-out both',
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            maxWidth: 380,
+            width: '100%',
+            background: 'var(--app-surface)',
+            borderRadius: 22,
+            overflow: 'hidden',
+            border: '1px solid rgba(128,128,128,0.15)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+            animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
+            padding: 24,
+            textAlign: 'center',
+          }}
+        >
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#f87171' }}>error</span>
+            <p style={{
+              margin: 0, fontSize: 18, fontWeight: 800,
+              color: 'var(--c-text-primary)',
+              fontFamily: 'Manrope', letterSpacing: '-0.02em',
+            }}>Automatic update failed. Open download page?</p>
+            
+            <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  flex: 1, height: 42, borderRadius: 12,
+                  background: 'transparent',
+                  border: '1px solid rgba(128,128,128,0.22)',
+                  color: 'var(--c-text-secondary)',
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenGitHub}
+                style={{
+                  flex: 1, height: 42, borderRadius: 12,
+                  background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
+                  border: 'none', color: 'white',
+                  fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
+                  cursor: 'pointer',
+                  boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
+                }}
+              >
+                Open GitHub
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Confirmation dialog when APK is ready to install
+  if (ota.updateState === 'ready' && isApkFlow) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9000,
+          background: 'rgba(0,0,0,0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          animation: 'fade-in 200ms ease-out both',
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            maxWidth: 380,
+            width: '100%',
+            background: 'var(--app-surface)',
+            borderRadius: 22,
+            overflow: 'hidden',
+            border: '1px solid rgba(128,128,128,0.15)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+            animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
+            padding: 24,
+          }}
+        >
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+            textAlign: 'center',
+          }}>
+            <div style={{
+              width: 58, height: 58, borderRadius: '50%',
+              background: `color-mix(in srgb, ${accentFrom} 12%, var(--app-surface))`,
+              border: `1.5px solid color-mix(in srgb, ${accentFrom} 28%, transparent)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 26, color: accentFrom }}>system_update</span>
+            </div>
+            
+            <p style={{
+              margin: 0, fontSize: 20, fontWeight: 800,
+              color: 'var(--c-text-primary)',
+              fontFamily: 'Manrope', letterSpacing: '-0.02em',
+            }}>Install Studio update?</p>
+            
+            <p style={{
+              margin: '6px 0 0', fontSize: 13,
+              color: 'var(--c-text-secondary)',
+              fontFamily: 'Inter', lineHeight: 1.55,
+            }}>
+              Studio downloaded a native update. Android will ask for confirmation before installing.
+            </p>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
+              <button
+                type="button"
+                onClick={onLater}
+                style={{
+                  flex: 1, height: 42, borderRadius: 12,
+                  background: 'transparent',
+                  border: '1px solid rgba(128,128,128,0.22)',
+                  color: 'var(--c-text-secondary)',
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Later
+              </button>
+              <button
+                type="button"
+                onClick={handleInstallApk}
+                style={{
+                  flex: 1, height: 42, borderRadius: 12,
+                  background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
+                  border: 'none', color: 'white',
+                  fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
+                  cursor: 'pointer',
+                  boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
+                }}
+              >
+                Install
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Pre-download modal: standard OTA or APK update notification
   return (
     <div
       role="dialog"
@@ -618,120 +822,130 @@ function UpdateModal({
           animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
         }}
       >
-        <>
-            {/* ── Top section: icon + title + badge ── */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          textAlign: 'center', padding: '32px 24px 22px', gap: 12,
+        }}>
+          <div style={{
+            width: 58, height: 58, borderRadius: '50%',
+            background: `color-mix(in srgb, ${accentFrom} 12%, var(--app-surface))`,
+            border: `1.5px solid color-mix(in srgb, ${accentFrom} 28%, transparent)`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: `0 0 20px color-mix(in srgb, ${accentFrom} 18%, transparent)`,
+          }}>
+            <DownloadIcon size={26} color={accentFrom} />
+          </div>
+
+          <p style={{
+            margin: 0, fontSize: 20, fontWeight: 800,
+            color: 'var(--c-text-primary)',
+            fontFamily: 'Manrope', letterSpacing: '-0.02em',
+          }}>
+            {isApkFlow ? 'App update available' : 'Studio update available'}
+          </p>
+
+          {/* Do NOT show separate APK version badge/numbers to the user if it is APK flow */}
+          {!isApkFlow && (
             <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              textAlign: 'center', padding: '32px 24px 22px', gap: 12,
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '4px 11px', borderRadius: 9999,
+              background: `color-mix(in srgb, ${accentFrom} 14%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${accentFrom} 28%, transparent)`,
             }}>
-              <div style={{
-                width: 58, height: 58, borderRadius: '50%',
-                background: `color-mix(in srgb, ${accentFrom} 12%, var(--app-surface))`,
-                border: `1.5px solid color-mix(in srgb, ${accentFrom} 28%, transparent)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: `0 0 20px color-mix(in srgb, ${accentFrom} 18%, transparent)`,
-              }}>
-                <DownloadIcon size={26} color={accentFrom} />
-              </div>
-
-              <p style={{
-                margin: 0, fontSize: 20, fontWeight: 800,
-                color: 'var(--c-text-primary)',
-                fontFamily: 'Manrope', letterSpacing: '-0.02em',
-              }}>Update Available</p>
-
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                padding: '4px 11px', borderRadius: 9999,
-                background: `color-mix(in srgb, ${accentFrom} 14%, transparent)`,
-                border: `1px solid color-mix(in srgb, ${accentFrom} 28%, transparent)`,
-              }}>
-                <span style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: accentFrom, display: 'block', flexShrink: 0,
-                }} />
-                <span style={{
-                  fontSize: 11, fontWeight: 700, color: accentFrom,
-                  fontFamily: 'Manrope', letterSpacing: '0.04em',
-                }}>v{toVersion}</span>
-              </div>
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: accentFrom, display: 'block', flexShrink: 0,
+              }} />
+              <span style={{
+                fontSize: 11, fontWeight: 700, color: accentFrom,
+                fontFamily: 'Manrope', letterSpacing: '0.04em',
+              }}>v{toVersion}</span>
             </div>
-
-            {/* ── Tinted bottom section ── */}
+          )}
+          {isApkFlow && (
             <div style={{
-              background: 'var(--app-surface-high)',
-              padding: '20px 22px 24px',
-              borderTop: '1px solid rgba(128,128,128,0.1)',
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '4px 11px', borderRadius: 9999,
+              background: `color-mix(in srgb, #f59e0b 14%, transparent)`,
+              border: `1px solid color-mix(in srgb, #f59e0b 28%, transparent)`,
             }}>
-              <p style={{
-                margin: 0, fontSize: 13,
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: '#f59e0b', display: 'block', flexShrink: 0,
+              }} />
+              <span style={{
+                fontSize: 11, fontWeight: 700, color: '#f59e0b',
+                fontFamily: 'Manrope', letterSpacing: '0.04em',
+              }}>Native update required</span>
+            </div>
+          )}
+        </div>
+
+        <div style={{
+          background: 'var(--app-surface-high)',
+          padding: '20px 22px 24px',
+          borderTop: '1px solid rgba(128,128,128,0.1)',
+        }}>
+          <p style={{
+            margin: 0, fontSize: 13,
+            color: 'var(--c-text-secondary)',
+            fontFamily: 'Inter', lineHeight: 1.55,
+          }}>
+            {isApkFlow 
+              ? 'A native system update is required. Studio will download the package and guide you to install it.'
+              : `Version ${toVersion} is ready. You're on ${fromLabel}.`
+            }
+          </p>
+
+          {mandatory && (
+            <p style={{
+              margin: '10px 0 0', fontSize: 11,
+              color: '#f59e0b', fontFamily: 'Inter', fontWeight: 600,
+            }}>
+              This update is required.
+            </p>
+          )}
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+            <button
+              type="button"
+              onClick={onLater}
+              style={{
+                flex: 1, height: 42, borderRadius: 12,
+                background: 'transparent',
+                border: '1px solid rgba(128,128,128,0.22)',
                 color: 'var(--c-text-secondary)',
-                fontFamily: 'Inter', lineHeight: 1.55,
-              }}>
-                Version {toVersion} is ready. You&apos;re on {fromLabel}.
-              </p>
-
-              {mandatory && (
-                <p style={{
-                  margin: '10px 0 0', fontSize: 11,
-                  color: '#f59e0b', fontFamily: 'Inter', fontWeight: 600,
-                }}>
-                  This update is required.
-                </p>
-              )}
-
-              {errMsg && (
-                <p style={{
-                  margin: '10px 0 0', fontSize: 11,
-                  color: '#f87171', fontFamily: 'Inter',
-                  fontWeight: 600, textAlign: 'center',
-                }}>
-                  {errMsg}
-                </p>
-              )}
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-                <button
-                  type="button"
-                  onClick={onLater}
-                  style={{
-                    flex: 1, height: 42, borderRadius: 12,
-                    background: 'transparent',
-                    border: '1px solid rgba(128,128,128,0.22)',
-                    color: 'var(--c-text-secondary)',
-                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                    cursor: 'pointer',
-                    WebkitTapHighlightColor: 'transparent',
-                    display: 'flex', alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  Remind me later
-                </button>
-                <AnimatedActionButton
-                  type="button"
-                  onClick={handleReload}
-                  wrapStyle={{ flex: 2, height: 42 }}
-                  borderRadius={12}
-                  trailColor={accentTo}
-                  style={{
-                    height: '100%',
-                    background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
-                    border: 'none', color: 'white',
-                    fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
-                    cursor: 'pointer',
-                    boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
-                    display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', gap: 7,
-                  }}
-                >
-                  Update now
-                </AnimatedActionButton>
-              </div>
-            </div>
-          </>
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                cursor: 'pointer',
+                WebkitTapHighlightColor: 'transparent',
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {isApkFlow ? 'Later' : 'Remind me later'}
+            </button>
+            <AnimatedActionButton
+              type="button"
+              onClick={handleStartUpdate}
+              wrapStyle={{ flex: 2, height: 42 }}
+              borderRadius={12}
+              trailColor={accentTo}
+              style={{
+                height: '100%',
+                background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
+                border: 'none', color: 'white',
+                fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
+                cursor: 'pointer',
+                boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: 7,
+              }}
+            >
+              {isApkFlow ? 'Update Studio' : 'Update now'}
+            </AnimatedActionButton>
+          </div>
+        </div>
       </div>
-
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes rise-in {

@@ -4,6 +4,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 export interface AppInstallerPlugin {
   installApk(options: { filePath: string }): Promise<void>;
   downloadAndInstallApk(options: { url: string }): Promise<void>;
+  downloadApk(options: { url: string }): Promise<{ filePath: string }>;
   checkPermissions(): Promise<any>;
   requestPermissions(options?: { aliases?: string[] }): Promise<any>;
   getSharedFile(): Promise<{ none?: boolean; type?: 'json' | 'audio'; data?: string; fileName?: string }>;
@@ -163,6 +164,46 @@ export async function downloadAndInstallApk(
       await progressListener.remove();
     }
     console.error('[apkDownloader] Native installation failed:', err);
+    throw err;
+  }
+}
+
+/**
+ * Downloads the APK from the specified URL without installing.
+ * Resolves with the local filePath when download completes.
+ */
+export async function downloadApk(
+  url: string,
+  onProgress?: (progress: number) => void
+): Promise<string> {
+  let progressListener: any = null;
+  
+  try {
+    if (onProgress) {
+      try {
+        progressListener = await (AppInstaller as any).addListener('apkDownloadProgress', (status: any) => {
+          if (status && typeof status.progress === 'number') {
+            onProgress(status.progress);
+          }
+        });
+      } catch (err) {
+        console.warn('[apkDownloader] Failed to add native progress listener:', err);
+      }
+    }
+    
+    console.log(`[apkDownloader] Invoking native downloadApk for ${url}`);
+    const res = await AppInstaller.downloadApk({ url });
+    
+    if (progressListener) {
+      await progressListener.remove();
+    }
+    
+    return res.filePath;
+  } catch (err) {
+    if (progressListener) {
+      await progressListener.remove();
+    }
+    console.error('[apkDownloader] Native downloadApk failed:', err);
     throw err;
   }
 }

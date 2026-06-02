@@ -241,6 +241,95 @@ public class AppInstallerPlugin extends Plugin {
         }).start();
     }
 
+    @PluginMethod
+    public void downloadApk(PluginCall call) {
+        String urlString = call.getString("url");
+        if (urlString == null) {
+            call.reject("url is required");
+            return;
+        }
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                java.io.InputStream input = null;
+                java.io.OutputStream output = null;
+                java.net.HttpURLConnection connection = null;
+                try {
+                    java.net.URL url = new java.net.URL(urlString);
+                    connection = (java.net.HttpURLConnection) url.openConnection();
+                    connection.setInstanceFollowRedirects(true);
+                    
+                    int redirectCount = 0;
+                    int status = connection.getResponseCode();
+                    while ((status == java.net.HttpURLConnection.HTTP_MOVED_TEMP
+                            || status == java.net.HttpURLConnection.HTTP_MOVED_PERM
+                            || status == 301 || status == 302 || status == 307 || status == 308)
+                            && redirectCount < 8) {
+                        String newUrl = connection.getHeaderField("Location");
+                        if (newUrl == null) break;
+                        
+                        url = new java.net.URL(newUrl);
+                        connection = (java.net.HttpURLConnection) url.openConnection();
+                        connection.setInstanceFollowRedirects(true);
+                        status = connection.getResponseCode();
+                        redirectCount++;
+                    }
+
+                    if (status != java.net.HttpURLConnection.HTTP_OK) {
+                        throw new Exception("Server returned non-OK status: " + status);
+                    }
+
+                    int fileLength = connection.getContentLength();
+                    input = new java.io.BufferedInputStream(connection.getInputStream());
+                    
+                    File cacheDir = getContext().getCacheDir();
+                    File apkFile = new File(cacheDir, "update.apk");
+                    if (apkFile.exists()) {
+                        apkFile.delete();
+                    }
+                    
+                    output = new java.io.FileOutputStream(apkFile);
+
+                    byte[] data = new byte[4096];
+                    long total = 0;
+                    int count;
+                    int lastProgress = 0;
+                    
+                    while ((count = input.read(data)) != -1) {
+                        total += count;
+                        output.write(data, 0, count);
+                        
+                        if (fileLength > 0) {
+                            int progress = (int) (total * 100 / fileLength);
+                            if (progress > lastProgress) {
+                                lastProgress = progress;
+                                JSObject progressObj = new JSObject();
+                                progressObj.put("progress", progress);
+                                notifyListeners("apkDownloadProgress", progressObj);
+                            }
+                        }
+                    }
+
+                    output.flush();
+                    output.close();
+                    input.close();
+
+                    JSObject result = new JSObject();
+                    result.put("filePath", apkFile.getAbsolutePath());
+                    call.resolve(result);
+
+                } catch (Exception e) {
+                    try {
+                        if (output != null) output.close();
+                        if (input != null) input.close();
+                    } catch (Exception ignored) {}
+                    call.reject("Download failed: " + e.getMessage(), e);
+                }
+            }
+        }).start();
+    }
+
     private void triggerInstallation(File file, PluginCall call) {
         try {
             Context context = getContext();

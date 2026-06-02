@@ -974,33 +974,78 @@ function GlobalHint() {
   );
 }
 
-function HubUpdaterPage({ className, style, cardStyle, accent, onBack, nativeVersion }: {
+function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   className?: string;
   style: React.CSSProperties;
   cardStyle: React.CSSProperties;
   accent: { from: string; to: string; mid: string };
   onBack: () => void;
-  nativeVersion: string | null;
 }) {
   const ota = useOtaUpdate();
   const { settings, updateSettings } = useChordStore();
   const lang = settings.language ?? 'en';
 
-  const [downloading, setDownloading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [errMsg, setErrMsg] = useState<string | null>(null);
+  const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
+  
+  // Show fullscreen progress screen during download (for OTA it includes 'ready' during reload, for APK it ends at 'ready' and shows the confirmation dialog instead)
+  const isDownloading = ota.updateState === 'downloading' || ota.updateState === 'applied' || (!isApkFlow && ota.updateState === 'ready');
+
+  const handleStartUpdate = async () => {
+    try {
+      await ota.downloadUpdate();
+      if (!isApkFlow) {
+        await ota.applyUpdate();
+      }
+    } catch (err) {
+      console.error('[HubUpdaterPage] Update failed:', err);
+    }
+  };
+
+  const handleInstallApk = async () => {
+    try {
+      await ota.applyUpdate();
+    } catch (err) {
+      console.error('[HubUpdaterPage] APK Install failed:', err);
+    }
+  };
+
+  const handleOpenGitHub = async () => {
+    try {
+      const { resolveReleasePageUrl } = await import('../lib/apkDownloader');
+      const fallbackUrl = await resolveReleasePageUrl(ota.remoteVersion ?? undefined);
+      window.open(fallbackUrl, '_system');
+    } catch (err) {
+      window.open('https://github.com/MAGEXE1000/Studio/releases', '_system');
+    }
+  };
+
+  const handleDismissConfirmation = () => {
+    ota.dismissUpdate();
+  };
+
+  if (isDownloading) {
+    return (
+      <StudioUpdateScreen
+        progress={ota.progress}
+        accentFrom={accent.from}
+        accentTo={accent.to}
+        statusText={ota.statusText}
+      />
+    );
+  }
 
   const L = lang === 'es'
     ? {
+        title: 'Actualizaciones',
         version: 'Versión',
-        installed: 'Interfaz Activa (OTA)',
-        apkShell: 'Contenedor Base (APK)',
-        latest: 'Última Versión Disponible',
         status: 'Estado',
         checking: 'Buscando actualizaciones…',
-        updateAvailable: (v: string) => `Actualización disponible — ${v}`,
-        upToDate: 'Tu interfaz está al día',
-        download: (v: string) => `Descargar ${v}`,
+        upToDate: 'Tu aplicación está al día',
+        checkNow: 'Buscar ahora',
+        studioUpdateAvailable: 'Actualización de Studio disponible',
+        appUpdateAvailable: 'Actualización de aplicación disponible',
+        updateStudio: 'Actualizar Studio',
+        installUpdate: 'Instalar actualización',
         controls: 'Controles',
         notifTitle: 'Notificaciones de actualización',
         notifDesc: 'Recibe un aviso del sistema cuando haya un bundle nuevo.',
@@ -1008,30 +1053,28 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack, nativeVer
         autoDesc: 'Studio comprueba cada 60 s mientras la app está abierta.',
         changelogTitle: 'Mostrar novedades tras actualizar',
         changelogDesc: 'Abre la hoja de cambios la primera vez tras instalar una nueva versión.',
-        checkNow: 'Buscar ahora',
         howItWorks: 'Cómo funciona',
-        howItWorksBody: 'Las actualizaciones OTA se descargan en segundo plano y se aplican al reabrir la app — sin reinstalar.',
-        title: 'Actualizaciones',
-        
-        otaSection: '1. Actualizaciones de Interfaz (OTA)',
-        otaSectionDesc: 'Actualizan la interfaz visual, hojas de estilos, nuevas pestañas y lógica del reproductor al instante sin reinstalar la app.',
-        apkSection: '2. Actualizaciones del Contenedor (APK)',
-        apkSectionDesc: 'Actualizan el código del sistema nativo, los permisos de hardware (como el micrófono de Vocalex) y la configuración interna de la app. Requieren reinstalación manual.',
-        apkUpToDate: 'Tu contenedor nativo (APK) está al día',
-        downloadApk: 'Descargar e Instalar APK',
-        downloadApkDesc: 'Se requiere una actualización del contenedor (APK) para aplicar cambios del sistema y corregir la ventana de permisos de micrófono.',
-        reinstallApk: 'Instalar APK (Diagnóstico)',
+        howItWorksBody: 'Las actualizaciones de Studio se descargan automáticamente en la aplicación y se aplican al instante.',
+        installConfirmationTitle: '¿Instalar actualización de Studio?',
+        installConfirmationDesc: 'Studio descargó una actualización nativa. Android te pedirá confirmación antes de la instalación.',
+        later: 'Más tarde',
+        install: 'Instalar',
+        errorTitle: 'Error de actualización automática',
+        errorDesc: 'No se pudo completar la actualización automática. ¿Abrir la página de descargas?',
+        openGithub: 'Abrir GitHub',
+        cancel: 'Cancelar',
       }
     : {
+        title: 'Updater',
         version: 'Version',
-        installed: 'Running Interface (OTA)',
-        apkShell: 'System Wrapper (APK)',
-        latest: 'Latest Remote Version',
         status: 'Status',
         checking: 'Checking for updates…',
-        updateAvailable: (v: string) => `Update available — ${v}`,
-        upToDate: "Your interface is up to date",
-        download: (v: string) => `Download ${v}`,
+        upToDate: 'Your app is up to date',
+        checkNow: 'Check now',
+        studioUpdateAvailable: 'Studio update available',
+        appUpdateAvailable: 'App update available',
+        updateStudio: 'Update Studio',
+        installUpdate: 'Install update',
         controls: 'Controls',
         notifTitle: 'Update notifications',
         notifDesc: 'Get a system notification when a new bundle is ready.',
@@ -1039,118 +1082,17 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack, nativeVer
         autoDesc: 'Studio checks every 60 s while the app is open.',
         changelogTitle: "Show what's new after updating",
         changelogDesc: 'Open the changelog sheet the first time you launch after installing a new version.',
-        checkNow: 'Check now',
         howItWorks: 'How it works',
-        howItWorksBody: 'OTA updates download in the background and apply on the next launch — no reinstall needed.',
-        title: 'Updater',
-        
-        otaSection: '1. Interface Updates (OTA)',
-        otaSectionDesc: 'These update UI components, layouts, styling, and player logic instantly in the background without needing to reinstall the app.',
-        apkSection: '2. System Wrapper Updates (APK)',
-        apkSectionDesc: 'These modify low-level Android configurations, device permissions (like Vocalex microphone access), and core application wrapper performance. Requires manual installation.',
-        apkUpToDate: 'Your native wrapper (APK) is up to date',
-        downloadApk: 'Download & Install APK Update',
-        downloadApkDesc: 'A native wrapper upgrade (APK) is required to apply low-level permission and system fixes.',
-        reinstallApk: 'Install APK (Troubleshoot)',
+        howItWorksBody: 'Studio updates download inside the app and install securely.',
+        installConfirmationTitle: 'Install Studio update?',
+        installConfirmationDesc: 'Studio downloaded a native update. Android will ask for confirmation before installing.',
+        later: 'Later',
+        install: 'Install',
+        errorTitle: 'Automatic update failed',
+        errorDesc: 'The automatic update could not be completed. Open the download page?',
+        openGithub: 'Open GitHub',
+        cancel: 'Cancel',
       };
-
-  const handleDownloadAndUpdate = async () => {
-    if (downloading) return;
-    setErrMsg(null);
-    const canCapgoUpdate = isNative() && !!ota.downloadUrl && ota.remoteVersion !== null;
-    if (canCapgoUpdate) {
-      setDownloading(true);
-      setProgress(0.01);
-      
-      // Fake progress timer to count up slowly to 15% over 2.5s while connection starts
-      let fakeProgress = 0.01;
-      const fakeTimer = setInterval(() => {
-        if (fakeProgress < 0.15) {
-          fakeProgress += 0.01;
-          setProgress((prev) => Math.max(prev, fakeProgress));
-        } else {
-          clearInterval(fakeTimer);
-        }
-      }, 150);
-
-      const res = await applyUpdate({
-        url: ota.downloadUrl!,
-        version: ota.remoteVersion!,
-        onProgress: (p) => {
-          clearInterval(fakeTimer); // once real progress starts, clear the fake timer
-          setProgress((prev) => Math.max(prev, p));
-        },
-      });
-      clearInterval(fakeTimer);
-      setDownloading(false);
-      if (!res.ok) {
-        setErrMsg(res.error ?? 'Update failed');
-      }
-      return;
-    }
-    if (isNative()) {
-      setErrMsg(
-        "Update available but the server didn't publish a download link. Try again later.",
-      );
-      return;
-    }
-    // Web reload fallback
-    try {
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((k) => caches.delete(k)));
-      }
-    } catch {
-      /* ignore */
-    }
-    setDownloading(true);
-    setProgress(1.0);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    await fadeToBlackAndReload(() => {
-      window.location.reload();
-    });
-  };
-
-  const handleApkDownloadAndInstall = async (targetVer?: string) => {
-    if (downloading) return;
-    setErrMsg(null);
-    setDownloading(true);
-    setProgress(0.01);
-
-    try {
-      const apkUrl = await resolveApkUrl(targetVer);
-      console.log('[Updater] Resolved APK URL:', apkUrl);
-
-      await downloadAndInstallApk(apkUrl, (percent) => {
-        setProgress(percent / 100);
-      });
-
-      setProgress(1.0);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setDownloading(false);
-    } catch (err: any) {
-      console.error('[Updater] In-app APK update failed:', err);
-      setDownloading(false);
-      setErrMsg(
-        lang === 'es'
-          ? 'Error al descargar la APK. Abriendo página de descargas en el navegador...'
-          : 'Failed to download APK. Opening the release page in your browser...'
-      );
-
-      const fallbackUrl = await resolveReleasePageUrl(targetVer);
-      window.open(fallbackUrl, '_system');
-    }
-  };
-
-  if (downloading) {
-    return (
-      <StudioUpdateScreen
-        progress={progress}
-        accentFrom={accent.from}
-        accentTo={accent.to}
-      />
-    );
-  }
 
   const statusColor = ota.loading
     ? 'var(--c-text-secondary)'
@@ -1159,7 +1101,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack, nativeVer
   const statusLabel = ota.loading
     ? L.checking
     : ota.updateAvailable
-      ? L.updateAvailable(ota.remoteVersion ?? '')
+      ? (ota.updateType === 'ota' ? L.studioUpdateAvailable : L.appUpdateAvailable)
       : L.upToDate;
 
   return (
@@ -1167,23 +1109,95 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack, nativeVer
       <style>{HUB_SETTINGS_CSS}</style>
       <SettingsSubHeader title={L.title} onBack={onBack} />
 
-      {/* ── SECTION 1: INTERFACE UPDATES (OTA) ──────────────────────── */}
-      <SettingsSectionLabel>{L.otaSection}</SettingsSectionLabel>
-      <p style={{ margin: '4px 6px 12px', fontSize: 11.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
-        {L.otaSectionDesc}
-      </p>
+      {/* ── APK/BOTH CONFIRMATION OVERLAY IN UPDATER PAGE ── */}
+      {ota.updateState === 'ready' && isApkFlow && (
+        <div style={{
+          margin: '0 0 16px', padding: '20px', borderRadius: 16,
+          background: 'var(--app-surface-high)', border: '1px solid rgba(128,128,128,0.15)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center'
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 36, color: accent.from }}>system_update</span>
+          <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
+            {L.installConfirmationTitle}
+          </p>
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
+            {L.installConfirmationDesc}
+          </p>
+          <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={handleDismissConfirmation}
+              style={{
+                flex: 1, padding: '10px', borderRadius: 10, background: 'transparent',
+                border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-secondary)',
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
+              }}
+            >
+              {L.later}
+            </button>
+            <button
+              type="button"
+              onClick={handleInstallApk}
+              style={{
+                flex: 1, padding: '10px', borderRadius: 10,
+                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
+                border: 'none', fontFamily: 'Manrope', fontWeight: 800, fontSize: 12.5, cursor: 'pointer'
+              }}
+            >
+              {L.install}
+            </button>
+          </div>
+        </div>
+      )}
 
+      {/* ── FALLBACK ERROR UI IN UPDATER PAGE ── */}
+      {ota.updateState === 'error' && (
+        <div style={{
+          margin: '0 0 16px', padding: '20px', borderRadius: 16,
+          background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center'
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#f87171' }}>error</span>
+          <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
+            {L.errorTitle}
+          </p>
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
+            {L.errorDesc}
+          </p>
+          <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => ota.checkNow()}
+              style={{
+                flex: 1, padding: '10px', borderRadius: 10, background: 'transparent',
+                border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-secondary)',
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
+              }}
+            >
+              {L.cancel}
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenGitHub}
+              style={{
+                flex: 1, padding: '10px', borderRadius: 10,
+                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
+                border: 'none', fontFamily: 'Manrope', fontWeight: 800, fontSize: 12.5, cursor: 'pointer'
+              }}
+            >
+              {L.openGithub}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── CARD: UNIFIED UPDATER CARD ── */}
       <div style={cardStyle}>
         <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.installed}</span>
-          <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{APP_VERSION_LABEL}</span>
+          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.version}</span>
+          <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{APP_VERSION}</span>
         </div>
-        <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.latest}</span>
-          <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>
-            {ota.loading ? '—' : (ota.remoteVersion ?? '—')}
-          </span>
-        </div>
+        
         <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
           {ota.loading
             ? <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0, animation: 'hub-spin 1s linear infinite' }}>refresh</span>
@@ -1191,114 +1205,48 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack, nativeVer
           }
           <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)', flex: 1 }}>{statusLabel}</span>
         </div>
-        <button
-          type="button"
-          onClick={() => { void ota.checkNow(); }}
-          disabled={ota.loading}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            width: '100%', padding: '14px 18px', border: 'none', background: 'transparent',
-            color: ota.loading ? 'var(--c-text-secondary)' : accent.from,
-            fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
-            cursor: ota.loading ? 'default' : 'pointer',
-            borderBottom: ota.updateAvailable && ota.downloadUrl ? '1px solid rgba(128,128,128,0.07)' : 'none',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span>
-          {L.checkNow}
-        </button>
-        {ota.updateAvailable && ota.downloadUrl && (
+
+        {/* Action Buttons */}
+        {!ota.updateAvailable ? (
           <button
             type="button"
-            onClick={handleDownloadAndUpdate}
+            onClick={() => { void ota.checkNow(); }}
+            disabled={ota.loading}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              margin: '0 16px 16px', marginTop: 12, padding: '13px', borderRadius: 12,
-              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
+              width: '100%', padding: '14px 18px', border: 'none', background: 'transparent',
+              color: ota.loading ? 'var(--c-text-secondary)' : accent.from,
               fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
-              border: 'none', cursor: 'pointer', boxShadow: `0 4px 16px ${accent.to}44`
+              cursor: ota.loading ? 'default' : 'pointer',
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>download</span>
-            {L.download(ota.remoteVersion ?? '')}
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span>
+            {L.checkNow}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleStartUpdate}
+            disabled={ota.updateState === 'ready'}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              margin: '16px', padding: '13px', borderRadius: 12,
+              background: ota.updateState === 'ready' 
+                ? 'rgba(128,128,128,0.1)' 
+                : `linear-gradient(135deg, ${accent.from}, ${accent.to})`, 
+              color: ota.updateState === 'ready' ? 'var(--c-text-secondary)' : '#fff',
+              fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
+              border: 'none', cursor: ota.updateState === 'ready' ? 'default' : 'pointer',
+              boxShadow: ota.updateState === 'ready' ? 'none' : `0 4px 16px ${accent.to}44`
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
+              {isApkFlow ? 'system_update' : 'download'}
+            </span>
+            {isApkFlow ? L.updateStudio : L.updateStudio}
           </button>
         )}
-        {errMsg && (
-          <p style={{ margin: '8px 18px 12px', fontSize: 11, color: '#f87171', fontFamily: 'Inter', fontWeight: 600, textAlign: 'center' }}>
-            {errMsg}
-          </p>
-        )}
       </div>
-
-      {/* ── SECTION 2: SYSTEM CONTAINER UPDATES (APK) ────────────────── */}
-      {isNative() && nativeVersion && (
-        <>
-          <SettingsSectionLabel delay={60}>{L.apkSection}</SettingsSectionLabel>
-          <p style={{ margin: '4px 6px 12px', fontSize: 11.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
-            {L.apkSectionDesc}
-          </p>
-
-          <div style={cardStyle}>
-            <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.apkShell}</span>
-              <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{nativeVersion}</span>
-            </div>
-            <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.latest}</span>
-              <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>
-                {ota.loading ? '—' : (ota.remoteVersion ?? '—')}
-              </span>
-            </div>
-
-            {compareSemver(ota.remoteVersion ?? APP_VERSION, nativeVersion) > 0 ? (
-              <div style={{ padding: '16px 18px', background: 'rgba(245, 158, 11, 0.06)' }}>
-                <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 12.5, margin: '0 0 10px', lineHeight: 1.4 }}>
-                  {L.downloadApkDesc}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleApkDownloadAndInstall(ota.remoteVersion ?? APP_VERSION);
-                  }}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    width: '100%', padding: '13px', borderRadius: 12,
-                    background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
-                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
-                    border: 'none', cursor: 'pointer', boxShadow: `0 4px 16px ${accent.to}44`
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>download_for_offline</span>
-                  {L.downloadApk}
-                </button>
-              </div>
-            ) : (
-              <div>
-                <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
-                  <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#4ade80', flexShrink: 0, boxShadow: '0 0 8px #4ade8088' }} />
-                  <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)', flex: 1 }}>{L.apkUpToDate}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleApkDownloadAndInstall(nativeVersion ?? APP_VERSION);
-                  }}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    width: '100%', padding: '14px 18px', border: 'none', background: 'transparent',
-                    color: accent.from,
-                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download_for_offline</span>
-                  {L.reinstallApk}
-                </button>
-              </div>
-            )}
-          </div>
-        </>
-      )}
 
       <SettingsSectionLabel delay={80}>{L.controls}</SettingsSectionLabel>
       <div style={cardStyle}>
@@ -1323,6 +1271,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack, nativeVer
     </div>
   );
 }
+
 
 function HubSettings({
   accent,
@@ -1396,20 +1345,6 @@ function HubSettings({
 
   const hubVis: PerAppVisuals = settings.perApp?.hub ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
   const [changelogOpen, setChangelogOpen] = useState(false);
-  const [nativeVersion, setNativeVersion] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isNative()) {
-      import('@capacitor/app')
-        .then(({ App }) => App.getInfo())
-        .then((info) => {
-          setNativeVersion(info.version);
-        })
-        .catch((err) => {
-          console.warn('[Updater] Failed to get native app info in Settings:', err);
-        });
-    }
-  }, []);
 
   function requestChange(patch: Partial<PerAppVisuals>) {
     const ALL_APPS: AppKey[] = ['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex'];
@@ -1795,7 +1730,6 @@ function HubSettings({
         cardStyle={cardStyle}
         accent={accent}
         onBack={goBack}
-        nativeVersion={nativeVersion}
       />
     );
   }
@@ -1825,11 +1759,6 @@ function HubSettings({
             <p style={{ margin: '6px 0 0', fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', letterSpacing: '0.04em' }}>
               {t.settings.about.version} {APP_VERSION_LABEL}
             </p>
-            {isNative() && nativeVersion && (
-              <p style={{ margin: '4px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-muted)', letterSpacing: '0.04em' }}>
-                {lang === 'es' ? 'Contenedor Base (APK)' : 'APK Shell (Native)'}: {nativeVersion}
-              </p>
-            )}
           </div>
         </div>
 
