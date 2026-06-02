@@ -97,7 +97,10 @@ export default function StudioUpdateScreen({
     `color-mix(in srgb, ${accentTo} ${Math.round(a * 100)}%, transparent)`;
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
       style={{
         position: 'fixed',
         inset: 0,
@@ -185,6 +188,6 @@ export default function StudioUpdateScreen({
           </motion.p>
         </div>
       </StudioUpdateAuroraBackground>
-    </div>
+    </motion.div>
   );
 }

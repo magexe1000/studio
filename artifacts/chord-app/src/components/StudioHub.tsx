@@ -1020,7 +1020,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack, nativeVer
         apkUpToDate: 'Tu contenedor nativo (APK) está al día',
         downloadApk: 'Descargar e Instalar APK',
         downloadApkDesc: 'Se requiere una actualización del contenedor (APK) para aplicar cambios del sistema y corregir la ventana de permisos de micrófono.',
-        reinstallApk: 'Reinstalar APK actual (Diagnóstico)',
+        reinstallApk: 'Instalar APK (Diagnóstico)',
       }
     : {
         version: 'Version',
@@ -1051,7 +1051,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack, nativeVer
         apkUpToDate: 'Your native wrapper (APK) is up to date',
         downloadApk: 'Download & Install APK Update',
         downloadApkDesc: 'A native wrapper upgrade (APK) is required to apply low-level permission and system fixes.',
-        reinstallApk: 'Reinstall current APK (Troubleshoot)',
+        reinstallApk: 'Install APK (Troubleshoot)',
       };
 
   const handleDownloadAndUpdate = async () => {
