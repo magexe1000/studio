@@ -28,6 +28,30 @@ import { isNative, notifyOtaAvailable } from './capgoUpdater';
 import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 import { useChordStore } from '../store/useChordStore';
 
+function getSessionItem(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function setSessionItem(key: string, value: string): void {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    /* ignore */
+  }
+}
+
+function removeSessionItem(key: string): void {
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
 const LAST_SEEN_KEY = 'studio:lastSeenVersion';
 const FETCH_TIMEOUT_MS = 6000;
 /** How often to re-check for updates while the app is open and visible.
@@ -292,16 +316,23 @@ let activeApplyPromise: Promise<void> | null = null;
  * immediately, checking seen/dismissed locks, and locking concurrent requests.
  */
 export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
+  // 1. Synchronously return if check is already running
   if (activeCheckPromise) return activeCheckPromise;
 
-  activeCheckPromise = (async () => {
-    // Return early if download/apply is already in progress or completed
-    if (globalOtaState.updateState === 'downloading' || 
-        globalOtaState.updateState === 'ready' || 
-        globalOtaState.updateState === 'applied') {
-      return globalOtaState;
-    }
+  // 2. Synchronous early return if check is unnecessary
+  if (globalOtaState.updateState === 'downloading' || 
+      globalOtaState.updateState === 'ready' || 
+      globalOtaState.updateState === 'applied') {
+    return Promise.resolve(globalOtaState);
+  }
 
+  // 3. Clear session storage locks on manual checks so the modal always auto-opens
+  if (isManual) {
+    removeSessionItem('studio:laterUpdateVersion');
+    removeSessionItem('studio:autoOpenedUpdateVersion');
+  }
+
+  activeCheckPromise = (async () => {
     updateGlobalState({ updateState: 'checking', loading: true });
     try {
       const remote = await fetchRemoteVersion();
@@ -323,7 +354,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         return globalOtaState;
       }
 
-      const dismissed = localStorage.getItem('studio:laterUpdateVersion');
+      const dismissed = getSessionItem('studio:laterUpdateVersion');
       const isDismissed = dismissed === remote.version;
 
       updateGlobalState({
@@ -362,7 +393,11 @@ export function downloadUpdate(): Promise<void> {
   if (activeDownloadPromise) return activeDownloadPromise;
 
   if (globalOtaState.updateState === 'ready' || globalOtaState.updateState === 'applied') {
-    return Promise.resolve();
+    // Safety check: if native, verify the bundle ID actually exists, otherwise force re-download
+    const downloadedId = localStorage.getItem('studio:downloadedBundleId');
+    if (!isNative() || downloadedId) {
+      return Promise.resolve();
+    }
   }
 
   if (!isNative()) {
@@ -374,7 +409,7 @@ export function downloadUpdate(): Promise<void> {
   const { downloadUrl, remoteVersion } = globalOtaState;
   if (!downloadUrl || !remoteVersion) {
     updateGlobalState({ updateState: 'error', error: 'No download URL available' });
-    return Promise.resolve();
+    return Promise.reject(new Error('No download URL available'));
   }
 
   activeDownloadPromise = (async () => {
@@ -407,6 +442,7 @@ export function downloadUpdate(): Promise<void> {
     } catch (err) {
       console.error('[OTA] Download failed:', err);
       updateGlobalState({ updateState: 'error', error: err instanceof Error ? err.message : 'Download failed' });
+      throw err; // Re-throw to prevent caller from proceeding to applyUpdate
     } finally {
       activeDownloadPromise = null;
     }
@@ -449,6 +485,10 @@ export function applyUpdate(): Promise<void> {
       } catch (err) {
         console.error('[OTA] Apply failed:', err);
         updateGlobalState({ updateState: 'error', error: err instanceof Error ? err.message : 'Apply failed' });
+        localStorage.removeItem('studio:appliedUpdateVersion');
+        throw err; // Re-throw to propagate exception
+      } finally {
+        activeApplyPromise = null;
       }
     } else {
       // Web: clear caches and reload page
@@ -476,7 +516,7 @@ export function applyUpdate(): Promise<void> {
 export function dismissUpdate(): void {
   const { remoteVersion } = globalOtaState;
   if (!remoteVersion) return;
-  localStorage.setItem('studio:laterUpdateVersion', remoteVersion);
+  setSessionItem('studio:laterUpdateVersion', remoteVersion);
   updateGlobalState({ updateState: 'dismissed' });
 }
 

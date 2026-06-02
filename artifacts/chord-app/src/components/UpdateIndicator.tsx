@@ -125,16 +125,19 @@ function writeAutoOpenedVersion(v: string): void {
 
 function readLaterVersion(): string | null {
   try {
-    const raw = localStorage.getItem(LATER_VERSION_KEY);
+    const raw = sessionStorage.getItem(LATER_VERSION_KEY);
     if (!raw || normalizeSemver(raw) === null) return null;
     return raw;
   } catch { return null; }
 }
 function writeLaterVersion(v: string): void {
-  try { localStorage.setItem(LATER_VERSION_KEY, v); } catch { /* quota / privacy */ }
+  try { sessionStorage.setItem(LATER_VERSION_KEY, v); } catch { /* quota / privacy */ }
 }
 function clearLegacyDismissed(): void {
-  try { localStorage.removeItem(LEGACY_DISMISSED_KEY); } catch { /* ignore */ }
+  try {
+    localStorage.removeItem(LEGACY_DISMISSED_KEY);
+    localStorage.removeItem(LATER_VERSION_KEY); // Also clean up any stale legacy persisted storage entry
+  } catch { /* ignore */ }
 }
 
 type Phase = 'banner' | 'pill';
@@ -565,8 +568,12 @@ function UpdateModal({
     if (isNative() && !downloadUrl) {
       return;
     }
-    await ota.downloadUpdate();
-    await ota.applyUpdate();
+    try {
+      await ota.downloadUpdate();
+      await ota.applyUpdate();
+    } catch (err) {
+      console.error('[UpdateIndicator] Download or apply failed:', err);
+    }
   };
 
   if (downloading) {
