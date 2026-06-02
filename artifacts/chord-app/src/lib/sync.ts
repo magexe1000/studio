@@ -5,6 +5,7 @@ import { isNative } from './capgoUpdater';
 import { getAllTakes, saveTake, type TakeRecord } from '../vocalex/takesDb';
 import { getAllSessions, saveSession, type LabSession, type LabLayer } from '../vocalex/labSessionDb';
 import { useChordStore } from '../store/useChordStore';
+import { secureReadLocal, secureWriteLocal } from './security';
 
 /**
  * Cloud sync engine for Chordex / Drumex / StageX / Vocalex.
@@ -462,7 +463,11 @@ function hashString(s: string): string {
 // ── Local snapshots (localStorage) ──────────────────────────────────────────
 
 function readLocalRaw(key: string): string | null {
-  try { return localStorage.getItem(key); } catch { return null; }
+  return secureReadLocal(key, currentUser?.uid ?? 'guest_user');
+}
+
+function writeLocalRaw(key: string, value: string): void {
+  secureWriteLocal(key, value, currentUser?.uid ?? 'guest_user');
 }
 
 function snapshotChordex(): string | null { return readLocalRaw(CHORDEX_LS_KEY); }
@@ -472,7 +477,7 @@ function snapshotDrumexUI(): string | null { return readLocalRaw(DRUMEX_UI_KEY);
 function snapshotProfile(): string | null {
   if (!currentUser) return null;
   try {
-    const raw = localStorage.getItem('chordex_user_avatar_v1');
+    const raw = readLocalRaw('chordex_user_avatar_v1');
     if (!raw) return null;
     const map = JSON.parse(raw);
     const av = map[currentUser.uid];
@@ -485,7 +490,7 @@ function snapshotProfile(): string | null {
 function snapshotProfileCover(): string | null {
   if (!currentUser) return null;
   try {
-    const raw = localStorage.getItem(`chordex_cp_${currentUser.uid}`);
+    const raw = readLocalRaw(`chordex_cp_${currentUser.uid}`);
     return raw ? JSON.stringify({ cover: raw }) : null;
   } catch {
     return null;
@@ -801,24 +806,24 @@ function mergeDrumexState(localRaw: string | null, cloudRaw: string): string {
 
 function restoreChordex(raw: string) {
   try {
-    const local = localStorage.getItem(CHORDEX_LS_KEY);
+    const local = readLocalRaw(CHORDEX_LS_KEY);
     const merged = mergeChordexState(local, raw);
-    localStorage.setItem(CHORDEX_LS_KEY, merged);
+    writeLocalRaw(CHORDEX_LS_KEY, merged);
   } catch { /* noop */ }
   triggerStorageEvent(CHORDEX_LS_KEY);
 }
 
 function restoreDrumex(raw: string) {
   try {
-    const local = localStorage.getItem(DRUMEX_LS_KEY);
+    const local = readLocalRaw(DRUMEX_LS_KEY);
     const merged = mergeDrumexState(local, raw);
-    localStorage.setItem(DRUMEX_LS_KEY, merged);
+    writeLocalRaw(DRUMEX_LS_KEY, merged);
   } catch { /* noop */ }
   triggerStorageEvent(DRUMEX_LS_KEY);
 }
 
 function restoreDrumexUI(raw: string) {
-  try { localStorage.setItem(DRUMEX_UI_KEY, raw); } catch { /* noop */ }
+  try { writeLocalRaw(DRUMEX_UI_KEY, raw); } catch { /* noop */ }
   triggerStorageEvent(DRUMEX_UI_KEY);
 }
 
@@ -828,11 +833,11 @@ function restoreProfile(raw: string) {
     const parsed = JSON.parse(raw);
     const av = parsed.avatar;
     if (av) {
-      const existingRaw = localStorage.getItem('chordex_user_avatar_v1');
+      const existingRaw = readLocalRaw('chordex_user_avatar_v1');
       const map = existingRaw ? JSON.parse(existingRaw) : {};
       if (map[currentUser.uid] !== av) {
         map[currentUser.uid] = av;
-        localStorage.setItem('chordex_user_avatar_v1', JSON.stringify(map));
+        writeLocalRaw('chordex_user_avatar_v1', JSON.stringify(map));
         window.dispatchEvent(
           new CustomEvent('chordex:user-avatar-changed', {
             detail: { uid: currentUser.uid, icon: av },
@@ -851,9 +856,9 @@ function restoreProfileCover(raw: string) {
     const parsed = JSON.parse(raw);
     const cover = parsed.cover;
     if (cover) {
-      const existing = localStorage.getItem(`chordex_cp_${currentUser.uid}`);
+      const existing = readLocalRaw(`chordex_cp_${currentUser.uid}`);
       if (existing !== cover) {
-        localStorage.setItem(`chordex_cp_${currentUser.uid}`, cover);
+        writeLocalRaw(`chordex_cp_${currentUser.uid}`, cover);
         window.dispatchEvent(
           new CustomEvent('chordex:user-cover-changed', {
             detail: { uid: currentUser.uid, cover },
@@ -871,7 +876,7 @@ function restoreStagex(snap: StagexSnapshot) {
     const v = snap[k];
     try {
       if (v == null) localStorage.removeItem(k);
-      else localStorage.setItem(k, v);
+      else writeLocalRaw(k, v);
     } catch { /* noop */ }
   }
   if (stageIframe?.contentWindow) {

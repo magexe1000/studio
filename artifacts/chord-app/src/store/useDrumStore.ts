@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { InstPlugin } from '../lib/drumPlugins';
+import { secureReadLocal, secureWriteLocal } from '../lib/security';
 export type { InstPlugin };
 
 export type DrumInstrument =
@@ -826,6 +827,11 @@ export const useDrumStore = create<DrumStore>()(
       name: 'chordex-drums',
       version: 13,
       partialize: (state) => { const { instFX: _fx, ...rest } = state; return rest as typeof state; },
+      storage: createJSONStorage(() => ({
+        getItem: (name) => secureReadLocal(name),
+        setItem: (name, value) => secureWriteLocal(name, value),
+        removeItem: (name) => localStorage.removeItem(name),
+      })),
       migrate: (state: unknown, _version: number) => {
         const s = state as {
           drumSongs?: DrumSong[];

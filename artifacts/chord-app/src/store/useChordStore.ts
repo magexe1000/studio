@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Chord, Instrument } from '../data/chords';
 import { detectDeviceLanguage, type Language as I18nLanguage } from '../lib/i18n';
+import { secureReadLocal, secureWriteLocal } from '../lib/security';
 
 export type Theme = 'dark' | 'light' | 'system' | 'dynamic';
 export type ActivePanel = 'library' | 'chord' | 'settings' | 'songs';
@@ -802,6 +803,11 @@ export const useChordStore = create<ChordStore>()(
         chordUsage: state.chordUsage,
         lastSession: state.lastSession,
       }),
+      storage: createJSONStorage(() => ({
+        getItem: (name) => secureReadLocal(name),
+        setItem: (name, value) => secureWriteLocal(name, value),
+        removeItem: (name) => localStorage.removeItem(name),
+      })),
     }
   )
 );
