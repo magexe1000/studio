@@ -133,3 +133,34 @@ if (preserveNewer && fs.existsSync(outPath)) {
 
 fs.writeFileSync(outPath, JSON.stringify(payload, null, 2) + '\n', 'utf8');
 console.log(`sync-version: ✓ wrote ${path.relative(root, outPath)} (version=${version})`);
+
+// Sync package.json version
+const pkgPath = path.join(root, 'package.json');
+if (fs.existsSync(pkgPath)) {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    if (pkg.version !== version) {
+      pkg.version = version;
+      fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+      console.log(`sync-version: ✓ updated package.json version to ${version}`);
+    }
+  } catch (err) {
+    console.error('sync-version: ✗ failed to sync package.json:', err);
+  }
+}
+
+// Sync android/app/build.gradle versionName
+const gradlePath = path.join(root, 'android/app/build.gradle');
+if (fs.existsSync(gradlePath)) {
+  try {
+    let gradleSrc = fs.readFileSync(gradlePath, 'utf8');
+    const gradlePat = /versionName\s+["']([^"']+)["']/;
+    if (gradlePat.test(gradleSrc)) {
+      gradleSrc = gradleSrc.replace(gradlePat, `versionName "${version}"`);
+      fs.writeFileSync(gradlePath, gradleSrc, 'utf8');
+      console.log(`sync-version: ✓ updated android/app/build.gradle versionName to ${version}`);
+    }
+  } catch (err) {
+    console.error('sync-version: ✗ failed to sync android/app/build.gradle:', err);
+  }
+}
