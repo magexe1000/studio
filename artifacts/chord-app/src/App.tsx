@@ -107,24 +107,35 @@ export default function App() {
     return () => { cancelled = true; unsub?.(); };
   }, []);
 
-  // Request startup permissions for notifications (required by OTA updates)
+  // Request startup permissions for notifications, storage, and media
   useEffect(() => {
     const requestStartupPermissions = async () => {
-      // Notification permission request
       try {
         if (typeof window !== 'undefined') {
           if ('Notification' in window && Notification.permission === 'default') {
             await Notification.requestPermission();
           }
-          // Native Capacitor notification permission request
           const { Capacitor } = await import('@capacitor/core');
           if (Capacitor.isNativePlatform()) {
-            const { LocalNotifications } = await import('@capacitor/local-notifications');
-            await LocalNotifications.requestPermissions();
+            try {
+              const { LocalNotifications } = await import('@capacitor/local-notifications');
+              await LocalNotifications.requestPermissions();
+            } catch (err) {
+              console.warn('[Permissions] Notification permission request failed:', err);
+            }
+            try {
+              const { Filesystem } = await import('@capacitor/filesystem');
+              const fsPerm = await Filesystem.checkPermissions();
+              if (fsPerm.publicStorage !== 'granted') {
+                await Filesystem.requestPermissions();
+              }
+            } catch (err) {
+              console.warn('[Permissions] Filesystem permission request failed:', err);
+            }
           }
         }
       } catch (err) {
-        console.warn('[Permissions] Notification permission request skipped or denied:', err);
+        console.warn('[Permissions] Startup permissions request failed:', err);
       }
     };
 
