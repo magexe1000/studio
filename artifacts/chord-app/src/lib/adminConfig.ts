@@ -8,5 +8,5 @@
  * Do NOT use email checks or localStorage.
  */
 export const adminUIDs: string[] = [
-  // Add your UID here to automatically become admin
+  'ZAYV4Ue84BOMs8FPtjKXATFoVQt2',
 ];
