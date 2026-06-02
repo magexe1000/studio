@@ -107,18 +107,10 @@ export default function App() {
     return () => { cancelled = true; unsub?.(); };
   }, []);
 
-  // Request startup permissions for notifications and microphone (required by Vocalex / OTA updates)
+  // Request startup permissions for notifications (required by OTA updates)
   useEffect(() => {
     const requestStartupPermissions = async () => {
-      // 1. Microphone permission request
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach((track) => track.stop());
-      } catch (err) {
-        console.warn('[Permissions] Microphone permission request skipped or denied:', err);
-      }
-
-      // 2. Notification permission request
+      // Notification permission request
       try {
         if (typeof window !== 'undefined') {
           if ('Notification' in window && Notification.permission === 'default') {

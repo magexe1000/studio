@@ -335,7 +335,10 @@ export default function VocalexApp() {
 
       <nav
         ref={navRef}
-        className="glass-nav"
+        className="glass-nav fixed"
+        aria-hidden={(navHidden || navCollapsed) || undefined}
+        // @ts-expect-error – `inert` is valid HTML but missing from React types in this version
+        inert={(navHidden || navCollapsed) ? '' : undefined}
         style={{
           position: 'fixed',
           bottom: 'var(--nav-safe-bottom)',
@@ -351,7 +354,8 @@ export default function VocalexApp() {
             : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
           zIndex: 50,
           overflow: 'hidden',
-          transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 32px)' : '0'})`,
+          pointerEvents: (navHidden || navCollapsed) ? 'none' : 'auto',
+          transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 32px)' : '0px'})`,
           clipPath: navCollapsed
             ? `inset(${Math.max(0, NAV_HEIGHT_PX - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
             : 'inset(0 0 0 0 round 2rem)',
@@ -363,9 +367,10 @@ export default function VocalexApp() {
             navCollapsed
               ? 'transform 500ms cubic-bezier(0.4,0,0.2,1)'
               : 'transform 380ms cubic-bezier(0.16,1,0.3,1)',
+            'background-color 300ms ease',
+            'border-color     300ms ease',
+            'box-shadow       300ms ease',
           ].join(', '),
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
         }}
       >
         <div style={{

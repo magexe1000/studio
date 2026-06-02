@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { detectPitch, type PitchResult } from './pitchYin';
 import { useT } from '../lib/useT';
 import { createAudioContext } from '../lib/audioContextOptions';
+import { useChordStore } from '../store/useChordStore';
 
 const HISTORY_LEN = 12;
 const SMOOTHING = 0.3;
@@ -26,6 +27,7 @@ function centsToNeedleRotation(cents: number): number {
 
 export default function PitchPanel({ active: panelActive = true }: { active?: boolean }) {
   const t = useT();
+  const language = useChordStore(s => s.settings.language);
   const [listening, setListening] = useState(false);
   const [result, setResult] = useState<PitchResult | null>(null);
   const [history, setHistory] = useState<PitchResult[]>([]);
@@ -107,9 +109,10 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
       smoothedFreqRef.current = 0;
       rafRef.current = requestAnimationFrame(detectLoop);
     } catch (err: unknown) {
+      console.error('[PitchPanel] startListening failed:', err);
       setPermError(err instanceof Error ? err.message : t.vocalex.micDenied);
     }
-  }, [detectLoop]);
+  }, [detectLoop, t.vocalex.micDenied]);
 
   const stopListening = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -146,7 +149,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
 
   const active = listening && result !== null;
   const needleRot = centsToNeedleRotation(active ? result!.cents : 0);
-  const statusColor = active ? centsToColor(result!.cents) : '#007aff';
+  const statusColor = active ? centsToColor(result!.cents) : (listening ? '#007aff' : 'rgba(120,120,120,0.3)');
   const statusLabel = active ? centsToLabel(result!.cents, t.vocalex) : '';
 
   const barHeights = [40, 60, 85, 70, 95, 50, 30, 65, 80, 45, 20, 55];
@@ -365,7 +368,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
         </div>
       </div>
 
-      {/* ── Reset Button ── */}
+      {/* ── Action Buttons ── */}
       <div style={{
         display: 'flex', gap: 12, width: '100%', maxWidth: 360, marginTop: 20,
       }}>
@@ -387,16 +390,66 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
           </svg>
           {t.vocalex.reset}
         </button>
+
+        <button
+          onClick={listening ? stopListening : startListening}
+          style={{
+            flex: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            height: 48, borderRadius: 12,
+            background: listening ? 'rgba(239,68,68,0.15)' : 'linear-gradient(135deg, #679cff, #007aff)',
+            border: listening ? '1px solid rgba(239,68,68,0.3)' : 'none',
+            color: listening ? '#ef4444' : '#fff',
+            fontSize: 14, fontWeight: 700,
+            fontFamily: 'Inter, sans-serif',
+            cursor: 'pointer',
+            boxShadow: listening ? 'none' : '0 4px 16px rgba(0,122,255,0.2)',
+            transition: 'all 200ms ease',
+          }}
+        >
+          {listening ? (
+            <>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic_off</span>
+              {language === 'es' ? 'Detener' : 'Stop'}
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic</span>
+              {language === 'es' ? 'Iniciar' : 'Start'}
+            </>
+          )}
+        </button>
       </div>
 
       {permError && (
         <div style={{
-          padding: '10px 16px', borderRadius: 12, marginTop: 8,
+          padding: '14px 16px', borderRadius: 12, marginTop: 12,
           background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
           color: '#ef4444', fontSize: 12, fontFamily: 'Inter, sans-serif',
           textAlign: 'center', maxWidth: 360, width: '100%',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10
         }}>
-          {permError}
+          <span style={{ fontWeight: 500, lineHeight: 1.4 }}>
+            {permError.includes('NotAllowedError') || permError.includes('Permission denied') || permError.includes('denied')
+              ? (language === 'es' ? 'Se requiere acceso al micrófono para el afinador.' : 'Microphone access is required for pitch monitoring.')
+              : permError}
+          </span>
+          <button
+            onClick={() => {
+              setPermError(null);
+              startListening();
+            }}
+            style={{
+              padding: '8px 16px', borderRadius: 8,
+              background: '#ef4444', border: 'none',
+              color: '#fff', fontSize: 12, fontWeight: 700,
+              fontFamily: 'Inter, sans-serif', cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(239,68,68,0.2)',
+              transition: 'background 150ms ease',
+            }}
+          >
+            {language === 'es' ? 'Permitir e Iniciar' : 'Grant & Start'}
+          </button>
         </div>
       )}
     </div>
