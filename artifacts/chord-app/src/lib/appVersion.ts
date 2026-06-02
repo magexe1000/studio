@@ -65,7 +65,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
     heading: "Visual Updates & FAQ",
     items: [
       'FAQ Symbol Fix: Resolved the text-fallback bug where the Help & FAQ accordion icon rendered the raw word "HELP".',
-      'OTA & Bundle Stability: Fully compiled and tested production asset bundles to ensure fast OTA hot-swaps.',
+      'Auto-Update Startup Checker: Forced OTA updates check to run immediately on startup, bypassing toggles on launch so updates are always detected automatically.',
     ],
   },
 ];
@@ -86,7 +86,7 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
     heading: "Diseño y FAQ",
     items: [
       'Icono de FAQ Reparado: Se corrigió el error visual donde el icono de Ayuda y FAQ se dibujaba como la palabra "HELP".',
-      'Estabilidad OTA: Compilación y validación de bundle completa para asegurar actualizaciones en caliente rápidas.',
+      'Detector de Actualizaciones al Inicio: Se forzó el chequeo de actualizaciones al abrir la app para que siempre se busquen de forma automática.',
     ],
   },
 ];
@@ -106,7 +106,7 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
     heading: "FAQ & Design-Korrekturen",
     items: [
       'FAQ-Symbol Behoben: Render-Bug gelöst, bei dem das Akkordeon-Symbol fälschlicherweise als Text "HELP" gezeichnet wurde.',
-      'OTA-Verbindung: Vollständige Validierung und schnelle, fehlerfreie Updates für alle Hot-Swaps.',
+      'Auto-Update beim Start: Das Suchen nach OTA-Updates wird nun sofort beim App-Start erzwungen, damit Updates immer direkt erkannt werden.',
     ],
   },
 ];

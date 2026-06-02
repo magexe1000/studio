@@ -390,7 +390,9 @@ export function useOtaUpdate(): UseOtaUpdateResult {
     void nativeSet(NATIVE_PREFS.OTA_INSTALLED, APP_VERSION);
 
     // 1. Initial check on mount.
-    void runCheck();
+    // ALWAYS run the startup check on cold start to ensure updates are detected immediately,
+    // bypassing the periodic background poll setting.
+    void runCheckImpl(ctrl.signal, false);
 
     // 2a. Web: visibility transitions → re-check on becoming visible.
     //     Also listen for `focus` and `pageshow` (back/forward cache),
