@@ -480,7 +480,80 @@ export function downloadUpdate(): Promise<void> {
     return Promise.resolve();
   }
 
-  if (updateType === 'apk' || updateType === 'both') {
+  if (updateType === 'both') {
+    if (!apkUrl || !downloadUrl || !remoteVersion) {
+      updateGlobalState({ updateState: 'error', error: 'Missing OTA or APK update URL' });
+      return Promise.reject(new Error('Missing OTA or APK update URL'));
+    }
+
+    activeDownloadPromise = (async () => {
+      updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading app update', error: null });
+      try {
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+        const { downloadApk } = await import('./apkDownloader');
+
+        // 1. Download OTA bundle (allocated to first 20% of progress bar)
+        let otaProgress = 0;
+        const progressListener = await CapacitorUpdater.addListener(
+          'download',
+          (info: { percent?: number }) => {
+            if (typeof info?.percent === 'number') {
+              otaProgress = Math.max(0, Math.min(1, info.percent / 100));
+              updateGlobalState({ 
+                progress: otaProgress * 0.2,
+                statusText: 'Downloading app update'
+              });
+            }
+          },
+        );
+
+        let downloadedBundle;
+        try {
+          downloadedBundle = await CapacitorUpdater.download({
+            url: downloadUrl,
+            version: remoteVersion,
+          });
+          updateGlobalState({ progress: 0.2 });
+        } finally {
+          if (progressListener) {
+            await progressListener.remove().catch(() => {});
+          }
+        }
+
+        // 2. Download APK (allocated to remaining 80% of progress bar)
+        const filePath = await downloadApk(apkUrl, (percent) => {
+          const apkProgress = Math.max(0, Math.min(1, percent / 100));
+          updateGlobalState({ 
+            progress: 0.2 + apkProgress * 0.8,
+            statusText: 'Downloading system update'
+          });
+        });
+
+        updateGlobalState({ progress: 1.0, statusText: 'Preparing update' });
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        updateGlobalState({ statusText: 'Verifying update' });
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        updateGlobalState({ statusText: 'Ready to install', updateState: 'ready' });
+        localStorage.setItem('studio:downloadedApkPath', filePath);
+        localStorage.setItem('studio:downloadedBundleId', downloadedBundle.id);
+      } catch (err) {
+        console.error('[OTA] Both update failed:', err);
+        updateGlobalState({ 
+          updateState: 'error', 
+          error: err instanceof Error ? err.message : 'Download failed',
+          statusText: null
+        });
+        throw err;
+      } finally {
+        activeDownloadPromise = null;
+      }
+    })();
+    return activeDownloadPromise;
+  }
+
+  if (updateType === 'apk') {
     if (!apkUrl) {
       updateGlobalState({ updateState: 'error', error: 'No APK download URL available' });
       return Promise.reject(new Error('No APK download URL available'));
@@ -585,6 +658,19 @@ export function applyUpdate(): Promise<void> {
         if (!filePath) {
           throw new Error('No downloaded APK path found.');
         }
+
+        // If both updates are downloaded, configure the Capgo bundle ID so that
+        // the native wrapper is immediately configured to load the new OTA build on restart.
+        const downloadedId = localStorage.getItem('studio:downloadedBundleId');
+        if (updateType === 'both' && downloadedId) {
+          try {
+            const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+            await CapacitorUpdater.set({ id: downloadedId });
+          } catch (e) {
+            console.warn('[OTA] Failed to set Capgo bundle in both-update (ignoring):', e);
+          }
+        }
+
         const { AppInstaller } = await import('./apkDownloader');
         await AppInstaller.installApk({ filePath });
       } catch (err) {
