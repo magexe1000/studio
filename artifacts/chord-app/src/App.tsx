@@ -136,7 +136,7 @@ export default function App() {
       }
     };
 
-    const timer = setTimeout(requestStartupPermissions, 1000);
+    const timer = setTimeout(requestStartupPermissions, 3000);
     return () => clearTimeout(timer);
   }, []);
 
