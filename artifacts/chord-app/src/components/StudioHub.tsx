@@ -1005,12 +1005,13 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   const L = lang === 'es'
     ? {
         version: 'Versión',
-        installed: 'Instalada',
-        latest: 'Última',
+        installed: 'Interfaz Activa (OTA)',
+        apkShell: 'Contenedor Base (APK)',
+        latest: 'Última Versión Disponible',
         status: 'Estado',
         checking: 'Buscando actualizaciones…',
         updateAvailable: (v: string) => `Actualización disponible — ${v}`,
-        upToDate: 'Estás al día',
+        upToDate: 'Tu interfaz está al día',
         download: (v: string) => `Descargar ${v}`,
         controls: 'Controles',
         notifTitle: 'Notificaciones de actualización',
@@ -1023,18 +1024,25 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         howItWorks: 'Cómo funciona',
         howItWorksBody: 'Las actualizaciones OTA se descargan en segundo plano y se aplican al reabrir la app — sin reinstalar.',
         title: 'Actualizaciones',
-        apkShell: 'Versión APK',
-        downloadApk: 'Instalar actualización APK',
-        downloadApkDesc: 'Se requiere actualización de la APK nativa para aplicar cambios internos de seguridad y permisos de micrófono.',
+        
+        otaSection: '1. Actualizaciones de Interfaz (OTA)',
+        otaSectionDesc: 'Actualizan la interfaz visual, hojas de estilos, nuevas pestañas y lógica del reproductor al instante sin reinstalar la app.',
+        apkSection: '2. Actualizaciones del Contenedor (APK)',
+        apkSectionDesc: 'Actualizan el código del sistema nativo, los permisos de hardware (como el micrófono de Vocalex) y la configuración interna de la app. Requieren reinstalación manual.',
+        apkUpToDate: 'Tu contenedor nativo (APK) está al día',
+        downloadApk: 'Descargar e Instalar APK',
+        downloadApkDesc: 'Se requiere una actualización del contenedor (APK) para aplicar cambios del sistema y corregir la ventana de permisos de micrófono.',
+        reinstallApk: 'Reinstalar APK actual (Diagnóstico)',
       }
     : {
         version: 'Version',
-        installed: 'Installed',
-        latest: 'Latest',
+        installed: 'Running Interface (OTA)',
+        apkShell: 'System Wrapper (APK)',
+        latest: 'Latest Remote Version',
         status: 'Status',
         checking: 'Checking for updates…',
         updateAvailable: (v: string) => `Update available — ${v}`,
-        upToDate: "You're up to date",
+        upToDate: "Your interface is up to date",
         download: (v: string) => `Download ${v}`,
         controls: 'Controls',
         notifTitle: 'Update notifications',
@@ -1047,9 +1055,15 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         howItWorks: 'How it works',
         howItWorksBody: 'OTA updates download in the background and apply on the next launch — no reinstall needed.',
         title: 'Updater',
-        apkShell: 'APK Wrapper',
-        downloadApk: 'Install APK Update',
-        downloadApkDesc: 'Native APK upgrade is required to apply system permission fixes.',
+        
+        otaSection: '1. Interface Updates (OTA)',
+        otaSectionDesc: 'These update UI components, layouts, styling, and player logic instantly in the background without needing to reinstall the app.',
+        apkSection: '2. System Wrapper Updates (APK)',
+        apkSectionDesc: 'These modify low-level Android configurations, device permissions (like Vocalex microphone access), and core application wrapper performance. Requires manual installation.',
+        apkUpToDate: 'Your native wrapper (APK) is up to date',
+        downloadApk: 'Download & Install APK Update',
+        downloadApkDesc: 'A native wrapper upgrade (APK) is required to apply low-level permission and system fixes.',
+        reinstallApk: 'Reinstall current APK (Troubleshoot)',
       };
 
   const handleDownloadAndUpdate = async () => {
@@ -1134,28 +1148,23 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
       <style>{HUB_SETTINGS_CSS}</style>
       <SettingsSubHeader title={L.title} onBack={onBack} />
 
-      <SettingsSectionLabel>{L.version}</SettingsSectionLabel>
+      {/* ── SECTION 1: INTERFACE UPDATES (OTA) ──────────────────────── */}
+      <SettingsSectionLabel>{L.otaSection}</SettingsSectionLabel>
+      <p style={{ margin: '4px 6px 12px', fontSize: 11.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
+        {L.otaSectionDesc}
+      </p>
+
       <div style={cardStyle}>
         <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.installed}</span>
           <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{APP_VERSION_LABEL}</span>
         </div>
-        {isNative() && nativeVersion && (
-          <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.apkShell}</span>
-            <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{nativeVersion}</span>
-          </div>
-        )}
-        <div style={{ padding: '15px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.latest}</span>
           <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>
             {ota.loading ? '—' : (ota.remoteVersion ?? '—')}
           </span>
         </div>
-      </div>
-
-      <SettingsSectionLabel delay={50}>{L.status}</SettingsSectionLabel>
-      <div style={cardStyle}>
         <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
           {ota.loading
             ? <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0, animation: 'hub-spin 1s linear infinite' }}>refresh</span>
@@ -1200,31 +1209,79 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
             {errMsg}
           </p>
         )}
-        {isNative() && nativeVersion && compareSemver(ota.remoteVersion ?? APP_VERSION, nativeVersion) > 0 && (
-          <div style={{ padding: '16px 18px', borderTop: '1px solid rgba(128,128,128,0.07)', background: 'rgba(245, 158, 11, 0.06)' }}>
-            <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 12.5, margin: '0 0 10px', lineHeight: 1.4 }}>
-              {L.downloadApkDesc}
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                const targetVer = ota.remoteVersion ?? APP_VERSION;
-                window.open(`https://github.com/MAGEXE1000/Studio/releases/download/v${targetVer}/studio-debug.apk`, '_system');
-              }}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                width: '100%', padding: '13px', borderRadius: 12,
-                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
-                fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
-                border: 'none', cursor: 'pointer', boxShadow: `0 4px 16px ${accent.to}44`
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>download_for_offline</span>
-              {L.downloadApk}
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* ── SECTION 2: SYSTEM CONTAINER UPDATES (APK) ────────────────── */}
+      {isNative() && nativeVersion && (
+        <>
+          <SettingsSectionLabel delay={60}>{L.apkSection}</SettingsSectionLabel>
+          <p style={{ margin: '4px 6px 12px', fontSize: 11.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
+            {L.apkSectionDesc}
+          </p>
+
+          <div style={cardStyle}>
+            <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.apkShell}</span>
+              <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{nativeVersion}</span>
+            </div>
+            <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.latest}</span>
+              <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>
+                {ota.loading ? '—' : (ota.remoteVersion ?? '—')}
+              </span>
+            </div>
+
+            {compareSemver(ota.remoteVersion ?? APP_VERSION, nativeVersion) > 0 ? (
+              <div style={{ padding: '16px 18px', background: 'rgba(245, 158, 11, 0.06)' }}>
+                <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 12.5, margin: '0 0 10px', lineHeight: 1.4 }}>
+                  {L.downloadApkDesc}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetVer = ota.remoteVersion ?? APP_VERSION;
+                    window.open(`https://github.com/MAGEXE1000/Studio/releases/download/v${targetVer}/studio-debug.apk`, '_system');
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    width: '100%', padding: '13px', borderRadius: 12,
+                    background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
+                    border: 'none', cursor: 'pointer', boxShadow: `0 4px 16px ${accent.to}44`
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>download_for_offline</span>
+                  {L.downloadApk}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
+                  <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#4ade80', flexShrink: 0, boxShadow: '0 0 8px #4ade8088' }} />
+                  <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)', flex: 1 }}>{L.apkUpToDate}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetVer = ota.remoteVersion ?? APP_VERSION;
+                    window.open(`https://github.com/MAGEXE1000/Studio/releases/download/v${targetVer}/studio-debug.apk`, '_system');
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    width: '100%', padding: '14px 18px', border: 'none', background: 'transparent',
+                    color: accent.from,
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download_for_offline</span>
+                  {L.reinstallApk}
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       <SettingsSectionLabel delay={80}>{L.controls}</SettingsSectionLabel>
       <div style={cardStyle}>
