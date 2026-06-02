@@ -14,7 +14,7 @@ import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
-import { resolveApkUrl, downloadAndInstallApk } from '../lib/apkDownloader';
+import { resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl } from '../lib/apkDownloader';
 import StudioUpdateScreen from './StudioUpdateScreen';
 import StudioTitleReveal from './StudioTitleReveal';
 import { EncryptedText } from './ui/encrypted-text';
@@ -1150,7 +1150,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
           : 'Failed to download APK. Opening the release page in your browser...'
       );
 
-      const fallbackUrl = `https://github.com/MAGEXE1000/Studio/releases/tag/v${targetVer || ota.remoteVersion || APP_VERSION}`;
+      const fallbackUrl = await resolveReleasePageUrl(targetVer);
       window.open(fallbackUrl, '_system');
     }
   };

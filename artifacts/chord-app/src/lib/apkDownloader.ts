@@ -75,6 +75,55 @@ export async function resolveApkUrl(targetVersion?: string): Promise<string> {
 }
 
 /**
+ * Resolves the release page URL that contains a compiled APK.
+ */
+export async function resolveReleasePageUrl(targetVersion?: string): Promise<string> {
+  const fallbackVersion = targetVersion || '3.1.86';
+  const defaultFallback = `https://github.com/MAGEXE1000/Studio/releases/tag/v${fallbackVersion}`;
+  
+  try {
+    const res = await fetch('https://api.github.com/repos/MAGEXE1000/Studio/releases');
+    if (!res.ok) return defaultFallback;
+    
+    const releases = (await res.json()) as GitHubRelease[];
+    if (!Array.isArray(releases) || releases.length === 0) return defaultFallback;
+    
+    const cleanVer = targetVersion?.replace(/^[vV]/, '').trim();
+    
+    // Step 1: Search for specific targetVersion containing APK
+    if (cleanVer) {
+      const specificRelease = releases.find(
+        r => r.tag_name.replace(/^[vV]/, '').trim() === cleanVer
+      );
+      if (specificRelease && specificRelease.assets) {
+        const hasApk = specificRelease.assets.some(
+          a => a.name === 'studio-debug.apk' || a.name === 'app-debug.apk'
+        );
+        if (hasApk) {
+          return `https://github.com/MAGEXE1000/Studio/releases/tag/${specificRelease.tag_name}`;
+        }
+      }
+    }
+    
+    // Step 2: Search for the latest release containing compiled APK
+    for (const release of releases) {
+      if (release.assets) {
+        const hasApk = release.assets.some(
+          a => a.name === 'studio-debug.apk' || a.name === 'app-debug.apk'
+        );
+        if (hasApk) {
+          return `https://github.com/MAGEXE1000/Studio/releases/tag/${release.tag_name}`;
+        }
+      }
+    }
+    
+    return defaultFallback;
+  } catch {
+    return defaultFallback;
+  }
+}
+
+/**
  * Downloads the APK from the specified URL and launches the native package installer.
  */
 export async function downloadAndInstallApk(
