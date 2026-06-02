@@ -16,6 +16,7 @@ permissions:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,7 +67,7 @@ jobs:
         env:
           OTA_BASE_URL: https://MAGEXE1000.github.io/Studio
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm --filter @workspace/chord-app run release:gh-pages
+        run: pnpm --filter @workspace/chord-app run release:gh-pages --no-bump
 
       - name: Read built version
         id: version

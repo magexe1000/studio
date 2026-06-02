@@ -55,8 +55,11 @@ if (existsSync(appVersionPath)) {
     
     // Check if custom version is passed via command line (e.g., --version 3.0.79)
     const versionArgIndex = process.argv.indexOf('--version');
+    const noBump = process.argv.includes('--no-bump');
     let nextVersion = null;
-    if (versionArgIndex !== -1 && process.argv[versionArgIndex + 1]) {
+    if (noBump) {
+      nextVersion = currentVersion;
+    } else if (versionArgIndex !== -1 && process.argv[versionArgIndex + 1]) {
       nextVersion = process.argv[versionArgIndex + 1];
     } else {
       // Auto-increment the patch version (rolling over from 99 to minor version)
