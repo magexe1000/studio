@@ -53,19 +53,19 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "OTA Updates & Visual Polish",
+    heading: "Subscription & Security",
     items: [
-      'Startup Lag Fixed: Eliminated intro animation stuttering by offloading all motion calculations to GPU compositor layers.',
-      'Battery & Performance: Optimized rendering loops and cleaned up heavy CPU overhead to improve device battery life.',
-      'Dead Code Cleaned: Safely removed unused test, demo, and legacy animation components, slimming down the bundle size.',
-      'Drumex Audio Fix: Restored original high-quality Opus samples for the House drum kit on the web, fixing a 404 loading error.',
+      'UID-Based Access Control: Absolute administration bypass granted strictly via static Firebase UID lists.',
+      'Real-Time Profile Listeners: Installed a real-time onSnapshot listener synced with Google servers to prevent client manipulation.',
+      'Developer Details Card: Check your active UID, provider, dynamic badge, and copy your UID instantly with a success toast.',
+      'Interactive Pricing Tier: Choose between Free, Core, and Pro levels with dynamic billing tier highlighting and Coming Soon checkouts.',
     ],
   },
   {
-    heading: "Drumex Polish",
+    heading: "Visual Updates & FAQ",
     items: [
-      'Disable Keyboard Auto-open: Sequencer doesn\'t focus or auto-open keyboard when launching a new beat.',
-      'Default Kit Selection: House kit is selected by default for new beats.',
+      'FAQ Symbol Fix: Resolved the text-fallback bug where the Help & FAQ accordion icon rendered the raw word "HELP".',
+      'OTA & Bundle Stability: Fully compiled and tested production asset bundles to ensure fast OTA hot-swaps.',
     ],
   },
 ];
@@ -74,19 +74,19 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Actualizaciones y Diseñó",
+    heading: "Suscripción y Seguridad",
     items: [
-      'Sin Tirones en Inicio: Se eliminó el lag de la animación de entrada delegando todo el movimiento a capas de composición de la GPU.',
-      'Batería y Rendimiento: Se optimizaron los bucles de renderizado y redujo el uso de CPU para extender la duración de la batería.',
-      'Código Muerto Limpiado: Eliminación segura de componentes de prueba y animaciones obsoletas, reduciendo el tamaño del paquete.',
-      'Corrección de Audio en Drumex: Se restauraron las muestras Opus de alta calidad para el kit House, corrigiendo el error 404.',
+      'Control de Acceso UID: Omisión total de límites de facturación mediante listas estáticas de UID de Firebase.',
+      'Sincronización en Tiempo Real: Se agregó un oyente Firestore onSnapshot directo para evitar alteración local.',
+      'Detalles de Desarrollador: Visualiza tu UID activo, rol y proveedor con copiado rápido y toast de confirmación.',
+      'Tarifas Interactivas: Elige entre planes Gratis, Core y Pro con resaltado de plan activo y alertas interactivas.',
     ],
   },
   {
-    heading: "Mejoras en Drumex",
+    heading: "Diseño y FAQ",
     items: [
-      'Teclado Desactivado: El secuenciador ya no abre automáticamente el teclado al crear un nuevo ritmo.',
-      'Selección por Defecto: El kit de alta calidad \'House Kit\' está seleccionado por defecto.',
+      'Icono de FAQ Reparado: Se corrigió el error visual donde el icono de Ayuda y FAQ se dibujaba como la palabra "HELP".',
+      'Estabilidad OTA: Compilación y validación de bundle completa para asegurar actualizaciones en caliente rápidas.',
     ],
   },
 ];
@@ -94,19 +94,19 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "OTA-Updates & Design",
+    heading: "Abonnements & Sicherheit",
     items: [
-      'Start-Verzögerung Behoben: Intro-Ruckeln eliminiert, indem alle Berechnungen auf GPU-Kompositionsebenen verlagert wurden.',
-      'Akku & Leistung: Render-Schleifen optimiert und CPU-Overhead minimiert, um die Akkulaufzeit des Geräts zu verlängern.',
-      'Unbenutzter Code Entfernt: Nicht verwendete Test- und Animationskomponenten sicher gelöscht, um das Paket zu verkleinern.',
-      'Drumex Audio-Fix: Die originalen, hochwertigen Opus-Samples für das House-Kit wurden im Web wiederhergestellt.',
+      'UID-Zugriffskontrolle: Vollständiger Administrator-Bypass basierend auf statischen Firebase-UID-Listen.',
+      'Echtzeit-Profil-Listener: Firestore onSnapshot-Verbindung zur direkten Validierung der Benutzerberechtigungen.',
+      'Entwickler-Details: UID, E-Mail-Adresse und Berechtigungsrolle einsehen sowie UID direkt per Fingertipp kopieren.',
+      'Interaktive Tarife: Wahlweise Free, Core und Pro Pläne mit Live-Highlighting und Benachrichtigung bei Upgrades.',
     ],
   },
   {
-    heading: "Drumex-Politur",
+    heading: "FAQ & Design-Korrekturen",
     items: [
-      'Disable Keyboard Auto-open: Die Tastatur wird beim Erstellen eines neuen Beats nicht mehr automatisch geöffnet.',
-      'Standard-Kit: Das hochwertige \'House Kit\' ist nun standardmäßig ausgewählt.',
+      'FAQ-Symbol Behoben: Render-Bug gelöst, bei dem das Akkordeon-Symbol fälschlicherweise als Text "HELP" gezeichnet wurde.',
+      'OTA-Verbindung: Vollständige Validierung und schnelle, fehlerfreie Updates für alle Hot-Swaps.',
     ],
   },
 ];
