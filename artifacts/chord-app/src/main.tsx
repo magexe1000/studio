@@ -62,24 +62,13 @@ createRoot(document.getElementById("root")!).render(
   </TolgeeProvider>,
 );
 
-// Register sw-push.js for background push updates while cleaning up legacy SW instances.
+// Clean up all service workers (legacy and push update SWs) since push notifications are removed.
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  // Register push notifications service worker
-  navigator.serviceWorker.register('/sw-push.js', { scope: '/' })
-    .then((reg) => {
-      console.log('[sw] Push Service Worker registered successfully:', reg);
-    })
-    .catch((err) => {
-      console.warn('[sw] Push Service Worker registration failed:', err);
-    });
-
-  // Clean up legacy service workers that are NOT sw-push.js
   navigator.serviceWorker.getRegistrations().then((regs) => {
     regs.forEach((reg) => {
-      const url = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || '';
-      if (url && !url.includes('sw-push.js')) {
-        void reg.unregister();
-      }
+      void reg.unregister();
     });
-  }).catch(() => { /* ignore */ });
+  }).catch((err) => {
+    console.warn('[sw] Failed to clean up service workers:', err);
+  });
 }

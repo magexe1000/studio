@@ -11,9 +11,6 @@ import StudioThemeToggler from './StudioThemeToggler';
 import ApplyToSheet from './ApplyToSheet';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
-import {
-  flushCachedPushSubscription,
-} from '../lib/pushNotifications';
 import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
@@ -223,9 +220,6 @@ export default function StudioHub() {
         isFirstAuthRun.current = false;
         lastUserRef.current = user;
         setAuthUser(user);
-        if (user) {
-          void flushCachedPushSubscription();
-        }
         return;
       }
 
@@ -239,9 +233,6 @@ export default function StudioHub() {
             setSuccessAnimationState('hidden');
           }, 450); // wait for exit animation to complete
         }, 1800); // linger success check for 1.8 seconds
-        
-        // Flush cached push subscriptions once authenticated
-        void flushCachedPushSubscription();
       }
       lastUserRef.current = user;
       setAuthUser(user);
