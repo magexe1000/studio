@@ -1,9 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut
+        android:shortcutId="chordex"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_chordex"
+        android:shortcutShortLabel="@string/shortcut_chordex_short"
+        android:shortcutLongLabel="@string/shortcut_chordex_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.chordex.app"
+            android:targetClass="com.chordex.app.MainActivity"
+            android:data="https://localhost/?app=chords" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="drumex"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_drumex"
+        android:shortcutShortLabel="@string/shortcut_drumex_short"
+        android:shortcutLongLabel="@string/shortcut_drumex_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.chordex.app"
+            android:targetClass="com.chordex.app.MainActivity"
+            android:data="https://localhost/?app=drums" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="stagex"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_stagex"
+        android:shortcutShortLabel="@string/shortcut_stagex_short"
+        android:shortcutLongLabel="@string/shortcut_stagex_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.chordex.app"
+            android:targetClass="com.chordex.app.MainActivity"
+            android:data="https://localhost/?app=stage" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="groovex"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_groovex"
+        android:shortcutShortLabel="@string/shortcut_groovex_short"
+        android:shortcutLongLabel="@string/shortcut_groovex_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.chordex.app"
+            android:targetClass="com.chordex.app.MainActivity"
+            android:data="https://localhost/?app=groovex" />
+    </shortcut>
+    <shortcut
         android:shortcutId="vocalex"
         android:enabled="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_shortcut_vocalex"
         android:shortcutShortLabel="@string/shortcut_vocalex_short"
         android:shortcutLongLabel="@string/shortcut_vocalex_long">
         <intent
@@ -11,17 +59,5 @@
             android:targetPackage="com.chordex.app"
             android:targetClass="com.chordex.app.MainActivity"
             android:data="https://localhost/?app=vocalex" />
-    </shortcut>
-    <shortcut
-        android:shortcutId="updater"
-        android:enabled="true"
-        android:icon="@mipmap/ic_launcher"
-        android:shortcutShortLabel="@string/shortcut_updater_short"
-        android:shortcutLongLabel="@string/shortcut_updater_long">
-        <intent
-            android:action="android.intent.action.VIEW"
-            android:targetPackage="com.chordex.app"
-            android:targetClass="com.chordex.app.MainActivity"
-            android:data="https://localhost/?page=updater" />
     </shortcut>
 </shortcuts>

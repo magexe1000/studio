@@ -4,8 +4,14 @@
     <string name="title_activity_main">Studio</string>
     <string name="package_name">com.chordex.app</string>
     <string name="custom_url_scheme">com.chordex.app</string>
+    <string name="shortcut_chordex_short">Chordex</string>
+    <string name="shortcut_chordex_long">Chordex Library</string>
+    <string name="shortcut_drumex_short">Drumex</string>
+    <string name="shortcut_drumex_long">Drumex Machine</string>
+    <string name="shortcut_stagex_short">Stagex</string>
+    <string name="shortcut_stagex_long">Stagex Player</string>
+    <string name="shortcut_groovex_short">Groovex</string>
+    <string name="shortcut_groovex_long">Groovex Loops</string>
     <string name="shortcut_vocalex_short">Vocalex</string>
     <string name="shortcut_vocalex_long">Vocalex Practice</string>
-    <string name="shortcut_updater_short">Updates</string>
-    <string name="shortcut_updater_long">Check Updates</string>
 </resources>

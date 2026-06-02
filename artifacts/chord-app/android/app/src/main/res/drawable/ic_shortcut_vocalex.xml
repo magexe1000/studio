@@ -1,0 +1,41 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Background Circle -->
+    <path
+        android:fillColor="#EC4899"
+        android:pathData="M 12,2 C 17.52,2 22,6.48 22,12 C 22,17.52 17.52,22 12,22 C 6.48,22 2,17.52 2,12 C 2,6.48 6.48,2 12,2 Z" />
+    
+    <!-- Microphone Logo -->
+    <group
+        android:translateX="6"
+        android:translateY="6"
+        android:scaleX="0.75"
+        android:scaleY="0.75">
+        <!-- Mic Capsule -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.4"
+            android:pathData="M 7.2,2 H 8.8 A 1.5,1.5 0 0 1 10.3,3.5 V 8.5 A 1.5,1.5 0 0 1 8.8,10 H 7.2 A 1.5,1.5 0 0 1 5.7,8.5 V 3.5 A 1.5,1.5 0 0 1 7.2,2 Z" />
+        <!-- Cradle Arc -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.3"
+            android:strokeLinecap="round"
+            android:pathData="M 4,8.5 C 4,11.26 5.79,13 8,13 C 10.21,13 12,11.26 12,8.5" />
+        <!-- Stand -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.3"
+            android:strokeLinecap="round"
+            android:pathData="M 8,13 L 8,14" />
+        <!-- Base -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.3"
+            android:strokeLinecap="round"
+            android:pathData="M 6,14 L 10,14" />
+    </group>
+</vector>

@@ -1,0 +1,44 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Background Circle -->
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M 12,2 C 17.52,2 22,6.48 22,12 C 22,17.52 17.52,22 12,22 C 6.48,22 2,17.52 2,12 C 2,6.48 6.48,2 12,2 Z" />
+    
+    <!-- Logo Icon -->
+    <group
+        android:translateX="7.45"
+        android:translateY="6.05"
+        android:scaleX="0.7"
+        android:scaleY="0.7">
+        <!-- Nut -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M 0.5,0.5 H 12.5 C 13.05,0.5 13.5,0.95 13.5,1.5 V 1.5 C 13.5,2.05 13.05,2.5 12.5,2.5 H 0.5 C -0.05,2.5 -0.5,2.05 -0.5,1.5 V 1.5 C -0.5,0.95 -0.05,0.5 0.5,0.5 Z" />
+        <!-- Strings -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="0.9"
+            android:strokeAlpha="0.6"
+            android:pathData="M 2.5,3 L 2.5,16.5 M 6.5,3 L 6.5,16.5 M 10.5,3 L 10.5,16.5" />
+        <!-- Fret lines -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="0.7"
+            android:strokeAlpha="0.4"
+            android:pathData="M 0.5,8 L 12.5,8 M 0.5,13 L 12.5,13" />
+        <!-- Chord dots -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M 2.5,5.5 m -2.1,0 a 2.1,2.1 0 1,1 4.2,0 a 2.1,2.1 0 1,1 -4.2,0" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M 10.5,5.5 m -2.1,0 a 2.1,2.1 0 1,1 4.2,0 a 2.1,2.1 0 1,1 -4.2,0" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M 6.5,10.5 m -2.1,0 a 2.1,2.1 0 1,1 4.2,0 a 2.1,2.1 0 1,1 -4.2,0" />
+    </group>
+</vector>
