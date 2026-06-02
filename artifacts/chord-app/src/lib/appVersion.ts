@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.1.86';
+export const APP_VERSION = '3.1.87';
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-02'; // 3.1.86
+export const APP_VERSION_DATE = '2026-06-02'; // 3.1.87
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -62,6 +62,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
     heading: "Direct APK Upgrades",
     items: [
       'In-App Direct Downloader: Added a clean warning card and button to download and install native APK updates directly from your settings panel when running an outdated shell.',
+      'In-App Package Installer: Downloads system updates and launches the Android package installer directly inside the app, resolving 404 download errors by dynamically querying GitHub Release assets.',
       'Split Updater Layout: Segregated Over-the-Air (OTA) interface updates and App System Wrapper (APK) updates into explicit sections with clear descriptions detailing their differences.',
       'Download Progress Feedback: Added immediate visual timer feedback (1% to 15%) during downloader network handshakes to prevent the page from appearing stuck at 0%.',
     ],
@@ -81,6 +82,7 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
     heading: "Actualizaciones Directas de APK",
     items: [
       'Instalador Directo en la App: Se agregó una sección con advertencia y botón para descargar e instalar actualizaciones de APK nativas directamente desde el panel de ajustes.',
+      'Instalador de Paquetes en la App: Descarga actualizaciones de sistema e inicia el instalador de Android directamente en la app, resolviendo errores 404 mediante consulta dinámica de GitHub.',
       'Diseño de Actualizador Dividido: Se separaron las actualizaciones OTA de interfaz y las actualizaciones de APK de sistema en secciones explícitas con descripciones detalladas.',
       'Progreso Inmediato de Descarga: Se implementó un indicador de progreso de carga inicial (1% a 15%) para evitar la apariencia de pantalla congelada en 0% durante la conexión.',
     ],
