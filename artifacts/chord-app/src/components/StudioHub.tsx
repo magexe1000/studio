@@ -1038,12 +1038,28 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
     const canCapgoUpdate = isNative() && !!ota.downloadUrl && ota.remoteVersion !== null;
     if (canCapgoUpdate) {
       setDownloading(true);
-      setProgress(0);
+      setProgress(0.01);
+      
+      // Fake progress timer to count up slowly to 15% over 2.5s while connection starts
+      let fakeProgress = 0.01;
+      const fakeTimer = setInterval(() => {
+        if (fakeProgress < 0.15) {
+          fakeProgress += 0.01;
+          setProgress((prev) => Math.max(prev, fakeProgress));
+        } else {
+          clearInterval(fakeTimer);
+        }
+      }, 150);
+
       const res = await applyUpdate({
         url: ota.downloadUrl!,
         version: ota.remoteVersion!,
-        onProgress: (p) => setProgress((prev) => Math.max(prev, p)),
+        onProgress: (p) => {
+          clearInterval(fakeTimer); // once real progress starts, clear the fake timer
+          setProgress((prev) => Math.max(prev, p));
+        },
       });
+      clearInterval(fakeTimer);
       setDownloading(false);
       if (!res.ok) {
         setErrMsg(res.error ?? 'Update failed');
