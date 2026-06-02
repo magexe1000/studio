@@ -178,6 +178,10 @@
       /* Orbiter — pure color icon, no pill */
       .orbiter {
         position: absolute;
+        top: 50%;
+        left: 50%;
+        margin-left: -22px;
+        margin-top: -22px;
         width: 44px; height: 44px;
         display: flex; align-items: center; justify-content: center;
         will-change: transform, opacity;
@@ -340,8 +344,8 @@
 
         // Default fallback targets (relative to viewport center) if measurement fails
         function fallbackTargets() {
-          var W = window.innerWidth;
-          var H = window.innerHeight;
+          var W = Math.max(window.innerWidth || 360, 320);
+          var H = Math.max(window.innerHeight || 640, 480);
           var x = -(W / 2) + 64;
           var y0 = -(H / 2) + 240;
           var gap = Math.min(76, (H * 0.5) / (N + 1));
@@ -356,10 +360,11 @@
         }
 
         // Measure actual hub icon positions from data-intro-target elements.
-        // Returns null if not all targets are present.
+        // Returns null if not all targets are present or layout size is invalid.
         function measureTargets() {
           var W = window.innerWidth;
           var H = window.innerHeight;
+          if (!W || !H || W < 100 || H < 100) return null;
           var cxV = W / 2, cyV = H / 2;
           var centerEl = document.querySelector('[data-intro-target="studio"]');
           if (!centerEl) return null;
@@ -407,18 +412,6 @@
           return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
         }
         function easeInQuad(t) { return t * t; }
-
-        // Anchor orbiters at viewport center; transform handles motion
-        function anchor() {
-          var W = window.innerWidth, H = window.innerHeight;
-          for (var i = 0; i < orbiters.length; i++) {
-            orbiters[i].el.style.left = (W / 2 - 22) + 'px';
-            orbiters[i].el.style.top  = (H / 2 - 22) + 'px';
-          }
-        }
-        anchor();
-        window.addEventListener('resize', anchor);
-        window.addEventListener('orientationchange', anchor);
 
         var start  = performance.now();
         var angle  = 0;
