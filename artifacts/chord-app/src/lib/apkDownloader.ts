@@ -33,8 +33,8 @@ export interface GitHubRelease {
  * 4. Falls back to a hardcoded URL on failure.
  */
 export async function resolveApkUrl(targetVersion?: string): Promise<string> {
-  const fallbackVersion = targetVersion || '3.1.86';
-  const fallbackUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${fallbackVersion}/Studio_${fallbackVersion}.apk`;
+  const fallbackVersion = targetVersion || '3.1.95';
+  const fallbackUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${fallbackVersion}/Studio%20${fallbackVersion}.apk`;
   
   try {
     const res = await fetch('https://api.github.com/repos/MAGEXE1000/Studio/releases');
@@ -85,7 +85,7 @@ export async function resolveApkUrl(targetVersion?: string): Promise<string> {
  * Resolves the release page URL that contains a compiled APK.
  */
 export async function resolveReleasePageUrl(targetVersion?: string): Promise<string> {
-  const fallbackVersion = targetVersion || '3.1.86';
+  const fallbackVersion = targetVersion || '3.1.95';
   const defaultFallback = `https://github.com/MAGEXE1000/Studio/releases/tag/v${fallbackVersion}`;
   
   try {
