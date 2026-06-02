@@ -34,7 +34,7 @@ export interface GitHubRelease {
  */
 export async function resolveApkUrl(targetVersion?: string): Promise<string> {
   const fallbackVersion = targetVersion || '3.1.86';
-  const fallbackUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${fallbackVersion}/studio-debug.apk`;
+  const fallbackUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${fallbackVersion}/Studio_${fallbackVersion}.apk`;
   
   try {
     const res = await fetch('https://api.github.com/repos/MAGEXE1000/Studio/releases');
@@ -52,7 +52,7 @@ export async function resolveApkUrl(targetVersion?: string): Promise<string> {
       );
       if (specificRelease && specificRelease.assets) {
         const apkAsset = specificRelease.assets.find(
-          a => a.name === 'studio-debug.apk' || a.name === 'app-debug.apk'
+          a => a.name.toLowerCase().endsWith('.apk')
         );
         if (apkAsset) {
           console.log(`[apkDownloader] Found APK for specific version ${cleanVer}: ${apkAsset.browser_download_url}`);
@@ -65,7 +65,7 @@ export async function resolveApkUrl(targetVersion?: string): Promise<string> {
     for (const release of releases) {
       if (release.assets) {
         const apkAsset = release.assets.find(
-          a => a.name === 'studio-debug.apk' || a.name === 'app-debug.apk'
+          a => a.name.toLowerCase().endsWith('.apk')
         );
         if (apkAsset) {
           console.log(`[apkDownloader] Found latest available APK from release ${release.tag_name}: ${apkAsset.browser_download_url}`);
@@ -104,7 +104,7 @@ export async function resolveReleasePageUrl(targetVersion?: string): Promise<str
       );
       if (specificRelease && specificRelease.assets) {
         const hasApk = specificRelease.assets.some(
-          a => a.name === 'studio-debug.apk' || a.name === 'app-debug.apk'
+          a => a.name.toLowerCase().endsWith('.apk')
         );
         if (hasApk) {
           return `https://github.com/MAGEXE1000/Studio/releases/tag/${specificRelease.tag_name}`;
@@ -116,7 +116,7 @@ export async function resolveReleasePageUrl(targetVersion?: string): Promise<str
     for (const release of releases) {
       if (release.assets) {
         const hasApk = release.assets.some(
-          a => a.name === 'studio-debug.apk' || a.name === 'app-debug.apk'
+          a => a.name.toLowerCase().endsWith('.apk')
         );
         if (hasApk) {
           return `https://github.com/MAGEXE1000/Studio/releases/tag/${release.tag_name}`;

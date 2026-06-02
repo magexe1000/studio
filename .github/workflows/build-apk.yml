@@ -64,9 +64,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="v${{ steps.version.outputs.version }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="v$VERSION"
           if ! gh release view "$TAG" > /dev/null 2>&1; then
             gh release create "$TAG" --title "$TAG" --notes "Release $TAG"
           fi
-          cp artifacts/chord-app/android/app/build/outputs/apk/debug/app-debug.apk ./studio-debug.apk
-          gh release upload "$TAG" ./studio-debug.apk --clobber
+          FILE_NAME="Studio_$VERSION.apk"
+          cp artifacts/chord-app/android/app/build/outputs/apk/debug/app-debug.apk "./$FILE_NAME"
+          gh release upload "$TAG" "./$FILE_NAME" --clobber
