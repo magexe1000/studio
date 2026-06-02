@@ -3,6 +3,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 
 export interface AppInstallerPlugin {
   installApk(options: { filePath: string }): Promise<void>;
+  downloadAndInstallApk(options: { url: string }): Promise<void>;
   checkPermissions(): Promise<any>;
   requestPermissions(options?: { aliases?: string[] }): Promise<any>;
   getSharedFile(): Promise<{ none?: boolean; type?: 'json' | 'audio'; data?: string; fileName?: string }>;
@@ -136,60 +137,32 @@ export async function downloadAndInstallApk(
   url: string,
   onProgress?: (progress: number) => void
 ): Promise<void> {
-  const fileName = 'studio-debug.apk';
   let progressListener: any = null;
   
   try {
-    // Register the download progress listener if a callback is provided
     if (onProgress) {
       try {
-        progressListener = await Filesystem.addListener('progress', (status: any) => {
-          if (status && typeof status.bytes === 'number') {
-            const total = status.contentLength || 89299955; // fallback to ~89MB if chunked/not set
-            const percent = Math.min(99, Math.round((status.bytes / total) * 100));
-            onProgress(percent);
+        progressListener = await (AppInstaller as any).addListener('apkDownloadProgress', (status: any) => {
+          if (status && typeof status.progress === 'number') {
+            onProgress(status.progress);
           }
         });
       } catch (err) {
-        console.warn('[apkDownloader] Failed to add progress listener:', err);
+        console.warn('[apkDownloader] Failed to add native progress listener:', err);
       }
     }
     
-    console.log(`[apkDownloader] Starting download from ${url}`);
-    
-    // Download the file directly in native code
-    const downloadResult = await Filesystem.downloadFile({
-      url,
-      path: fileName,
-      directory: Directory.Cache,
-      progress: true
-    });
+    console.log(`[apkDownloader] Invoking native downloadAndInstallApk for ${url}`);
+    await AppInstaller.downloadAndInstallApk({ url });
     
     if (progressListener) {
       await progressListener.remove();
-      progressListener = null;
     }
-    
-    if (onProgress) {
-      onProgress(100);
-    }
-    
-    // Get the absolute path to the downloaded file
-    const localPath = downloadResult.path;
-    if (!localPath) {
-      throw new Error('Download succeeded but local path is empty');
-    }
-    
-    console.log(`[apkDownloader] Download completed to ${localPath}, invoking native installer`);
-    
-    // Trigger native installation
-    await AppInstaller.installApk({ filePath: localPath });
-    
   } catch (err) {
     if (progressListener) {
       await progressListener.remove();
     }
-    console.error('[apkDownloader] Installation failed:', err);
+    console.error('[apkDownloader] Native installation failed:', err);
     throw err;
   }
 }

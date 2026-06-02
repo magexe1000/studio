@@ -974,12 +974,13 @@ function GlobalHint() {
   );
 }
 
-function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
+function HubUpdaterPage({ className, style, cardStyle, accent, onBack, nativeVersion }: {
   className?: string;
   style: React.CSSProperties;
   cardStyle: React.CSSProperties;
   accent: { from: string; to: string; mid: string };
   onBack: () => void;
+  nativeVersion: string | null;
 }) {
   const ota = useOtaUpdate();
   const { settings, updateSettings } = useChordStore();
@@ -988,20 +989,6 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [errMsg, setErrMsg] = useState<string | null>(null);
-  const [nativeVersion, setNativeVersion] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isNative()) {
-      import('@capacitor/app')
-        .then(({ App }) => App.getInfo())
-        .then((info) => {
-          setNativeVersion(info.version);
-        })
-        .catch((err) => {
-          console.warn('[Updater] Failed to get native app info:', err);
-        });
-    }
-  }, []);
 
   const L = lang === 'es'
     ? {
@@ -1409,6 +1396,20 @@ function HubSettings({
 
   const hubVis: PerAppVisuals = settings.perApp?.hub ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const [nativeVersion, setNativeVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isNative()) {
+      import('@capacitor/app')
+        .then(({ App }) => App.getInfo())
+        .then((info) => {
+          setNativeVersion(info.version);
+        })
+        .catch((err) => {
+          console.warn('[Updater] Failed to get native app info in Settings:', err);
+        });
+    }
+  }, []);
 
   function requestChange(patch: Partial<PerAppVisuals>) {
     const ALL_APPS: AppKey[] = ['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex'];
@@ -1794,6 +1795,7 @@ function HubSettings({
         cardStyle={cardStyle}
         accent={accent}
         onBack={goBack}
+        nativeVersion={nativeVersion}
       />
     );
   }
@@ -1820,7 +1822,14 @@ function HubSettings({
           <StudioFamilyOrbit items={subAppLogos} />
           <div style={{ textAlign: 'center', padding: '0 0 22px' }}>
             <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 26, letterSpacing: '-0.03em', color: 'var(--c-text-primary)', lineHeight: 1.1 }}>Studio</p>
-            <p style={{ margin: '6px 0 0', fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', letterSpacing: '0.04em' }}>{APP_VERSION_LABEL}</p>
+            <p style={{ margin: '6px 0 0', fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', letterSpacing: '0.04em' }}>
+              {t.settings.about.version} {APP_VERSION_LABEL}
+            </p>
+            {isNative() && nativeVersion && (
+              <p style={{ margin: '4px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-muted)', letterSpacing: '0.04em' }}>
+                {lang === 'es' ? 'Contenedor Base (APK)' : 'APK Shell (Native)'}: {nativeVersion}
+              </p>
+            )}
           </div>
         </div>
 

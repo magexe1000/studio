@@ -132,10 +132,13 @@ public class AppInstallerPlugin extends Plugin {
         }
 
         try {
-            Context context = getContext();
             File file;
             if (path.startsWith("file://")) {
-                file = new File(new URI(path));
+                try {
+                    file = new File(new URI(path));
+                } catch (Exception e) {
+                    file = new File(path.substring(7));
+                }
             } else {
                 file = new File(path);
             }
@@ -145,6 +148,93 @@ public class AppInstallerPlugin extends Plugin {
                 return;
             }
 
+            triggerInstallation(file, call);
+        } catch (Exception e) {
+            call.reject("Failed to install APK: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void downloadAndInstallApk(PluginCall call) {
+        String urlString = call.getString("url");
+        if (urlString == null) {
+            call.reject("url is required");
+            return;
+        }
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                java.io.InputStream input = null;
+                java.io.OutputStream output = null;
+                java.net.HttpURLConnection connection = null;
+                try {
+                    java.net.URL url = new java.net.URL(urlString);
+                    connection = (java.net.HttpURLConnection) url.openConnection();
+                    connection.setInstanceFollowRedirects(true);
+                    connection.connect();
+
+                    // Follow redirects manually if needed
+                    int status = connection.getResponseCode();
+                    if (status == java.net.HttpURLConnection.HTTP_MOVED_TEMP
+                            || status == java.net.HttpURLConnection.HTTP_MOVED_PERM
+                            || status == 307 || status == 308) {
+                        String newUrl = connection.getHeaderField("Location");
+                        connection = (java.net.HttpURLConnection) new java.net.URL(newUrl).openConnection();
+                        connection.connect();
+                    }
+
+                    int fileLength = connection.getContentLength();
+                    input = new java.io.BufferedInputStream(connection.getInputStream());
+                    
+                    File cacheDir = getContext().getCacheDir();
+                    File apkFile = new File(cacheDir, "update.apk");
+                    if (apkFile.exists()) {
+                        apkFile.delete();
+                    }
+                    
+                    output = new java.io.FileOutputStream(apkFile);
+
+                    byte[] data = new byte[4096];
+                    long total = 0;
+                    int count;
+                    int lastProgress = 0;
+                    
+                    while ((count = input.read(data)) != -1) {
+                        total += count;
+                        output.write(data, 0, count);
+                        
+                        if (fileLength > 0) {
+                            int progress = (int) (total * 100 / fileLength);
+                            if (progress > lastProgress) {
+                                lastProgress = progress;
+                                JSObject progressObj = new JSObject();
+                                progressObj.put("progress", progress);
+                                notifyListeners("apkDownloadProgress", progressObj);
+                            }
+                        }
+                    }
+
+                    output.flush();
+                    output.close();
+                    input.close();
+
+                    triggerInstallation(apkFile, call);
+
+                } catch (Exception e) {
+                    try {
+                        if (output != null) output.close();
+                        if (input != null) input.close();
+                    } catch (Exception ignored) {}
+                    call.reject("Download failed: " + e.getMessage(), e);
+                }
+            }
+        }).start();
+    }
+
+    private void triggerInstallation(File file, PluginCall call) {
+        try {
+            Context context = getContext();
             Intent intent = new Intent(Intent.ACTION_VIEW);
             Uri apkUri;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -160,7 +250,7 @@ public class AppInstallerPlugin extends Plugin {
             context.startActivity(intent);
             call.resolve();
         } catch (Exception e) {
-            call.reject("Failed to install APK: " + e.getMessage(), e);
+            call.reject("Failed to trigger installation: " + e.getMessage(), e);
         }
     }
 }
