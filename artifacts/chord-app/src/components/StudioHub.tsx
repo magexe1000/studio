@@ -306,10 +306,9 @@ export default function StudioHub() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
 
             {/* Logo area */}
-            <div style={{
+            <div className="spring-in" style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
               paddingTop: 'clamp(36px, 7vh, 56px)',
-              animation: 'hub-drop-in 500ms cubic-bezier(0.34,1.15,0.64,1) both',
             }}>
               <div data-intro-target="studio" style={{ color: isHubLight ? '#18181b' : 'white', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <StudioLogo size={56} />
@@ -325,7 +324,7 @@ export default function StudioHub() {
               wrapStyle={{
                 width: '100%', maxWidth: 380,
                 marginTop: 'clamp(28px, 6vh, 48px)',
-                animation: 'hub-rise-in 500ms 80ms cubic-bezier(0.34,1.15,0.64,1) both, gb-spin 14s linear infinite',
+                animation: 'spring-in 400ms 80ms cubic-bezier(0.34,1.56,0.64,1) both, gb-spin 14s linear infinite',
               }}
               innerStyle={{
                 overflow: 'hidden',
@@ -868,14 +867,14 @@ function SettingsNavRow({
 
 function SettingsSectionLabel({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
-    <p style={{
+    <p className="spring-in" style={{
       fontSize: 11, fontWeight: 700,
       color: 'var(--c-text-secondary)',
       letterSpacing: '0.18em',
       textTransform: 'uppercase',
       margin: '22px 0 8px 4px',
       fontFamily: 'Manrope',
-      animation: `hub-row-fade 380ms ease ${delay}ms both`,
+      animationDelay: `${delay}ms`,
     }}>{children}</p>
   );
 }
@@ -883,7 +882,7 @@ function SettingsSectionLabel({ children, delay = 0 }: { children: React.ReactNo
 function SettingsSubHeader({ title, onBack }: { title: string; onBack: () => void }) {
   const [pressed, setPressed] = useState(false);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 32, paddingBottom: 16, animation: 'hub-row-fade 300ms ease both' }}>
+    <div className="spring-in" style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 32, paddingBottom: 16 }}>
       <button
         onClick={onBack}
         onPointerDown={() => setPressed(true)}
@@ -912,7 +911,7 @@ function SettingsSubHeader({ title, onBack }: { title: string; onBack: () => voi
 function ProfileHeaderBack({ onBack }: { onBack: () => void }) {
   const [pressed, setPressed] = useState(false);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', padding: '0 20px', paddingTop: 32, paddingBottom: 16, animation: 'hub-row-fade 300ms ease both' }}>
+    <div className="spring-in" style={{ display: 'flex', alignItems: 'center', padding: '0 20px', paddingTop: 32, paddingBottom: 16 }}>
       <button
         onClick={onBack}
         onPointerDown={() => setPressed(true)}
@@ -1622,7 +1621,7 @@ function HubSettings({
       <style>{HUB_SETTINGS_CSS}</style>
 
       {/* Title */}
-      <div style={{ paddingTop: 32, paddingBottom: 8, animation: 'hub-row-fade 350ms ease both' }}>
+      <div className="spring-in" style={{ paddingTop: 32, paddingBottom: 8 }}>
         <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>{t.hub.settingsTitle}</p>
         <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>{t.hub.settingsSubtitle}</p>
       </div>

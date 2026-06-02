@@ -260,7 +260,7 @@ export default function VocalexApp() {
       '--panel-dur':      `${durMs}ms`,
       '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
     } as React.CSSProperties}>
-      <header className="flex-none px-6 pt-6 pb-1" style={{ display: 'flex', alignItems: 'center' }}>
+      <header className="flex-none px-6 pt-6 pb-1 spring-in" style={{ display: 'flex', alignItems: 'center' }}>
         <div style={{
           overflow: 'hidden',
           flexShrink: 0,

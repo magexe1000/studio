@@ -85,7 +85,7 @@ export default function DrumPrefsPanel() {
           paddingBottom: 'calc(max(16px, env(safe-area-inset-bottom)) + 90px)',
         }}
       >
-        <div style={{ marginTop: 12, marginBottom: 24 }}>
+        <div className="spring-in" style={{ marginTop: 12, marginBottom: 24 }}>
           <h2 style={{
             fontFamily: 'Manrope', fontWeight: 900, fontSize: '2.6rem',
             color: 'var(--c-text-primary)', letterSpacing: '-0.04em',

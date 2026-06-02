@@ -1,6 +1,6 @@
 {
-  "version": "3.1.52",
-  "changelog": "Version 3.1.52",
+  "version": "3.1.53",
+  "changelog": "• Bouncy Animations: Implemented premium spring-loaded entry animations across headers, titles, subtitles, and preferences sections of all apps.\n• Startup Animation Restored: Reverted the intro logo orbital animation to the original high-performance LERP engine.",
   "mandatory": false,
-  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.52/bundle-3.1.52.zip"
+  "downloadUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.1.53/bundle-3.1.53.zip"
 }

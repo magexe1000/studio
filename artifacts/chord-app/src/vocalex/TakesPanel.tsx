@@ -90,7 +90,7 @@ export default function TakesPanel() {
   }
 
   return (
-    <div style={{ padding: '24px 20px', minHeight: '100%' }}>
+    <div className="spring-in" style={{ padding: '24px 20px', minHeight: '100%' }}>
       <div style={{ marginBottom: 28 }}>
         <h2 style={{
           fontFamily: 'Manrope, sans-serif', fontWeight: 800,
@@ -445,7 +445,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
   const vizR = 100;
 
   return (
-    <div style={{
+    <div className="spring-in" style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', minHeight: '100%', padding: '24px 20px',
       gap: 24, position: 'relative',
@@ -746,7 +746,7 @@ function TakeDetailView({ take, onBack, onDelete, onSaveBounce }: {
   const totalTimeSec = take.durationMs / 1000;
 
   return (
-    <div style={{ padding: '16px 20px', minHeight: '100%' }}>
+    <div className="spring-in" style={{ padding: '16px 20px', minHeight: '100%' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <button

@@ -191,139 +191,12 @@
         filter: var(--intro-orb-shadow);
       }
 
-      /* GPU-Accelerated CSS Keyframe animations for orbiters */
-      .orbiter[data-orbiter-index="0"] { animation: orb-fade-in 800ms 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards, orbit-0 8500ms linear infinite; }
-      .orbiter[data-orbiter-index="1"] { animation: orb-fade-in 800ms 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards, orbit-1 8500ms linear infinite; }
-      .orbiter[data-orbiter-index="2"] { animation: orb-fade-in 800ms 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards, orbit-2 8500ms linear infinite; }
-      .orbiter[data-orbiter-index="3"] { animation: orb-fade-in 800ms 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards, orbit-3 8500ms linear infinite; }
-      .orbiter[data-orbiter-index="4"] { animation: orb-fade-in 800ms 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards, orbit-4 8500ms linear infinite; }
-
-      @keyframes orbit-0 {
-        0% { transform: translate3d(116.55px, -61.97px, 0) scale(1.100); z-index: 3; }
-        5% { transform: translate3d(116.36px, -48.57px, 0) scale(1.100); z-index: 3; }
-        10% { transform: translate3d(104.78px, -30.41px, 0) scale(1.100); z-index: 3; }
-        15% { transform: translate3d(82.94px, -9.28px, 0) scale(1.100); z-index: 3; }
-        20% { transform: translate3d(52.98px, 12.76px, 0) scale(1.100); z-index: 3; }
-        25% { transform: translate3d(17.84px, 33.55px, 0) scale(1.100); z-index: 3; }
-        30% { transform: translate3d(-19.05px, 51.06px, 0) scale(1.100); z-index: 3; }
-        35% { transform: translate3d(-54.07px, 63.57px, 0) scale(1.100); z-index: 3; }
-        40% { transform: translate3d(-83.80px, 69.86px, 0) scale(1.100); z-index: 3; }
-        45% { transform: translate3d(-105.33px, 69.31px, 0) scale(1.100); z-index: 3; }
-        50% { transform: translate3d(-116.55px, 61.97px, 0) scale(0.850); z-index: 0; }
-        55% { transform: translate3d(-116.36px, 48.57px, 0) scale(0.850); z-index: 0; }
-        60% { transform: translate3d(-104.78px, 30.41px, 0) scale(0.850); z-index: 0; }
-        65% { transform: translate3d(-82.94px, 9.28px, 0) scale(0.850); z-index: 0; }
-        70% { transform: translate3d(-52.98px, -12.76px, 0) scale(0.850); z-index: 0; }
-        75% { transform: translate3d(-17.84px, -33.55px, 0) scale(0.850); z-index: 0; }
-        80% { transform: translate3d(19.05px, -51.06px, 0) scale(0.850); z-index: 0; }
-        85% { transform: translate3d(54.07px, -63.57px, 0) scale(0.850); z-index: 0; }
-        90% { transform: translate3d(83.80px, -69.86px, 0) scale(0.850); z-index: 0; }
-        95% { transform: translate3d(105.33px, -69.31px, 0) scale(0.850); z-index: 0; }
-        100% { transform: translate3d(116.55px, -61.97px, 0) scale(1.100); z-index: 3; }
-      }
-
-      @keyframes orbit-1 {
-        0% { transform: translate3d(52.98px, 12.76px, 0) scale(1.100); z-index: 3; }
-        5% { transform: translate3d(17.84px, 33.55px, 0) scale(1.100); z-index: 3; }
-        10% { transform: translate3d(-19.05px, 51.06px, 0) scale(1.100); z-index: 3; }
-        15% { transform: translate3d(-54.07px, 63.57px, 0) scale(1.100); z-index: 3; }
-        20% { transform: translate3d(-83.80px, 69.86px, 0) scale(1.100); z-index: 3; }
-        25% { transform: translate3d(-105.33px, 69.31px, 0) scale(1.100); z-index: 3; }
-        30% { transform: translate3d(-116.55px, 61.97px, 0) scale(0.850); z-index: 0; }
-        35% { transform: translate3d(-116.36px, 48.57px, 0) scale(0.850); z-index: 0; }
-        40% { transform: translate3d(-104.78px, 30.41px, 0) scale(0.850); z-index: 0; }
-        45% { transform: translate3d(-82.94px, 9.28px, 0) scale(0.850); z-index: 0; }
-        50% { transform: translate3d(-52.98px, -12.76px, 0) scale(0.850); z-index: 0; }
-        55% { transform: translate3d(-17.84px, -33.55px, 0) scale(0.850); z-index: 0; }
-        60% { transform: translate3d(19.05px, -51.06px, 0) scale(0.850); z-index: 0; }
-        65% { transform: translate3d(54.07px, -63.57px, 0) scale(0.850); z-index: 0; }
-        70% { transform: translate3d(83.80px, -69.86px, 0) scale(0.850); z-index: 0; }
-        75% { transform: translate3d(105.33px, -69.31px, 0) scale(0.850); z-index: 0; }
-        80% { transform: translate3d(116.55px, -61.97px, 0) scale(1.100); z-index: 3; }
-        85% { transform: translate3d(116.36px, -48.57px, 0) scale(1.100); z-index: 3; }
-        90% { transform: translate3d(104.78px, -30.41px, 0) scale(1.100); z-index: 3; }
-        95% { transform: translate3d(82.94px, -9.28px, 0) scale(1.100); z-index: 3; }
-        100% { transform: translate3d(52.98px, 12.76px, 0) scale(1.100); z-index: 3; }
-      }
-
-      @keyframes orbit-2 {
-        0% { transform: translate3d(-83.80px, 69.86px, 0) scale(1.100); z-index: 3; }
-        5% { transform: translate3d(-105.33px, 69.31px, 0) scale(1.100); z-index: 3; }
-        10% { transform: translate3d(-116.55px, 61.97px, 0) scale(0.850); z-index: 0; }
-        15% { transform: translate3d(-116.36px, 48.57px, 0) scale(0.850); z-index: 0; }
-        20% { transform: translate3d(-104.78px, 30.41px, 0) scale(0.850); z-index: 0; }
-        25% { transform: translate3d(-82.94px, 9.28px, 0) scale(0.850); z-index: 0; }
-        30% { transform: translate3d(-52.98px, -12.76px, 0) scale(0.850); z-index: 0; }
-        35% { transform: translate3d(-17.84px, -33.55px, 0) scale(0.850); z-index: 0; }
-        40% { transform: translate3d(19.05px, -51.06px, 0) scale(0.850); z-index: 0; }
-        45% { transform: translate3d(54.07px, -63.57px, 0) scale(0.850); z-index: 0; }
-        50% { transform: translate3d(83.80px, -69.86px, 0) scale(0.850); z-index: 0; }
-        55% { transform: translate3d(105.33px, -69.31px, 0) scale(0.850); z-index: 0; }
-        60% { transform: translate3d(116.55px, -61.97px, 0) scale(1.100); z-index: 3; }
-        65% { transform: translate3d(116.36px, -48.57px, 0) scale(1.100); z-index: 3; }
-        70% { transform: translate3d(104.78px, -30.41px, 0) scale(1.100); z-index: 3; }
-        75% { transform: translate3d(82.94px, -9.28px, 0) scale(1.100); z-index: 3; }
-        80% { transform: translate3d(52.98px, 12.76px, 0) scale(1.100); z-index: 3; }
-        85% { transform: translate3d(17.84px, 33.55px, 0) scale(1.100); z-index: 3; }
-        90% { transform: translate3d(-19.05px, 51.06px, 0) scale(1.100); z-index: 3; }
-        95% { transform: translate3d(-54.07px, 63.57px, 0) scale(1.100); z-index: 3; }
-        100% { transform: translate3d(-83.80px, 69.86px, 0) scale(1.100); z-index: 3; }
-      }
-
-      @keyframes orbit-3 {
-        0% { transform: translate3d(-104.78px, 30.41px, 0) scale(0.850); z-index: 0; }
-        5% { transform: translate3d(-82.94px, 9.28px, 0) scale(0.850); z-index: 0; }
-        10% { transform: translate3d(-52.98px, -12.76px, 0) scale(0.850); z-index: 0; }
-        15% { transform: translate3d(-17.84px, -33.55px, 0) scale(0.850); z-index: 0; }
-        20% { transform: translate3d(19.05px, -51.06px, 0) scale(0.850); z-index: 0; }
-        25% { transform: translate3d(54.07px, -63.57px, 0) scale(0.850); z-index: 0; }
-        30% { transform: translate3d(83.80px, -69.86px, 0) scale(0.850); z-index: 0; }
-        35% { transform: translate3d(105.33px, -69.31px, 0) scale(0.850); z-index: 0; }
-        40% { transform: translate3d(116.55px, -61.97px, 0) scale(1.100); z-index: 3; }
-        45% { transform: translate3d(116.36px, -48.57px, 0) scale(1.100); z-index: 3; }
-        50% { transform: translate3d(104.78px, -30.41px, 0) scale(1.100); z-index: 3; }
-        55% { transform: translate3d(82.94px, -9.28px, 0) scale(1.100); z-index: 3; }
-        60% { transform: translate3d(52.98px, 12.76px, 0) scale(1.100); z-index: 3; }
-        65% { transform: translate3d(17.84px, 33.55px, 0) scale(1.100); z-index: 3; }
-        70% { transform: translate3d(-19.05px, 51.06px, 0) scale(1.100); z-index: 3; }
-        75% { transform: translate3d(-54.07px, 63.57px, 0) scale(1.100); z-index: 3; }
-        80% { transform: translate3d(-83.80px, 69.86px, 0) scale(1.100); z-index: 3; }
-        85% { transform: translate3d(-105.33px, 69.31px, 0) scale(1.100); z-index: 3; }
-        90% { transform: translate3d(-116.55px, 61.97px, 0) scale(0.850); z-index: 0; }
-        95% { transform: translate3d(-116.36px, 48.57px, 0) scale(0.850); z-index: 0; }
-        100% { transform: translate3d(-104.78px, 30.41px, 0) scale(0.850); z-index: 0; }
-      }
-
-      @keyframes orbit-4 {
-        0% { transform: translate3d(19.05px, -51.06px, 0) scale(0.850); z-index: 0; }
-        5% { transform: translate3d(54.07px, -63.57px, 0) scale(0.850); z-index: 0; }
-        10% { transform: translate3d(83.80px, -69.86px, 0) scale(0.850); z-index: 0; }
-        15% { transform: translate3d(105.33px, -69.31px, 0) scale(0.850); z-index: 0; }
-        20% { transform: translate3d(116.55px, -61.97px, 0) scale(1.100); z-index: 3; }
-        25% { transform: translate3d(116.36px, -48.57px, 0) scale(1.100); z-index: 3; }
-        30% { transform: translate3d(104.78px, -30.41px, 0) scale(1.100); z-index: 3; }
-        35% { transform: translate3d(82.94px, -9.28px, 0) scale(1.100); z-index: 3; }
-        40% { transform: translate3d(52.98px, 12.76px, 0) scale(1.100); z-index: 3; }
-        45% { transform: translate3d(17.84px, 33.55px, 0) scale(1.100); z-index: 3; }
-        50% { transform: translate3d(-19.05px, 51.06px, 0) scale(1.100); z-index: 3; }
-        55% { transform: translate3d(-54.07px, 63.57px, 0) scale(1.100); z-index: 3; }
-        60% { transform: translate3d(-83.80px, 69.86px, 0) scale(1.100); z-index: 3; }
-        65% { transform: translate3d(-105.33px, 69.31px, 0) scale(1.100); z-index: 3; }
-        70% { transform: translate3d(-116.55px, 61.97px, 0) scale(0.850); z-index: 0; }
-        75% { transform: translate3d(-116.36px, 48.57px, 0) scale(0.850); z-index: 0; }
-        80% { transform: translate3d(-104.78px, 30.41px, 0) scale(0.850); z-index: 0; }
-        85% { transform: translate3d(-82.94px, 9.28px, 0) scale(0.850); z-index: 0; }
-        90% { transform: translate3d(-52.98px, -12.76px, 0) scale(0.850); z-index: 0; }
-        95% { transform: translate3d(-17.84px, -33.55px, 0) scale(0.850); z-index: 0; }
-        100% { transform: translate3d(19.05px, -51.06px, 0) scale(0.850); z-index: 0; }
-      }
-
       @media (prefers-reduced-motion: reduce) {
         #intro *, #intro { animation: none !important; transition: opacity 200ms linear !important; }
-        .orbiter, #intro-center { opacity: 1 !important; transform: none !important; }
+        .orbiter, #intro-center { opacity: 1 !important; }
       }
     </style>
-    <script type="module" crossorigin src="/Studio/assets/index-CWzVQ8rq.js"></script>
+    <script type="module" crossorigin src="/Studio/assets/index-D2hBV5qG.js"></script>
     <link rel="modulepreload" crossorigin href="/Studio/assets/capacitor-gkgpYtx8.js">
     <link rel="modulepreload" crossorigin href="/Studio/assets/react-vendor-DETPMv4k.js">
     <link rel="modulepreload" crossorigin href="/Studio/assets/zustand-Ci4EvhWN.js">
@@ -352,7 +225,7 @@
       <!-- 5 real app logos, inlined from ChordexLogo.tsx -->
 
       <!-- Chordex: fretboard with 3 strings + chord dots -->
-      <div class="orbiter" data-intro-id="chords" data-orbiter-index="0">
+      <div class="orbiter" data-intro-id="chords">
         <svg viewBox="0 0 13 17" fill="none" preserveAspectRatio="xMidYMid meet" style="width:26px;height:34px;">
           <rect x="0.5" y="0.5" width="12" height="2.5" rx="1" fill="currentColor"/>
           <line x1="2.5"  y1="3" x2="2.5"  y2="16.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.45"/>
@@ -367,7 +240,7 @@
       </div>
 
       <!-- Drumex: snare drum top-down -->
-      <div class="orbiter" data-intro-id="drums" data-orbiter-index="1">
+      <div class="orbiter" data-intro-id="drums">
         <svg viewBox="0 0 16 16" fill="none">
           <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.6"/>
           <circle cx="8" cy="8" r="4.8" stroke="currentColor" stroke-width="0.85" stroke-opacity="0.55"/>
@@ -382,7 +255,7 @@
       </div>
 
       <!-- Stagex: stage with 2 speakers + mic stand -->
-      <div class="orbiter" data-intro-id="stage" data-orbiter-index="2">
+      <div class="orbiter" data-intro-id="stage">
         <svg viewBox="0 0 16 16" fill="none">
           <rect x="1" y="10" width="14" height="2.5" rx="1" fill="currentColor" fill-opacity="0.95"/>
           <rect x="1" y="4" width="3.5" height="5.5" rx="0.8" stroke="currentColor" stroke-width="1.1"/>
@@ -397,7 +270,7 @@
       </div>
 
       <!-- Groovex: concentric circles with crosshairs -->
-      <div class="orbiter" data-intro-id="groovex" data-orbiter-index="3">
+      <div class="orbiter" data-intro-id="groovex">
         <svg viewBox="0 0 16 16" fill="none">
           <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
           <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.2"/>
@@ -410,7 +283,7 @@
       </div>
 
       <!-- Vocalex: microphone with cradle + stand -->
-      <div class="orbiter" data-intro-id="vocalex" data-orbiter-index="4">
+      <div class="orbiter" data-intro-id="vocalex">
         <svg viewBox="0 0 16 16" fill="none">
           <rect x="6.5" y="2" width="3" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
           <path d="M4 8.5C4 11.26 5.79 13 8 13C10.21 13 12 11.26 12 8.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/>
@@ -422,9 +295,7 @@
     <div id="root"></div>
 
     <script>
-      // ── Pro intro with measured-target settle (Highly Optimized v10) ───
-      // Offloads all high-frequency calculations entirely to GPU CSS animations
-      // during the heavy JS parse/compile phase, preventing startup micro-stuttering/lag.
+      // ── Pro intro with measured-target settle ───────────────────────────
       (function () {
         var intro    = document.getElementById('intro');
         var center   = document.getElementById('intro-center');
@@ -443,35 +314,34 @@
         var orbiterEls = intro.querySelectorAll('.orbiter');
         if (orbiterEls.length === 0) return;
 
+        // Map each intro icon to its hub data-intro-target counterpart.
         var orbiters = [];
         orbiterEls.forEach(function (el) {
           orbiters.push({ el: el, key: el.getAttribute('data-intro-id') });
         });
         var N = orbiters.length;
 
-        var SETTLE_DURATION = 1000;  // ms to transition from orbit → target
+        // Geometry — elliptical tilted orbit for 3D feel
+        var RX    = 132;
+        var RY    = 38;
+        var TILT  = -28 * Math.PI / 180;
+        var COS_T = Math.cos(TILT);
+        var SIN_T = Math.sin(TILT);
+        var STEP  = 360 / N;
+
+        // Speed profile (deg/ms): smooth → dramatic accel → settle
+        var BASE_OMEGA   = 360 / 8500;
+        var PEAK_OMEGA   = 360 / 900;
+        var ACCEL_START  = 600;
+        var ACCEL_END    = 1200;
+
+        // Settle starts when targets are known AND minimum spin time elapsed.
+        // Falls back to t=3000 if React hasn't mounted yet.
+        var SETTLE_DURATION = 1000;  // ms to lerp from orbit → target
         var FADE_OVERLAP    = 550;   // intro fade starts this many ms before settle ends
         var FADE_DURATION   = 900;   // long crossfade so hub reveals gradually
         var MIN_SPIN_TIME   = 1200;  // don't settle before this
         var MAX_WAIT_TIME   = 2600;  // hard cap — settle even without targets
-
-        // Parse 2D/3D transform matrix from computed style to enable seamless handoff
-        function parseMatrix(matrixStr) {
-          if (!matrixStr || matrixStr === 'none') return { x: 0, y: 0, scale: 1 };
-          var values = matrixStr.split('(')[1].split(')')[0].split(',');
-          if (values.length === 6) {
-            var a = parseFloat(values[0]);
-            var b = parseFloat(values[1]);
-            var scale = Math.sqrt(a * a + b * b);
-            return { x: parseFloat(values[4]), y: parseFloat(values[5]), scale: scale };
-          } else if (values.length === 16) {
-            var a1 = parseFloat(values[0]);
-            var b1 = parseFloat(values[1]);
-            var scale = Math.sqrt(a1 * a1 + b1 * b1);
-            return { x: parseFloat(values[12]), y: parseFloat(values[13]), scale: scale };
-          }
-          return { x: 0, y: 0, scale: 1 };
-        }
 
         // Default fallback targets (relative to viewport center) if measurement fails
         function fallbackTargets() {
@@ -490,7 +360,8 @@
           };
         }
 
-        // Measure actual hub icon positions from data-intro-target elements
+        // Measure actual hub icon positions from data-intro-target elements.
+        // Returns null if not all targets are present.
         function measureTargets() {
           var W = window.innerWidth;
           var H = window.innerHeight;
@@ -502,7 +373,7 @@
           var centerTarget = {
             x: (cr.left + cr.width / 2) - cxV,
             y: (cr.top  + cr.height / 2) - cyV,
-            scale: cr.width / 96,
+            scale: cr.width / 96,  // intro center logo is 96px
           };
           var orbiterTargets = [];
           for (var i = 0; i < orbiters.length; i++) {
@@ -514,12 +385,17 @@
             orbiterTargets.push({
               x: (r.left + r.width / 2) - cxV,
               y: (r.top  + r.height / 2) - cyV,
-              scale: r.width / 44,
+              scale: r.width / 44,  // intro orbiter container is 44px
             });
           }
           return { orbiters: orbiterTargets, center: centerTarget };
         }
 
+        // Measure vertical offset of the logo's center relative to the
+        // #intro-center container's center. The container holds logo + title +
+        // subtitle in normal flow, so the logo center sits ABOVE the container
+        // center. We use this offset (scaled) to make the LOGO land on the
+        // measured hub target, not the container.
         var _cachedLogoOffY = null;
         function getLogoOffsetY() {
           if (_cachedLogoOffY !== null) return _cachedLogoOffY;
@@ -527,10 +403,15 @@
           if (!logoEl) return 0;
           var lr = logoEl.getBoundingClientRect();
           var cr = center.getBoundingClientRect();
-          if (cr.height === 0) return 0;
+          if (cr.height === 0) return 0;  // not laid out yet — try later
           _cachedLogoOffY = (lr.top + lr.height / 2) - (cr.top + cr.height / 2);
           return _cachedLogoOffY;
         }
+
+        function easeInOutCubic(t) {
+          return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+        function easeInQuad(t) { return t * t; }
 
         // Anchor orbiters at viewport center; transform handles motion
         function anchor() {
@@ -544,86 +425,128 @@
         window.addEventListener('resize', anchor);
         window.addEventListener('orientationchange', anchor);
 
-        var start = performance.now();
+        var start  = performance.now();
+        var angle  = 0;
+        var lastT  = start;
+        var stopped = false;
+        var settleStartTime = -1;     // when settle actually began
         var targets = null;
         var fadeStarted = false;
         var dismissed = false;
-        var settled = false;
+
+        function omegaAt(t) {
+          if (t <= ACCEL_START) return BASE_OMEGA;
+          if (t >= ACCEL_END)   return PEAK_OMEGA;
+          var p = (t - ACCEL_START) / (ACCEL_END - ACCEL_START);
+          return BASE_OMEGA + (PEAK_OMEGA - BASE_OMEGA) * easeInQuad(p);
+        }
 
         function reactMounted() {
           var r = document.getElementById('root');
           return !!(r && r.children && r.children.length > 0);
         }
 
-        // Pure timer-based mount observer. Executes exactly ONE layout read
-        // to collect targets and delegates all motion entirely to GPU transitions.
-        var checkInterval = setInterval(function () {
-          var elapsed = performance.now() - start;
-          if (elapsed < MIN_SPIN_TIME) return;
+        function frame(now) {
+          if (stopped) return;
+          var t  = now - start;
+          var dt = now - lastT;
+          lastT  = now;
+          angle  = (angle + omegaAt(t) * dt) % 360;
 
-          var measured = measureTargets();
-          if (measured) {
-            clearInterval(checkInterval);
-            triggerSettle(measured);
-          } else if (elapsed >= MAX_WAIT_TIME) {
-            clearInterval(checkInterval);
-            triggerSettle(fallbackTargets());
-          }
-        }, 30);
-
-        function triggerSettle(tgs) {
-          if (settled) return;
-          settled = true;
-          targets = tgs;
-
-          // 1. Capture current positions and snap them to inline styles
-          orbiters.forEach(function (orb) {
-            var computedStyle = window.getComputedStyle(orb.el);
-            var currentTrans = parseMatrix(computedStyle.transform);
-            orb.el.style.transform = 'translate3d(' + currentTrans.x.toFixed(2) + 'px, ' + currentTrans.y.toFixed(2) + 'px, 0) scale(' + currentTrans.scale.toFixed(3) + ')';
-            orb.el.style.animation = 'none'; // Halt the infinite keyframe loop instantly
-          });
-
-          // Force browser style recalculation to register the animation halt
-          center.offsetHeight;
-
-          // 2. Trigger native GPU-accelerated CSS transitions
-          orbiters.forEach(function (orb, k) {
-            var tgt = targets.orbiters[k];
-            orb.el.style.transition = 'transform ' + SETTLE_DURATION + 'ms cubic-bezier(0.22, 1, 0.36, 1), opacity ' + SETTLE_DURATION + 'ms cubic-bezier(0.22, 1, 0.36, 1)';
-            orb.el.style.transform = 'translate3d(' + tgt.x.toFixed(2) + 'px, ' + tgt.y.toFixed(2) + 'px, 0) scale(' + tgt.scale.toFixed(3) + ')';
-            orb.el.style.opacity = '0';
-          });
-
-          // Center logo transitions with target-scaling offset compensation
-          var ct = targets.center;
-          var logoOffY = getLogoOffsetY();
-          var ccx = ct.x;
-          var ccy = ct.y - logoOffY * ct.scale;
-          center.style.transition = 'transform ' + SETTLE_DURATION + 'ms cubic-bezier(0.22, 1, 0.36, 1)';
-          center.style.transform = 'translate(-50%, -50%) translate3d(' + ccx.toFixed(2) + 'px, ' + ccy.toFixed(2) + 'px, 0) scale(' + ct.scale.toFixed(3) + ')';
-
-          var titleEl = center.querySelector('.title');
-          var subEl   = center.querySelector('.sub');
-          if (titleEl) {
-            titleEl.style.transition = 'opacity ' + (SETTLE_DURATION - 200) + 'ms cubic-bezier(0.22, 1, 0.36, 1)';
-            titleEl.style.opacity = '0';
-          }
-          if (subEl) {
-            subEl.style.transition = 'opacity ' + (SETTLE_DURATION - 200) + 'ms cubic-bezier(0.22, 1, 0.36, 1)';
-            subEl.style.opacity = '0';
+          // Decide whether to start settling
+          if (settleStartTime < 0 && t >= MIN_SPIN_TIME) {
+            var measured = measureTargets();
+            if (measured) {
+              targets = measured;
+              settleStartTime = now;
+            } else if (t >= MAX_WAIT_TIME) {
+              targets = fallbackTargets();
+              settleStartTime = now;
+            }
           }
 
-          // Trigger crossfade reveal overlapping with the final phase of settle
-          setTimeout(function () {
+          // Settle progress (0 → 1)
+          var sP = 0;
+          if (settleStartTime > 0) {
+            sP = (now - settleStartTime) / SETTLE_DURATION;
+            if (sP < 0) sP = 0; else if (sP > 1) sP = 1;
+          }
+          var sE = easeInOutCubic(sP);
+
+          // Premium visual expansion drift for the first 800ms
+          var drift = 1.0;
+          if (t < 800) {
+            drift = easeInOutCubic(t / 800) * 0.6 + 0.4;
+          }
+
+          for (var k = 0; k < orbiters.length; k++) {
+            var el = orbiters[k].el;
+            var a = (angle + k * STEP) % 360;
+            if (a < 0) a += 360;
+            var rad = a * Math.PI / 180;
+            var x0 = RX * drift * Math.cos(rad);
+            var y0 = RY * drift * Math.sin(rad);
+            var xT = x0 * COS_T - y0 * SIN_T;
+            var yT = x0 * SIN_T + y0 * COS_T;
+
+            var front      = a < 180;
+            var orbitScale = front ? 1.10 : 0.85;
+            var z          = front ? 3 : 0;
+
+            var fx, fy, fs;
+            if (targets) {
+              var tgt = targets.orbiters[k];
+              fx = xT + (tgt.x - xT) * sE;
+              fy = yT + (tgt.y - yT) * sE;
+              fs = orbitScale + (tgt.scale - orbitScale) * sE;
+            } else {
+              fx = xT; fy = yT; fs = orbitScale;
+            }
+            el.style.zIndex    = sE > 0.5 ? 1 : z;
+            el.style.transform = 'translate(' + fx.toFixed(2) + 'px,' + fy.toFixed(2) + 'px) scale(' + fs.toFixed(3) + ')';
+          }
+
+          // Center logo follows — compensate for logo offset within the
+          // container so the LOGO (not the container) lands on the hub target.
+          if (targets) {
+            var ct = targets.center;
+            var ccs = 1 + (ct.scale - 1) * sE;
+            var logoOffY = getLogoOffsetY(); // px, logo-center relative to container-center
+            var ccx = ct.x * sE;
+            var ccy = (ct.y - logoOffY * ccs) * sE;
+            center.style.transform = 'translate(-50%, -50%) translate(' + ccx.toFixed(2) + 'px,' + ccy.toFixed(2) + 'px) scale(' + ccs.toFixed(3) + ')';
+            // Fade out title/sub during settle so only the logo "lands"
+            var titleEl = center.querySelector('.title');
+            var subEl   = center.querySelector('.sub');
+            if (titleEl) titleEl.style.opacity = String(1 - sE);
+            if (subEl)   subEl.style.opacity   = String(1 - sE);
+          }
+
+          // Start crossfade slightly before settle completes so the intro
+          // icons appear to BECOME the hub icons rather than swap.
+          if (!fadeStarted && settleStartTime > 0 && (now - settleStartTime) >= (SETTLE_DURATION - FADE_OVERLAP)) {
+            fadeStarted = true;
+            // Only start the fade when React is mounted (so the hub is there
+            // to crossfade INTO). Otherwise wait briefly.
             startFade();
-          }, SETTLE_DURATION - FADE_OVERLAP);
+          }
+
+          if (sP >= 1 && fadeStarted) {
+            // Settle done; rAF loop ends after fade dismisses
+            stopped = true;
+            return;
+          }
+          requestAnimationFrame(frame);
         }
+        requestAnimationFrame(frame);
 
         function startFade() {
           if (dismissed) return;
+          // Signal React the intro is finishing — StudioTitleReveal can now
+          // start its sweep animation so the title appears as the hub reveals.
           window.dispatchEvent(new Event('studio-intro-done'));
           if (!reactMounted()) {
+            // Wait for React then fade
             var startedAt = performance.now();
             var iv = setInterval(function () {
               if (reactMounted() || performance.now() - startedAt > 3000) {
@@ -635,19 +558,21 @@
           }
           doFade();
         }
-
         function doFade() {
           if (dismissed) return;
           dismissed = true;
-          intro.style.transition = 'opacity ' + FADE_DURATION + 'ms cubic-bezier(0.22, 1, 0.36, 1)';
+          // Apply a long, smooth ease-out transition for the crossfade into the hub.
+          // cubic-bezier(0.22,1,0.36,1) starts quickly then eases very gently at the
+          // end — this makes the hub "breathe in" rather than snap into view.
+          intro.style.transition = 'opacity ' + FADE_DURATION + 'ms cubic-bezier(0.22,1,0.36,1)';
           intro.style.opacity = '0';
           setTimeout(function () {
             intro.classList.add('dismissed');
             if (intro.parentNode) intro.parentNode.removeChild(intro);
           }, FADE_DURATION + 50);
         }
-
-        setTimeout(doFade, 10000); // Safety net
+        // Hard safety
+        setTimeout(doFade, 10000);
       })();
     </script>
   </body>

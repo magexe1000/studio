@@ -134,12 +134,12 @@ export default function ChordPanel() {
   if (!chord) {
     return (
       <div className="flex flex-col h-full app-bg" style={{ position: 'relative' }}>
-        <header className="flex-none px-6 pt-6 pb-1 app-bg">
+        <header className="flex-none px-6 pt-6 pb-1 app-bg spring-in">
           <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
             <AppModeMenuLogo />
           </h1>
         </header>
-        <div className="flex-1 flex flex-col items-center justify-center px-6">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 spring-in">
           <MusicNotesLottie size={52} isLight={settings.theme === 'light'} style={{ marginBottom: 16 }} />
           <p style={{ color: 'var(--c-text-secondary)', fontSize: '14px', fontFamily: 'Inter', marginBottom: '20px', textAlign: 'center' }}>{t.chord.emptyState}</p>
           <button
@@ -210,14 +210,14 @@ export default function ChordPanel() {
   return (
     <div className="flex flex-col h-full overflow-hidden app-bg">
       {/* Minimal top label */}
-      <header className="flex-none px-6 pt-6 pb-1 app-bg">
+      <header className="flex-none px-6 pt-6 pb-1 app-bg spring-in">
         <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
           <AppModeMenuLogo />
         </h1>
       </header>
 
       {/* Scrollable content */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar pb-32">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar pb-32 spring-in">
         {/* Hero chord card */}
         <div
           className="mx-4 mt-4 rounded-3xl p-6 relative overflow-hidden"

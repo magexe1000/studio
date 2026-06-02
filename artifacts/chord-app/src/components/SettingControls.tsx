@@ -46,7 +46,7 @@ export const Toggle = memo(function Toggle({ value, onChange, accentFrom, accent
 
 export const SectionHeader = memo(function SectionHeader({ icon, title }: { icon: string; title: string }) {
   return (
-    <div className="flex items-center gap-2 mb-3 mt-6">
+    <div className="flex items-center gap-2 mb-3 mt-6 spring-in">
       <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--c-text-secondary)' }}>{icon}</span>
       <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>{title}</p>
     </div>

@@ -15,6 +15,11 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.1.53
+
+- Bouncy Animations: Implemented premium spring-loaded entry animations across headers, titles, subtitles, and preferences sections of all apps.
+- Startup Animation Restored: Reverted the intro logo orbital animation to the original high-performance LERP engine.
+
 ## 3.1.51
 
 - Startup Lag Fixed: Eliminated intro animation stuttering by offloading all motion calculations to GPU compositor layers.

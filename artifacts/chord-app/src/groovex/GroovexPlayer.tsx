@@ -369,7 +369,7 @@ export default function GroovexPlayer() {
   const anyLoaded = tracks.some(t => t.loaded);
 
   return (
-    <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div ref={scrollRef} className="spring-in" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ padding: '0 24px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 40px)' }}>
 
         <section className="gx-hero-enter" style={{ paddingTop: 12, marginBottom: 36, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

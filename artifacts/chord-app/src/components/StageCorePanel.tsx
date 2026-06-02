@@ -598,7 +598,7 @@ export default function StagexPanel() {
       }}>
       <div style={{ height: 'env(safe-area-inset-top)', background: 'transparent', flexShrink: 0 }} />
 
-      <div style={{
+      <div className="spring-in" style={{
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',

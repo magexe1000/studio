@@ -54,7 +54,7 @@ export default function GroovexPreferences() {
   }
 
   return (
-    <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div ref={scrollRef} className="spring-in" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
 
         <section style={{ paddingTop: 32, marginBottom: 32 }}>

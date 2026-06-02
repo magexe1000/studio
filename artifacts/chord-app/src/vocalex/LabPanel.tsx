@@ -886,7 +886,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
   const sessionTag = `#${String(sessionNumber).padStart(2, '0')}`;
 
   return (
-    <div style={{ padding: '16px 20px', paddingBottom: 120, minHeight: '100%' }}>
+    <div className="spring-in" style={{ padding: '16px 20px', paddingBottom: 120, minHeight: '100%' }}>
 
       {/* ── Session header ─────────────────────────────────────────────
           Single coherent block with: session icon, session number tag,
@@ -1201,7 +1201,7 @@ export default function LabPanel() {
   const displaySessions = showAll ? sessions : sessions.slice(0, 6);
 
   return (
-    <div style={{ padding: '20px 20px 40px', minHeight: '100%' }}>
+    <div className="spring-in" style={{ padding: '20px 20px 40px', minHeight: '100%' }}>
       <section style={{ marginBottom: 28 }}>
         <h2 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em', color: 'var(--vx-text)', margin: '0 0 8px', lineHeight: 1 }}>{t.vocalex.labTitle}</h2>
         <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', margin: 0, lineHeight: 1.6, maxWidth: 320 }}>

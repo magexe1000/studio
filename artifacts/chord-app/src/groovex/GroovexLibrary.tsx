@@ -66,7 +66,7 @@ export default function GroovexLibrary() {
   const sortLabel = sortBy === 'title' ? t.groovex.sortAZ : sortBy === 'artist' ? t.groovex.sortArtist : t.groovex.sortRecent;
 
   return (
-    <div ref={scrollRef} style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div ref={scrollRef} className="spring-in" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
         <section style={{ paddingTop: 32, marginBottom: 32 }}>
           <AnimatedAppHeader

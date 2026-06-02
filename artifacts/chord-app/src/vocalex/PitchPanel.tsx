@@ -147,7 +147,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
   const barColors  = [false, false, true, true, true, false, false, false, true, false, false, false];
 
   return (
-    <div style={{
+    <div className="spring-in" style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       padding: '0 24px 24px', gap: 0, minHeight: '100%',
     }}>
