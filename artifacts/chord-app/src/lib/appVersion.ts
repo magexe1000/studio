@@ -66,6 +66,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
     items: [
       'FAQ Symbol Fix: Resolved the text-fallback bug where the Help & FAQ accordion icon rendered the raw word "HELP".',
       'Auto-Update Startup Checker: Forced OTA updates check to run immediately on startup, bypassing toggles on launch so updates are always detected automatically.',
+      'Full Material Symbols Load: Swapped out the fragile, extremely long subsetted font URL with the full robust CDN reference, permanently fixing plain-text overlapping icon bugs across the entire app.',
     ],
   },
 ];
@@ -87,6 +88,7 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
     items: [
       'Icono de FAQ Reparado: Se corrigió el error visual donde el icono de Ayuda y FAQ se dibujaba como la palabra "HELP".',
       'Detector de Actualizaciones al Inicio: Se forzó el chequeo de actualizaciones al abrir la app para que siempre se busquen de forma automática.',
+      'Carga Completa de Material Symbols: Se reemplazó la URL de fuentes optimizada por la referencia completa de la CDN para solucionar de forma permanente los textos superpuestos en todos los iconos.',
     ],
   },
 ];
@@ -107,6 +109,7 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
     items: [
       'FAQ-Symbol Behoben: Render-Bug gelöst, bei dem das Akkordeon-Symbol fälschlicherweise als Text "HELP" gezeichnet wurde.',
       'Auto-Update beim Start: Das Suchen nach OTA-Updates wird nun sofort beim App-Start erzwungen, damit Updates immer direkt erkannt werden.',
+      'Vollständiger Material Symbols-Import: Fragile, überlange optimierte Font-URL durch die vollständige, robuste CDN-Referenz ersetzt, um fehlerhafte Textdarstellungen bei allen Icons dauerhaft zu beheben.',
     ],
   },
 ];
