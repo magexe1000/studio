@@ -107,6 +107,39 @@ export default function App() {
     return () => { cancelled = true; unsub?.(); };
   }, []);
 
+  // Request startup permissions for notifications and microphone (required by Vocalex / OTA updates)
+  useEffect(() => {
+    const requestStartupPermissions = async () => {
+      // 1. Microphone permission request
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (err) {
+        console.warn('[Permissions] Microphone permission request skipped or denied:', err);
+      }
+
+      // 2. Notification permission request
+      try {
+        if (typeof window !== 'undefined') {
+          if ('Notification' in window && Notification.permission === 'default') {
+            await Notification.requestPermission();
+          }
+          // Native Capacitor notification permission request
+          const { Capacitor } = await import('@capacitor/core');
+          if (Capacitor.isNativePlatform()) {
+            const { LocalNotifications } = await import('@capacitor/local-notifications');
+            await LocalNotifications.requestPermissions();
+          }
+        }
+      } catch (err) {
+        console.warn('[Permissions] Notification permission request skipped or denied:', err);
+      }
+    };
+
+    const timer = setTimeout(requestStartupPermissions, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Whenever we leave the lockdown screen (e.g. user tapped Restore), force
   // the bottom nav back into a clean visible state. The lockdown screen
   // unmounts before the underlying panels remount, so without this reset
