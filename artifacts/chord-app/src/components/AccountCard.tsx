@@ -1844,16 +1844,6 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                 </div>
               </div>
 
-              {/* Email Row */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontFamily: 'Inter', fontSize: 10.5, fontWeight: 600, color: 'var(--c-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  {lang === 'es' ? 'Correo Electrónico' : 'Email Address'}
-                </span>
-                <span style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-primary)', fontWeight: 500 }}>
-                  {user.email || (lang === 'es' ? 'No disponible' : 'Not available')}
-                </span>
-              </div>
-
               {/* Entitlement Role Row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1872,10 +1862,14 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                 <span style={{ fontFamily: 'Inter', fontSize: 10.5, fontWeight: 600, color: 'var(--c-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {lang === 'es' ? 'Proveedor de Autenticación' : 'Authentication Provider'}
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-secondary)' }}>
-                    {getSignInProviders().includes('google.com') ? 'public' : 'lock'}
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {getSignInProviders().includes('google.com') ? (
+                    <GoogleIconSVG />
+                  ) : (
+                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', opacity: 0.8 }}>
+                      lock
+                    </span>
+                  )}
                   <span style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>
                     {getSignInProviders().length > 0
                       ? getSignInProviders().map(p => p.replace('.com', '')).join(', ')

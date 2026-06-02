@@ -62,13 +62,24 @@ createRoot(document.getElementById("root")!).render(
   </TolgeeProvider>,
 );
 
-// Service worker registration removed — the previous SW was caching the old
-// StartupSplash bundle. The current `public/sw.js` is a self-destructing
-// killswitch: once it runs on a device it unregisters itself and clears all
-// caches, so we don't re-register it here. To restore offline support in the
-// future, register a new SW under a different filename.
-if ('serviceWorker' in navigator) {
+// Register sw-push.js for background push updates while cleaning up legacy SW instances.
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  // Register push notifications service worker
+  navigator.serviceWorker.register('/sw-push.js', { scope: '/' })
+    .then((reg) => {
+      console.log('[sw] Push Service Worker registered successfully:', reg);
+    })
+    .catch((err) => {
+      console.warn('[sw] Push Service Worker registration failed:', err);
+    });
+
+  // Clean up legacy service workers that are NOT sw-push.js
   navigator.serviceWorker.getRegistrations().then((regs) => {
-    regs.forEach((reg) => { void reg.unregister(); });
+    regs.forEach((reg) => {
+      const url = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || '';
+      if (url && !url.includes('sw-push.js')) {
+        void reg.unregister();
+      }
+    });
   }).catch(() => { /* ignore */ });
 }

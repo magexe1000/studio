@@ -236,6 +236,25 @@ export default function App() {
     const validApps: readonly AppKey[] = ['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex'] as const;
 
     // Check query params first for direct link deep-linking
+    const queryPage = new URLSearchParams(window.location.search).get('page');
+    if (queryPage === 'updater') {
+      try {
+        sessionStorage.setItem('studio:routeToUpdater', '1');
+        const url = new URL(window.location.href);
+        url.searchParams.delete('page');
+        window.history.replaceState({}, '', url.toString());
+      } catch { /* noop */ }
+      
+      prevAppMode.current = 'hub';
+      updateSettings({ appMode: 'hub' });
+      
+      // Preload critical chunks
+      schedulePreload([
+        libraryImport, chordImport, songsImport, settingsImport, stagexImport,
+      ]);
+      return;
+    }
+
     const queryApp = new URLSearchParams(window.location.search).get('app');
     const isQueryAppValid = queryApp && validApps.includes(queryApp as AppKey);
     if (isQueryAppValid) {
@@ -443,6 +462,19 @@ export default function App() {
 
     jsonLdEl.textContent = JSON.stringify(structuredData, null, 2);
   }, [settings.appMode]);
+
+  // ── Push Notification Deep-Link Receiver ──────────────────────────────────
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'ROUTE_UPDATE') {
+        sessionStorage.setItem('studio:routeToUpdater', '1');
+        updateSettings({ appMode: 'hub' });
+        window.dispatchEvent(new CustomEvent('studio:route-to-updater'));
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [updateSettings]);
 
   // ── Global back navigation ────────────────────────────────────────────────
   const [exitToast, setExitToast] = useState(false);

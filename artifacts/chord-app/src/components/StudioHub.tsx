@@ -11,6 +11,13 @@ import StudioThemeToggler from './StudioThemeToggler';
 import ApplyToSheet from './ApplyToSheet';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
+import {
+  isPushSupported,
+  getNotificationPermissionState,
+  subscribeToPush,
+  unsubscribeFromPush,
+  flushCachedPushSubscription,
+} from '../lib/pushNotifications';
 import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
@@ -212,8 +219,20 @@ export default function StudioHub() {
 
   useScrollHide(scrollRef);
 
+  const isFirstAuthRun = useRef(true);
+
   useEffect(() => {
     return subscribeAuth((user) => {
+      if (isFirstAuthRun.current) {
+        isFirstAuthRun.current = false;
+        lastUserRef.current = user;
+        setAuthUser(user);
+        if (user) {
+          void flushCachedPushSubscription();
+        }
+        return;
+      }
+
       if (!lastUserRef.current && user) {
         // Successful login transition!
         setSuccessName(user.displayName || user.email || 'User');
@@ -224,11 +243,30 @@ export default function StudioHub() {
             setSuccessAnimationState('hidden');
           }, 450); // wait for exit animation to complete
         }, 1800); // linger success check for 1.8 seconds
+        
+        // Flush cached push subscriptions once authenticated
+        void flushCachedPushSubscription();
       }
       lastUserRef.current = user;
       setAuthUser(user);
     });
   }, []);
+
+  // Deep-link intercept for Updater routing
+  useEffect(() => {
+    const handleRoute = () => {
+      setTab('settings');
+    };
+    window.addEventListener('studio:route-to-updater', handleRoute);
+
+    if (typeof window !== 'undefined' && sessionStorage.getItem('studio:routeToUpdater') === '1') {
+      setTab('settings');
+    }
+
+    return () => {
+      window.removeEventListener('studio:route-to-updater', handleRoute);
+    };
+  }, [setTab]);
 
   useBackHandler('nested', () => {
     if (tab === 'profile') {
@@ -702,7 +740,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'help';
+type SettingsPageId = 'main' | 'appearance' | 'language' | 'notifications' | 'privacy' | 'about' | 'updater' | 'help';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -1191,7 +1229,13 @@ function HubSettings({
       setSyncStatus(s);
     });
   }, []);
-  const [page, setPage] = useState<SettingsPageId>('main');
+  const [page, setPage] = useState<SettingsPageId>(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('studio:routeToUpdater') === '1') {
+      sessionStorage.removeItem('studio:routeToUpdater');
+      return 'updater';
+    }
+    return 'main';
+  });
   const [pageKey, setPageKey] = useState(0);
   const [slideDir, setSlideDir] = useState<'forward' | 'back'>('forward');
 
@@ -1203,6 +1247,23 @@ function HubSettings({
       setCustomPhoto(stored || null);
     } catch { setCustomPhoto(null); }
   }, [authUser?.uid]);
+
+  useEffect(() => {
+    const handleRoute = () => {
+      sessionStorage.removeItem('studio:routeToUpdater');
+      navigate('updater');
+    };
+    window.addEventListener('studio:route-to-updater', handleRoute);
+
+    if (typeof window !== 'undefined' && sessionStorage.getItem('studio:routeToUpdater') === '1') {
+      sessionStorage.removeItem('studio:routeToUpdater');
+      navigate('updater');
+    }
+
+    return () => {
+      window.removeEventListener('studio:route-to-updater', handleRoute);
+    };
+  }, []);
 
   const hubVis: PerAppVisuals = settings.perApp?.hub ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
   const [changelogOpen, setChangelogOpen] = useState(false);
@@ -1565,6 +1626,158 @@ function HubSettings({
     );
   }
 
+  /* ── NOTIFICATIONS ───────────────────────────────────────────────── */
+  if (page === 'notifications') {
+    const isSupported = isPushSupported();
+    const [pushPermission, setPushPermission] = useState(getNotificationPermissionState());
+    const [subscribing, setSubscribing] = useState(false);
+    const [pushToggleVal, setPushToggleVal] = useState(pushPermission === 'granted');
+
+    const handlePushToggle = async (checked: boolean) => {
+      if (!isSupported) return;
+      setSubscribing(true);
+      try {
+        if (checked) {
+          const sub = await subscribeToPush();
+          if (sub) {
+            setPushPermission('granted');
+            setPushToggleVal(true);
+          } else {
+            const updatedState = getNotificationPermissionState();
+            setPushPermission(updatedState);
+            setPushToggleVal(updatedState === 'granted');
+          }
+        } else {
+          await unsubscribeFromPush();
+          const updatedState = getNotificationPermissionState();
+          setPushPermission(updatedState);
+          setPushToggleVal(false);
+        }
+      } catch (err) {
+        console.error('[Notifications] Push toggle failed:', err);
+        const updatedState = getNotificationPermissionState();
+        setPushPermission(updatedState);
+        setPushToggleVal(updatedState === 'granted');
+      } finally {
+        setSubscribing(false);
+      }
+    };
+
+    return (
+      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+        <style>{HUB_SETTINGS_CSS}</style>
+        <SettingsSubHeader title="Notifications" onBack={goBack} />
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 8 }}>
+          {/* Card 1: App Updates */}
+          <div>
+            <SettingsSectionLabel>App Alerts</SettingsSectionLabel>
+            <div style={cardStyle}>
+              <SettingRow
+                label="OTA update notifications"
+                desc="Receive visual in-app alerts when a new update version is detected."
+              >
+                <Toggle
+                  value={settings.otaNotifications ?? true}
+                  onChange={(v) => updateSettings({ otaNotifications: v })}
+                  accentFrom={accent.from}
+                  accentTo={accent.to}
+                />
+              </SettingRow>
+            </div>
+          </div>
+
+          {/* Card 2: System Push Notifications */}
+          <div>
+            <SettingsSectionLabel delay={40}>System Notifications</SettingsSectionLabel>
+            <div style={cardStyle}>
+              {!isSupported ? (
+                <div style={{ padding: '16px 18px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-secondary)', opacity: 0.6 }}>info</span>
+                  <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
+                    Web Push notifications are not supported in this browser or platform. Try installing Studio as a PWA or using a modern web browser.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ flex: 1, minWidth: 0, paddingRight: 16 }}>
+                      <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-text-primary)', margin: 0, fontFamily: 'Manrope' }}>System push alerts</p>
+                      <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '3px 0 0', fontFamily: 'Inter', lineHeight: 1.35 }}>
+                        Get background notification alerts even when the app is closed.
+                      </p>
+                    </div>
+                    {subscribing ? (
+                      <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, animation: 'hub-spin 1s linear infinite' }}>refresh</span>
+                    ) : (
+                      <Toggle
+                        value={pushToggleVal}
+                        onChange={handlePushToggle}
+                        accentFrom={accent.from}
+                        accentTo={accent.to}
+                      />
+                    )}
+                  </div>
+
+                  <div style={{ padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 14 }}>Status</span>
+                    <span style={{
+                      fontFamily: 'Inter', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+                      color: pushPermission === 'granted' ? '#4ade80' : pushPermission === 'denied' ? '#f87171' : 'var(--c-text-secondary)'
+                    }}>
+                      {pushPermission === 'granted' ? 'Enabled' : pushPermission === 'denied' ? 'Blocked' : 'Default / Not Set'}
+                    </span>
+                  </div>
+
+                  {pushPermission === 'default' && (
+                    <div style={{ padding: '0 16px 16px', marginTop: 8 }}>
+                      <button
+                        onClick={() => handlePushToggle(true)}
+                        disabled={subscribing}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          width: '100%', padding: '12px', borderRadius: 12,
+                          background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
+                          fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5,
+                          border: 'none', cursor: 'pointer', boxShadow: `0 4px 16px ${accent.to}33`,
+                          transition: 'opacity 200ms ease',
+                          opacity: subscribing ? 0.7 : 1
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>notifications_active</span>
+                        Enable push notifications
+                      </button>
+                    </div>
+                  )}
+
+                  {pushPermission === 'denied' && (
+                    <div style={{ padding: '12px 18px', background: 'rgba(248,113,113,0.06)', borderTop: '1px solid rgba(128,128,128,0.07)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#f87171', flexShrink: 0, marginTop: 1 }}>warning</span>
+                      <p style={{ margin: 0, fontSize: 11.5, color: '#f87171', fontFamily: 'Inter', lineHeight: 1.45 }}>
+                        Browser system notification permission was blocked. Please reset site permissions in your browser's address bar settings to re-enable push alerts.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Card 3: Push Technical Status / Documentation */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderRadius: 12, background: 'rgba(128,128,128,0.05)', border: '1px solid rgba(128,128,128,0.08)' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-secondary)', flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1" }}>hub</span>
+            <div>
+              <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 12, margin: '0 0 4px' }}>Web Push Integration</p>
+              <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 11, margin: 0, lineHeight: 1.5 }}>
+                The service worker configuration and Firestore subscriptions store are ready. Background update push delivery requires the backend push dispatch dispatcher to be fully provisioned.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (page === 'privacy') {
     return (
       <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
@@ -1727,6 +1940,12 @@ function HubSettings({
       <SettingsSectionLabel delay={100}>{t.settings.sections.language}</SettingsSectionLabel>
       <div style={cardStyle}>
         <SettingsNavRow icon="language" iconColor={accent.from} title={t.settings.sections.language} desc={(t.hub as { studioSettings?: { languageDesc?: string } }).studioSettings?.languageDesc ?? 'App display language'} onPress={() => navigate('language')} last delay={110} />
+      </div>
+
+      {/* Notifications */}
+      <SettingsSectionLabel delay={125}>Notifications</SettingsSectionLabel>
+      <div style={cardStyle}>
+        <SettingsNavRow icon="notifications" iconColor={accent.from} title="Notifications" desc="Configure push and update alerts" onPress={() => navigate('notifications')} last delay={135} />
       </div>
 
 
