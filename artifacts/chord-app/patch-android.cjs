@@ -181,6 +181,9 @@ public class MainActivity extends BridgeActivity {
                 splashScreenView -> splashScreenView.remove()
             );
         }
+        // CRITICAL: Custom local Capacitor plugins in the app package MUST be registered
+        // manually in MainActivity. Do not remove or rename this plugin registration.
+        registerPlugin(AppInstallerPlugin.class);
         super.onCreate(savedInstanceState);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         scheduleOtaBackgroundCheck();

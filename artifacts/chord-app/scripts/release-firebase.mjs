@@ -86,6 +86,17 @@ if (syncResult.status !== 0) {
   process.exit(syncResult.status ?? 1);
 }
 
+console.log('release-firebase: → Running AppInstaller contract validation...');
+const validateResult = spawnSync('node', ['scripts/validate-app-installer.mjs'], {
+  cwd: pkgRoot,
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+});
+if (validateResult.status !== 0) {
+  console.error('release-firebase: ✗ AppInstaller contract validation failed!');
+  process.exit(validateResult.status ?? 1);
+}
+
 function run(cmd, args, extraEnv = {}) {
   const result = spawnSync(cmd, args, {
     cwd: pkgRoot,

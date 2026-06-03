@@ -2,10 +2,22 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(__dirname, '../../..');
+
+console.log('generate-release-metadata: → Running AppInstaller contract validation...');
+const validateResult = spawnSync('node', ['scripts/validate-app-installer.mjs'], {
+  cwd: appRoot,
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+});
+if (validateResult.status !== 0) {
+  console.error('generate-release-metadata: ✗ AppInstaller contract validation failed!');
+  process.exit(validateResult.status ?? 1);
+}
 
 const appVersionPath = path.join(appRoot, 'src/lib/appVersion.ts');
 const versionJsonPath = path.join(repoRoot, 'firebase-public/version.json');

@@ -48,6 +48,10 @@ export let otaDebugLogs: {
   registeredPlugins: string;
   pluginMethodCheck: string;
   finalUpdatePath: string;
+  downloadApkAvailable: boolean;
+  verifyApkSha256Available: boolean;
+  installApkAvailable: boolean;
+  openInstallPermissionSettingsAvailable: boolean;
 } = {
   appVersion: APP_VERSION,
   nativeApkVersion: null,
@@ -67,6 +71,10 @@ export let otaDebugLogs: {
   registeredPlugins: '[]',
   pluginMethodCheck: 'N/A',
   finalUpdatePath: 'N/A',
+  downloadApkAvailable: false,
+  verifyApkSha256Available: false,
+  installApkAvailable: false,
+  openInstallPermissionSettingsAvailable: false,
 };
 
 export interface OtaDiagnostics {
@@ -112,9 +120,9 @@ export function isAppInstallerAvailable(): boolean {
 
   return (
     typeof plugin.downloadApk === 'function' &&
-    typeof plugin.verifySha256 === 'function' &&
+    (typeof plugin.verifyApkSha256 === 'function' || typeof plugin.verifySha256 === 'function') &&
     typeof plugin.installApk === 'function' &&
-    typeof plugin.openUnknownAppSourcesSettings === 'function'
+    (typeof plugin.openInstallPermissionSettings === 'function' || typeof plugin.openUnknownAppSourcesSettings === 'function')
   );
 }
 
@@ -572,17 +580,26 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           
           if (appInstallerExists) {
             const plugin = cap.Plugins.AppInstaller;
+            otaDebugLogs.downloadApkAvailable = typeof plugin?.downloadApk === 'function';
+            otaDebugLogs.verifyApkSha256Available = typeof plugin?.verifyApkSha256 === 'function' || typeof plugin?.verifySha256 === 'function';
+            otaDebugLogs.installApkAvailable = typeof plugin?.installApk === 'function';
+            otaDebugLogs.openInstallPermissionSettingsAvailable = typeof plugin?.openInstallPermissionSettings === 'function' || typeof plugin?.openUnknownAppSourcesSettings === 'function';
+            
             const methods = {
-              downloadApk: typeof plugin?.downloadApk === 'function',
-              verifySha256: typeof plugin?.verifySha256 === 'function',
-              installApk: typeof plugin?.installApk === 'function',
-              openUnknownAppSourcesSettings: typeof plugin?.openUnknownAppSourcesSettings === 'function',
+              downloadApk: otaDebugLogs.downloadApkAvailable,
+              verifyApkSha256: otaDebugLogs.verifyApkSha256Available,
+              installApk: otaDebugLogs.installApkAvailable,
+              openInstallPermissionSettings: otaDebugLogs.openInstallPermissionSettingsAvailable,
             };
             otaDebugLogs.pluginMethodCheck = Object.entries(methods)
               .map(([name, exists]) => `${name}: ${exists ? 'YES' : 'NO'}`)
               .join(', ');
             otaDebugLogs.installerLaunchStatus = `REGISTERED: AppInstaller is present in registry. Methods match.`;
           } else {
+            otaDebugLogs.downloadApkAvailable = false;
+            otaDebugLogs.verifyApkSha256Available = false;
+            otaDebugLogs.installApkAvailable = false;
+            otaDebugLogs.openInstallPermissionSettingsAvailable = false;
             otaDebugLogs.pluginMethodCheck = isNativePlat ? 'Plugin not found' : 'N/A (Web)';
             otaDebugLogs.installerLaunchStatus = `MISSING: AppInstaller not registered. Plugins: ${registry.join(', ')}`;
           }

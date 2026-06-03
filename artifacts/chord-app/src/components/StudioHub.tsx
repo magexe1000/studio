@@ -1769,6 +1769,10 @@ function HubSettings({
       `APK Version: ${otaDebugLogs.nativeApkVersion}`,
       `OTA Version: ${otaDebugLogs.currentOtaVersion}`,
       `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
+      `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
+      `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
+      `installApk Available: ${otaDebugLogs.installApkAvailable}`,
+      `openInstallPermissionSettings Available: ${otaDebugLogs.openInstallPermissionSettingsAvailable}`,
       `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
       `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
       `Final Update Path: ${otaDebugLogs.finalUpdatePath}`,
@@ -2237,6 +2241,10 @@ function HubSettings({
                 `APK Version: ${otaDebugLogs.nativeApkVersion}`,
                 `OTA Version: ${otaDebugLogs.currentOtaVersion}`,
                 `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
+                `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
+                `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
+                `installApk Available: ${otaDebugLogs.installApkAvailable}`,
+                `openInstallPermissionSettings Available: ${otaDebugLogs.openInstallPermissionSettingsAvailable}`,
                 `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
                 `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
                 `Final Update Path: ${otaDebugLogs.finalUpdatePath}`,
@@ -2282,6 +2290,10 @@ function HubSettings({
           <DebugRow label="Current APK Version" desc="The native Android APK version wrapper" value={otaDebugLogs.nativeApkVersion} />
           <DebugRow label="Current OTA Version" desc="The Capgo active bundle version" value={otaDebugLogs.currentOtaVersion} />
           <DebugRow label="AppInstaller Available" desc="Whether the native AppInstaller Capacitor plugin is loaded" value={String(otaDebugLogs.appInstallerAvailable)} />
+          <DebugRow label="downloadApk Available" desc="Whether downloadApk method is available on AppInstaller" value={String(otaDebugLogs.downloadApkAvailable)} />
+          <DebugRow label="verifyApkSha256 Available" desc="Whether verifyApkSha256 method is available on AppInstaller" value={String(otaDebugLogs.verifyApkSha256Available)} />
+          <DebugRow label="installApk Available" desc="Whether installApk method is available on AppInstaller" value={String(otaDebugLogs.installApkAvailable)} />
+          <DebugRow label="openInstallPermissionSettings Available" desc="Whether openInstallPermissionSettings method is available on AppInstaller" value={String(otaDebugLogs.openInstallPermissionSettingsAvailable)} />
           <DebugRow label="Registered Plugins" desc="List of all registered native Capacitor plugins" value={otaDebugLogs.registeredPlugins} />
           <DebugRow label="Plugin Method Check" desc="Verification of required plugin methods" value={otaDebugLogs.pluginMethodCheck} />
           <DebugRow label="Final Update Path" desc="The determined path for updating: OTA, APK automatic, manual, or none" value={otaDebugLogs.finalUpdatePath} highlightColor={accent.from} />

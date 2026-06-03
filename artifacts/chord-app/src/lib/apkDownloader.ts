@@ -1,6 +1,14 @@
 import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
+// CRITICAL WARNING:
+// This interface, the registered plugin name 'AppInstaller', and its methods:
+// - downloadApk
+// - verifyApkSha256
+// - installApk
+// - openInstallPermissionSettings
+// constitute a strict native-to-JS contract.
+// Do NOT rename the plugin name, the methods, or remove them.
 export interface AppInstallerPlugin {
   installApk(options: { filePath: string }): Promise<void>;
   downloadAndInstallApk(options: { url: string }): Promise<void>;
@@ -13,7 +21,9 @@ export interface AppInstallerPlugin {
   removeSecureValue(options: { key: string }): Promise<void>;
   canRequestPackageInstalls(): Promise<{ value: boolean }>;
   openUnknownAppSourcesSettings(): Promise<void>;
+  openInstallPermissionSettings(): Promise<void>;
   verifySha256(options: { filePath: string; expectedHash: string }): Promise<{ matches: boolean; computedHash: string }>;
+  verifyApkSha256(options: { filePath: string; expectedHash: string }): Promise<{ matches: boolean; computedHash: string }>;
   getDeviceInfo(): Promise<{ manufacturer: string; model: string; androidVersion: string; sdkInt: number; canRequestPackageInstalls: boolean }>;
 }
 

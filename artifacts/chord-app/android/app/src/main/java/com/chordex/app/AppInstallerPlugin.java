@@ -42,6 +42,17 @@ import java.net.URI;
         )
     }
 )
+// CRITICAL WARNING:
+// This plugin name "AppInstaller" and its methods:
+// - downloadApk
+// - verifyApkSha256
+// - installApk
+// - openInstallPermissionSettings
+// are a permanent native-to-JS bridge contract.
+// Do NOT rename this plugin.
+// Do NOT remove this plugin.
+// Do NOT change the method signatures or names.
+// The Studio OTA/APK update flow depends on this native bridge to function.
 public class AppInstallerPlugin extends Plugin {
 
     private SharedPreferences getSecurePreferences() throws Exception {
@@ -171,6 +182,11 @@ public class AppInstallerPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("Verification failed: " + e.getMessage(), e);
         }
+    }
+
+    @PluginMethod
+    public void verifyApkSha256(PluginCall call) {
+        verifySha256(call);
     }
 
     @PluginMethod
@@ -430,6 +446,11 @@ public class AppInstallerPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("Failed to open settings: " + e.getMessage(), e);
         }
+    }
+
+    @PluginMethod
+    public void openInstallPermissionSettings(PluginCall call) {
+        openUnknownAppSourcesSettings(call);
     }
 
     private void triggerInstallation(File file, PluginCall call) {

@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.3.2'; // Update safeguards and diagnostics
+export const APP_VERSION = '3.3.3'; // Update safeguards and diagnostics
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-03'; // 3.3.2
+export const APP_VERSION_DATE = '2026-06-03'; // 3.3.3
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,18 +53,19 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Update Safeguards",
+    heading: "Update Safeguards & Fixes",
     items: [
-      'Added runtime capability check for native package installer plugin AppInstaller.',
-      'Prevents starting broken update downloads or partial OTA updates if plugin is missing.',
-      'Show clear manual update recovery dialog with direct download links on older APK wrapper versions.',
+      'Fixed native AppInstaller plugin registration reliability on Android.',
+      'Added runtime checks to prevent partial OTA updates on unsupported devices.',
+      'Show manual update recovery dialog with direct downloads if plugin is missing.',
+      'Added build-time verification script to validate release packaging.',
     ],
   },
   {
     heading: "Update Debugging",
     items: [
-      'Exposed detailed AppInstaller diagnostics check in Settings -> Developer Options -> Update Debug.',
-      'Added plugin method checks, registered plugins listing, and final update path to clipboard logs.',
+      'Improved settings Developer Options Update Debug diagnostics page.',
+      'Added individual native method check indicators for easier diagnostics.',
     ],
   },
 ];
@@ -75,16 +76,17 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Salvaguardas de Actualización",
     items: [
-      'Añadida comprobación de capacidad en tiempo de ejecución para el plugin nativo AppInstaller.',
-      'Evita descargas corruptas o actualizaciones parciales de OTA si falta el plugin nativo.',
-      'Muestra diálogo claro de recuperación para actualizar manualmente con enlaces directos en wrappers APK antiguos.',
+      'Corregida la fiabilidad del registro del plugin nativo AppInstaller en Android.',
+      'Añadida comprobación de capacidad para evitar actualizaciones parciales.',
+      'Muestra diálogo claro de recuperación para actualizar de forma manual.',
+      'Añadido script de validación en tiempo de compilación.',
     ],
   },
   {
     heading: "Depuración de Actualización",
     items: [
-      'Exposición de diagnósticos detallados en Ajustes -> Opciones de Desarrollador -> Update Debug.',
-      'Añadida lista de plugins registrados y ruta final de actualización al portapapeles.',
+      'Mejorada la página de diagnósticos de actualización en Opciones de Desarrollador.',
+      'Añadidos indicadores individuales de métodos del plugin nativo.',
     ],
   },
 ];
@@ -94,16 +96,17 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
     heading: "Update-Sicherheitsprüfungen",
     items: [
-      'Laufzeitüberprüfung für das native AppInstaller-Plugin und dessen Methoden integriert.',
-      'Verhindert fehlerhafte APK-Downloads oder unvollständige OTA-Zustände, wenn das native Plugin fehlt.',
-      'Zeigt bei älteren APK-Wrappern einen manuellen Wiederherstellungsdialog mit direktem Download-Link an.',
+      'Zuverlässigkeit der AppInstaller-Plugin-Registrierung unter Android korrigiert.',
+      'Laufzeitprüfungen verhindern unvollständige OTA-Zustände bei fehlendem Plugin.',
+      'Manueller Wiederherstellungsdialog mit Direktlink auf älteren APK-Wrappern.',
+      'Validierungsskript zur Überprüfung der Release-Paketintegrität integriert.',
     ],
   },
   {
     heading: "Update-Diagnose",
     items: [
-      'Ausführliche Diagnose für AppInstaller unter Einstellungen -> Entwickleroptionen -> Update Debug.',
-      'Registrierte Plugins und der ermittelte Update-Pfad in Zwischenablage-Protokolle aufgenommen.',
+      'Verbesserte Update-Diagnoseseite in den Entwickleroptionen.',
+      'Einzelne Methodenprüfung für AppInstaller-Funktionen hinzugefügt.',
     ],
   },
 ];

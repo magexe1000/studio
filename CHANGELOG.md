@@ -15,6 +15,16 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.3.3
+
+- Fixed repeated APK update failure when AppInstaller is unavailable.
+- Fixed native AppInstaller registration reliability on Android.
+- Added runtime AppInstaller availability checks before APK updates.
+- Added manual recovery flow for users on older/broken APK builds.
+- Prevented partial OTA/APK updates when native update support is missing.
+- Added build-time validation to prevent APK releases without AppInstaller.
+- Improved update diagnostics for native plugin availability.
+
 ## 3.3.2
 
 - Added runtime capability checking for native AppInstaller plugin and its methods.
