@@ -15,6 +15,17 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.3.5
+
+- Fixed stale Firebase update manifests.
+- Fixed duplicate update notifications.
+- Removed legacy updater dialog conflicts.
+- Fixed black screen caused by stale update dialog fade overlay.
+- Unified the update dialog into one professional flow.
+- Improved update state handling and retry behavior.
+- Ensured manual checks always show accurate update status.
+- Preserved AppInstaller runtime validation for APK updates.
+
 ## 3.3.4
 
 - Fixed manual APK recovery downloads getting stuck at 100%.

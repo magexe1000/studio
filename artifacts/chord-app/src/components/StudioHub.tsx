@@ -1048,59 +1048,10 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   onBack: () => void;
 }) {
   const ota = useOtaUpdate();
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
-  const [manualLinkCopied, setManualLinkCopied] = useState(false);
   const { settings, updateSettings } = useChordStore();
   const lang = settings.language ?? 'en';
 
   const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
-  
-  // Show fullscreen progress screen during download (for OTA it includes 'ready' during reload, for APK it ends at 'ready' and shows the confirmation dialog instead)
-  const isDownloading = ota.updateState === 'downloading' || ota.updateState === 'applied' || (!isApkFlow && ota.updateState === 'ready');
-
-  const handleStartUpdate = async () => {
-    try {
-      await ota.downloadUpdate();
-      if (!isApkFlow) {
-        await ota.applyUpdate();
-      }
-    } catch (err) {
-      console.error('[HubUpdaterPage] Update failed:', err);
-    }
-  };
-
-  const handleInstallApk = async () => {
-    try {
-      await ota.applyUpdate();
-    } catch (err) {
-      console.error('[HubUpdaterPage] APK Install failed:', err);
-    }
-  };
-
-  const handleOpenGitHub = async () => {
-    try {
-      const { resolveReleasePageUrl } = await import('../lib/apkDownloader');
-      const fallbackUrl = await resolveReleasePageUrl(ota.remoteVersion ?? undefined);
-      window.open(fallbackUrl, '_system');
-    } catch (err) {
-      window.open('https://github.com/MAGEXE1000/Studio/releases', '_system');
-    }
-  };
-
-  const handleDismissConfirmation = () => {
-    ota.dismissUpdate();
-  };
-
-  if (isDownloading) {
-    return (
-      <StudioUpdateScreen
-        progress={ota.progress}
-        accentFrom={accent.from}
-        accentTo={accent.to}
-        statusText={ota.statusText}
-      />
-    );
-  }
 
   const L = lang === 'es'
     ? {
@@ -1113,7 +1064,6 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         studioUpdateAvailable: 'Actualización de Studio disponible',
         appUpdateAvailable: 'Actualización de aplicación disponible',
         updateStudio: 'Actualizar Studio',
-        installUpdate: 'Instalar actualización',
         controls: 'Controles',
         notifTitle: 'Notificaciones de actualización',
         notifDesc: 'Recibe un aviso del sistema cuando haya un bundle nuevo.',
@@ -1123,14 +1073,6 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         changelogDesc: 'Abre la hoja de cambios la primera vez tras instalar una nueva versión.',
         howItWorks: 'Cómo funciona',
         howItWorksBody: 'Las actualizaciones de Studio se descargan automáticamente en la aplicación y se aplican al instante.',
-        installConfirmationTitle: '¿Instalar actualización de Studio?',
-        installConfirmationDesc: 'Studio descargó una actualización nativa. Android te pedirá confirmación antes de la instalación.',
-        later: 'Más tarde',
-        install: 'Instalar',
-        errorTitle: 'Error de actualización automática',
-        errorDesc: 'No se pudo completar la actualización automática. ¿Abrir la página de descargas?',
-        openGithub: 'Abrir GitHub',
-        cancel: 'Cancelar',
       }
     : {
         title: 'Updater',
@@ -1142,7 +1084,6 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         studioUpdateAvailable: 'Studio update available',
         appUpdateAvailable: 'App update available',
         updateStudio: 'Update Studio',
-        installUpdate: 'Install update',
         controls: 'Controls',
         notifTitle: 'Update notifications',
         notifDesc: 'Get a system notification when a new bundle is ready.',
@@ -1152,14 +1093,6 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         changelogDesc: 'Open the changelog sheet the first time you launch after installing a new version.',
         howItWorks: 'How it works',
         howItWorksBody: 'Studio updates download inside the app and install securely.',
-        installConfirmationTitle: 'Install Studio update?',
-        installConfirmationDesc: 'Studio downloaded a native update. Android will ask for confirmation before installing.',
-        later: 'Later',
-        install: 'Install',
-        errorTitle: 'Automatic update failed',
-        errorDesc: 'The automatic update could not be completed. Open the download page?',
-        openGithub: 'Open GitHub',
-        cancel: 'Cancel',
       };
 
   const statusColor = ota.loading
@@ -1176,212 +1109,6 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
     <div className={className} style={style}>
       <style>{HUB_SETTINGS_CSS}</style>
       <SettingsSubHeader title={L.title} onBack={onBack} />
-
-      {/* ── APK/BOTH CONFIRMATION OVERLAY IN UPDATER PAGE ── */}
-      {ota.updateState === 'ready' && isApkFlow && (
-        <div style={{
-          margin: '0 0 16px', padding: '20px', borderRadius: 16,
-          background: 'var(--app-surface-high)', border: '1px solid rgba(128,128,128,0.15)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center'
-        }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 36, color: accent.from }}>system_update</span>
-          <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
-            {L.installConfirmationTitle}
-          </p>
-          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
-            {L.installConfirmationDesc}
-          </p>
-          <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 8 }}>
-            <button
-              type="button"
-              onClick={handleDismissConfirmation}
-              style={{
-                flex: 1, padding: '10px', borderRadius: 10, background: 'transparent',
-                border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-secondary)',
-                fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
-              }}
-            >
-              {L.later}
-            </button>
-            <button
-              type="button"
-              onClick={handleInstallApk}
-              style={{
-                flex: 1, padding: '10px', borderRadius: 10,
-                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
-                border: 'none', fontFamily: 'Manrope', fontWeight: 800, fontSize: 12.5, cursor: 'pointer'
-              }}
-            >
-              {L.install}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── MANUAL APK UPDATE REQUIRED IN UPDATER PAGE ── */}
-      {ota.updateState === 'manual_apk_required' && (() => {
-        const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
-        const fallbackApkUrl = ota.fallbackApkUrl || ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/download/v${ota.remoteVersion}/studio-${ota.remoteVersion}.apk`;
-
-        return (
-          <div style={{
-            margin: '0 0 16px', padding: '20px', borderRadius: 16,
-            background: 'rgba(235,163,8,0.06)', border: '1px solid rgba(235,163,8,0.2)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center'
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#eab308' }}>download_for_offline</span>
-            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
-              Manual update required
-            </p>
-            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
-              This installed version of Studio cannot install native updates automatically. Download and install Studio manually once. Future updates will install from inside Studio.
-            </p>
-
-            <div style={{
-              padding: '10px 12px',
-              borderRadius: 12,
-              background: 'rgba(234, 179, 8, 0.08)',
-              border: '1px solid rgba(234, 179, 8, 0.18)',
-              fontSize: 12,
-              color: '#eab308',
-              textAlign: 'left',
-              lineHeight: 1.45,
-              display: 'flex',
-              alignItems: 'start',
-              gap: 8,
-              width: '100%'
-            }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, marginTop: 1, flexShrink: 0 }}>info</span>
-              <span>If the download stays at 100%, cancel it and use Copy Link or GitHub Fallback.</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 8 }}>
-              <button
-                type="button"
-                onClick={async () => {
-                  window.open(manualApkUrl, '_system');
-                }}
-                style={{
-                  width: '100%', height: 40, borderRadius: 10,
-                  background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
-                  border: 'none', fontFamily: 'Manrope', fontWeight: 800, fontSize: 12.5, cursor: 'pointer'
-                }}
-              >
-                Download APK
-              </button>
-
-              <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(manualApkUrl);
-                      setManualLinkCopied(true);
-                      setTimeout(() => setManualLinkCopied(false), 2000);
-                    } catch (err) {
-                      console.error('Failed to copy manual APK URL:', err);
-                    }
-                  }}
-                  style={{
-                    flex: 1, height: 38, borderRadius: 10,
-                    background: 'transparent',
-                    border: '1px solid rgba(128,128,128,0.22)',
-                    color: 'var(--c-text-primary)',
-                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {manualLinkCopied ? 'Copied!' : 'Copy Link'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    window.open(fallbackApkUrl, '_system');
-                  }}
-                  style={{
-                    flex: 1, height: 38, borderRadius: 10,
-                    background: 'transparent',
-                    border: '1px solid rgba(128,128,128,0.22)',
-                    color: 'var(--c-text-primary)',
-                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5,
-                    cursor: 'pointer',
-                  }}
-                >
-                  GitHub Fallback
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => ota.checkNow()}
-                style={{
-                  width: '100%', height: 38, borderRadius: 10, background: 'transparent',
-                  border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-secondary)',
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
-                }}
-              >
-                Check again
-              </button>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ── FALLBACK ERROR UI IN UPDATER PAGE ── */}
-      {ota.updateState === 'error' && (
-        <div style={{
-          margin: '0 0 16px', padding: '20px', borderRadius: 16,
-          background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center'
-        }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#f87171' }}>error</span>
-          <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
-            {L.errorTitle}
-          </p>
-          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
-            {L.errorDesc}
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 8 }}>
-            <button
-              type="button"
-              onClick={() => setDiagnosticsOpen(true)}
-              style={{
-                width: '100%', padding: '10px', borderRadius: 10,
-                background: 'rgba(128,128,128,0.08)', color: 'var(--c-text-primary)',
-                border: '1px solid rgba(128,128,128,0.15)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
-              }}
-            >
-              Open Update Diagnostics
-            </button>
-            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-              <button
-                type="button"
-                onClick={() => ota.checkNow()}
-                style={{
-                  flex: 1, padding: '10px', borderRadius: 10, background: 'transparent',
-                  border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-secondary)',
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
-                }}
-              >
-                {L.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenGitHub}
-                style={{
-                  flex: 1, padding: '10px', borderRadius: 10,
-                  background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
-                  border: 'none', fontFamily: 'Manrope', fontWeight: 800, fontSize: 12.5, cursor: 'pointer'
-                }}
-              >
-                {L.openGithub}
-              </button>
-            </div>
-          </div>
-          <UpdateDiagnosticsSheet open={diagnosticsOpen} onClose={() => setDiagnosticsOpen(false)} />
-        </div>
-      )}
 
       {/* ── CARD: UNIFIED UPDATER CARD ── */}
       <div style={cardStyle}>
@@ -1402,7 +1129,10 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         {!ota.updateAvailable ? (
           <button
             type="button"
-            onClick={() => { void ota.checkNow(); }}
+            onClick={async () => {
+              window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+              await ota.checkNow();
+            }}
             disabled={ota.loading}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -1418,24 +1148,23 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         ) : (
           <button
             type="button"
-            onClick={handleStartUpdate}
-            disabled={ota.updateState === 'ready'}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+            }}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               margin: '16px', padding: '13px', borderRadius: 12,
-              background: ota.updateState === 'ready' 
-                ? 'rgba(128,128,128,0.1)' 
-                : `linear-gradient(135deg, ${accent.from}, ${accent.to})`, 
-              color: ota.updateState === 'ready' ? 'var(--c-text-secondary)' : '#fff',
+              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, 
+              color: '#fff',
               fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
-              border: 'none', cursor: ota.updateState === 'ready' ? 'default' : 'pointer',
-              boxShadow: ota.updateState === 'ready' ? 'none' : `0 4px 16px ${accent.to}44`
+              border: 'none', cursor: 'pointer',
+              boxShadow: `0 4px 16px ${accent.to}44`
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
               {isApkFlow ? 'system_update' : 'download'}
             </span>
-            {isApkFlow ? L.updateStudio : L.updateStudio}
+            {L.updateStudio}
           </button>
         )}
       </div>

@@ -73,14 +73,75 @@ if (releaseType !== 'ota') {
     const firebaseApkDir = path.join(repoRoot, 'firebase-public/apk');
     fs.mkdirSync(firebaseApkDir, { recursive: true });
 
-    const versionApkPath = path.join(firebaseApkDir, `studio-${version}.apk`);
-    const latestApkPath = path.join(firebaseApkDir, 'studio-latest.apk');
+    // Clean up old apk files to prevent Firebase Hosting Spark block on deployment
+    if (fs.existsSync(firebaseApkDir)) {
+      const files = fs.readdirSync(firebaseApkDir);
+      for (const file of files) {
+        if (file.endsWith('.apk')) {
+          fs.unlinkSync(path.join(firebaseApkDir, file));
+          console.log(`generate-release-metadata: Cleaned up old APK file to avoid Spark plan restrictions: ${file}`);
+        }
+      }
+    }
+
+    const versionApkPath = path.join(firebaseApkDir, `studio-${version}.bin`);
+    const latestApkPath = path.join(firebaseApkDir, 'studio-latest.bin');
 
     fs.copyFileSync(apkPath, versionApkPath);
-    console.log(`generate-release-metadata: ✓ Copied APK to ${versionApkPath}`);
+    console.log(`generate-release-metadata: ✓ Copied APK as bin to ${versionApkPath}`);
 
     fs.copyFileSync(apkPath, latestApkPath);
-    console.log(`generate-release-metadata: ✓ Copied APK to ${latestApkPath}`);
+    console.log(`generate-release-metadata: ✓ Copied APK as bin to ${latestApkPath}`);
+
+    // Dynamic firebase.json update to add headers for the specific version's bin file
+    try {
+      const firebaseJsonPath = path.join(repoRoot, 'firebase.json');
+      if (fs.existsSync(firebaseJsonPath)) {
+        const fbJson = JSON.parse(fs.readFileSync(firebaseJsonPath, 'utf8'));
+        if (fbJson.hosting && Array.isArray(fbJson.hosting.headers)) {
+          const headers = fbJson.hosting.headers;
+          const sourcePattern = `/apk/studio-${version}.bin`;
+          
+          // Remove existing rule for this version if present
+          const existingIdx = headers.findIndex(h => h.source === sourcePattern);
+          if (existingIdx !== -1) {
+            headers.splice(existingIdx, 1);
+          }
+          
+          // Construct the new rule
+          const newRule = {
+            "source": sourcePattern,
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/vnd.android.package-archive"
+              },
+              {
+                "key": "Content-Disposition",
+                "value": `attachment; filename="studio-${version}.apk"`
+              },
+              {
+                "key": "Cache-Control",
+                "value": "public, max-age=31536000, immutable"
+              }
+            ]
+          };
+          
+          // Find /apk/*.bin index to insert before it, ensuring precedence
+          const catchAllIdx = headers.findIndex(h => h.source === '/apk/*.bin');
+          if (catchAllIdx !== -1) {
+            headers.splice(catchAllIdx, 0, newRule);
+          } else {
+            headers.push(newRule);
+          }
+          
+          fs.writeFileSync(firebaseJsonPath, JSON.stringify(fbJson, null, 2) + '\n', 'utf8');
+          console.log(`generate-release-metadata: ✓ Dynamically updated firebase.json headers for ${sourcePattern}`);
+        }
+      }
+    } catch (err) {
+      console.warn('generate-release-metadata: ⚠ Could not dynamically update firebase.json:', err);
+    }
   } catch (err) {
     console.error('generate-release-metadata: ✗ Failed to copy APK to Firebase Hosting:', err);
     process.exit(1);
@@ -102,7 +163,7 @@ const metadata = {
   version: version,
   description: description,
   download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
-  manual_download_url: `https://studio-30f44.web.app/apk/studio-${version}.apk`,
+  manual_download_url: `https://studio-30f44.web.app/apk/studio-${version}.bin`,
   fallback_download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
   downloadUrl: `https://studio-30f44.web.app/ota/studio-ota-${version}.zip`,
   signature_download_url: "",
@@ -124,7 +185,7 @@ const syncVersionJson = (filePath) => {
     try {
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       data.apkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
-      data.manualApkUrl = `https://studio-30f44.web.app/apk/studio-${version}.apk`;
+      data.manualApkUrl = `https://studio-30f44.web.app/apk/studio-${version}.bin`;
       data.fallbackApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
       data.sha256 = sha256;
       data.updateType = releaseType;

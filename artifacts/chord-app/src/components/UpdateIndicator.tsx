@@ -195,7 +195,12 @@ export default function UpdateIndicator({
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setEntered(true));
-    return () => cancelAnimationFrame(id);
+    const handleOpen = () => setOpen(true);
+    window.addEventListener('studio:open-update-dialog', handleOpen);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener('studio:open-update-dialog', handleOpen);
+    };
   }, []);
 
   // Auto-minimize disabled per user request so the banner remains fully visible.
@@ -203,7 +208,8 @@ export default function UpdateIndicator({
   // Auto-OPEN the update modal whenever an update is available.
   useEffect(() => {
     if (!ota.updateAvailable || !ota.remoteVersion) return;
-    if (ota.updateState === 'dismissed') return;
+    const laterVer = readLaterVersion();
+    if (laterVer === ota.remoteVersion) return;
 
     const autoOpened = readAutoOpenedVersion();
     if (autoOpened === ota.remoteVersion) return;
@@ -574,170 +580,8 @@ function UpdateModal({
   const [permissionBlocked, setPermissionBlocked] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  
-  // For APK updates, we do NOT show the fullscreen progress overlay when state is 'ready',
-  // because we want to show the "Install Studio update?" confirmation dialog instead.
+
   const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
-  
-  const isDownloading = ota.updateState === 'downloading' || ota.updateState === 'applied' || (!isApkFlow && ota.updateState === 'ready');
-  const progress = ota.progress;
-
-  if (ota.updateState === 'manual_apk_required') {
-    const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
-    const fallbackApkUrl = ota.fallbackApkUrl || ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/download/v${ota.remoteVersion}/studio-${ota.remoteVersion}.apk`;
-
-    return (
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9000,
-          background: 'rgba(0,0,0,0.55)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          animation: 'fade-in 200ms ease-out both',
-        }}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            maxWidth: 380,
-            width: '100%',
-            background: 'var(--app-surface)',
-            borderRadius: 22,
-            overflow: 'hidden',
-            border: '1px solid rgba(128,128,128,0.15)',
-            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
-            animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
-            padding: 24,
-            textAlign: 'center',
-          }}
-        >
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#eab308' }}>download_for_offline</span>
-            <p style={{
-              margin: 0, fontSize: 20, fontWeight: 800,
-              color: 'var(--c-text-primary)',
-              fontFamily: 'Manrope', letterSpacing: '-0.02em',
-            }}>Manual update required</p>
-            
-            <p style={{
-              margin: '6px 0 0', fontSize: 13,
-              color: 'var(--c-text-secondary)',
-              fontFamily: 'Inter', lineHeight: 1.55,
-            }}>
-              This installed version of Studio cannot install native updates automatically. Download and install Studio manually once. Future updates will install from inside Studio.
-            </p>
-
-            <div style={{
-              marginTop: 10,
-              padding: '10px 12px',
-              borderRadius: 12,
-              background: 'rgba(234, 179, 8, 0.08)',
-              border: '1px solid rgba(234, 179, 8, 0.18)',
-              fontSize: 12,
-              color: '#eab308',
-              textAlign: 'left',
-              lineHeight: 1.45,
-              display: 'flex',
-              alignItems: 'start',
-              gap: 8,
-              width: '100%'
-            }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, marginTop: 1, flexShrink: 0 }}>info</span>
-              <span>If the download stays at 100%, cancel it and use Copy Link or GitHub Fallback.</span>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16, width: '100%' }}>
-              <button
-                type="button"
-                onClick={async () => {
-                  window.open(manualApkUrl, '_system');
-                }}
-                style={{
-                  width: '100%', height: 44, borderRadius: 12,
-                  background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
-                  border: 'none', color: 'white',
-                  fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
-                  cursor: 'pointer',
-                  boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
-                }}
-              >
-                Download APK
-              </button>
-
-              <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(manualApkUrl);
-                      setLinkCopied(true);
-                      setTimeout(() => setLinkCopied(false), 2000);
-                    } catch (err) {
-                      console.error('Failed to copy manual APK URL:', err);
-                    }
-                  }}
-                  style={{
-                    flex: 1, height: 42, borderRadius: 12,
-                    background: 'transparent',
-                    border: '1px solid rgba(128,128,128,0.22)',
-                    color: 'var(--c-text-primary)',
-                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {linkCopied ? 'Copied!' : 'Copy Link'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    window.open(fallbackApkUrl, '_system');
-                  }}
-                  style={{
-                    flex: 1, height: 42, borderRadius: 12,
-                    background: 'transparent',
-                    border: '1px solid rgba(128,128,128,0.22)',
-                    color: 'var(--c-text-primary)',
-                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                    cursor: 'pointer',
-                  }}
-                >
-                  GitHub Fallback
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={onLater}
-                style={{
-                  width: '100%', height: 40, borderRadius: 12,
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--c-text-secondary)',
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                  cursor: 'pointer',
-                  marginTop: 2
-                }}
-              >
-                Later
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const handleStartUpdate = async () => {
     try {
@@ -775,9 +619,18 @@ function UpdateModal({
     }
   };
 
+  const handleOpenGitHub = async () => {
+    try {
+      const { resolveReleasePageUrl } = await import('../lib/apkDownloader');
+      const fallbackUrl = await resolveReleasePageUrl(ota.remoteVersion ?? undefined);
+      window.open(fallbackUrl, '_system');
+    } catch (err) {
+      window.open('https://github.com/MAGEXE1000/Studio/releases', '_system');
+    }
+  };
+
   useEffect(() => {
     if (!permissionBlocked) return;
-
     let active = true;
     let nativeListener: { remove: () => Promise<void> } | undefined;
 
@@ -797,14 +650,11 @@ function UpdateModal({
     import('@capacitor/app').then(async ({ App }) => {
       if (!active) return;
       nativeListener = await App.addListener('appStateChange', (s) => {
-        if (s.isActive) {
-          checkPerm();
-        }
+        if (s.isActive) checkPerm();
       });
     }).catch(() => {});
 
     window.addEventListener('focus', checkPerm);
-
     return () => {
       active = false;
       window.removeEventListener('focus', checkPerm);
@@ -812,321 +662,453 @@ function UpdateModal({
     };
   }, [permissionBlocked, ota]);
 
-  const handleOpenGitHub = async () => {
-    try {
-      const { resolveReleasePageUrl } = await import('../lib/apkDownloader');
-      const fallbackUrl = await resolveReleasePageUrl(ota.remoteVersion ?? undefined);
-      window.open(fallbackUrl, '_system');
-      onClose();
-    } catch (err) {
-      window.open('https://github.com/MAGEXE1000/Studio/releases', '_system');
-      onClose();
-    }
+  const SpinnerSvg = ({ cFrom, cTo }: { cFrom: string; cTo: string }) => {
+    return (
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3.2"
+        strokeLinecap="round"
+        style={{
+          animation: 'lg-spin-spinner 1s linear infinite',
+        }}
+      >
+        <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.15)" />
+        <path d="M12 2a10 10 0 0 1 10 10" stroke="url(#lg-spinner-grad-indicator-dialog)" />
+        <defs>
+          <linearGradient id="lg-spinner-grad-indicator-dialog" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={cFrom} />
+            <stop offset="100%" stopColor={cTo} />
+          </linearGradient>
+        </defs>
+      </svg>
+    );
   };
 
-  if (permissionBlocked) {
-    return (
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={() => setPermissionBlocked(false)}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9000,
-          background: 'rgba(0,0,0,0.55)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          animation: 'fade-in 200ms ease-out both',
-        }}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            maxWidth: 380,
-            width: '100%',
-            background: 'var(--app-surface)',
-            borderRadius: 22,
-            overflow: 'hidden',
-            border: '1px solid rgba(128,128,128,0.15)',
-            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
-            animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
-            padding: 24,
-            textAlign: 'center',
-          }}
-        >
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#eab308' }}>security</span>
-            <p style={{
-              margin: 0, fontSize: 18, fontWeight: 800,
-              color: 'var(--c-text-primary)',
-              fontFamily: 'Manrope', letterSpacing: '-0.02em',
-            }}>Automatic installation blocked</p>
-            
-            <p style={{
-              margin: '6px 0 0', fontSize: 13,
-              color: 'var(--c-text-secondary)',
-              fontFamily: 'Inter', lineHeight: 1.55,
-            }}>
-              Please enable the 'Install unknown apps' permission for Studio in Android system settings to install the update.
-            </p>
-            
-            <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
-              <button
-                type="button"
-                onClick={() => setPermissionBlocked(false)}
-                style={{
-                  flex: 1, height: 42, borderRadius: 12,
-                  background: 'transparent',
-                  border: '1px solid rgba(128,128,128,0.22)',
-                  color: 'var(--c-text-secondary)',
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenSettings}
-                style={{
-                  flex: 1, height: 42, borderRadius: 12,
-                  background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
-                  border: 'none', color: 'white',
-                  fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
-                  cursor: 'pointer',
-                  boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
-                }}
-              >
-                Open Settings
-              </button>
-            </div>
+  // Select Icon and Colors based on State
+  let iconName = 'download';
+  let iconColor = accentFrom;
+  let title = 'Update available';
+  let description = '';
+  let showProgress = false;
+  let progressVal = ota.progress;
+  let showChangelog = false;
+  let showButtons = true;
+  let showSpinner = false;
+
+  const state = permissionBlocked ? 'permission_blocked' : ota.updateState;
+
+  switch (state) {
+    case 'permission_blocked':
+      iconName = 'security';
+      iconColor = '#eab308';
+      title = 'Automatic installation blocked';
+      description = "Please enable the 'Install unknown apps' permission for Studio in system settings to install the update.";
+      break;
+
+    case 'checking':
+      iconName = 'sync';
+      iconColor = accentFrom;
+      showSpinner = true;
+      title = 'Checking for updates';
+      description = 'Connecting to release server...';
+      showButtons = false;
+      break;
+
+    case 'idle':
+      iconName = 'check_circle';
+      iconColor = '#22c55e';
+      title = 'You are up to date';
+      description = `Studio version ${fromLabel} is the latest available version.`;
+      break;
+
+    case 'available':
+      iconName = isApkFlow ? 'system_update' : 'download';
+      iconColor = accentFrom;
+      title = isApkFlow ? 'Studio update available' : 'App update available';
+      description = isApkFlow 
+        ? 'A native update is required to apply the latest security, features, and library upgrades.'
+        : `Version ${toVersion} is ready to install. You are currently on ${fromLabel}.`;
+      showChangelog = true;
+      break;
+
+    case 'manual_apk_required':
+      iconName = 'download_for_offline';
+      iconColor = '#eab308';
+      title = 'Manual update required';
+      description = 'This version of Studio cannot install native updates automatically. Download and install Studio manually once. Future updates will install automatically.';
+      break;
+
+    case 'downloading_ota':
+    case 'downloading_apk':
+      iconName = 'cloud_download';
+      iconColor = accentFrom;
+      title = 'Downloading update';
+      description = ota.statusText || (state === 'downloading_ota' ? 'Downloading OTA package...' : 'Downloading APK package...');
+      showProgress = true;
+      showButtons = false;
+      break;
+
+    case 'verifying_apk':
+      iconName = 'verified_user';
+      iconColor = accentFrom;
+      title = 'Verifying update';
+      description = ota.statusText || 'Verifying package integrity...';
+      showSpinner = true;
+      showButtons = false;
+      break;
+
+    case 'ready_to_install':
+      iconName = 'task_alt';
+      iconColor = '#22c55e';
+      title = 'Ready to install';
+      description = isApkFlow
+        ? 'Update package downloaded and verified. Ready to initiate system installer.'
+        : 'Update downloaded successfully. Ready to reload and apply changes.';
+      break;
+
+    case 'installing':
+    case 'completed':
+      iconName = 'sync';
+      iconColor = accentFrom;
+      showSpinner = true;
+      title = 'Installing update';
+      description = ota.statusText || 'Applying update and rebooting App shell...';
+      showButtons = false;
+      break;
+
+    case 'failed':
+      iconName = 'error';
+      iconColor = '#f87171';
+      title = 'Update failed';
+      description = ota.error || 'An unexpected error occurred during the update process.';
+      break;
+  }
+
+  const primaryButtonStyle: React.CSSProperties = {
+    width: '100%', height: 44, borderRadius: 12,
+    background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
+    border: 'none', color: 'white',
+    fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
+    cursor: 'pointer',
+    boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  };
+
+  const secondaryButtonStyle: React.CSSProperties = {
+    flex: 1, height: 44, borderRadius: 12,
+    background: 'transparent',
+    border: '1px solid rgba(128,128,128,0.22)',
+    color: 'var(--c-text-secondary)',
+    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  };
+
+  const halfSecondaryButtonStyle: React.CSSProperties = {
+    flex: 1, height: 42, borderRadius: 12,
+    background: 'transparent',
+    border: '1px solid rgba(128,128,128,0.22)',
+    color: 'var(--c-text-primary)',
+    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  };
+
+  const tertiaryButtonStyle: React.CSSProperties = {
+    width: '100%', height: 40, borderRadius: 12,
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--c-text-secondary)',
+    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+    cursor: 'pointer',
+    marginTop: 2,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  };
+
+  const animatedPrimaryButtonStyle: React.CSSProperties = {
+    height: '100%',
+    background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
+    border: 'none', color: 'white',
+    fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
+    cursor: 'pointer',
+    boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+  };
+
+  const renderButtons = () => {
+    if (!showButtons) return null;
+
+    if (state === 'permission_blocked') {
+      return (
+        <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
+          <button
+            type="button"
+            onClick={() => setPermissionBlocked(false)}
+            style={secondaryButtonStyle}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenSettings}
+            style={primaryButtonStyle}
+          >
+            Open Settings
+          </button>
+        </div>
+      );
+    }
+
+    if (state === 'idle') {
+      return (
+        <div style={{ marginTop: 18, width: '100%' }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={primaryButtonStyle}
+          >
+            Close
+          </button>
+        </div>
+      );
+    }
+
+    if (state === 'available') {
+      return (
+        <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
+          <button
+            type="button"
+            onClick={onLater}
+            style={secondaryButtonStyle}
+          >
+            Later
+          </button>
+          <AnimatedActionButton
+            type="button"
+            onClick={handleStartUpdate}
+            wrapStyle={{ flex: 2, height: 42 }}
+            borderRadius={12}
+            trailColor={accentTo}
+            style={animatedPrimaryButtonStyle}
+          >
+            Update Now
+          </AnimatedActionButton>
+        </div>
+      );
+    }
+
+    if (state === 'manual_apk_required') {
+      const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.bin`;
+      const fallbackApkUrl = ota.fallbackApkUrl || ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/download/v${ota.remoteVersion}/studio-${ota.remoteVersion}.apk`;
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16, width: '100%' }}>
+          <button
+            type="button"
+            onClick={() => window.open(manualApkUrl, '_system')}
+            style={primaryButtonStyle}
+          >
+            Download APK
+          </button>
+          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(manualApkUrl);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                } catch (err) {
+                  console.error('Failed to copy manual APK URL:', err);
+                }
+              }}
+              style={halfSecondaryButtonStyle}
+            >
+              {linkCopied ? 'Copied!' : 'Copy Link'}
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenGitHub}
+              style={halfSecondaryButtonStyle}
+            >
+              GitHub Fallback
+            </button>
           </div>
+          <button
+            type="button"
+            onClick={onLater}
+            style={tertiaryButtonStyle}
+          >
+            Later
+          </button>
+        </div>
+      );
+    }
+
+    if (state === 'ready_to_install') {
+      return (
+        <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
+          <button
+            type="button"
+            onClick={onLater}
+            style={secondaryButtonStyle}
+          >
+            Later
+          </button>
+          <button
+            type="button"
+            onClick={handleInstallApk}
+            style={primaryButtonStyle}
+          >
+            Install
+          </button>
+        </div>
+      );
+    }
+
+    if (state === 'failed') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
+          <button
+            type="button"
+            onClick={() => setDiagnosticsOpen(true)}
+            style={{
+              width: '100%', height: 42, borderRadius: 12,
+              background: 'rgba(128,128,128,0.08)',
+              border: '1px solid rgba(128,128,128,0.15)',
+              color: 'var(--c-text-primary)',
+              fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            Open Diagnostics
+          </button>
+          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+            <button
+              type="button"
+              onClick={onLater}
+              style={halfSecondaryButtonStyle}
+            >
+              Later
+            </button>
+            <button
+              type="button"
+              onClick={handleStartUpdate}
+              style={primaryButtonStyle}
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const renderProgress = () => {
+    if (!showProgress) return null;
+    const pct = Math.round(progressVal * 100);
+    return (
+      <div style={{ width: '100%', marginTop: 12, marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12, fontWeight: 700, fontFamily: 'Manrope', color: 'var(--c-text-primary)' }}>
+          <span>Downloading update</span>
+          <span>{pct}%</span>
+        </div>
+        <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'rgba(128,128,128,0.12)', overflow: 'hidden' }}>
+          <div style={{
+            width: `${pct}%`, height: '100%',
+            background: `linear-gradient(90deg, ${accentFrom}, ${accentTo})`,
+            transition: 'width 200ms ease-out',
+          }} />
         </div>
       </div>
     );
-  }
+  };
 
-  if (isDownloading) {
+  const renderSpinner = () => {
+    if (!showSpinner) return null;
     return (
-      <StudioUpdateScreen
-        progress={progress}
-        accentFrom={accentFrom}
-        accentTo={accentTo}
-        statusText={ota.statusText}
-      />
-    );
-  }
-
-  // Fallback Error UI
-  if (ota.updateState === 'error') {
-    return (
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9000,
-          background: 'rgba(0,0,0,0.55)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          animation: 'fade-in 200ms ease-out both',
-        }}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            maxWidth: 380,
-            width: '100%',
-            background: 'var(--app-surface)',
-            borderRadius: 22,
-            overflow: 'hidden',
-            border: '1px solid rgba(128,128,128,0.15)',
-            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
-            animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
-            padding: 24,
-            textAlign: 'center',
-          }}
-        >
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#f87171' }}>error</span>
-            <p style={{
-              margin: 0, fontSize: 18, fontWeight: 800,
-              color: 'var(--c-text-primary)',
-              fontFamily: 'Manrope', letterSpacing: '-0.02em',
-            }}>Automatic update failed. Open download page?</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
-              <button
-                type="button"
-                onClick={() => setDiagnosticsOpen(true)}
-                style={{
-                  width: '100%', height: 42, borderRadius: 12,
-                  background: 'rgba(128,128,128,0.08)',
-                  border: '1px solid rgba(128,128,128,0.15)',
-                  color: 'var(--c-text-primary)',
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                  cursor: 'pointer',
-                }}
-              >
-                Open Update Diagnostics
-              </button>
-              <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  style={{
-                    flex: 1, height: 42, borderRadius: 12,
-                    background: 'transparent',
-                    border: '1px solid rgba(128,128,128,0.22)',
-                    color: 'var(--c-text-secondary)',
-                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleOpenGitHub}
-                  style={{
-                    flex: 1, height: 42, borderRadius: 12,
-                    background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
-                    border: 'none', color: 'white',
-                    fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
-                    cursor: 'pointer',
-                    boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
-                  }}
-                >
-                  Open GitHub
-                </button>
-              </div>
-            </div>
-            <UpdateDiagnosticsSheet open={diagnosticsOpen} onClose={() => setDiagnosticsOpen(false)} />
-          </div>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '12px 0 6px' }}>
+        <SpinnerSvg cFrom={accentFrom} cTo={accentTo} />
       </div>
     );
-  }
+  };
 
-  // Confirmation dialog when APK is ready to install
-  if (ota.updateState === 'ready' && isApkFlow) {
-    return (
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9000,
-          background: 'rgba(0,0,0,0.55)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          animation: 'fade-in 200ms ease-out both',
-        }}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            maxWidth: 380,
-            width: '100%',
-            background: 'var(--app-surface)',
-            borderRadius: 22,
-            overflow: 'hidden',
-            border: '1px solid rgba(128,128,128,0.15)',
-            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
-            animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
-            padding: 24,
-          }}
-        >
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-            textAlign: 'center',
-          }}>
-            <div style={{
-              width: 58, height: 58, borderRadius: '50%',
-              background: `color-mix(in srgb, ${accentFrom} 12%, var(--app-surface))`,
-              border: `1.5px solid color-mix(in srgb, ${accentFrom} 28%, transparent)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 26, color: accentFrom }}>system_update</span>
-            </div>
-            
-            <p style={{
-              margin: 0, fontSize: 20, fontWeight: 800,
-              color: 'var(--c-text-primary)',
-              fontFamily: 'Manrope', letterSpacing: '-0.02em',
-            }}>Install update?</p>
-            
-            <p style={{
-              margin: '6px 0 0', fontSize: 13,
-              color: 'var(--c-text-secondary)',
-              fontFamily: 'Inter', lineHeight: 1.55,
-            }}>
-              Android will ask for confirmation before installing.
-            </p>
-
-            <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
-              <button
-                type="button"
-                onClick={onLater}
-                style={{
-                  flex: 1, height: 42, borderRadius: 12,
-                  background: 'transparent',
-                  border: '1px solid rgba(128,128,128,0.22)',
-                  color: 'var(--c-text-secondary)',
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                  cursor: 'pointer',
-                }}
-              >
-                Later
-              </button>
-              <button
-                type="button"
-                onClick={handleInstallApk}
-                style={{
-                  flex: 1, height: 42, borderRadius: 12,
-                  background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
-                  border: 'none', color: 'white',
-                  fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
-                  cursor: 'pointer',
-                  boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
-                }}
-              >
-                Install
-              </button>
-            </div>
-          </div>
+  const renderIcon = () => {
+    if (showSpinner) {
+      return (
+        <div style={{
+          width: 58, height: 58, borderRadius: '50%',
+          background: 'rgba(128,128,128,0.06)',
+          border: '1.5px solid rgba(128,128,128,0.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 10,
+        }}>
+          <SpinnerSvg cFrom={accentFrom} cTo={accentTo} />
         </div>
+      );
+    }
+
+    return (
+      <div style={{
+        width: 58, height: 58, borderRadius: '50%',
+        background: `color-mix(in srgb, ${iconColor} 12%, var(--app-surface))`,
+        border: `1.5px solid color-mix(in srgb, ${iconColor} 28%, transparent)`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: `0 0 20px color-mix(in srgb, ${iconColor} 18%, transparent)`,
+        marginBottom: 10,
+      }}>
+        {iconName === 'download' ? (
+          <DownloadIcon size={26} color={iconColor} />
+        ) : (
+          <span className="material-symbols-outlined" style={{ fontSize: 28, color: iconColor }}>
+            {iconName}
+          </span>
+        )}
       </div>
     );
-  }
+  };
 
-  // Pre-download modal: standard OTA or APK update notification
+  const renderChangelog = () => {
+    if (!showChangelog) return null;
+    const bullets = ota.releaseNotes || (ota.changelog ? ota.changelog.split('\n').map(l => l.trim()).filter(Boolean) : []);
+    if (bullets.length === 0) return null;
+    return (
+      <div style={{
+        maxHeight: 120,
+        overflowY: 'auto',
+        textAlign: 'left',
+        width: '100%',
+        margin: '12px 0 4px',
+        padding: '10px 14px',
+        borderRadius: 12,
+        background: 'rgba(128,128,128,0.06)',
+        border: '1px solid rgba(128,128,128,0.08)',
+      }}>
+        <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope', color: 'var(--c-text-primary)' }}>
+          What's new:
+        </p>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.5 }}>
+          {bullets.map((bullet, idx) => (
+            <li key={idx} style={{ marginBottom: 4 }}>
+              {bullet.replace(/^-\s*/, '')}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      onClick={onClose}
+      onClick={state === 'downloading_ota' || state === 'downloading_apk' || state === 'verifying_apk' || state === 'installing' || state === 'completed' ? undefined : onClose}
       style={{
         position: 'fixed',
         inset: 0,
@@ -1152,119 +1134,54 @@ function UpdateModal({
           border: '1px solid rgba(128,128,128,0.15)',
           boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
           animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
+          padding: 24,
         }}
       >
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          textAlign: 'center', padding: '32px 24px 22px', gap: 12,
-        }}>
-          <div style={{
-            width: 58, height: 58, borderRadius: '50%',
-            background: `color-mix(in srgb, ${accentFrom} 12%, var(--app-surface))`,
-            border: `1.5px solid color-mix(in srgb, ${accentFrom} 28%, transparent)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 0 20px color-mix(in srgb, ${accentFrom} 18%, transparent)`,
-          }}>
-            <DownloadIcon size={26} color={accentFrom} />
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
+          {renderIcon()}
 
           <p style={{
             margin: 0, fontSize: 20, fontWeight: 800,
             color: 'var(--c-text-primary)',
             fontFamily: 'Manrope', letterSpacing: '-0.02em',
           }}>
-            {isApkFlow ? 'Studio update available' : 'App update available'}
+            {title}
           </p>
 
-          {!isApkFlow && (
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              padding: '4px 11px', borderRadius: 9999,
-              background: `color-mix(in srgb, ${accentFrom} 14%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${accentFrom} 28%, transparent)`,
-            }}>
-              <span style={{
-                width: 6, height: 6, borderRadius: '50%',
-                background: accentFrom, display: 'block', flexShrink: 0,
-              }} />
-              <span style={{
-                fontSize: 11, fontWeight: 700, color: accentFrom,
-                fontFamily: 'Manrope', letterSpacing: '0.04em',
-              }}>v{toVersion}</span>
-            </div>
-          )}
-        </div>
-
-        <div style={{
-          background: 'var(--app-surface-high)',
-          padding: '20px 22px 24px',
-          borderTop: '1px solid rgba(128,128,128,0.1)',
-        }}>
           <p style={{
-            margin: 0, fontSize: 13,
+            margin: '2px 0 0', fontSize: 13.5,
             color: 'var(--c-text-secondary)',
-            fontFamily: 'Inter', lineHeight: 1.55,
+            fontFamily: 'Inter', lineHeight: 1.5,
           }}>
-            {isApkFlow 
-              ? 'Native update required. Studio will download and guide you through the installation.'
-              : `Version ${toVersion} is ready. You're on ${fromLabel}.`
-            }
+            {description}
           </p>
 
-          {mandatory && (
+          {renderChangelog()}
+          {renderProgress()}
+          {renderSpinner()}
+
+          {mandatory && state === 'available' && (
             <p style={{
-              margin: '10px 0 0', fontSize: 11,
+              margin: '6px 0 0', fontSize: 11.5,
               color: '#f59e0b', fontFamily: 'Inter', fontWeight: 600,
             }}>
               This update is required.
             </p>
           )}
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-            <button
-              type="button"
-              onClick={onLater}
-              style={{
-                flex: 1, height: 42, borderRadius: 12,
-                background: 'transparent',
-                border: '1px solid rgba(128,128,128,0.22)',
-                color: 'var(--c-text-secondary)',
-                fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                cursor: 'pointer',
-                WebkitTapHighlightColor: 'transparent',
-                display: 'flex', alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {isApkFlow ? 'Later' : 'Remind me later'}
-            </button>
-            <AnimatedActionButton
-              type="button"
-              onClick={handleStartUpdate}
-              wrapStyle={{ flex: 2, height: 42 }}
-              borderRadius={12}
-              trailColor={accentTo}
-              style={{
-                height: '100%',
-                background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
-                border: 'none', color: 'white',
-                fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
-                cursor: 'pointer',
-                boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
-                display: 'flex', alignItems: 'center',
-                justifyContent: 'center', gap: 7,
-              }}
-            >
-              {isApkFlow ? 'Install update' : 'Update now'}
-            </AnimatedActionButton>
-          </div>
+          {renderButtons()}
         </div>
+        <UpdateDiagnosticsSheet open={diagnosticsOpen} onClose={() => setDiagnosticsOpen(false)} />
       </div>
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes rise-in {
           from { opacity: 0; transform: translateY(14px) scale(0.95); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes lg-spin-spinner {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
       `}</style>
     </div>

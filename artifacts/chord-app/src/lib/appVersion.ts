@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.3.4'; // Fixed manual APK recovery download stuck issues
+export const APP_VERSION = '3.3.5'; // Fixed updater system, stale manifests, duplicate notifications, and black screens
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-03'; // 3.3.4
+export const APP_VERSION_DATE = '2026-06-03'; // 3.3.5
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,21 +53,25 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Manual Recovery Fixes",
+    heading: "Fixed",
     items: [
-      'Fixed manual APK recovery downloads getting stuck at 100%.',
-      'Added Firebase-hosted direct APK mirror for reliable recovery installs.',
-      'Added Copy Link and GitHub Fallback options to the manual update flow.',
-      'Improved APK download headers for better Android downloader compatibility.',
-      'Prevented broken GitHub mobile download screen from blocking recovery.',
+      'Fixed stale Firebase update manifests.',
+      'Fixed duplicate update notifications.',
+      'Removed legacy updater dialog conflicts.',
+      'Fixed black screen caused by stale update dialog fade overlay.',
+      'Unified the update dialog into one professional flow.',
+      'Improved update state handling and retry behavior.',
+      'Ensured manual checks always show accurate update status.',
+      'Preserved AppInstaller runtime validation for APK updates.',
     ],
   },
   {
-    heading: "Update Improvements",
+    heading: "Improved",
     items: [
-      'Manual recovery now uses Firebase Hosting as the primary APK source.',
-      'GitHub Releases remain available as fallback and archive.',
-      'Update metadata now includes manual and fallback APK URLs.',
+      'Cleaner update dialog design.',
+      'Better update progress states.',
+      'Safer update fallback behavior.',
+      'More reliable Firebase metadata synchronization.',
     ],
   },
 ];
@@ -76,21 +80,25 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Correcciones de Recuperación",
+    heading: "Corregido",
     items: [
-      'Corregidas descargas manuales de APK que quedaban atascadas en 100%.',
-      'Añadido servidor alternativo directo en Firebase para descargas seguras.',
-      'Añadidas opciones de Copiar Enlace y GitHub Alternativo en el diálogo.',
-      'Mejoradas cabeceras de descarga de APK para compatibilidad con Android.',
-      'Evitado que el gestor de descargas móviles de GitHub bloquee la actualización.',
+      'Corregidos manifiestos de actualización stale en Firebase.',
+      'Corregidas notificaciones duplicadas de actualización.',
+      'Eliminados conflictos con diálogos de actualización heredados.',
+      'Corregido bloqueo de pantalla negra por overlay de fade huérfano.',
+      'Unificado el diálogo de actualización en un flujo profesional.',
+      'Mejorado el manejo de estados de actualización y reintentos.',
+      'Garantizado que las búsquedas manuales muestren el estado real.',
+      'Preservada la validación de AppInstaller en tiempo de ejecución.',
     ],
   },
   {
-    heading: "Mejoras de Actualización",
+    heading: "Mejorado",
     items: [
-      'La recuperación manual usa Firebase Hosting como origen principal del APK.',
-      'GitHub Releases sigue disponible como archivo y servidor de respaldo.',
-      'Metadatos de actualización ahora incluyen URL manual y alternativa.',
+      'Diseño más limpio del diálogo de actualización.',
+      'Mejores estados de progreso de actualización.',
+      'Comportamiento de recuperación de actualización más seguro.',
+      'Sincronización más confiable de metadatos de Firebase.',
     ],
   },
 ];
@@ -98,21 +106,25 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Wiederherstellungs-Fixes",
+    heading: "Behoben",
     items: [
-      'Manuelle APK-Downloads bleiben nicht mehr bei 100% hängen.',
-      'Direkter Firebase-APK-Spiegel für zuverlässige Installationen hinzugefügt.',
-      'Optionen zum Kopieren des Links und GitHub-Fallback hinzugefügt.',
-      'MIME-Typ- und Cache-Header für APK-Dateien auf Android optimiert.',
-      'Verhindert, dass fehlerhafte GitHub-Download-UIs die Installation blockieren.',
+      'Veraltete Firebase-Update-Manifeste behoben.',
+      'Doppelte Update-Benachrichtigungen behoben.',
+      'Konflikte mit alten Update-Dialogen entfernt.',
+      'Schwarzer Bildschirm durch verwaiste Fade-Overlays behoben.',
+      'Update-Dialog in einen professionellen Ablauf vereinheitlicht.',
+      'Verbessertes Handling von Update-Zuständen und Wiederholungen.',
+      'Manuelle Prüfungen zeigen nun immer den tatsächlichen Status.',
+      'AppInstaller-Laufzeitvalidierung für APK-Updates beibehalten.',
     ],
   },
   {
-    heading: "Update-Verbesserungen",
+    heading: "Verbessert",
     items: [
-      'Die manuelle Wiederherstellung nutzt nun Firebase Hosting als primäre Quelle.',
-      'GitHub Releases bleibt als Fallback und Archiv verfügbar.',
-      'Update-Metadaten enthalten nun explizite manuelle und Fallback-URLs.',
+      'Klareres Design des Update-Dialogs.',
+      'Bessere Statusanzeigen beim Herunterladen.',
+      'Sichereres Fallback-Verhalten bei Fehlern.',
+      'Zuverlässigere Firebase-Metadaten-Synchronisierung.',
     ],
   },
 ];

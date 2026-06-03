@@ -100,9 +100,10 @@ export function setupPushNotifications(): void {
   PushNotifications.addListener('pushNotificationActionPerformed', (action: ActionPerformed) => {
     console.log('[PUSH] Action performed:', action);
     try {
-      // Set update flow settings to show the updater or open changelog dialog
-      // We will dispatch a custom event to notify StudioHub to open the updater dialog.
-      window.dispatchEvent(new CustomEvent('studio-open-updater'));
+      // Dispatch the unified event to open the update dialog modal in-place.
+      window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+      // Also trigger routing event in case the hub settings update page needs to sync.
+      window.dispatchEvent(new CustomEvent('studio:route-to-updater'));
     } catch (err) {
       console.warn('[PUSH] Action handler failed:', err);
     }

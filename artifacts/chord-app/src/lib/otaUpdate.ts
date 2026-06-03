@@ -473,7 +473,18 @@ export async function fetchRemoteVersion(
  * Best-effort: compare the remote version against the bundle's version
  * and return whether an update is available. All errors swallowed.
  */
-export type OtaUpdateState = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'applied' | 'dismissed' | 'error' | 'manual_apk_required';
+export type OtaUpdateState =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'manual_apk_required'
+  | 'downloading_ota'
+  | 'downloading_apk'
+  | 'verifying_apk'
+  | 'ready_to_install'
+  | 'installing'
+  | 'completed'
+  | 'failed';
 
 export interface CentralizedOtaState {
   updateState: OtaUpdateState;
@@ -533,9 +544,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
   if (activeCheckPromise) return activeCheckPromise;
 
   // 2. Synchronous early return if check is unnecessary
-  if (globalOtaState.updateState === 'downloading' || 
-      globalOtaState.updateState === 'ready' || 
-      globalOtaState.updateState === 'applied') {
+  if (globalOtaState.updateState === 'downloading_ota' || 
+      globalOtaState.updateState === 'downloading_apk' || 
+      globalOtaState.updateState === 'verifying_apk' || 
+      globalOtaState.updateState === 'ready_to_install' || 
+      globalOtaState.updateState === 'installing' || 
+      globalOtaState.updateState === 'completed') {
     return Promise.resolve(globalOtaState);
   }
 
@@ -686,7 +700,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           const { resolveApkUrl } = await import('./apkDownloader');
           apkUrl = await resolveApkUrl(remote.version);
         }
-        manualApkUrl = remote.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${remote.version}.apk`;
+        manualApkUrl = remote.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${remote.version}.bin`;
         fallbackApkUrl = remote.fallbackApkUrl || apkUrl;
       }
 
@@ -726,17 +740,11 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 
       const isDismissed = dismissedList.includes(remote.version) || laterVersion === remote.version;
       
-      let nextState: OtaUpdateState = isDismissed ? 'dismissed' : 'available';
-      if (isNative() && (updateType === 'apk' || updateType === 'both')) {
-        if (!isAppInstallerAvailable()) {
-          nextState = 'manual_apk_required';
-          otaDebugLogs.finalDecision = `Show: Manual APK Update Required (isDismissed=${isDismissed})`;
-        } else {
-          otaDebugLogs.finalDecision = `Show: Available (isDismissed=${isDismissed})`;
-        }
-      } else {
-        otaDebugLogs.finalDecision = `Show: Available (isDismissed=${isDismissed})`;
-      }
+      let nextState: OtaUpdateState = (isNative() && (updateType === 'apk' || updateType === 'both') && !isAppInstallerAvailable())
+        ? 'manual_apk_required'
+        : 'available';
+      
+      otaDebugLogs.finalDecision = `Show: ${nextState === 'manual_apk_required' ? 'Manual APK Update Required' : 'Available'} (isDismissed=${isDismissed})`;
 
       console.log('[OTA DEBUG] Showing Update:', {
         version: remote.version,
@@ -771,7 +779,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       return globalOtaState;
     } catch (err) {
       console.warn('[OTA] Check failed:', err);
-      updateGlobalState({ updateState: 'error', error: String(err), loading: false });
+      updateGlobalState({ updateState: 'failed', error: String(err), loading: false });
       return globalOtaState;
     } finally {
       activeCheckPromise = null;
@@ -790,7 +798,7 @@ export function downloadUpdate(): Promise<void> {
   const { updateType, apkUrl, downloadUrl, remoteVersion } = globalOtaState;
   const ver = remoteVersion || '';
 
-  if (globalOtaState.updateState === 'ready' || globalOtaState.updateState === 'applied') {
+  if (globalOtaState.updateState === 'ready_to_install' || globalOtaState.updateState === 'completed') {
     if (updateType === 'apk' || updateType === 'both') {
       const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
       if (downloadedPath) {
@@ -816,20 +824,20 @@ export function downloadUpdate(): Promise<void> {
 
   if (!isNative()) {
     // Web: instant download/ready transition (handled on apply reload)
-    updateGlobalState({ updateState: 'ready', progress: 1.0 });
+    updateGlobalState({ updateState: 'ready_to_install', progress: 1.0 });
     return Promise.resolve();
   }
 
   if (updateType === 'both') {
     if (!apkUrl || !downloadUrl || !remoteVersion) {
       otaDebugLogs.downloadStatus = 'Error: Missing URL(s)';
-      updateGlobalState({ updateState: 'error', error: 'Missing OTA or APK update URL' });
+      updateGlobalState({ updateState: 'failed', error: 'Missing OTA or APK update URL' });
       return Promise.reject(new Error('Missing OTA or APK update URL'));
     }
 
     activeDownloadPromise = (async () => {
       otaDebugLogs.downloadStatus = `Update started: both\nOTA URL: ${downloadUrl}\nAPK URL: ${apkUrl}`;
-      updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading update', error: null });
+      updateGlobalState({ updateState: 'downloading_apk', progress: 0.01, statusText: 'Downloading update', error: null });
       try {
         const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         const { downloadApk } = await import('./apkDownloader');
@@ -879,6 +887,7 @@ export function downloadUpdate(): Promise<void> {
         const expectedHash = globalOtaState.apkSha256;
         if (expectedHash) {
           otaDebugLogs.downloadStatus += `\nStarting SHA verification (Expected: ${expectedHash})...`;
+          updateGlobalState({ updateState: 'verifying_apk', statusText: 'Verifying package' });
           const { verifyApkSha256 } = await import('./apkDownloader');
           const isValid = await verifyApkSha256(filePath, expectedHash);
           otaDebugLogs.shaVerification = isValid ? 'SUCCESS' : 'FAILED';
@@ -901,7 +910,7 @@ export function downloadUpdate(): Promise<void> {
         updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
         await new Promise((resolve) => setTimeout(resolve, 300));
 
-        updateGlobalState({ statusText: 'Ready to install', updateState: 'ready' });
+        updateGlobalState({ statusText: 'Ready to install', updateState: 'ready_to_install' });
         localStorage.setItem('studio:downloadedApkPath', filePath);
         localStorage.setItem('studio:downloadedBundleId', downloadedBundle.id);
         addToStoredList('studio:downloadedVersions', ver);
@@ -914,7 +923,7 @@ export function downloadUpdate(): Promise<void> {
         otaDebugLogs.installerLaunchStatus = 'FAILED';
         await populateDiagnostics(err, 'Both OTA/APK update download or verification failed');
         updateGlobalState({ 
-          updateState: 'error', 
+          updateState: 'failed', 
           error: errMsg,
           statusText: null
         });
@@ -929,13 +938,13 @@ export function downloadUpdate(): Promise<void> {
   if (updateType === 'apk') {
     if (!apkUrl) {
       otaDebugLogs.downloadStatus = 'Error: Missing APK URL';
-      updateGlobalState({ updateState: 'error', error: 'No APK download URL available' });
+      updateGlobalState({ updateState: 'failed', error: 'No APK download URL available' });
       return Promise.reject(new Error('No APK download URL available'));
     }
 
     activeDownloadPromise = (async () => {
       otaDebugLogs.downloadStatus = `Update started: apk\nAPK URL: ${apkUrl}`;
-      updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading update', error: null });
+      updateGlobalState({ updateState: 'downloading_apk', progress: 0.01, statusText: 'Downloading update', error: null });
       try {
         const { downloadApk } = await import('./apkDownloader');
         
@@ -952,6 +961,7 @@ export function downloadUpdate(): Promise<void> {
         const expectedHash = globalOtaState.apkSha256;
         if (expectedHash) {
           otaDebugLogs.downloadStatus += `\nStarting SHA verification (Expected: ${expectedHash})...`;
+          updateGlobalState({ updateState: 'verifying_apk', statusText: 'Verifying package' });
           const { verifyApkSha256 } = await import('./apkDownloader');
           const isValid = await verifyApkSha256(filePath, expectedHash);
           otaDebugLogs.shaVerification = isValid ? 'SUCCESS' : 'FAILED';
@@ -974,7 +984,7 @@ export function downloadUpdate(): Promise<void> {
         updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
         await new Promise((resolve) => setTimeout(resolve, 300));
 
-        updateGlobalState({ statusText: 'Ready to install', updateState: 'ready' });
+        updateGlobalState({ statusText: 'Ready to install', updateState: 'ready_to_install' });
         localStorage.setItem('studio:downloadedApkPath', filePath);
         localStorage.removeItem('studio:downloadedBundleId');
         addToStoredList('studio:downloadedVersions', ver);
@@ -987,7 +997,7 @@ export function downloadUpdate(): Promise<void> {
         otaDebugLogs.installerLaunchStatus = 'FAILED';
         await populateDiagnostics(err, 'APK download or verification failed');
         updateGlobalState({ 
-          updateState: 'error', 
+          updateState: 'failed', 
           error: errMsg,
           statusText: null
         });
@@ -1001,13 +1011,13 @@ export function downloadUpdate(): Promise<void> {
 
   if (!downloadUrl || !remoteVersion) {
     otaDebugLogs.downloadStatus = 'Error: Missing downloadUrl';
-    updateGlobalState({ updateState: 'error', error: 'No download URL available' });
+    updateGlobalState({ updateState: 'failed', error: 'No download URL available' });
     return Promise.reject(new Error('No download URL available'));
   }
 
   activeDownloadPromise = (async () => {
     otaDebugLogs.downloadStatus = `Update started: ota\nOTA URL: ${downloadUrl}`;
-    updateGlobalState({ updateState: 'downloading', progress: 0, error: null });
+    updateGlobalState({ updateState: 'downloading_ota', progress: 0, error: null });
     try {
       const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
 
@@ -1028,7 +1038,7 @@ export function downloadUpdate(): Promise<void> {
           version: ver,
         });
         otaDebugLogs.downloadStatus += `\nOTA download completed. Bundle ID: ${downloaded.id}`;
-        updateGlobalState({ progress: 1.0, updateState: 'ready' });
+        updateGlobalState({ progress: 1.0, updateState: 'ready_to_install' });
         localStorage.setItem('studio:downloadedBundleId', downloaded.id);
         localStorage.removeItem('studio:downloadedApkPath');
         addToStoredList('studio:downloadedVersions', ver);
@@ -1045,7 +1055,7 @@ export function downloadUpdate(): Promise<void> {
       otaDebugLogs.lastExceptionStackTrace = errStack;
       otaDebugLogs.installerLaunchStatus = 'FAILED';
       await populateDiagnostics(err, 'OTA bundle download failed');
-      updateGlobalState({ updateState: 'error', error: errMsg });
+      updateGlobalState({ updateState: 'failed', error: errMsg });
       throw err;
     } finally {
       activeDownloadPromise = null;
@@ -1066,7 +1076,7 @@ export function applyUpdate(): Promise<void> {
 
   activeApplyPromise = (async () => {
     if (updateType === 'apk' || updateType === 'both') {
-      updateGlobalState({ updateState: 'applied' });
+      updateGlobalState({ updateState: 'installing' });
       localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
       addToStoredList('studio:installedVersions', remoteVersion);
       addToStoredList('studio:appliedVersions', remoteVersion);
@@ -1116,7 +1126,7 @@ export function applyUpdate(): Promise<void> {
         otaDebugLogs.lastExceptionStackTrace = errStack;
         await populateDiagnostics(err, 'APK installation failed');
         updateGlobalState({ 
-          updateState: 'error', 
+          updateState: 'failed', 
           error: errMsg,
           statusText: 'Installation failed'
         });
@@ -1128,7 +1138,7 @@ export function applyUpdate(): Promise<void> {
       return;
     }
 
-    updateGlobalState({ updateState: 'applied' });
+    updateGlobalState({ updateState: 'installing' });
     localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
     addToStoredList('studio:installedVersions', remoteVersion);
     addToStoredList('studio:appliedVersions', remoteVersion);
@@ -1159,7 +1169,7 @@ export function applyUpdate(): Promise<void> {
         otaDebugLogs.installError += `\nOTA bundle applied and reload triggered.`;
         otaDebugLogs.installerLaunchStatus = 'SUCCESS';
         otaDebugLogs.lastExceptionStackTrace = 'None';
-        updateGlobalState({ statusText: 'OTA reload triggered' });
+        updateGlobalState({ statusText: 'OTA reload triggered', updateState: 'completed' });
       } catch (err) {
         console.error('[OTA] Apply failed:', err);
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -1169,7 +1179,7 @@ export function applyUpdate(): Promise<void> {
         otaDebugLogs.lastExceptionStackTrace = errStack;
         await populateDiagnostics(err, 'OTA apply failed');
         updateGlobalState({ 
-          updateState: 'error', 
+          updateState: 'failed', 
           error: errMsg,
           statusText: 'OTA apply failed'
         });
@@ -1202,10 +1212,12 @@ export function applyUpdate(): Promise<void> {
  * Centralized dismissUpdate: saves state in persistent storage.
  */
 export function dismissUpdate(): void {
-  const { remoteVersion } = globalOtaState;
+  const { remoteVersion, updateType } = globalOtaState;
   if (!remoteVersion) return;
   setSessionItem('studio:laterUpdateVersion', remoteVersion);
-  updateGlobalState({ updateState: 'dismissed' });
+  const isApkFlow = updateType === 'apk' || updateType === 'both';
+  const nextState = (isNative() && isApkFlow && !isAppInstallerAvailable()) ? 'manual_apk_required' : 'available';
+  updateGlobalState({ updateState: nextState });
 }
 
 /**

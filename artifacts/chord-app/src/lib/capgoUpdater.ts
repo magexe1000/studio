@@ -186,6 +186,14 @@ export async function notifyOtaAvailable(version: string): Promise<void> {
   const v = version.trim();
   if (!v) return;
   if (readNotifiedVersion() === v) return;
+
+  // Suppress system-level notification if the app is currently in the foreground
+  if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+    console.log('[notifyOtaAvailable] App is in foreground, suppressing system notification.');
+    writeNotifiedVersion(v); // Mark seen so we don't notify later
+    return;
+  }
+
   // In-flight guard: a second concurrent caller for the same version
   // short-circuits without racing the permission/schedule pipeline.
   if (inFlightNotifications.has(v)) return;
@@ -402,10 +410,30 @@ export async function fadeToBlackAndReload(
   overlay.getBoundingClientRect();
   overlay.style.opacity = '1';
 
+  // Set a safety watchdog timer. If the web view fails to reload or restart
+  // and terminate the JavaScript environment within 6 seconds, we fade the overlay out
+  // and clean it up to prevent the user from being locked on a black screen.
+  const safetyTimer = setTimeout(() => {
+    console.warn('[fadeToBlackAndReload] Reload safety watchdog triggered. Removing black overlay.');
+    overlay.style.opacity = '0';
+    setTimeout(() => {
+      overlay.remove();
+    }, 500);
+  }, 6000);
+
   // Wait for the transition to finish
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   // Perform the reload
-  await reloadCallback();
+  try {
+    await reloadCallback();
+  } catch (err) {
+    clearTimeout(safetyTimer);
+    overlay.style.opacity = '0';
+    setTimeout(() => {
+      overlay.remove();
+    }, 500);
+    throw err;
+  }
 }
 
