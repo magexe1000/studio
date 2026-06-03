@@ -503,7 +503,16 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
   activeCheckPromise = (async () => {
     updateGlobalState({ updateState: 'checking', loading: true });
     try {
-      const remote = await fetchRemoteVersion();
+      let remote = await fetchRemoteVersion();
+      const mockOta = getSessionItem('studio:mockOtaResponse');
+      if (mockOta) {
+        try {
+          remote = JSON.parse(mockOta);
+          console.log('[OTA DEBUG] Using mock remote response:', remote);
+        } catch (e) {
+          console.warn('[OTA] Failed to parse mock response:', e);
+        }
+      }
       const natVer = await getNativeVersion();
       const appliedList = getStoredList('studio:appliedVersions');
       const installedList = getStoredList('studio:installedVersions');

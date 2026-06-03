@@ -14,7 +14,7 @@ import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate, otaDebugLogs, otaDiagnostics } from '../lib/otaUpdate';
 import UpdateDiagnosticsSheet from './UpdateDiagnosticsSheet';
-import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
+import { applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable } from '../lib/capgoUpdater';
 import { resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl } from '../lib/apkDownloader';
 import StudioUpdateScreen from './StudioUpdateScreen';
 import StudioTitleReveal from './StudioTitleReveal';
@@ -215,6 +215,61 @@ export default function StudioHub() {
   useScrollHide(scrollRef);
 
   const isFirstAuthRun = useRef(true);
+
+  // Android-style Developer Options Tap & Toast state
+  const devTapsRef = useRef(0);
+  const [devToast, setDevToast] = useState<string | null>(null);
+  const [devToastTimer, setDevToastTimer] = useState<number | null>(null);
+  
+  const showDevToast = (msg: string) => {
+    if (devToastTimer) {
+      window.clearTimeout(devToastTimer);
+    }
+    setDevToast(msg);
+    const id = window.setTimeout(() => setDevToast(null), 2000);
+    setDevToastTimer(id);
+  };
+
+  const handleLogoTap = () => {
+    if (settings.developerMode) {
+      showDevToast('Developer Options are already active.');
+      return;
+    }
+    devTapsRef.current += 1;
+    const remaining = 5 - devTapsRef.current;
+    if (remaining > 0 && remaining <= 3) {
+      showDevToast(`${remaining} tap${remaining > 1 ? 's' : ''} remaining...`);
+    } else if (remaining === 0) {
+      devTapsRef.current = 0;
+      updateSettings({ developerMode: true });
+      showDevToast('Developer Options unlocked.');
+    }
+  };
+
+  const renderDevToast = () => (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: '32px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: isHubLight ? 'rgba(0, 0, 0, 0.75)' : 'rgba(255, 255, 255, 0.85)',
+        color: isHubLight ? '#fff' : '#000',
+        padding: '8px 18px',
+        borderRadius: '20px',
+        fontSize: '12.5px',
+        fontFamily: 'Inter, sans-serif',
+        fontWeight: 600,
+        zIndex: 99999,
+        pointerEvents: 'none',
+        backdropFilter: 'blur(8px)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.20)',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {devToast}
+    </div>
+  );
 
   useEffect(() => {
     return subscribeAuth((user) => {
@@ -534,6 +589,10 @@ export default function StudioHub() {
             onProfile={() => setTab('profile')}
             tab={tab}
             setTab={setTab}
+            showDevToast={showDevToast}
+            handleLogoTap={handleLogoTap}
+            devToast={devToast}
+            renderDevToast={renderDevToast}
           />
         )}
       </div>
@@ -553,8 +612,10 @@ export default function StudioHub() {
 // Uses the canonical animata double-rotate trick so icons stay upright.
 function StudioFamilyOrbit({
   items,
+  onLogoPress,
 }: {
   items: { key: string; node: React.ReactNode; label: string }[];
+  onLogoPress?: () => void;
 }) {
   const RADIUS = 96;
   const SPEED  = 22;
@@ -611,20 +672,24 @@ function StudioFamilyOrbit({
       }} />
 
       {/* Center Studio logo — neutral dark circle, no pink gradient */}
-      <div style={{
-        position: 'relative',
-        zIndex: 2,
-        width: 84,
-        height: 84,
-        borderRadius: '50%',
-        background: 'var(--c-surface-2, rgba(255,255,255,0.05))',
-        border: '1px solid rgba(255,255,255,0.10)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--c-text-primary)',
-        animation: 'family-orbit-bob 3.2s ease-in-out infinite',
-      }}>
+      <div
+        onClick={onLogoPress}
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          width: 84,
+          height: 84,
+          borderRadius: '50%',
+          background: 'var(--c-surface-2, rgba(255,255,255,0.05))',
+          border: '1px solid rgba(255,255,255,0.10)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--c-text-primary)',
+          animation: 'family-orbit-bob 3.2s ease-in-out infinite',
+          cursor: onLogoPress ? 'pointer' : 'default',
+        }}
+      >
         <StudioLogo size={48} />
       </div>
 
@@ -729,7 +794,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'help' | 'debug';
+type SettingsPageId = 'main' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'help' | 'debug' | 'developer';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -1296,6 +1361,10 @@ function HubSettings({
   onProfile,
   tab,
   setTab,
+  showDevToast = () => {},
+  handleLogoTap = () => {},
+  devToast = null,
+  renderDevToast = () => null,
 }: {
   accent: { from: string; to: string; mid: string };
   scrollRef?: React.RefObject<HTMLDivElement | null>;
@@ -1303,6 +1372,10 @@ function HubSettings({
   onProfile?: () => void;
   tab: HubTab;
   setTab: React.Dispatch<React.SetStateAction<HubTab>>;
+  showDevToast?: (msg: string) => void;
+  handleLogoTap?: () => void;
+  devToast?: string | null;
+  renderDevToast?: () => React.ReactNode;
 }) {
   const { settings, updateSettings, updatePerApp } = useChordStore();
   const t = useT();
@@ -1410,6 +1483,284 @@ function HubSettings({
 
   const goBackRef = useRef(goBack);
   useEffect(() => { goBackRef.current = goBack; });
+
+  const [devNativeVersion, setDevNativeVersion] = useState<string>('Loading...');
+  const [devOtaVersion, setDevOtaVersion] = useState<string>('Loading...');
+  const [devBundleId, setDevBundleId] = useState<string>('Loading...');
+  const [firebaseVersionJson, setFirebaseVersionJson] = useState<string>('Loading...');
+  const [firebaseAppReleaseJson, setFirebaseAppReleaseJson] = useState<string>('Loading...');
+  const [verboseLogs, setVerboseLogs] = useState<boolean>(() => localStorage.getItem('studio:verboseLogs') === 'true');
+
+  useEffect(() => {
+    if (page !== 'developer') return;
+    
+    const loadInfo = async () => {
+      try {
+        if (isNative()) {
+          const { App } = await import('@capacitor/app');
+          const info = await App.getInfo();
+          setDevNativeVersion(info.version);
+          setDevBundleId(info.id);
+        } else {
+          setDevNativeVersion('N/A (Web)');
+          setDevBundleId('N/A (Web)');
+        }
+      } catch (e) {
+        setDevNativeVersion('Error loading native info');
+        setDevBundleId('Error loading native info');
+      }
+
+      try {
+        if (isNative()) {
+          const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+          const current = await CapacitorUpdater.current();
+          setDevOtaVersion(current?.bundle?.version || 'builtin');
+        } else {
+          setDevOtaVersion('N/A (Web)');
+        }
+      } catch (e) {
+        setDevOtaVersion('Error loading OTA info');
+      }
+    };
+    
+    const loadManifests = async () => {
+      const t = Date.now();
+      const baseUrl = 'https://studio-30f44.web.app';
+      try {
+        const r1 = await fetch(`${baseUrl}/version.json?t=${t}`);
+        if (r1.ok) {
+          const text = await r1.text();
+          setFirebaseVersionJson(text);
+        } else {
+          setFirebaseVersionJson(`Error: HTTP ${r1.status}`);
+        }
+      } catch (e: any) {
+        setFirebaseVersionJson(`Error: ${e.message || String(e)}`);
+      }
+
+      try {
+        const r2 = await fetch(`${baseUrl}/app-release.json?t=${t}`);
+        if (r2.ok) {
+          const text = await r2.text();
+          setFirebaseAppReleaseJson(text);
+        } else {
+          setFirebaseAppReleaseJson(`Error: HTTP ${r2.status}`);
+        }
+      } catch (e: any) {
+        setFirebaseAppReleaseJson(`Error: ${e.message || String(e)}`);
+      }
+    };
+
+    loadInfo();
+    loadManifests();
+  }, [page]);
+
+  const handleClearUpdateCache = async () => {
+    try {
+      const filePath = localStorage.getItem('studio:downloadedApkPath');
+      if (filePath && isNative()) {
+        const { Filesystem } = await import('@capacitor/filesystem');
+        await Filesystem.deleteFile({ path: filePath }).catch(() => {});
+      }
+      localStorage.removeItem('studio:downloadedApkPath');
+      localStorage.removeItem('studio:downloadedBundleId');
+      localStorage.removeItem('studio:downloadedVersions');
+      showDevToast('Update cache cleared.');
+    } catch (err: any) {
+      showDevToast(`Clear failed: ${err.message || String(err)}`);
+    }
+  };
+
+  const handleClearDismissed = () => {
+    localStorage.removeItem('studio:dismissedVersions');
+    sessionStorage.removeItem('studio:laterUpdateVersion');
+    localStorage.removeItem('studio:notifiedUpdateVersion');
+    showDevToast('Dismissed versions cleared.');
+  };
+
+  const handleClearApplied = () => {
+    localStorage.removeItem('studio:appliedVersions');
+    localStorage.removeItem('studio:appliedUpdateVersion');
+    showDevToast('Applied versions cleared.');
+  };
+
+  const handleResetOta = async () => {
+    try {
+      if (isNative()) {
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+        await CapacitorUpdater.reset();
+        showDevToast('OTA reset triggered.');
+      } else {
+        showDevToast('OTA Reset is only supported on native.');
+      }
+    } catch (err: any) {
+      showDevToast(`Reset failed: ${err.message || String(err)}`);
+    }
+  };
+
+  const handleForceOtaRefresh = async () => {
+    try {
+      showDevToast('Force OTA refresh started...');
+      const { fetchRemoteVersion } = await import('../lib/otaUpdate');
+      const remote = await fetchRemoteVersion();
+      if (!remote || !remote.downloadUrl) {
+        showDevToast('No remote downloadUrl found.');
+        return;
+      }
+      const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+      const { fadeToBlackAndReload } = await import('../lib/capgoUpdater');
+      showDevToast('Downloading OTA bundle...');
+      const downloaded = await CapacitorUpdater.download({
+        url: remote.downloadUrl,
+        version: remote.version,
+      });
+      showDevToast('Applying OTA bundle...');
+      await fadeToBlackAndReload(async () => {
+        await CapacitorUpdater.set({ id: downloaded.id });
+        try {
+          await CapacitorUpdater.reload();
+        } catch {}
+      });
+    } catch (err: any) {
+      showDevToast(`Failed: ${err.message || String(err)}`);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      const mockVer = `3.3.0-test-${Date.now()}`;
+      showDevToast(`Triggering test notification: ${mockVer}`);
+      await notifyOtaAvailable(mockVer);
+    } catch (err: any) {
+      showDevToast(`Notification test failed: ${err.message || String(err)}`);
+    }
+  };
+
+  const handleTestOtaDetection = async () => {
+    try {
+      const mockVer = '3.3.1';
+      const mockRemote = {
+        version: mockVer,
+        updateType: 'ota',
+        downloadUrl: 'https://example.com/mock-ota.zip',
+        changelog: 'Simulated OTA Update Changelog for v3.3.1. Adds sleek developer features.',
+        releaseNotes: ['Simulated OTA item 1', 'Simulated OTA item 2']
+      };
+      sessionStorage.setItem('studio:mockOtaResponse', JSON.stringify(mockRemote));
+      
+      const dismissed = localStorage.getItem('studio:dismissedVersions');
+      if (dismissed) {
+        try {
+          const list = JSON.parse(dismissed);
+          localStorage.setItem('studio:dismissedVersions', JSON.stringify(list.filter((v: string) => v !== mockVer)));
+        } catch {}
+      }
+      sessionStorage.removeItem('studio:laterUpdateVersion');
+      
+      showDevToast('OTA simulation configured. Checking update...');
+      await ota.checkNow();
+    } catch (err: any) {
+      showDevToast(`Simulate failed: ${err.message || String(err)}`);
+    }
+  };
+
+  const handleTestApkDetection = async () => {
+    try {
+      const mockVer = '3.3.2';
+      const mockRemote = {
+        version: mockVer,
+        updateType: 'apk',
+        apkUrl: 'https://example.com/mock-apk.apk',
+        changelog: 'Simulated APK System Update for v3.3.2. Includes Android-specific fixes.',
+        apkSha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        releaseNotes: ['Simulated APK item 1', 'Simulated APK item 2']
+      };
+      sessionStorage.setItem('studio:mockOtaResponse', JSON.stringify(mockRemote));
+
+      const dismissed = localStorage.getItem('studio:dismissedVersions');
+      if (dismissed) {
+        try {
+          const list = JSON.parse(dismissed);
+          localStorage.setItem('studio:dismissedVersions', JSON.stringify(list.filter((v: string) => v !== mockVer)));
+        } catch {}
+      }
+      sessionStorage.removeItem('studio:laterUpdateVersion');
+
+      showDevToast('APK simulation configured. Checking update...');
+      await ota.checkNow();
+    } catch (err: any) {
+      showDevToast(`Simulate failed: ${err.message || String(err)}`);
+    }
+  };
+
+  const getDiagnosticsText = () => {
+    return [
+      '=== STUDIO DIAGNOSTICS REPORT ===',
+      `Timestamp: ${new Date().toISOString()}`,
+      `App Version: ${APP_VERSION}`,
+      `Device Model: ${isNative() ? 'Native Device' : 'Web Browser'}`,
+      '',
+      '=== OTA DEBUG LOGS ===',
+      `App Version: ${otaDebugLogs.appVersion}`,
+      `APK Version: ${otaDebugLogs.nativeApkVersion}`,
+      `OTA Version: ${otaDebugLogs.currentOtaVersion}`,
+      `Fetched version.json: ${otaDebugLogs.fetchedVersionJson}`,
+      `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson}`,
+      `Comparison Result: ${otaDebugLogs.compareResult}`,
+      `Update Type: ${otaDebugLogs.updateType}`,
+      `Final Decision: ${otaDebugLogs.finalDecision}`,
+      `Download Status: ${otaDebugLogs.downloadStatus}`,
+      `SHA Verification: ${otaDebugLogs.shaVerification}`,
+      `File Details: ${otaDebugLogs.fileDetails}`,
+      `Install Error / Log: ${otaDebugLogs.installError}`,
+      `Installer Launch Status: ${otaDebugLogs.installerLaunchStatus}`,
+      `Last Exception Stack Trace: ${otaDebugLogs.lastExceptionStackTrace}`,
+      '',
+      '=== OTA DIAGNOSTICS ===',
+      `Exception Message: ${otaDiagnostics.exceptionMessage}`,
+      `Failure Reason: ${otaDiagnostics.failureReason}`,
+      `Download URL: ${otaDiagnostics.downloadUrl}`,
+      `APK Path: ${otaDiagnostics.apkPath}`,
+      `File Size: ${otaDiagnostics.fileSize}`,
+      `SHA Expected: ${otaDiagnostics.shaExpected}`,
+      `SHA Calculated: ${otaDiagnostics.shaCalculated}`,
+      `Installer Result: ${otaDiagnostics.installerResult}`,
+      `Permission State: ${otaDiagnostics.permissionState}`,
+      `Android Version: ${otaDiagnostics.androidVersion}`,
+      `Device Model: ${otaDiagnostics.deviceModel}`,
+      `Diagnostics Timestamp: ${otaDiagnostics.timestamp}`,
+    ].join('\n');
+  };
+
+  const handleExportDiagnostics = async () => {
+    const content = getDiagnosticsText();
+    const filename = `studio-diagnostics-${Date.now()}.txt`;
+    if (isNative()) {
+      try {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        await Filesystem.writeFile({
+          path: filename,
+          data: content,
+          directory: Directory.Documents,
+          encoding: 'utf8' as any,
+        });
+        showDevToast(`Exported to Documents: ${filename}`);
+      } catch (err: any) {
+        showDevToast(`Export failed: ${err.message || String(err)}`);
+      }
+    } else {
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showDevToast('Diagnostics exported successfully.');
+    }
+  };
 
   useBackHandler('nested', () => {
     // 1. If inside a nested view (settingsPage), go back to main Hub
@@ -1874,6 +2225,176 @@ function HubSettings({
     );
   }
 
+  /* ── DEVELOPER OPTIONS ───────────────────────────────────────────── */
+  if (page === 'developer') {
+    const DevButtonRow = ({ label, desc, actionLabel, onPress }: { label: string; desc?: string; actionLabel: string; onPress: () => void }) => (
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(128,128,128,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 'var(--font-base)', fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>{label}</p>
+          {desc && <p style={{ fontSize: 'var(--font-sm)', marginTop: '2px', lineHeight: 1.3, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '4px 0 0' }}>{desc}</p>}
+        </div>
+        <button
+          onClick={onPress}
+          className="btn-smooth"
+          style={{
+            padding: '8px 16px',
+            borderRadius: '8px',
+            background: 'rgba(128,128,128,0.08)',
+            border: '1px solid rgba(128,128,128,0.15)',
+            color: 'var(--c-text-primary)',
+            fontFamily: 'Manrope',
+            fontWeight: 700,
+            fontSize: '12.5px',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {actionLabel}
+        </button>
+      </div>
+    );
+
+    const DevInfoRow = ({ label, desc, value }: { label: string; desc?: string; value: string }) => (
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
+        <div style={{ flex: 1, minWidth: 0, marginBottom: '8px' }}>
+          <p style={{ fontSize: 'var(--font-base)', fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>{label}</p>
+          {desc && <p style={{ fontSize: 'var(--font-sm)', marginTop: '2px', lineHeight: 1.3, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '4px 0 0' }}>{desc}</p>}
+        </div>
+        <div style={{
+          padding: '8px 12px',
+          borderRadius: '6px',
+          background: 'rgba(128,128,128,0.06)',
+          fontFamily: 'monospace',
+          fontSize: '12px',
+          color: 'var(--c-text-primary)',
+          wordBreak: 'break-word',
+          whiteSpace: 'pre-wrap'
+        }}>
+          {value}
+        </div>
+      </div>
+    );
+
+    return (
+      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+        <style>{HUB_SETTINGS_CSS}</style>
+        <SettingsSubHeader title="Developer Options" onBack={goBack} />
+        
+        <SettingsSectionLabel>Actions & Diagnostics</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <SettingRow label="Disable Developer Options" desc="Disable developer mode and hide this menu">
+            <button
+              onClick={() => {
+                updateSettings({ developerMode: false });
+                goBack();
+              }}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '8px',
+                background: '#ef444415',
+                border: '1px solid #ef444430',
+                color: '#ef4444',
+                fontFamily: 'Manrope',
+                fontWeight: 700,
+                fontSize: '12.5px',
+                cursor: 'pointer'
+              }}
+            >
+              Disable
+            </button>
+          </SettingRow>
+
+          <DevButtonRow label="Update Debug Screen" desc="View comprehensive update logs & exception traces" actionLabel="Open" onPress={() => navigate('debug')} />
+          <DevButtonRow label="Force Check For Updates" desc="Execute update check bypassing standard intervals" actionLabel="Check" onPress={() => ota.checkNow()} />
+          <DevButtonRow label="Force OTA Refresh" desc="Re-downloads and applies current OTA bundle" actionLabel="Refresh" onPress={handleForceOtaRefresh} />
+          <DevButtonRow label="Clear Update Cache" desc="Delete downloaded APK files and update local records" actionLabel="Clear" onPress={handleClearUpdateCache} />
+          <DevButtonRow label="Clear Dismissed Versions" desc="Clear previously skipped update configurations" actionLabel="Clear" onPress={handleClearDismissed} />
+          <DevButtonRow label="Clear Applied Versions" desc="Clear list of successfully installed OTA/APK update history" actionLabel="Clear" onPress={handleClearApplied} />
+          <DevButtonRow label="Reset OTA State" desc="Revert native Capgo wrapper bundle to default builtin" actionLabel="Reset" onPress={handleResetOta} />
+        </div>
+
+        <SettingsSectionLabel>Simulations & Testing</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <DevButtonRow label="Test Local Notification" desc="Triggers immediate mock OS notification for test update" actionLabel="Test" onPress={handleTestNotification} />
+          <DevButtonRow label="Test OTA Detection" desc="Simulate finding a new OTA update (v3.3.1)" actionLabel="Simulate" onPress={handleTestOtaDetection} />
+          <DevButtonRow label="Test APK Detection" desc="Simulate finding a new APK wrapper update (v3.3.2)" actionLabel="Simulate" onPress={handleTestApkDetection} />
+        </div>
+
+        <SettingsSectionLabel>App & Metadata Information</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <SettingRow label="Enable Verbose Update Logs" desc="Enable highly detailed logging during OTA / APK processes">
+            <Toggle
+              value={verboseLogs}
+              onChange={(v) => {
+                setVerboseLogs(v);
+                localStorage.setItem('studio:verboseLogs', v ? 'true' : 'false');
+                showDevToast(`Verbose logging: ${v ? 'enabled' : 'disabled'}`);
+              }}
+              accentFrom={accent.from}
+              accentTo={accent.to}
+            />
+          </SettingRow>
+
+          <DevInfoRow label="Current App Version" desc="The hardcoded version in the app bundle (APP_VERSION)" value={APP_VERSION} />
+          <DevInfoRow label="Current APK Version" desc="The native Android APK version wrapper" value={devNativeVersion} />
+          <DevInfoRow label="Current OTA Version" desc="The active Capgo bundle version identifier" value={devOtaVersion} />
+          <DevInfoRow label="Installed Bundle ID" desc="The package name identifier on native Android" value={devBundleId} />
+          
+          <DevInfoRow label="Firebase manifest (version.json)" value={firebaseVersionJson} />
+          <DevInfoRow label="Firebase manifest (app-release.json)" value={firebaseAppReleaseJson} />
+        </div>
+
+        <div style={{ padding: '20px', display: 'flex', gap: 12 }}>
+          <button
+            onClick={() => {
+              const text = getDiagnosticsText();
+              navigator.clipboard.writeText(text).then(() => {
+                showDevToast('Diagnostics copied to clipboard.');
+              });
+            }}
+            className="btn-smooth"
+            style={{
+              flex: 1,
+              padding: '12px',
+              borderRadius: '0.75rem',
+              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+              color: 'white',
+              fontFamily: 'Manrope',
+              fontWeight: 700,
+              fontSize: '13px',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'center',
+            }}
+          >
+            Copy Diagnostics
+          </button>
+          
+          <button
+            onClick={handleExportDiagnostics}
+            className="btn-smooth"
+            style={{
+              flex: 1,
+              padding: '12px',
+              borderRadius: '0.75rem',
+              background: 'rgba(128,128,128,0.08)',
+              color: 'var(--c-text-primary)',
+              border: '1px solid rgba(128,128,128,0.15)',
+              fontFamily: 'Manrope',
+              fontWeight: 700,
+              fontSize: '13px',
+              cursor: 'pointer',
+              textAlign: 'center',
+            }}
+          >
+            Export Diagnostics
+          </button>
+        </div>
+        {devToast && renderDevToast()}
+      </div>
+    );
+  }
+
   /* ── ABOUT ──────────────────────────────────────────────────────── */
   if (page === 'about') {
     const lang = settings.language ?? 'en';
@@ -1893,7 +2414,7 @@ function HubSettings({
             Studio sine-wave center. This is the only visual on the About
             page now (per design); version + footer sit minimally below. */}
         <div style={cardStyle}>
-          <StudioFamilyOrbit items={subAppLogos} />
+          <StudioFamilyOrbit items={subAppLogos} onLogoPress={handleLogoTap} />
           <div style={{ textAlign: 'center', padding: '0 0 22px' }}>
             <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 26, letterSpacing: '-0.03em', color: 'var(--c-text-primary)', lineHeight: 1.1 }}>Studio</p>
             <p style={{ margin: '6px 0 0', fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', letterSpacing: '0.04em' }}>
@@ -1907,6 +2428,7 @@ function HubSettings({
           <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>{t.settings.about.footer}</p>
         </div>
         <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
+        {devToast && renderDevToast()}
       </div>
     );
   }
@@ -2027,8 +2549,10 @@ function HubSettings({
       <div style={cardStyle}>
         <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'OTA update system'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={210} />
         <SettingsNavRow icon="history" iconColor={accent.from} title={(t.hub as { studioSettings?: { changelog?: string } }).studioSettings?.changelog ?? 'Changelog'} desc={(t.hub as { studioSettings?: { changelogDesc?: string } }).studioSettings?.changelogDesc ?? "What's new in this version"} onPress={() => setChangelogOpen(true)} delay={220} />
-        <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} delay={230} />
-        <SettingsNavRow icon="bug_report" iconColor={accent.from} title="Update Debug" desc="Diagnostics for version matching" onPress={() => navigate('debug')} last delay={240} />
+        <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last={!settings.developerMode} delay={230} />
+        {settings.developerMode && (
+          <SettingsNavRow icon="terminal" iconColor={accent.from} title="Developer Options" desc="Update simulation, logs, and controls" onPress={() => navigate('developer')} last delay={240} />
+        )}
       </div>
 
       <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />

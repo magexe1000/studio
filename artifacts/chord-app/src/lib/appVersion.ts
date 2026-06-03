@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.2.10'; // Unified Updater & Simple APK updates
+export const APP_VERSION = '3.3.0'; // Developer Options & Update System Overhaul
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-03'; // 3.2.10
+export const APP_VERSION_DATE = '2026-06-03'; // 3.3.0
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,10 +53,24 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "APK Update Flow",
+    heading: "Developer Options",
     items: [
-      'Morphe-style Updates: Implemented fully background APK updates directly inside Studio, downloading packages silently without launching browser windows.',
-      'Install Unknown Apps Permission handling: Guided permission blocks to Android settings and automated installer launches upon return.',
+      'Developer Options: Added hidden Android-style developer settings menu with advanced diagnostics, simulations, and update controls.',
+      'Tapping Logo: Tapping logo 5 times in Settings → About Studio unlocks Developer Options.',
+    ],
+  },
+  {
+    heading: "Update System Overhaul",
+    items: [
+      'Firebase Hosting Migration: Migrated OTA bundle hosting and metadata manifests from GitHub Pages to Firebase Hosting.',
+      'CORS & Fetch fixes: Added Firebase CORS support for native updates and resolved remote manifest race conditions.',
+      'SHA-256 Verification: Integrated integrity hashes to verify downloaded packages before launching intent.',
+    ],
+  },
+  {
+    heading: "Performance & Size",
+    items: [
+      'Bundle Reduction: Reduced OTA package size by ~65% via WebP assets, optimized font loading, and packaging.',
     ],
   },
 ];
@@ -65,10 +79,24 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Actualizaciones de APK",
+    heading: "Opciones de Desarrollador",
     items: [
-      'Actualizaciones Estilo Morphe: Actualizaciones de APK en segundo plano directo en Studio sin abrir ventanas del navegador.',
-      'Permisos de Orígenes Desconocidos: Se redireccionan los bloqueos de permisos a los ajustes de Android y se automatiza la instalación al regresar.',
+      'Opciones de Desarrollador: Menú oculto estilo Android con diagnósticos avanzados, simulaciones y controles.',
+      'Activación por Logo: Tocar el logo 5 veces en Ajustes → Acerca de Studio activa el menú.',
+    ],
+  },
+  {
+    heading: "Sistema de Actualización",
+    items: [
+      'Migración a Firebase Hosting: Se movió el alojamiento de paquetes OTA y manifiestos de GitHub Pages a Firebase.',
+      'Soporte CORS y Fetch: Añadido soporte CORS para descargas nativas y resuelto condiciones de carrera en manifiestos.',
+      'Verificación SHA-256: Se integró la verificación SHA-256 para asegurar la integridad de las descargas.',
+    ],
+  },
+  {
+    heading: "Rendimiento",
+    items: [
+      'Reducción de Paquete: Tamaño de OTA reducido aproximadamente un 65% mediante optimizaciones WebP y fuentes.',
     ],
   },
 ];
@@ -76,10 +104,24 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "APK-Update-Vorgang",
+    heading: "Entwickleroptionen",
     items: [
-      'Morphe-Stil Updates: Integrierter Hintergrund-APK-Download direkt in Studio ohne externe Browserfenster.',
-      'Berechtigung für unbekannte Apps: Verbesserte Menüführung zur Berechtigungsseite und automatischer Installationsstart bei Rückkehr.',
+      'Entwickleroptionen: Ausgeblendetes Android-ähnliches Menü mit Diagnose- und Simulationsfunktionen.',
+      'Aktivierung per Logo: 5-maliges Tippen auf das Studio-Logo unter Einstellungen → Über Studio schaltet das Menü frei.',
+    ],
+  },
+  {
+    heading: "Update-System",
+    items: [
+      'Firebase-Hosting Migration: OTA-Bundles und Manifeste von GitHub Pages zu Firebase Hosting migriert.',
+      'CORS & Fetch: Zuverlässigere Abfragen mit CORS-Unterstützung und optimiertem Versionen-Abgleich.',
+      'SHA-256-Verifizierung: Integrierte SHA-256-Prüfung zur Absicherung der Download-Integrität.',
+    ],
+  },
+  {
+    heading: "Leistung & Größe",
+    items: [
+      'Bundle-Reduzierung: Reduzierung der OTA-Paketgröße um ca. 65 % dank WebP-Format und kompakter Schriftdateien.',
     ],
   },
 ];

@@ -129,6 +129,7 @@ export interface AppSettings {
   autoCleanTemp: boolean;
   lastExportDate: string;
   activityHistoryEnabled: boolean;
+  developerMode: boolean;
 }
 
 interface ChordStore {
@@ -291,6 +292,7 @@ export const useChordStore = create<ChordStore>()(
         autoCleanTemp: false,
         lastExportDate: 'Never exported',
         activityHistoryEnabled: true,
+        developerMode: false,
         perApp: {
           hub:    { theme: 'dark', accentColor: 'blue', amoledMode: false },
           chords: { theme: 'dark', accentColor: 'blue', amoledMode: false },
@@ -692,7 +694,7 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
-      version: 9,
+      version: 10,
       migrate: (stored: unknown, fromVersion: number) => {
         const s = stored as Record<string, unknown>;
         if (fromVersion < 1) {
@@ -794,6 +796,14 @@ export const useChordStore = create<ChordStore>()(
             if (typeof settings.backupRetention !== 'string') settings.backupRetention = 'forever';
             if (typeof settings.autoCleanTemp !== 'boolean') settings.autoCleanTemp = false;
             if (typeof settings.lastExportDate !== 'string') settings.lastExportDate = 'Never exported';
+          }
+        }
+        if (fromVersion < 10) {
+          if (s.settings && typeof s.settings === 'object') {
+            const settings = s.settings as Record<string, unknown>;
+            if (typeof settings.developerMode !== 'boolean') {
+              settings.developerMode = false;
+            }
           }
         }
         return s;

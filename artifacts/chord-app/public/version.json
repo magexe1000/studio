@@ -1,8 +1,8 @@
 {
-  "version": "3.2.10",
-  "changelog": "Version 3.2.10",
+  "version": "3.3.0",
+  "changelog": "Version 3.3.0",
   "mandatory": false,
-  "apkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.2.10/studio-3.2.10.apk",
-  "sha256": "c434bd6f826d092bc1d7f422a9c66a080275465fe425277a23dd3c032a1b54bf",
+  "apkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.3.0/studio-3.3.0.apk",
+  "sha256": "cab024af0598ec5bfafba9287433b523ca70716a07ace85c90d8942358646923",
   "updateType": "both"
 }
