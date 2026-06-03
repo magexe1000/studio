@@ -53,6 +53,7 @@ const metadata = {
   version: version,
   description: description,
   download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
+  downloadUrl: `https://studio-30f44.web.app/ota/studio-ota-${version}.zip`,
   signature_download_url: "",
   sha256: sha256,
   update_type: releaseType
@@ -65,3 +66,24 @@ fs.mkdirSync(path.dirname(publicReleasePath), { recursive: true });
 fs.writeFileSync(publicReleasePath, JSON.stringify(metadata, null, 2) + '\n', 'utf8');
 
 console.log(`generate-release-metadata: ✓ Wrote firebase-public/app-release.json and dist/public/app-release.json`);
+
+// Synchronize version.json files with APK metadata
+const syncVersionJson = (filePath) => {
+  if (fs.existsSync(filePath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      data.apkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
+      data.sha256 = sha256;
+      data.updateType = releaseType;
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
+      console.log(`generate-release-metadata: ✓ Synchronized ${path.basename(filePath)} with APK metadata`);
+    } catch (err) {
+      console.warn(`generate-release-metadata: ⚠ Could not update ${filePath}:`, err);
+    }
+  }
+};
+
+syncVersionJson(versionJsonPath);
+syncVersionJson(path.join(appRoot, 'dist/public/version.json'));
+syncVersionJson(path.join(appRoot, 'public/version.json'));
+
