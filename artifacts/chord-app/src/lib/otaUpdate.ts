@@ -248,10 +248,12 @@ export async function fetchRemoteVersion(
 
   try {
     // Race all URL fetches in parallel, resolving immediately on the first
-    // successful fetch of a valid version to bypass slow Pages CDNs and master 404s.
+    // successful fetch of a version strictly newer than local APP_VERSION.
+    // Otherwise, collect them and fallback to the best response once all complete.
     return await new Promise<RemoteVersionInfo | null>((resolve) => {
       let resolved = false;
       let failedCount = 0;
+      let fallbackRes: RemoteVersionInfo | null = null;
       const total = urls.length;
 
       urls.forEach((url) => {
@@ -259,12 +261,20 @@ export async function fetchRemoteVersion(
           .then((res) => {
             if (resolved) return;
             if (res) {
-              resolved = true;
-              resolve(res);
+              if (compareSemver(res.version, APP_VERSION) > 0) {
+                resolved = true;
+                resolve(res);
+              } else {
+                fallbackRes = res;
+                failedCount++;
+                if (failedCount === total) {
+                  resolve(fallbackRes);
+                }
+              }
             } else {
               failedCount++;
               if (failedCount === total) {
-                resolve(null);
+                resolve(fallbackRes);
               }
             }
           })
@@ -272,7 +282,7 @@ export async function fetchRemoteVersion(
             if (resolved) return;
             failedCount++;
             if (failedCount === total) {
-              resolve(null);
+              resolve(fallbackRes);
             }
           });
       });

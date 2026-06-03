@@ -157,8 +157,8 @@ async function run() {
     const sizeAfter = fs.statSync(destPath).size;
     console.log(`download-subset: ✓ Font optimized: ${(sizeBefore / 1024 / 1024).toFixed(2)} MB → ${(sizeAfter / 1024).toFixed(1)} KB`);
   } catch (err) {
-    console.error('download-subset: ✗ Failed to optimize font:', err);
-    process.exit(1);
+    console.warn('download-subset: ⚠ Failed to optimize font (continuing with existing font for offline build):', err.message || err);
+    process.exit(0);
   }
 }
 
