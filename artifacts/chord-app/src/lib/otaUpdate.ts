@@ -358,7 +358,30 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
     updateGlobalState({ updateState: 'checking', loading: true });
     try {
       const remote = await fetchRemoteVersion();
+      const natVer = await getNativeVersion();
+      const appliedList = getStoredList('studio:appliedVersions');
+      const installedList = getStoredList('studio:installedVersions');
+      const dismissedList = getStoredList('studio:dismissedVersions');
+      const notifiedList = getStoredList('studio:notifiedVersions');
+      const laterVersion = getSessionItem('studio:laterUpdateVersion');
+      const urlsTried = versionJsonUrls();
+
+      console.log('[OTA DEBUG] checkForUpdate started:', {
+        installedBundleVersion: APP_VERSION,
+        nativeApkVersion: natVer,
+        remoteFetched: remote,
+        urlsTried,
+        caches: {
+          appliedList,
+          installedList,
+          dismissedList,
+          notifiedList,
+          laterVersion
+        }
+      });
+
       if (!remote) {
+        console.log('[OTA DEBUG] Skip: fetchRemoteVersion returned null.');
         updateGlobalState({ updateState: 'idle', updateAvailable: false, loading: false });
         return globalOtaState;
       }
@@ -371,7 +394,6 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         if (remote.updateType === 'apk' || remote.updateType === 'both' || remote.updateType === 'ota') {
           updateType = remote.updateType;
         } else if (isNative()) {
-          const natVer = await getNativeVersion();
           if (natVer && compareSemver(remote.version, natVer) > 0) {
             updateType = remote.downloadUrl ? 'both' : 'apk';
           } else {
@@ -383,6 +405,11 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       }
 
       if (updateType === 'none') {
+        console.log('[OTA DEBUG] Skip: updateType evaluated to "none" because remote.version <= APP_VERSION or other platform reason.', {
+          remoteVersion: remote.version,
+          comparisonCmp: cmp,
+          updateType
+        });
         updateGlobalState({ updateState: 'idle', updateAvailable: false, updateType: 'none', loading: false });
         return globalOtaState;
       }
@@ -397,15 +424,29 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       }
 
       // Check if already applied or dismissed in persistent storage
-      const appliedList = getStoredList('studio:appliedVersions');
-      const installedList = getStoredList('studio:installedVersions');
-      if (appliedList.includes(remote.version) || installedList.includes(remote.version) || compareSemver(remote.version, APP_VERSION) <= 0) {
+      const inApplied = appliedList.includes(remote.version);
+      const inInstalled = installedList.includes(remote.version);
+      const cmpC = compareSemver(remote.version, APP_VERSION) <= 0;
+      if (inApplied || inInstalled || cmpC) {
+        console.log('[OTA DEBUG] Skip: Version already processed or not newer.', {
+          version: remote.version,
+          inApplied,
+          inInstalled,
+          compareSemverLEZero: cmpC,
+          comparison: compareSemver(remote.version, APP_VERSION)
+        });
         updateGlobalState({ updateState: 'idle', updateAvailable: false, updateType, loading: false });
         return globalOtaState;
       }
 
-      const dismissedList = getStoredList('studio:dismissedVersions');
-      const isDismissed = dismissedList.includes(remote.version) || getSessionItem('studio:laterUpdateVersion') === remote.version;
+      const isDismissed = dismissedList.includes(remote.version) || laterVersion === remote.version;
+      console.log('[OTA DEBUG] Showing Update:', {
+        version: remote.version,
+        updateType,
+        isDismissed,
+        apkUrl,
+        downloadUrl: remote.downloadUrl
+      });
 
       updateGlobalState({
         updateState: isDismissed ? 'dismissed' : 'available',
@@ -422,7 +463,6 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       });
 
       // System notification if never seen and not already dismissed
-      const notifiedList = getStoredList('studio:notifiedVersions');
       if (!notifiedList.includes(remote.version) && !isDismissed) {
         addToStoredList('studio:notifiedVersions', remote.version);
         await notifyOtaAvailable(remote.version);
