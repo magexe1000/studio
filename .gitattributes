@@ -37,7 +37,3 @@
 *.ttf   binary
 *.eot   binary
 
-# ── docs/ merge strategy ──────────────────────────────────────────────────────
-# Auto-resolve docs/ merge conflicts in favor of the local (newly-built) version.
-# Requires: git config merge.ours.driver true  (run once per clone).
-docs/** merge=ours

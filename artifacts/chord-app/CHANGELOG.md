@@ -1,7 +1,7 @@
 # Studio Changelog
 
 Each release on the OTA channel is described in its own section below.
-The release script (`scripts/publish-bundle.mjs`) reads this file and
+The release script (`scripts/release-firebase.mjs`) reads this file and
 copies the bullet list under the section that matches the current
 `APP_VERSION` into `version.json`'s `changelog` field, so the in-app
 "Update available" modal always shows the actual changes that ship in

@@ -20,7 +20,6 @@ description: Key rules, file locations, and constraints for the Chordex monorepo
 - Never `git push` directly — git push is blocked; always use GitHub Git Data API via `code_execution`
 - Always use `pnpm` (never npm or yarn)
 - Discuss major architectural changes or new dependencies before implementing
-- `docs/` folder is GitHub Pages OTA host — do not delete
 
 ## Key Files
 - `artifacts/chord-app/src/lib/appVersion.ts` — APP_VERSION + APP_CHANGELOG (single source of truth)
@@ -32,7 +31,7 @@ description: Key rules, file locations, and constraints for the Chordex monorepo
 
 ## OTA System
 - Bump `APP_VERSION` + `APP_CHANGELOG` in `appVersion.ts` only — user handles build/release locally
-- OTA base URL: `https://magexe1000.github.io/Chordex`
+- OTA base URL: `https://studio-30f44.web.app`
 - Web PWA: service worker reload; Android: @capgo/capacitor-updater
 - `scripts/sync-version.mjs` regenerates `public/version.json` on predev/prebuild
 
@@ -62,4 +61,4 @@ Restart after code/package changes.
 - All `.innerHTML` uses `DOMPurify.sanitize()`
 
 ## .gitignore exclusions
-`attached_assets/`, `docs/bundles/`, `*.apk`, `*.zip`, `node_modules/`, `dist/`, `.local/`
+`attached_assets/`, `*.apk`, `*.zip`, `node_modules/`, `dist/`, `.local/`

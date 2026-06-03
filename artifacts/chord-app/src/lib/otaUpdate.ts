@@ -151,20 +151,12 @@ const INITIAL_STATE: OtaState = {
  *   1. `VITE_OTA_VERSION_URL` (explicit override) — if set, it's the
  *      ONLY source we try. Lets ops point at any custom endpoint
  *      (e.g. a small Cloudflare worker).
- *   2. raw.githubusercontent.com (DERIVED, fast path) — when
- *      `VITE_OTA_BASE_URL` looks like `https://USER.github.io/REPO`,
- *      the source files live in the same repo's `docs/` folder. The
- *      raw.githubusercontent.com endpoint serves them within seconds
- *      of a push, vs. GitHub Pages' Fastly which can take 2–3 minutes
- *      to flush. This is the difference between "instant" and
- *      "user reloads four times before the banner shows".
- *   3. `<VITE_OTA_BASE_URL>/version.json` (fallback) — the actual
- *      Pages URL, in case the repo is private or the raw endpoint is
- *      blocked.
- *   4. `<BASE_URL>version.json` on web — same-origin, no auth needed.
+ *   2. `VITE_OTA_BASE_URL` (or Firebase Hosting default base URL fallback)
+ *      which queries `app-release.json` and `version.json`.
+ *   3. Same-origin paths on web / PWA.
  *
  * Every URL is cache-busted with a unique `?t=` query and fetched with
- * `cache: 'no-store'` so neither the browser nor Fastly can hand us a
+ * `cache: 'no-store'` so neither the browser nor CDN can hand us a
  * stale entry.
  */
 function versionJsonUrls(): string[] {
