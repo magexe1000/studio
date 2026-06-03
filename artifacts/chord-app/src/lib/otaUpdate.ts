@@ -44,6 +44,10 @@ export let otaDebugLogs: {
   fileDetails: string | null;
   installerLaunchStatus: string | null;
   lastExceptionStackTrace: string | null;
+  appInstallerAvailable: boolean;
+  registeredPlugins: string;
+  pluginMethodCheck: string;
+  finalUpdatePath: string;
 } = {
   appVersion: APP_VERSION,
   nativeApkVersion: null,
@@ -59,6 +63,10 @@ export let otaDebugLogs: {
   fileDetails: null,
   installerLaunchStatus: null,
   lastExceptionStackTrace: null,
+  appInstallerAvailable: false,
+  registeredPlugins: '[]',
+  pluginMethodCheck: 'N/A',
+  finalUpdatePath: 'N/A',
 };
 
 export interface OtaDiagnostics {
@@ -90,6 +98,25 @@ export let otaDiagnostics: OtaDiagnostics = {
   deviceModel: null,
   timestamp: null,
 };
+
+export function isAppInstallerAvailable(): boolean {
+  const cap = (window as any).Capacitor;
+  if (!cap) return false;
+  if (typeof cap.isNativePlatform === 'function' && !cap.isNativePlatform()) {
+    return false;
+  }
+  const isPluginAvail = cap.isPluginAvailable?.('AppInstaller') ?? false;
+  if (!isPluginAvail) return false;
+  const plugin = cap.Plugins?.AppInstaller;
+  if (!plugin) return false;
+
+  return (
+    typeof plugin.downloadApk === 'function' &&
+    typeof plugin.verifySha256 === 'function' &&
+    typeof plugin.installApk === 'function' &&
+    typeof plugin.openUnknownAppSourcesSettings === 'function'
+  );
+}
 
 export async function populateDiagnostics(err: any, reason: string) {
   try {
@@ -432,7 +459,7 @@ export async function fetchRemoteVersion(
  * Best-effort: compare the remote version against the bundle's version
  * and return whether an update is available. All errors swallowed.
  */
-export type OtaUpdateState = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'applied' | 'dismissed' | 'error';
+export type OtaUpdateState = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'applied' | 'dismissed' | 'error' | 'manual_apk_required';
 
 export interface CentralizedOtaState {
   updateState: OtaUpdateState;
@@ -533,21 +560,34 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           otaDebugLogs.currentOtaVersion = 'Error';
         }
 
-        // Temporary runtime Capacitor plugin registration check
+        // Pre-fill AppInstaller diagnostics
         try {
           const cap = (window as any).Capacitor;
+          const isNativePlat = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
           const registry = cap?.Plugins ? Object.keys(cap.Plugins) : [];
-          const appInstallerExists = cap ? cap.isPluginAvailable('AppInstaller') : false;
-          console.log('[OTA DEBUG] Plugin registry check:', {
-            registry,
-            appInstallerExists,
-          });
-          if (!appInstallerExists) {
-            otaDebugLogs.installerLaunchStatus = `MISSING: AppInstaller not registered. Plugins: ${registry.join(', ')}`;
+          otaDebugLogs.registeredPlugins = JSON.stringify(registry);
+          
+          const appInstallerExists = cap ? cap.isPluginAvailable?.('AppInstaller') ?? false : false;
+          otaDebugLogs.appInstallerAvailable = appInstallerExists;
+          
+          if (appInstallerExists) {
+            const plugin = cap.Plugins.AppInstaller;
+            const methods = {
+              downloadApk: typeof plugin?.downloadApk === 'function',
+              verifySha256: typeof plugin?.verifySha256 === 'function',
+              installApk: typeof plugin?.installApk === 'function',
+              openUnknownAppSourcesSettings: typeof plugin?.openUnknownAppSourcesSettings === 'function',
+            };
+            otaDebugLogs.pluginMethodCheck = Object.entries(methods)
+              .map(([name, exists]) => `${name}: ${exists ? 'YES' : 'NO'}`)
+              .join(', ');
+            otaDebugLogs.installerLaunchStatus = `REGISTERED: AppInstaller is present in registry. Methods match.`;
           } else {
-            otaDebugLogs.installerLaunchStatus = `REGISTERED: AppInstaller is present in registry. Plugins: ${registry.join(', ')}`;
+            otaDebugLogs.pluginMethodCheck = isNativePlat ? 'Plugin not found' : 'N/A (Web)';
+            otaDebugLogs.installerLaunchStatus = `MISSING: AppInstaller not registered. Plugins: ${registry.join(', ')}`;
           }
         } catch (registryErr: any) {
+          otaDebugLogs.pluginMethodCheck = 'Check failed';
           otaDebugLogs.installerLaunchStatus = `Registry check failed: ${registryErr?.message || String(registryErr)}`;
         }
       } else {
@@ -636,19 +676,48 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         return globalOtaState;
       }
 
+      const cap = (window as any).Capacitor;
+      const isNativePlat = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
+      
+      // Determine final update path
+      let finalPath: 'OTA only' | 'APK automatic' | 'manual APK required' | 'no update' = 'no update';
+      if (updateType === 'ota') {
+        finalPath = 'OTA only';
+      } else if (updateType === 'apk' || updateType === 'both') {
+        if (isNativePlat) {
+          const avail = isAppInstallerAvailable();
+          finalPath = avail ? 'APK automatic' : 'manual APK required';
+        } else {
+          finalPath = 'manual APK required';
+        }
+      }
+      otaDebugLogs.finalUpdatePath = finalPath;
+
       const isDismissed = dismissedList.includes(remote.version) || laterVersion === remote.version;
-      otaDebugLogs.finalDecision = `Show: Available (isDismissed=${isDismissed})`;
+      
+      let nextState: OtaUpdateState = isDismissed ? 'dismissed' : 'available';
+      if (isNative() && (updateType === 'apk' || updateType === 'both')) {
+        if (!isAppInstallerAvailable()) {
+          nextState = 'manual_apk_required';
+          otaDebugLogs.finalDecision = `Show: Manual APK Update Required (isDismissed=${isDismissed})`;
+        } else {
+          otaDebugLogs.finalDecision = `Show: Available (isDismissed=${isDismissed})`;
+        }
+      } else {
+        otaDebugLogs.finalDecision = `Show: Available (isDismissed=${isDismissed})`;
+      }
 
       console.log('[OTA DEBUG] Showing Update:', {
         version: remote.version,
         updateType,
         isDismissed,
         apkUrl,
-        downloadUrl: remote.downloadUrl
+        downloadUrl: remote.downloadUrl,
+        nextState
       });
 
       updateGlobalState({
-        updateState: isDismissed ? 'dismissed' : 'available',
+        updateState: nextState,
         updateAvailable: true,
         remoteVersion: remote.version,
         changelog: remote.changelog ?? null,
@@ -700,6 +769,15 @@ export function downloadUpdate(): Promise<void> {
       if (!isNative() || downloadedId) {
         return Promise.resolve();
       }
+    }
+  }
+
+  if (isNative() && (updateType === 'apk' || updateType === 'both')) {
+    if (!isAppInstallerAvailable()) {
+      otaDebugLogs.finalDecision = 'Manual update required (AppInstaller missing)';
+      otaDebugLogs.downloadStatus = 'Error: AppInstaller missing';
+      updateGlobalState({ updateState: 'manual_apk_required' });
+      return Promise.reject(new Error('AppInstaller is missing. Manual update required.'));
     }
   }
 

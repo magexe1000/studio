@@ -1217,6 +1217,50 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         </div>
       )}
 
+      {/* ── MANUAL APK UPDATE REQUIRED IN UPDATER PAGE ── */}
+      {ota.updateState === 'manual_apk_required' && (
+        <div style={{
+          margin: '0 0 16px', padding: '20px', borderRadius: 16,
+          background: 'rgba(235,163,8,0.06)', border: '1px solid rgba(235,163,8,0.2)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center'
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#eab308' }}>download_for_offline</span>
+          <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
+            Manual update required
+          </p>
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
+            This installed version of Studio cannot install native updates automatically. Please install the latest Studio APK manually once. Future updates will install from inside Studio.
+          </p>
+          <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => ota.checkNow()}
+              style={{
+                flex: 1, padding: '10px', borderRadius: 10, background: 'transparent',
+                border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-secondary)',
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
+              }}
+            >
+              Check again
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                const apkUrl = ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/download/v${ota.remoteVersion}/studio-${ota.remoteVersion}.apk`;
+                window.open(apkUrl, '_system');
+              }}
+              style={{
+                flex: 2, padding: '10px', borderRadius: 10,
+                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
+                border: 'none', fontFamily: 'Manrope', fontWeight: 800, fontSize: 12.5, cursor: 'pointer'
+              }}
+            >
+              Download APK
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── FALLBACK ERROR UI IN UPDATER PAGE ── */}
       {ota.updateState === 'error' && (
         <div style={{
@@ -1724,6 +1768,10 @@ function HubSettings({
       `App Version: ${otaDebugLogs.appVersion}`,
       `APK Version: ${otaDebugLogs.nativeApkVersion}`,
       `OTA Version: ${otaDebugLogs.currentOtaVersion}`,
+      `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
+      `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
+      `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
+      `Final Update Path: ${otaDebugLogs.finalUpdatePath}`,
       `Fetched version.json: ${otaDebugLogs.fetchedVersionJson}`,
       `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson}`,
       `Comparison Result: ${otaDebugLogs.compareResult}`,
@@ -2188,6 +2236,10 @@ function HubSettings({
                 `App Version: ${otaDebugLogs.appVersion}`,
                 `APK Version: ${otaDebugLogs.nativeApkVersion}`,
                 `OTA Version: ${otaDebugLogs.currentOtaVersion}`,
+                `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
+                `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
+                `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
+                `Final Update Path: ${otaDebugLogs.finalUpdatePath}`,
                 `Fetched version.json: ${otaDebugLogs.fetchedVersionJson}`,
                 `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson}`,
                 `Comparison Result: ${otaDebugLogs.compareResult}`,
@@ -2229,6 +2281,10 @@ function HubSettings({
           <DebugRow label="Current App Version" desc="The hardcoded version in the app bundle (APP_VERSION)" value={otaDebugLogs.appVersion} />
           <DebugRow label="Current APK Version" desc="The native Android APK version wrapper" value={otaDebugLogs.nativeApkVersion} />
           <DebugRow label="Current OTA Version" desc="The Capgo active bundle version" value={otaDebugLogs.currentOtaVersion} />
+          <DebugRow label="AppInstaller Available" desc="Whether the native AppInstaller Capacitor plugin is loaded" value={String(otaDebugLogs.appInstallerAvailable)} />
+          <DebugRow label="Registered Plugins" desc="List of all registered native Capacitor plugins" value={otaDebugLogs.registeredPlugins} />
+          <DebugRow label="Plugin Method Check" desc="Verification of required plugin methods" value={otaDebugLogs.pluginMethodCheck} />
+          <DebugRow label="Final Update Path" desc="The determined path for updating: OTA, APK automatic, manual, or none" value={otaDebugLogs.finalUpdatePath} highlightColor={accent.from} />
           <DebugRow label="Fetched version.json" desc="The version read from version.json" value={otaDebugLogs.fetchedVersionJson} />
           <DebugRow label="Fetched app-release.json" desc="The version read from app-release.json" value={otaDebugLogs.fetchedAppReleaseJson} />
           <DebugRow label="Comparison Result" desc="Semver comparison result (positive means remote is newer)" value={otaDebugLogs.compareResult !== null ? String(otaDebugLogs.compareResult) : 'N/A'} />

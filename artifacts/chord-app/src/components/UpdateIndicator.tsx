@@ -581,6 +581,99 @@ function UpdateModal({
   const isDownloading = ota.updateState === 'downloading' || ota.updateState === 'applied' || (!isApkFlow && ota.updateState === 'ready');
   const progress = ota.progress;
 
+  if (ota.updateState === 'manual_apk_required') {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9000,
+          background: 'rgba(0,0,0,0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          animation: 'fade-in 200ms ease-out both',
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            maxWidth: 380,
+            width: '100%',
+            background: 'var(--app-surface)',
+            borderRadius: 22,
+            overflow: 'hidden',
+            border: '1px solid rgba(128,128,128,0.15)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+            animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
+            padding: 24,
+            textAlign: 'center',
+          }}
+        >
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#eab308' }}>download_for_offline</span>
+            <p style={{
+              margin: 0, fontSize: 20, fontWeight: 800,
+              color: 'var(--c-text-primary)',
+              fontFamily: 'Manrope', letterSpacing: '-0.02em',
+            }}>Manual update required</p>
+            
+            <p style={{
+              margin: '6px 0 0', fontSize: 13,
+              color: 'var(--c-text-secondary)',
+              fontFamily: 'Inter', lineHeight: 1.55,
+            }}>
+              This installed version of Studio cannot install native updates automatically. Please install the latest Studio APK manually once. Future updates will install from inside Studio.
+            </p>
+            
+            <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
+              <button
+                type="button"
+                onClick={onLater}
+                style={{
+                  flex: 1, height: 42, borderRadius: 12,
+                  background: 'transparent',
+                  border: '1px solid rgba(128,128,128,0.22)',
+                  color: 'var(--c-text-secondary)',
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Later
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const apkUrl = ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/download/v${ota.remoteVersion}/studio-${ota.remoteVersion}.apk`;
+                  window.open(apkUrl, '_system');
+                  onClose();
+                }}
+                style={{
+                  flex: 1, height: 42, borderRadius: 12,
+                  background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
+                  border: 'none', color: 'white',
+                  fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
+                  cursor: 'pointer',
+                  boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
+                }}
+              >
+                Download APK
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const handleStartUpdate = async () => {
     try {
       await ota.downloadUpdate();

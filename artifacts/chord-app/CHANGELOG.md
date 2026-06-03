@@ -15,6 +15,13 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.3.2
+
+- Added runtime capability checking for native AppInstaller plugin and its methods.
+- Prevents starting corrupt downloads or partial updates if the native plugin is missing.
+- Show clear manual update recovery dialog with direct download links on older APK wrapper versions.
+- Added comprehensive AppInstaller diagnostics in Settings -> Developer Options -> Update Debug.
+
 ## 3.3.1
 
 - Fixed black screen when returning from apps to Studio Hub using the top navigation.

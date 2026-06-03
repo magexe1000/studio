@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.3.1'; // Navigation and notification fixes
+export const APP_VERSION = '3.3.2'; // Update safeguards and diagnostics
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-03'; // 3.3.1
+export const APP_VERSION_DATE = '2026-06-03'; // 3.3.2
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,19 +53,18 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Navigation Fixes",
+    heading: "Update Safeguards",
     items: [
-      'Fixed black screen when returning from apps to Studio Hub using the top navigation.',
-      'Fixed app exit transition state so the Hub renders correctly.',
-      'Improved navigation reliability across Chordex, Drumex, Vocalex, Stagex, and Groovex.',
+      'Added runtime capability check for native package installer plugin AppInstaller.',
+      'Prevents starting broken update downloads or partial OTA updates if plugin is missing.',
+      'Show clear manual update recovery dialog with direct download links on older APK wrapper versions.',
     ],
   },
   {
-    heading: "Push Notifications",
+    heading: "Update Debugging",
     items: [
-      'Added real system push notification support for updates using Firebase Cloud Messaging.',
-      'Added deduplication so each update version notifies only once.',
-      'Improved notification tap behavior to open the updater/changelog.',
+      'Exposed detailed AppInstaller diagnostics check in Settings -> Developer Options -> Update Debug.',
+      'Added plugin method checks, registered plugins listing, and final update path to clipboard logs.',
     ],
   },
 ];
@@ -74,19 +73,18 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Correcciones de Navegación",
+    heading: "Salvaguardas de Actualización",
     items: [
-      'Se solucionó la pantalla negra al regresar a la consola central usando la navegación superior.',
-      'Se corrigió el estado de transición de salida para renderizar la consola correctamente.',
-      'Mejoras en la estabilidad de navegación en Chordex, Drumex, Vocalex, Stagex y Groovex.',
+      'Añadida comprobación de capacidad en tiempo de ejecución para el plugin nativo AppInstaller.',
+      'Evita descargas corruptas o actualizaciones parciales de OTA si falta el plugin nativo.',
+      'Muestra diálogo claro de recuperación para actualizar manualmente con enlaces directos en wrappers APK antiguos.',
     ],
   },
   {
-    heading: "Notificaciones Push",
+    heading: "Depuración de Actualización",
     items: [
-      'Soporte para notificaciones push del sistema con Firebase Cloud Messaging para actualizaciones.',
-      'Se agregó deduplicación para que cada versión notifique solo una vez.',
-      'Comportamiento de toque mejorado para abrir el actualizador/registro de cambios.',
+      'Exposición de diagnósticos detallados en Ajustes -> Opciones de Desarrollador -> Update Debug.',
+      'Añadida lista de plugins registrados y ruta final de actualización al portapapeles.',
     ],
   },
 ];
@@ -94,19 +92,18 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Navigationskorrekturen",
+    heading: "Update-Sicherheitsprüfungen",
     items: [
-      'Schwarzer Bildschirm beim Zurückkehren zum Hub über die obere Navigationsleiste behoben.',
-      'Der Übergangszustand beim App-Exit wurde korrigiert, sodass der Hub sofort gerendert wird.',
-      'Erhöhte Navigationsstabilität für Chordex, Drumex, Vocalex, Stagex und Groovex.',
+      'Laufzeitüberprüfung für das native AppInstaller-Plugin und dessen Methoden integriert.',
+      'Verhindert fehlerhafte APK-Downloads oder unvollständige OTA-Zustände, wenn das native Plugin fehlt.',
+      'Zeigt bei älteren APK-Wrappern einen manuellen Wiederherstellungsdialog mit direktem Download-Link an.',
     ],
   },
   {
-    heading: "Push-Benachrichtigungen",
+    heading: "Update-Diagnose",
     items: [
-      'Unterstützung für echte System-Push-Benachrichtigungen bei Updates über Firebase Cloud Messaging.',
-      'Deduplizierung hinzugefügt, sodass jede Update-Version nur einmal benachrichtigt.',
-      'Tippverhalten der Benachrichtigung verbessert, um direkt das Update-Menü zu öffnen.',
+      'Ausführliche Diagnose für AppInstaller unter Einstellungen -> Entwickleroptionen -> Update Debug.',
+      'Registrierte Plugins und der ermittelte Update-Pfad in Zwischenablage-Protokolle aufgenommen.',
     ],
   },
 ];
