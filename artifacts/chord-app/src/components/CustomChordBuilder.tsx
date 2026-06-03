@@ -504,9 +504,9 @@ function PianoKeyboard({ pianoKeys, onChange, accent }: {
    ════════════════════════════════════════════════════════════════ */
 
 const INSTRUMENTS: { id: Instrument; image: string }[] = [
-  { id: 'guitar',  image: '/instruments/guitar.png'  },
-  { id: 'piano',   image: '/instruments/piano.png'   },
-  { id: 'bass',    image: '/instruments/bass.png'    },
+  { id: 'guitar',  image: '/instruments/guitar.webp'  },
+  { id: 'piano',   image: '/instruments/piano.webp'   },
+  { id: 'bass',    image: '/instruments/bass.webp'    },
 ];
 
 function genId() {

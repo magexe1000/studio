@@ -133,10 +133,10 @@ const INST_PRESETS: Partial<Record<DrumInstrument, FXPreset[]>> = {
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 const KIT_IMAGE: Record<KitType, string> = {
-  ludwig: `${BASE}/kit-warm.png`,
-  jazz:   `${BASE}/kit-soft.png`,
-  rmm:    `${BASE}/kit-punchy.png`,
-  chrome: `${BASE}/kit-bright.png`,
+  ludwig: `${BASE}/kit-warm.webp`,
+  jazz:   `${BASE}/kit-soft.webp`,
+  rmm:    `${BASE}/kit-punchy.webp`,
+  chrome: `${BASE}/kit-bright.webp`,
   rock:   `${BASE}/kit-rock.webp`,
   vintage:`${BASE}/kit-vintage.webp`,
   studio: `${BASE}/kit-studio.webp`,
@@ -147,7 +147,7 @@ const KIT_IMAGE: Record<KitType, string> = {
   tr808:  `${BASE}/kit-tr808.webp`,
   techno: `${BASE}/kit-electronic.webp`,
   stark:  `${BASE}/kit-stark.webp`,
-  house:  `${BASE}/kit-house.png`,
+  house:  `${BASE}/kit-house.webp`,
 };
 const KIT_CATEGORIES: { id: string; kits: KitType[] }[] = [
   { id: 'acoustic', kits: ['ludwig', 'jazz', 'rmm', 'chrome'] },
