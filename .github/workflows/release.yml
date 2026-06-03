@@ -104,18 +104,9 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         run: pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Build and Publish OTA Bundle
-        if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'ota' || steps.gate.outputs.release_type == 'both')
-        env:
-          OTA_BASE_URL: https://MAGEXE1000.github.io/Studio
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm --filter @workspace/chord-app run release:gh-pages --no-bump
-
-      - name: Build Web Assets (for APK-only)
-        if: steps.gate.outputs.skip != 'true' && steps.gate.outputs.release_type == 'apk'
-        env:
-          VITE_OTA_BASE_URL: https://MAGEXE1000.github.io/Studio
-        run: pnpm --filter @workspace/chord-app run build
+      - name: Build Web and OTA Assets
+        if: steps.gate.outputs.skip != 'true'
+        run: pnpm --filter @workspace/chord-app run release:firebase --no-bump
 
       - name: Capacitor Sync
         if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
@@ -151,12 +142,21 @@ jobs:
           cp artifacts/chord-app/android/app/build/outputs/apk/debug/app-debug.apk "./$FILE_NAME"
           gh release upload "$TAG" "./$FILE_NAME" --clobber
 
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        if: steps.gate.outputs.skip != 'true'
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
+          channelId: live
+
       - name: Commit and Push Release Metadata to main
         if: steps.gate.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs artifacts/chord-app/src/lib/appVersion.ts artifacts/chord-app/package.json artifacts/chord-app/android/app/build.gradle artifacts/chord-app/public/version.json
+          git add artifacts/chord-app/src/lib/appVersion.ts artifacts/chord-app/package.json artifacts/chord-app/android/app/build.gradle
           if git diff --staged --quiet; then
             echo "No changes to commit."
             exit 0

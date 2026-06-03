@@ -8,8 +8,8 @@ const appRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(__dirname, '../../..');
 
 const appVersionPath = path.join(appRoot, 'src/lib/appVersion.ts');
-const versionJsonPath = path.join(repoRoot, 'docs/version.json');
-const appReleaseJsonPath = path.join(repoRoot, 'docs/app-release.json');
+const versionJsonPath = path.join(repoRoot, 'firebase-public/version.json');
+const appReleaseJsonPath = path.join(repoRoot, 'firebase-public/app-release.json');
 
 // Get version from appVersion.ts
 const src = fs.readFileSync(appVersionPath, 'utf8');
@@ -20,7 +20,7 @@ if (!versionMatch) {
 }
 const version = versionMatch[1];
 
-// Read changelog description from docs/version.json
+// Read changelog description from firebase-public/version.json
 let description = `Release v${version}`;
 if (fs.existsSync(versionJsonPath)) {
   try {
@@ -64,4 +64,4 @@ const publicReleasePath = path.join(appRoot, 'dist/public/app-release.json');
 fs.mkdirSync(path.dirname(publicReleasePath), { recursive: true });
 fs.writeFileSync(publicReleasePath, JSON.stringify(metadata, null, 2) + '\n', 'utf8');
 
-console.log(`generate-release-metadata: ✓ Wrote repo root docs/app-release.json and dist/public/app-release.json`);
+console.log(`generate-release-metadata: ✓ Wrote firebase-public/app-release.json and dist/public/app-release.json`);

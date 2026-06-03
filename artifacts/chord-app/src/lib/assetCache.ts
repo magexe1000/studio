@@ -165,7 +165,7 @@ async function doSeed(): Promise<void> {
       try {
         let resp = await fetch(file, { cache: 'force-cache' });
         if (!resp.ok) {
-          const remoteBase = (import.meta.env.VITE_OTA_BASE_URL || 'https://MAGEXE1000.github.io/Studio').replace(/\/$/, '');
+          const remoteBase = (import.meta.env.VITE_OTA_BASE_URL || 'https://studio-30f44.web.app').replace(/\/$/, '');
           const fileUrl = `${remoteBase}/${file.replace(/^\/+/, '')}`;
           resp = await fetch(fileUrl);
         }

@@ -14,7 +14,7 @@
     "android:patch": "node patch-android.cjs",
     "android:sync": "npx cap sync android && node patch-android.cjs",
     "bundle:publish": "node scripts/publish-bundle.mjs",
-    "release:gh-pages": "node scripts/release-gh-pages.mjs"
+    "release:firebase": "node scripts/release-firebase.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.1",

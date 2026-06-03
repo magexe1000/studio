@@ -1,5 +1,6 @@
 # ── Build output ──────────────────────────────────────────────────────────────
 dist/
+firebase-public/
 tmp/
 out-tsc/
 *.tsbuildinfo

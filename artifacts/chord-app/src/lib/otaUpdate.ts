@@ -175,38 +175,17 @@ function versionJsonUrls(): string[] {
     return [`${override}${sep}t=${t}`];
   }
 
-  const remoteBase = (import.meta.env.VITE_OTA_BASE_URL as string | undefined)?.replace(/\/$/, '');
+  const remoteBase = (import.meta.env.VITE_OTA_BASE_URL as string | undefined)?.replace(/\/$/, '') || 'https://studio-30f44.web.app';
   const urls: string[] = [];
 
-  if (remoteBase) {
-    // GitHub Pages → derive sibling raw.githubusercontent URLs.
-    const m = remoteBase.match(/^https:\/\/([^.]+)\.github\.io(?:\/([^/?#]+))?$/i);
-    if (m) {
-      const user = m[1];
-      const repo = m[2] ?? `${user}.github.io`;
-      urls.push(
-        `https://raw.githubusercontent.com/${user}/${repo}/main/docs/app-release.json?t=${t}`,
-        `https://raw.githubusercontent.com/${user}/${repo}/main/docs/version.json?t=${t}`,
-        `https://raw.githubusercontent.com/${user}/${repo}/master/docs/app-release.json?t=${t}`,
-        `https://raw.githubusercontent.com/${user}/${repo}/master/docs/version.json?t=${t}`
-      );
-    }
-    urls.push(`${remoteBase}/app-release.json?t=${t}`);
-    urls.push(`${remoteBase}/version.json?t=${t}`);
-  }
+  urls.push(`${remoteBase}/app-release.json?t=${t}`);
+  urls.push(`${remoteBase}/version.json?t=${t}`);
 
   // Web / PWA / dev preview / iframe — same-origin always works.
   if (!isNative()) {
     const localBase = import.meta.env.BASE_URL || '/';
     urls.push(`${localBase}app-release.json?t=${t}`);
     urls.push(`${localBase}version.json?t=${t}`);
-  }
-
-  if (urls.length === 0 && isNative()) {
-    console.error(
-      '[ota] VITE_OTA_BASE_URL is not set — OTA update checks are disabled on native. ' +
-        'Rebuild with VITE_OTA_BASE_URL=https://your-deployment.example.com.',
-    );
   }
 
   return urls;
