@@ -15,6 +15,14 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.3.6
+
+- Fixed black screen when returning from Studio apps back to the Hub.
+- Unified app-to-hub navigation through one shared return handler.
+- Added root UI fallback to prevent invalid blank/black render states.
+- Improved app exit transition reliability.
+- Improved Android back and predictive back recovery behavior.
+
 ## 3.3.5
 
 - Fixed stale Firebase update manifests.

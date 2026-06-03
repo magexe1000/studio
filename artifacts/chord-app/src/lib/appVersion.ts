@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.3.5'; // Fixed updater system, stale manifests, duplicate notifications, and black screens
+export const APP_VERSION = '3.3.6'; // Fixed black screen when returning from Studio apps back to the Hub
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-03'; // 3.3.5
+export const APP_VERSION_DATE = '2026-06-03'; // 3.3.6
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,23 +55,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      'Fixed stale Firebase update manifests.',
-      'Fixed duplicate update notifications.',
-      'Removed legacy updater dialog conflicts.',
-      'Fixed black screen caused by stale update dialog fade overlay.',
-      'Unified the update dialog into one professional flow.',
-      'Improved update state handling and retry behavior.',
-      'Ensured manual checks always show accurate update status.',
-      'Preserved AppInstaller runtime validation for APK updates.',
-    ],
-  },
-  {
-    heading: "Improved",
-    items: [
-      'Cleaner update dialog design.',
-      'Better update progress states.',
-      'Safer update fallback behavior.',
-      'More reliable Firebase metadata synchronization.',
+      'Fixed black screen when returning from Studio apps back to the Hub.',
+      'Unified app-to-hub navigation through one shared return handler.',
+      'Added root UI fallback to prevent invalid blank/black render states.',
+      'Improved app exit transition reliability.',
+      'Improved Android back and predictive back recovery behavior.',
     ],
   },
 ];
@@ -82,23 +70,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
-      'Corregidos manifiestos de actualización stale en Firebase.',
-      'Corregidas notificaciones duplicadas de actualización.',
-      'Eliminados conflictos con diálogos de actualización heredados.',
-      'Corregido bloqueo de pantalla negra por overlay de fade huérfano.',
-      'Unificado el diálogo de actualización en un flujo profesional.',
-      'Mejorado el manejo de estados de actualización y reintentos.',
-      'Garantizado que las búsquedas manuales muestren el estado real.',
-      'Preservada la validación de AppInstaller en tiempo de ejecución.',
-    ],
-  },
-  {
-    heading: "Mejorado",
-    items: [
-      'Diseño más limpio del diálogo de actualización.',
-      'Mejores estados de progreso de actualización.',
-      'Comportamiento de recuperación de actualización más seguro.',
-      'Sincronización más confiable de metadatos de Firebase.',
+      'Corregido el bloqueo de pantalla negra al regresar de las aplicaciones de Studio al Hub.',
+      'Unificada la navegación de aplicación a Hub a través de un controlador de retorno compartido.',
+      'Agregado fallback de interfaz de usuario raíz para evitar estados de renderizado en blanco o negro inválidos.',
+      'Mejorada la confiabilidad de la transición de salida de la aplicación.',
+      'Mejorado el comportamiento de recuperación del botón atrás de Android y del gesto atrás predictivo.',
     ],
   },
 ];
@@ -108,23 +84,11 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
     heading: "Behoben",
     items: [
-      'Veraltete Firebase-Update-Manifeste behoben.',
-      'Doppelte Update-Benachrichtigungen behoben.',
-      'Konflikte mit alten Update-Dialogen entfernt.',
-      'Schwarzer Bildschirm durch verwaiste Fade-Overlays behoben.',
-      'Update-Dialog in einen professionellen Ablauf vereinheitlicht.',
-      'Verbessertes Handling von Update-Zuständen und Wiederholungen.',
-      'Manuelle Prüfungen zeigen nun immer den tatsächlichen Status.',
-      'AppInstaller-Laufzeitvalidierung für APK-Updates beibehalten.',
-    ],
-  },
-  {
-    heading: "Verbessert",
-    items: [
-      'Klareres Design des Update-Dialogs.',
-      'Bessere Statusanzeigen beim Herunterladen.',
-      'Sichereres Fallback-Verhalten bei Fehlern.',
-      'Zuverlässigere Firebase-Metadaten-Synchronisierung.',
+      'Schwarzer Bildschirm beim Zurückkehren von Studio-Apps zum Hub behoben.',
+      'App-zu-Hub-Navigation über einen gemeinsamen Return-Handler vereinheitlicht.',
+      'UI-Fallback auf Root-Ebene hinzugefügt, um ungültige leere/schwarze Render-Zustände zu verhindern.',
+      'Zuverlässigkeit des App-Exit-Übergangs verbessert.',
+      'Wiederherstellungsverhalten für Android-Zurück-Taste und prädiktive Zurück-Geste verbessert.',
     ],
   },
 ];

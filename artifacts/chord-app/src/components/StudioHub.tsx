@@ -355,6 +355,21 @@ export default function StudioHub() {
     return () => window.removeEventListener('studio-intro-done', handler);
   }, [introFinished]);
 
+  // Reset zooming state when returning to the Hub
+  useEffect(() => {
+    if (settings.appMode === 'hub') {
+      setZooming(false);
+    }
+  }, [settings.appMode]);
+
+  useEffect(() => {
+    const handleReset = () => {
+      setZooming(false);
+    };
+    window.addEventListener('studio:reset-hub-zooming', handleReset);
+    return () => window.removeEventListener('studio:reset-hub-zooming', handleReset);
+  }, []);
+
   const sessionIdx = getSessionIndex();
   const greetName = authUser?.displayName?.trim() || settings.hubUserName;
   const { greeting, subtitle } = useMemo(
@@ -377,7 +392,7 @@ export default function StudioHub() {
       opacity: zooming ? 0 : 1,
       transition: zooming
         ? 'transform 380ms cubic-bezier(0.4,0,1,1), opacity 280ms ease-in, background-color 700ms cubic-bezier(0.4,0,0.2,1)'
-        : 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+        : 'transform 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 380ms ease-out, background-color 700ms cubic-bezier(0.4,0,0.2,1)',
     }}>
 
       {/* ── Main scrollable content ── */}

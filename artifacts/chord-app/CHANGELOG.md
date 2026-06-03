@@ -15,6 +15,34 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.3.6
+
+- Fixed black screen when returning from Studio apps back to the Hub.
+- Unified app-to-hub navigation through one shared return handler.
+- Added root UI fallback to prevent invalid blank/black render states.
+- Improved app exit transition reliability.
+- Improved Android back and predictive back recovery behavior.
+
+## 3.3.5
+
+- Fixed stale Firebase update manifests.
+- Fixed duplicate update notifications.
+- Removed legacy updater dialog conflicts.
+- Fixed black screen caused by stale update dialog fade overlay.
+- Unified the update dialog into one professional flow.
+- Improved update state handling and retry behavior.
+- Ensured manual checks always show accurate update status.
+- Preserved AppInstaller runtime validation for APK updates.
+
+## 3.3.4
+
+- Fixed manual APK recovery downloads getting stuck at 100%.
+- Added Firebase-hosted direct APK mirror for recovery installs.
+- Improved manual update flow for users without AppInstaller.
+- Added Copy Link and GitHub Fallback options for APK recovery.
+- Improved APK download headers for Android compatibility.
+- Prevented broken GitHub mobile download behavior from blocking recovery.
+
 ## 3.3.3
 
 - Fixed repeated APK update failure when AppInstaller is unavailable.

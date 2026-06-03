@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
@@ -82,6 +82,14 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
+
+  const subAppWrapperRef = useRef<HTMLDivElement | null>(null);
+  const hubWrapperRef = useRef<HTMLDivElement | null>(null);
+  const touchState = useRef({
+    isSwiping: false,
+    startX: 0,
+    currentX: 0,
+  });
 
   // Subscribe to combined auth + soft-delete status. While in `pending` we
   // overlay a lockdown screen with a countdown + Restore button.
@@ -694,14 +702,122 @@ export default function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, [updateSettings]);
 
-  // ── Global back navigation ────────────────────────────────────────────────
+  // ── Global back navigation & Hub Return ───────────────────────────────────
   const [exitToast, setExitToast] = useState(false);
   const lastBackTime = useRef(0);
   const exitToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Hub-return exit animation & safety watchdog ───────────────────────────
+  const [exitingToHub, setExitingToHub] = useState(false);
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    // Seed two history entries so every back gesture fires popstate
-    // without immediately leaving the page.
+    return () => {
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    };
+  }, []);
+
+  const returnToStudioHub = useCallback((isSwipeSuccess = false) => {
+    const currentApp = useChordStore.getState().settings.appMode;
+    const isDev = useChordStore.getState().settings.developerMode;
+    
+    if (isDev) {
+      console.log('[Navigation Debug] Top bar back clicked / Back navigation triggered:', {
+        previousActiveApp: currentApp,
+        previousRoute: window.location.pathname + window.location.search,
+        currentRootView: 'App',
+        nextRoute: 'hub',
+        activeAppAfterReset: 'hub',
+        hubVisibleAfterReset: true,
+        transitionState: exitingToHub ? 'exiting' : 'idle',
+        pageDepthState: 'none',
+        predictiveBackState: touchState.current.isSwiping ? 'active' : 'inactive',
+        mountedOverlays: document.querySelectorAll('#update-fade-overlay, .modal-backdrop, .overlay, #exit-toast').length,
+        hubComponentMounted: !!document.querySelector('.app-main-layout'),
+      });
+    }
+
+    // 1. Close active modals/sheets/overlays
+    window.dispatchEvent(new CustomEvent('studio:close-all-sheets'));
+    window.dispatchEvent(new CustomEvent('studio:close-all-modals'));
+    document.querySelectorAll('.modal-backdrop, .overlay').forEach(el => {
+      if (el.id !== 'update-fade-overlay') {
+        el.remove();
+      }
+    });
+    document.documentElement.classList.remove('has-modal-open');
+
+    // 2. Cancel pending transitions & start exit transition
+    if (transitionTimerRef.current) {
+      clearTimeout(transitionTimerRef.current);
+      transitionTimerRef.current = null;
+    }
+    setExitingToHub(true);
+
+    // Reset predictive back / touch swipe state
+    touchState.current.isSwiping = false;
+    if (subAppWrapperRef.current && !isSwipeSuccess) {
+      subAppWrapperRef.current.style.transform = '';
+      subAppWrapperRef.current.style.transition = '';
+    }
+
+    // 3. Clear selected/active app state, reset animation locks & return to Hub after transition
+    const timer = setTimeout(() => {
+      updateSettings({ appMode: 'hub' });
+      
+      // Reset nested views to defaults
+      const storeState = useChordStore.getState();
+      storeState.setActivePanel(storeState.settings.defaultTab ?? 'library');
+      storeState.setLastSession({
+        vocalexTab: 'practice',
+        drumexTab: storeState.settings.defaultDrumTab ?? 'songs',
+        stagexView: storeState.settings.defaultStageView ?? 'Editor',
+      });
+
+      import('./groovex/useGroovexStore')
+        .then(({ useGroovexStore }) => {
+          useGroovexStore.getState().setView('library');
+        })
+        .catch(() => {});
+
+      if (subAppWrapperRef.current) {
+        subAppWrapperRef.current.style.transform = '';
+        subAppWrapperRef.current.style.transition = '';
+      }
+
+      // Reset Hub's zoom/opacity animation state
+      window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
+    }, 370);
+
+    transitionTimerRef.current = timer;
+  }, [updateSettings, exitingToHub]);
+
+  // Keep a mutable ref so popstate/android back button event listeners always call the latest function reference
+  const returnToStudioHubRef = useRef(returnToStudioHub);
+  useEffect(() => {
+    returnToStudioHubRef.current = returnToStudioHub;
+  }, [returnToStudioHub]);
+
+  // Export to window object so external sub-apps can call it directly
+  useEffect(() => {
+    (window as any).returnToStudioHub = returnToStudioHub;
+    return () => {
+      delete (window as any).returnToStudioHub;
+    };
+  }, [returnToStudioHub]);
+
+  // Backward compatibility listener for studio-hub-return CustomEvent
+  useEffect(() => {
+    const handler = () => {
+      returnToStudioHubRef.current();
+    };
+    window.addEventListener('studio-hub-return', handler);
+    return () => window.removeEventListener('studio-hub-return', handler);
+  }, []);
+
+  // System back button & predictive gesture handler
+  useEffect(() => {
+    // Seed history entries so we can capture popstate events
     window.history.replaceState({ chordex: 'root' }, '');
     window.history.pushState({ chordex: 'app' }, '');
 
@@ -709,29 +825,32 @@ export default function App() {
       const handled = handleGlobalBack();
 
       if (!handled) {
-        const now = Date.now();
-        if (now - lastBackTime.current < 2000) {
-          // Second press within 2 s → exit / minimize
-          import('@capacitor/app')
-            .then(({ App: CapApp }) => CapApp.exitApp())
-            .catch(() => {});
+        const isSubApp = useChordStore.getState().settings.appMode !== 'hub';
+        if (isSubApp) {
+          // If we are in a sub-app and back gesture is not internally handled, return to Hub
+          returnToStudioHubRef.current();
         } else {
-          lastBackTime.current = now;
-          setExitToast(true);
-          if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
-          exitToastTimer.current = setTimeout(() => setExitToast(false), 2000);
+          // Double press to exit when already on the Studio Hub
+          const now = Date.now();
+          if (now - lastBackTime.current < 2000) {
+            import('@capacitor/app')
+              .then(({ App: CapApp }) => CapApp.exitApp())
+              .catch(() => {});
+          } else {
+            lastBackTime.current = now;
+            setExitToast(true);
+            if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
+            exitToastTimer.current = setTimeout(() => setExitToast(false), 2000);
+          }
         }
       }
 
-      // Always re-push for the web popstate fallback so the stack stays alive.
       window.history.pushState({ chordex: 'app' }, '');
     };
 
-    // Web: popstate fires when browser / WebView pops history
     const handlePop = () => onBack();
     window.addEventListener('popstate', handlePop);
 
-    // Native Android: Capacitor's backButton is the authoritative event
     let capRemove: (() => void) | null = null;
     import('@capacitor/app')
       .then(({ App: CapApp }) => {
@@ -748,19 +867,51 @@ export default function App() {
     };
   }, []);
 
-
-
-  // ── Hub-return exit animation ────────────────────────────────────────────
-  const [exitingToHub, setExitingToHub] = useState(false);
+  // Root-level safety fallback: recover to Studio Hub on invalid appMode
   useEffect(() => {
-    const handler = () => {
-      setExitingToHub(true);
-      setTimeout(() => { updateSettings({ appMode: 'hub' }); setExitingToHub(false); }, 370);
+    const validModes = ['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex'];
+    if (!settings.appMode || !validModes.includes(settings.appMode)) {
+      console.warn('[Safety] Invalid appMode detected:', settings.appMode, 'Falling back to hub.');
+      updateSettings({ appMode: 'hub' });
+    }
+  }, [settings.appMode, updateSettings]);
+
+  // Root-level safety fallback: recover to Studio Hub on invalid appMode or stuck transition
+  useEffect(() => {
+    if (settings.appMode === 'hub') {
+      if (exitingToHub) {
+        setExitingToHub(false);
+      }
+      window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
+      if (subAppWrapperRef.current) {
+        subAppWrapperRef.current.style.transform = '';
+        subAppWrapperRef.current.style.transition = '';
+      }
+      // Remove any stuck modals or overlays
+      document.querySelectorAll('.modal-backdrop, .overlay').forEach(el => {
+        if (el.id !== 'update-fade-overlay') {
+          el.remove();
+        }
+      });
+      document.documentElement.classList.remove('has-modal-open');
+    }
+  }, [settings.appMode, exitingToHub]);
+
+  // Root-level safety fallback: recover from stuck exit transition
+  useEffect(() => {
+    let safetyTimer: ReturnType<typeof setTimeout> | undefined;
+    if (exitingToHub) {
+      safetyTimer = setTimeout(() => {
+        console.warn('[Safety] Hub exit transition stuck! Forcing hub mount.');
+        setExitingToHub(false);
+        updateSettings({ appMode: 'hub' });
+        window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
+      }, 800);
+    }
+    return () => {
+      if (safetyTimer) clearTimeout(safetyTimer);
     };
-    window.addEventListener('studio-hub-return', handler);
-    return () => window.removeEventListener('studio-hub-return', handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [exitingToHub, updateSettings]);
 
   // ── App-switch splash on mode change ────────────────────────────────────
   type SplashPhase = 'hidden' | 'in' | 'out';
@@ -1253,13 +1404,6 @@ export default function App() {
 
 
   // Global Swipe back gesture detection
-  const subAppWrapperRef = useRef<HTMLDivElement | null>(null);
-  const hubWrapperRef = useRef<HTMLDivElement | null>(null);
-  const touchState = useRef({
-    isSwiping: false,
-    startX: 0,
-    currentX: 0,
-  });
 
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
@@ -1314,12 +1458,7 @@ export default function App() {
         if (subAppWrapperRef.current) {
           subAppWrapperRef.current.style.transform = `translateX(${vw}px)`;
         }
-        setTimeout(() => {
-          updateSettings({ appMode: 'hub' });
-          if (subAppWrapperRef.current) {
-            subAppWrapperRef.current.style.transform = '';
-          }
-        }, 300);
+        returnToStudioHubRef.current(true);
       } else {
         // Swipe cancelled -> snap back
         if (subAppWrapperRef.current) {
@@ -1371,9 +1510,9 @@ export default function App() {
               key={activeAppToRender || 'none'}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              exit={exitingToHub ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0 }}
               transition={{
-                duration: 0.28,
+                duration: exitingToHub ? 0 : 0.28,
                 ease: 'easeInOut',
               }}
               style={{
