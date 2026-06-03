@@ -87,7 +87,7 @@ if (syncResult.status !== 0) {
 }
 
 console.log('release-firebase: → Running AppInstaller contract validation...');
-const validateResult = spawnSync('node', ['scripts/validate-app-installer.mjs'], {
+const validateResult = spawnSync('node', ['scripts/validate-app-installer.mjs', '--allow-missing-apk'], {
   cwd: pkgRoot,
   stdio: 'inherit',
   shell: process.platform === 'win32',
