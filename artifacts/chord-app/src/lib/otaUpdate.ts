@@ -523,6 +523,24 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         } catch {
           otaDebugLogs.currentOtaVersion = 'Error';
         }
+
+        // Temporary runtime Capacitor plugin registration check
+        try {
+          const cap = (window as any).Capacitor;
+          const registry = cap?.Plugins ? Object.keys(cap.Plugins) : [];
+          const appInstallerExists = cap ? cap.isPluginAvailable('AppInstaller') : false;
+          console.log('[OTA DEBUG] Plugin registry check:', {
+            registry,
+            appInstallerExists,
+          });
+          if (!appInstallerExists) {
+            otaDebugLogs.installerLaunchStatus = `MISSING: AppInstaller not registered. Plugins: ${registry.join(', ')}`;
+          } else {
+            otaDebugLogs.installerLaunchStatus = `REGISTERED: AppInstaller is present in registry. Plugins: ${registry.join(', ')}`;
+          }
+        } catch (registryErr: any) {
+          otaDebugLogs.installerLaunchStatus = `Registry check failed: ${registryErr?.message || String(registryErr)}`;
+        }
       } else {
         otaDebugLogs.currentOtaVersion = 'N/A (Web)';
       }
