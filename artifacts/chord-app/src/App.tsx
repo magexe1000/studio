@@ -840,17 +840,37 @@ export default function App() {
         if (isInitialAuth.current) {
           prevUserUid.current = user ? user.uid : null;
           isInitialAuth.current = false;
+          if (user) {
+            const token = localStorage.getItem('studio_fcm_token');
+            if (token) {
+              import('./lib/pushNotifications').then(({ saveFcmTokenToFirestore }) => {
+                saveFcmTokenToFirestore(user.uid, token);
+              });
+            }
+          }
           return;
         }
         if (user && prevUserUid.current !== user.uid) {
           logActivity('login', 'Logged In');
           prevUserUid.current = user.uid;
+          const token = localStorage.getItem('studio_fcm_token');
+          if (token) {
+            import('./lib/pushNotifications').then(({ saveFcmTokenToFirestore }) => {
+              saveFcmTokenToFirestore(user.uid, token);
+            });
+          }
         } else if (!user && prevUserUid.current !== null) {
           logActivity('logout', 'Logged Out');
           prevUserUid.current = null;
         }
       });
     }).catch(() => {});
+
+    // 3. Initialize FCM Push Notifications
+    import('./lib/pushNotifications').then(({ setupPushNotifications, registerPushNotifications }) => {
+      setupPushNotifications();
+      registerPushNotifications();
+    }).catch((err) => console.warn('[PUSH] Init failed:', err));
 
     return () => {
       cancelled = true;
@@ -1209,6 +1229,11 @@ export default function App() {
 
   // ── Hub mode & Sub-app stack ──────────────────────────────────────────────
   const isSubAppActive = settings.appMode !== 'hub';
+  const lastActiveAppRef = useRef<string | null>(null);
+  if (settings.appMode && settings.appMode !== 'hub') {
+    lastActiveAppRef.current = settings.appMode;
+  }
+  const activeAppToRender = settings.appMode === 'hub' ? lastActiveAppRef.current : settings.appMode;
 
   // Groovex theme configuration
   const groovexIsAmoled = activeVis.amoledMode;
@@ -1343,7 +1368,7 @@ export default function App() {
           {isSubAppActive && (
             <motion.div
               ref={subAppWrapperRef}
-              key={settings.appMode}
+              key={activeAppToRender || 'none'}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -1356,10 +1381,15 @@ export default function App() {
                 inset: 0,
                 zIndex: 2,
                 background: 'var(--app-bg)',
-                willChange: 'opacity',
+                willChange: 'opacity, transform',
+                transition: 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1), opacity 370ms ease-in-out',
+                transform: exitingToHub ? 'translateX(100%)' : 'translateX(0)',
+                opacity: exitingToHub ? 0 : 1,
+                pointerEvents: (activeAppToRender === null || exitingToHub) ? 'none' : 'auto',
+                display: activeAppToRender === null ? 'none' : 'block',
               }}
             >
-              {settings.appMode === 'groovex' && (
+              {activeAppToRender === 'groovex' && (
                 <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: groovexBgColor }}>
                   <Suspense fallback={<SmartLoading fallbackSkeleton={<GroovexAppSkeleton />} />}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
                   {groovexSplash !== 'hidden' && (
@@ -1384,7 +1414,7 @@ export default function App() {
                 </div>
               )}
 
-              {settings.appMode === 'vocalex' && (
+              {activeAppToRender === 'vocalex' && (
                 <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: vocalexBgColor }}>
                   <Suspense fallback={<SmartLoading fallbackSkeleton={<VocalexTakesSkeleton />} />}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
                   {vocalexSplash !== 'hidden' && (
@@ -1409,7 +1439,7 @@ export default function App() {
                 </div>
               )}
 
-              {settings.appMode === 'stage' && (
+              {activeAppToRender === 'stage' && (
                 <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: stageBgColor }}>
                   <Suspense fallback={<SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />}><AppEntryTransition><StagexPanel /></AppEntryTransition></Suspense>
                   {stageSplash !== 'hidden' && (
@@ -1434,7 +1464,7 @@ export default function App() {
                 </div>
               )}
 
-              {settings.appMode === 'drums' && (
+              {activeAppToRender === 'drums' && (
                 <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
                   <Suspense fallback={<SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} />}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense>
                   {drumSplash !== 'hidden' && (
@@ -1459,7 +1489,7 @@ export default function App() {
                 </div>
               )}
 
-              {settings.appMode === 'chords' && (
+              {activeAppToRender === 'chords' && (
                 <div className="app-sub-app-container" style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden', userSelect: 'none', background: 'var(--app-bg)' }}>
                   <AppEntryTransition
                     className="flex flex-col w-full overflow-hidden select-none app-bg"

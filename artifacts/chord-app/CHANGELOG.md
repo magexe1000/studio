@@ -15,6 +15,15 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.3.1
+
+- Fixed black screen when returning from apps to Studio Hub using the top navigation.
+- Fixed app exit transition state so the Hub renders correctly.
+- Improved navigation reliability across Chordex, Drumex, Vocalex, Stagex, and Groovex.
+- Added real system push notification support for updates using Firebase Cloud Messaging.
+- Added deduplication so each update version notifies only once.
+- Improved notification tap behavior to open the updater/changelog.
+
 ## 3.3.0
 
 - Hidden Developer Options: Added a hidden settings menu with update controls, log viewing, and simulation tools.

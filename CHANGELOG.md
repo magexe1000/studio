@@ -15,6 +15,24 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.3.1
+
+- Fixed black screen when returning from apps to Studio Hub using the top navigation.
+- Fixed app exit transition state so the Hub renders correctly.
+- Improved navigation reliability across Chordex, Drumex, Vocalex, Stagex, and Groovex.
+- Added real system push notification support for updates using Firebase Cloud Messaging.
+- Added deduplication so each update version notifies only once.
+- Improved notification tap behavior to open the updater/changelog.
+
+## 3.3.0
+
+- Hidden Developer Options: Added a hidden settings menu with update controls, log viewing, and simulation tools.
+- Advanced Diagnostics: Relocated and expanded all update diagnostics into the Developer Options menu.
+- Firebase Hosting: Migrated OTA bundle and version manifest hosting from GitHub Pages to Firebase.
+- SHA-256 Verification: Integrated cryptographic verification to check APK download integrity before installation.
+- Size Reduction: Reduced OTA bundle download size by ~65% via optimized asset packing and WebP image formats.
+- Performance & CORS: Fixed remote manifest fetch race conditions and native update CORS issues.
+
 ## 3.1.87
 
 - WebView Permission Bypass: Automatically auto-grant WebView permission requests for WebRTC microphone streams, resolving cached site-level locks when OS permissions are active.

@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.3.0'; // Developer Options & Update System Overhaul
+export const APP_VERSION = '3.3.1'; // Navigation and notification fixes
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-03'; // 3.3.0
+export const APP_VERSION_DATE = '2026-06-03'; // 3.3.1
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,24 +53,19 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Developer Options",
+    heading: "Navigation Fixes",
     items: [
-      'Developer Options: Added hidden Android-style developer settings menu with advanced diagnostics, simulations, and update controls.',
-      'Tapping Logo: Tapping logo 5 times in Settings → About Studio unlocks Developer Options.',
+      'Fixed black screen when returning from apps to Studio Hub using the top navigation.',
+      'Fixed app exit transition state so the Hub renders correctly.',
+      'Improved navigation reliability across Chordex, Drumex, Vocalex, Stagex, and Groovex.',
     ],
   },
   {
-    heading: "Update System Overhaul",
+    heading: "Push Notifications",
     items: [
-      'Firebase Hosting Migration: Migrated OTA bundle hosting and metadata manifests from GitHub Pages to Firebase Hosting.',
-      'CORS & Fetch fixes: Added Firebase CORS support for native updates and resolved remote manifest race conditions.',
-      'SHA-256 Verification: Integrated integrity hashes to verify downloaded packages before launching intent.',
-    ],
-  },
-  {
-    heading: "Performance & Size",
-    items: [
-      'Bundle Reduction: Reduced OTA package size by ~65% via WebP assets, optimized font loading, and packaging.',
+      'Added real system push notification support for updates using Firebase Cloud Messaging.',
+      'Added deduplication so each update version notifies only once.',
+      'Improved notification tap behavior to open the updater/changelog.',
     ],
   },
 ];
@@ -79,24 +74,19 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Opciones de Desarrollador",
+    heading: "Correcciones de Navegación",
     items: [
-      'Opciones de Desarrollador: Menú oculto estilo Android con diagnósticos avanzados, simulaciones y controles.',
-      'Activación por Logo: Tocar el logo 5 veces en Ajustes → Acerca de Studio activa el menú.',
+      'Se solucionó la pantalla negra al regresar a la consola central usando la navegación superior.',
+      'Se corrigió el estado de transición de salida para renderizar la consola correctamente.',
+      'Mejoras en la estabilidad de navegación en Chordex, Drumex, Vocalex, Stagex y Groovex.',
     ],
   },
   {
-    heading: "Sistema de Actualización",
+    heading: "Notificaciones Push",
     items: [
-      'Migración a Firebase Hosting: Se movió el alojamiento de paquetes OTA y manifiestos de GitHub Pages a Firebase.',
-      'Soporte CORS y Fetch: Añadido soporte CORS para descargas nativas y resuelto condiciones de carrera en manifiestos.',
-      'Verificación SHA-256: Se integró la verificación SHA-256 para asegurar la integridad de las descargas.',
-    ],
-  },
-  {
-    heading: "Rendimiento",
-    items: [
-      'Reducción de Paquete: Tamaño de OTA reducido aproximadamente un 65% mediante optimizaciones WebP y fuentes.',
+      'Soporte para notificaciones push del sistema con Firebase Cloud Messaging para actualizaciones.',
+      'Se agregó deduplicación para que cada versión notifique solo una vez.',
+      'Comportamiento de toque mejorado para abrir el actualizador/registro de cambios.',
     ],
   },
 ];
@@ -104,24 +94,19 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Entwickleroptionen",
+    heading: "Navigationskorrekturen",
     items: [
-      'Entwickleroptionen: Ausgeblendetes Android-ähnliches Menü mit Diagnose- und Simulationsfunktionen.',
-      'Aktivierung per Logo: 5-maliges Tippen auf das Studio-Logo unter Einstellungen → Über Studio schaltet das Menü frei.',
+      'Schwarzer Bildschirm beim Zurückkehren zum Hub über die obere Navigationsleiste behoben.',
+      'Der Übergangszustand beim App-Exit wurde korrigiert, sodass der Hub sofort gerendert wird.',
+      'Erhöhte Navigationsstabilität für Chordex, Drumex, Vocalex, Stagex und Groovex.',
     ],
   },
   {
-    heading: "Update-System",
+    heading: "Push-Benachrichtigungen",
     items: [
-      'Firebase-Hosting Migration: OTA-Bundles und Manifeste von GitHub Pages zu Firebase Hosting migriert.',
-      'CORS & Fetch: Zuverlässigere Abfragen mit CORS-Unterstützung und optimiertem Versionen-Abgleich.',
-      'SHA-256-Verifizierung: Integrierte SHA-256-Prüfung zur Absicherung der Download-Integrität.',
-    ],
-  },
-  {
-    heading: "Leistung & Größe",
-    items: [
-      'Bundle-Reduzierung: Reduzierung der OTA-Paketgröße um ca. 65 % dank WebP-Format und kompakter Schriftdateien.',
+      'Unterstützung für echte System-Push-Benachrichtigungen bei Updates über Firebase Cloud Messaging.',
+      'Deduplizierung hinzugefügt, sodass jede Update-Version nur einmal benachrichtigt.',
+      'Tippverhalten der Benachrichtigung verbessert, um direkt das Update-Menü zu öffnen.',
     ],
   },
 ];

@@ -1404,6 +1404,26 @@ function HubSettings({
     return 'main';
   });
   const [pageKey, setPageKey] = useState(0);
+  const [pushPermissionStatus, setPushPermissionStatus] = useState<string>('checking');
+  useEffect(() => {
+    let active = true;
+    const updatePermission = () => {
+      import('../lib/pushNotifications')
+        .then(({ checkNotificationPermission }) => checkNotificationPermission())
+        .then((status) => {
+          if (active) setPushPermissionStatus(status);
+        })
+        .catch(() => {
+          if (active) setPushPermissionStatus('unknown');
+        });
+    };
+    updatePermission();
+    const interval = setInterval(updatePermission, 5000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [page]);
   const [slideDir, setSlideDir] = useState<'forward' | 'back'>('forward');
 
   const [customPhoto, setCustomPhoto] = useState<string | null>(null);
@@ -2339,6 +2359,8 @@ function HubSettings({
           <DevInfoRow label="Current APK Version" desc="The native Android APK version wrapper" value={devNativeVersion} />
           <DevInfoRow label="Current OTA Version" desc="The active Capgo bundle version identifier" value={devOtaVersion} />
           <DevInfoRow label="Installed Bundle ID" desc="The package name identifier on native Android" value={devBundleId} />
+          <DevInfoRow label="Push Notification Permission" desc="The current native system permission state for push notifications" value={pushPermissionStatus.toUpperCase()} />
+          <DevInfoRow label="Cached FCM Registration Token" desc="The device registration token from Firebase Cloud Messaging" value={localStorage.getItem('studio_fcm_token') || 'NONE'} />
           
           <DevInfoRow label="Firebase manifest (version.json)" value={firebaseVersionJson} />
           <DevInfoRow label="Firebase manifest (app-release.json)" value={firebaseAppReleaseJson} />
@@ -2549,6 +2571,30 @@ function HubSettings({
       <div style={cardStyle}>
         <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'OTA update system'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={210} />
         <SettingsNavRow icon="history" iconColor={accent.from} title={(t.hub as { studioSettings?: { changelog?: string } }).studioSettings?.changelog ?? 'Changelog'} desc={(t.hub as { studioSettings?: { changelogDesc?: string } }).studioSettings?.changelogDesc ?? "What's new in this version"} onPress={() => setChangelogOpen(true)} delay={220} />
+        <SettingsNavRow
+          icon={pushPermissionStatus === 'granted' ? 'notifications_active' : pushPermissionStatus === 'denied' ? 'notifications_off' : 'notifications'}
+          iconColor={pushPermissionStatus === 'denied' ? '#ef4444' : accent.from}
+          title="Push Notifications"
+          desc={
+            pushPermissionStatus === 'granted' ? 'Enabled (real-time system update alerts)' :
+            pushPermissionStatus === 'denied' ? 'Disabled (blocked by Android settings; alerts disabled)' :
+            'Enable real-time update alerts'
+          }
+          badge={
+            pushPermissionStatus === 'granted' ? 'Active' :
+            pushPermissionStatus === 'denied' ? 'Blocked' :
+            'Off'
+          }
+          onPress={async () => {
+            if (isNative()) {
+              const { registerPushNotifications } = await import('../lib/pushNotifications');
+              await registerPushNotifications();
+            } else {
+              showDevToast('Push notifications are only supported on native Android');
+            }
+          }}
+          delay={225}
+        />
         <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last={!settings.developerMode} delay={230} />
         {settings.developerMode && (
           <SettingsNavRow icon="terminal" iconColor={accent.from} title="Developer Options" desc="Update simulation, logs, and controls" onPress={() => navigate('developer')} last delay={240} />
