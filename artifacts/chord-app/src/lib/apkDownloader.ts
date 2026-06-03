@@ -13,6 +13,8 @@ export interface AppInstallerPlugin {
   removeSecureValue(options: { key: string }): Promise<void>;
   canRequestPackageInstalls(): Promise<{ value: boolean }>;
   openUnknownAppSourcesSettings(): Promise<void>;
+  verifySha256(options: { filePath: string; expectedHash: string }): Promise<{ matches: boolean; computedHash: string }>;
+  getDeviceInfo(): Promise<{ manufacturer: string; model: string; androidVersion: string; sdkInt: number; canRequestPackageInstalls: boolean }>;
 }
 
 export const AppInstaller = registerPlugin<AppInstallerPlugin>('AppInstaller');
@@ -219,33 +221,53 @@ export async function verifyApkSha256(filePath: string, expectedHash: string): P
     return true; // Skip if no hash provided
   }
   try {
-    const result = await Filesystem.readFile({
-      path: filePath
-    });
+    console.log(`[apkDownloader] Invoking native verifySha256 for ${filePath}`);
+    const res = await AppInstaller.verifySha256({ filePath, expectedHash });
+    console.log(`[apkDownloader] Native SHA-256 verification matches: ${res.matches}, computed: ${res.computedHash}`);
+    return res.matches;
+  } catch (err) {
+    console.error('[apkDownloader] Native verifySha256 failed, falling back to JS implementation:', err);
+    // Write error to otaDebugLogs if possible
+    try {
+      const { otaDebugLogs } = await import('./otaUpdate');
+      const errMsg = err instanceof Error ? err.message : String(err);
+      otaDebugLogs.installError = `Native verifySha256 failed: ${errMsg}`;
+    } catch {}
     
-    const base64Data = typeof result.data === 'string' ? result.data : '';
-    if (!base64Data) {
-      console.warn('[apkDownloader] Empty file content read for hash verification.');
+    // JS Fallback (memory heavy, OOM risk for large files)
+    try {
+      const result = await Filesystem.readFile({
+        path: filePath
+      });
+      
+      const base64Data = typeof result.data === 'string' ? result.data : '';
+      if (!base64Data) {
+        console.warn('[apkDownloader] Empty file content read for hash verification.');
+        return false;
+      }
+      
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const hashBuffer = await crypto.subtle.digest('SHA-256', bytes.buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      const matches = hashHex.toLowerCase() === expectedHash.toLowerCase();
+      console.log(`[apkDownloader] JS Fallback SHA-256 verification: Expected=${expectedHash.toLowerCase()}, Computed=${hashHex}, Matches=${matches}`);
+      return matches;
+    } catch (jsErr) {
+      console.error('[apkDownloader] JS Fallback verification failed:', jsErr);
+      try {
+        const { otaDebugLogs } = await import('./otaUpdate');
+        const errMsg = jsErr instanceof Error ? jsErr.message : String(jsErr);
+        otaDebugLogs.installError += `\nJS Fallback failed: ${errMsg}`;
+      } catch {}
       return false;
     }
-    
-    // Convert base64 to binary array buffer
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    
-    const hashBuffer = await crypto.subtle.digest('SHA-256', bytes.buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    
-    const matches = hashHex.toLowerCase() === expectedHash.toLowerCase();
-    console.log(`[apkDownloader] SHA-256 verification: Expected=${expectedHash.toLowerCase()}, Computed=${hashHex}, Matches=${matches}`);
-    return matches;
-  } catch (err) {
-    console.error('[apkDownloader] Error verifying APK SHA-256:', err);
-    return false;
   }
 }
 

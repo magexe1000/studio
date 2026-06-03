@@ -29,6 +29,121 @@ import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 import { useChordStore } from '../store/useChordStore';
 import { logActivity } from './activityLogger';
 
+export let otaDebugLogs: {
+  appVersion: string;
+  nativeApkVersion: string | null;
+  currentOtaVersion: string | null;
+  fetchedVersionJson: string | null;
+  fetchedAppReleaseJson: string | null;
+  compareResult: number | null;
+  updateType: string | null;
+  finalDecision: string | null;
+  downloadStatus: string | null;
+  installError: string | null;
+  shaVerification: string | null;
+  fileDetails: string | null;
+  installerLaunchStatus: string | null;
+  lastExceptionStackTrace: string | null;
+} = {
+  appVersion: APP_VERSION,
+  nativeApkVersion: null,
+  currentOtaVersion: null,
+  fetchedVersionJson: null,
+  fetchedAppReleaseJson: null,
+  compareResult: null,
+  updateType: null,
+  finalDecision: null,
+  downloadStatus: null,
+  installError: null,
+  shaVerification: null,
+  fileDetails: null,
+  installerLaunchStatus: null,
+  lastExceptionStackTrace: null,
+};
+
+export interface OtaDiagnostics {
+  exceptionMessage: string | null;
+  failureReason: string | null;
+  downloadUrl: string | null;
+  apkPath: string | null;
+  fileSize: string | null;
+  shaExpected: string | null;
+  shaCalculated: string | null;
+  installerResult: string | null;
+  permissionState: string | null;
+  androidVersion: string | null;
+  deviceModel: string | null;
+  timestamp: string | null;
+}
+
+export let otaDiagnostics: OtaDiagnostics = {
+  exceptionMessage: null,
+  failureReason: null,
+  downloadUrl: null,
+  apkPath: null,
+  fileSize: null,
+  shaExpected: null,
+  shaCalculated: null,
+  installerResult: null,
+  permissionState: null,
+  androidVersion: null,
+  deviceModel: null,
+  timestamp: null,
+};
+
+export async function populateDiagnostics(err: any, reason: string) {
+  try {
+    const timestamp = new Date().toISOString();
+    let manufacturer = 'Web Browser';
+    let model = typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A';
+    let androidVersion = 'N/A';
+    let permissionState = 'N/A';
+
+    if (isNative()) {
+      try {
+        const { AppInstaller } = await import('./apkDownloader');
+        const deviceInfo = await AppInstaller.getDeviceInfo();
+        manufacturer = deviceInfo.manufacturer;
+        model = deviceInfo.model;
+        androidVersion = `${deviceInfo.androidVersion} (API ${deviceInfo.sdkInt})`;
+        permissionState = `canRequestPackageInstalls: ${deviceInfo.canRequestPackageInstalls}`;
+      } catch (e) {
+        console.warn('[OTA] Failed to get native device info for diagnostics:', e);
+        permissionState = 'Error querying permission';
+      }
+    }
+
+    const apkPath = localStorage.getItem('studio:downloadedApkPath') || 'N/A';
+    let fileSize = 'N/A';
+    if (isNative() && apkPath && apkPath !== 'N/A') {
+      try {
+        const { Filesystem } = await import('@capacitor/filesystem');
+        const info = await Filesystem.stat({ path: apkPath });
+        fileSize = `${(info.size / (1024 * 1024)).toFixed(2)} MB (${info.size} bytes)`;
+      } catch {
+        fileSize = 'File not found or unreadable';
+      }
+    }
+
+    const shaCalculated = otaDebugLogs.shaVerification === 'SUCCESS' ? (globalOtaState.apkSha256 || 'N/A') : 'N/A';
+
+    otaDiagnostics.exceptionMessage = err instanceof Error ? err.message : String(err);
+    otaDiagnostics.failureReason = reason + (err instanceof Error && err.stack ? `\nStack: ${err.stack}` : '');
+    otaDiagnostics.downloadUrl = globalOtaState.apkUrl || globalOtaState.downloadUrl || 'N/A';
+    otaDiagnostics.apkPath = apkPath;
+    otaDiagnostics.fileSize = fileSize;
+    otaDiagnostics.shaExpected = globalOtaState.apkSha256 || 'N/A';
+    otaDiagnostics.shaCalculated = shaCalculated;
+    otaDiagnostics.installerResult = otaDebugLogs.installError || 'N/A';
+    otaDiagnostics.permissionState = permissionState;
+    otaDiagnostics.androidVersion = androidVersion;
+    otaDiagnostics.deviceModel = `${manufacturer} ${model}`;
+    otaDiagnostics.timestamp = timestamp;
+  } catch (diagErr) {
+    console.error('[OTA] Failed to populate diagnostics:', diagErr);
+  }
+}
+
 let cachedNativeVersion: string | null = null;
 export async function getNativeVersion(): Promise<string | null> {
   if (cachedNativeVersion) return cachedNativeVersion;
@@ -198,12 +313,30 @@ async function fetchOne(
       cache: 'no-store',
       signal,
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (url.includes('version.json')) otaDebugLogs.fetchedVersionJson = `HTTP Error ${res.status}`;
+      if (url.includes('app-release.json')) otaDebugLogs.fetchedAppReleaseJson = `HTTP Error ${res.status}`;
+      return null;
+    }
     const json = (await res.json()) as unknown;
-    if (!json || typeof json !== 'object') return null;
+    if (!json || typeof json !== 'object') {
+      if (url.includes('version.json')) otaDebugLogs.fetchedVersionJson = 'Malformed JSON';
+      if (url.includes('app-release.json')) otaDebugLogs.fetchedAppReleaseJson = 'Malformed JSON';
+      return null;
+    }
     const obj = json as Record<string, unknown>;
-    if (typeof obj.version !== 'string' || !obj.version.trim()) return null;
+    if (typeof obj.version !== 'string' || !obj.version.trim()) {
+      if (url.includes('version.json')) otaDebugLogs.fetchedVersionJson = 'Missing version field';
+      if (url.includes('app-release.json')) otaDebugLogs.fetchedAppReleaseJson = 'Missing version field';
+      return null;
+    }
     
+    if (url.includes('version.json')) {
+      otaDebugLogs.fetchedVersionJson = obj.version;
+    } else if (url.includes('app-release.json')) {
+      otaDebugLogs.fetchedAppReleaseJson = obj.version;
+    }
+
     // Map new app-release.json fields to RemoteVersionInfo fields
     const changelog = typeof obj.description === 'string' ? obj.description : (typeof obj.changelog === 'string' ? obj.changelog : undefined);
     const downloadUrl = typeof obj.downloadUrl === 'string' ? obj.downloadUrl : (typeof obj.ota_download_url === 'string' ? obj.ota_download_url : undefined);
@@ -223,7 +356,10 @@ async function fetchOne(
       apkSha256,
       releaseNotes: Array.isArray(obj.releaseNotes) ? (obj.releaseNotes.filter(item => typeof item === 'string') as string[]) : undefined,
     };
-  } catch {
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (url.includes('version.json')) otaDebugLogs.fetchedVersionJson = `Error: ${errMsg}`;
+    if (url.includes('app-release.json')) otaDebugLogs.fetchedAppReleaseJson = `Error: ${errMsg}`;
     return null;
   }
 }
@@ -376,6 +512,21 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       const laterVersion = getSessionItem('studio:laterUpdateVersion');
       const urlsTried = versionJsonUrls();
 
+      // Populate debug logs baseline
+      otaDebugLogs.appVersion = APP_VERSION;
+      otaDebugLogs.nativeApkVersion = natVer || 'N/A';
+      if (isNative()) {
+        try {
+          const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+          const active = await CapacitorUpdater.current();
+          otaDebugLogs.currentOtaVersion = active?.bundle?.version || 'builtin';
+        } catch {
+          otaDebugLogs.currentOtaVersion = 'Error';
+        }
+      } else {
+        otaDebugLogs.currentOtaVersion = 'N/A (Web)';
+      }
+
       console.log('[OTA DEBUG] checkForUpdate started:', {
         installedBundleVersion: APP_VERSION,
         nativeApkVersion: natVer,
@@ -392,11 +543,16 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 
       if (!remote) {
         console.log('[OTA DEBUG] Skip: fetchRemoteVersion returned null.');
+        otaDebugLogs.compareResult = null;
+        otaDebugLogs.updateType = null;
+        otaDebugLogs.finalDecision = 'Skip: fetchRemoteVersion returned null';
         updateGlobalState({ updateState: 'idle', updateAvailable: false, loading: false });
         return globalOtaState;
       }
 
       const cmp = compareSemver(remote.version, APP_VERSION);
+      otaDebugLogs.compareResult = cmp;
+
       let updateType: 'ota' | 'apk' | 'both' | 'none' = 'none';
       let apkUrl: string | null = null;
 
@@ -414,12 +570,15 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         }
       }
 
+      otaDebugLogs.updateType = updateType;
+
       if (updateType === 'none') {
         console.log('[OTA DEBUG] Skip: updateType evaluated to "none" because remote.version <= APP_VERSION or other platform reason.', {
           remoteVersion: remote.version,
           comparisonCmp: cmp,
           updateType
         });
+        otaDebugLogs.finalDecision = `Skip: updateType is 'none' (remote.version=${remote.version} <= APP_VERSION=${APP_VERSION})`;
         updateGlobalState({ updateState: 'idle', updateAvailable: false, updateType: 'none', loading: false });
         return globalOtaState;
       }
@@ -445,11 +604,14 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           compareSemverLEZero: cmpC,
           comparison: compareSemver(remote.version, APP_VERSION)
         });
+        otaDebugLogs.finalDecision = `Skip: Already processed (inApplied=${inApplied}, inInstalled=${inInstalled}, cmpC=${cmpC})`;
         updateGlobalState({ updateState: 'idle', updateAvailable: false, updateType, loading: false });
         return globalOtaState;
       }
 
       const isDismissed = dismissedList.includes(remote.version) || laterVersion === remote.version;
+      otaDebugLogs.finalDecision = `Show: Available (isDismissed=${isDismissed})`;
+
       console.log('[OTA DEBUG] Showing Update:', {
         version: remote.version,
         updateType,
@@ -522,17 +684,20 @@ export function downloadUpdate(): Promise<void> {
 
   if (updateType === 'both') {
     if (!apkUrl || !downloadUrl || !remoteVersion) {
+      otaDebugLogs.downloadStatus = 'Error: Missing URL(s)';
       updateGlobalState({ updateState: 'error', error: 'Missing OTA or APK update URL' });
       return Promise.reject(new Error('Missing OTA or APK update URL'));
     }
 
     activeDownloadPromise = (async () => {
+      otaDebugLogs.downloadStatus = `Update started: both\nOTA URL: ${downloadUrl}\nAPK URL: ${apkUrl}`;
       updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading update', error: null });
       try {
         const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         const { downloadApk } = await import('./apkDownloader');
 
         // 1. Download OTA bundle (allocated to first 20% of progress bar)
+        otaDebugLogs.downloadStatus += `\nOTA download started...`;
         let otaProgress = 0;
         const progressListener = await CapacitorUpdater.addListener(
           'download',
@@ -553,6 +718,7 @@ export function downloadUpdate(): Promise<void> {
             url: downloadUrl,
             version: ver,
           });
+          otaDebugLogs.downloadStatus += `\nOTA download completed. Bundle ID: ${downloadedBundle.id}`;
           updateGlobalState({ progress: 0.2 });
         } finally {
           if (progressListener) {
@@ -561,6 +727,7 @@ export function downloadUpdate(): Promise<void> {
         }
 
         // 2. Download APK (allocated to remaining 80% of progress bar)
+        otaDebugLogs.downloadStatus += `\nAPK download started...`;
         const filePath = await downloadApk(apkUrl, (percent) => {
           const apkProgress = Math.max(0, Math.min(1, percent / 100));
           updateGlobalState({ 
@@ -568,15 +735,29 @@ export function downloadUpdate(): Promise<void> {
             statusText: 'Downloading update'
           });
         });
+        otaDebugLogs.downloadStatus += `\nAPK download completed. Path: ${filePath}`;
 
         // Compute/Verify SHA-256 if expected hash is available
         const expectedHash = globalOtaState.apkSha256;
         if (expectedHash) {
+          otaDebugLogs.downloadStatus += `\nStarting SHA verification (Expected: ${expectedHash})...`;
           const { verifyApkSha256 } = await import('./apkDownloader');
           const isValid = await verifyApkSha256(filePath, expectedHash);
+          otaDebugLogs.shaVerification = isValid ? 'SUCCESS' : 'FAILED';
           if (!isValid) {
             throw new Error('APK hash verification failed (corrupted download)');
           }
+        } else {
+          otaDebugLogs.shaVerification = 'SKIPPED (No expected hash)';
+        }
+
+        // Get file details
+        try {
+          const { Filesystem } = await import('@capacitor/filesystem');
+          const info = await Filesystem.stat({ path: filePath });
+          otaDebugLogs.fileDetails = `Size: ${info.size} bytes\nURI: ${info.uri}`;
+        } catch (statErr) {
+          otaDebugLogs.fileDetails = `Error reading file stats: ${statErr instanceof Error ? statErr.message : String(statErr)}`;
         }
 
         updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
@@ -588,9 +769,15 @@ export function downloadUpdate(): Promise<void> {
         addToStoredList('studio:downloadedVersions', ver);
       } catch (err) {
         console.error('[OTA] Both update failed:', err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        const errStack = (err instanceof Error && err.stack ? err.stack : null);
+        otaDebugLogs.installError = `Download/Verify Exception: ${errMsg}\nStack: ${errStack || ''}`;
+        otaDebugLogs.lastExceptionStackTrace = errStack;
+        otaDebugLogs.installerLaunchStatus = 'FAILED';
+        await populateDiagnostics(err, 'Both OTA/APK update download or verification failed');
         updateGlobalState({ 
           updateState: 'error', 
-          error: err instanceof Error ? err.message : 'Download failed',
+          error: errMsg,
           statusText: null
         });
         throw err;
@@ -603,30 +790,47 @@ export function downloadUpdate(): Promise<void> {
 
   if (updateType === 'apk') {
     if (!apkUrl) {
+      otaDebugLogs.downloadStatus = 'Error: Missing APK URL';
       updateGlobalState({ updateState: 'error', error: 'No APK download URL available' });
       return Promise.reject(new Error('No APK download URL available'));
     }
 
     activeDownloadPromise = (async () => {
+      otaDebugLogs.downloadStatus = `Update started: apk\nAPK URL: ${apkUrl}`;
       updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading update', error: null });
       try {
         const { downloadApk } = await import('./apkDownloader');
         
+        otaDebugLogs.downloadStatus += `\nAPK download started...`;
         const filePath = await downloadApk(apkUrl, (percent) => {
           updateGlobalState({ 
             progress: Math.max(0, Math.min(1, percent / 100)),
             statusText: 'Downloading update'
           });
         });
+        otaDebugLogs.downloadStatus += `\nAPK download completed. Path: ${filePath}`;
 
         // Compute/Verify SHA-256 if expected hash is available
         const expectedHash = globalOtaState.apkSha256;
         if (expectedHash) {
+          otaDebugLogs.downloadStatus += `\nStarting SHA verification (Expected: ${expectedHash})...`;
           const { verifyApkSha256 } = await import('./apkDownloader');
           const isValid = await verifyApkSha256(filePath, expectedHash);
+          otaDebugLogs.shaVerification = isValid ? 'SUCCESS' : 'FAILED';
           if (!isValid) {
             throw new Error('APK hash verification failed (corrupted download)');
           }
+        } else {
+          otaDebugLogs.shaVerification = 'SKIPPED (No expected hash)';
+        }
+
+        // Get file details
+        try {
+          const { Filesystem } = await import('@capacitor/filesystem');
+          const info = await Filesystem.stat({ path: filePath });
+          otaDebugLogs.fileDetails = `Size: ${info.size} bytes\nURI: ${info.uri}`;
+        } catch (statErr) {
+          otaDebugLogs.fileDetails = `Error reading file stats: ${statErr instanceof Error ? statErr.message : String(statErr)}`;
         }
 
         updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
@@ -638,9 +842,15 @@ export function downloadUpdate(): Promise<void> {
         addToStoredList('studio:downloadedVersions', ver);
       } catch (err) {
         console.error('[OTA] APK download failed:', err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        const errStack = (err instanceof Error && err.stack ? err.stack : null);
+        otaDebugLogs.installError = `Download/Verify Exception: ${errMsg}\nStack: ${errStack || ''}`;
+        otaDebugLogs.lastExceptionStackTrace = errStack;
+        otaDebugLogs.installerLaunchStatus = 'FAILED';
+        await populateDiagnostics(err, 'APK download or verification failed');
         updateGlobalState({ 
           updateState: 'error', 
-          error: err instanceof Error ? err.message : 'Download failed',
+          error: errMsg,
           statusText: null
         });
         throw err;
@@ -652,15 +862,18 @@ export function downloadUpdate(): Promise<void> {
   }
 
   if (!downloadUrl || !remoteVersion) {
+    otaDebugLogs.downloadStatus = 'Error: Missing downloadUrl';
     updateGlobalState({ updateState: 'error', error: 'No download URL available' });
     return Promise.reject(new Error('No download URL available'));
   }
 
   activeDownloadPromise = (async () => {
+    otaDebugLogs.downloadStatus = `Update started: ota\nOTA URL: ${downloadUrl}`;
     updateGlobalState({ updateState: 'downloading', progress: 0, error: null });
     try {
       const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
 
+      otaDebugLogs.downloadStatus += `\nOTA download started...`;
       let progressListener: { remove: () => Promise<void> } | undefined;
       progressListener = await CapacitorUpdater.addListener(
          'download',
@@ -676,6 +889,7 @@ export function downloadUpdate(): Promise<void> {
           url: downloadUrl,
           version: ver,
         });
+        otaDebugLogs.downloadStatus += `\nOTA download completed. Bundle ID: ${downloaded.id}`;
         updateGlobalState({ progress: 1.0, updateState: 'ready' });
         localStorage.setItem('studio:downloadedBundleId', downloaded.id);
         localStorage.removeItem('studio:downloadedApkPath');
@@ -687,8 +901,14 @@ export function downloadUpdate(): Promise<void> {
       }
     } catch (err) {
       console.error('[OTA] Download failed:', err);
-      updateGlobalState({ updateState: 'error', error: err instanceof Error ? err.message : 'Download failed' });
-      throw err; // Re-throw to prevent caller from proceeding to applyUpdate
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const errStack = (err instanceof Error && err.stack ? err.stack : null);
+      otaDebugLogs.installError = `Download Exception: ${errMsg}\nStack: ${errStack || ''}`;
+      otaDebugLogs.lastExceptionStackTrace = errStack;
+      otaDebugLogs.installerLaunchStatus = 'FAILED';
+      await populateDiagnostics(err, 'OTA bundle download failed');
+      updateGlobalState({ updateState: 'error', error: errMsg });
+      throw err;
     } finally {
       activeDownloadPromise = null;
     }
@@ -729,20 +949,38 @@ export function applyUpdate(): Promise<void> {
         const downloadedId = localStorage.getItem('studio:downloadedBundleId');
         if (updateType === 'both' && downloadedId) {
           try {
+            otaDebugLogs.installError = `Both-update: setting Capgo bundle ID: ${downloadedId}`;
             const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
             await CapacitorUpdater.set({ id: downloadedId });
+            otaDebugLogs.installError += `\nCapgo bundle ID set successfully.`;
           } catch (e) {
             console.warn('[OTA] Failed to set Capgo bundle in both-update (ignoring):', e);
+            otaDebugLogs.installError += `\nWarning: Failed to set Capgo bundle ID: ${e instanceof Error ? e.message : String(e)}`;
           }
         }
 
         const { AppInstaller } = await import('./apkDownloader');
+        otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nLaunching APK installer intent for file: ${filePath}`;
+        updateGlobalState({ statusText: 'Launching APK installer' });
+
         await AppInstaller.installApk({ filePath });
+        
+        otaDebugLogs.installError += `\nAPK installer intent launched successfully!`;
+        otaDebugLogs.installerLaunchStatus = 'SUCCESS';
+        otaDebugLogs.lastExceptionStackTrace = 'None';
+        updateGlobalState({ statusText: 'APK installer launched' });
       } catch (err) {
         console.error('[OTA] APK install failed:', err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        const errStack = (err instanceof Error && err.stack ? err.stack : null);
+        otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nAPK Install Exception: ${errMsg}\nStack: ${errStack || ''}`;
+        otaDebugLogs.installerLaunchStatus = 'FAILED';
+        otaDebugLogs.lastExceptionStackTrace = errStack;
+        await populateDiagnostics(err, 'APK installation failed');
         updateGlobalState({ 
           updateState: 'error', 
-          error: err instanceof Error ? err.message : 'Installation failed' 
+          error: errMsg,
+          statusText: 'Installation failed'
         });
         localStorage.removeItem('studio:appliedUpdateVersion');
         throw err;
@@ -768,6 +1006,9 @@ export function applyUpdate(): Promise<void> {
         const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
         const { fadeToBlackAndReload } = await import('./capgoUpdater');
 
+        otaDebugLogs.installError = `Applying OTA bundle ID: ${downloadedId}`;
+        updateGlobalState({ statusText: 'Applying OTA bundle' });
+
         await fadeToBlackAndReload(async () => {
           await CapacitorUpdater.set({ id: downloadedId });
           try {
@@ -776,9 +1017,24 @@ export function applyUpdate(): Promise<void> {
             /* reload handled by set() */
           }
         });
+        
+        otaDebugLogs.installError += `\nOTA bundle applied and reload triggered.`;
+        otaDebugLogs.installerLaunchStatus = 'SUCCESS';
+        otaDebugLogs.lastExceptionStackTrace = 'None';
+        updateGlobalState({ statusText: 'OTA reload triggered' });
       } catch (err) {
         console.error('[OTA] Apply failed:', err);
-        updateGlobalState({ updateState: 'error', error: err instanceof Error ? err.message : 'Apply failed' });
+        const errMsg = err instanceof Error ? err.message : String(err);
+        const errStack = (err instanceof Error && err.stack ? err.stack : null);
+        otaDebugLogs.installError = `OTA Apply Exception: ${errMsg}\nStack: ${errStack || ''}`;
+        otaDebugLogs.installerLaunchStatus = 'FAILED';
+        otaDebugLogs.lastExceptionStackTrace = errStack;
+        await populateDiagnostics(err, 'OTA apply failed');
+        updateGlobalState({ 
+          updateState: 'error', 
+          error: errMsg,
+          statusText: 'OTA apply failed'
+        });
         localStorage.removeItem('studio:appliedUpdateVersion');
         throw err; // Re-throw to propagate exception
       } finally {

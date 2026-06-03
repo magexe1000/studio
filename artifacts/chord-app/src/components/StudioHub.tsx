@@ -12,7 +12,8 @@ import ApplyToSheet from './ApplyToSheet';
 import { APP_VERSION_LABEL, compareSemver, APP_VERSION } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
-import { useOtaUpdate } from '../lib/otaUpdate';
+import { useOtaUpdate, otaDebugLogs, otaDiagnostics } from '../lib/otaUpdate';
+import UpdateDiagnosticsSheet from './UpdateDiagnosticsSheet';
 import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
 import { resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl } from '../lib/apkDownloader';
 import StudioUpdateScreen from './StudioUpdateScreen';
@@ -728,7 +729,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'help';
+type SettingsPageId = 'main' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'help' | 'debug';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -982,6 +983,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   onBack: () => void;
 }) {
   const ota = useOtaUpdate();
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const { settings, updateSettings } = useChordStore();
   const lang = settings.language ?? 'en';
 
@@ -1164,30 +1166,44 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
           <p style={{ margin: 0, fontSize: 12.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
             {L.errorDesc}
           </p>
-          <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 8 }}>
             <button
               type="button"
-              onClick={() => ota.checkNow()}
+              onClick={() => setDiagnosticsOpen(true)}
               style={{
-                flex: 1, padding: '10px', borderRadius: 10, background: 'transparent',
-                border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-secondary)',
-                fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
+                width: '100%', padding: '10px', borderRadius: 10,
+                background: 'rgba(128,128,128,0.08)', color: 'var(--c-text-primary)',
+                border: '1px solid rgba(128,128,128,0.15)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
               }}
             >
-              {L.cancel}
+              Open Update Diagnostics
             </button>
-            <button
-              type="button"
-              onClick={handleOpenGitHub}
-              style={{
-                flex: 1, padding: '10px', borderRadius: 10,
-                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
-                border: 'none', fontFamily: 'Manrope', fontWeight: 800, fontSize: 12.5, cursor: 'pointer'
-              }}
-            >
-              {L.openGithub}
-            </button>
+            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+              <button
+                type="button"
+                onClick={() => ota.checkNow()}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 10, background: 'transparent',
+                  border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-secondary)',
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
+                }}
+              >
+                {L.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenGitHub}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 10,
+                  background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
+                  border: 'none', fontFamily: 'Manrope', fontWeight: 800, fontSize: 12.5, cursor: 'pointer'
+                }}
+              >
+                {L.openGithub}
+              </button>
+            </div>
           </div>
+          <UpdateDiagnosticsSheet open={diagnosticsOpen} onClose={() => setDiagnosticsOpen(false)} />
         </div>
       )}
 
@@ -1291,6 +1307,8 @@ function HubSettings({
   const { settings, updateSettings, updatePerApp } = useChordStore();
   const t = useT();
   const lang = settings.language ?? 'en';
+  const ota = useOtaUpdate();
+  const [copiedLogs, setCopiedLogs] = useState(false);
 
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
     signedIn: false,
@@ -1734,6 +1752,128 @@ function HubSettings({
     );
   }
 
+  /* ── UPDATE DEBUG ────────────────────────────────────────────────── */
+  if (page === 'debug') {
+    const DebugRow = ({ label, desc, value, highlightColor }: { label: string; desc?: string; value: string | null; highlightColor?: string }) => (
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 'var(--font-base)', fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>{label}</p>
+            {desc && <p style={{ fontSize: 'var(--font-sm)', marginTop: '2px', lineHeight: 1.3, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '4px 0 0' }}>{desc}</p>}
+          </div>
+        </div>
+        <div style={{ 
+          marginTop: '8px', 
+          padding: '8px 12px', 
+          borderRadius: '6px', 
+          background: 'rgba(128,128,128,0.06)', 
+          fontFamily: 'monospace', 
+          fontSize: '12px', 
+          color: highlightColor || 'var(--c-text-primary)',
+          wordBreak: 'break-word',
+          whiteSpace: 'pre-wrap'
+        }}>
+          {value || 'N/A'}
+        </div>
+      </div>
+    );
+
+    return (
+      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+        <style>{HUB_SETTINGS_CSS}</style>
+        <SettingsSubHeader title="Update Debug" onBack={goBack} />
+        
+        <div style={{ padding: '0 20px 20px', display: 'flex', gap: 12 }}>
+          <button
+            onClick={async () => {
+              try {
+                await ota.checkNow();
+              } catch (e) {
+                console.error(e);
+              }
+            }}
+            className="btn-smooth"
+            style={{
+              flex: 1,
+              padding: '12px',
+              borderRadius: '0.75rem',
+              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+              color: 'white',
+              fontFamily: 'Manrope',
+              fontWeight: 700,
+              fontSize: '13px',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'center',
+            }}
+          >
+            {ota.updateState === 'checking' ? 'Checking...' : 'Check For Updates Now'}
+          </button>
+          
+          <button
+            onClick={() => {
+              const debugLogsText = [
+                '=== COMPREHENSIVE DEBUG LOGS ===',
+                `App Version: ${otaDebugLogs.appVersion}`,
+                `APK Version: ${otaDebugLogs.nativeApkVersion}`,
+                `OTA Version: ${otaDebugLogs.currentOtaVersion}`,
+                `Fetched version.json: ${otaDebugLogs.fetchedVersionJson}`,
+                `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson}`,
+                `Comparison Result: ${otaDebugLogs.compareResult}`,
+                `Update Type: ${otaDebugLogs.updateType}`,
+                `Final Decision: ${otaDebugLogs.finalDecision}`,
+                `Download Status: ${otaDebugLogs.downloadStatus}`,
+                `SHA Verification: ${otaDebugLogs.shaVerification}`,
+                `File Details: ${otaDebugLogs.fileDetails}`,
+                `Install Error / Log: ${otaDebugLogs.installError}`,
+                `Installer Launch Status: ${otaDebugLogs.installerLaunchStatus}`,
+                `Last Exception Stack Trace: ${otaDebugLogs.lastExceptionStackTrace}`
+              ].join('\n');
+              navigator.clipboard.writeText(debugLogsText).then(() => {
+                setCopiedLogs(true);
+                setTimeout(() => setCopiedLogs(false), 2000);
+              });
+            }}
+            className="btn-smooth"
+            style={{
+              flex: 1,
+              padding: '12px',
+              borderRadius: '0.75rem',
+              background: copiedLogs ? '#22c55e' : 'rgba(128,128,128,0.08)',
+              color: copiedLogs ? 'white' : 'var(--c-text-primary)',
+              border: '1px solid rgba(128,128,128,0.15)',
+              fontFamily: 'Manrope',
+              fontWeight: 700,
+              fontSize: '13px',
+              cursor: 'pointer',
+              textAlign: 'center',
+              transition: 'background 200ms ease, color 200ms ease'
+            }}
+          >
+            {copiedLogs ? 'Copied!' : 'Copy All Logs'}
+          </button>
+        </div>
+
+        <div style={cardStyle}>
+          <DebugRow label="Current App Version" desc="The hardcoded version in the app bundle (APP_VERSION)" value={otaDebugLogs.appVersion} />
+          <DebugRow label="Current APK Version" desc="The native Android APK version wrapper" value={otaDebugLogs.nativeApkVersion} />
+          <DebugRow label="Current OTA Version" desc="The Capgo active bundle version" value={otaDebugLogs.currentOtaVersion} />
+          <DebugRow label="Fetched version.json" desc="The version read from version.json" value={otaDebugLogs.fetchedVersionJson} />
+          <DebugRow label="Fetched app-release.json" desc="The version read from app-release.json" value={otaDebugLogs.fetchedAppReleaseJson} />
+          <DebugRow label="Comparison Result" desc="Semver comparison result (positive means remote is newer)" value={otaDebugLogs.compareResult !== null ? String(otaDebugLogs.compareResult) : 'N/A'} />
+          <DebugRow label="Update Type" desc="Evaluated updateType ('ota', 'apk', 'both', 'none')" value={otaDebugLogs.updateType} />
+          <DebugRow label="Final Decision" desc="Final determination of the update flow" value={otaDebugLogs.finalDecision} highlightColor={accent.from} />
+          <DebugRow label="Download Status" desc="Download steps, URLs, and status" value={otaDebugLogs.downloadStatus} />
+          <DebugRow label="SHA Verification" desc="Result of computed APK hash check" value={otaDebugLogs.shaVerification} />
+          <DebugRow label="File Details" desc="Downloaded APK details" value={otaDebugLogs.fileDetails} />
+          <DebugRow label="Install Error / Log" desc="Log messages and exceptions from installer intent launch" value={otaDebugLogs.installError} />
+          <DebugRow label="Installer Launch Status" desc="Outcome of triggering Android package installer intent" value={otaDebugLogs.installerLaunchStatus} />
+          <DebugRow label="Last Exception Stack Trace" desc="Full stack trace for the most recent updating exception" value={otaDebugLogs.lastExceptionStackTrace} />
+        </div>
+      </div>
+    );
+  }
+
   /* ── ABOUT ──────────────────────────────────────────────────────── */
   if (page === 'about') {
     const lang = settings.language ?? 'en';
@@ -1887,7 +2027,8 @@ function HubSettings({
       <div style={cardStyle}>
         <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'OTA update system'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={210} />
         <SettingsNavRow icon="history" iconColor={accent.from} title={(t.hub as { studioSettings?: { changelog?: string } }).studioSettings?.changelog ?? 'Changelog'} desc={(t.hub as { studioSettings?: { changelogDesc?: string } }).studioSettings?.changelogDesc ?? "What's new in this version"} onPress={() => setChangelogOpen(true)} delay={220} />
-        <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last delay={230} />
+        <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} delay={230} />
+        <SettingsNavRow icon="bug_report" iconColor={accent.from} title="Update Debug" desc="Diagnostics for version matching" onPress={() => navigate('debug')} last delay={240} />
       </div>
 
       <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />

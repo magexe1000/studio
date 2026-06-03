@@ -124,6 +124,75 @@ public class AppInstallerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void verifySha256(PluginCall call) {
+        String path = call.getString("filePath");
+        String expectedHash = call.getString("expectedHash");
+        if (path == null || expectedHash == null) {
+            call.reject("filePath and expectedHash are required");
+            return;
+        }
+        try {
+            File file;
+            if (path.startsWith("file://")) {
+                try {
+                    file = new File(new java.net.URI(path));
+                } catch (Exception e) {
+                    file = new File(path.substring(7));
+                }
+            } else {
+                file = new File(path);
+            }
+            if (!file.exists()) {
+                call.reject("File does not exist: " + file.getAbsolutePath());
+                return;
+            }
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            java.io.InputStream fis = new java.io.FileInputStream(file);
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = fis.read(buffer)) > 0) {
+                digest.update(buffer, 0, count);
+            }
+            fis.close();
+            byte[] hash = digest.digest();
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            String computedHash = hexString.toString();
+            boolean matches = computedHash.equalsIgnoreCase(expectedHash);
+            
+            JSObject result = new JSObject();
+            result.put("matches", matches);
+            result.put("computedHash", computedHash);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Verification failed: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void getDeviceInfo(PluginCall call) {
+        try {
+            JSObject result = new JSObject();
+            result.put("manufacturer", Build.MANUFACTURER);
+            result.put("model", Build.MODEL);
+            result.put("androidVersion", Build.VERSION.RELEASE);
+            result.put("sdkInt", Build.VERSION.SDK_INT);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                result.put("canRequestPackageInstalls", getContext().getPackageManager().canRequestPackageInstalls());
+            } else {
+                result.put("canRequestPackageInstalls", true);
+            }
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to get device info: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
     public void installApk(PluginCall call) {
         String path = call.getString("filePath");
         if (path == null) {

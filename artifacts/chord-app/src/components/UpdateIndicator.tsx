@@ -33,6 +33,7 @@ import StudioSpinner from './animata/progress/spinner';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import StudioUpdateScreen from './StudioUpdateScreen';
 import { useOtaUpdate } from '../lib/otaUpdate';
+import UpdateDiagnosticsSheet from './UpdateDiagnosticsSheet';
 import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
 import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
 import { DownloadIcon } from './DownloadIcon';
@@ -571,6 +572,7 @@ function UpdateModal({
 }) {
   const ota = useOtaUpdate();
   const [permissionBlocked, setPermissionBlocked] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   
   // For APK updates, we do NOT show the fullscreen progress overlay when state is 'ready',
   // because we want to show the "Install Studio update?" confirmation dialog instead.
@@ -809,37 +811,54 @@ function UpdateModal({
               color: 'var(--c-text-primary)',
               fontFamily: 'Manrope', letterSpacing: '-0.02em',
             }}>Automatic update failed. Open download page?</p>
-            
-            <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => setDiagnosticsOpen(true)}
                 style={{
-                  flex: 1, height: 42, borderRadius: 12,
-                  background: 'transparent',
-                  border: '1px solid rgba(128,128,128,0.22)',
-                  color: 'var(--c-text-secondary)',
+                  width: '100%', height: 42, borderRadius: 12,
+                  background: 'rgba(128,128,128,0.08)',
+                  border: '1px solid rgba(128,128,128,0.15)',
+                  color: 'var(--c-text-primary)',
                   fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
                   cursor: 'pointer',
                 }}
               >
-                Cancel
+                Open Update Diagnostics
               </button>
-              <button
-                type="button"
-                onClick={handleOpenGitHub}
-                style={{
-                  flex: 1, height: 42, borderRadius: 12,
-                  background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
-                  border: 'none', color: 'white',
-                  fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
-                  cursor: 'pointer',
-                  boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
-                }}
-              >
-                Open GitHub
-              </button>
+              <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    flex: 1, height: 42, borderRadius: 12,
+                    background: 'transparent',
+                    border: '1px solid rgba(128,128,128,0.22)',
+                    color: 'var(--c-text-secondary)',
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenGitHub}
+                  style={{
+                    flex: 1, height: 42, borderRadius: 12,
+                    background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
+                    border: 'none', color: 'white',
+                    fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
+                    cursor: 'pointer',
+                    boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
+                  }}
+                >
+                  Open GitHub
+                </button>
+              </div>
             </div>
+            <UpdateDiagnosticsSheet open={diagnosticsOpen} onClose={() => setDiagnosticsOpen(false)} />
           </div>
         </div>
       </div>
