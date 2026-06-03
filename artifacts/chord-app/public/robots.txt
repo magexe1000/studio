@@ -13,4 +13,4 @@ Disallow: /audio-manifest.json
 Disallow: /.replit
 Disallow: /replit.md
 
-Sitemap: https://MAGEXE1000.github.io/Studio/sitemap.xml
+Sitemap: https://studio-30f44.web.app/sitemap.xml

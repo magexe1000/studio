@@ -105,7 +105,7 @@ export interface RemoteVersionInfo {
   mandatory?: boolean;
   /**
    * Absolute URL to a Capgo-compatible zip of the new bundle. Only
-   * present in releases published with `scripts/publish-bundle.mjs`.
+   * present in releases published with `scripts/release-firebase.mjs`.
    * Used by the Capgo updater on native (Android APK). Web ignores it
    * — service-worker reload handles bundle swaps in the browser.
    */
@@ -239,11 +239,8 @@ async function fetchOne(
 /**
  * Fetch the remote version manifest. Tries every URL returned by
  * `versionJsonUrls()` IN PARALLEL and returns whichever response
- * reports the HIGHEST semver. Racing in parallel (vs. sequentially)
- * means the slow GH-Pages CDN can never be the bottleneck — the
- * faster raw.githubusercontent endpoint will almost always win, and
- * if the repo is private and that 404s, the Pages fallback still
- * resolves on its own clock.
+ * resolves first. Racing in parallel ensures we bypass any slow caching
+ * and get the latest version from Firebase Hosting.
  *
  * Resolves to `null` only when EVERY source failed. Never throws.
  */

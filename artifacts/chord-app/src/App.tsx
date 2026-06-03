@@ -624,7 +624,7 @@ export default function App() {
       canonical.setAttribute('rel', 'canonical');
       document.head.appendChild(canonical);
     }
-    const canonicalBase = 'https://MAGEXE1000.github.io/Studio';
+    const canonicalBase = 'https://studio-30f44.web.app/';
     const relativePath = mode === 'hub' ? '/' : `/${mode}/`;
     canonical.setAttribute('href', `${canonicalBase}${relativePath}`);
 
@@ -633,12 +633,12 @@ export default function App() {
     setPropertyMeta('og:description', metadata.desc);
     setPropertyMeta('og:url', `${canonicalBase}${relativePath}`);
     setPropertyMeta('og:type', 'website');
-    setPropertyMeta('og:image', 'https://MAGEXE1000.github.io/Studio/opengraph.jpg');
+    setPropertyMeta('og:image', 'https://studio-30f44.web.app/opengraph.jpg');
 
     setMeta('twitter:card', 'summary_large_image');
     setMeta('twitter:title', metadata.title);
     setMeta('twitter:description', metadata.desc);
-    setMeta('twitter:image', 'https://MAGEXE1000.github.io/Studio/opengraph.jpg');
+    setMeta('twitter:image', 'https://studio-30f44.web.app/opengraph.jpg');
 
     // 6. JSON-LD Structured Data
     let jsonLdEl = document.getElementById('studio-structured-data');
@@ -654,17 +654,17 @@ export default function App() {
       '@graph': [
         {
           '@type': 'Organization',
-          '@id': 'https://MAGEXE1000.github.io/Studio/#organization',
+          '@id': 'https://studio-30f44.web.app/#organization',
           'name': 'Mag Studio',
-          'url': 'https://MAGEXE1000.github.io/Studio/',
-          'logo': 'https://MAGEXE1000.github.io/Studio/icon-512.png',
+          'url': 'https://studio-30f44.web.app/',
+          'logo': 'https://studio-30f44.web.app/icon-512.png',
           'sameAs': [
             'https://github.com/MAGEXE1000/Studio'
           ]
         },
         {
           '@type': 'WebApplication',
-          '@id': `https://MAGEXE1000.github.io/Studio/#webapp-${mode}`,
+          '@id': `https://studio-30f44.web.app/#webapp-${mode}`,
           'url': `${canonicalBase}${relativePath}`,
           'name': metadata.title.split(' | ')[0],
           'applicationCategory': 'MultimediaApplication',
@@ -672,7 +672,7 @@ export default function App() {
           'description': metadata.desc,
           'browserRequirements': 'Requires JavaScript and HTML5 canvas.',
           'publisher': {
-            '@id': 'https://MAGEXE1000.github.io/Studio/#organization'
+            '@id': 'https://studio-30f44.web.app/#organization'
           }
         }
       ]

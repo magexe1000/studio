@@ -52,7 +52,7 @@ const metadata = {
   created_at: new Date().toISOString(),
   version: version,
   description: description,
-  download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/Studio-${version}.apk`,
+  download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
   signature_download_url: "",
   sha256: sha256,
   update_type: releaseType

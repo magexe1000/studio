@@ -19,7 +19,7 @@
  *      every file from the running bundle, and writes it to
  *      `Filesystem.Directory.Data/audio-v1/`. A marker file records
  *      success so subsequent launches skip the work in O(1).
- *   3. Future OTAs can omit the drums tree (publish-bundle.mjs has an
+ *   3. Future OTAs can omit the drums tree (release-firebase.mjs has an
  *      `OTA_SLIM=1` switch). After the OTA reload, `/drums/...` 404s
  *      from the new bundle — but `drumAssetUrl()` now resolves to the
  *      Data-dir copy via `Capacitor.convertFileSrc()`, so playback

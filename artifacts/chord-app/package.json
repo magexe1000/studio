@@ -13,7 +13,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "android:patch": "node patch-android.cjs",
     "android:sync": "npx cap sync android && node patch-android.cjs",
-    "bundle:publish": "node scripts/publish-bundle.mjs",
     "release:firebase": "node scripts/release-firebase.mjs"
   },
   "devDependencies": {
