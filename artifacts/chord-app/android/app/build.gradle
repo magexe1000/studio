@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+// Trigger APK rebuild for v3.3.3 recovery release
 
 android {
     namespace "com.chordex.app"

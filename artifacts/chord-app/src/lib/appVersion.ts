@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.3.3'; // Update safeguards and diagnostics
+export const APP_VERSION = '3.3.3'; // Trigger rebuild and update safeguards and diagnostics
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';

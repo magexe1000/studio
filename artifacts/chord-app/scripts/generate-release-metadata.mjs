@@ -8,8 +8,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(__dirname, '../../..');
 
+const releaseType = process.env.RELEASE_TYPE || 'both';
+
 console.log('generate-release-metadata: → Running AppInstaller contract validation...');
-const validateResult = spawnSync('node', ['scripts/validate-app-installer.mjs'], {
+const args = ['scripts/validate-app-installer.mjs'];
+if (releaseType === 'ota') {
+  args.push('--allow-missing-apk');
+}
+const validateResult = spawnSync('node', args, {
   cwd: appRoot,
   stdio: 'inherit',
   shell: process.platform === 'win32',
@@ -58,7 +64,7 @@ if (fs.existsSync(apkPath)) {
   console.warn(`generate-release-metadata: ⚠ APK not found at ${apkPath}`);
 }
 
-const releaseType = process.env.RELEASE_TYPE || 'both';
+
 
 const metadata = {
   created_at: new Date().toISOString(),
