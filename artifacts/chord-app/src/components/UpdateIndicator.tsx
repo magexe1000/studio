@@ -573,6 +573,7 @@ function UpdateModal({
   const ota = useOtaUpdate();
   const [permissionBlocked, setPermissionBlocked] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   
   // For APK updates, we do NOT show the fullscreen progress overlay when state is 'ready',
   // because we want to show the "Install Studio update?" confirmation dialog instead.
@@ -582,6 +583,9 @@ function UpdateModal({
   const progress = ota.progress;
 
   if (ota.updateState === 'manual_apk_required') {
+    const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
+    const fallbackApkUrl = ota.fallbackApkUrl || ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/download/v${ota.remoteVersion}/studio-${ota.remoteVersion}.apk`;
+
     return (
       <div
         role="dialog"
@@ -631,33 +635,36 @@ function UpdateModal({
               color: 'var(--c-text-secondary)',
               fontFamily: 'Inter', lineHeight: 1.55,
             }}>
-              This installed version of Studio cannot install native updates automatically. Please install the latest Studio APK manually once. Future updates will install from inside Studio.
+              This installed version of Studio cannot install native updates automatically. Download and install Studio manually once. Future updates will install from inside Studio.
             </p>
+
+            <div style={{
+              marginTop: 10,
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'rgba(234, 179, 8, 0.08)',
+              border: '1px solid rgba(234, 179, 8, 0.18)',
+              fontSize: 12,
+              color: '#eab308',
+              textAlign: 'left',
+              lineHeight: 1.45,
+              display: 'flex',
+              alignItems: 'start',
+              gap: 8,
+              width: '100%'
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, marginTop: 1, flexShrink: 0 }}>info</span>
+              <span>If the download stays at 100%, cancel it and use Copy Link or GitHub Fallback.</span>
+            </div>
             
-            <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
-              <button
-                type="button"
-                onClick={onLater}
-                style={{
-                  flex: 1, height: 42, borderRadius: 12,
-                  background: 'transparent',
-                  border: '1px solid rgba(128,128,128,0.22)',
-                  color: 'var(--c-text-secondary)',
-                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-                  cursor: 'pointer',
-                }}
-              >
-                Later
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16, width: '100%' }}>
               <button
                 type="button"
                 onClick={async () => {
-                  const apkUrl = ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/download/v${ota.remoteVersion}/studio-${ota.remoteVersion}.apk`;
-                  window.open(apkUrl, '_system');
-                  onClose();
+                  window.open(manualApkUrl, '_system');
                 }}
                 style={{
-                  flex: 1, height: 42, borderRadius: 12,
+                  width: '100%', height: 44, borderRadius: 12,
                   background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
                   border: 'none', color: 'white',
                   fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
@@ -666,6 +673,64 @@ function UpdateModal({
                 }}
               >
                 Download APK
+              </button>
+
+              <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(manualApkUrl);
+                      setLinkCopied(true);
+                      setTimeout(() => setLinkCopied(false), 2000);
+                    } catch (err) {
+                      console.error('Failed to copy manual APK URL:', err);
+                    }
+                  }}
+                  style={{
+                    flex: 1, height: 42, borderRadius: 12,
+                    background: 'transparent',
+                    border: '1px solid rgba(128,128,128,0.22)',
+                    color: 'var(--c-text-primary)',
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {linkCopied ? 'Copied!' : 'Copy Link'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    window.open(fallbackApkUrl, '_system');
+                  }}
+                  style={{
+                    flex: 1, height: 42, borderRadius: 12,
+                    background: 'transparent',
+                    border: '1px solid rgba(128,128,128,0.22)',
+                    color: 'var(--c-text-primary)',
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  GitHub Fallback
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={onLater}
+                style={{
+                  width: '100%', height: 40, borderRadius: 12,
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--c-text-secondary)',
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer',
+                  marginTop: 2
+                }}
+              >
+                Later
               </button>
             </div>
           </div>

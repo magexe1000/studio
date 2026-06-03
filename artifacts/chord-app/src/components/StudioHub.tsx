@@ -1049,6 +1049,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
 }) {
   const ota = useOtaUpdate();
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [manualLinkCopied, setManualLinkCopied] = useState(false);
   const { settings, updateSettings } = useChordStore();
   const lang = settings.language ?? 'en';
 
@@ -1218,48 +1219,114 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
       )}
 
       {/* ── MANUAL APK UPDATE REQUIRED IN UPDATER PAGE ── */}
-      {ota.updateState === 'manual_apk_required' && (
-        <div style={{
-          margin: '0 0 16px', padding: '20px', borderRadius: 16,
-          background: 'rgba(235,163,8,0.06)', border: '1px solid rgba(235,163,8,0.2)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center'
-        }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#eab308' }}>download_for_offline</span>
-          <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
-            Manual update required
-          </p>
-          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
-            This installed version of Studio cannot install native updates automatically. Please install the latest Studio APK manually once. Future updates will install from inside Studio.
-          </p>
-          <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 8 }}>
-            <button
-              type="button"
-              onClick={() => ota.checkNow()}
-              style={{
-                flex: 1, padding: '10px', borderRadius: 10, background: 'transparent',
-                border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-secondary)',
-                fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
-              }}
-            >
-              Check again
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                const apkUrl = ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/download/v${ota.remoteVersion}/studio-${ota.remoteVersion}.apk`;
-                window.open(apkUrl, '_system');
-              }}
-              style={{
-                flex: 2, padding: '10px', borderRadius: 10,
-                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
-                border: 'none', fontFamily: 'Manrope', fontWeight: 800, fontSize: 12.5, cursor: 'pointer'
-              }}
-            >
-              Download APK
-            </button>
+      {ota.updateState === 'manual_apk_required' && (() => {
+        const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
+        const fallbackApkUrl = ota.fallbackApkUrl || ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/download/v${ota.remoteVersion}/studio-${ota.remoteVersion}.apk`;
+
+        return (
+          <div style={{
+            margin: '0 0 16px', padding: '20px', borderRadius: 16,
+            background: 'rgba(235,163,8,0.06)', border: '1px solid rgba(235,163,8,0.2)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center'
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#eab308' }}>download_for_offline</span>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
+              Manual update required
+            </p>
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45 }}>
+              This installed version of Studio cannot install native updates automatically. Download and install Studio manually once. Future updates will install from inside Studio.
+            </p>
+
+            <div style={{
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'rgba(234, 179, 8, 0.08)',
+              border: '1px solid rgba(234, 179, 8, 0.18)',
+              fontSize: 12,
+              color: '#eab308',
+              textAlign: 'left',
+              lineHeight: 1.45,
+              display: 'flex',
+              alignItems: 'start',
+              gap: 8,
+              width: '100%'
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, marginTop: 1, flexShrink: 0 }}>info</span>
+              <span>If the download stays at 100%, cancel it and use Copy Link or GitHub Fallback.</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  window.open(manualApkUrl, '_system');
+                }}
+                style={{
+                  width: '100%', height: 40, borderRadius: 10,
+                  background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff',
+                  border: 'none', fontFamily: 'Manrope', fontWeight: 800, fontSize: 12.5, cursor: 'pointer'
+                }}
+              >
+                Download APK
+              </button>
+
+              <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(manualApkUrl);
+                      setManualLinkCopied(true);
+                      setTimeout(() => setManualLinkCopied(false), 2000);
+                    } catch (err) {
+                      console.error('Failed to copy manual APK URL:', err);
+                    }
+                  }}
+                  style={{
+                    flex: 1, height: 38, borderRadius: 10,
+                    background: 'transparent',
+                    border: '1px solid rgba(128,128,128,0.22)',
+                    color: 'var(--c-text-primary)',
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {manualLinkCopied ? 'Copied!' : 'Copy Link'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    window.open(fallbackApkUrl, '_system');
+                  }}
+                  style={{
+                    flex: 1, height: 38, borderRadius: 10,
+                    background: 'transparent',
+                    border: '1px solid rgba(128,128,128,0.22)',
+                    color: 'var(--c-text-primary)',
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5,
+                    cursor: 'pointer',
+                  }}
+                >
+                  GitHub Fallback
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => ota.checkNow()}
+                style={{
+                  width: '100%', height: 38, borderRadius: 10, background: 'transparent',
+                  border: '1px solid rgba(128,128,128,0.22)', color: 'var(--c-text-secondary)',
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, cursor: 'pointer'
+                }}
+              >
+                Check again
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── FALLBACK ERROR UI IN UPDATER PAGE ── */}
       {ota.updateState === 'error' && (

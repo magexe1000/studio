@@ -263,6 +263,8 @@ export interface RemoteVersionInfo {
   updateType?: 'ota' | 'apk' | 'both' | 'none';
   apkUrl?: string;
   apkSha256?: string;
+  manualApkUrl?: string;
+  fallbackApkUrl?: string;
   releaseNotes?: string[];
 }
 
@@ -380,6 +382,8 @@ async function fetchOne(
       : ((obj.updateType === 'ota' || obj.updateType === 'apk' || obj.updateType === 'both' || obj.updateType === 'none') ? obj.updateType : undefined);
     const apkUrl = typeof obj.download_url === 'string' ? obj.download_url : (typeof obj.apkUrl === 'string' ? obj.apkUrl : undefined);
     const apkSha256 = typeof obj.sha256 === 'string' ? obj.sha256 : (typeof obj.apkSha256 === 'string' ? obj.apkSha256 : undefined);
+    const manualApkUrl = typeof obj.manual_download_url === 'string' ? obj.manual_download_url : (typeof obj.manualApkUrl === 'string' ? obj.manualApkUrl : undefined);
+    const fallbackApkUrl = typeof obj.fallback_download_url === 'string' ? obj.fallback_download_url : (typeof obj.fallbackApkUrl === 'string' ? obj.fallbackApkUrl : undefined);
     
     return {
       version: obj.version,
@@ -389,6 +393,8 @@ async function fetchOne(
       updateType,
       apkUrl,
       apkSha256,
+      manualApkUrl,
+      fallbackApkUrl,
       releaseNotes: Array.isArray(obj.releaseNotes) ? (obj.releaseNotes.filter(item => typeof item === 'string') as string[]) : undefined,
     };
   } catch (err) {
@@ -482,6 +488,8 @@ export interface CentralizedOtaState {
   updateType: 'ota' | 'apk' | 'both' | 'none';
   apkUrl: string | null;
   apkSha256: string | null;
+  manualApkUrl: string | null;
+  fallbackApkUrl: string | null;
   releaseNotes: string[] | null;
   statusText: string | null;
 }
@@ -499,6 +507,8 @@ let globalOtaState: CentralizedOtaState = {
   updateType: 'none',
   apkUrl: null,
   apkSha256: null,
+  manualApkUrl: null,
+  fallbackApkUrl: null,
   releaseNotes: null,
   statusText: null,
 };
@@ -639,6 +649,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 
       let updateType: 'ota' | 'apk' | 'both' | 'none' = 'none';
       let apkUrl: string | null = null;
+      let manualApkUrl: string | null = null;
+      let fallbackApkUrl: string | null = null;
 
       if (cmp > 0) {
         if (remote.updateType === 'apk' || remote.updateType === 'both' || remote.updateType === 'ota') {
@@ -674,6 +686,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           const { resolveApkUrl } = await import('./apkDownloader');
           apkUrl = await resolveApkUrl(remote.version);
         }
+        manualApkUrl = remote.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${remote.version}.apk`;
+        fallbackApkUrl = remote.fallbackApkUrl || apkUrl;
       }
 
       // Check if already applied or dismissed in persistent storage
@@ -743,6 +757,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         updateType,
         apkUrl,
         apkSha256: remote.apkSha256 ?? null,
+        manualApkUrl,
+        fallbackApkUrl,
         releaseNotes: remote.releaseNotes ?? null,
         loading: false,
       });

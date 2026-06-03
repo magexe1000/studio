@@ -15,6 +15,15 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.3.4
+
+- Fixed manual APK recovery downloads getting stuck at 100%.
+- Added Firebase-hosted direct APK mirror for recovery installs.
+- Improved manual update flow for users without AppInstaller.
+- Added Copy Link and GitHub Fallback options for APK recovery.
+- Improved APK download headers for Android compatibility.
+- Prevented broken GitHub mobile download behavior from blocking recovery.
+
 ## 3.3.3
 
 - Fixed repeated APK update failure when AppInstaller is unavailable.

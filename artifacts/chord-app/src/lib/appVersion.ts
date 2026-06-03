@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.3.3'; // Trigger rebuild and update safeguards and diagnostics
+export const APP_VERSION = '3.3.4'; // Fixed manual APK recovery download stuck issues
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-03'; // 3.3.3
+export const APP_VERSION_DATE = '2026-06-03'; // 3.3.4
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,19 +53,21 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Update Safeguards & Fixes",
+    heading: "Manual Recovery Fixes",
     items: [
-      'Fixed native AppInstaller plugin registration reliability on Android.',
-      'Added runtime checks to prevent partial OTA updates on unsupported devices.',
-      'Show manual update recovery dialog with direct downloads if plugin is missing.',
-      'Added build-time verification script to validate release packaging.',
+      'Fixed manual APK recovery downloads getting stuck at 100%.',
+      'Added Firebase-hosted direct APK mirror for reliable recovery installs.',
+      'Added Copy Link and GitHub Fallback options to the manual update flow.',
+      'Improved APK download headers for better Android downloader compatibility.',
+      'Prevented broken GitHub mobile download screen from blocking recovery.',
     ],
   },
   {
-    heading: "Update Debugging",
+    heading: "Update Improvements",
     items: [
-      'Improved settings Developer Options Update Debug diagnostics page.',
-      'Added individual native method check indicators for easier diagnostics.',
+      'Manual recovery now uses Firebase Hosting as the primary APK source.',
+      'GitHub Releases remain available as fallback and archive.',
+      'Update metadata now includes manual and fallback APK URLs.',
     ],
   },
 ];
@@ -74,19 +76,21 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Salvaguardas de Actualización",
+    heading: "Correcciones de Recuperación",
     items: [
-      'Corregida la fiabilidad del registro del plugin nativo AppInstaller en Android.',
-      'Añadida comprobación de capacidad para evitar actualizaciones parciales.',
-      'Muestra diálogo claro de recuperación para actualizar de forma manual.',
-      'Añadido script de validación en tiempo de compilación.',
+      'Corregidas descargas manuales de APK que quedaban atascadas en 100%.',
+      'Añadido servidor alternativo directo en Firebase para descargas seguras.',
+      'Añadidas opciones de Copiar Enlace y GitHub Alternativo en el diálogo.',
+      'Mejoradas cabeceras de descarga de APK para compatibilidad con Android.',
+      'Evitado que el gestor de descargas móviles de GitHub bloquee la actualización.',
     ],
   },
   {
-    heading: "Depuración de Actualización",
+    heading: "Mejoras de Actualización",
     items: [
-      'Mejorada la página de diagnósticos de actualización en Opciones de Desarrollador.',
-      'Añadidos indicadores individuales de métodos del plugin nativo.',
+      'La recuperación manual usa Firebase Hosting como origen principal del APK.',
+      'GitHub Releases sigue disponible como archivo y servidor de respaldo.',
+      'Metadatos de actualización ahora incluyen URL manual y alternativa.',
     ],
   },
 ];
@@ -94,19 +98,21 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Update-Sicherheitsprüfungen",
+    heading: "Wiederherstellungs-Fixes",
     items: [
-      'Zuverlässigkeit der AppInstaller-Plugin-Registrierung unter Android korrigiert.',
-      'Laufzeitprüfungen verhindern unvollständige OTA-Zustände bei fehlendem Plugin.',
-      'Manueller Wiederherstellungsdialog mit Direktlink auf älteren APK-Wrappern.',
-      'Validierungsskript zur Überprüfung der Release-Paketintegrität integriert.',
+      'Manuelle APK-Downloads bleiben nicht mehr bei 100% hängen.',
+      'Direkter Firebase-APK-Spiegel für zuverlässige Installationen hinzugefügt.',
+      'Optionen zum Kopieren des Links und GitHub-Fallback hinzugefügt.',
+      'MIME-Typ- und Cache-Header für APK-Dateien auf Android optimiert.',
+      'Verhindert, dass fehlerhafte GitHub-Download-UIs die Installation blockieren.',
     ],
   },
   {
-    heading: "Update-Diagnose",
+    heading: "Update-Verbesserungen",
     items: [
-      'Verbesserte Update-Diagnoseseite in den Entwickleroptionen.',
-      'Einzelne Methodenprüfung für AppInstaller-Funktionen hinzugefügt.',
+      'Die manuelle Wiederherstellung nutzt nun Firebase Hosting als primäre Quelle.',
+      'GitHub Releases bleibt als Fallback und Archiv verfügbar.',
+      'Update-Metadaten enthalten nun explizite manuelle und Fallback-URLs.',
     ],
   },
 ];

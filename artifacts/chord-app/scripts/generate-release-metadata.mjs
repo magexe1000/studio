@@ -51,26 +51,59 @@ if (fs.existsSync(versionJsonPath)) {
   }
 }
 
-// Compute SHA-256 hash of APK
+// Compute SHA-256 hash of APK and copy to Firebase Hosting mirror
 const apkPath = path.join(appRoot, 'android/app/build/outputs/apk/debug/app-debug.apk');
 let sha256 = '';
-if (fs.existsSync(apkPath)) {
+
+if (releaseType !== 'ota') {
+  if (!fs.existsSync(apkPath)) {
+    console.error(`generate-release-metadata: ✗ APK not found at ${apkPath}`);
+    process.exit(1);
+  }
+
+  // Compute SHA-256
   const fileBuffer = fs.readFileSync(apkPath);
   const hashSum = crypto.createHash('sha256');
   hashSum.update(fileBuffer);
   sha256 = hashSum.digest('hex');
   console.log(`generate-release-metadata: Computed APK SHA-256 = ${sha256}`);
+
+  // Copy to Firebase Hosting paths
+  try {
+    const firebaseApkDir = path.join(repoRoot, 'firebase-public/apk');
+    fs.mkdirSync(firebaseApkDir, { recursive: true });
+
+    const versionApkPath = path.join(firebaseApkDir, `studio-${version}.apk`);
+    const latestApkPath = path.join(firebaseApkDir, 'studio-latest.apk');
+
+    fs.copyFileSync(apkPath, versionApkPath);
+    console.log(`generate-release-metadata: ✓ Copied APK to ${versionApkPath}`);
+
+    fs.copyFileSync(apkPath, latestApkPath);
+    console.log(`generate-release-metadata: ✓ Copied APK to ${latestApkPath}`);
+  } catch (err) {
+    console.error('generate-release-metadata: ✗ Failed to copy APK to Firebase Hosting:', err);
+    process.exit(1);
+  }
 } else {
-  console.warn(`generate-release-metadata: ⚠ APK not found at ${apkPath}`);
+  if (fs.existsSync(apkPath)) {
+    const fileBuffer = fs.readFileSync(apkPath);
+    const hashSum = crypto.createHash('sha256');
+    hashSum.update(fileBuffer);
+    sha256 = hashSum.digest('hex');
+    console.log(`generate-release-metadata: Computed APK SHA-256 = ${sha256}`);
+  } else {
+    console.warn(`generate-release-metadata: ⚠ APK not found at ${apkPath}`);
+  }
 }
-
-
 
 const metadata = {
   created_at: new Date().toISOString(),
   version: version,
   description: description,
   download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
+  manual_download_url: `https://studio-30f44.web.app/apk/studio-${version}.apk`,
+  fallback_download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
   downloadUrl: `https://studio-30f44.web.app/ota/studio-ota-${version}.zip`,
   signature_download_url: "",
   sha256: sha256,
@@ -91,6 +124,8 @@ const syncVersionJson = (filePath) => {
     try {
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       data.apkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
+      data.manualApkUrl = `https://studio-30f44.web.app/apk/studio-${version}.apk`;
+      data.fallbackApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
       data.sha256 = sha256;
       data.updateType = releaseType;
       fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
