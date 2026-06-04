@@ -1,9 +1,11 @@
 ### Fixed
-- Fixed duplicate properties compile typecheck error in sync diagnostics.
-- Fixed incorrect device categorization in the Devices list.
-- Fixed potential web connection gaps and session listener disconnects.
+- Fixed unreliable Android and Web Cloud Sync connection.
+- Fixed Devices & Sessions not proving whether devices were actually connected.
+- Fixed current device being incorrectly classified as a previous session.
+- Fixed profile, theme, accent, and photo sync relying on inconsistent local/cloud state.
 
 ### Improved
-- Improved device session classification utilizing deterministic categories for current device, active remotes, recent remotes, signed out, and legacy devices.
-- Added periodic 30-second heartbeats for signed-in sessions to track device freshness.
-- Added manual Reconnect Devices button in settings panel and developer tools.
+- Added a real Firebase-backed Sync Engine unifying all Firestore and Storage actions.
+- Added stable device identity, heartbeat presence, and deterministic session classification.
+- Added clearer sync diagnostics for Auth UID, Firebase project, listeners, writes, cache state, and probe results.
+- Improved Firestore source-of-truth handling for profile and settings.

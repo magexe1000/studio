@@ -14,6 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -46,7 +47,19 @@ if (fs.existsSync(rootChangelogPath)) {
 }
 
 // 2. Get version from src/lib/appVersion.ts
-const src = fs.readFileSync(sourcePath, 'utf8');
+let src = fs.readFileSync(sourcePath, 'utf8');
+
+let gitCommitSha = 'unknown';
+try {
+  gitCommitSha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+} catch (e) {
+  console.warn('sync-version: ⚠ Could not get git commit SHA:', e.message);
+}
+const buildTimestamp = new Date().toLocaleString('en-US', { timeZoneName: 'short' });
+
+src = src.replace(/export\s+const\s+APP_COMMIT_SHA\s*=\s*['"]([^'"]+)['"]/, `export const APP_COMMIT_SHA = '${gitCommitSha}'`);
+src = src.replace(/export\s+const\s+APP_BUILD_TIMESTAMP\s*=\s*['"]([^'"]+)['"]/, `export const APP_BUILD_TIMESTAMP = '${buildTimestamp}'`);
+
 const versionMatch = src.match(/export\s+const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
 if (!versionMatch) {
   console.error(`sync-version: ✗ could not find APP_VERSION in ${sourcePath}`);
@@ -169,15 +182,16 @@ if (categories.changed.length > 0) {
 tsSections += '];';
 
 const changelogSectionsPat = /export\s+const\s+APP_CHANGELOG_SECTIONS:\s*ChangelogSection\[\]\s*=\s*\[([\s\S]*?)\]\s*;/;
+let finalSrc = src;
 if (changelogSectionsPat.test(src)) {
-  const updatedSrc = src.replace(changelogSectionsPat, tsSections);
-  if (updatedSrc !== src) {
-    fs.writeFileSync(sourcePath, updatedSrc, 'utf8');
-    console.log(`sync-version: ✓ updated APP_CHANGELOG_SECTIONS in ${path.relative(root, sourcePath)}`);
-  }
+  finalSrc = src.replace(changelogSectionsPat, tsSections);
+  console.log(`sync-version: ✓ updated APP_CHANGELOG_SECTIONS in ${path.relative(root, sourcePath)}`);
 } else {
   console.warn(`sync-version: ⚠ Could not find APP_CHANGELOG_SECTIONS pattern in ${sourcePath}`);
 }
+
+fs.writeFileSync(sourcePath, finalSrc, 'utf8');
+console.log(`sync-version: ✓ updated APP_COMMIT_SHA and APP_BUILD_TIMESTAMP in ${path.relative(root, sourcePath)}`);
 
 const payload = {
   version,

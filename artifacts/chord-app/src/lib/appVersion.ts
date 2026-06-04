@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.8'; // Fix real cloud sync device registration and active listeners
+export const APP_VERSION = '3.6.9'; // Rebuild Studio Cloud Sync using a real Firebase source-of-truth model
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,8 +35,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.8
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.9
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
+
+export const APP_COMMIT_SHA = 'f89f3e50';
+export const APP_BUILD_TIMESTAMP = '6/4/2026, 3:27:53 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -55,17 +58,19 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Improved device session classification utilizing deterministic categories for current device, active remotes, recent remotes, signed out, and legacy devices.",
-      "Added periodic 30-second heartbeats for signed-in sessions to track device freshness.",
-      "Added manual Reconnect Devices button in settings panel and developer tools.",
+      "Added a real Firebase-backed Sync Engine unifying all Firestore and Storage actions.",
+      "Added stable device identity, heartbeat presence, and deterministic session classification.",
+      "Added clearer sync diagnostics for Auth UID, Firebase project, listeners, writes, cache state, and probe results.",
+      "Improved Firestore source-of-truth handling for profile and settings.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed duplicate properties compile typecheck error in sync diagnostics.",
-      "Fixed incorrect device categorization in the Devices list.",
-      "Fixed potential web connection gaps and session listener disconnects.",
+      "Fixed unreliable Android and Web Cloud Sync connection.",
+      "Fixed Devices & Sessions not proving whether devices were actually connected.",
+      "Fixed current device being incorrectly classified as a previous session.",
+      "Fixed profile, theme, accent, and photo sync relying on inconsistent local/cloud state.",
     ],
   },
 ];
@@ -76,17 +81,18 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Mejorado",
     items: [
-      "Se mejoró la clasificación de sesiones de dispositivos utilizando categorías deterministas.",
-      "Se agregaron heartbeats periódicos cada 30 segundos para monitorear la actividad.",
-      "Se agregó un botón de reconexión manual en la configuración y herramientas de desarrollo.",
+      "Se agregó un motor de sincronización real respaldado por Firebase para unificar Firestore y Storage.",
+      "Se implementó identidad estable de dispositivos, heartbeats de presencia y clasificación determinista de sesiones.",
+      "Se agregaron diagnósticos completos para UID, proyecto, listeners, escrituras y resultados de sondas.",
+      "Se mejoró la gestión de Firestore como fuente única de verdad para perfil y configuraciones.",
     ],
   },
   {
     heading: "Corregido",
     items: [
-      "Se corrigió un error de compilación por propiedades duplicadas en los diagnósticos.",
-      "Se corrigió la categorización errónea de dispositivos en la lista de sesiones.",
-      "Se corrigieron posibles interrupciones en la conexión web y listeners de sesión.",
+      "Se corrigió la conexión inestable de sincronización en la nube entre Android y Web.",
+      "Se corrigió el etiquetado incorrecto del dispositivo actual como sesión anterior.",
+      "Se corrigieron problemas donde la sincronización dependía de estados locales/nube inconsistentes.",
     ],
   },
 ];
