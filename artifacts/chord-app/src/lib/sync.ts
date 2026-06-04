@@ -185,6 +185,33 @@ export type SyncStatus = {
   lastLegacyCleanupAttempt?: string;
   lastLegacyCleanupSuccess?: string;
   lastLegacyCleanupError?: string;
+  authReady?: boolean;
+  authUid?: string;
+  currentDeviceId?: string;
+  currentPlatform?: string;
+  currentDeviceDocExists?: boolean;
+  listenerPath?: string;
+  devicesLogicVersion?: string;
+  lastHeartbeatSuccess?: string;
+  lastHeartbeatError?: string;
+  profileListenerStatus?: string;
+  appearanceListenerStatus?: string;
+  preferencesListenerStatus?: string;
+  lastProfileWriteSuccess?: string;
+  lastProfileWriteError?: string;
+  lastAppearanceWriteSuccess?: string;
+  lastAppearanceWriteError?: string;
+  lastPreferencesWriteSuccess?: string;
+  lastPreferencesWriteError?: string;
+  lastPhotoUploadError?: string;
+  cloudTheme?: string;
+  localTheme?: string;
+  cloudAccentColor?: string;
+  localAccentColor?: string;
+  cloudDisplayName?: string;
+  localDisplayName?: string;
+  cloudPhotoURL?: string;
+  localPhotoURL?: string;
 };
 
 type Listener = (s: SyncStatus) => void;
@@ -244,6 +271,29 @@ let oldLegacyDeviceIdKeysFound = '';
 let lastLegacyCleanupAttempt = 'Never';
 let lastLegacyCleanupSuccess = 'Never';
 let lastLegacyCleanupError = 'None';
+
+let authReady = false;
+let authUid = 'Not Configured';
+let currentPlatform = isNative() ? 'android' : 'web';
+let currentDeviceDocExists = false;
+let listenerPath = 'N/A';
+let devicesLogicVersion = 'v3.6.7-heartbeat';
+let profileListenerStatus = 'inactive';
+let appearanceListenerStatus = 'inactive';
+let preferencesListenerStatus = 'inactive';
+
+let lastProfileWriteSuccess = 'Never';
+let lastProfileWriteError = 'None';
+let lastAppearanceWriteSuccess = 'Never';
+let lastAppearanceWriteError = 'None';
+let lastPreferencesWriteSuccess = 'Never';
+let lastPreferencesWriteError = 'None';
+let lastPhotoUploadError = 'None';
+
+let cloudTheme = 'N/A';
+let cloudAccentColor = 'N/A';
+let cloudDisplayName = 'N/A';
+let cloudPhotoURL = 'N/A';
 
 function notifyDiagnostics() {
   setStatus({}); // Trigger state updates for reactive subscribers
@@ -347,6 +397,28 @@ export function getSyncDiagnostics() {
     lastLegacyCleanupAttempt: lastLegacyCleanupAttempt,
     lastLegacyCleanupSuccess: lastLegacyCleanupSuccess,
     lastLegacyCleanupError: lastLegacyCleanupError,
+    authReady: authReady,
+    currentDeviceId: deviceId(),
+    currentPlatform: currentPlatform,
+    currentDeviceDocExists: currentDeviceMatchedInSnapshot,
+    listenerPath: authUser ? `users/${authUser.uid}/devices` : 'N/A',
+    devicesLogicVersion: devicesLogicVersion,
+    lastHeartbeatSuccess: lastHeartbeatSuccess,
+    lastHeartbeatError: lastHeartbeatError,
+    profileListenerStatus: profileListenerStatus,
+    appearanceListenerStatus: appearanceListenerStatus,
+    preferencesListenerStatus: preferencesListenerStatus,
+    lastProfileWriteSuccess: lastProfileWriteSuccess,
+    lastProfileWriteError: lastProfileWriteError,
+    lastAppearanceWriteSuccess: lastAppearanceWriteSuccess,
+    lastAppearanceWriteError: lastAppearanceWriteError,
+    lastPreferencesWriteSuccess: lastPreferencesWriteSuccess,
+    lastPreferencesWriteError: lastPreferencesWriteError,
+    lastPhotoUploadError: lastPhotoUploadError,
+    cloudTheme: cloudTheme,
+    cloudAccentColor: cloudAccentColor,
+    cloudDisplayName: cloudDisplayName,
+    cloudPhotoURL: cloudPhotoURL,
   };
 }
 
@@ -545,9 +617,12 @@ export async function syncWriteProfileMain(displayName: string | null, photoURL:
       updatedAt: now,
       updatedByDevice: deviceId(),
     }), { merge: true });
+    lastProfileWriteSuccess = new Date().toLocaleString();
+    lastProfileWriteError = 'None';
   } catch (err: any) {
     console.warn('[sync] write profile main failed:', err);
     lastSyncError = err.message || String(err);
+    lastProfileWriteError = err.message || String(err);
   } finally {
     pendingWritesCount = Math.max(0, pendingWritesCount - 1);
     notifyDiagnostics();
@@ -608,6 +683,33 @@ let status: SyncStatus = {
   lastLegacyCleanupAttempt: 'Never',
   lastLegacyCleanupSuccess: 'Never',
   lastLegacyCleanupError: 'None',
+  authReady: false,
+  authUid: 'Not Configured',
+  currentDeviceId: 'N/A',
+  currentPlatform: isNative() ? 'android' : 'web',
+  currentDeviceDocExists: false,
+  listenerPath: 'N/A',
+  devicesLogicVersion: 'v3.6.7-heartbeat',
+  lastHeartbeatSuccess: 'Never',
+  lastHeartbeatError: 'None',
+  profileListenerStatus: 'inactive',
+  appearanceListenerStatus: 'inactive',
+  preferencesListenerStatus: 'inactive',
+  lastProfileWriteSuccess: 'Never',
+  lastProfileWriteError: 'None',
+  lastAppearanceWriteSuccess: 'Never',
+  lastAppearanceWriteError: 'None',
+  lastPreferencesWriteSuccess: 'Never',
+  lastPreferencesWriteError: 'None',
+  lastPhotoUploadError: 'None',
+  cloudTheme: 'N/A',
+  localTheme: 'N/A',
+  cloudAccentColor: 'N/A',
+  localAccentColor: 'N/A',
+  cloudDisplayName: 'N/A',
+  localDisplayName: 'N/A',
+  cloudPhotoURL: 'N/A',
+  localPhotoURL: 'N/A',
 };
 let stageIframe: HTMLIFrameElement | null = null;
 let stageSnapshotResolvers: Array<(s: StagexSnapshot) => void> = [];
@@ -1034,6 +1136,136 @@ export function getDeviceDetails() {
   };
 }
 
+export function classifyDeviceSession(data: any, currentDeviceId: string): { classification: string; reason: string } {
+  const isMe = data.id === currentDeviceId || data.deviceId === currentDeviceId;
+  if (isMe) {
+    return { classification: 'current', reason: 'Matches current device ID' };
+  }
+
+  if (data.revokedAt != null) {
+    return { classification: 'revoked', reason: 'Session was explicitly revoked' };
+  }
+
+  if (data.signedIn === false || data.currentSession === false) {
+    return { classification: 'signedOut', reason: 'Session marked signedOut/inactive' };
+  }
+
+  if (data.legacy === true || data.replacedByDeviceId != null) {
+    return { classification: 'legacy', reason: `Legacy/Replaced session (${data.replacedByDeviceId ? 'replaced by ' + data.replacedByDeviceId : 'old format'})` };
+  }
+
+  // Check lastActive freshness
+  const now = Date.now();
+  const lastActive = data.lastActive || 0;
+  const isFresh = lastActive > 0 && (now - lastActive <= 2 * 60 * 1000); // 2 minutes
+  const isRecent = lastActive > 0 && (now - lastActive <= 24 * 60 * 60 * 1000); // 24 hours
+
+  if (data.signedIn && data.currentSession && data.syncStatus === 'active' && isFresh) {
+    return { classification: 'activeRemote', reason: 'Active remote device heartbeat within 2 minutes' };
+  }
+
+  if (data.signedIn && isRecent) {
+    return { classification: 'recentRemote', reason: 'Session signed in and active within 24 hours' };
+  }
+
+  if (lastActive === 0 || !data.appVersion || data.appVersion === 'Unknown' || (data.name || '').includes('Chordex')) {
+    return { classification: 'legacy', reason: 'Legacy session parameters detected' };
+  }
+
+  return { classification: 'unknown', reason: 'Session is inactive or in an undefined state' };
+}
+
+let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+let lastHeartbeatSuccess: string = 'Never';
+let lastHeartbeatError: string = 'None';
+
+export async function performHeartbeat(uid: string) {
+  const db = getFirebaseDb();
+  if (!db) return;
+  const id = deviceId();
+  const ref = doc(db, 'users', uid, 'devices', id);
+  try {
+    const nowServer = serverTimestamp();
+    await setDoc(ref, sanitizeForFirestore({
+      lastActiveAt: nowServer,
+      lastSeenAt: nowServer,
+      updatedAt: nowServer,
+      signedIn: true,
+      currentSession: true,
+      syncStatus: 'active',
+      updatedByDevice: id,
+    }), { merge: true });
+    lastHeartbeatSuccess = new Date().toLocaleString();
+    lastHeartbeatError = 'None';
+  } catch (err: any) {
+    console.warn('[sync] heartbeat failed:', err);
+    lastHeartbeatError = err.message || String(err);
+  }
+  notifyDiagnostics();
+}
+
+export function startDeviceHeartbeat(uid: string) {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+  }
+  
+  // Trigger immediately
+  void performHeartbeat(uid);
+  
+  // Update every 30 seconds
+  heartbeatInterval = setInterval(() => {
+    if (currentUser && currentUser.uid === uid) {
+      void performHeartbeat(uid);
+    }
+  }, 30000);
+}
+
+export function stopDeviceHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+}
+
+export async function reconnectDevices(): Promise<void> {
+  if (!currentUser) return;
+  const uid = currentUser.uid;
+  console.info('[sync] manual reconnect triggered');
+  
+  // 1. Register current device
+  await registerCurrentDevice(uid, 'manual-reconnect');
+  
+  // 2. Force heartbeat
+  await performHeartbeat(uid);
+  
+  // 3. Reattach devices listener
+  if (unsubDevicesListListener) {
+    unsubDevicesListListener();
+    unsubDevicesListListener = null;
+  }
+  
+  const db = getFirebaseDb();
+  if (db) {
+    const devicesRef = collection(db, 'users', uid, 'devices');
+    unsubDevicesListListener = onSnapshot(devicesRef, (snap) => {
+      let count = 0;
+      const ids: string[] = [];
+      snap.forEach((doc) => {
+        const data = doc.data();
+        ids.push(doc.id);
+        if (data.revokedAt == null) count++;
+      });
+      registeredDevicesCount = count;
+      devicesSnapshotIds = ids;
+      devicesSnapshotCount = snap.size;
+      notifyDiagnostics();
+    });
+  }
+  
+  // 4. Refresh diagnostics
+  notifyDiagnostics();
+}
+
 export function sanitizeForFirestore(val: any): any {
   if (val === undefined) {
     return null;
@@ -1367,13 +1599,6 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
         return; // Skip revoked devices
       }
       
-      const isMe = doc.id === deviceId();
-      if (isMe) {
-        renderingMe = true;
-      } else {
-        others++;
-      }
-      
       const lastActiveTimestamp = data.lastActiveAt || data.lastActive;
       const lastActiveMs = lastActiveTimestamp?.toMillis 
         ? lastActiveTimestamp.toMillis() 
@@ -1381,26 +1606,34 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
           ? lastActiveTimestamp 
           : 0); // Default to 0 for stale records so they do not show active
 
-      const isLegacy = data.legacy === true || 
-                       data.replacedByDeviceId != null || 
-                       !data.appVersion || 
-                       data.appVersion === 'Unknown' || 
-                       (data.name || '').includes('Chordex') || 
-                       (data.deviceName || '').includes('Chordex');
+      // Build item to classify
+      const itemToClassify = {
+        id: doc.id,
+        deviceId: data.deviceId,
+        revokedAt: data.revokedAt,
+        signedIn: data.signedIn,
+        currentSession: data.currentSession,
+        legacy: data.legacy,
+        replacedByDeviceId: data.replacedByDeviceId,
+        lastActive: lastActiveMs,
+        appVersion: data.appVersion,
+        name: data.shortName || data.deviceName || data.name,
+      };
 
-      const isStale = data.currentSession === false || 
-                      data.syncStatus === 'idle' || 
-                      data.syncStatus === 'stale' || 
-                      lastActiveMs === 0 ||
-                      (Date.now() - lastActiveMs > 24 * 60 * 60 * 1000) || 
-                      isLegacy;
+      const { classification, reason } = classifyDeviceSession(itemToClassify, deviceId());
 
-      if (isLegacy) {
-        legacyCount++;
-      } else if (isStale) {
+      if (classification === 'current') {
+        renderingMe = true;
+      } else {
+        others++;
+      }
+
+      if (classification === 'current' || classification === 'activeRemote' || classification === 'recentRemote') {
+        activeCount++;
+      } else if (classification === 'signedOut' || classification === 'revoked') {
         staleCount++;
       } else {
-        activeCount++;
+        legacyCount++;
       }
 
       list.push({
@@ -1422,8 +1655,10 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
         os: data.os || '',
         osVersion: data.osVersion || '',
         browser: data.browser || '',
-        isLegacy,
-        isStale,
+        classification,
+        classificationReason: reason,
+        isLegacy: classification === 'legacy',
+        isStale: classification === 'signedOut' || classification === 'revoked' || classification === 'legacy' || classification === 'unknown',
         currentSession: data.currentSession !== false,
         replacedByDeviceId: data.replacedByDeviceId || null,
         legacy: data.legacy === true,
@@ -1447,6 +1682,7 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
     staleDevicesCount = staleCount;
     legacyDevicesCount = legacyCount;
     groupedDeviceIds = ids.join(', ') || 'None';
+    currentDeviceDocExists = renderingMe;
 
     setStatus({
       lastDevicesListenerError: 'None',
@@ -1462,6 +1698,7 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
       staleDevicesCount: staleCount,
       legacyDevicesCount: legacyCount,
       groupedDeviceIds: groupedDeviceIds,
+      currentDeviceDocExists: renderingMe,
     });
     callback(list);
   }, (err) => {
@@ -2995,9 +3232,13 @@ export function attachSyncEngine(): void {
           language: settings.language,
           updatedAt: now,
           updatedByDevice: deviceId(),
-        }), { merge: true }).catch((err) => {
+        }), { merge: true }).then(() => {
+          lastAppearanceWriteSuccess = new Date().toLocaleString();
+          lastAppearanceWriteError = 'None';
+        }).catch((err) => {
           console.warn('[sync] failed to write appearance settings:', err);
           lastSyncError = err.message || String(err);
+          lastAppearanceWriteError = err.message || String(err);
         }).finally(() => {
           pendingWritesCount = Math.max(0, pendingWritesCount - 1);
           notifyDiagnostics();
@@ -3025,9 +3266,13 @@ export function attachSyncEngine(): void {
           showWhatsNewAfterUpdate: settings.otaShowChangelog,
           updatedAt: now,
           updatedByDevice: deviceId(),
-        }), { merge: true }).catch((err) => {
+        }), { merge: true }).then(() => {
+          lastPreferencesWriteSuccess = new Date().toLocaleString();
+          lastPreferencesWriteError = 'None';
+        }).catch((err) => {
           console.warn('[sync] failed to write preference settings:', err);
           lastSyncError = err.message || String(err);
+          lastPreferencesWriteError = err.message || String(err);
         }).finally(() => {
           pendingWritesCount = Math.max(0, pendingWritesCount - 1);
           notifyDiagnostics();
@@ -3065,6 +3310,13 @@ export function attachSyncEngine(): void {
     unsubDevicesListListener = null;
 
     if (!u) {
+      authReady = true;
+      authUid = 'Not signed in';
+      profileListenerStatus = 'inactive';
+      appearanceListenerStatus = 'inactive';
+      preferencesListenerStatus = 'inactive';
+      stopDeviceHeartbeat();
+
       remoteTheme = null;
       remoteAccentColor = null;
       remotePhotoURL = null;
@@ -3083,6 +3335,13 @@ export function attachSyncEngine(): void {
     }
 
     if (u) {
+      authReady = true;
+      authUid = u.uid;
+      profileListenerStatus = 'active';
+      appearanceListenerStatus = 'active';
+      preferencesListenerStatus = 'active';
+      startDeviceHeartbeat(u.uid);
+
       void registerCurrentDevice(u.uid, 'auth-change');
       const db = getFirebaseDb();
       if (db) {
@@ -3113,6 +3372,8 @@ export function attachSyncEngine(): void {
             remotePhotoURL = data.photoURL || null;
             remoteDisplayName = data.displayName || null;
             lastRemoteUpdateTimestamp = data.updatedAt || 0;
+            cloudDisplayName = data.displayName || 'N/A';
+            cloudPhotoURL = data.photoURL || 'N/A';
             
             const localLast = parseInt(localStorage.getItem(`sync_last_local_update_profile`) ?? '0', 10);
             const remoteLast = data.updatedAt || 0;
@@ -3187,6 +3448,8 @@ export function attachSyncEngine(): void {
             remoteTheme = data.theme || null;
             remoteAccentColor = data.accentColor || null;
             lastRemoteUpdateTimestamp = data.updatedAt || 0;
+            cloudTheme = data.theme || 'N/A';
+            cloudAccentColor = data.accentColor || 'N/A';
             
             const localLast = parseInt(localStorage.getItem(`sync_last_local_update_appearance`) ?? '0', 10);
             const remoteLast = data.updatedAt || 0;

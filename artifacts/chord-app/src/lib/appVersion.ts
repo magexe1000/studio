@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.7'; // Fix real cloud sync device registration
+export const APP_VERSION = '3.6.8'; // Fix real cloud sync device registration and active listeners
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.7
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.8
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,19 +55,17 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Improved Devices & Sessions grouping for current device, other devices, and previous sessions.",
-      "Improved device name normalization for Android and Web.",
-      "Improved diagnostics for duplicate, stale, legacy, and replaced device records.",
-      "Improved handling of older device documents created by previous Studio versions.",
+      "Improved device session classification utilizing deterministic categories for current device, active remotes, recent remotes, signed out, and legacy devices.",
+      "Added periodic 30-second heartbeats for signed-in sessions to track device freshness.",
+      "Added manual Reconnect Devices button in settings panel and developer tools.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed duplicate and stale device records appearing as active sessions in Devices & Sessions.",
-      "Fixed legacy Android and Web session documents being shown as current devices.",
-      "Fixed confusing session status combinations such as \"Active just now\" with \"Idle.\"",
-      "Fixed unknown version values appearing in main device cards.",
+      "Fixed duplicate properties compile typecheck error in sync diagnostics.",
+      "Fixed incorrect device categorization in the Devices list.",
+      "Fixed potential web connection gaps and session listener disconnects.",
     ],
   },
 ];
@@ -76,23 +74,19 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Corregido",
+    heading: "Mejorado",
     items: [
-      "Se corrigió que Dispositivos y sesiones no mostrara ningún dispositivo al iniciar sesión.",
-      "Se corrigió que el registro del dispositivo actual no se escribiera en Firestore.",
-      "Se corrigió la falta de documentos de dispositivos bajo users/{uid}/devices.",
-      "Se agregaron diagnósticos para el estado de escritura y listener de dispositivos.",
-      "Se implementó el registro robusto del dispositivo con un tiempo de espera de escritura de 10 segundos y reintentos automáticos.",
-      "Se agregaron diagnósticos profundos en la hoja de Dispositivos y sesiones con 16 parámetros del estado de registro.",
-      "Se implementó la sanitización automática del payload de Firestore para evitar rechazos de escritura debido a campos de plataforma/nativos indefinidos.",
+      "Se mejoró la clasificación de sesiones de dispositivos utilizando categorías deterministas.",
+      "Se agregaron heartbeats periódicos cada 30 segundos para monitorear la actividad.",
+      "Se agregó un botón de reconexión manual en la configuración y herramientas de desarrollo.",
     ],
   },
   {
-    heading: "Mejorado",
+    heading: "Corregido",
     items: [
-      "Se mejoró la confiabilidad de Dispositivos y sesiones en Android y Web.",
-      "Se mejoró la detección del dispositivo actual y el seguimiento de actividad.",
-      "Se mejoró la visibilidad de sesiones entre dispositivos.",
+      "Se corrigió un error de compilación por propiedades duplicadas en los diagnósticos.",
+      "Se corrigió la categorización errónea de dispositivos en la lista de sesiones.",
+      "Se corrigieron posibles interrupciones en la conexión web y listeners de sesión.",
     ],
   },
 ];

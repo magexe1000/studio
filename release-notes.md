@@ -1,11 +1,9 @@
 ### Fixed
-- Fixed duplicate and stale device records appearing as active sessions in Devices & Sessions.
-- Fixed legacy Android and Web session documents being shown as current devices.
-- Fixed confusing session status combinations such as "Active just now" with "Idle."
-- Fixed unknown version values appearing in main device cards.
+- Fixed duplicate properties compile typecheck error in sync diagnostics.
+- Fixed incorrect device categorization in the Devices list.
+- Fixed potential web connection gaps and session listener disconnects.
 
 ### Improved
-- Improved Devices & Sessions grouping for current device, other devices, and previous sessions.
-- Improved device name normalization for Android and Web.
-- Improved diagnostics for duplicate, stale, legacy, and replaced device records.
-- Improved handling of older device documents created by previous Studio versions.
+- Improved device session classification utilizing deterministic categories for current device, active remotes, recent remotes, signed out, and legacy devices.
+- Added periodic 30-second heartbeats for signed-in sessions to track device freshness.
+- Added manual Reconnect Devices button in settings panel and developer tools.

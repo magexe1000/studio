@@ -2737,9 +2737,9 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           );
                         };
 
-                        const thisDevice = devices.filter(d => d.id === deviceId());
-                        const otherActiveDevices = devices.filter(d => d.id !== deviceId() && !d.isLegacy && !d.isStale);
-                        const olderSessions = devices.filter(d => d.id !== deviceId() && (d.isLegacy || d.isStale));
+                        const thisDevice = devices.filter(d => d.classification === 'current' || d.id === deviceId());
+                        const otherActiveDevices = devices.filter(d => d.id !== deviceId() && (d.classification === 'activeRemote' || d.classification === 'recentRemote'));
+                        const olderSessions = devices.filter(d => d.id !== deviceId() && (d.classification === 'signedOut' || d.classification === 'revoked' || d.classification === 'legacy' || d.classification === 'unknown' || !d.classification));
 
                         return (
                           <>
@@ -2957,41 +2957,131 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Last legacy cleanup error:</strong> <code>{sync.lastLegacyCleanupError || 'None'}</code>
                         </p>
-                        
-                        <button
-                          onClick={async () => {
-                            setBusy(true);
-                            try {
-                              await registerCurrentDevice(user.uid, 'manual-button');
-                              showToast(lang === 'es' ? '¡Registro completado!' : 'Registration complete!');
-                            } catch (e: any) {
-                              showToast(`Error: ${e.message || String(e)}`);
-                            } finally {
-                              setBusy(false);
-                            }
-                          }}
-                          disabled={busy || sync.deviceRegistrationStatus === 'pending' || sync.inFlightWriteStatus}
-                          style={{
-                            marginTop: 8,
-                            padding: '8px 12px',
-                            borderRadius: 8,
-                            background: accent.from,
-                            color: '#fff',
-                            border: 'none',
-                            fontWeight: 700,
-                            fontFamily: 'Manrope',
-                            fontSize: 11,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 6,
-                            opacity: (busy || sync.deviceRegistrationStatus === 'pending' || sync.inFlightWriteStatus) ? 0.6 : 1,
-                          }}
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>app_registration</span>
-                          {lang === 'es' ? 'Registrar este dispositivo ahora' : 'Register this device now'}
-                        </button>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Auth ready:</strong> <code>{sync.authReady ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Devices logic version:</strong> <code>{sync.devicesLogicVersion || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last heartbeat success:</strong> <code>{sync.lastHeartbeatSuccess || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last heartbeat error:</strong> <code style={{ color: sync.lastHeartbeatError && sync.lastHeartbeatError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastHeartbeatError || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Profile listener status:</strong> <code style={{ textTransform: 'capitalize' }}>{sync.profileListenerStatus || 'inactive'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Appearance listener status:</strong> <code style={{ textTransform: 'capitalize' }}>{sync.appearanceListenerStatus || 'inactive'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Preferences listener status:</strong> <code style={{ textTransform: 'capitalize' }}>{sync.preferencesListenerStatus || 'inactive'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last profile write success:</strong> <code>{sync.lastProfileWriteSuccess || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last profile write error:</strong> <code style={{ color: sync.lastProfileWriteError && sync.lastProfileWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastProfileWriteError || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last appearance write success:</strong> <code>{sync.lastAppearanceWriteSuccess || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last appearance write error:</strong> <code style={{ color: sync.lastAppearanceWriteError && sync.lastAppearanceWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastAppearanceWriteError || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last preferences write success:</strong> <code>{sync.lastPreferencesWriteSuccess || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last preferences write error:</strong> <code style={{ color: sync.lastPreferencesWriteError && sync.lastPreferencesWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastPreferencesWriteError || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last photo upload error:</strong> <code style={{ color: sync.lastPhotoUploadError && sync.lastPhotoUploadError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastPhotoUploadError || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Cloud Theme:</strong> <code>{sync.cloudTheme || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Cloud Accent Color:</strong> <code>{sync.cloudAccentColor || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Cloud Display Name:</strong> <code>{sync.cloudDisplayName || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Cloud Photo URL:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.cloudPhotoURL || 'N/A'}</code>
+                        </p>
+
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                          <button
+                            onClick={async () => {
+                              setBusy(true);
+                              try {
+                                await registerCurrentDevice(user.uid, 'manual-button');
+                                showToast(lang === 'es' ? '¡Registro completado!' : 'Registration complete!');
+                              } catch (e: any) {
+                                showToast(`Error: ${e.message || String(e)}`);
+                              } finally {
+                                setBusy(false);
+                              }
+                            }}
+                            disabled={busy || sync.deviceRegistrationStatus === 'pending' || sync.inFlightWriteStatus}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              background: accent.from,
+                              color: '#fff',
+                              border: 'none',
+                              fontWeight: 700,
+                              fontFamily: 'Manrope',
+                              fontSize: 11,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6,
+                              opacity: (busy || sync.deviceRegistrationStatus === 'pending' || sync.inFlightWriteStatus) ? 0.6 : 1,
+                            }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>app_registration</span>
+                            {lang === 'es' ? 'Registrar este dispositivo ahora' : 'Register this device now'}
+                          </button>
+
+                          <button
+                            onClick={async () => {
+                              setBusy(true);
+                              try {
+                                const { reconnectDevices } = await import('../lib/sync');
+                                await reconnectDevices();
+                                showToast(lang === 'es' ? '¡Dispositivos reconectados!' : 'Devices reconnected!');
+                              } catch (e: any) {
+                                showToast(`Error: ${e.message || String(e)}`);
+                              } finally {
+                                setBusy(false);
+                              }
+                            }}
+                            disabled={busy}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              background: 'rgba(128,128,128,0.1)',
+                              color: 'var(--c-text-primary)',
+                              border: '1px solid rgba(128,128,128,0.15)',
+                              fontWeight: 700,
+                              fontFamily: 'Manrope',
+                              fontSize: 11,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6,
+                              opacity: busy ? 0.6 : 1,
+                            }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>sync</span>
+                            {lang === 'es' ? 'Reconectar dispositivos' : 'Reconnect Devices'}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

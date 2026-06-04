@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { useBackHandler } from '../lib/backStack';
 import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice } from '../lib/sync';
+import { subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices } from '../lib/sync';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useNavHidden, useNavCollapsed, useScrollHide } from '../lib/navScroll';
@@ -2925,6 +2925,16 @@ function HubSettings({
             await wrapAction('register-device-now', async () => {
               await registerCurrentDevice(authUser.uid, 'dev-options-button');
               showDevToast('Device registration completed.');
+            });
+          }} />
+          <DevButtonRow label="Reconnect Devices" desc="Force heartbeat and rebuild active Firestore listeners" actionLabel="Reconnect" actionId="reconnect-devices" onPress={async () => {
+            if (!authUser?.uid) {
+              showDevToast('Error: Not signed in');
+              return;
+            }
+            await wrapAction('reconnect-devices', async () => {
+              await reconnectDevices();
+              showDevToast('Device reconnection completed.');
             });
           }} />
           <DevButtonRow label="Push Local Settings to Cloud" desc="Overwrite cloud profile/settings with this device's state" actionLabel="Push Settings" actionId="push-settings" onPress={async () => {
