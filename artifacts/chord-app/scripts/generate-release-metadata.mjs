@@ -93,54 +93,56 @@ if (releaseType !== 'ota') {
     fs.copyFileSync(apkPath, latestApkPath);
     console.log(`generate-release-metadata: ✓ Copied APK to ${latestApkPath}`);
 
-    // Dynamic firebase.json update to add headers for the specific version's apk file
+    // Dynamic firebase.json update to add redirects and ignores for the apk files
     try {
       const firebaseJsonPath = path.join(repoRoot, 'firebase.json');
       if (fs.existsSync(firebaseJsonPath)) {
         const fbJson = JSON.parse(fs.readFileSync(firebaseJsonPath, 'utf8'));
-        if (fbJson.hosting && Array.isArray(fbJson.hosting.headers)) {
-          const headers = fbJson.hosting.headers;
-          const sourcePattern = `/apk/studio-${version}.apk`;
-          
-          // Remove existing rule for this version if present
-          const existingIdx = headers.findIndex(h => h.source === sourcePattern);
-          if (existingIdx !== -1) {
-            headers.splice(existingIdx, 1);
+        if (fbJson.hosting) {
+          // 1. Ensure **/*.apk is in the ignore array
+          fbJson.hosting.ignore = fbJson.hosting.ignore || [];
+          if (!fbJson.hosting.ignore.includes('**/*.apk')) {
+            fbJson.hosting.ignore.push('**/*.apk');
           }
-          
-          // Construct the new rule
-          const newRule = {
-            "source": sourcePattern,
-            "headers": [
-              {
-                "key": "Content-Type",
-                "value": "application/vnd.android.package-archive"
-              },
-              {
-                "key": "Content-Disposition",
-                "value": "attachment"
-              },
-              {
-                "key": "Cache-Control",
-                "value": "public, max-age=31536000, immutable"
-              }
-            ]
+
+          // 2. Ensure redirects array exists
+          fbJson.hosting.redirects = fbJson.hosting.redirects || [];
+          const redirects = fbJson.hosting.redirects;
+
+          // 3. Update or insert studio-latest.apk redirect
+          const latestDest = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
+          const latestIdx = redirects.findIndex(r => r.source === '/apk/studio-latest.apk');
+          const latestRule = {
+            "source": "/apk/studio-latest.apk",
+            "destination": latestDest,
+            "type": 302
           };
-          
-          // Find /apk/*.apk index to insert before it, ensuring precedence
-          const catchAllIdx = headers.findIndex(h => h.source === '/apk/*.apk');
-          if (catchAllIdx !== -1) {
-            headers.splice(catchAllIdx, 0, newRule);
+          if (latestIdx !== -1) {
+            redirects[latestIdx] = latestRule;
           } else {
-            headers.push(newRule);
+            redirects.unshift(latestRule);
           }
-          
+
+          // 4. Update or insert studio-:version.apk redirect
+          const versionDest = "https://github.com/MAGEXE1000/Studio/releases/download/v:version/studio-:version.apk";
+          const versionIdx = redirects.findIndex(r => r.source === '/apk/studio-:version.apk');
+          const versionRule = {
+            "source": "/apk/studio-:version.apk",
+            "destination": versionDest,
+            "type": 302
+          };
+          if (versionIdx !== -1) {
+            redirects[versionIdx] = versionRule;
+          } else {
+            redirects.push(versionRule);
+          }
+
           fs.writeFileSync(firebaseJsonPath, JSON.stringify(fbJson, null, 2) + '\n', 'utf8');
-          console.log(`generate-release-metadata: ✓ Dynamically updated firebase.json headers for ${sourcePattern}`);
+          console.log(`generate-release-metadata: ✓ Dynamically updated redirects and ignores in firebase.json for version ${version}`);
         }
       }
     } catch (err) {
-      console.warn('generate-release-metadata: ⚠ Could not dynamically update firebase.json:', err);
+      console.warn('generate-release-metadata: ⚠ Could not dynamically update firebase.json redirects/ignores:', err);
     }
   } catch (err) {
     console.error('generate-release-metadata: ✗ Failed to copy APK to Firebase Hosting:', err);
