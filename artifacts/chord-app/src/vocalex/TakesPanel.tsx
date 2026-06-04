@@ -119,10 +119,10 @@ export default function TakesPanel() {
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '10px 20px', borderRadius: 9999,
-            background: '#007aff', border: 'none',
+            background: 'var(--studio-accent)', border: 'none',
             color: '#fff', fontFamily: 'Manrope, sans-serif',
             fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            boxShadow: '0 4px 20px rgba(0,122,255,0.25)',
+            boxShadow: 'var(--studio-accent-glow)',
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 16, fontVariationSettings: "'FILL' 1" }}>mic</span>
@@ -472,7 +472,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
       {state === 'processing' && (
         <div style={{ textAlign: 'center' }}>
           <div style={{
-            width: 48, height: 48, border: '3px solid #007aff',
+            width: 48, height: 48, border: '3px solid var(--studio-accent)',
             borderTopColor: 'transparent', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite', margin: '0 auto 16px',
           }} />
@@ -524,7 +524,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
               {isActive && (
                 <circle
                   cx={vizR + 20} cy={vizR + 20} r={centerR + 6}
-                  fill="none" stroke="rgba(0,122,255,0.15)" strokeWidth="1"
+                  fill="none" stroke="rgba(var(--studio-accent-rgb), 0.15)" strokeWidth="1"
                 />
               )}
             </svg>
@@ -536,11 +536,11 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
                 width: centerR * 2, height: centerR * 2, borderRadius: '50%',
                 background: state === 'recording'
                   ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-                  : 'linear-gradient(135deg, #007aff, #0066d6)',
+                  : 'var(--studio-accent-gradient)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: state === 'recording'
                   ? '0 0 60px rgba(239,68,68,0.25), 0 0 120px rgba(239,68,68,0.1)'
-                  : '0 0 60px rgba(0,122,255,0.2), 0 0 120px rgba(0,122,255,0.08)',
+                  : '0 0 60px rgba(var(--studio-accent-rgb), 0.2), 0 0 120px rgba(var(--studio-accent-rgb), 0.08)',
                 cursor: state === 'countdown' ? 'default' : 'pointer',
                 position: 'relative', zIndex: 2,
                 transition: 'background 300ms ease, box-shadow 300ms ease',
@@ -613,7 +613,7 @@ function RecordingView({ onComplete, onCancel }: { onComplete: (take: TakeRecord
                 color: 'var(--vx-text)', fontFamily: 'Inter, sans-serif',
                 fontSize: 14, outline: 'none',
               }}
-              onFocus={e => { e.target.style.borderColor = '#007aff'; }}
+              onFocus={e => { e.target.style.borderColor = 'var(--studio-accent)'; }}
               onBlur={e => { e.target.style.borderColor = 'var(--vx-text-4)'; }}
             />
           )}
@@ -766,8 +766,8 @@ function TakeDetailView({ take, onBack, onDelete, onSaveBounce }: {
             setShowHarmonizer(true);
           }}
           style={{
-            background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.25)',
-            cursor: 'pointer', color: '#007aff',
+            background: 'var(--studio-accent-soft)', border: '1px solid var(--studio-accent-border)',
+            cursor: 'pointer', color: 'var(--studio-accent)',
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '7px 14px', borderRadius: 9999,
             fontFamily: 'Manrope, sans-serif', fontSize: 13, fontWeight: 700,
@@ -792,7 +792,7 @@ function TakeDetailView({ take, onBack, onDelete, onSaveBounce }: {
       {showHarmonizer && (
         <HarmonizerSheet
           take={take}
-          accent="#007aff"
+          accent="var(--studio-accent)"
           onClose={() => setShowHarmonizer(false)}
           onBounce={async (newTake) => {
             await onSaveBounce(newTake);
@@ -853,16 +853,16 @@ function TakeDetailView({ take, onBack, onDelete, onSaveBounce }: {
       }}>
         <div style={{
           position: 'absolute', left: 0, top: 0, bottom: 0,
-          width: 3, background: playing ? '#007aff' : 'var(--vx-text-4)',
+          width: 3, background: playing ? 'var(--studio-accent)' : 'var(--vx-text-4)',
           transition: 'background 200ms ease',
         }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
           <button onClick={togglePlay} style={{
             width: 52, height: 52, borderRadius: '50%',
-            background: '#007aff', border: 'none', cursor: 'pointer',
+            background: 'var(--studio-accent)', border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 16px rgba(0,122,255,0.3)', flexShrink: 0,
+            boxShadow: 'var(--studio-accent-glow)', flexShrink: 0,
           }}>
             <span className="material-symbols-outlined" style={{
               fontSize: 26, color: '#fff',
@@ -872,7 +872,7 @@ function TakeDetailView({ take, onBack, onDelete, onSaveBounce }: {
           <div>
             <p style={{
               fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14,
-              color: playing ? '#007aff' : 'var(--vx-text-2)', margin: 0,
+              color: playing ? 'var(--studio-accent)' : 'var(--vx-text-2)', margin: 0,
               transition: 'color 200ms ease',
             }}>
               {playing ? t.vocalex.playing : t.vocalex.tapToPlay}
@@ -892,8 +892,8 @@ function TakeDetailView({ take, onBack, onDelete, onSaveBounce }: {
           <div style={{
             position: 'absolute', left: 0, top: 0, bottom: 0,
             width: `${progress}%`,
-            background: 'rgba(0,122,255,0.08)',
-            borderRight: '2px solid #007aff',
+            background: 'rgba(var(--studio-accent-rgb), 0.08)',
+            borderRight: '2px solid var(--studio-accent)',
             transition: playing ? 'none' : 'width 100ms ease',
           }} />
           {take.waveformPeaks.map((h, i) => {
@@ -901,7 +901,7 @@ function TakeDetailView({ take, onBack, onDelete, onSaveBounce }: {
             return (
               <div key={i} style={{
                 flex: 1, height: `${Math.max(8, h)}%`, borderRadius: 9999,
-                background: isPlayed ? 'rgba(0,122,255,0.6)' : 'rgba(172,171,170,0.2)',
+                background: isPlayed ? 'rgba(var(--studio-accent-rgb), 0.6)' : 'rgba(172,171,170,0.2)',
                 position: 'relative', zIndex: 1,
                 minWidth: 1.5,
               }} />
@@ -923,7 +923,7 @@ function TakeDetailView({ take, onBack, onDelete, onSaveBounce }: {
       {/* Analysis section */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#007aff' }}>insights</span>
+          <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--studio-accent)' }}>insights</span>
           <h3 style={{
             fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 18,
             color: 'var(--vx-text)', margin: 0,
@@ -936,7 +936,7 @@ function TakeDetailView({ take, onBack, onDelete, onSaveBounce }: {
             background: 'var(--vx-card-2)', borderRadius: 14,
           }}>
             <div style={{
-              width: 32, height: 32, border: '2px solid #007aff',
+              width: 32, height: 32, border: '2px solid var(--studio-accent)',
               borderTopColor: 'transparent', borderRadius: '50%',
               animation: 'spin 0.8s linear infinite', margin: '0 auto 12px',
             }} />
@@ -978,12 +978,12 @@ function TakeDetailView({ take, onBack, onDelete, onSaveBounce }: {
                     }).join(' ');
                     return (
                       <>
-                        <path d={path} fill="none" stroke="#007aff" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+                        <path d={path} fill="none" stroke="var(--studio-accent)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
                         <path d={`${path} L ${pts.length - 1} 60 L 0 60 Z`} fill="url(#pitchGrad)" opacity="0.3" />
                         <defs>
                           <linearGradient id="pitchGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#007aff" />
-                            <stop offset="100%" stopColor="#007aff" stopOpacity="0" />
+                            <stop offset="0%" stopColor="var(--studio-accent)" />
+                            <stop offset="100%" stopColor="var(--studio-accent)" stopOpacity="0" />
                           </linearGradient>
                         </defs>
                       </>

@@ -11,6 +11,7 @@ import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { setBackHandler } from '../lib/backStack';
 import { playChord, stopChordPlayback } from '../lib/guitarAudio';
 import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
+import { useScrollFade } from '../components/ScrollFade';
 
 // ── Category definitions ──────────────────────────────────────
 const CATEGORIES: {
@@ -394,6 +395,9 @@ function ChordCard({
 // ── Main panel ────────────────────────────────────────────────
 export default function LibraryPanel() {
   const { selectedChordId, recentChords, favorites, selectChord, settings, activePanel } = useChordStore();
+  const { ref: recentScrollRef, fadeClass: recentFadeClass } = useScrollFade();
+  const { ref: favoritesScrollRef, fadeClass: favoritesFadeClass } = useScrollFade();
+  const { ref: genreScrollRef, fadeClass: genreFadeClass } = useScrollFade();
   const accent = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
   const t = useT();
   const activeTheme = settings.perApp?.chords?.theme ?? settings.theme;
@@ -738,8 +742,9 @@ export default function LibraryPanel() {
                 {recentList.length > 0 && (
                   <div className="mb-4">
                     <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] mb-3" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>{t.library.recent}</h4>
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                      {recentList.map(chord => (
+                    <div className="scroll-fade-container">
+                      <div className={`scroll-fade-content flex gap-2 overflow-x-auto no-scrollbar pb-1 ${recentFadeClass}`} ref={recentScrollRef}>
+                        {recentList.map(chord => (
                         <button key={chord.id} onClick={() => selectChord(chord.id)}
                           className="btn-smooth flex-none"
                           style={{
@@ -759,14 +764,16 @@ export default function LibraryPanel() {
                           </div>
                         </button>
                       ))}
+                      </div>
                     </div>
                   </div>
                 )}
                 {favoritesList.length > 0 && (
                   <div>
                     <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] mb-3" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>{t.library.saved}</h4>
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                      {favoritesList.map(chord => (
+                    <div className="scroll-fade-container">
+                      <div className={`scroll-fade-content flex gap-2 overflow-x-auto no-scrollbar pb-1 ${favoritesFadeClass}`} ref={favoritesScrollRef}>
+                        {favoritesList.map(chord => (
                         <button key={chord.id} onClick={() => selectChord(chord.id)}
                           className="btn-smooth flex-none"
                           style={{
@@ -786,6 +793,7 @@ export default function LibraryPanel() {
                           </div>
                         </button>
                       ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -832,8 +840,8 @@ export default function LibraryPanel() {
             </div>
 
             {/* Genre filter chips */}
-            <div className="px-5 mb-5">
-              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+            <div className="scroll-fade-container px-5 mb-5">
+              <div className={`scroll-fade-content flex gap-2 overflow-x-auto no-scrollbar pb-2 ${genreFadeClass}`} ref={genreScrollRef}>
                 <button
                   onClick={() => setActiveGenre(null)}
                   className="btn-smooth flex-none px-4 py-2 font-bold text-xs"

@@ -15,6 +15,7 @@ import { setBackHandler } from '../lib/backStack';
 import { playChord, stopChordPlayback } from '../lib/guitarAudio';
 import type { GuitarChordData } from '../data/chords';
 import MusicNotesLottie from '../components/lottie/MusicNotesLottie';
+import { useScrollFade } from '../components/ScrollFade';
 
 function RelatedPlayBtn({ guitar, accent }: {
   guitar: GuitarChordData;
@@ -68,6 +69,7 @@ export default function ChordPanel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
   const t = useT();
+  const { ref: recentScrollRef, fadeClass: recentFadeClass } = useScrollFade();
 
   const [saving, setSaving] = useState(false);
   const [progName, setProgName] = useState('');
@@ -473,8 +475,9 @@ export default function ChordPanel() {
         {recentList.length > 0 && (
           <div className="mx-4 mt-4 rounded-3xl p-6 app-surface">
             <h3 className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>{t.chord.recentChords}</h3>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {recentList.map(c => (
+            <div className="scroll-fade-container">
+              <div className={`scroll-fade-content flex gap-2 overflow-x-auto no-scrollbar pb-1 ${recentFadeClass}`} ref={recentScrollRef}>
+                {recentList.map(c => (
                 <button
                   key={c.id}
                   onClick={() => selectChord(c.id)}
@@ -497,6 +500,7 @@ export default function ChordPanel() {
                   </div>
                 </button>
               ))}
+              </div>
             </div>
           </div>
         )}

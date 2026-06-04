@@ -48,8 +48,8 @@
   --color-background: var(--app-bg);
   --color-outline: #767575;
   --color-outline-variant: #484848;
-  --color-tertiary: #679cff;
-  --color-tertiary-container: #007aff;
+  --color-tertiary: var(--studio-accent-from);
+  --color-tertiary-container: var(--studio-accent-to);
   --color-on-tertiary: #001f4a;
   --color-secondary: #9d9da6;
   --color-secondary-container: #3a3b42;
@@ -111,6 +111,16 @@
 @property --c-text-muted     { syntax: '<color>'; inherits: true;  initial-value: #484848; }
 
 :root {
+  --studio-accent-from: var(--accent-from, #679cff);
+  --studio-accent-to: var(--accent-to, #007aff);
+  --studio-accent-mid: var(--accent-mid, #4d8ef7);
+  --studio-accent: var(--accent-to, #007aff);
+  --studio-accent-rgb: var(--accent-to-rgb, 0, 122, 255);
+  --studio-accent-gradient: linear-gradient(135deg, var(--studio-accent-from), var(--studio-accent-to));
+  --studio-accent-soft: color-mix(in srgb, var(--studio-accent-to) 12%, transparent);
+  --studio-accent-glow: 0 4px 20px color-mix(in srgb, var(--studio-accent-to) 25%, transparent);
+  --studio-accent-border: color-mix(in srgb, var(--studio-accent-to) 30%, transparent);
+
   --app-bg: #0e0e0e;
   --app-surface-lowest: #000000;
   --app-surface-low: #131313;
@@ -953,9 +963,9 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   --gx-surface-low: var(--app-surface-low);
   --gx-surface-high: var(--app-surface-high);
   --gx-surface-lowest: var(--app-surface-lowest);
-  --gx-accent: #679cff;
-  --gx-accent-container: #007aff;
-  --gx-accent-dim: rgba(103,156,255,0.18);
+  --gx-accent: var(--studio-accent-from);
+  --gx-accent-container: var(--studio-accent-to);
+  --gx-accent-dim: var(--studio-accent-soft);
 }
 
 .gx-slider {
@@ -1378,5 +1388,34 @@ html.has-modal-open body {
   background: #000000 !important;
 }
 */
+
+/* Scroll fade mask utility */
+.scroll-fade-container {
+  position: relative;
+  width: 100%;
+}
+.scroll-fade-content {
+  overflow-x: auto;
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  transition: mask-image 200ms ease, -webkit-mask-image 200ms ease;
+}
+.fade-both {
+  mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+}
+.fade-left {
+  mask-image: linear-gradient(to right, transparent, black 16px, black 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black 100%);
+}
+.fade-right {
+  mask-image: linear-gradient(to right, black, black calc(100% - 16px), transparent);
+  -webkit-mask-image: linear-gradient(to right, black, black calc(100% - 16px), transparent);
+}
+.fade-none {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
 
 

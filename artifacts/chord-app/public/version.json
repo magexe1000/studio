@@ -1,18 +1,16 @@
 {
-  "version": "3.4.11",
-  "changelog": "• Fixed Developer Options turning black after opening.\n• Fixed profile display name changes not updating the main Settings account card.\n• Removed the unnecessary floating “Up to date” badge.\n• Removed technical developer/build diagnostics from the About screen.\n• Cleaned up the About screen to focus on user-facing app information.\n• Moved technical build and update diagnostics into Developer Options.\n• Updated the Updater Settings description to reflect Studio’s current update system.\n• Improved Updater screen clarity and consistency.",
+  "version": "3.4.12",
+  "changelog": "• Fixed internal Studio apps not following the selected accent color.\n• Removed hardcoded blue accent styling from app controls.\n• Fixed Chordex Discover genre chips appearing abruptly cut off while scrolling.\n• Unified accent color behavior across Hub, Settings, Chordex, Drumex, Stagex, Groovex, and Vocalex.\n• Added polished horizontal fade behavior for scrollable chip rows.\n• Improved visual consistency across the Studio ecosystem.",
   "releaseNotes": {
     "improved": [
-      "Cleaned up the About screen to focus on user-facing app information.",
-      "Moved technical build and update diagnostics into Developer Options.",
-      "Updated the Updater Settings description to reflect Studio’s current update system.",
-      "Improved Updater screen clarity and consistency."
+      "Unified accent color behavior across Hub, Settings, Chordex, Drumex, Stagex, Groovex, and Vocalex.",
+      "Added polished horizontal fade behavior for scrollable chip rows.",
+      "Improved visual consistency across the Studio ecosystem."
     ],
     "fixed": [
-      "Fixed Developer Options turning black after opening.",
-      "Fixed profile display name changes not updating the main Settings account card.",
-      "Removed the unnecessary floating “Up to date” badge.",
-      "Removed technical developer/build diagnostics from the About screen."
+      "Fixed internal Studio apps not following the selected accent color.",
+      "Removed hardcoded blue accent styling from app controls.",
+      "Fixed Chordex Discover genre chips appearing abruptly cut off while scrolling."
     ]
   },
   "mandatory": false

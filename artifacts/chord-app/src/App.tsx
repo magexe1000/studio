@@ -1061,11 +1061,22 @@ export default function App() {
       accentTimerRef.current = null;
     }
 
+    const hexToRgbStr = (hex: string): string => {
+      const clean = hex.replace('#', '');
+      const r = parseInt(clean.substring(0, 2), 16);
+      const g = parseInt(clean.substring(2, 4), 16);
+      const b = parseInt(clean.substring(4, 6), 16);
+      return `${r}, ${g}, ${b}`;
+    };
+
     const apply = () => {
       if (changed) root.classList.add('theme-transitioning');
       root.style.setProperty('--accent-from', accent.from);
       root.style.setProperty('--accent-to',   accent.to);
       root.style.setProperty('--accent-mid',  accent.mid);
+      root.style.setProperty('--accent-from-rgb', hexToRgbStr(accent.from));
+      root.style.setProperty('--accent-to-rgb',   hexToRgbStr(accent.to));
+      root.style.setProperty('--accent-mid-rgb',  hexToRgbStr(accent.mid));
       if (changed) {
         accentTimerRef.current = setTimeout(() => {
           root.classList.remove('theme-transitioning');

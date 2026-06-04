@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.4.11'; // Clean up Settings, About, Updater, and Developer Options
+export const APP_VERSION = '3.4.12'; // Apply global accent color system to Studio apps
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.4.11
+export const APP_VERSION_DATE = '2026-06-04'; // 3.4.12
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,19 +55,17 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Cleaned up the About screen to focus on user-facing app information.",
-      "Moved technical build and update diagnostics into Developer Options.",
-      "Updated the Updater Settings description to reflect Studio’s current update system.",
-      "Improved Updater screen clarity and consistency.",
+      "Unified accent color behavior across Hub, Settings, Chordex, Drumex, Stagex, Groovex, and Vocalex.",
+      "Added polished horizontal fade behavior for scrollable chip rows.",
+      "Improved visual consistency across the Studio ecosystem.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed Developer Options turning black after opening.",
-      "Fixed profile display name changes not updating the main Settings account card.",
-      "Removed the unnecessary floating “Up to date” badge.",
-      "Removed technical developer/build diagnostics from the About screen.",
+      "Fixed internal Studio apps not following the selected accent color.",
+      "Removed hardcoded blue accent styling from app controls.",
+      "Fixed Chordex Discover genre chips appearing abruptly cut off while scrolling.",
     ],
   },
 ];
@@ -78,19 +76,17 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
-      "Se corrigió que las Opciones de Desarrollador se volvieran negras al abrirse.",
-      "Se corrigieron los cambios de nombre del perfil que no actualizaban la tarjeta de cuenta en Ajustes.",
-      "Se eliminó el indicador flotante innecesario de 'Actualizado'.",
-      "Se eliminaron los diagnósticos técnicos del compilado de la pantalla Acerca de.",
+      "Se corrigió que las aplicaciones internas no siguieran el color de acento seleccionado.",
+      "Se eliminó el estilo de acento azul predeterminado de los controles de la aplicación.",
+      "Se corrigieron los chips de género de Chordex Discover que se cortaban abruptamente al desplazarse.",
     ],
   },
   {
     heading: "Mejorado",
     items: [
-      "Se limpió la pantalla Acerca de para enfocarse en la información del usuario.",
-      "Se movieron los diagnósticos técnicos del compilado a Opciones de Desarrollador.",
-      "Se actualizó la descripción del Updater en Ajustes para reflejar el sistema actual.",
-      "Se mejoró la claridad y consistencia de la pantalla del Updater.",
+      "Se unificó el comportamiento del color de acento en todo el ecosistema de Studio.",
+      "Se agregó un comportamiento de desvanecimiento horizontal para las filas de chips desplazables.",
+      "Se mejoró la consistencia visual en todas las aplicaciones de Studio.",
     ],
   },
 ];
@@ -100,19 +96,17 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
     heading: "Behoben",
     items: [
-      "Entwickleroptionen-Schwarzbild beim Öffnen behoben.",
-      "Änderungen des Profilnamens aktualisieren die Haupt-Kontokarte in den Einstellungen sofort.",
-      "Unnötige schwebende 'Aktuell'-Plakette entfernt.",
-      "Technische Entwickler-/Build-Diagnosen aus dem Info-Bildschirm entfernt.",
+      "Problem behoben, bei dem interne Studio-Apps nicht dem ausgewählten Akzentton folgten.",
+      "Fest codiertes blaues Akzentstyling aus den App-Bedienelementen entfernt.",
+      "Chordex Discover Genre-Chips werden beim Scrollen nicht mehr abrupt abgeschnitten.",
     ],
   },
   {
     heading: "Verbessert",
     items: [
-      "Info-Bildschirm bereinigt, um sich auf benutzerseitige App-Informationen zu konzentrieren.",
-      "Technische Build- und Update-Diagnosen in die Entwickleroptionen verschoben.",
-      "Updater-Einstellungsbeschreibung aktualisiert, um das aktuelle Update-System widerzuspiegeln.",
-      "Updater-Bildschirm-Klarheit und Konsistenz verbessert.",
+      "Akzentfarbenverhalten im gesamten Studio-Ökosystem vereinheitlicht.",
+      "Elegantes horizontales Ausblendverhalten für scrollbare Chip-Reihen hinzugefügt.",
+      "Visuelle Konsistenz im gesamten Studio-Ökosystem verbessert.",
     ],
   },
 ];

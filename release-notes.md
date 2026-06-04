@@ -1,11 +1,9 @@
 ### Fixed
-- Fixed Developer Options turning black after opening.
-- Fixed profile display name changes not updating the main Settings account card.
-- Removed the unnecessary floating “Up to date” badge.
-- Removed technical developer/build diagnostics from the About screen.
+- Fixed internal Studio apps not following the selected accent color.
+- Removed hardcoded blue accent styling from app controls.
+- Fixed Chordex Discover genre chips appearing abruptly cut off while scrolling.
 
 ### Improved
-- Cleaned up the About screen to focus on user-facing app information.
-- Moved technical build and update diagnostics into Developer Options.
-- Updated the Updater Settings description to reflect Studio’s current update system.
-- Improved Updater screen clarity and consistency.
+- Unified accent color behavior across Hub, Settings, Chordex, Drumex, Stagex, Groovex, and Vocalex.
+- Added polished horizontal fade behavior for scrollable chip rows.
+- Improved visual consistency across the Studio ecosystem.

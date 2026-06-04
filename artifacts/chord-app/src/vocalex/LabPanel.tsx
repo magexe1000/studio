@@ -234,7 +234,7 @@ function EffectSlider({ label, value, min, max, step, onChange, accentColor }: {
       <ElasticSlider
         min={min} max={max} step={step} value={value}
         onChange={onChange}
-        accentColor={accentColor || '#679cff'}
+        accentColor={accentColor || 'var(--studio-accent)'}
         style={{ flex: 1 }}
       />
       <span style={{
@@ -272,7 +272,7 @@ function EffectRow({ effect, onChange, index }: { effect: TrackEffect; onChange:
           onClick={e => { e.stopPropagation(); onChange({ ...effect, enabled: !effect.enabled }); }}
           style={{
             width: 18, height: 18, borderRadius: 4, border: 'none', cursor: 'pointer',
-            background: effect.enabled ? '#007aff' : 'var(--vx-input)',
+            background: effect.enabled ? 'var(--studio-accent)' : 'var(--vx-input)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'background 200ms ease, transform 150ms cubic-bezier(0.34,1.56,0.64,1)',
             transform: effect.enabled ? 'scale(1)' : 'scale(0.9)',
@@ -282,7 +282,7 @@ function EffectRow({ effect, onChange, index }: { effect: TrackEffect; onChange:
         </button>
         <span className="material-symbols-outlined" style={{
           fontSize: 14,
-          color: effect.enabled ? '#679cff' : 'var(--vx-text-4)',
+          color: effect.enabled ? 'var(--studio-accent)' : 'var(--vx-text-4)',
           transition: 'color 200ms ease',
         }}>{meta.icon}</span>
         <span style={{
@@ -323,7 +323,7 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, onHarmonize, isPlayi
   const [editName, setEditName] = useState(false);
   const [name, setName] = useState(layer.name);
   const isMuted = layer.muted || (hasSolo && !layer.solo);
-  const accent = layer.solo ? '#f59e0b' : '#679cff';
+  const accent = layer.solo ? '#f59e0b' : 'var(--studio-accent)';
 
   const saveName = () => {
     setEditName(false);
@@ -334,9 +334,9 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, onHarmonize, isPlayi
   return (
     <div style={{
       background: 'var(--vx-card)', borderRadius: 14, padding: '14px 16px',
-      border: `1px solid ${isPlaying ? '#007aff30' : 'var(--vx-edge)'}`,
+      border: `1px solid ${isPlaying ? 'var(--studio-accent-border)' : 'var(--vx-edge)'}`,
       transition: 'border-color 300ms ease, box-shadow 300ms ease',
-      boxShadow: isPlaying ? '0 0 16px rgba(0,122,255,0.06)' : 'none',
+      boxShadow: isPlaying ? 'var(--studio-accent-glow)' : 'none',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div style={{
@@ -352,7 +352,7 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, onHarmonize, isPlayi
           {editName ? (
             <input value={name} onChange={e => setName(e.target.value)} onBlur={saveName}
               onKeyDown={e => e.key === 'Enter' && saveName()} autoFocus
-              style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--vx-text)', background: 'none', border: 'none', borderBottom: '1px solid #007aff', outline: 'none', padding: 0, width: '100%' }} />
+              style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--vx-text)', background: 'none', border: 'none', borderBottom: '1px solid var(--studio-accent)', outline: 'none', padding: 0, width: '100%' }} />
           ) : (
             <p onClick={() => setEditName(true)} style={{
               fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13,
@@ -436,9 +436,9 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, onHarmonize, isPlayi
           display: 'flex', alignItems: 'center', gap: 4, background: 'var(--vx-deep)',
           border: '1px solid var(--vx-edge)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
           fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700,
-          color: layer.effects.some(e => e.enabled) ? '#679cff' : 'var(--vx-text-4)',
+          color: layer.effects.some(e => e.enabled) ? 'var(--studio-accent)' : 'var(--vx-text-4)',
           transition: 'color 200ms ease, border-color 200ms ease, transform 100ms ease',
-          borderColor: showFx ? '#679cff30' : 'var(--vx-edge)',
+          borderColor: showFx ? 'var(--studio-accent-border)' : 'var(--vx-edge)',
         }}
           onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.95)')}
           onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
@@ -453,9 +453,9 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, onHarmonize, isPlayi
         </button>
 
         <button onClick={onHarmonize} style={{
-          display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(103,156,255,0.10)',
-          border: '1px solid rgba(103,156,255,0.22)', borderRadius: 6, padding: '4px 9px', cursor: 'pointer',
-          fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#679cff',
+          display: 'flex', alignItems: 'center', gap: 4, background: 'var(--studio-accent-soft)',
+          border: '1px solid var(--studio-accent-border)', borderRadius: 6, padding: '4px 9px', cursor: 'pointer',
+          fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: 'var(--studio-accent)',
           transition: 'background 150ms ease, transform 100ms ease',
         }}
           onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.95)')}
@@ -636,7 +636,7 @@ function AddTrackSheet({ session, onAdd, onClose }: {
                   onPointerUp={e => (e.currentTarget.style.background = 'var(--vx-deep)')}
                   onPointerLeave={e => (e.currentTarget.style.background = 'var(--vx-deep)')}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#679cff' }}>video_library</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--studio-accent)' }}>video_library</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 600, fontSize: 13, color: 'var(--vx-text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{take.name}</p>
                     <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'var(--vx-text-3)', margin: '1px 0 0' }}>{formatDur(take.durationMs)}</p>
@@ -658,11 +658,11 @@ function AddTrackSheet({ session, onAdd, onClose }: {
               background: 'var(--vx-deep)', border: '2px dashed var(--vx-input)', cursor: 'pointer',
               transition: 'border-color 150ms ease',
             }}
-              onPointerDown={e => (e.currentTarget.style.borderColor = '#007aff')}
+              onPointerDown={e => (e.currentTarget.style.borderColor = 'var(--studio-accent)')}
               onPointerUp={e => (e.currentTarget.style.borderColor = 'var(--vx-input)')}
               onPointerLeave={e => (e.currentTarget.style.borderColor = 'var(--vx-input)')}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#679cff' }}>upload_file</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--studio-accent)' }}>upload_file</span>
               <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, color: 'var(--vx-text-2)' }}>{t.vocalex.tapToChooseAudio}</span>
               <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'var(--vx-text-4)' }}>{t.vocalex.audioFormats}</span>
             </button>
@@ -685,17 +685,17 @@ function AddTrackSheet({ session, onAdd, onClose }: {
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#679cff' }}>mic</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--studio-accent)' }}>mic</span>
                 <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-2)', textAlign: 'center' }}>{t.vocalex.recordPrompt}</p>
                 <AnimatedActionButton
                   onClick={startRec}
-                  trailColor="#007aff"
+                  trailColor="var(--studio-accent)"
                   wrapClassName="mx-auto"
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px',
-                    background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
+                    background: 'var(--studio-accent-gradient)', border: 'none', cursor: 'pointer',
                     fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14, color: '#fff',
-                    boxShadow: '0 8px 32px rgba(0,122,255,0.25)',
+                    boxShadow: 'var(--studio-accent-glow)',
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic</span>
@@ -999,9 +999,9 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
           <button onClick={playAll} style={{
             width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer',
-            background: playing ? '#ef4444' : 'linear-gradient(135deg, #679cff, #007aff)',
+            background: playing ? '#ef4444' : 'var(--studio-accent-gradient)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: playing ? '0 4px 20px rgba(239,68,68,0.3)' : '0 4px 20px rgba(0,122,255,0.25)',
+            boxShadow: playing ? '0 4px 20px rgba(239,68,68,0.3)' : 'var(--studio-accent-glow)',
             transition: 'all 200ms ease',
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#fff', fontVariationSettings: "'FILL' 1" }}>
@@ -1022,7 +1022,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
           <div style={{ height: 3, borderRadius: 2, background: 'var(--vx-input)', overflow: 'hidden' }}>
             <div style={{
               height: '100%', borderRadius: 2,
-              background: 'linear-gradient(90deg, #679cff, #007aff)',
+              background: 'var(--studio-accent-gradient)',
               width: `${Math.min((currentTime / maxDuration) * 100, 100)}%`,
               transition: playing ? 'none' : 'width 200ms ease',
             }} />
@@ -1035,7 +1035,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
             min={0} max={1} step={0.01}
             value={session.masterVolume ?? 0.8}
             onChange={updateMasterVol}
-            accentColor="#679cff"
+            accentColor="var(--studio-accent)"
             style={{ flex: 1 }}
           />
           <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: 'var(--vx-text-4)', minWidth: 42, textAlign: 'right' }}>
@@ -1049,7 +1049,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
         <button onClick={() => setShowAddSheet(true)} style={{
           display: 'flex', alignItems: 'center', gap: 4, background: 'var(--vx-input)', border: 'none',
           borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
-          fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: '#679cff',
+          fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: 'var(--studio-accent)',
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>
           {t.vocalex.addTrack}
@@ -1062,7 +1062,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'var(--vx-text-3)', margin: 0, textAlign: 'center' }}>{t.vocalex.noTracksYet}</p>
           <button onClick={() => setShowAddSheet(true)} style={{
             marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 9999,
-            background: 'linear-gradient(135deg, #679cff, #007aff)', border: 'none', cursor: 'pointer',
+            background: 'var(--studio-accent-gradient)', border: 'none', cursor: 'pointer',
             fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 13, color: '#fff',
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
@@ -1218,11 +1218,11 @@ export default function LabPanel() {
       <section style={{ marginBottom: 32 }}>
         <button onClick={createSession} style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          background: 'linear-gradient(135deg, #679cff, #007aff)',
+          background: 'var(--studio-accent-gradient)',
           border: 'none', cursor: 'pointer', padding: '14px 24px',
           borderRadius: 9999, fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: 14,
           color: '#fff', letterSpacing: '0.02em',
-          boxShadow: '0 8px 32px rgba(0,122,255,0.25)',
+          boxShadow: 'var(--studio-accent-glow)',
           transition: 'transform 100ms ease',
         }}
           onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
