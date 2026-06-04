@@ -52,6 +52,11 @@ export let otaDebugLogs: {
   verifyApkSha256Available: boolean;
   installApkAvailable: boolean;
   openInstallPermissionSettingsAvailable: boolean;
+  installedVersionCode: number | null;
+  requiredApkVersion: string | null;
+  requiredVersionCode: number | null;
+  nativeApkBehind: boolean;
+  apkUpdateRequired: boolean;
 } = {
   appVersion: APP_VERSION,
   nativeApkVersion: null,
@@ -75,6 +80,11 @@ export let otaDebugLogs: {
   verifyApkSha256Available: false,
   installApkAvailable: false,
   openInstallPermissionSettingsAvailable: false,
+  installedVersionCode: null,
+  requiredApkVersion: null,
+  requiredVersionCode: null,
+  nativeApkBehind: false,
+  apkUpdateRequired: false,
 };
 
 export interface OtaDiagnostics {
@@ -271,6 +281,8 @@ export interface RemoteVersionInfo {
   manualApkUrl?: string;
   fallbackApkUrl?: string;
   releaseNotes?: string[] | StructuredReleaseNotes;
+  requiredApkVersion?: string;
+  requiredVersionCode?: number;
 }
 
 export interface OtaState {
@@ -390,6 +402,13 @@ async function fetchOne(
     const manualApkUrl = typeof obj.manual_download_url === 'string' ? obj.manual_download_url : (typeof obj.manualApkUrl === 'string' ? obj.manualApkUrl : undefined);
     const fallbackApkUrl = typeof obj.fallback_download_url === 'string' ? obj.fallback_download_url : (typeof obj.fallbackApkUrl === 'string' ? obj.fallbackApkUrl : undefined);
     
+    const requiredApkVersion = typeof obj.required_apk_version === 'string'
+      ? obj.required_apk_version
+      : (typeof obj.requiredApkVersion === 'string' ? obj.requiredApkVersion : undefined);
+    const requiredVersionCode = typeof obj.required_version_code === 'number'
+      ? obj.required_version_code
+      : (typeof obj.requiredVersionCode === 'number' ? obj.requiredVersionCode : (typeof obj.required_version_code === 'string' ? parseInt(obj.required_version_code, 10) : (typeof obj.requiredVersionCode === 'string' ? parseInt(obj.requiredVersionCode, 10) : undefined)));
+
     let parsedReleaseNotes: string[] | StructuredReleaseNotes | undefined = undefined;
     if (obj.releaseNotes) {
       if (Array.isArray(obj.releaseNotes)) {
@@ -423,6 +442,8 @@ async function fetchOne(
       manualApkUrl,
       fallbackApkUrl,
       releaseNotes: parsedReleaseNotes,
+      requiredApkVersion,
+      requiredVersionCode,
     };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -530,6 +551,10 @@ export interface CentralizedOtaState {
   fallbackApkUrl: string | null;
   releaseNotes: string[] | StructuredReleaseNotes | null;
   statusText: string | null;
+  requiredApkVersion: string | null;
+  requiredVersionCode: number | null;
+  nativeApkBehind: boolean;
+  apkUpdateRequired: boolean;
 }
 
 let globalOtaState: CentralizedOtaState = {
@@ -549,6 +574,10 @@ let globalOtaState: CentralizedOtaState = {
   fallbackApkUrl: null,
   releaseNotes: null,
   statusText: null,
+  requiredApkVersion: null,
+  requiredVersionCode: null,
+  nativeApkBehind: false,
+  apkUpdateRequired: false,
 };
 
 const stateListeners = new Set<(state: CentralizedOtaState) => void>();
@@ -574,6 +603,10 @@ export function resetOtaUpdateState() {
     manualApkUrl: null,
     fallbackApkUrl: null,
     releaseNotes: null,
+    requiredApkVersion: null,
+    requiredVersionCode: null,
+    nativeApkBehind: false,
+    apkUpdateRequired: false,
   });
 }
 
@@ -707,12 +740,41 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       const cmp = compareSemver(remote.version, APP_VERSION);
       otaDebugLogs.compareResult = cmp;
 
+      let installedVersionCode = 0;
+      if (isNative()) {
+        try {
+          const { AppInstaller } = await import('./apkDownloader');
+          const installedDetails = await AppInstaller.getInstalledAppDetails();
+          installedVersionCode = installedDetails.versionCode;
+        } catch (err) {
+          console.warn('[OTA] Failed to query installed version code:', err);
+        }
+      }
+
+      let nativeApkBehind = false;
+      let apkUpdateRequired = false;
+      if (isNative() && remote.requiredVersionCode && installedVersionCode > 0) {
+        if (installedVersionCode < remote.requiredVersionCode) {
+          nativeApkBehind = true;
+          apkUpdateRequired = true;
+        }
+      }
+
+      otaDebugLogs.installedVersionCode = installedVersionCode;
+      otaDebugLogs.requiredApkVersion = remote.requiredApkVersion || 'N/A';
+      otaDebugLogs.requiredVersionCode = remote.requiredVersionCode || null;
+      otaDebugLogs.nativeApkBehind = nativeApkBehind;
+      otaDebugLogs.apkUpdateRequired = apkUpdateRequired;
+
       let updateType: 'ota' | 'apk' | 'both' | 'none' = 'none';
       let apkUrl: string | null = null;
       let manualApkUrl: string | null = null;
       let fallbackApkUrl: string | null = null;
 
-      if (cmp > 0) {
+      // Force updateAvailable if APK update is required (even if semver comparison is 0)
+      const updateAvailable = cmp > 0 || apkUpdateRequired;
+
+      if (updateAvailable) {
         if (remote.updateType === 'apk' || remote.updateType === 'both' || remote.updateType === 'ota') {
           updateType = remote.updateType;
         } else if (isNative()) {
@@ -724,18 +786,34 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         } else {
           updateType = 'ota';
         }
+
+        // Force APK updates if native wrapper is behind the required version code
+        if (apkUpdateRequired) {
+          if (updateType === 'ota' || (updateType as string) === 'none') {
+            updateType = 'apk';
+          }
+        }
       }
 
       otaDebugLogs.updateType = updateType;
 
       if (updateType === 'none') {
-        console.log('[OTA DEBUG] Skip: updateType evaluated to "none" because remote.version <= APP_VERSION or other platform reason.', {
+        console.log('[OTA DEBUG] Skip: updateType evaluated to "none" because remote.version <= APP_VERSION and no APK update required.', {
           remoteVersion: remote.version,
           comparisonCmp: cmp,
           updateType
         });
         otaDebugLogs.finalDecision = `Skip: updateType is 'none' (remote.version=${remote.version} <= APP_VERSION=${APP_VERSION})`;
-        updateGlobalState({ updateState: 'idle', updateAvailable: false, updateType: 'none', loading: false });
+        updateGlobalState({
+          updateState: 'idle',
+          updateAvailable: false,
+          updateType: 'none',
+          loading: false,
+          requiredApkVersion: remote.requiredApkVersion ?? null,
+          requiredVersionCode: remote.requiredVersionCode ?? null,
+          nativeApkBehind,
+          apkUpdateRequired,
+        });
         return globalOtaState;
       }
 
@@ -754,7 +832,11 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       const inApplied = appliedList.includes(remote.version);
       const inInstalled = installedList.includes(remote.version);
       const cmpC = compareSemver(remote.version, APP_VERSION) <= 0;
-      if (inApplied || inInstalled || cmpC) {
+      
+      // If native update is required, do NOT skip the update check even if JS version matches
+      const shouldSkip = (inApplied || inInstalled || cmpC) && !apkUpdateRequired;
+
+      if (shouldSkip) {
         console.log('[OTA DEBUG] Skip: Version already processed or not newer.', {
           version: remote.version,
           inApplied,
@@ -763,7 +845,16 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           comparison: compareSemver(remote.version, APP_VERSION)
         });
         otaDebugLogs.finalDecision = `Skip: Already processed (inApplied=${inApplied}, inInstalled=${inInstalled}, cmpC=${cmpC})`;
-        updateGlobalState({ updateState: 'idle', updateAvailable: false, updateType, loading: false });
+        updateGlobalState({
+          updateState: 'idle',
+          updateAvailable: false,
+          updateType,
+          loading: false,
+          requiredApkVersion: remote.requiredApkVersion ?? null,
+          requiredVersionCode: remote.requiredVersionCode ?? null,
+          nativeApkBehind,
+          apkUpdateRequired,
+        });
         return globalOtaState;
       }
 
@@ -790,7 +881,11 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         ? 'manual_apk_required'
         : 'available';
       
-      otaDebugLogs.finalDecision = `Show: ${nextState === 'manual_apk_required' ? 'Manual APK Update Required' : 'Available'} (isDismissed=${isDismissed})`;
+      if (apkUpdateRequired && remote.updateType === 'ota') {
+        otaDebugLogs.finalDecision = "Manifest says OTA, but native wrapper is below required APK version.";
+      } else {
+        otaDebugLogs.finalDecision = `Show: ${nextState === 'manual_apk_required' ? 'Manual APK Update Required' : 'Available'} (isDismissed=${isDismissed})`;
+      }
 
       console.log('[OTA DEBUG] Showing Update:', {
         version: remote.version,
@@ -798,7 +893,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         isDismissed,
         apkUrl,
         downloadUrl: remote.downloadUrl,
-        nextState
+        nextState,
+        apkUpdateRequired
       });
 
       updateGlobalState({
@@ -815,6 +911,10 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         fallbackApkUrl,
         releaseNotes: remote.releaseNotes ?? null,
         loading: false,
+        requiredApkVersion: remote.requiredApkVersion ?? null,
+        requiredVersionCode: remote.requiredVersionCode ?? null,
+        nativeApkBehind,
+        apkUpdateRequired,
       });
 
       // System notification if never seen and not already dismissed

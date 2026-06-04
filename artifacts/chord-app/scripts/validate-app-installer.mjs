@@ -32,6 +32,33 @@ function assert(condition, message, exitCode = EXIT_CODES.APP_INSTALLER_VALIDATI
   }
 }
 
+// 0. Verify releaseType and native changes
+const releaseType = process.env.RELEASE_TYPE || 'both';
+if (process.env.CI) {
+  try {
+    console.log(`Checking for native changes in CI environment (releaseType: ${releaseType})...`);
+    const changedFiles = execSync('git diff --name-only HEAD^ HEAD', { encoding: 'utf8' })
+      .split('\n')
+      .map(f => f.trim())
+      .filter(Boolean);
+    
+    // Check if any native files changed
+    const nativeFiles = changedFiles.filter(f => f.startsWith('artifacts/chord-app/android/'));
+    if (nativeFiles.length > 0) {
+      assert(
+        releaseType !== 'ota',
+        `Native files changed but releaseType is '${releaseType}'! The release type must be 'apk' or 'both' to upgrade native wrappers. Changed native files:\n${nativeFiles.join('\n')}`,
+        EXIT_CODES.RELEASE_VALIDATION
+      );
+      console.log('✓ Release type is correctly set for native changes.');
+    } else {
+      console.log('✓ No native changes detected.');
+    }
+  } catch (err) {
+    console.warn('validate-app-installer: Warning: Could not verify changed files using git:', err.message);
+  }
+}
+
 // 1. Verify AppInstallerPlugin.java exists and is valid
 console.log(`Checking ${path.relative(appRoot, paths.pluginJava)}...`);
 assert(fs.existsSync(paths.pluginJava), 'AppInstallerPlugin.java does not exist!');

@@ -2312,6 +2312,11 @@ function HubSettings({
                 `App Version: ${otaDebugLogs.appVersion}`,
                 `APK Version: ${otaDebugLogs.nativeApkVersion}`,
                 `OTA Version: ${otaDebugLogs.currentOtaVersion}`,
+                `Installed APK versionCode: ${otaDebugLogs.installedVersionCode}`,
+                `Required APK version: ${otaDebugLogs.requiredApkVersion}`,
+                `Required versionCode: ${otaDebugLogs.requiredVersionCode}`,
+                `Native APK behind: ${otaDebugLogs.nativeApkBehind}`,
+                `APK update required: ${otaDebugLogs.apkUpdateRequired}`,
                 `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
                 `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
                 `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
@@ -2361,6 +2366,11 @@ function HubSettings({
           <DebugRow label="Current App Version" desc="The hardcoded version in the app bundle (APP_VERSION)" value={otaDebugLogs.appVersion} />
           <DebugRow label="Current APK Version" desc="The native Android APK version wrapper" value={otaDebugLogs.nativeApkVersion} />
           <DebugRow label="Current OTA Version" desc="The Capgo active bundle version" value={otaDebugLogs.currentOtaVersion} />
+          <DebugRow label="Installed APK versionCode" desc="The version code of the installed native wrapper" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
+          <DebugRow label="Required APK version" desc="The native wrapper version required by this release" value={otaDebugLogs.requiredApkVersion} />
+          <DebugRow label="Required versionCode" desc="The native versionCode required by this release" value={otaDebugLogs.requiredVersionCode !== null ? String(otaDebugLogs.requiredVersionCode) : 'N/A'} />
+          <DebugRow label="Native APK behind" desc="Whether the installed wrapper versionCode is below required" value={String(otaDebugLogs.nativeApkBehind)} />
+          <DebugRow label="APK update required" desc="Whether the native app wrapper must be upgraded" value={String(otaDebugLogs.apkUpdateRequired)} />
           <DebugRow label="AppInstaller Available" desc="Whether the native AppInstaller Capacitor plugin is loaded" value={String(otaDebugLogs.appInstallerAvailable)} />
           <DebugRow label="downloadApk Available" desc="Whether downloadApk method is available on AppInstaller" value={String(otaDebugLogs.downloadApkAvailable)} />
           <DebugRow label="verifyApkSha256 Available" desc="Whether verifyApkSha256 method is available on AppInstaller" value={String(otaDebugLogs.verifyApkSha256Available)} />

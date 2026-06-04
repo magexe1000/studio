@@ -203,6 +203,33 @@ try {
 const expectedSignature = process.env.EXPECTED_SIGNATURE_SHA256 || '90:0C:F2:59:18:5C:81:10:0C:DA:8B:B0:85:71:FA:23:55:2E:97:89:13:1C:F0:7A:8F:40:56:E4:D4:12:92:06';
 const signatures = expectedSignature.replace(/:/g, '').toLowerCase();
 
+// Get previous required version code and version name to carry forward if releaseType is 'ota'
+let requiredApkVersion = version;
+let requiredVersionCode = versionCode;
+let prevVersionCode = 0;
+
+try {
+  let prevData = null;
+  if (fs.existsSync(appReleaseJsonPath)) {
+    prevData = JSON.parse(fs.readFileSync(appReleaseJsonPath, 'utf8'));
+  } else {
+    const liveRes = await fetch('https://studio-30f44.web.app/app-release.json');
+    if (liveRes.ok) {
+      prevData = await liveRes.json();
+    }
+  }
+
+  if (prevData) {
+    prevVersionCode = prevData.versionCode || 0;
+    if (releaseType === 'ota') {
+      requiredApkVersion = prevData.required_apk_version || prevData.requiredApkVersion || prevData.version;
+      requiredVersionCode = prevData.required_version_code || prevData.requiredVersionCode || prevData.versionCode;
+    }
+  }
+} catch (err) {
+  console.warn('generate-release-metadata: ⚠ Could not fetch previous required version code, defaulting to current version.', err);
+}
+
 const metadata = {
   created_at: new Date().toISOString(),
   version: version,
@@ -216,8 +243,24 @@ const metadata = {
   downloadUrl: `https://studio-30f44.web.app/ota/studio-ota-${version}.zip`,
   signature_download_url: "",
   sha256: sha256,
-  update_type: releaseType
+  update_type: releaseType,
+  required_apk_version: requiredApkVersion,
+  required_version_code: requiredVersionCode,
+  requiredApkVersion: requiredApkVersion,
+  requiredVersionCode: requiredVersionCode
 };
+
+// Validate the constructed metadata before writing
+if (releaseType === 'apk' || releaseType === 'both') {
+  if (!requiredVersionCode) {
+    console.error("generate-release-metadata: ✗ requiredVersionCode is missing for apk/both release!");
+    process.exit(1);
+  }
+  if (prevVersionCode && requiredVersionCode <= prevVersionCode) {
+    console.error(`generate-release-metadata: ✗ requiredVersionCode (${requiredVersionCode}) must be greater than previous versionCode (${prevVersionCode})!`);
+    process.exit(1);
+  }
+}
 
 try {
   fs.writeFileSync(appReleaseJsonPath, JSON.stringify(metadata, null, 2) + '\n', 'utf8');
@@ -240,6 +283,10 @@ try {
         data.updateType = releaseType;
         data.versionCode = versionCode;
         data.signatures = signatures;
+        data.requiredApkVersion = requiredApkVersion;
+        data.requiredVersionCode = requiredVersionCode;
+        data.required_apk_version = requiredApkVersion;
+        data.required_version_code = requiredVersionCode;
         if (releaseNotes) {
           data.releaseNotes = releaseNotes;
         }

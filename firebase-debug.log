@@ -1,0 +1,52 @@
+[debug] [2026-06-03T15:37:46.941Z] ----------------------------------------------------------------------
+[debug] [2026-06-03T15:37:46.944Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\ayuda\AppData\Local\npm-cache\_npx\7750544ccf494d8b\node_modules\firebase-tools\lib\bin\firebase.js emulators:start --only hosting --project studio-30f44
+[debug] [2026-06-03T15:37:46.944Z] CLI Version:   15.19.0
+[debug] [2026-06-03T15:37:46.944Z] Platform:      win32
+[debug] [2026-06-03T15:37:46.944Z] Node Version:  v24.15.0
+[debug] [2026-06-03T15:37:46.944Z] Time:          Wed Jun 03 2026 09:37:46 GMT-0600 (Central Standard Time)
+[debug] [2026-06-03T15:37:46.944Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-06-03T15:37:48.488Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] Failed to authenticate, have you run firebase login?
+[warn] !  emulators: You are not currently authenticated so some features may not work correctly. Please run firebase login to authenticate the CLI. 
+[info] i  emulators: Starting emulators: hosting {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: hosting"}}
+[debug] [2026-06-03T15:37:48.572Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-06-03T15:37:48.572Z] [hosting] Hosting Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-06-03T15:37:48.573Z] assigned listening specs for emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"hosting":[{"address":"127.0.0.1","family":"IPv4","port":5000}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2026-06-03T15:37:48.576Z] Write emulator hub locator at C:\Users\ayuda\AppData\Local\Temp\hub-studio-30f44.json
+[debug] [2026-06-03T15:37:48.586Z] No OAuth tokens found
+[debug] [2026-06-03T15:37:48.586Z] No OAuth tokens found
+[debug] [2026-06-03T15:37:48.587Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-03T15:37:48.587Z] Failed to list hosting sites
+[debug] Failed to authenticate, have you run firebase login?
+[debug] [2026-06-03T15:37:48.587Z] No OAuth tokens found
+[debug] [2026-06-03T15:37:48.587Z] No OAuth tokens found
+[debug] [2026-06-03T15:37:48.588Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-03T15:37:48.588Z] fetchWebSetup error: FirebaseError: Failed to authenticate, have you run firebase login?
+[warn] !  hosting: Could not fetch web app configuration and there is no cached configuration on this machine. Check your internet connection and make sure you are authenticated. To continue, you must call firebase.initializeApp({...}) in your code before using Firebase. 
+[debug] [2026-06-03T15:37:48.589Z] No OAuth tokens found
+[debug] [2026-06-03T15:37:48.590Z] No OAuth tokens found
+[debug] [2026-06-03T15:37:48.591Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-03T15:37:48.591Z] Failed to authenticate, have you run firebase login? (original: Could not load the default credentials. Browse to https://cloud.google.com/docs/authentication/getting-started for more information.)
+[info] i  hosting[studio-30f44]: Serving hosting files from: firebase-public {"metadata":{"emulator":{"name":"hosting"},"message":"Serving hosting files from: \u001b[1mfirebase-public\u001b[22m"}}
+[info] +  hosting[studio-30f44]: Local server: http://127.0.0.1:5000 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: \u001b[4m\u001b[1mhttp://127.0.0.1:5000\u001b[22m\u001b[24m"}}
+[warn] !  emulators: The Emulator UI is not starting because none of the running emulators have a UI component. {"metadata":{"emulator":{"name":"hub"},"message":"The Emulator UI is not starting because none of the running emulators have a UI component."}}
+[debug] [2026-06-03T15:37:48.620Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: . If you are not running the Firebase SQL Connect VSCode extension, this is expected and not an issue.
+[info] 
+┌─────────────────────────────────────────────────────────────┐
+│ ✔  All emulators ready! It is now safe to connect your app. │
+└─────────────────────────────────────────────────────────────┘
+
+┌──────────┬────────────────┐
+│ Emulator │ Host:Port      │
+├──────────┼────────────────┤
+│ Hosting  │ 127.0.0.1:5000 │
+└──────────┴────────────────┘
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500
+
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 
+[info] i  hosting: 127.0.0.1 - - [03/Jun/2026:15:37:55 +0000] "HEAD /apk/studio-3.3.5.apk HTTP/1.1" 200 16349355 "-" "node" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [03/Jun/2026:15:37:55 +0000] \"HEAD /apk/studio-3.3.5.apk HTTP/1.1\" 200 16349355 \"-\" \"node\""}}
+[info] i  hosting: 127.0.0.1 - - [03/Jun/2026:15:38:01 +0000] "GET /apk/studio-3.3.5.apk HTTP/1.1" 200 16349355 "-" "node" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [03/Jun/2026:15:38:01 +0000] \"GET /apk/studio-3.3.5.apk HTTP/1.1\" 200 16349355 \"-\" \"node\""}}
+[info] i  hosting: 127.0.0.1 - - [03/Jun/2026:15:38:09 +0000] "GET /version.json HTTP/1.1" 200 524 "-" "node" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [03/Jun/2026:15:38:09 +0000] \"GET /version.json HTTP/1.1\" 200 524 \"-\" \"node\""}}

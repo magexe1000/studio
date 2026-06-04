@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.4.5'; // Fix automatic Android APK update install eligibility
+export const APP_VERSION = '3.4.6'; // Fix mixed OTA/APK version state and enforce native updates
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.4.5
+export const APP_VERSION_DATE = '2026-06-04'; // 3.4.6
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,19 +55,18 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Strengthened automatic in-app update reliability.",
-      "Improved consistency between GitHub APK, Firebase APK mirror, and update metadata.",
-      "Reduced need for manual recovery installs.",
+      "Safer update flow for users with older native wrappers.",
+      "Better recovery path when APK Version is behind App/OTA Version.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed Android APK updates failing with “App not installed”.",
-      "Added in-app APK install eligibility checks before launching Android installer.",
-      "Added validation for package name, signing certificate, versionCode, and APK build type.",
-      "Prevented invalid APK updates from being published.",
-      "Improved update diagnostics when Android rejects an APK.",
+      "Fixed mixed OTA/APK version state where App Version could advance while APK Version stayed behind.",
+      "Added required APK version enforcement.",
+      "Prevented OTA-only updates when native APK updates are required.",
+      "Added diagnostics for “Native APK behind” and “APK update required”.",
+      "Improved release classification for ota/apk/both updates.",
     ],
   },
 ];

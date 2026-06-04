@@ -762,10 +762,15 @@ function UpdateModal({
     case 'available':
       iconName = isApkFlow ? 'system_update' : 'download';
       iconColor = purpleFrom;
-      title = isApkFlow ? 'Studio update available' : 'App update available';
-      description = isApkFlow 
-        ? 'A native update is required to apply the latest security, features, and library upgrades.'
-        : `Version ${toVersion} is ready to install. You are currently on ${fromLabel}.`;
+      if ((ota as any).apkUpdateRequired) {
+        title = 'Native update required';
+        description = 'A native update is required to apply the latest security, features, and library upgrades. Current wrapper is outdated.';
+      } else {
+        title = isApkFlow ? 'Studio update available' : 'App update available';
+        description = isApkFlow 
+          ? 'A native update is required to apply the latest security, features, and library upgrades.'
+          : `Version ${toVersion} is ready to install. You are currently on ${fromLabel}.`;
+      }
       break;
 
     case 'manual_apk_required':

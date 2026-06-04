@@ -1,25 +1,18 @@
 {
-  "version": "3.4.4",
-  "changelog": "• Fixed Android “App not installed” failure during APK updates.\n• Added APK versionCode validation before release.\n• Added signing certificate consistency checks.\n• Added APK install eligibility diagnostics.\n• Improved update failure messages for Android installer errors.\n• Strengthened APK release validation.\n• Improved consistency between GitHub Release APK, Firebase APK mirror, and update metadata.",
+  "version": "3.4.6",
+  "changelog": "• Fixed mixed OTA/APK version state where App Version could advance while APK Version stayed behind.\n• Added required APK version enforcement.\n• Prevented OTA-only updates when native APK updates are required.\n• Added diagnostics for “Native APK behind” and “APK update required”.\n• Improved release classification for ota/apk/both updates.\n• Safer update flow for users with older native wrappers.\n• Better recovery path when APK Version is behind App/OTA Version.",
   "releaseNotes": {
     "improved": [
-      "Revamped Developer Options with clearer sections and diagnostics.",
-      "Improved Developer Options actions, statuses, confirmations, and feedback.",
-      "Improved return-to-Hub transition to avoid black screen frames.",
-      "Added a smoother app-to-Hub exit animation."
+      "Safer update flow for users with older native wrappers.",
+      "Better recovery path when APK Version is behind App/OTA Version."
     ],
     "fixed": [
-      "Fixed Developer Options buttons that had incomplete or unclear behavior.",
-      "Fixed return-to-Hub visual transition showing a black screen before the Hub appears.",
-      "Fixed app shell visual reset during app exit."
+      "Fixed mixed OTA/APK version state where App Version could advance while APK Version stayed behind.",
+      "Added required APK version enforcement.",
+      "Prevented OTA-only updates when native APK updates are required.",
+      "Added diagnostics for “Native APK behind” and “APK update required”.",
+      "Improved release classification for ota/apk/both updates."
     ]
   },
-  "mandatory": false,
-  "apkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.4.4/studio-3.4.4.apk",
-  "manualApkUrl": "https://studio-30f44.web.app/apk/studio-3.4.4.apk",
-  "fallbackApkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.4.4/studio-3.4.4.apk",
-  "sha256": "",
-  "updateType": "ota",
-  "versionCode": 15,
-  "signatures": "900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206"
+  "mandatory": false
 }
