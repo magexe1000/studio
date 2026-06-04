@@ -172,6 +172,19 @@ export type SyncStatus = {
   shortName?: string;
   displayName?: string;
   technicalName?: string;
+  activeDevicesCount?: number;
+  staleDevicesCount?: number;
+  legacyDevicesCount?: number;
+  groupedDeviceIds?: string;
+  duplicateCandidates?: string;
+  replacementMap?: string;
+  legacyDocumentsDetected?: boolean;
+  deviceIdStorageKey?: string;
+  storedDeviceId?: string;
+  oldLegacyDeviceIdKeysFound?: string;
+  lastLegacyCleanupAttempt?: string;
+  lastLegacyCleanupSuccess?: string;
+  lastLegacyCleanupError?: string;
 };
 
 type Listener = (s: SyncStatus) => void;
@@ -218,6 +231,19 @@ let currentDeviceMatchedInSnapshot = false;
 let otherDevicesCount = 0;
 let hiddenDevicesCount = 0;
 let hiddenDeviceReasons = 'None';
+let activeDevicesCount = 0;
+let staleDevicesCount = 0;
+let legacyDevicesCount = 0;
+let groupedDeviceIds = '';
+let duplicateCandidates = '';
+let replacementMap = '';
+let legacyDocumentsDetected = false;
+let deviceIdStorageKey = 'studioDeviceId';
+let storedDeviceId = 'N/A';
+let oldLegacyDeviceIdKeysFound = '';
+let lastLegacyCleanupAttempt = 'Never';
+let lastLegacyCleanupSuccess = 'Never';
+let lastLegacyCleanupError = 'None';
 
 function notifyDiagnostics() {
   setStatus({}); // Trigger state updates for reactive subscribers
@@ -299,6 +325,28 @@ export function getSyncDiagnostics() {
     shortName: (() => { try { return getDeviceDetails().shortName; } catch(e) { return 'Error'; } })(),
     displayName: (() => { try { return getDeviceDetails().displayName; } catch(e) { return 'Error'; } })(),
     technicalName: (() => { try { return getDeviceDetails().technicalName; } catch(e) { return 'Error'; } })(),
+    activeDevicesCount: activeDevicesCount,
+    staleDevicesCount: staleDevicesCount,
+    legacyDevicesCount: legacyDevicesCount,
+    groupedDeviceIds: groupedDeviceIds,
+    duplicateCandidates: duplicateCandidates,
+    replacementMap: replacementMap,
+    legacyDocumentsDetected: legacyDocumentsDetected,
+    deviceIdStorageKey: deviceIdStorageKey,
+    storedDeviceId: (() => { try { return localStorage.getItem('studioDeviceId') || 'None'; } catch(e) { return 'Error'; } })(),
+    oldLegacyDeviceIdKeysFound: (() => {
+      try {
+        const foundKeys: string[] = [];
+        const legacyKeys = ['chordex_device_id', 'chordexDeviceId', 'appDeviceId'];
+        for (const k of legacyKeys) {
+          if (localStorage.getItem(k)) foundKeys.push(k);
+        }
+        return foundKeys.join(', ') || 'None';
+      } catch(e) { return 'Error'; }
+    })(),
+    lastLegacyCleanupAttempt: lastLegacyCleanupAttempt,
+    lastLegacyCleanupSuccess: lastLegacyCleanupSuccess,
+    lastLegacyCleanupError: lastLegacyCleanupError,
   };
 }
 
@@ -547,6 +595,19 @@ let status: SyncStatus = {
   shortName: '',
   displayName: '',
   technicalName: '',
+  activeDevicesCount: 0,
+  staleDevicesCount: 0,
+  legacyDevicesCount: 0,
+  groupedDeviceIds: '',
+  duplicateCandidates: '',
+  replacementMap: '',
+  legacyDocumentsDetected: false,
+  deviceIdStorageKey: 'studioDeviceId',
+  storedDeviceId: 'N/A',
+  oldLegacyDeviceIdKeysFound: '',
+  lastLegacyCleanupAttempt: 'Never',
+  lastLegacyCleanupSuccess: 'Never',
+  lastLegacyCleanupError: 'None',
 };
 let stageIframe: HTMLIFrameElement | null = null;
 let stageSnapshotResolvers: Array<(s: StagexSnapshot) => void> = [];
@@ -737,15 +798,32 @@ function writeFirstPullDone(uid: string): void {
 
 let cachedDeviceId: string | null = null;
 
-export function deviceId(): string {
-  if (cachedDeviceId) return cachedDeviceId;
+function getOrMigrateDeviceId(): string | null {
   try {
-    const id = localStorage.getItem('studioDeviceId');
-    if (id) {
-      cachedDeviceId = id;
-      return id;
+    let id = localStorage.getItem('studioDeviceId');
+    if (id) return id;
+    
+    // Check legacy storage keys in order of precedence
+    const legacyKeys = ['chordex_device_id', 'chordexDeviceId', 'appDeviceId'];
+    for (const key of legacyKeys) {
+      const value = localStorage.getItem(key);
+      if (value) {
+        localStorage.setItem('studioDeviceId', value);
+        console.info(`[sync] Migrated legacy device ID "${value}" from key "${key}" to "studioDeviceId"`);
+        return value;
+      }
     }
   } catch (e) {}
+  return null;
+}
+
+export function deviceId(): string {
+  if (cachedDeviceId) return cachedDeviceId;
+  const migrated = getOrMigrateDeviceId();
+  if (migrated) {
+    cachedDeviceId = migrated;
+    return migrated;
+  }
 
   const platform = isNative() ? 'android' : 'web';
   const randomUUID = typeof crypto !== 'undefined' && crypto.randomUUID 
@@ -772,13 +850,11 @@ export function deviceId(): string {
 export async function initializeDeviceId(): Promise<string> {
   if (cachedDeviceId) return cachedDeviceId;
   
-  try {
-    const id = localStorage.getItem('studioDeviceId');
-    if (id) {
-      cachedDeviceId = id;
-      return id;
-    }
-  } catch (e) {}
+  const migrated = getOrMigrateDeviceId();
+  if (migrated) {
+    cachedDeviceId = migrated;
+    return migrated;
+  }
 
   if (isNative()) {
     try {
@@ -1111,6 +1187,73 @@ export async function registerCurrentDevice(uid: string | null | undefined, reas
 
     await withTimeout(setDoc(ref, cleanPayload, { merge: true }), 10000, 'device-registration');
 
+    // ── Soft-deactivate stale/legacy duplicate documents ───────────────────────
+    lastLegacyCleanupAttempt = new Date().toLocaleString();
+    try {
+      const colRef = collection(db, 'users', uid, 'devices');
+      const snap = await getDocs(colRef);
+      let deactivatedCount = 0;
+      let matchedCandidates: string[] = [];
+      let replMap: string[] = [];
+
+      for (const dDoc of snap.docs) {
+        if (dDoc.id === id) continue;
+        const dData = dDoc.data();
+        if (dData.revokedAt != null) continue;
+
+        // Determine if this represents a legacy duplicate session of the current device
+        let isMatch = false;
+        const dPlatform = dData.platform || '';
+        const mePlatform = details.platform || '';
+
+        const isAndroidMatch = (dPlatform === 'android' || dPlatform === 'native') && (mePlatform === 'android' || mePlatform === 'native');
+        const isWebMatch = (dPlatform === 'web' && mePlatform === 'web');
+
+        if (isAndroidMatch) {
+          const isSameModel = dData.model && details.model && dData.model.toLowerCase() === details.model.toLowerCase();
+          const isChordexApp = dData.deviceName && dData.deviceName.includes('Chordex');
+          if (isSameModel || isChordexApp || !dData.model) {
+            isMatch = true;
+          }
+        } else if (isWebMatch) {
+          const isSameOsAndBrowser = dData.os === details.os && dData.browser === details.browser;
+          if (isSameOsAndBrowser || !dData.os) {
+            isMatch = true;
+          }
+        }
+
+        if (isMatch) {
+          matchedCandidates.push(dDoc.id);
+          replMap.push(`${dDoc.id}->${id}`);
+
+          if (dData.legacy !== true || dData.currentSession !== false || dData.syncStatus !== 'idle') {
+            const staleRef = doc(db, 'users', uid, 'devices', dDoc.id);
+            await setDoc(staleRef, sanitizeForFirestore({
+              currentSession: false,
+              signedIn: false,
+              syncStatus: 'idle',
+              replacedByDeviceId: id,
+              replacedAt: nowServer,
+              legacy: true,
+              updatedAt: nowServer,
+            }), { merge: true });
+            deactivatedCount++;
+            console.info(`[sync] soft-deactivated legacy duplicate device document: ${dDoc.id}`);
+          }
+        }
+      }
+      
+      staleDevicesCount = deactivatedCount;
+      duplicateCandidates = matchedCandidates.join(', ') || 'None';
+      replacementMap = replMap.join(', ') || 'None';
+      legacyDocumentsDetected = matchedCandidates.length > 0;
+      lastLegacyCleanupSuccess = new Date().toLocaleString();
+      lastLegacyCleanupError = 'None';
+    } catch (cleanErr: any) {
+      console.warn('[sync] failed to run legacy soft-deactivation scan:', cleanErr);
+      lastLegacyCleanupError = cleanErr.message || String(cleanErr);
+    }
+
     if (!hasBeenSeen) {
       try {
         localStorage.setItem(firstSeenKey, 'true');
@@ -1210,6 +1353,10 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
     let hidden = 0;
     const filterReasons: string[] = [];
 
+    let activeCount = 0;
+    let staleCount = 0;
+    let legacyCount = 0;
+
     snap.forEach((doc) => {
       const data = doc.data();
       ids.push(doc.id);
@@ -1232,7 +1379,29 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
         ? lastActiveTimestamp.toMillis() 
         : (typeof lastActiveTimestamp === 'number' 
           ? lastActiveTimestamp 
-          : Date.now());
+          : 0); // Default to 0 for stale records so they do not show active
+
+      const isLegacy = data.legacy === true || 
+                       data.replacedByDeviceId != null || 
+                       !data.appVersion || 
+                       data.appVersion === 'Unknown' || 
+                       (data.name || '').includes('Chordex') || 
+                       (data.deviceName || '').includes('Chordex');
+
+      const isStale = data.currentSession === false || 
+                      data.syncStatus === 'idle' || 
+                      data.syncStatus === 'stale' || 
+                      lastActiveMs === 0 ||
+                      (Date.now() - lastActiveMs > 24 * 60 * 60 * 1000) || 
+                      isLegacy;
+
+      if (isLegacy) {
+        legacyCount++;
+      } else if (isStale) {
+        staleCount++;
+      } else {
+        activeCount++;
+      }
 
       list.push({
         id: doc.id,
@@ -1253,6 +1422,11 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
         os: data.os || '',
         osVersion: data.osVersion || '',
         browser: data.browser || '',
+        isLegacy,
+        isStale,
+        currentSession: data.currentSession !== false,
+        replacedByDeviceId: data.replacedByDeviceId || null,
+        legacy: data.legacy === true,
       });
     });
 
@@ -1269,6 +1443,10 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
     otherDevicesCount = others;
     hiddenDevicesCount = hidden;
     hiddenDeviceReasons = filterReasons.join(', ') || 'None';
+    activeDevicesCount = activeCount;
+    staleDevicesCount = staleCount;
+    legacyDevicesCount = legacyCount;
+    groupedDeviceIds = ids.join(', ') || 'None';
 
     setStatus({
       lastDevicesListenerError: 'None',
@@ -1280,6 +1458,10 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
       otherDevicesCount: others,
       hiddenDevicesCount: hidden,
       hiddenDeviceReasons: hiddenDeviceReasons,
+      activeDevicesCount: activeCount,
+      staleDevicesCount: staleCount,
+      legacyDevicesCount: legacyCount,
+      groupedDeviceIds: groupedDeviceIds,
     });
     callback(list);
   }, (err) => {

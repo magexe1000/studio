@@ -1249,6 +1249,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
   const [toast, setToast] = useState<string | null>(null);
   const [devices, setDevices] = useState<any[]>([]);
   const [showDbDiag, setShowDbDiag] = useState(false);
+  const [showOlderSessions, setShowOlderSessions] = useState(false);
 
   useEffect(() => {
     if (!user || sheet !== 'devices-sessions') {
@@ -2613,90 +2614,184 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '320px', overflowY: 'auto', paddingRight: 4 }}>
-                      {devices.map((device) => {
-                        const isMe = device.id === deviceId();
-                        return (
-                          <div
-                            key={device.id}
-                            style={{
-                              background: 'rgba(128,128,128,0.06)',
-                              borderRadius: 14,
-                              padding: '12px 14px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              border: isMe ? `1px solid color-mix(in srgb, var(--accent-to, #a855f7) 20%, transparent)` : '1px solid transparent',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span className="material-symbols-outlined" style={{ fontSize: 20, color: isMe ? 'var(--accent-to, #a855f7)' : 'var(--c-text-primary)', opacity: isMe ? 1 : 0.7 }}>
-                                {device.platform === 'native' || device.platform === 'android' ? 'smartphone' : 'laptop_mac'}
-                              </span>
-                              <div>
-                                <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)', margin: 0 }}>
-                                  {device.shortName || device.name} {isMe && `(${lang === 'es' ? 'Este dispositivo' : 'This device'})`}
-                                </p>
-                                <p style={{ fontFamily: 'Inter', fontSize: 11, color: isMe ? '#10b981' : 'var(--c-text-muted)', margin: '2px 0 0', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                  <span>
-                                    {!device.signedIn 
-                                      ? (lang === 'es' ? 'Sesión cerrada' : 'Signed out') 
-                                      : isMe 
-                                        ? `● ${lang === 'es' ? 'Sesión activa' : 'Active session'}` 
-                                        : formatLastActive(device.lastActive, lang)}
-                                  </span>
-                                  <span style={{ opacity: 0.5 }}>•</span>
-                                  <span>{lang === 'es' ? 'Versión' : 'Version'}: {device.appVersion}</span>
-                                  {device.buildType === 'Web' || device.platform === 'web' ? (
-                                    <>
-                                      <span style={{ opacity: 0.5 }}>•</span>
-                                      <span>{lang === 'es' ? 'Compilación: Web' : 'Build: Web'}</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      {device.apkVersion && (
-                                        <>
-                                          <span style={{ opacity: 0.5 }}>•</span>
-                                          <span>APK: {device.apkVersion}</span>
-                                        </>
-                                      )}
-                                      <span style={{ opacity: 0.5 }}>•</span>
-                                      <span>{lang === 'es' ? 'Compilación: Versión Nativa' : 'Build: Native Release'}</span>
-                                    </>
-                                  )}
-                                  <span style={{ opacity: 0.5 }}>•</span>
-                                  <span style={{ 
-                                    color: device.syncStatus === 'success' || device.syncStatus === 'idle' ? '#10b981' : device.syncStatus === 'syncing' ? 'var(--accent-to, #a855f7)' : '#ff6b6b',
-                                    fontWeight: 600,
-                                    textTransform: 'capitalize'
-                                  }}>{device.syncStatus}</span>
-                                </p>
+                      {(() => {
+                        const renderDeviceRow = (device: any, isMe: boolean) => {
+                          // Clean device title
+                          let title = device.shortName || device.name;
+                          if (device.isLegacy || device.isStale) {
+                            if (title === 'Unknown Device' || title === 'Chordex App' || title.includes('Chordex')) {
+                              title = device.platform === 'web' 
+                                ? (lang === 'es' ? 'Sesión web anterior' : 'Previous Web session')
+                                : (lang === 'es' ? 'Sesión Android anterior' : 'Previous Android session');
+                            } else {
+                              title = `${lang === 'es' ? 'Sesión anterior' : 'Previous session'} (${title})`;
+                            }
+                          }
+
+                          // Clean metadata line
+                          let statusText = '';
+                          const nowTime = Date.now();
+                          const isRecentlyActive = device.lastActive && (nowTime - device.lastActive < 24 * 60 * 60 * 1000);
+                          const isVeryFresh = device.lastActive && (nowTime - device.lastActive < 2 * 60 * 1000);
+
+                          if (!device.signedIn) {
+                            statusText = lang === 'es' ? 'Sesión cerrada' : 'Signed out';
+                          } else if (isMe) {
+                            statusText = `● ${lang === 'es' ? 'Sesión activa' : 'Active session'}`;
+                          } else if (device.isLegacy || device.replacedByDeviceId != null) {
+                            statusText = lang === 'es' ? 'Sesión anterior' : 'Previous session';
+                          } else if (device.isStale) {
+                            statusText = lang === 'es' ? 'Inactivo' : 'Idle';
+                          } else if (isVeryFresh && device.currentSession && device.syncStatus === 'active') {
+                            statusText = lang === 'es' ? 'Activo ahora' : 'Active';
+                          } else if (isRecentlyActive) {
+                            statusText = formatLastActive(device.lastActive, lang);
+                          } else {
+                            statusText = lang === 'es' ? 'Inactivo' : 'Idle';
+                          }
+
+                          const showVersion = device.appVersion && device.appVersion !== 'Unknown';
+                          const isPlatformWeb = device.platform === 'web' || device.buildType === 'Web';
+                          const showApk = !isPlatformWeb && device.apkVersion && device.apkVersion !== 'Unknown';
+
+                          return (
+                            <div
+                              key={device.id}
+                              style={{
+                                background: 'rgba(128,128,128,0.06)',
+                                borderRadius: 14,
+                                padding: '12px 14px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                border: isMe ? `1px solid color-mix(in srgb, var(--accent-to, #a855f7) 20%, transparent)` : '1px solid transparent',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: 20, color: isMe ? 'var(--accent-to, #a855f7)' : 'var(--c-text-primary)', opacity: isMe ? 1 : 0.7 }}>
+                                  {device.platform === 'native' || device.platform === 'android' ? 'smartphone' : 'laptop_mac'}
+                                </span>
+                                <div>
+                                  <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)', margin: 0 }}>
+                                    {title} {isMe && `(${lang === 'es' ? 'Este dispositivo' : 'This device'})`}
+                                  </p>
+                                  <p style={{ fontFamily: 'Inter', fontSize: 11, color: isMe ? '#10b981' : 'var(--c-text-muted)', margin: '2px 0 0', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <span>
+                                      {statusText}
+                                    </span>
+                                    {showVersion && (
+                                      <>
+                                        <span style={{ opacity: 0.5 }}>•</span>
+                                        <span>{lang === 'es' ? 'Versión' : 'Version'}: {device.appVersion}</span>
+                                      </>
+                                    )}
+                                    {isPlatformWeb ? (
+                                      <>
+                                        <span style={{ opacity: 0.5 }}>•</span>
+                                        <span>{lang === 'es' ? 'Compilación: Web' : 'Build: Web'}</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        {showApk && (
+                                          <>
+                                            <span style={{ opacity: 0.5 }}>•</span>
+                                            <span>APK: {device.apkVersion}</span>
+                                          </>
+                                        )}
+                                        <span style={{ opacity: 0.5 }}>•</span>
+                                        <span>{lang === 'es' ? 'Compilación: Versión Nativa' : 'Build: Native Release'}</span>
+                                      </>
+                                    )}
+                                    <span style={{ opacity: 0.5 }}>•</span>
+                                    <span style={{ 
+                                      color: device.syncStatus === 'success' || device.syncStatus === 'idle' ? '#10b981' : device.syncStatus === 'syncing' ? 'var(--accent-to, #a855f7)' : '#ff6b6b',
+                                      fontWeight: 600,
+                                      textTransform: 'capitalize'
+                                    }}>{device.syncStatus}</span>
+                                  </p>
+                                </div>
                               </div>
+                              {!isMe && (
+                                <button
+                                  onClick={async () => {
+                                    if (confirm(lang === 'es' ? '¿Revocar esta sesión? El dispositivo tendrá que iniciar sesión de nuevo.' : 'Revoke this session? The device will be signed out.')) {
+                                      await revokeDeviceSession(user.uid, device.id);
+                                    }
+                                  }}
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    padding: 6,
+                                    borderRadius: 8,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    color: '#ff6b6b',
+                                  }}
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                                </button>
+                              )}
                             </div>
-                            {!isMe && (
-                              <button
-                                onClick={async () => {
-                                  if (confirm(lang === 'es' ? '¿Revocar esta sesión? El dispositivo tendrá que iniciar sesión de nuevo.' : 'Revoke this session? The device will be signed out.')) {
-                                    await revokeDeviceSession(user.uid, device.id);
-                                  }
-                                }}
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  padding: 6,
-                                  borderRadius: 8,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  color: '#ff6b6b',
-                                }}
-                              >
-                                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
-                              </button>
+                          );
+                        };
+
+                        const thisDevice = devices.filter(d => d.id === deviceId());
+                        const otherActiveDevices = devices.filter(d => d.id !== deviceId() && !d.isLegacy && !d.isStale);
+                        const olderSessions = devices.filter(d => d.id !== deviceId() && (d.isLegacy || d.isStale));
+
+                        return (
+                          <>
+                            {/* 1. This Device */}
+                            {thisDevice.map((d) => renderDeviceRow(d, true))}
+
+                            {/* 2. Other Active Devices */}
+                            {otherActiveDevices.length > 0 && (
+                              <>
+                                <p style={{ margin: '12px 0 6px', fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', color: 'var(--c-text-secondary)', letterSpacing: '0.05em', fontFamily: 'Manrope' }}>
+                                  {lang === 'es' ? 'Otros dispositivos activos' : 'Other active devices'}
+                                </p>
+                                {otherActiveDevices.map((d) => renderDeviceRow(d, false))}
+                              </>
                             )}
-                          </div>
+
+                            {/* 3. Older / Previous Sessions */}
+                            {olderSessions.length > 0 && (
+                              <div style={{ marginTop: 12 }}>
+                                <button
+                                  onClick={() => setShowOlderSessions(!showOlderSessions)}
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--c-text-secondary)',
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    fontFamily: 'Manrope',
+                                    cursor: 'pointer',
+                                    padding: '4px 0',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                  }}
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                                    {showOlderSessions ? 'expand_less' : 'expand_more'}
+                                  </span>
+                                  {lang === 'es' 
+                                    ? `Sesiones anteriores (${olderSessions.length})` 
+                                    : `Previous sessions (${olderSessions.length})`}
+                                </button>
+                                {showOlderSessions && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+                                    {olderSessions.map((d) => renderDeviceRow(d, false))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
                         );
-                      })}
+                      })()}
                     </div>
                   )}
 
@@ -2822,6 +2917,45 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Last registration reason:</strong> <code>{sync.lastDeviceRegistrationReason || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Active devices count:</strong> <code>{sync.activeDevicesCount ?? 0}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Stale devices count:</strong> <code>{sync.staleDevicesCount ?? 0}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Legacy devices count:</strong> <code>{sync.legacyDevicesCount ?? 0}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Grouped device IDs:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.groupedDeviceIds || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Duplicate candidates:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.duplicateCandidates || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Replacement map:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.replacementMap || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Legacy documents detected:</strong> <code>{sync.legacyDocumentsDetected ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Device ID storage key:</strong> <code>{sync.deviceIdStorageKey || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Stored deviceId:</strong> <code>{sync.storedDeviceId || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Old legacy keys found:</strong> <code>{sync.oldLegacyDeviceIdKeysFound || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last legacy cleanup attempt:</strong> <code>{sync.lastLegacyCleanupAttempt || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last legacy cleanup success:</strong> <code>{sync.lastLegacyCleanupSuccess || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last legacy cleanup error:</strong> <code>{sync.lastLegacyCleanupError || 'None'}</code>
                         </p>
                         
                         <button

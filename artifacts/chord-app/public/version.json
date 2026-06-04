@@ -1,18 +1,18 @@
 {
-  "version": "3.6.6",
-  "changelog": "• Fixed Web/laptop devices not appearing in Devices & Sessions after Android registration was restored.\n• Fixed Web device registration being skipped or not reflected across devices.\n• Fixed Devices & Sessions rendering only the current device when multiple Firestore device documents exist.\n• Fixed overly technical device names appearing in session cards.\n• Improved Android and Web session visibility from users/{uid}/devices.\n• Improved Web device metadata handling for APK/OTA N/A cases.\n• Improved device display names for cleaner session cards.\n• Improved diagnostics for device IDs received, devices rendered, filtered devices, and raw technical metadata.",
+  "version": "3.6.7",
+  "changelog": "• Fixed duplicate and stale device records appearing as active sessions in Devices & Sessions.\n• Fixed legacy Android and Web session documents being shown as current devices.\n• Fixed confusing session status combinations such as \"Active just now\" with \"Idle.\"\n• Fixed unknown version values appearing in main device cards.\n• Improved Devices & Sessions grouping for current device, other devices, and previous sessions.\n• Improved device name normalization for Android and Web.\n• Improved diagnostics for duplicate, stale, legacy, and replaced device records.\n• Improved handling of older device documents created by previous Studio versions.",
   "releaseNotes": {
     "improved": [
-      "Improved Android and Web session visibility from users/{uid}/devices.",
-      "Improved Web device metadata handling for APK/OTA N/A cases.",
-      "Improved device display names for cleaner session cards.",
-      "Improved diagnostics for device IDs received, devices rendered, filtered devices, and raw technical metadata."
+      "Improved Devices & Sessions grouping for current device, other devices, and previous sessions.",
+      "Improved device name normalization for Android and Web.",
+      "Improved diagnostics for duplicate, stale, legacy, and replaced device records.",
+      "Improved handling of older device documents created by previous Studio versions."
     ],
     "fixed": [
-      "Fixed Web/laptop devices not appearing in Devices & Sessions after Android registration was restored.",
-      "Fixed Web device registration being skipped or not reflected across devices.",
-      "Fixed Devices & Sessions rendering only the current device when multiple Firestore device documents exist.",
-      "Fixed overly technical device names appearing in session cards."
+      "Fixed duplicate and stale device records appearing as active sessions in Devices & Sessions.",
+      "Fixed legacy Android and Web session documents being shown as current devices.",
+      "Fixed confusing session status combinations such as \"Active just now\" with \"Idle.\"",
+      "Fixed unknown version values appearing in main device cards."
     ]
   },
   "mandatory": false
