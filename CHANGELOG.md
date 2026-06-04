@@ -15,6 +15,15 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.4.3
+
+### Added
+- Added automated validation for changelog structure and release note placeholders.
+- Added structured releaseNotes field support to update manifests.
+
+### Improved
+- Improved updater UI to dynamically categorize and render release notes.
+
 ## 3.4.2
 
 ### Removed

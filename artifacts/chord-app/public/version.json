@@ -1,6 +1,6 @@
 {
-  "version": "3.4.2",
-  "changelog": "• Removed Push Notifications support and related settings for now.\n• Removed inactive push notification messaging from the update experience.\n• Revamped Developer Options with clearer sections and diagnostics.\n• Improved Developer Options actions, statuses, confirmations, and feedback.\n• Improved return-to-Hub transition to avoid black screen frames.\n• Added a smoother app-to-Hub exit animation.\n• Fixed Developer Options buttons that had incomplete or unclear behavior.\n• Fixed return-to-Hub visual transition showing a black screen before the Hub appears.\n• Fixed app shell visual reset during app exit.",
+  "version": "3.4.3",
+  "changelog": "• Added automated validation for changelog structure and release note placeholders.\n• Added structured releaseNotes field support to update manifests.\n• Improved updater UI to dynamically categorize and render release notes.",
   "releaseNotes": {
     "improved": [
       "Revamped Developer Options with clearer sections and diagnostics.",
@@ -14,5 +14,10 @@
       "Fixed app shell visual reset during app exit."
     ]
   },
-  "mandatory": false
+  "mandatory": false,
+  "apkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.4.3/studio-3.4.3.apk",
+  "manualApkUrl": "https://studio-30f44.web.app/apk/studio-3.4.3.apk",
+  "fallbackApkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.4.3/studio-3.4.3.apk",
+  "sha256": "",
+  "updateType": "ota"
 }

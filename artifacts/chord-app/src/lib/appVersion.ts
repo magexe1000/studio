@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.4.2'; // Developer Options revamp and push notifications removal
+export const APP_VERSION = '3.4.3'; // Release notes enforcement and metadata automation
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.4.2
+export const APP_VERSION_DATE = '2026-06-04'; // 3.4.3
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,20 +53,16 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Improved",
+    heading: "Added",
     items: [
-      "Revamped Developer Options with clearer sections and diagnostics.",
-      "Improved Developer Options actions, statuses, confirmations, and feedback.",
-      "Improved return-to-Hub transition to avoid black screen frames.",
-      "Added a smoother app-to-Hub exit animation.",
+      "Added automated validation for changelog structure and release note placeholders.",
+      "Added structured releaseNotes field support to update manifests.",
     ],
   },
   {
-    heading: "Fixed",
+    heading: "Improved",
     items: [
-      "Fixed Developer Options buttons that had incomplete or unclear behavior.",
-      "Fixed return-to-Hub visual transition showing a black screen before the Hub appears.",
-      "Fixed app shell visual reset during app exit.",
+      "Improved updater UI to dynamically categorize and render release notes.",
     ],
   },
 ];
