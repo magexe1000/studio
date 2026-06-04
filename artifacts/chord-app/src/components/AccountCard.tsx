@@ -1252,6 +1252,12 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
   const [showDbDiag, setShowDbDiag] = useState(false);
   const [showOlderSessions, setShowOlderSessions] = useState(false);
 
+  const codeBreakStyle = {
+    wordBreak: 'break-word',
+    overflowWrap: 'anywhere',
+    whiteSpace: 'pre-wrap',
+  } as const;
+
   useEffect(() => {
     if (!user || sheet !== 'devices-sessions') {
       setDevices([]);
@@ -2570,10 +2576,10 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'devices-sessions' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div className="profile-panel-sheet" style={sheetStyle}>
+          <div className="profile-panel-sheet" style={{ ...sheetStyle, maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - 24px)', display: 'flex', flexDirection: 'column' }}>
             {dragPill}
             <SheetHeader title={lang === 'es' ? 'Dispositivos y sesiones' : 'Devices & Sessions'} onClose={closeSheet} />
-            <div style={{ padding: '8px 22px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ padding: '8px 22px 28px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', WebkitOverflowScrolling: 'touch', flex: 1 }} className="no-scrollbar">
               {!user ? (
                 <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', margin: 0, textAlign: 'center', padding: '20px 0' }}>
                   {lang === 'es' ? 'Inicia sesión para gestionar tus dispositivos.' : 'Sign in to manage your devices.'}
@@ -2614,7 +2620,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                       </p>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '320px', overflowY: 'auto', paddingRight: 4 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {(() => {
                         const DeviceRow = ({ device, isMe }: { device: any; isMe: boolean }) => {
                           const [showDetails, setShowDetails] = useState(false);
@@ -2890,228 +2896,292 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           fontWeight: 700,
                           color: 'var(--accent-to, #a855f7)',
                           fontFamily: 'Manrope',
-                          wordBreak: 'break-all'
+                          ...codeBreakStyle
                         }}>
                           <strong>Build Fingerprint:</strong> {`${APP_VERSION} · code 34 · commit ${APP_COMMIT_SHA} · built ${APP_BUILD_TIMESTAMP} · production · Firebase Hosting · sync-engine-v1`}
                         </div>
+
+                        <button
+                          onClick={() => {
+                            const diagnosticsReport = {
+                              appVersion: APP_VERSION,
+                              versionCode: 34,
+                              commitSha: APP_COMMIT_SHA,
+                              buildTimestamp: APP_BUILD_TIMESTAMP,
+                              buildType: Capacitor.isNativePlatform() ? 'Native Release' : 'Web',
+                              firebaseProjectId: sync.firebaseProjectId || 'Not Configured',
+                              firebaseAppId: sync.firebaseAppId || 'Not Configured',
+                              authUid: user?.uid || 'Not signed in',
+                              email: user?.email || 'N/A',
+                              currentDeviceId: deviceId(),
+                              currentPlatform: sync.currentDevicePlatform || 'web',
+                              syncEngineVersion: 'sync-engine-v1',
+                              devicesLogicVersion: sync.devicesLogicVersion || 'N/A',
+                              probeWritePath: sync.probeWritePath || 'N/A',
+                              probeListenerPath: sync.probeListenerPath || 'N/A',
+                              lastProbeWriteAttempt: sync.lastProbeWriteAttempt || 'Never',
+                              lastProbeWriteSuccess: sync.lastProbeWriteSuccess || 'Never',
+                              lastProbeWriteError: sync.lastProbeWriteError || 'None',
+                              probeDocumentsReceived: sync.probeDocumentsReceived ?? 0,
+                              probeDeviceIdsReceived: sync.probeDeviceIdsReceived || [],
+                              probeNoncesReceived: sync.probeNoncesReceived || [],
+                              androidProbeDetected: sync.androidProbeDetected ? 'Yes' : 'No',
+                              webProbeDetected: sync.webProbeDetected ? 'Yes' : 'No',
+                              sameUidConfirmed: sync.sameUidConfirmed ? 'Yes' : 'No',
+                              sameProjectConfirmed: sync.sameProjectConfirmed ? 'Yes' : 'No',
+                              devicesListenerPath: sync.listenerPath || `users/${user?.uid}/devices`,
+                              devicesReceived: sync.devicesSnapshotCount ?? 0,
+                              deviceIdsReceived: sync.deviceIdsReceived || [],
+                              renderedDevices: sync.devicesRenderedCount ?? 0,
+                              lastDeviceWriteSuccess: sync.lastDeviceWriteSuccess || 'Never',
+                              lastDeviceWriteError: sync.lastDeviceWriteError || 'None',
+                              lastHeartbeatSuccess: sync.lastHeartbeatSuccess || 'Never',
+                              lastHeartbeatError: sync.lastHeartbeatError || 'None'
+                            };
+
+                            navigator.clipboard.writeText(JSON.stringify(diagnosticsReport, null, 2))
+                              .then(() => showToast(lang === 'es' ? '¡Diagnósticos copiados!' : 'Diagnostics copied!'))
+                              .catch((err) => showToast(`Copy error: ${err.message || String(err)}`));
+                          }}
+                          style={{
+                            marginBottom: 8,
+                            padding: '8px 12px',
+                            borderRadius: 8,
+                            background: 'rgba(128, 128, 128, 0.08)',
+                            color: 'var(--c-text-primary)',
+                            border: '1px solid rgba(128, 128, 128, 0.15)',
+                            fontWeight: 700,
+                            fontFamily: 'Manrope',
+                            fontSize: 11,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span>
+                          {lang === 'es' ? 'Copiar diagnósticos de sync' : 'Copy Sync Diagnostics'}
+                        </button>
+
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Auth UID:</strong> <code style={{ wordBreak: 'break-all' }}>{user.uid}</code>
+                          <strong>Auth UID:</strong> <code style={codeBreakStyle}>{user.uid}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Firebase Project ID:</strong> <code>{sync.firebaseProjectId || 'Not Configured'}</code>
+                          <strong>Firebase Project ID:</strong> <code style={codeBreakStyle}>{sync.firebaseProjectId || 'Not Configured'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Firebase App ID:</strong> <code>{sync.firebaseAppId || 'Not Configured'}</code>
+                          <strong>Firebase App ID:</strong> <code style={codeBreakStyle}>{sync.firebaseAppId || 'Not Configured'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Auth Domain:</strong> <code>{sync.firebaseAuthDomain || 'Not Configured'}</code>
+                          <strong>Auth Domain:</strong> <code style={codeBreakStyle}>{sync.firebaseAuthDomain || 'Not Configured'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Storage Bucket:</strong> <code>{sync.firebaseStorageBucket || 'Not Configured'}</code>
+                          <strong>Storage Bucket:</strong> <code style={codeBreakStyle}>{sync.firebaseStorageBucket || 'Not Configured'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Current deviceId:</strong> <code>{deviceId()}</code>
+                          <strong>Current deviceId:</strong> <code style={codeBreakStyle}>{deviceId()}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Current platform:</strong> <code>{sync.currentDevicePlatform || 'web'}</code>
+                          <strong>Current platform:</strong> <code style={codeBreakStyle}>{sync.currentDevicePlatform || 'web'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Device shortName:</strong> <code>{sync.shortName || 'N/A'}</code>
+                          <strong>Device shortName:</strong> <code style={codeBreakStyle}>{sync.shortName || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Device displayName:</strong> <code>{sync.displayName || 'N/A'}</code>
+                          <strong>Device displayName:</strong> <code style={codeBreakStyle}>{sync.displayName || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Device technicalName:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.technicalName || 'N/A'}</code>
+                          <strong>Device technicalName:</strong> <code style={codeBreakStyle}>{sync.technicalName || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Device write path:</strong> <code style={{ wordBreak: 'break-all' }}>users/{user.uid}/devices/{deviceId()}</code>
+                          <strong>Device write path:</strong> <code style={codeBreakStyle}>users/{user.uid}/devices/{deviceId()}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Device listener path:</strong> <code style={{ wordBreak: 'break-all' }}>users/{user.uid}/devices</code>
+                          <strong>Device listener path:</strong> <code style={codeBreakStyle}>users/{user.uid}/devices</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Firestore state:</strong> <code>{window.navigator.onLine ? 'Online' : 'Offline'}</code>
+                          <strong>Firestore state:</strong> <code style={codeBreakStyle}>{window.navigator.onLine ? 'Online' : 'Offline'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Registration status:</strong> <code style={{ textTransform: 'capitalize', color: sync.deviceRegistrationStatus === 'registered' ? '#10b981' : sync.deviceRegistrationStatus === 'failed' ? '#ef4444' : '#f59e0b' }}>{sync.deviceRegistrationStatus || 'pending'}</code>
+                          <strong>Registration status:</strong> <code style={{ ...codeBreakStyle, textTransform: 'capitalize', color: sync.deviceRegistrationStatus === 'registered' ? '#10b981' : sync.deviceRegistrationStatus === 'failed' ? '#ef4444' : '#f59e0b' }}>{sync.deviceRegistrationStatus || 'pending'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last write attempted:</strong> <code>{sync.lastDeviceWriteAttemptedAt || 'Never'}</code>
+                          <strong>Last write attempted:</strong> <code style={codeBreakStyle}>{sync.lastDeviceWriteAttemptedAt || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last write success:</strong> <code>{sync.lastDeviceWriteSuccess || 'Never'}</code>
+                          <strong>Last write success:</strong> <code style={codeBreakStyle}>{sync.lastDeviceWriteSuccess || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last write error:</strong> <code style={{ color: sync.lastDeviceWriteError && sync.lastDeviceWriteError !== 'None' ? '#ef4444' : 'inherit', wordBreak: 'break-all' }}>{sync.lastDeviceWriteError || 'None'}</code>
+                          <strong>Last write error:</strong> <code style={{ ...codeBreakStyle, color: sync.lastDeviceWriteError && sync.lastDeviceWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastDeviceWriteError || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last write duration ms:</strong> <code>{sync.lastDeviceWriteDurationMs != null ? `${sync.lastDeviceWriteDurationMs}` : 'N/A'}</code>
+                          <strong>Last write duration ms:</strong> <code style={codeBreakStyle}>{sync.lastDeviceWriteDurationMs != null ? `${sync.lastDeviceWriteDurationMs}` : 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last snapshot received:</strong> <code>{sync.lastDeviceSnapshotAt || 'Never'}</code>
+                          <strong>Last snapshot received:</strong> <code style={codeBreakStyle}>{sync.lastDeviceSnapshotAt || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Documents received:</strong> <code>{sync.devicesSnapshotCount ?? 0}</code>
+                          <strong>Documents received:</strong> <code style={codeBreakStyle}>{sync.devicesSnapshotCount ?? 0}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Device IDs received:</strong> <code style={{ wordBreak: 'break-all' }}>{(sync.deviceIdsReceived && sync.deviceIdsReceived.length > 0) ? sync.deviceIdsReceived.join(', ') : 'None'}</code>
+                          <strong>Device IDs received:</strong> <code style={codeBreakStyle}>{(sync.deviceIdsReceived && sync.deviceIdsReceived.length > 0) ? sync.deviceIdsReceived.join(', ') : 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Devices rendered count:</strong> <code>{sync.devicesRenderedCount ?? 0}</code>
+                          <strong>Devices rendered count:</strong> <code style={codeBreakStyle}>{sync.devicesRenderedCount ?? 0}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Current device matched in snapshot:</strong> <code>{sync.currentDeviceMatchedInSnapshot ? 'Yes' : 'No'}</code>
+                          <strong>Current device matched in snapshot:</strong> <code style={codeBreakStyle}>{sync.currentDeviceMatchedInSnapshot ? 'Yes' : 'No'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Other devices count:</strong> <code>{sync.otherDevicesCount ?? 0}</code>
+                          <strong>Other devices count:</strong> <code style={codeBreakStyle}>{sync.otherDevicesCount ?? 0}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Hidden/filtered devices count:</strong> <code>{sync.hiddenDevicesCount ?? 0}</code>
+                          <strong>Hidden/filtered devices count:</strong> <code style={codeBreakStyle}>{sync.hiddenDevicesCount ?? 0}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Hidden/filtered device reasons:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.hiddenDeviceReasons || 'None'}</code>
+                          <strong>Hidden/filtered device reasons:</strong> <code style={codeBreakStyle}>{sync.hiddenDeviceReasons || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Manual register button state:</strong> <code>{busy ? 'Busy' : 'Idle'}</code>
+                          <strong>Manual register button state:</strong> <code style={codeBreakStyle}>{busy ? 'Busy' : 'Idle'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>In-flight write status:</strong> <code>{sync.inFlightWriteStatus ? 'Writing...' : 'Idle'}</code>
+                          <strong>In-flight write status:</strong> <code style={codeBreakStyle}>{sync.inFlightWriteStatus ? 'Writing...' : 'Idle'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last registration reason:</strong> <code>{sync.lastDeviceRegistrationReason || 'None'}</code>
+                          <strong>Last registration reason:</strong> <code style={codeBreakStyle}>{sync.lastDeviceRegistrationReason || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Active devices count:</strong> <code>{sync.activeDevicesCount ?? 0}</code>
+                          <strong>Active devices count:</strong> <code style={codeBreakStyle}>{sync.activeDevicesCount ?? 0}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Stale devices count:</strong> <code>{sync.staleDevicesCount ?? 0}</code>
+                          <strong>Stale devices count:</strong> <code style={codeBreakStyle}>{sync.staleDevicesCount ?? 0}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Legacy devices count:</strong> <code>{sync.legacyDevicesCount ?? 0}</code>
+                          <strong>Legacy devices count:</strong> <code style={codeBreakStyle}>{sync.legacyDevicesCount ?? 0}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Grouped device IDs:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.groupedDeviceIds || 'None'}</code>
+                          <strong>Grouped device IDs:</strong> <code style={codeBreakStyle}>{sync.groupedDeviceIds || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Duplicate candidates:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.duplicateCandidates || 'None'}</code>
+                          <strong>Duplicate candidates:</strong> <code style={codeBreakStyle}>{sync.duplicateCandidates || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Replacement map:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.replacementMap || 'None'}</code>
+                          <strong>Replacement map:</strong> <code style={codeBreakStyle}>{sync.replacementMap || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Legacy documents detected:</strong> <code>{sync.legacyDocumentsDetected ? 'Yes' : 'No'}</code>
+                          <strong>Legacy documents detected:</strong> <code style={codeBreakStyle}>{sync.legacyDocumentsDetected ? 'Yes' : 'No'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Device ID storage key:</strong> <code>{sync.deviceIdStorageKey || 'N/A'}</code>
+                          <strong>Device ID storage key:</strong> <code style={codeBreakStyle}>{sync.deviceIdStorageKey || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Stored deviceId:</strong> <code>{sync.storedDeviceId || 'N/A'}</code>
+                          <strong>Stored deviceId:</strong> <code style={codeBreakStyle}>{sync.storedDeviceId || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Old legacy keys found:</strong> <code>{sync.oldLegacyDeviceIdKeysFound || 'None'}</code>
+                          <strong>Old legacy keys found:</strong> <code style={codeBreakStyle}>{sync.oldLegacyDeviceIdKeysFound || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last legacy cleanup attempt:</strong> <code>{sync.lastLegacyCleanupAttempt || 'Never'}</code>
+                          <strong>Last legacy cleanup attempt:</strong> <code style={codeBreakStyle}>{sync.lastLegacyCleanupAttempt || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last legacy cleanup success:</strong> <code>{sync.lastLegacyCleanupSuccess || 'Never'}</code>
+                          <strong>Last legacy cleanup success:</strong> <code style={codeBreakStyle}>{sync.lastLegacyCleanupSuccess || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last legacy cleanup error:</strong> <code>{sync.lastLegacyCleanupError || 'None'}</code>
+                          <strong>Last legacy cleanup error:</strong> <code style={codeBreakStyle}>{sync.lastLegacyCleanupError || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Auth ready:</strong> <code>{sync.authReady ? 'Yes' : 'No'}</code>
+                          <strong>Auth ready:</strong> <code style={codeBreakStyle}>{sync.authReady ? 'Yes' : 'No'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Devices logic version:</strong> <code>{sync.devicesLogicVersion || 'N/A'}</code>
+                          <strong>Devices logic version:</strong> <code style={codeBreakStyle}>{sync.devicesLogicVersion || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last heartbeat success:</strong> <code>{sync.lastHeartbeatSuccess || 'Never'}</code>
+                          <strong>Last heartbeat success:</strong> <code style={codeBreakStyle}>{sync.lastHeartbeatSuccess || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last heartbeat error:</strong> <code style={{ color: sync.lastHeartbeatError && sync.lastHeartbeatError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastHeartbeatError || 'None'}</code>
+                          <strong>Last heartbeat error:</strong> <code style={{ ...codeBreakStyle, color: sync.lastHeartbeatError && sync.lastHeartbeatError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastHeartbeatError || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Profile listener status:</strong> <code style={{ textTransform: 'capitalize' }}>{sync.profileListenerStatus || 'inactive'}</code>
+                          <strong>Profile listener status:</strong> <code style={{ ...codeBreakStyle, textTransform: 'capitalize' }}>{sync.profileListenerStatus || 'inactive'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Appearance listener status:</strong> <code style={{ textTransform: 'capitalize' }}>{sync.appearanceListenerStatus || 'inactive'}</code>
+                          <strong>Appearance listener status:</strong> <code style={{ ...codeBreakStyle, textTransform: 'capitalize' }}>{sync.appearanceListenerStatus || 'inactive'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Preferences listener status:</strong> <code style={{ textTransform: 'capitalize' }}>{sync.preferencesListenerStatus || 'inactive'}</code>
+                          <strong>Preferences listener status:</strong> <code style={{ ...codeBreakStyle, textTransform: 'capitalize' }}>{sync.preferencesListenerStatus || 'inactive'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last profile write success:</strong> <code>{sync.lastProfileWriteSuccess || 'Never'}</code>
+                          <strong>Last profile write success:</strong> <code style={codeBreakStyle}>{sync.lastProfileWriteSuccess || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last profile write error:</strong> <code style={{ color: sync.lastProfileWriteError && sync.lastProfileWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastProfileWriteError || 'None'}</code>
+                          <strong>Last profile write error:</strong> <code style={{ ...codeBreakStyle, color: sync.lastProfileWriteError && sync.lastProfileWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastProfileWriteError || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last appearance write success:</strong> <code>{sync.lastAppearanceWriteSuccess || 'Never'}</code>
+                          <strong>Last appearance write success:</strong> <code style={codeBreakStyle}>{sync.lastAppearanceWriteSuccess || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last appearance write error:</strong> <code style={{ color: sync.lastAppearanceWriteError && sync.lastAppearanceWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastAppearanceWriteError || 'None'}</code>
+                          <strong>Last appearance write error:</strong> <code style={{ ...codeBreakStyle, color: sync.lastAppearanceWriteError && sync.lastAppearanceWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastAppearanceWriteError || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last preferences write success:</strong> <code>{sync.lastPreferencesWriteSuccess || 'Never'}</code>
+                          <strong>Last preferences write success:</strong> <code style={codeBreakStyle}>{sync.lastPreferencesWriteSuccess || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last preferences write error:</strong> <code style={{ color: sync.lastPreferencesWriteError && sync.lastPreferencesWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastPreferencesWriteError || 'None'}</code>
+                          <strong>Last preferences write error:</strong> <code style={{ ...codeBreakStyle, color: sync.lastPreferencesWriteError && sync.lastPreferencesWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastPreferencesWriteError || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last photo upload error:</strong> <code style={{ color: sync.lastPhotoUploadError && sync.lastPhotoUploadError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastPhotoUploadError || 'None'}</code>
+                          <strong>Last photo upload error:</strong> <code style={{ ...codeBreakStyle, color: sync.lastPhotoUploadError && sync.lastPhotoUploadError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastPhotoUploadError || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Cloud Theme:</strong> <code>{sync.cloudTheme || 'N/A'}</code>
+                          <strong>Cloud Theme:</strong> <code style={codeBreakStyle}>{sync.cloudTheme || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Cloud Accent Color:</strong> <code>{sync.cloudAccentColor || 'N/A'}</code>
+                          <strong>Cloud Accent Color:</strong> <code style={codeBreakStyle}>{sync.cloudAccentColor || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Cloud Display Name:</strong> <code>{sync.cloudDisplayName || 'N/A'}</code>
+                          <strong>Cloud Display Name:</strong> <code style={codeBreakStyle}>{sync.cloudDisplayName || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Cloud Photo URL:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.cloudPhotoURL || 'N/A'}</code>
+                          <strong>Cloud Photo URL:</strong> <code style={codeBreakStyle}>{sync.cloudPhotoURL || 'N/A'}</code>
                         </p>
 
                         <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
                         <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Cloud Sync Probe</div>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Probe write path:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.probeWritePath || 'N/A'}</code>
+                          <strong>Probe write path:</strong> <code style={codeBreakStyle}>{sync.probeWritePath || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Probe listener path:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.probeListenerPath || 'N/A'}</code>
+                          <strong>Probe listener path:</strong> <code style={codeBreakStyle}>{sync.probeListenerPath || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last probe write attempt:</strong> <code>{sync.lastProbeWriteAttempt || 'Never'}</code>
+                          <strong>Last probe write attempt:</strong> <code style={codeBreakStyle}>{sync.lastProbeWriteAttempt || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last probe write success:</strong> <code>{sync.lastProbeWriteSuccess || 'Never'}</code>
+                          <strong>Last probe write success:</strong> <code style={codeBreakStyle}>{sync.lastProbeWriteSuccess || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last probe write error:</strong> <code style={{ color: sync.lastProbeWriteError && sync.lastProbeWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastProbeWriteError || 'None'}</code>
+                          <strong>Last probe write error:</strong> <code style={{ ...codeBreakStyle, color: sync.lastProbeWriteError && sync.lastProbeWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastProbeWriteError || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Probe documents received:</strong> <code>{sync.probeDocumentsReceived ?? 0}</code>
+                          <strong>Probe documents received:</strong> <code style={codeBreakStyle}>{sync.probeDocumentsReceived ?? 0}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Probe deviceIds received:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.probeDeviceIdsReceived?.join(', ') || 'None'}</code>
+                          <strong>Probe deviceIds received:</strong> <code style={codeBreakStyle}>{sync.probeDeviceIdsReceived?.join(', ') || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Probe nonces received:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.probeNoncesReceived?.join(', ') || 'None'}</code>
+                          <strong>Probe nonces received:</strong> <code style={codeBreakStyle}>{sync.probeNoncesReceived?.join(', ') || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Android probe detected:</strong> <code>{sync.androidProbeDetected ? 'Yes' : 'No'}</code>
+                          <strong>Android probe detected:</strong> <code style={codeBreakStyle}>{sync.androidProbeDetected ? 'Yes' : 'No'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Web probe detected:</strong> <code>{sync.webProbeDetected ? 'Yes' : 'No'}</code>
+                          <strong>Web probe detected:</strong> <code style={codeBreakStyle}>{sync.webProbeDetected ? 'Yes' : 'No'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Same Auth UID confirmed:</strong> <code style={{ color: sync.sameUidConfirmed ? '#10b981' : '#f59e0b' }}>{sync.sameUidConfirmed ? 'Confirmed' : 'Unconfirmed'}</code>
+                          <strong>Same Auth UID confirmed:</strong> <code style={{ ...codeBreakStyle, color: sync.sameUidConfirmed ? '#10b981' : '#f59e0b' }}>{sync.sameUidConfirmed ? 'Confirmed' : 'Unconfirmed'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Same Firebase project confirmed:</strong> <code style={{ color: sync.sameProjectConfirmed ? '#10b981' : '#f59e0b' }}>{sync.sameProjectConfirmed ? 'Confirmed' : 'Unconfirmed'}</code>
+                          <strong>Same Firebase project confirmed:</strong> <code style={{ ...codeBreakStyle, color: sync.sameProjectConfirmed ? '#10b981' : '#f59e0b' }}>{sync.sameProjectConfirmed ? 'Confirmed' : 'Unconfirmed'}</code>
                         </p>
                         {sync.probeDocs && sync.probeDocs.length > 0 && (
                           <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>

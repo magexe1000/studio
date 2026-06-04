@@ -1,11 +1,10 @@
 ### Fixed
-- Fixed unreliable Android and Web Cloud Sync connection.
-- Fixed Devices & Sessions not proving whether devices were actually connected.
-- Fixed current device being incorrectly classified as a previous session.
-- Fixed profile, theme, accent, and photo sync relying on inconsistent local/cloud state.
+- Fixed Cloud Sync Probe failing on Android because Firestore rejected undefined userAgent values.
+- Fixed Firestore sync writes to sanitize undefined fields before setDoc.
+- Fixed Sync Diagnostics overflow on mobile by making the diagnostics section scrollable.
+- Fixed Cloud Sync validation so probe errors show real Firestore failures.
 
 ### Improved
-- Added a real Firebase-backed Sync Engine unifying all Firestore and Storage actions.
-- Added stable device identity, heartbeat presence, and deterministic session classification.
-- Added clearer sync diagnostics for Auth UID, Firebase project, listeners, writes, cache state, and probe results.
-- Improved Firestore source-of-truth handling for profile and settings.
+- Improved Android and Web sync diagnostics with copyable runtime reports.
+- Improved Firestore payload sanitization across probe, devices, profile, and settings writes.
+- Improved mobile usability for long diagnostics, paths, errors, and device metadata.

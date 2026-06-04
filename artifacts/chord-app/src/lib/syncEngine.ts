@@ -349,20 +349,56 @@ export function getDeviceDetails() {
 
 // Helper to sanitize payload for firestore
 export function sanitizeForFirestore(val: any): any {
-  if (val === undefined) return null;
-  if (val === null) return null;
-  if (Array.isArray(val)) return val.map(sanitizeForFirestore);
-  if (typeof val === 'object') {
-    const res: any = {};
-    for (const key in val) {
-      if (Object.prototype.hasOwnProperty.call(val, key)) {
-        res[key] = sanitizeForFirestore(val[key]);
+  if (val === undefined) {
+    return null;
+  }
+  if (val === null) {
+    return null;
+  }
+  if (typeof val !== 'object') {
+    return val;
+  }
+  if (val instanceof Date) {
+    return val;
+  }
+  if (typeof Blob !== 'undefined' && val instanceof Blob) {
+    return val;
+  }
+  if (typeof File !== 'undefined' && val instanceof File) {
+    return val;
+  }
+  // Firestore Timestamp
+  if (typeof val.toMillis === 'function' && 'seconds' in val && 'nanoseconds' in val) {
+    return val;
+  }
+  // Firestore FieldValue
+  if (val.constructor && (
+    val.constructor.name === 'FieldValue' || 
+    val.constructor.name === 'DeleteFieldValue' || 
+    val.constructor.name === 'ServerTimestampFieldValue' || 
+    typeof val.isEqual === 'function' ||
+    val._methodName !== undefined
+  )) {
+    return val;
+  }
+  if (Array.isArray(val)) {
+    // Convert undefined array entries to null
+    return val.map(item => item === undefined ? null : sanitizeForFirestore(item));
+  }
+  
+  // Plain object: remove undefined fields from objects
+  const res: any = {};
+  for (const key in val) {
+    if (Object.prototype.hasOwnProperty.call(val, key)) {
+      const v = val[key];
+      if (v !== undefined) {
+        res[key] = sanitizeForFirestore(v);
       }
     }
-    return res;
   }
-  return val;
+  return res;
 }
+
 
 // ── Session Classification ──
 export function classifyDeviceSession(data: any, currentDeviceId: string): { classification: string; reason: string } {
@@ -549,7 +585,7 @@ export async function heartbeatNow(reason: string): Promise<void> {
   const docRef = doc(db, 'users', uid, 'devices', deviceId);
 
   try {
-    await setDoc(docRef, {
+    await setDoc(docRef, sanitizeForFirestore({
       lastActiveAt: serverTimestamp(),
       lastSeenAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -557,7 +593,7 @@ export async function heartbeatNow(reason: string): Promise<void> {
       currentSession: true,
       syncStatus: 'active',
       updatedByDevice: deviceId,
-    }, { merge: true });
+    }), { merge: true });
     updateStatus({ lastHeartbeatSuccess: new Date().toLocaleString(), lastHeartbeatError: 'None' });
   } catch (e: any) {
     console.warn('[syncEngine] Heartbeat failed:', e);
@@ -838,7 +874,7 @@ export async function runSyncProbe(): Promise<string> {
   });
 
   try {
-    await setDoc(probeRef, {
+    const rawPayload = {
       uid,
       deviceId,
       platform: isNative() ? 'android' : 'web',
@@ -850,10 +886,12 @@ export async function runSyncProbe(): Promise<string> {
       nonce,
       writtenAt: Date.now(),
       updatedAt: Date.now(),
-      userAgent: !isNative() ? navigator.userAgent : undefined,
-      model: isNative() ? getDeviceDetails().model : undefined,
-      manufacturer: isNative() ? getDeviceDetails().manufacturer : undefined,
-    });
+      userAgent: !isNative() ? navigator.userAgent : null,
+      model: isNative() ? getDeviceDetails().model : null,
+      manufacturer: isNative() ? getDeviceDetails().manufacturer : null,
+    };
+    await setDoc(probeRef, sanitizeForFirestore(rawPayload));
+
 
     updateStatus({
       lastProbeWriteSuccess: new Date().toLocaleString(),
@@ -895,13 +933,13 @@ export function initAuthSyncEngineHook() {
         const deviceId = getStableDeviceId();
         const db = getFirebaseDb();
         if (db) {
-          setDoc(doc(db, 'users', uid, 'devices', deviceId), {
+          setDoc(doc(db, 'users', uid, 'devices', deviceId), sanitizeForFirestore({
             signedIn: false,
             currentSession: false,
             syncStatus: 'signedOut',
             lastSeenAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-          }, { merge: true }).catch(() => {});
+          }), { merge: true }).catch(() => {});
         }
       }
       stopSyncEngine();

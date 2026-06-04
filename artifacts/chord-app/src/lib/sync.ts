@@ -958,27 +958,27 @@ export async function unregisterDevice(uid: string): Promise<void> {
   const db = getFirebaseDb();
   if (db) {
     const id = getStableDeviceId();
-    await setDoc(doc(db, 'users', uid, 'devices', id), {
+    await setDoc(doc(db, 'users', uid, 'devices', id), engineSanitize({
       signedIn: false,
       currentSession: false,
       syncStatus: 'signedOut',
       lastSeenAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    }, { merge: true });
+    }), { merge: true });
   }
 }
 
 export async function revokeDeviceSession(uid: string, targetDeviceId: string): Promise<void> {
   const db = getFirebaseDb();
   if (db) {
-    await setDoc(doc(db, 'users', uid, 'devices', targetDeviceId), {
+    await setDoc(doc(db, 'users', uid, 'devices', targetDeviceId), engineSanitize({
       revokedAt: serverTimestamp(),
       signedIn: false,
       currentSession: false,
       syncStatus: 'revoked',
       lastSeenAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    }, { merge: true });
+    }), { merge: true });
   }
 }
 
@@ -1549,12 +1549,12 @@ export async function createCloudBackup(label: string): Promise<void> {
 
   const backupsColl = collection(db, 'users', currentUser.uid, 'backups');
   const backupDocRef = doc(backupsColl);
-  await setDoc(backupDocRef, {
+  await setDoc(backupDocRef, engineSanitize({
     createdAt: serverTimestamp(),
     deviceId: deviceId(),
     label,
     data: backupData,
-  });
+  }));
 }
 
 export async function clearVocalexDbs(): Promise<void> {
@@ -2132,12 +2132,12 @@ async function triggerAutoBackup(): Promise<void> {
     // 2. Write backup doc
     const backupsColl = collection(db, 'users', currentUser.uid, 'backups');
     const backupDocRef = doc(backupsColl);
-    await setDoc(backupDocRef, {
+    await setDoc(backupDocRef, engineSanitize({
       createdAt: serverTimestamp(),
       deviceId: deviceId(),
       frequency,
       data: backupData,
-    });
+    }));
 
     localStorage.setItem(lastBackupKey, now.toString());
     console.log(`[sync] Auto Backup saved successfully to Firestore: ${backupDocRef.id}`);
