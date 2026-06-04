@@ -15,6 +15,18 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.3.8
+
+- Redesigned the update dialog with Studio’s visual style.
+- Improved the update progress screen with percentage, status, and polished visuals.
+- Improved the “What’s new” section layout.
+- Improved the Ready to Install screen.
+- Replaced generic blue update buttons with Studio accent styling.
+- Improved install handoff so Studio does not intentionally reopen after launching the Android installer.
+- Fixed updater overlay cleanup after install/later actions.
+- Fixed potential stuck fade or black overlay states.
+- Ensured only one updater dialog is used across the app.
+
 ## 3.3.7
 
 - Added a polished account benefits section for signed-out users.

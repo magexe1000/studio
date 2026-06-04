@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.3.7'; // Add signed-out account benefits screen
+export const APP_VERSION = '3.3.8'; // Polish updater dialog and install handoff behavior
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-03'; // 3.3.7
+export const APP_VERSION_DATE = '2026-06-03'; // 3.3.8
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,19 +53,22 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Improved",
     items: [
-      'Added a polished account benefits section for signed-out users.',
-      'Added clearer explanations for Cloud Sync, multi-device access, backups, personalization, recovery, and future account features.',
-      'Added a small privacy note explaining account sync behavior.',
+      'Redesigned the update dialog with Studio’s visual style.',
+      'Improved the update progress screen with percentage, status, and polished visuals.',
+      'Improved the “What’s new” section layout.',
+      'Improved the Ready to Install screen.',
+      'Replaced generic blue update buttons with Studio accent styling.',
+      'Improved install handoff so Studio does not intentionally reopen after launching the Android installer.',
     ],
   },
   {
-    heading: "Improved",
+    heading: "Fixed",
     items: [
-      'Improved the signed-out Account screen.',
-      'Improved onboarding clarity for users who have not created a Studio account.',
-      'Improved messaging around sync, backups, and cross-device use.',
+      'Fixed updater overlay cleanup after install/later actions.',
+      'Fixed potential stuck fade or black overlay states.',
+      'Ensured only one updater dialog is used across the app.',
     ],
   },
 ];
@@ -74,19 +77,22 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Añadido",
+    heading: "Mejorado",
     items: [
-      'Se agregó una sección pulida de beneficios de la cuenta para usuarios no registrados.',
-      'Se agregaron explicaciones más claras para Cloud Sync, acceso multidispositivo, copias de seguridad, personalización, recuperación y futuras funciones.',
-      'Se agregó una pequeña nota de privacidad que explica el comportamiento de sincronización de la cuenta.',
+      'Rediseñado el diálogo de actualización con el estilo visual de Studio.',
+      'Se mejoró la pantalla de progreso de actualización con porcentaje, estado y visuales pulidos.',
+      'Se mejoró el diseño de la sección "Qué hay de nuevo".',
+      'Se mejoró la pantalla Listo para instalar.',
+      'Se reemplazaron los botones azules genéricos con el estilo de acento de Studio.',
+      'Sincronización de instalación mejorada para que Studio no se vuelva a abrir intencionadamente después de iniciar el instalador de Android.',
     ],
   },
   {
-    heading: "Mejorado",
+    heading: "Corregido",
     items: [
-      'Se mejoró la pantalla de Cuenta para usuarios no registrados.',
-      'Se mejoró la claridad de incorporación para usuarios que no han creado una cuenta de Studio.',
-      'Se mejoraron los mensajes sobre sincronización, copias de seguridad y uso en múltiples dispositivos.',
+      'Se corrigió la limpieza del panel de actualización después de las acciones de instalación/más tarde.',
+      'Se corrigieron posibles estados de desvanecimiento atascado o superposición negra.',
+      'Se aseguró de que solo se use un diálogo de actualización en toda la aplicación.',
     ],
   },
 ];
@@ -94,19 +100,22 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Hinzugefügt",
+    heading: "Verbessert",
     items: [
-      'Ein übersichtlicher Bereich für Kontovorteile für abgemeldete Benutzer wurde hinzugefügt.',
-      'Klarere Erklärungen für Cloud Sync, geräteübergreifenden Zugriff, Backups, Personalisierung, Wiederherstellung und zukünftige Funktionen hinzugefügt.',
-      'Ein kurzer Datenschutzhinweis zur Erklärung des Kontosynchronisierungsverhaltens wurde hinzugefügt.',
+      'Das Update-Dialogfeld wurde mit dem visuellen Stil von Studio neu gestaltet.',
+      'Der Update-Fortschrittsbildschirm mit Prozentangabe, Status und polierten Grafiken wurde verbessert.',
+      'Das Layout des Abschnitts „Was gibt’s Neues“ wurde verbessert.',
+      'Der Bildschirm „Bereit zur Installation“ wurde verbessert.',
+      'Generische blaue Update-Schaltflächen wurden durch Studio-Akzent-Styling ersetzt.',
+      'Die Installationsübergabe wurde verbessert, sodass Studio nach dem Starten des Android-Installationsprogramms nicht absichtlich erneut geöffnet wird.',
     ],
   },
   {
-    heading: "Verbessert",
+    heading: "Behoben",
     items: [
-      'Die Konto-Bildschirm für abgemeldete Benutzer wurde verbessert.',
-      'Die Übersichtlichkeit der Einführung für Benutzer ohne Studio-Konto wurde verbessert.',
-      'Die Benachrichtigungen zu Synchronisierung, Backups und geräteübergreifender Nutzung wurden verbessert.',
+      'Bereinigung des Update-Overlays nach Installations-/Später-Aktionen behoben.',
+      'Mögliche blockierte Überlagerungs- oder Schwarzbildzustände behoben.',
+      'Es wurde sichergestellt, dass in der gesamten App nur ein Update-Dialogfeld verwendet wird.',
     ],
   },
 ];

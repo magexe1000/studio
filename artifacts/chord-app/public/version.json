@@ -1,10 +1,10 @@
 {
-  "version": "3.3.7",
-  "changelog": "Version 3.3.7",
+  "version": "3.3.8",
+  "changelog": "Version 3.3.8",
   "mandatory": false,
-  "apkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.3.7/studio-3.3.7.apk",
-  "manualApkUrl": "https://studio-30f44.web.app/apk/studio-3.3.7.apk",
-  "fallbackApkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.3.7/studio-3.3.7.apk",
-  "sha256": "696246bfae83670c1f55a701aea8d6f011c1652fc76f9d383a9084f1aa65576e",
+  "apkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.3.8/studio-3.3.8.apk",
+  "manualApkUrl": "https://studio-30f44.web.app/apk/studio-3.3.8.apk",
+  "fallbackApkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.3.8/studio-3.3.8.apk",
+  "sha256": "dbb694a392f071955a3e1af67d5987a1c250b367c3eb9f57aa1646a4f4647686",
   "updateType": "both"
 }

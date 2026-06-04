@@ -343,6 +343,7 @@ export default function UpdateIndicator({
     // pill visible in the corner so the user always has a one-tap
     // path back to update.
     setOpen(false);
+    ota.dismissUpdate();
     if (ota.remoteVersion) {
       writeLaterVersion(ota.remoteVersion);
       setLaterVersion(ota.remoteVersion);
@@ -529,6 +530,9 @@ export default function UpdateIndicator({
           onLater={handleLater}
           onClose={() => {
             setOpen(false);
+            if (ota.updateState === 'failed') {
+              ota.dismissUpdate();
+            }
             if (phase === 'banner') {
               setPhase('pill');
               markBannerShown();
@@ -583,6 +587,10 @@ function UpdateModal({
 
   const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
 
+  // Signature purple/pink colors override
+  const purpleFrom = '#b57bee';
+  const purpleTo = '#db2777';
+
   const handleStartUpdate = async () => {
     try {
       await ota.downloadUpdate();
@@ -604,7 +612,22 @@ function UpdateModal({
           return;
         }
       }
+      
+      // Attempt to launch installer
       await ota.applyUpdate();
+      
+      // Close dialog cleanly on successful launch
+      onClose();
+      
+      // Minimize app cleanly
+      if (isNative()) {
+        try {
+          const { App } = await import('@capacitor/app');
+          await App.minimizeApp();
+        } catch (e) {
+          console.warn('Failed to minimize app:', e);
+        }
+      }
     } catch (err) {
       console.error('[UpdateIndicator] APK Install failed:', err);
     }
@@ -641,6 +664,11 @@ function UpdateModal({
         if (hasPerm && active) {
           setPermissionBlocked(false);
           await ota.applyUpdate();
+          onClose();
+          if (isNative()) {
+            const { App } = await import('@capacitor/app');
+            await App.minimizeApp();
+          }
         }
       } catch (err) {
         console.warn('[Permissions] Failed to query status:', err);
@@ -690,16 +718,22 @@ function UpdateModal({
 
   // Select Icon and Colors based on State
   let iconName = 'download';
-  let iconColor = accentFrom;
+  let iconColor = purpleFrom;
   let title = 'Update available';
   let description = '';
   let showProgress = false;
   let progressVal = ota.progress;
-  let showChangelog = false;
   let showButtons = true;
   let showSpinner = false;
 
   const state = permissionBlocked ? 'permission_blocked' : ota.updateState;
+
+  // Collapsible changelog section state
+  const [changelogExpanded, setChangelogExpanded] = useState(state === 'available');
+
+  useEffect(() => {
+    setChangelogExpanded(state === 'available');
+  }, [state]);
 
   switch (state) {
     case 'permission_blocked':
@@ -711,7 +745,7 @@ function UpdateModal({
 
     case 'checking':
       iconName = 'sync';
-      iconColor = accentFrom;
+      iconColor = purpleFrom;
       showSpinner = true;
       title = 'Checking for updates';
       description = 'Connecting to release server...';
@@ -727,12 +761,11 @@ function UpdateModal({
 
     case 'available':
       iconName = isApkFlow ? 'system_update' : 'download';
-      iconColor = accentFrom;
+      iconColor = purpleFrom;
       title = isApkFlow ? 'Studio update available' : 'App update available';
       description = isApkFlow 
         ? 'A native update is required to apply the latest security, features, and library upgrades.'
         : `Version ${toVersion} is ready to install. You are currently on ${fromLabel}.`;
-      showChangelog = true;
       break;
 
     case 'manual_apk_required':
@@ -745,7 +778,7 @@ function UpdateModal({
     case 'downloading_ota':
     case 'downloading_apk':
       iconName = 'cloud_download';
-      iconColor = accentFrom;
+      iconColor = purpleFrom;
       title = 'Downloading update';
       description = ota.statusText || (state === 'downloading_ota' ? 'Downloading OTA package...' : 'Downloading APK package...');
       showProgress = true;
@@ -754,7 +787,7 @@ function UpdateModal({
 
     case 'verifying_apk':
       iconName = 'verified_user';
-      iconColor = accentFrom;
+      iconColor = purpleFrom;
       title = 'Verifying update';
       description = ota.statusText || 'Verifying package integrity...';
       showSpinner = true;
@@ -773,7 +806,7 @@ function UpdateModal({
     case 'installing':
     case 'completed':
       iconName = 'sync';
-      iconColor = accentFrom;
+      iconColor = purpleFrom;
       showSpinner = true;
       title = 'Installing update';
       description = ota.statusText || 'Applying update and rebooting App shell...';
@@ -788,30 +821,33 @@ function UpdateModal({
       break;
   }
 
+  // Visual custom styles overrides using HSL purple/pink colors
   const primaryButtonStyle: React.CSSProperties = {
-    width: '100%', height: 44, borderRadius: 12,
-    background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
+    flex: 1, height: 44, borderRadius: 12,
+    background: `linear-gradient(135deg, ${purpleFrom}, ${purpleTo})`,
     border: 'none', color: 'white',
     fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
     cursor: 'pointer',
-    boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
+    boxShadow: `0 4px 14px color-mix(in srgb, ${purpleTo} 25%, transparent)`,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'opacity 200ms ease, transform 150ms ease',
   };
 
   const secondaryButtonStyle: React.CSSProperties = {
     flex: 1, height: 44, borderRadius: 12,
-    background: 'transparent',
-    border: '1px solid rgba(128,128,128,0.22)',
+    background: 'rgba(128, 128, 128, 0.06)',
+    border: '1px solid rgba(128, 128, 128, 0.15)',
     color: 'var(--c-text-secondary)',
     fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'background 200ms ease, border-color 200ms ease',
   };
 
   const halfSecondaryButtonStyle: React.CSSProperties = {
     flex: 1, height: 42, borderRadius: 12,
     background: 'transparent',
-    border: '1px solid rgba(128,128,128,0.22)',
+    border: '1px solid rgba(128, 128, 128, 0.15)',
     color: 'var(--c-text-primary)',
     fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
     cursor: 'pointer',
@@ -831,11 +867,12 @@ function UpdateModal({
 
   const animatedPrimaryButtonStyle: React.CSSProperties = {
     height: '100%',
-    background: `linear-gradient(135deg, ${accentFrom}, ${accentTo})`,
+    width: '100%',
+    background: `linear-gradient(135deg, ${purpleFrom}, ${purpleTo})`,
     border: 'none', color: 'white',
     fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
     cursor: 'pointer',
-    boxShadow: `0 6px 18px color-mix(in srgb, ${accentTo} 30%, transparent)`,
+    boxShadow: `0 4px 14px color-mix(in srgb, ${purpleTo} 25%, transparent)`,
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
   };
 
@@ -869,7 +906,7 @@ function UpdateModal({
           <button
             type="button"
             onClick={onClose}
-            style={primaryButtonStyle}
+            style={{ ...primaryButtonStyle, width: '100%' }}
           >
             Close
           </button>
@@ -890,9 +927,9 @@ function UpdateModal({
           <AnimatedActionButton
             type="button"
             onClick={handleStartUpdate}
-            wrapStyle={{ flex: 2, height: 42 }}
+            wrapStyle={{ flex: 1, height: 44 }}
             borderRadius={12}
-            trailColor={accentTo}
+            trailColor={purpleTo}
             style={animatedPrimaryButtonStyle}
           >
             Update Now
@@ -903,14 +940,13 @@ function UpdateModal({
 
     if (state === 'manual_apk_required') {
       const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.bin`;
-      const fallbackApkUrl = ota.fallbackApkUrl || ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/download/v${ota.remoteVersion}/studio-${ota.remoteVersion}.apk`;
 
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16, width: '100%' }}>
           <button
             type="button"
             onClick={() => window.open(manualApkUrl, '_system')}
-            style={primaryButtonStyle}
+            style={{ ...primaryButtonStyle, width: '100%' }}
           >
             Download APK
           </button>
@@ -998,7 +1034,7 @@ function UpdateModal({
             <button
               type="button"
               onClick={handleStartUpdate}
-              style={primaryButtonStyle}
+              style={{ ...primaryButtonStyle, width: '100%' }}
             >
               Try Again
             </button>
@@ -1022,7 +1058,7 @@ function UpdateModal({
         <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'rgba(128,128,128,0.12)', overflow: 'hidden' }}>
           <div style={{
             width: `${pct}%`, height: '100%',
-            background: `linear-gradient(90deg, ${accentFrom}, ${accentTo})`,
+            background: `linear-gradient(90deg, ${purpleFrom}, ${purpleTo})`,
             transition: 'width 200ms ease-out',
           }} />
         </div>
@@ -1034,7 +1070,7 @@ function UpdateModal({
     if (!showSpinner) return null;
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '12px 0 6px' }}>
-        <SpinnerSvg cFrom={accentFrom} cTo={accentTo} />
+        <SpinnerSvg cFrom={purpleFrom} cTo={purpleTo} />
       </div>
     );
   };
@@ -1049,7 +1085,7 @@ function UpdateModal({
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginBottom: 10,
         }}>
-          <SpinnerSvg cFrom={accentFrom} cTo={accentTo} />
+          <SpinnerSvg cFrom={purpleFrom} cTo={purpleTo} />
         </div>
       );
     }
@@ -1075,40 +1111,91 @@ function UpdateModal({
   };
 
   const renderChangelog = () => {
-    if (!showChangelog) return null;
     const bullets = ota.releaseNotes || (ota.changelog ? ota.changelog.split('\n').map(l => l.trim()).filter(Boolean) : []);
     if (bullets.length === 0) return null;
+
     return (
       <div style={{
-        maxHeight: 120,
-        overflowY: 'auto',
-        textAlign: 'left',
         width: '100%',
         margin: '12px 0 4px',
-        padding: '10px 14px',
-        borderRadius: 12,
-        background: 'rgba(128,128,128,0.06)',
-        border: '1px solid rgba(128,128,128,0.08)',
+        borderRadius: 14,
+        background: 'rgba(128, 128, 128, 0.05)',
+        border: '1px solid rgba(128, 128, 128, 0.08)',
+        overflow: 'hidden',
+        transition: 'all 200ms ease',
       }}>
-        <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope', color: 'var(--c-text-primary)' }}>
-          What's new:
-        </p>
-        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.5 }}>
-          {bullets.map((bullet, idx) => (
-            <li key={idx} style={{ marginBottom: 4 }}>
-              {bullet.replace(/^-\s*/, '')}
-            </li>
-          ))}
-        </ul>
+        {/* Toggle Header */}
+        <button
+          type="button"
+          onClick={() => setChangelogExpanded(!changelogExpanded)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 14px',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--c-text-primary)',
+            fontFamily: 'Manrope',
+            fontWeight: 700,
+            fontSize: 12.5,
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: purpleFrom }}>info</span>
+            <span>What's New</span>
+          </div>
+          <span className="material-symbols-outlined" style={{
+            fontSize: 16,
+            color: 'var(--c-text-secondary)',
+            transform: changelogExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 200ms ease',
+          }}>
+            expand_more
+          </span>
+        </button>
+
+        {/* Bullet List Container */}
+        {changelogExpanded && (
+          <div style={{
+            maxHeight: 110,
+            overflowY: 'auto',
+            padding: '0 14px 12px',
+            borderTop: '1px solid rgba(128, 128, 128, 0.06)',
+          }}>
+            <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.55 }}>
+              {bullets.map((bullet, idx) => (
+                <li key={idx} style={{ marginBottom: 5 }}>
+                  {bullet.replace(/^-\s*/, '')}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     );
   };
+
+  // Fullscreen premium progress overlay for active download, verification and installation states
+  if (state === 'downloading_ota' || state === 'downloading_apk' || state === 'verifying_apk' || state === 'installing' || state === 'completed') {
+    return (
+      <StudioUpdateScreen
+        progress={progressVal}
+        accentFrom={purpleFrom}
+        accentTo={purpleTo}
+        statusText={description}
+      />
+    );
+  }
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      onClick={state === 'downloading_ota' || state === 'downloading_apk' || state === 'verifying_apk' || state === 'installing' || state === 'completed' ? undefined : onClose}
+      onClick={onClose}
       style={{
         position: 'fixed',
         inset: 0,

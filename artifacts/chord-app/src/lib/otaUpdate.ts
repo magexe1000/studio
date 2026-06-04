@@ -1116,7 +1116,7 @@ export function applyUpdate(): Promise<void> {
         otaDebugLogs.installError += `\nAPK installer intent launched successfully!`;
         otaDebugLogs.installerLaunchStatus = 'SUCCESS';
         otaDebugLogs.lastExceptionStackTrace = 'None';
-        updateGlobalState({ statusText: 'APK installer launched' });
+        updateGlobalState({ updateState: 'ready_to_install', statusText: 'APK installer launched' });
       } catch (err) {
         console.error('[OTA] APK install failed:', err);
         const errMsg = err instanceof Error ? err.message : String(err);
