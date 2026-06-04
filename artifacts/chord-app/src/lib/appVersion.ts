@@ -38,8 +38,8 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 export const APP_VERSION_DATE = '2026-06-04'; // 3.6.11
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = '4887d285';
-export const APP_BUILD_TIMESTAMP = '6/4/2026, 5:25:30 PM CST';
+export const APP_COMMIT_SHA = 'e3ef3cc';
+export const APP_BUILD_TIMESTAMP = '6/4/2026, 11:29:06 PM UTC';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
