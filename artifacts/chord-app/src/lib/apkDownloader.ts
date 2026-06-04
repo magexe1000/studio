@@ -27,6 +27,16 @@ export interface AppInstallerPlugin {
   getDeviceInfo(): Promise<{ manufacturer: string; model: string; androidVersion: string; sdkInt: number; canRequestPackageInstalls: boolean }>;
   getApkDetails(options: { filePath: string }): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
   getInstalledAppDetails(): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
+  inspectApk(options: { filePath: string }): Promise<{
+    packageName: string;
+    versionName: string;
+    versionCode: number;
+    signingSha256: string;
+    debuggable: boolean;
+    minSdk: number;
+    targetSdk: number;
+    isValidApk: boolean;
+  }>;
 }
 
 export const AppInstaller = registerPlugin<AppInstallerPlugin>('AppInstaller');
@@ -301,7 +311,7 @@ export async function openInstallPermissionSettings(): Promise<void> {
 
 export interface InstallEligibility {
   eligible: boolean;
-  reason?: 'packageName_mismatch' | 'signature_mismatch' | 'versionCode_low' | 'parse_failed' | 'not_native' | 'generic';
+  reason?: 'packageName_mismatch' | 'signature_mismatch' | 'versionCode_low' | 'parse_failed' | 'not_native' | 'debuggable' | 'invalid_apk' | 'generic';
   errorDetails?: string;
   installed?: {
     packageName: string;
@@ -314,6 +324,10 @@ export interface InstallEligibility {
     versionName: string;
     versionCode: number;
     signatures: string;
+    debuggable: boolean;
+    minSdk: number;
+    targetSdk: number;
+    isValidApk: boolean;
   };
 }
 
@@ -325,10 +339,27 @@ export async function checkApkEligibility(filePath: string): Promise<InstallElig
 
   try {
     const installed = await AppInstaller.getInstalledAppDetails();
-    const downloaded = await AppInstaller.getApkDetails({ filePath });
+    const downloadedInspect = await AppInstaller.inspectApk({ filePath });
 
-    if (!installed || !downloaded) {
-      return { eligible: false, reason: 'parse_failed', errorDetails: 'Failed to parse package details.' };
+    const downloaded = {
+      packageName: downloadedInspect.packageName,
+      versionName: downloadedInspect.versionName,
+      versionCode: downloadedInspect.versionCode,
+      signatures: downloadedInspect.signingSha256,
+      debuggable: downloadedInspect.debuggable,
+      minSdk: downloadedInspect.minSdk,
+      targetSdk: downloadedInspect.targetSdk,
+      isValidApk: downloadedInspect.isValidApk
+    };
+
+    if (!downloaded.isValidApk) {
+      return {
+        eligible: false,
+        reason: 'invalid_apk',
+        errorDetails: 'The downloaded APK package appears invalid, corrupted, or incomplete.',
+        installed,
+        downloaded
+      };
     }
 
     if (installed.packageName !== downloaded.packageName) {
@@ -357,7 +388,17 @@ export async function checkApkEligibility(filePath: string): Promise<InstallElig
       return {
         eligible: false,
         reason: 'versionCode_low',
-        errorDetails: `Version code is not higher. Installed: ${installed.versionCode}, Downloaded: ${downloaded.versionCode}`,
+        errorDetails: `Version code is not higher than installed version. Installed: ${installed.versionCode}, Downloaded: ${downloaded.versionCode}`,
+        installed,
+        downloaded
+      };
+    }
+
+    if (downloaded.debuggable) {
+      return {
+        eligible: false,
+        reason: 'debuggable',
+        errorDetails: 'The update package is a debuggable build and cannot be installed on top of the release version.',
         installed,
         downloaded
       };

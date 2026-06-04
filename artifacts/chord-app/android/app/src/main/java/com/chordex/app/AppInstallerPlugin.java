@@ -574,6 +574,129 @@ public class AppInstallerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void inspectApk(PluginCall call) {
+        String path = call.getString("filePath");
+        if (path == null) {
+            call.reject("filePath is required");
+            return;
+        }
+        try {
+            File file;
+            if (path.startsWith("file://")) {
+                try {
+                    file = new File(new URI(path));
+                } catch (Exception e) {
+                    file = new File(path.substring(7));
+                }
+            } else {
+                file = new File(path);
+            }
+
+            JSObject result = new JSObject();
+            if (!file.exists()) {
+                result.put("isValidApk", false);
+                result.put("packageName", "");
+                result.put("versionName", "");
+                result.put("versionCode", 0);
+                result.put("signingSha256", "");
+                result.put("debuggable", false);
+                result.put("minSdk", 0);
+                result.put("targetSdk", 0);
+                call.resolve(result);
+                return;
+            }
+
+            Context context = getContext();
+            PackageManager pm = context.getPackageManager();
+            
+            int flags = PackageManager.GET_SIGNATURES;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                flags = PackageManager.GET_SIGNING_CERTIFICATES;
+            }
+            
+            PackageInfo info = pm.getPackageArchiveInfo(file.getAbsolutePath(), flags);
+            if (info == null) {
+                result.put("isValidApk", false);
+                result.put("packageName", "");
+                result.put("versionName", "");
+                result.put("versionCode", 0);
+                result.put("signingSha256", "");
+                result.put("debuggable", false);
+                result.put("minSdk", 0);
+                result.put("targetSdk", 0);
+                call.resolve(result);
+                return;
+            }
+
+            result.put("isValidApk", true);
+            result.put("packageName", info.packageName);
+            result.put("versionName", info.versionName);
+            
+            long versionCode = info.versionCode;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                versionCode = info.getLongVersionCode();
+            }
+            result.put("versionCode", versionCode);
+
+            // Min and target SDK
+            int minSdk = 0;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                if (info.applicationInfo != null) {
+                    minSdk = info.applicationInfo.minSdkVersion;
+                }
+            }
+            int targetSdk = 0;
+            if (info.applicationInfo != null) {
+                targetSdk = info.applicationInfo.targetSdkVersion;
+            }
+            result.put("minSdk", minSdk);
+            result.put("targetSdk", targetSdk);
+
+            // Debuggable flag
+            boolean debuggable = false;
+            if (info.applicationInfo != null) {
+                debuggable = (info.applicationInfo.flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+            }
+            result.put("debuggable", debuggable);
+
+            String sha256 = "";
+            Signature[] signatures = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                if (info.signingInfo != null) {
+                    if (info.signingInfo.hasMultipleSigners()) {
+                        signatures = info.signingInfo.getApkContentsSigners();
+                    } else {
+                        signatures = info.signingInfo.getSigningCertificateHistory();
+                    }
+                }
+            } else {
+                signatures = info.signatures;
+            }
+
+            if (signatures != null && signatures.length > 0) {
+                byte[] cert = signatures[0].toByteArray();
+                java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                byte[] publicKey = md.digest(cert);
+                StringBuilder hexString = new StringBuilder();
+                for (byte b : publicKey) {
+                    String append = Integer.toHexString(0xFF & b);
+                    if (append.length() == 1) hexString.append('0');
+                    hexString.append(append);
+                }
+                sha256 = hexString.toString().toLowerCase();
+            }
+            result.put("signingSha256", sha256);
+
+            call.resolve(result);
+        } catch (Exception e) {
+            JSObject errorResult = new JSObject();
+            errorResult.put("isValidApk", false);
+            errorResult.put("error", e.getMessage());
+            call.resolve(errorResult);
+        }
+    }
+
+    @PluginMethod
     public void getInstalledAppDetails(PluginCall call) {
         try {
             Context context = getContext();

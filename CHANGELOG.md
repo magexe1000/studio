@@ -15,6 +15,20 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.4.5
+
+### Fixed
+- Fixed Android APK updates failing with “App not installed”.
+- Added in-app APK install eligibility checks before launching Android installer.
+- Added validation for package name, signing certificate, versionCode, and APK build type.
+- Prevented invalid APK updates from being published.
+- Improved update diagnostics when Android rejects an APK.
+
+### Improved
+- Strengthened automatic in-app update reliability.
+- Improved consistency between GitHub APK, Firebase APK mirror, and update metadata.
+- Reduced need for manual recovery installs.
+
 ## 3.4.4
 
 ### Fixed

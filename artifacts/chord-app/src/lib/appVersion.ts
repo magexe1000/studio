@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.4.4'; // Release installer fixes and pre-release APK validations
+export const APP_VERSION = '3.4.5'; // Fix automatic Android APK update install eligibility
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.4.4
+export const APP_VERSION_DATE = '2026-06-04'; // 3.4.5
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,18 +55,19 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Strengthened APK release validation.",
-      "Improved consistency between GitHub Release APK, Firebase APK mirror, and update metadata.",
+      "Strengthened automatic in-app update reliability.",
+      "Improved consistency between GitHub APK, Firebase APK mirror, and update metadata.",
+      "Reduced need for manual recovery installs.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed Android “App not installed” failure during APK updates.",
-      "Added APK versionCode validation before release.",
-      "Added signing certificate consistency checks.",
-      "Added APK install eligibility diagnostics.",
-      "Improved update failure messages for Android installer errors.",
+      "Fixed Android APK updates failing with “App not installed”.",
+      "Added in-app APK install eligibility checks before launching Android installer.",
+      "Added validation for package name, signing certificate, versionCode, and APK build type.",
+      "Prevented invalid APK updates from being published.",
+      "Improved update diagnostics when Android rejects an APK.",
     ],
   },
 ];

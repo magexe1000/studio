@@ -1161,12 +1161,12 @@ export function applyUpdate(): Promise<void> {
         if (!eligibility.eligible) {
           let userMessage = 'Installation eligibility check failed. The update cannot be installed.';
           if (eligibility.reason === 'versionCode_low') {
-            userMessage = 'This update package has an invalid Android version code. Please wait for a corrected update.';
+            userMessage = 'This update package cannot be installed because its Android version code is not newer than the installed app.';
           } else if (eligibility.reason === 'signature_mismatch') {
-            userMessage = 'This APK was signed with a different certificate and cannot update the installed app.';
+            userMessage = 'This update was signed with a different certificate and cannot update the installed app.';
           } else if (eligibility.reason === 'packageName_mismatch') {
-            userMessage = 'Package name mismatch. The downloaded APK belongs to a different app.';
-          } else if (eligibility.reason === 'parse_failed') {
+            userMessage = 'This APK does not match the installed Studio package.';
+          } else if (eligibility.reason === 'parse_failed' || eligibility.reason === 'invalid_apk') {
             userMessage = 'The downloaded APK appears invalid or incomplete.';
           }
           

@@ -1644,8 +1644,8 @@ function HubSettings({
           const apkPath = localStorage.getItem('studio:downloadedApkPath');
           if (apkPath) {
             try {
-              const downloaded = await AppInstaller.getApkDetails({ filePath: apkPath });
-              setDownloadedApkDetails(downloaded);
+              const inspected = await AppInstaller.inspectApk({ filePath: apkPath });
+              setDownloadedApkDetails(inspected);
               
               const eligibility = await checkApkEligibility(apkPath);
               setApkEligibility(eligibility);
@@ -2719,7 +2719,9 @@ function HubSettings({
               <DevInfoRow label="Downloaded Package Name" value={downloadedApkDetails.packageName} />
               <DevInfoRow label="Downloaded Version Name" value={downloadedApkDetails.versionName} />
               <DevInfoRow label="Downloaded Version Code" value={String(downloadedApkDetails.versionCode)} />
-              <DevInfoRow label="Downloaded Signature SHA-256" value={downloadedApkDetails.signatures} canCopy />
+              <DevInfoRow label="Downloaded Signature SHA-256" value={downloadedApkDetails.signingSha256} canCopy />
+              <DevInfoRow label="Debuggable" value={downloadedApkDetails.debuggable ? 'TRUE' : 'FALSE'} />
+              <DevInfoRow label="APK Valid" value={downloadedApkDetails.isValidApk ? 'TRUE' : 'FALSE'} />
             </>
           )}
 
@@ -2727,10 +2729,12 @@ function HubSettings({
             <>
               <div style={{ height: 1, background: 'rgba(128,128,128,0.12)', margin: '8px 0' }} />
               <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>APK Install Eligibility</div>
-              <DevInfoRow label="Version Code Check" value={apkEligibility.installed && apkEligibility.downloaded ? `${apkEligibility.installed.versionCode} -> ${apkEligibility.downloaded.versionCode} (${apkEligibility.downloaded.versionCode > apkEligibility.installed.versionCode ? 'VALID' : 'INVALID: MUST BE HIGHER'})` : 'N/A'} />
-              <DevInfoRow label="Signature Matches" value={apkEligibility.installed && apkEligibility.downloaded ? String(apkEligibility.installed.signatures.replace(/:/g,'').toLowerCase() === apkEligibility.downloaded.signatures.replace(/:/g,'').toLowerCase()).toUpperCase() : 'N/A'} />
-              <DevInfoRow label="Eligibility Status" value={apkEligibility.eligible ? 'ELIGIBLE (CAN UPDATE)' : `INELIGIBLE: ${apkEligibility.reason || 'UNRESOLVED'}`} />
-              {!apkEligibility.eligible && <DevInfoRow label="Ineligibility Reason" value={apkEligibility.errorDetails || 'N/A'} />}
+              <DevInfoRow label="Package Name Match" value={apkEligibility.installed && apkEligibility.downloaded ? String(apkEligibility.installed.packageName === apkEligibility.downloaded.packageName).toUpperCase() : 'N/A'} />
+              <DevInfoRow label="Signing Certificate Match" value={apkEligibility.installed && apkEligibility.downloaded ? String(apkEligibility.installed.signatures.replace(/:/g,'').toLowerCase() === apkEligibility.downloaded.signatures.replace(/:/g,'').toLowerCase()).toUpperCase() : 'N/A'} />
+              <DevInfoRow label="New Version Code Higher" value={apkEligibility.installed && apkEligibility.downloaded ? String(apkEligibility.downloaded.versionCode > apkEligibility.installed.versionCode).toUpperCase() : 'N/A'} />
+              <DevInfoRow label="APK Installable" value={apkEligibility.eligible ? 'TRUE' : 'FALSE'} />
+              <DevInfoRow label="Final Decision" value={apkEligibility.eligible ? 'CAN INSTALL' : 'CANNOT INSTALL'} />
+              {!apkEligibility.eligible && <DevInfoRow label="Reason if Cannot Install" value={apkEligibility.errorDetails || apkEligibility.reason || 'N/A'} />}
             </>
           )}
         </div>
