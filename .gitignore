@@ -56,3 +56,5 @@ testem.log
 
 # ── Android Keystores ─────────────────────────────────────────────────────────
 *.keystore
+*.jks
+signing-secrets.txt

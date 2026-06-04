@@ -43,11 +43,6 @@ android {
                 storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
                 keyAlias System.getenv("ANDROID_KEY_ALIAS")
                 keyPassword System.getenv("ANDROID_KEY_PASSWORD")
-            } else if (file('release.keystore').exists()) {
-                storeFile file('release.keystore')
-                storePassword 'studioPassword123'
-                keyAlias 'studio-release-key'
-                keyPassword 'studioPassword123'
             } else {
                 storeFile file('debug.keystore')
                 storePassword 'android'
