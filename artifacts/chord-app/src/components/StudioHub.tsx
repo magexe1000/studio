@@ -2866,22 +2866,28 @@ function HubSettings({
         <div style={cardStyle}>
           <DevInfoRow label="Auth UID" value={diag.authUid} />
           <DevInfoRow label="Current Device ID" value={diag.deviceId} />
+          <DevInfoRow label="Current Device Doc Path" value={diag.currentDeviceDocPath} canCopy />
           <DevInfoRow label="Sync Enabled" value={diag.syncEnabled ? 'TRUE' : 'FALSE'} />
           <DevInfoRow label="Firestore Connected" value={diag.firestoreConnected ? 'TRUE' : 'FALSE'} />
           <DevInfoRow label="Profile Listener Active" value={diag.profileListenerActive ? 'TRUE' : 'FALSE'} />
           <DevInfoRow label="Appearance Listener Active" value={diag.appearanceListenerActive ? 'TRUE' : 'FALSE'} />
           <DevInfoRow label="Preferences Listener Active" value={diag.preferencesListenerActive ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="Devices Listener Active" value={diag.devicesListenerActive ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="Last Sync Success" value={diag.lastSyncSuccess} />
           <DevInfoRow label="Last Profile Sync" value={diag.lastProfileSync} />
           <DevInfoRow label="Last Appearance Sync" value={diag.lastAppearanceSync} />
           <DevInfoRow label="Last Preferences Sync" value={diag.lastPreferencesSync} />
           <DevInfoRow label="Pending Writes" value={String(diag.pendingWrites)} />
           <DevInfoRow label="Last Sync Error" value={diag.lastSyncError} />
+          <DevInfoRow label="Local Display Name" value={diag.localDisplayName} />
+          <DevInfoRow label="Remote Display Name" value={diag.remoteDisplayName} />
           <DevInfoRow label="Local Theme" value={diag.localTheme} />
           <DevInfoRow label="Remote Theme" value={diag.remoteTheme} />
           <DevInfoRow label="Local Accent Color" value={diag.localAccentColor} />
           <DevInfoRow label="Remote Accent Color" value={diag.remoteAccentColor} />
           <DevInfoRow label="Local Photo URL" value={diag.localPhotoURL} canCopy />
           <DevInfoRow label="Remote Photo URL" value={diag.remotePhotoURL} canCopy />
+          <DevInfoRow label="Registered Devices Count" value={String(diag.registeredDevicesCount)} />
           <DevInfoRow label="Last Remote Update Timestamp" value={diag.lastRemoteUpdateTimestamp} />
           <DevInfoRow label="Last Local Update Timestamp" value={diag.lastLocalUpdateTimestamp} />
           

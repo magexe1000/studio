@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.0'; // Add real cloud sync across devices
+export const APP_VERSION = '3.6.1'; // Fix real cloud sync and devices sessions
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.0
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.1
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,27 +55,26 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Added real cross-device sync for profile and account settings.",
-      "Added live sync for theme, accent color, language, and preferences.",
-      "Added profile photo upload and sync across devices.",
-      "Added sync diagnostics in Developer Options.",
+      "Added real device registration for signed-in Studio accounts.",
+      "Added live listeners for profile, appearance, preferences, and devices.",
+      "Added Sync Diagnostics in Developer Options.",
     ],
   },
   {
     heading: "Improved",
     items: [
-      "Improved local-first sync behavior.",
-      "Improved offline sync handling.",
-      "Improved account/profile state consistency across Studio.",
+      "Improved account sync reliability.",
+      "Improved cross-device settings updates.",
+      "Improved local-first sync and offline recovery behavior.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed account sync controls not actually syncing settings across devices.",
-      "Fixed theme and accent color not appearing on other devices.",
-      "Fixed profile photo not syncing between phone and laptop.",
-      "Fixed Settings account card using stale local profile data.",
+      "Fixed Cloud Sync not syncing theme, accent color, and profile photo across devices.",
+      "Fixed profile changes not updating live on other signed-in devices.",
+      "Fixed Devices & Sessions only showing the current device.",
+      "Fixed profile photo upload getting stuck without updating remote devices.",
     ],
   },
 ];

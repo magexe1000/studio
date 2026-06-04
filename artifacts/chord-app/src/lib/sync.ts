@@ -3,6 +3,7 @@ import { getFirebaseDb, getFirebaseStorage } from './firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { subscribeAuth, type AuthUser, signOut } from './auth';
 import { isNative } from './capgoUpdater';
+import { APP_VERSION } from './appVersion';
 import { getAllTakes, saveTake, deleteTake as dbDeleteTake, type TakeRecord } from '../vocalex/takesDb';
 import { getAllSessions, saveSession, deleteSession as dbDeleteSession, type LabSession, type LabLayer } from '../vocalex/labSessionDb';
 import { useChordStore } from '../store/useChordStore';
@@ -159,6 +160,7 @@ let currentUser: AuthUser | null = null;
 let unsubProfileListener: (() => void) | null = null;
 let unsubAppearanceListener: (() => void) | null = null;
 let unsubPreferencesListener: (() => void) | null = null;
+let unsubDevicesListListener: (() => void) | null = null;
 
 let lastProfileSyncMs: number | null = null;
 let lastAppearanceSyncMs: number | null = null;
@@ -167,13 +169,21 @@ let lastSyncError: string | null = null;
 let remoteTheme: string | null = null;
 let remoteAccentColor: string | null = null;
 let remotePhotoURL: string | null = null;
+let remoteDisplayName: string | null = null;
 let lastRemoteUpdateTimestamp: number | null = null;
 let pendingWritesCount = 0;
 let isApplyingRemoteUpdate = false;
 let unsubStoreSubscription: (() => void) | null = null;
+let registeredDevicesCount = 0;
+let appStateListenerHandle: any = null;
 
 function notifyDiagnostics() {
   setStatus({}); // Trigger state updates for reactive subscribers
+}
+
+export function setLastSyncError(err: string | null) {
+  lastSyncError = err;
+  notifyDiagnostics();
 }
 
 export function getSyncDiagnostics() {
@@ -195,6 +205,7 @@ export function getSyncDiagnostics() {
     profileListenerActive: unsubProfileListener !== null,
     appearanceListenerActive: unsubAppearanceListener !== null,
     preferencesListenerActive: unsubPreferencesListener !== null,
+    devicesListenerActive: unsubDevicesListListener !== null,
     lastProfileSync: lastProfileSyncMs ? new Date(lastProfileSyncMs).toLocaleString() : 'Never',
     lastAppearanceSync: lastAppearanceSyncMs ? new Date(lastAppearanceSyncMs).toLocaleString() : 'Never',
     lastPreferencesSync: lastPreferencesSyncMs ? new Date(lastPreferencesSyncMs).toLocaleString() : 'Never',
@@ -206,8 +217,13 @@ export function getSyncDiagnostics() {
     remoteAccentColor: remoteAccentColor || 'N/A',
     localPhotoURL: authUser?.photoURL || 'None',
     remotePhotoURL: remotePhotoURL || 'N/A',
+    localDisplayName: authUser?.displayName || 'None',
+    remoteDisplayName: remoteDisplayName || 'N/A',
     lastRemoteUpdateTimestamp: lastRemoteUpdateTimestamp ? new Date(lastRemoteUpdateTimestamp).toLocaleString() : 'Never',
     lastLocalUpdateTimestamp: localLastUpdate ? new Date(localLastUpdate).toLocaleString() : 'Never',
+    lastSyncSuccess: status.lastSyncedMs ? new Date(status.lastSyncedMs).toLocaleString() : 'Never',
+    registeredDevicesCount: registeredDevicesCount,
+    currentDeviceDocPath: authUser ? `users/${authUser.uid}/devices/${deviceId()}` : 'N/A',
   };
 }
 
@@ -634,11 +650,34 @@ export function deviceId(): string {
 export function getDeviceDetails() {
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
   let os = 'Unknown OS';
-  if (/windows/i.test(ua)) os = 'Windows';
-  else if (/macintosh|mac os x/i.test(ua)) os = 'macOS';
-  else if (/android/i.test(ua)) os = 'Android';
-  else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
-  else if (/linux/i.test(ua)) os = 'Linux';
+  let model = 'Browser';
+  let manufacturer = 'N/A';
+
+  if (/windows/i.test(ua)) {
+    os = 'Windows';
+  } else if (/macintosh|mac os x/i.test(ua)) {
+    os = 'macOS';
+  } else if (/android/i.test(ua)) {
+    os = 'Android';
+    const match = ua.match(/\(Linux; Android[^;]*; ([^)]*)\)/);
+    if (match && match[1]) {
+      model = match[1].trim();
+      const modelLower = model.toLowerCase();
+      if (modelLower.startsWith('sm-') || modelLower.startsWith('gt-')) manufacturer = 'Samsung';
+      else if (modelLower.startsWith('pixel')) manufacturer = 'Google';
+      else if (modelLower.startsWith('moto')) manufacturer = 'Motorola';
+      else if (modelLower.startsWith('lg-')) manufacturer = 'LG';
+      else if (modelLower.startsWith('oneplus')) manufacturer = 'OnePlus';
+      else if (modelLower.startsWith('sony') || modelLower.startsWith('so-')) manufacturer = 'Sony';
+      else if (modelLower.startsWith('huawei') || modelLower.startsWith('cph') || modelLower.startsWith('rmx')) manufacturer = 'Huawei/Oppo/Realme';
+    }
+  } else if (/iphone|ipad|ipod/i.test(ua)) {
+    os = 'iOS';
+    model = /ipad/i.test(ua) ? 'iPad' : 'iPhone';
+    manufacturer = 'Apple';
+  } else if (/linux/i.test(ua)) {
+    os = 'Linux';
+  }
 
   let browser = 'Web Browser';
   if (/chrome|crios/i.test(ua) && !/edge|edg/i.test(ua) && !/opr/i.test(ua)) browser = 'Chrome';
@@ -648,15 +687,28 @@ export function getDeviceDetails() {
   else if (/opr/i.test(ua)) browser = 'Opera';
 
   const isNativeApp = isNative();
-  const name = isNativeApp 
-    ? `Chordex App (${os})` 
-    : `${browser} on ${os}`;
+  let deviceName = '';
+  if (isNativeApp) {
+    if (os === 'Android' && model !== 'Browser') {
+      deviceName = model;
+    } else {
+      deviceName = `Studio App (${os})`;
+    }
+  } else {
+    deviceName = `${browser} on ${os}`;
+  }
 
   return {
-    name,
-    userAgent: ua,
+    deviceId: deviceId(),
+    deviceName,
     platform: isNativeApp ? 'native' : 'web',
-    lastActive: Date.now(),
+    os,
+    appVersion: APP_VERSION,
+    apkVersion: APP_VERSION,
+    model,
+    manufacturer,
+    userAgent: isNativeApp ? undefined : ua,
+    isCurrentDevice: true,
   };
 }
 
@@ -667,10 +719,25 @@ export async function registerDevice(uid: string): Promise<void> {
   const ref = doc(db, 'users', uid, 'devices', id);
   const details = getDeviceDetails();
   try {
-    await setDoc(ref, {
+    const snap = await getDoc(ref);
+    const nowServer = serverTimestamp();
+    const syncState = getSyncStatus();
+    
+    const payload: any = {
       ...details,
-      lastActive: serverTimestamp(),
-    }, { merge: true });
+      lastSeenAt: nowServer,
+      lastActiveAt: nowServer,
+      updatedAt: nowServer,
+      signedIn: true,
+      syncStatus: syncState.phase,
+      revokedAt: null,
+    };
+    
+    if (!snap.exists()) {
+      payload.firstSeenAt = nowServer;
+    }
+    
+    await setDoc(ref, payload, { merge: true });
   } catch (err) {
     console.warn('[sync] failed to register device:', err);
   }
@@ -682,7 +749,12 @@ export async function unregisterDevice(uid: string): Promise<void> {
   const id = deviceId();
   const ref = doc(db, 'users', uid, 'devices', id);
   try {
-    await deleteDoc(ref);
+    const nowServer = serverTimestamp();
+    await setDoc(ref, {
+      signedIn: false,
+      lastActiveAt: nowServer,
+      updatedAt: nowServer,
+    }, { merge: true });
   } catch (err) {
     console.warn('[sync] failed to unregister device:', err);
   }
@@ -693,7 +765,13 @@ export async function revokeDeviceSession(uid: string, targetDeviceId: string): 
   if (!db) return;
   const ref = doc(db, 'users', uid, 'devices', targetDeviceId);
   try {
-    await deleteDoc(ref);
+    const nowServer = serverTimestamp();
+    await setDoc(ref, {
+      revokedAt: nowServer,
+      signedIn: false,
+      lastActiveAt: nowServer,
+      updatedAt: nowServer,
+    }, { merge: true });
   } catch (err) {
     console.warn('[sync] failed to revoke session:', err);
   }
@@ -706,17 +784,23 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
     return () => {};
   }
   const ref = collection(db, 'users', uid, 'devices');
-  const q = query(ref, orderBy('lastActive', 'desc'));
+  const q = query(ref, orderBy('lastActiveAt', 'desc'));
   return onSnapshot(q, (snap) => {
     const list: any[] = [];
     snap.forEach((doc) => {
       const data = doc.data();
+      if (data.revokedAt != null) return; // Skip revoked devices
+      
+      const lastActiveTimestamp = data.lastActiveAt || data.lastActive;
       list.push({
         id: doc.id,
-        name: data.name || 'Unknown Device',
+        name: data.deviceName || data.name || 'Unknown Device',
         platform: data.platform || 'web',
         userAgent: data.userAgent || '',
-        lastActive: data.lastActive?.toMillis() || Date.now(),
+        lastActive: lastActiveTimestamp?.toMillis ? lastActiveTimestamp.toMillis() : (typeof lastActiveTimestamp === 'number' ? lastActiveTimestamp : Date.now()),
+        appVersion: data.appVersion || 'Unknown',
+        syncStatus: data.syncStatus || 'idle',
+        signedIn: data.signedIn !== false,
       });
     });
     callback(list);
@@ -2200,7 +2284,7 @@ export function attachSyncEngine(): void {
 
   let lastSettings = useChordStore.getState().settings;
   unsubStoreSubscription = useChordStore.subscribe((state) => {
-    if (isApplyingRemoteUpdate || !currentUser) return;
+    if (isApplyingRemoteUpdate) return;
     const settings = state.settings;
     
     const appearanceChanged =
@@ -2292,16 +2376,20 @@ export function attachSyncEngine(): void {
     unsubAppearanceListener = null;
     unsubPreferencesListener?.();
     unsubPreferencesListener = null;
+    unsubDevicesListListener?.();
+    unsubDevicesListListener = null;
 
     if (!u) {
       remoteTheme = null;
       remoteAccentColor = null;
       remotePhotoURL = null;
+      remoteDisplayName = null;
       lastRemoteUpdateTimestamp = null;
       lastProfileSyncMs = null;
       lastAppearanceSyncMs = null;
       lastPreferencesSyncMs = null;
       lastSyncError = null;
+      registeredDevicesCount = 0;
     }
 
     if (!u && priorUser) {
@@ -2318,9 +2406,15 @@ export function attachSyncEngine(): void {
         unsubDeviceSession = onSnapshot(sessionRef, (snap) => {
           if (currentUser?.uid === u.uid) {
             if (snap.exists()) {
-              sessionExisted = true;
+              const data = snap.data();
+              if (data && data.revokedAt != null) {
+                console.info('[sync] active session revoked, signing out');
+                void signOut();
+              } else {
+                sessionExisted = true;
+              }
             } else if (sessionExisted) {
-              console.info('[sync] active session revoked, signing out');
+              console.info('[sync] active session document deleted, signing out');
               void signOut();
             }
           }
@@ -2331,52 +2425,60 @@ export function attachSyncEngine(): void {
           if (snap.exists()) {
             const data = snap.data();
             remotePhotoURL = data.photoURL || null;
+            remoteDisplayName = data.displayName || null;
             lastRemoteUpdateTimestamp = data.updatedAt || 0;
             
             const localLast = parseInt(localStorage.getItem(`sync_last_local_update_profile`) ?? '0', 10);
             const remoteLast = data.updatedAt || 0;
-            if (remoteLast > localLast && data.updatedByDevice !== deviceId()) {
-              console.info('[sync] applying remote profile update:', data);
-              if (data.displayName !== u.displayName || data.photoURL !== u.photoURL) {
-                import('./auth').then(({ updateLocalAuthUser }) => {
-                  updateLocalAuthUser({
-                    displayName: data.displayName,
-                    photoURL: data.photoURL,
+            const isRemoteChange = data.updatedByDevice !== deviceId();
+            
+            if (isRemoteChange) {
+              if (remoteLast > localLast && !snap.metadata.hasPendingWrites) {
+                console.info('[sync] applying remote profile update:', data);
+                if (data.displayName !== u.displayName || data.photoURL !== u.photoURL) {
+                  import('./auth').then(({ updateLocalAuthUser }) => {
+                    updateLocalAuthUser({
+                      displayName: data.displayName,
+                      photoURL: data.photoURL,
+                    });
+                    if (currentUser) {
+                      currentUser.displayName = data.displayName;
+                      currentUser.photoURL = data.photoURL;
+                    }
                   });
-                  if (currentUser) {
-                    currentUser.displayName = data.displayName;
-                    currentUser.photoURL = data.photoURL;
-                  }
+                }
+                if (data.avatarIcon !== undefined) {
+                  import('./userAvatar').then(({ setUserAvatar }) => {
+                    setUserAvatar(u.uid, data.avatarIcon);
+                  });
+                }
+                if (data.photoURL) {
+                  localStorage.setItem(`chordex_cp_${u.uid}`, data.photoURL);
+                  window.dispatchEvent(
+                    new CustomEvent('chordex:user-cover-changed', {
+                      detail: { uid: u.uid, cover: data.photoURL },
+                    })
+                  );
+                } else {
+                  localStorage.removeItem(`chordex_cp_${u.uid}`);
+                  window.dispatchEvent(
+                    new CustomEvent('chordex:user-cover-changed', {
+                      detail: { uid: u.uid, cover: null },
+                    })
+                  );
+                }
+                localStorage.setItem(`sync_last_local_update_profile`, remoteLast.toString());
+                lastProfileSyncMs = Date.now();
+              } else if (localLast > remoteLast) {
+                console.info('[sync] Local profile is newer, uploading...');
+                import('./userAvatar').then(({ getUserAvatar }) => {
+                  const avatarIcon = getUserAvatar(u.uid);
+                  syncWriteProfileMain(u.displayName, u.photoURL, avatarIcon).catch(console.warn);
                 });
               }
-              if (data.avatarIcon !== undefined) {
-                import('./userAvatar').then(({ setUserAvatar }) => {
-                  setUserAvatar(u.uid, data.avatarIcon);
-                });
-              }
-              if (data.photoURL) {
-                localStorage.setItem(`chordex_cp_${u.uid}`, data.photoURL);
-                window.dispatchEvent(
-                  new CustomEvent('chordex:user-cover-changed', {
-                    detail: { uid: u.uid, cover: data.photoURL },
-                  })
-                );
-              } else {
-                localStorage.removeItem(`chordex_cp_${u.uid}`);
-                window.dispatchEvent(
-                  new CustomEvent('chordex:user-cover-changed', {
-                    detail: { uid: u.uid, cover: null },
-                  })
-                );
-              }
+            } else {
               localStorage.setItem(`sync_last_local_update_profile`, remoteLast.toString());
               lastProfileSyncMs = Date.now();
-            } else if (localLast > remoteLast) {
-              console.info('[sync] Local profile is newer, uploading...');
-              import('./userAvatar').then(({ getUserAvatar }) => {
-                const avatarIcon = getUserAvatar(u.uid);
-                syncWriteProfileMain(u.displayName, u.photoURL, avatarIcon).catch(console.warn);
-              });
             }
             notifyDiagnostics();
           } else {
@@ -2402,37 +2504,44 @@ export function attachSyncEngine(): void {
             
             const localLast = parseInt(localStorage.getItem(`sync_last_local_update_appearance`) ?? '0', 10);
             const remoteLast = data.updatedAt || 0;
-            if (remoteLast > localLast && data.updatedByDevice !== deviceId()) {
-              console.info('[sync] applying remote appearance update:', data);
-              isApplyingRemoteUpdate = true;
-              try {
-                const nextTheme = data.theme === 'AMOLED' ? 'dark' : (data.theme || 'dark');
-                const nextAmoled = data.theme === 'AMOLED';
-                useChordStore.getState().updateSettings({
-                  theme: nextTheme as any,
-                  amoledMode: nextAmoled,
-                  accentColor: (data.accentColor || 'blue') as any,
-                  language: (data.language || 'en') as any,
-                  customAccentHue: data.customAccentHue ?? 220,
-                });
-              } finally {
-                isApplyingRemoteUpdate = false;
+            const isRemoteChange = data.updatedByDevice !== deviceId();
+            
+            if (isRemoteChange) {
+              if (remoteLast > localLast && !snap.metadata.hasPendingWrites) {
+                console.info('[sync] applying remote appearance update:', data);
+                isApplyingRemoteUpdate = true;
+                try {
+                  const nextTheme = data.theme === 'AMOLED' ? 'dark' : (data.theme || 'dark');
+                  const nextAmoled = data.theme === 'AMOLED';
+                  useChordStore.getState().updateSettings({
+                    theme: nextTheme as any,
+                    amoledMode: nextAmoled,
+                    accentColor: (data.accentColor || 'blue') as any,
+                    language: (data.language || 'en') as any,
+                    customAccentHue: data.customAccentHue ?? 220,
+                  });
+                } finally {
+                  isApplyingRemoteUpdate = false;
+                }
+                localStorage.setItem(`sync_last_local_update_appearance`, remoteLast.toString());
+                lastAppearanceSyncMs = Date.now();
+              } else if (localLast > remoteLast) {
+                console.info('[sync] Local appearance is newer, uploading...');
+                const settings = useChordStore.getState().settings;
+                const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
+                setDoc(doc(db, 'users', u.uid, 'settings', 'appearance'), {
+                  theme: themeValue,
+                  accentColor: settings.accentColor,
+                  customAccentHue: settings.customAccentHue ?? 220,
+                  palette: 'default',
+                  language: settings.language,
+                  updatedAt: localLast,
+                  updatedByDevice: deviceId(),
+                }, { merge: true }).catch(console.warn);
               }
+            } else {
               localStorage.setItem(`sync_last_local_update_appearance`, remoteLast.toString());
               lastAppearanceSyncMs = Date.now();
-            } else if (localLast > remoteLast) {
-              console.info('[sync] Local appearance is newer, uploading...');
-              const settings = useChordStore.getState().settings;
-              const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
-              setDoc(doc(db, 'users', u.uid, 'settings', 'appearance'), {
-                theme: themeValue,
-                accentColor: settings.accentColor,
-                customAccentHue: settings.customAccentHue ?? 220,
-                palette: 'default',
-                language: settings.language,
-                updatedAt: localLast,
-                updatedByDevice: deviceId(),
-              }, { merge: true }).catch(console.warn);
             }
             notifyDiagnostics();
           } else {
@@ -2465,32 +2574,39 @@ export function attachSyncEngine(): void {
             
             const localLast = parseInt(localStorage.getItem(`sync_last_local_update_preferences`) ?? '0', 10);
             const remoteLast = data.updatedAt || 0;
-            if (remoteLast > localLast && data.updatedByDevice !== deviceId()) {
-              console.info('[sync] applying remote preferences update:', data);
-              isApplyingRemoteUpdate = true;
-              try {
-                useChordStore.getState().updateSettings({
-                  syncAcrossDevices: data.syncEnabled ?? true,
-                  otaNotifications: data.updateNotifications ?? true,
-                  otaAutoCheck: data.automaticChecks ?? true,
-                  otaShowChangelog: data.showWhatsNewAfterUpdate ?? true,
-                });
-              } finally {
-                isApplyingRemoteUpdate = false;
+            const isRemoteChange = data.updatedByDevice !== deviceId();
+            
+            if (isRemoteChange) {
+              if (remoteLast > localLast && !snap.metadata.hasPendingWrites) {
+                console.info('[sync] applying remote preferences update:', data);
+                isApplyingRemoteUpdate = true;
+                try {
+                  useChordStore.getState().updateSettings({
+                    syncAcrossDevices: data.syncEnabled ?? true,
+                    otaNotifications: data.updateNotifications ?? true,
+                    otaAutoCheck: data.automaticChecks ?? true,
+                    otaShowChangelog: data.showWhatsNewAfterUpdate ?? true,
+                  });
+                } finally {
+                  isApplyingRemoteUpdate = false;
+                }
+                localStorage.setItem(`sync_last_local_update_preferences`, remoteLast.toString());
+                lastPreferencesSyncMs = Date.now();
+              } else if (localLast > remoteLast) {
+                console.info('[sync] Local preferences is newer, uploading...');
+                const settings = useChordStore.getState().settings;
+                setDoc(doc(db, 'users', u.uid, 'settings', 'preferences'), {
+                  syncEnabled: settings.syncAcrossDevices,
+                  updateNotifications: settings.otaNotifications,
+                  automaticChecks: settings.otaAutoCheck,
+                  showWhatsNewAfterUpdate: settings.otaShowChangelog,
+                  updatedAt: localLast,
+                  updatedByDevice: deviceId(),
+                }, { merge: true }).catch(console.warn);
               }
+            } else {
               localStorage.setItem(`sync_last_local_update_preferences`, remoteLast.toString());
               lastPreferencesSyncMs = Date.now();
-            } else if (localLast > remoteLast) {
-              console.info('[sync] Local preferences is newer, uploading...');
-              const settings = useChordStore.getState().settings;
-              setDoc(doc(db, 'users', u.uid, 'settings', 'preferences'), {
-                syncEnabled: settings.syncAcrossDevices,
-                updateNotifications: settings.otaNotifications,
-                automaticChecks: settings.otaAutoCheck,
-                showWhatsNewAfterUpdate: settings.otaShowChangelog,
-                updatedAt: localLast,
-                updatedByDevice: deviceId(),
-              }, { merge: true }).catch(console.warn);
             }
             notifyDiagnostics();
           } else {
@@ -2511,6 +2627,20 @@ export function attachSyncEngine(): void {
           console.warn('[sync] preferences listener error:', err);
           lastSyncError = err.message || String(err);
           notifyDiagnostics();
+        });
+
+        // 4. Subscribe to devices collection
+        const devicesRef = collection(db, 'users', u.uid, 'devices');
+        unsubDevicesListListener = onSnapshot(devicesRef, (snap) => {
+          let count = 0;
+          snap.forEach((doc) => {
+            const data = doc.data();
+            if (data.revokedAt == null) count++;
+          });
+          registeredDevicesCount = count;
+          notifyDiagnostics();
+        }, (err) => {
+          console.warn('[sync] devices list listener error:', err);
         });
       }
       const hasPriorSync = readFirstPullDone(u.uid);
@@ -2553,6 +2683,20 @@ export function attachSyncEngine(): void {
 
   onBeforeUnload = () => { void enqueueRun('beforeunload', 'push-only'); };
   window.addEventListener('beforeunload', onBeforeUnload);
+
+  import('@capacitor/app').then(({ App }) => {
+    App.addListener('appStateChange', (state) => {
+      if (state.isActive && currentUser) {
+        console.info('[sync] App resumed, registering device and syncing');
+        void registerDevice(currentUser.uid);
+        void enqueueRun('visibility', 'pull-then-push');
+      }
+    }).then((handle) => {
+      appStateListenerHandle = handle;
+    });
+  }).catch((err) => {
+    console.debug('[sync] App state listener not registered (not native)');
+  });
 }
 
 export function detachSyncEngine(): void {
@@ -2571,6 +2715,12 @@ export function detachSyncEngine(): void {
   unsubAppearanceListener = null;
   unsubPreferencesListener?.();
   unsubPreferencesListener = null;
+  unsubDevicesListListener?.();
+  unsubDevicesListListener = null;
+  if (appStateListenerHandle) {
+    appStateListenerHandle.remove();
+    appStateListenerHandle = null;
+  }
   if (lingerTimer) { clearTimeout(lingerTimer); lingerTimer = null; }
   if (flushDebounce) { clearTimeout(flushDebounce); flushDebounce = null; }
   if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }

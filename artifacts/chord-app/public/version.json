@@ -1,23 +1,22 @@
 {
-  "version": "3.6.0",
-  "changelog": "• Added real cross-device sync for profile and account settings.\n• Added live sync for theme, accent color, language, and preferences.\n• Added profile photo upload and sync across devices.\n• Added sync diagnostics in Developer Options.\n• Improved local-first sync behavior.\n• Improved offline sync handling.\n• Improved account/profile state consistency across Studio.\n• Fixed account sync controls not actually syncing settings across devices.\n• Fixed theme and accent color not appearing on other devices.\n• Fixed profile photo not syncing between phone and laptop.\n• Fixed Settings account card using stale local profile data.",
+  "version": "3.6.1",
+  "changelog": "• Fixed Cloud Sync not syncing theme, accent color, and profile photo across devices.\n• Fixed profile changes not updating live on other signed-in devices.\n• Fixed Devices & Sessions only showing the current device.\n• Fixed profile photo upload getting stuck without updating remote devices.\n• Added real device registration for signed-in Studio accounts.\n• Added live listeners for profile, appearance, preferences, and devices.\n• Added Sync Diagnostics in Developer Options.\n• Improved account sync reliability.\n• Improved cross-device settings updates.\n• Improved local-first sync and offline recovery behavior.",
   "releaseNotes": {
     "added": [
-      "Added real cross-device sync for profile and account settings.",
-      "Added live sync for theme, accent color, language, and preferences.",
-      "Added profile photo upload and sync across devices.",
-      "Added sync diagnostics in Developer Options."
+      "Added real device registration for signed-in Studio accounts.",
+      "Added live listeners for profile, appearance, preferences, and devices.",
+      "Added Sync Diagnostics in Developer Options."
     ],
     "improved": [
-      "Improved local-first sync behavior.",
-      "Improved offline sync handling.",
-      "Improved account/profile state consistency across Studio."
+      "Improved account sync reliability.",
+      "Improved cross-device settings updates.",
+      "Improved local-first sync and offline recovery behavior."
     ],
     "fixed": [
-      "Fixed account sync controls not actually syncing settings across devices.",
-      "Fixed theme and accent color not appearing on other devices.",
-      "Fixed profile photo not syncing between phone and laptop.",
-      "Fixed Settings account card using stale local profile data."
+      "Fixed Cloud Sync not syncing theme, accent color, and profile photo across devices.",
+      "Fixed profile changes not updating live on other signed-in devices.",
+      "Fixed Devices & Sessions only showing the current device.",
+      "Fixed profile photo upload getting stuck without updating remote devices."
     ]
   },
   "mandatory": false

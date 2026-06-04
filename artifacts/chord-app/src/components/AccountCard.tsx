@@ -1612,6 +1612,8 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     setBusy(true); setErr(null);
     try {
       await updateDisplayName(nameInput);
+      const { syncWriteProfileMain } = await import('../lib/sync');
+      await syncWriteProfileMain(nameInput, user.photoURL, avatarIcon);
       closeSheet();
       showToast(L.nameSaved);
     } catch (e) {
@@ -2598,8 +2600,22 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                               <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)', margin: 0 }}>
                                 {device.name} {isMe && `(${lang === 'es' ? 'Este dispositivo' : 'This device'})`}
                               </p>
-                              <p style={{ fontFamily: 'Inter', fontSize: 11, color: isMe ? '#10b981' : 'var(--c-text-muted)', margin: '2px 0 0', fontWeight: isMe ? 600 : 400 }}>
-                                {isMe ? `● ${lang === 'es' ? 'Sesión activa' : 'Active session'}` : formatLastActive(device.lastActive, lang)}
+                              <p style={{ fontFamily: 'Inter', fontSize: 11, color: isMe ? '#10b981' : 'var(--c-text-muted)', margin: '2px 0 0', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <span>
+                                  {!device.signedIn 
+                                    ? (lang === 'es' ? 'Sesión cerrada' : 'Signed out') 
+                                    : isMe 
+                                      ? `● ${lang === 'es' ? 'Sesión activa' : 'Active session'}` 
+                                      : formatLastActive(device.lastActive, lang)}
+                                </span>
+                                <span style={{ opacity: 0.5 }}>•</span>
+                                <span>v{device.appVersion}</span>
+                                <span style={{ opacity: 0.5 }}>•</span>
+                                <span style={{ 
+                                  color: device.syncStatus === 'success' || device.syncStatus === 'idle' ? '#10b981' : device.syncStatus === 'syncing' ? 'var(--accent-to, #a855f7)' : '#ff6b6b',
+                                  fontWeight: 600,
+                                  textTransform: 'capitalize'
+                                }}>{device.syncStatus}</span>
                               </p>
                             </div>
                           </div>
