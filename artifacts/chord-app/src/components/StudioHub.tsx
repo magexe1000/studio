@@ -312,6 +312,25 @@ export default function StudioHub() {
     };
   }, [setTab]);
 
+  useEffect(() => {
+    const handleRoute = () => {
+      setTab('settings');
+      sessionStorage.setItem('studio:routeToPrivacy', '1');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('studio:update-settings-page', { detail: 'privacy' }));
+      }, 50);
+    };
+    window.addEventListener('studio:route-to-privacy', handleRoute);
+
+    if (typeof window !== 'undefined' && sessionStorage.getItem('studio:routeToPrivacy') === '1') {
+      setTab('settings');
+    }
+
+    return () => {
+      window.removeEventListener('studio:route-to-privacy', handleRoute);
+    };
+  }, [setTab]);
+
   useBackHandler('nested', () => {
     if (tab === 'profile') {
       setTab('settings');
@@ -514,9 +533,162 @@ export default function StudioHub() {
                   </div>
                   <AccountCard
                     accent={accent}
-                    cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)', marginBottom: 12 }}
+                    cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)', marginBottom: 20 }}
                     rowStyle={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}
                   />
+
+                  {/* Polished Benefits Section */}
+                  <div style={{ marginTop: 24, padding: '0 4px 20px', textAlign: 'center' }}>
+                    <h3 style={{
+                      fontSize: 18,
+                      fontWeight: 800,
+                      fontFamily: 'Manrope, sans-serif',
+                      color: 'var(--c-text-primary)',
+                      margin: '0 0 6px',
+                      letterSpacing: '-0.02em',
+                    }}>
+                      Your Studio workspace, everywhere
+                    </h3>
+                    <p style={{
+                      fontSize: 12.5,
+                      fontFamily: 'Inter, sans-serif',
+                      color: 'var(--c-text-secondary)',
+                      opacity: 0.75,
+                      lineHeight: 1.45,
+                      margin: '0 auto 22px',
+                      maxWidth: 340,
+                    }}>
+                      Create an account to keep your projects, presets, settings, and progress connected across devices.
+                    </p>
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                      gap: 12,
+                      textAlign: 'left',
+                    }}>
+                      {/* Cloud Sync */}
+                      <div style={{
+                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
+                        border: '1px solid rgba(128, 128, 128, 0.08)',
+                        borderRadius: 16,
+                        padding: '14px 16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>sync</span>
+                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Cloud Sync</h4>
+                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Sync your workspace across devices securely.</p>
+                      </div>
+
+                      {/* Multi-device Access */}
+                      <div style={{
+                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
+                        border: '1px solid rgba(128, 128, 128, 0.08)',
+                        borderRadius: 16,
+                        padding: '14px 16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>devices</span>
+                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Multi-Device</h4>
+                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Keep your workspace connected across mobile and desktop.</p>
+                      </div>
+
+                      {/* Cloud Backup */}
+                      <div style={{
+                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
+                        border: '1px solid rgba(128, 128, 128, 0.08)',
+                        borderRadius: 16,
+                        padding: '14px 16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>backup</span>
+                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Cloud Backup</h4>
+                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Back up your projects, presets, and settings automatically.</p>
+                      </div>
+
+                      {/* Personalized Studio */}
+                      <div style={{
+                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
+                        border: '1px solid rgba(128, 128, 128, 0.08)',
+                        borderRadius: 16,
+                        padding: '14px 16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>palette</span>
+                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Personalized</h4>
+                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Save your custom themes, layouts, and app settings.</p>
+                      </div>
+
+                      {/* Faster Recovery */}
+                      <div style={{
+                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
+                        border: '1px solid rgba(128, 128, 128, 0.08)',
+                        borderRadius: 16,
+                        padding: '14px 16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>settings_backup_restore</span>
+                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Easy Recovery</h4>
+                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Restore your Studio setup anytime on any device.</p>
+                      </div>
+
+                      {/* Future Features */}
+                      <div style={{
+                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
+                        border: '1px solid rgba(128, 128, 128, 0.08)',
+                        borderRadius: 16,
+                        padding: '14px 16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>star</span>
+                          <span style={{
+                            fontSize: 8.5,
+                            fontWeight: 800,
+                            color: accent.from,
+                            background: `color-mix(in srgb, ${accent.from} 14%, transparent)`,
+                            padding: '1.5px 5.5px',
+                            borderRadius: 99,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.03em',
+                            fontFamily: 'Manrope, sans-serif',
+                          }}>Coming soon</span>
+                        </div>
+                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Upcoming Tools</h4>
+                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Prepare your account for collaboration and cloud tools.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </Suspense>
@@ -1270,6 +1442,10 @@ function HubSettings({
       sessionStorage.removeItem('studio:routeToUpdater');
       return 'updater';
     }
+    if (typeof window !== 'undefined' && sessionStorage.getItem('studio:routeToPrivacy') === '1') {
+      sessionStorage.removeItem('studio:routeToPrivacy');
+      return 'privacy';
+    }
     return 'main';
   });
   const [pageKey, setPageKey] = useState(0);
@@ -1322,6 +1498,36 @@ function HubSettings({
       window.removeEventListener('studio:route-to-updater', handleRoute);
     };
   }, []);
+
+  useEffect(() => {
+    const handleRoute = () => {
+      sessionStorage.removeItem('studio:routeToPrivacy');
+      navigate('privacy');
+    };
+    window.addEventListener('studio:route-to-privacy', handleRoute);
+
+    if (typeof window !== 'undefined' && sessionStorage.getItem('studio:routeToPrivacy') === '1') {
+      sessionStorage.removeItem('studio:routeToPrivacy');
+      navigate('privacy');
+    }
+
+    return () => {
+      window.removeEventListener('studio:route-to-privacy', handleRoute);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleUpdatePage = (e: Event) => {
+      const customEvent = e as CustomEvent<SettingsPageId>;
+      if (customEvent.detail) {
+        navigate(customEvent.detail);
+      }
+    };
+    window.addEventListener('studio:update-settings-page', handleUpdatePage as EventListener);
+    return () => {
+      window.removeEventListener('studio:update-settings-page', handleUpdatePage as EventListener);
+    };
+  }, [page]);
 
   const hubVis: PerAppVisuals = settings.perApp?.hub ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
   const [changelogOpen, setChangelogOpen] = useState(false);

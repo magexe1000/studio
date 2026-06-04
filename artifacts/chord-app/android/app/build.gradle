@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-// Trigger APK rebuild for v3.3.6 release - fixing Hub visual layer recovery
+// Trigger APK rebuild for v3.3.7 release - adding signed-out account benefits screen
 
 android {
     namespace "com.chordex.app"
@@ -8,8 +8,8 @@ android {
         applicationId "com.chordex.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "3.3.6"
+        versionCode 10
+        versionName "3.3.7"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

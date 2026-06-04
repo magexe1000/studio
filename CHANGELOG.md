@@ -15,6 +15,15 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.3.7
+
+- Added a polished account benefits section for signed-out users.
+- Added clearer explanations for Cloud Sync, multi-device access, backups, personalization, recovery, and future account features.
+- Added a small privacy note explaining account sync behavior.
+- Improved the signed-out Account screen.
+- Improved onboarding clarity for users who have not created a Studio account.
+- Improved messaging around sync, backups, and cross-device use.
+
 ## 3.3.6
 
 - Fixed black screen when returning from Studio apps back to the Hub.

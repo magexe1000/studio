@@ -151,6 +151,32 @@ export default function StudioAuthCard({
             >
               {t.createAccount}
             </button>
+
+            <p
+              style={{
+                fontSize: 10.5,
+                color: "var(--c-text-secondary)",
+                opacity: 0.65,
+                lineHeight: 1.4,
+                textAlign: "center",
+                margin: "12px 0 0",
+                fontFamily: "Inter, sans-serif",
+              }}
+            >
+              Studio only syncs the data needed to connect and restore your workspace. You can manage{" "}
+              <span
+                onClick={() => window.dispatchEvent(new CustomEvent("studio:route-to-privacy"))}
+                style={{
+                  textDecoration: "underline",
+                  cursor: "pointer",
+                  color: "var(--c-text-primary)",
+                  fontWeight: 500,
+                }}
+              >
+                privacy and sync options
+              </span>{" "}
+              anytime.
+            </p>
           </div>
         )}
 

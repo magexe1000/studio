@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.3.6'; // Fixed black screen when returning from Studio apps back to the Hub
+export const APP_VERSION = '3.3.7'; // Add signed-out account benefits screen
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-03'; // 3.3.6
+export const APP_VERSION_DATE = '2026-06-03'; // 3.3.7
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,13 +53,19 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      'Fixed black screen when returning from Studio apps back to the Hub.',
-      'Unified app-to-hub navigation through one shared return handler.',
-      'Added root UI fallback to prevent invalid blank/black render states.',
-      'Improved app exit transition reliability.',
-      'Improved Android back and predictive back recovery behavior.',
+      'Added a polished account benefits section for signed-out users.',
+      'Added clearer explanations for Cloud Sync, multi-device access, backups, personalization, recovery, and future account features.',
+      'Added a small privacy note explaining account sync behavior.',
+    ],
+  },
+  {
+    heading: "Improved",
+    items: [
+      'Improved the signed-out Account screen.',
+      'Improved onboarding clarity for users who have not created a Studio account.',
+      'Improved messaging around sync, backups, and cross-device use.',
     ],
   },
 ];
@@ -68,13 +74,19 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Corregido",
+    heading: "Añadido",
     items: [
-      'Corregido el bloqueo de pantalla negra al regresar de las aplicaciones de Studio al Hub.',
-      'Unificada la navegación de aplicación a Hub a través de un controlador de retorno compartido.',
-      'Agregado fallback de interfaz de usuario raíz para evitar estados de renderizado en blanco o negro inválidos.',
-      'Mejorada la confiabilidad de la transición de salida de la aplicación.',
-      'Mejorado el comportamiento de recuperación del botón atrás de Android y del gesto atrás predictivo.',
+      'Se agregó una sección pulida de beneficios de la cuenta para usuarios no registrados.',
+      'Se agregaron explicaciones más claras para Cloud Sync, acceso multidispositivo, copias de seguridad, personalización, recuperación y futuras funciones.',
+      'Se agregó una pequeña nota de privacidad que explica el comportamiento de sincronización de la cuenta.',
+    ],
+  },
+  {
+    heading: "Mejorado",
+    items: [
+      'Se mejoró la pantalla de Cuenta para usuarios no registrados.',
+      'Se mejoró la claridad de incorporación para usuarios que no han creado una cuenta de Studio.',
+      'Se mejoraron los mensajes sobre sincronización, copias de seguridad y uso en múltiples dispositivos.',
     ],
   },
 ];
@@ -82,13 +94,19 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Behoben",
+    heading: "Hinzugefügt",
     items: [
-      'Schwarzer Bildschirm beim Zurückkehren von Studio-Apps zum Hub behoben.',
-      'App-zu-Hub-Navigation über einen gemeinsamen Return-Handler vereinheitlicht.',
-      'UI-Fallback auf Root-Ebene hinzugefügt, um ungültige leere/schwarze Render-Zustände zu verhindern.',
-      'Zuverlässigkeit des App-Exit-Übergangs verbessert.',
-      'Wiederherstellungsverhalten für Android-Zurück-Taste und prädiktive Zurück-Geste verbessert.',
+      'Ein übersichtlicher Bereich für Kontovorteile für abgemeldete Benutzer wurde hinzugefügt.',
+      'Klarere Erklärungen für Cloud Sync, geräteübergreifenden Zugriff, Backups, Personalisierung, Wiederherstellung und zukünftige Funktionen hinzugefügt.',
+      'Ein kurzer Datenschutzhinweis zur Erklärung des Kontosynchronisierungsverhaltens wurde hinzugefügt.',
+    ],
+  },
+  {
+    heading: "Verbessert",
+    items: [
+      'Die Konto-Bildschirm für abgemeldete Benutzer wurde verbessert.',
+      'Die Übersichtlichkeit der Einführung für Benutzer ohne Studio-Konto wurde verbessert.',
+      'Die Benachrichtigungen zu Synchronisierung, Backups und geräteübergreifender Nutzung wurden verbessert.',
     ],
   },
 ];
