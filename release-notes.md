@@ -1,15 +1,14 @@
 ### Fixed
-- Fixed Cloud Sync not syncing theme, accent color, and profile photo across devices.
-- Fixed profile changes not updating live on other signed-in devices.
-- Fixed Devices & Sessions only showing the current device.
-- Fixed profile photo upload getting stuck without updating remote devices.
+- Fixed Cloud Sync not working correctly on Web builds.
+- Fixed web/laptop sessions not registering as real devices.
+- Fixed sync logic incorrectly depending on native APK/OTA fields.
+- Fixed theme, accent color, and profile photo not syncing between Android and Web.
+- Fixed Devices & Sessions not showing all signed-in devices.
 
 ### Added
-- Added real device registration for signed-in Studio accounts.
-- Added live listeners for profile, appearance, preferences, and devices.
-- Added Sync Diagnostics in Developer Options.
+- Added platform-aware sync diagnostics for Web and Android in Developer Options.
+- Added detailed Build and platform labels for Devices & Sessions.
 
 ### Improved
-- Improved account sync reliability.
-- Improved cross-device settings updates.
-- Improved local-first sync and offline recovery behavior.
+- Improved cross-device sync reliability.
+- Improved Devices & Sessions layout for web/browser sessions.

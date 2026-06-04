@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.1'; // Fix real cloud sync and devices sessions
+export const APP_VERSION = '3.6.2'; // Fix Web cloud sync and device detection
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.1
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.2
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,26 +55,25 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Added real device registration for signed-in Studio accounts.",
-      "Added live listeners for profile, appearance, preferences, and devices.",
-      "Added Sync Diagnostics in Developer Options.",
+      "Added platform-aware sync diagnostics for Web and Android in Developer Options.",
+      "Added detailed Build and platform labels for Devices & Sessions.",
     ],
   },
   {
     heading: "Improved",
     items: [
-      "Improved account sync reliability.",
-      "Improved cross-device settings updates.",
-      "Improved local-first sync and offline recovery behavior.",
+      "Improved cross-device sync reliability.",
+      "Improved Devices & Sessions layout for web/browser sessions.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed Cloud Sync not syncing theme, accent color, and profile photo across devices.",
-      "Fixed profile changes not updating live on other signed-in devices.",
-      "Fixed Devices & Sessions only showing the current device.",
-      "Fixed profile photo upload getting stuck without updating remote devices.",
+      "Fixed Cloud Sync not working correctly on Web builds.",
+      "Fixed web/laptop sessions not registering as real devices.",
+      "Fixed sync logic incorrectly depending on native APK/OTA fields.",
+      "Fixed theme, accent color, and profile photo not syncing between Android and Web.",
+      "Fixed Devices & Sessions not showing all signed-in devices.",
     ],
   },
 ];
@@ -85,26 +84,24 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Añadido",
     items: [
-      "Sincronización real en la nube de Studio para usuarios registrados.",
-      "Soporte de sincronización entre dispositivos para datos de cuenta.",
-      "Estado de sincronización, fecha de última sincronización y botón Sincronizar ahora.",
-      "Registro automático de dispositivos para sesiones iniciadas.",
-      "Migración guiada de datos locales a la nube al iniciar sesión.",
-      "Diagnósticos detallados de sincronización en Opciones de desarrollador.",
+      "Diagnósticos de sincronización web y estado de Firebase en Opciones de desarrollador.",
+      "Etiquetas detalladas de compilación y plataforma para Dispositivos y sesiones.",
     ],
   },
   {
     heading: "Mejorado",
     items: [
-      "Funcionalidad de cuenta mejorada con copias de seguridad reales.",
-      "Persistencia de perfil y configuraciones mejorada entre dispositivos.",
-      "Gestión sin conexión mejorada para datos sincronizables.",
+      "Fiabilidad de sincronización entre dispositivos mejorada.",
+      "Diseño de Dispositivos y sesiones mejorado para sesiones web.",
     ],
   },
   {
     heading: "Corregido",
     items: [
-      "Se corrigieron los botones de sincronización que parecían activos pero no hacían nada.",
+      "Se corrigió la sincronización en la nube que no funcionaba en la web.",
+      "Se corrigieron las sesiones web que no se registraban como dispositivos.",
+      "Se corrigió la dependencia incorrecta de campos nativos APK/OTA para sincronización.",
+      "Se corrigió la sincronización de temas, colores y fotos entre Android y web.",
     ],
   },
 ];

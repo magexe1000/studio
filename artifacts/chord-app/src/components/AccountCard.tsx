@@ -2609,7 +2609,24 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                                       : formatLastActive(device.lastActive, lang)}
                                 </span>
                                 <span style={{ opacity: 0.5 }}>•</span>
-                                <span>v{device.appVersion}</span>
+                                <span>{lang === 'es' ? 'Versión' : 'Version'}: {device.appVersion}</span>
+                                {device.buildType === 'web' ? (
+                                  <>
+                                    <span style={{ opacity: 0.5 }}>•</span>
+                                    <span>{lang === 'es' ? 'Compilación: Web' : 'Build: Web'}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    {device.apkVersion && (
+                                      <>
+                                        <span style={{ opacity: 0.5 }}>•</span>
+                                        <span>APK: {device.apkVersion}</span>
+                                      </>
+                                    )}
+                                    <span style={{ opacity: 0.5 }}>•</span>
+                                    <span>{lang === 'es' ? 'Compilación: Versión Nativa' : 'Build: Native Release'}</span>
+                                  </>
+                                )}
                                 <span style={{ opacity: 0.5 }}>•</span>
                                 <span style={{ 
                                   color: device.syncStatus === 'success' || device.syncStatus === 'idle' ? '#10b981' : device.syncStatus === 'syncing' ? 'var(--accent-to, #a855f7)' : '#ff6b6b',

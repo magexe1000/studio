@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
-import { getFirebaseDb, getFirebaseStorage } from './firebase';
+import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth } from './firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { subscribeAuth, type AuthUser, signOut } from './auth';
 import { isNative } from './capgoUpdater';
@@ -175,6 +175,7 @@ let pendingWritesCount = 0;
 let isApplyingRemoteUpdate = false;
 let unsubStoreSubscription: (() => void) | null = null;
 let registeredDevicesCount = 0;
+let isCurrentDeviceRegistered = false;
 let appStateListenerHandle: any = null;
 
 function notifyDiagnostics() {
@@ -224,6 +225,13 @@ export function getSyncDiagnostics() {
     lastSyncSuccess: status.lastSyncedMs ? new Date(status.lastSyncedMs).toLocaleString() : 'Never',
     registeredDevicesCount: registeredDevicesCount,
     currentDeviceDocPath: authUser ? `users/${authUser.uid}/devices/${deviceId()}` : 'N/A',
+    buildType: isNative() ? 'native' : 'web',
+    platform: isNative() ? 'native' : 'web',
+    firebaseAuthAvailable: !!getFirebaseAuth(),
+    firestoreAvailable: !!getFirebaseDb(),
+    storageAvailable: !!getFirebaseStorage(),
+    deviceRegistrationStatus: isCurrentDeviceRegistered ? 'registered' : 'not registered',
+    webSyncSupported: !!getFirebaseDb() && !!getFirebaseAuth() && !!getFirebaseStorage(),
   };
 }
 
@@ -695,16 +703,25 @@ export function getDeviceDetails() {
       deviceName = `Studio App (${os})`;
     }
   } else {
-    deviceName = `${browser} on ${os}`;
+    deviceName = `Studio Web (${browser} on ${os})`;
+  }
+
+  let deviceType = 'browser';
+  if (!isNativeApp && (os === 'Windows' || os === 'macOS' || os === 'Linux')) {
+    deviceType = 'desktop';
   }
 
   return {
     deviceId: deviceId(),
     deviceName,
     platform: isNativeApp ? 'native' : 'web',
+    deviceType: isNativeApp ? 'mobile' : deviceType,
+    browser: isNativeApp ? 'N/A' : browser,
     os,
     appVersion: APP_VERSION,
-    apkVersion: APP_VERSION,
+    apkVersion: isNativeApp ? APP_VERSION : null,
+    otaVersion: isNativeApp ? APP_VERSION : null,
+    buildType: isNativeApp ? 'native' : 'web',
     model,
     manufacturer,
     userAgent: isNativeApp ? undefined : ua,
@@ -738,8 +755,12 @@ export async function registerDevice(uid: string): Promise<void> {
     }
     
     await setDoc(ref, payload, { merge: true });
+    isCurrentDeviceRegistered = true;
+    notifyDiagnostics();
   } catch (err) {
     console.warn('[sync] failed to register device:', err);
+    isCurrentDeviceRegistered = false;
+    notifyDiagnostics();
   }
 }
 
@@ -755,6 +776,8 @@ export async function unregisterDevice(uid: string): Promise<void> {
       lastActiveAt: nowServer,
       updatedAt: nowServer,
     }, { merge: true });
+    isCurrentDeviceRegistered = false;
+    notifyDiagnostics();
   } catch (err) {
     console.warn('[sync] failed to unregister device:', err);
   }
@@ -801,6 +824,9 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
         appVersion: data.appVersion || 'Unknown',
         syncStatus: data.syncStatus || 'idle',
         signedIn: data.signedIn !== false,
+        buildType: data.buildType || (data.platform === 'native' ? 'native' : 'web'),
+        apkVersion: data.apkVersion || null,
+        otaVersion: data.otaVersion || null,
       });
     });
     callback(list);
@@ -2390,6 +2416,7 @@ export function attachSyncEngine(): void {
       lastPreferencesSyncMs = null;
       lastSyncError = null;
       registeredDevicesCount = 0;
+      isCurrentDeviceRegistered = false;
     }
 
     if (!u && priorUser) {

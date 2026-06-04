@@ -1607,9 +1607,9 @@ function HubSettings({
           setDevBundleId(info.id);
           setDevVersionCode(info.build);
         } else {
-          setDevNativeVersion('N/A (Web)');
-          setDevBundleId('N/A (Web)');
-          setDevVersionCode('N/A (Web)');
+          setDevNativeVersion('N/A — Web build');
+          setDevBundleId('N/A — Web build');
+          setDevVersionCode('N/A — Web build');
         }
       } catch (e) {
         setDevNativeVersion('Error loading native info');
@@ -1623,7 +1623,7 @@ function HubSettings({
           const current = await CapacitorUpdater.current();
           setDevOtaVersion(current?.bundle?.version || 'builtin');
         } else {
-          setDevOtaVersion('N/A (Web)');
+          setDevOtaVersion('N/A — Web build');
         }
       } catch (e) {
         setDevOtaVersion('Error loading OTA info');
@@ -2792,6 +2792,16 @@ function HubSettings({
           <DevInfoRow label="Signing Fingerprint" desc="Public SHA-256 production certificate key" value="90:0C:F2:59:18:5C:81:10:0C:DA:8B:B0:85:71:FA:23:55:2E:97:89:13:1C:F0:7A:8F:40:56:E4:D4:12:92:06" canCopy />
           <DevInfoRow label="Signature SHA-256" desc="Active loaded certificate hash key" value={installedPackageDetails?.signingSha256 || 'N/A'} canCopy />
           <DevInfoRow label="Debuggable Status" desc="Security debugging compiled state" value={isNative() ? 'false (Release Build)' : 'true (Web Dev Mode)'} />
+          {!isNative() && (
+            <>
+              <DevInfoRow label="Web App Version" desc="Hardcoded web application version" value={APP_VERSION} />
+              <DevInfoRow label="Web Sync Supported" desc="Is cloud sync supported on web platforms" value={diag.webSyncSupported ? 'true' : 'false'} />
+              <DevInfoRow label="Firebase Auth Available" desc="Is Firebase Authentication client library available" value={diag.firebaseAuthAvailable ? 'true' : 'false'} />
+              <DevInfoRow label="Firestore Available" desc="Is Firestore Database client library available" value={diag.firestoreAvailable ? 'true' : 'false'} />
+              <DevInfoRow label="Storage Available" desc="Is Firebase Storage client library available" value={diag.storageAvailable ? 'true' : 'false'} />
+              <DevInfoRow label="Device Registration" desc="Status of this web device registration" value={diag.deviceRegistrationStatus} />
+            </>
+          )}
         </div>
 
         {/* 2. Update System */}
@@ -2867,6 +2877,8 @@ function HubSettings({
           <DevInfoRow label="Auth UID" value={diag.authUid} />
           <DevInfoRow label="Current Device ID" value={diag.deviceId} />
           <DevInfoRow label="Current Device Doc Path" value={diag.currentDeviceDocPath} canCopy />
+          <DevInfoRow label="Build Type" value={diag.buildType} />
+          <DevInfoRow label="Platform" value={diag.platform} />
           <DevInfoRow label="Sync Enabled" value={diag.syncEnabled ? 'TRUE' : 'FALSE'} />
           <DevInfoRow label="Firestore Connected" value={diag.firestoreConnected ? 'TRUE' : 'FALSE'} />
           <DevInfoRow label="Profile Listener Active" value={diag.profileListenerActive ? 'TRUE' : 'FALSE'} />
