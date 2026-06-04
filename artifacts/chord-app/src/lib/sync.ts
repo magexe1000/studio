@@ -152,7 +152,13 @@ export type SyncStatus = {
   devicesSnapshotCount?: number;
   lastDeviceWriteError?: string | null;
   lastDeviceWriteSuccess?: string | null;
-  deviceRegistrationStatus?: 'pending' | 'registered' | 'failed';
+  deviceRegistrationStatus?: 'idle' | 'pending' | 'registered' | 'failed';
+  lastDeviceWriteAttemptedAt?: string | null;
+  lastDeviceWriteDurationMs?: number | string | null;
+  lastDeviceSnapshotAt?: string | null;
+  deviceIdsReceived?: string[];
+  lastDeviceRegistrationReason?: string | null;
+  inFlightWriteStatus?: boolean;
 };
 
 type Listener = (s: SyncStatus) => void;
@@ -188,6 +194,12 @@ let lastDeviceWriteError: string | null = null;
 let lastDevicesListenerError: string | null = null;
 let devicesSnapshotIds: string[] = [];
 let devicesSnapshotCount = 0;
+let lastDeviceWriteAttemptedAt: string | null = null;
+let lastDeviceWriteDurationMs: number | string | null = null;
+let lastDeviceSnapshotAt: string | null = null;
+let deviceRegistrationStatus: 'idle' | 'pending' | 'registered' | 'failed' = 'idle';
+let lastDeviceRegistrationReason: string | null = null;
+let inFlightWriteStatus = false;
 
 function notifyDiagnostics() {
   setStatus({}); // Trigger state updates for reactive subscribers
@@ -241,7 +253,7 @@ export function getSyncDiagnostics() {
     firebaseAuthAvailable: !!getFirebaseAuth(),
     firestoreAvailable: !!getFirebaseDb(),
     storageAvailable: !!getFirebaseStorage(),
-    deviceRegistrationStatus: isCurrentDeviceRegistered ? 'registered' : 'not registered',
+    deviceRegistrationStatus: deviceRegistrationStatus,
     webSyncSupported: !!getFirebaseDb() && !!getFirebaseAuth() && !!getFirebaseStorage(),
     
     firebaseProjectId: getFirebaseProjectId(),
@@ -252,6 +264,11 @@ export function getSyncDiagnostics() {
     lastDeviceWriteSuccess: lastDeviceWriteSuccess || 'Never',
     lastDeviceWriteError: lastDeviceWriteError || 'None',
     lastDevicesListenerError: lastDevicesListenerError || 'None',
+    lastDeviceWriteAttemptedAt: lastDeviceWriteAttemptedAt || 'Never',
+    lastDeviceWriteDurationMs: lastDeviceWriteDurationMs != null ? `${lastDeviceWriteDurationMs}ms` : 'N/A',
+    lastDeviceSnapshotAt: lastDeviceSnapshotAt || 'Never',
+    lastDeviceRegistrationReason: lastDeviceRegistrationReason || 'None',
+    inFlightWriteStatus: inFlightWriteStatus,
   };
 }
 
@@ -269,7 +286,7 @@ export async function pushLocalSettingsToCloud(): Promise<void> {
     // 1. Write appearance settings
     const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
     const appRef = doc(db, 'users', currentUser.uid, 'settings', 'appearance');
-    await setDoc(appRef, {
+    await setDoc(appRef, sanitizeForFirestore({
       theme: themeValue,
       accentColor: settings.accentColor,
       customAccentHue: settings.customAccentHue ?? 220,
@@ -277,26 +294,26 @@ export async function pushLocalSettingsToCloud(): Promise<void> {
       language: settings.language,
       updatedAt: now,
       updatedByDevice: deviceId(),
-    }, { merge: true });
+    }), { merge: true });
     localStorage.setItem(`sync_last_local_update_appearance`, now.toString());
     
     // 2. Write preference settings
     const prefRef = doc(db, 'users', currentUser.uid, 'settings', 'preferences');
-    await setDoc(prefRef, {
+    await setDoc(prefRef, sanitizeForFirestore({
       syncEnabled: settings.syncAcrossDevices,
       updateNotifications: settings.otaNotifications,
       automaticChecks: settings.otaAutoCheck,
       showWhatsNewAfterUpdate: settings.otaShowChangelog,
       updatedAt: now,
       updatedByDevice: deviceId(),
-    }, { merge: true });
+    }), { merge: true });
     localStorage.setItem(`sync_last_local_update_preferences`, now.toString());
     
     // 3. Write profile settings
     const { getUserAvatar } = await import('./userAvatar');
     const avatarIcon = getUserAvatar(currentUser.uid);
     const profileRef = doc(db, 'users', currentUser.uid, 'profile', 'main');
-    await setDoc(profileRef, {
+    await setDoc(profileRef, sanitizeForFirestore({
       displayName: currentUser.displayName,
       email: currentUser.email,
       photoURL: currentUser.photoURL,
@@ -304,7 +321,7 @@ export async function pushLocalSettingsToCloud(): Promise<void> {
       role: 'user',
       updatedAt: now,
       updatedByDevice: deviceId(),
-    }, { merge: true });
+    }), { merge: true });
     localStorage.setItem(`sync_last_local_update_profile`, now.toString());
     
     console.info('[sync] pushed local settings to cloud');
@@ -441,7 +458,7 @@ export async function syncWriteProfileMain(displayName: string | null, photoURL:
     localStorage.setItem(`sync_last_local_update_profile`, now.toString());
     
     const ref = doc(db, 'users', currentUser.uid, 'profile', 'main');
-    await setDoc(ref, {
+    await setDoc(ref, sanitizeForFirestore({
       displayName,
       email: currentUser.email,
       photoURL,
@@ -449,7 +466,7 @@ export async function syncWriteProfileMain(displayName: string | null, photoURL:
       role: 'user',
       updatedAt: now,
       updatedByDevice: deviceId(),
-    }, { merge: true });
+    }), { merge: true });
   } catch (err: any) {
     console.warn('[sync] write profile main failed:', err);
     lastSyncError = err.message || String(err);
@@ -480,7 +497,13 @@ let status: SyncStatus = {
   devicesSnapshotCount: 0,
   lastDeviceWriteError: null,
   lastDeviceWriteSuccess: null,
-  deviceRegistrationStatus: 'pending',
+  deviceRegistrationStatus: 'idle',
+  lastDeviceWriteAttemptedAt: null,
+  lastDeviceWriteDurationMs: null,
+  lastDeviceSnapshotAt: null,
+  deviceIdsReceived: [],
+  lastDeviceRegistrationReason: null,
+  inFlightWriteStatus: false,
 };
 let stageIframe: HTMLIFrameElement | null = null;
 let stageSnapshotResolvers: Array<(s: StagexSnapshot) => void> = [];
@@ -827,41 +850,139 @@ export function getDeviceDetails() {
   };
 }
 
-export async function registerDevice(uid: string): Promise<void> {
-  const db = getFirebaseDb();
-  if (!db) {
-    console.warn('[sync] FirebaseDb not initialized during registerDevice');
+export function sanitizeForFirestore(val: any): any {
+  if (val === undefined) {
+    return null;
+  }
+  if (val === null) {
+    return null;
+  }
+  if (typeof val !== 'object') {
+    return val;
+  }
+  if (val instanceof Date) {
+    return val;
+  }
+  if (typeof File !== 'undefined' && val instanceof File) {
+    return val;
+  }
+  if (typeof Blob !== 'undefined' && val instanceof Blob) {
+    return val;
+  }
+  const constructorName = val.constructor ? val.constructor.name : '';
+  if (constructorName && constructorName !== 'Object' && constructorName !== 'Array') {
+    return val;
+  }
+  if (Array.isArray(val)) {
+    return val.map(item => item === undefined ? null : sanitizeForFirestore(item));
+  }
+  const result: any = {};
+  for (const key of Object.keys(val)) {
+    const value = val[key];
+    if (value !== undefined) {
+      result[key] = sanitizeForFirestore(value);
+    }
+  }
+  return result;
+}
+
+export async function registerCurrentDevice(uid: string | null | undefined, reason: string): Promise<void> {
+  const startTime = Date.now();
+  
+  let id: string;
+  try {
+    id = deviceId();
+  } catch (e: any) {
+    lastDeviceWriteError = "Cannot register device because stable deviceId could not be resolved";
+    deviceRegistrationStatus = "failed";
+    setStatus({
+      lastDeviceWriteError,
+      deviceRegistrationStatus,
+    });
+    notifyDiagnostics();
     return;
   }
-  const id = deviceId();
-  const ref = doc(db, 'users', uid, 'devices', id);
-  let details;
-  try {
-    details = getDeviceDetails();
-  } catch (err: any) {
-    console.warn('[sync] getDeviceDetails failed, using fallback:', err);
-    details = {
-      deviceId: id,
-      deviceName: 'Studio Device',
-      platform: isNative() ? 'android' : 'web',
-      deviceType: isNative() ? 'phone' : 'browser',
-      browser: 'Unknown',
-      os: 'Unknown',
-      appVersion: APP_VERSION,
-      apkVersion: 'unknown',
-      otaVersion: 'unknown',
-      buildType: isNative() ? 'native' : 'web',
-      model: 'Android device',
-      manufacturer: 'N/A',
-      isCurrentDevice: true,
-    };
+  
+  if (!id) {
+    lastDeviceWriteError = "Cannot register device because stable deviceId could not be resolved";
+    deviceRegistrationStatus = "failed";
+    setStatus({
+      lastDeviceWriteError,
+      deviceRegistrationStatus,
+    });
+    notifyDiagnostics();
+    return;
   }
 
+  if (!uid) {
+    lastDeviceWriteError = "Cannot register device because auth uid is missing";
+    deviceRegistrationStatus = "failed";
+    setStatus({
+      lastDeviceWriteError,
+      deviceRegistrationStatus,
+    });
+    notifyDiagnostics();
+    return;
+  }
+
+  const db = getFirebaseDb();
+  if (!db) {
+    lastDeviceWriteError = "Firestore db is unavailable";
+    deviceRegistrationStatus = "failed";
+    setStatus({
+      lastDeviceWriteError,
+      deviceRegistrationStatus,
+    });
+    notifyDiagnostics();
+    return;
+  }
+  
+  const ref = doc(db, 'users', uid, 'devices', id);
+  
+  deviceRegistrationStatus = "pending";
+  lastDeviceWriteAttemptedAt = new Date().toLocaleString();
+  lastDeviceWriteError = "None";
+  lastDeviceRegistrationReason = reason;
+  inFlightWriteStatus = true;
+  
+  setStatus({
+    deviceRegistrationStatus,
+    lastDeviceWriteAttemptedAt,
+    lastDeviceWriteError,
+    lastDeviceRegistrationReason,
+    inFlightWriteStatus,
+  });
+  notifyDiagnostics();
+
   try {
-    const snap = await getDoc(ref);
+    let details: any;
+    try {
+      details = getDeviceDetails();
+    } catch (err: any) {
+      console.warn('[sync] getDeviceDetails failed, using fallback:', err);
+      details = {
+        deviceId: id,
+        deviceName: 'Studio Device',
+        platform: isNative() ? 'android' : 'web',
+        deviceType: isNative() ? 'phone' : 'browser',
+        browser: 'Unknown',
+        os: 'Unknown',
+        appVersion: APP_VERSION,
+        apkVersion: null,
+        otaVersion: null,
+        buildType: isNative() ? 'native' : 'web',
+        model: 'Android device',
+        manufacturer: 'N/A',
+        userAgent: 'Unknown',
+        isCurrentDevice: true,
+      };
+    }
+
     const nowServer = serverTimestamp();
-    
-    const payload: any = {
+    const firstSeenKey = `studio_device_first_seen_${uid}_${id}`;
+    const hasBeenSeen = localStorage.getItem(firstSeenKey) === 'true';
+
+    const rawPayload: any = {
       ...details,
       lastSeenAt: nowServer,
       lastActiveAt: nowServer,
@@ -870,32 +991,63 @@ export async function registerDevice(uid: string): Promise<void> {
       currentSession: true,
       syncStatus: 'active',
       revokedAt: null,
+      isNative: isNative(),
+      updatedByDevice: id,
     };
-    
-    if (!snap.exists()) {
-      payload.firstSeenAt = nowServer;
+
+    if (!hasBeenSeen) {
+      rawPayload.firstSeenAt = nowServer;
     }
-    
-    await setDoc(ref, payload, { merge: true });
+
+    const cleanPayload = sanitizeForFirestore(rawPayload);
+
+    await withTimeout(setDoc(ref, cleanPayload, { merge: true }), 10000, 'device-registration');
+
+    if (!hasBeenSeen) {
+      try {
+        localStorage.setItem(firstSeenKey, 'true');
+      } catch (e) {}
+    }
+
+    const duration = Date.now() - startTime;
     isCurrentDeviceRegistered = true;
+    deviceRegistrationStatus = "registered";
     lastDeviceWriteSuccess = new Date().toLocaleString();
-    lastDeviceWriteError = 'None';
+    lastDeviceWriteError = "None";
+    lastDeviceWriteDurationMs = duration;
+    inFlightWriteStatus = false;
+
     setStatus({
-      lastDeviceWriteSuccess: lastDeviceWriteSuccess,
-      lastDeviceWriteError: 'None',
-      deviceRegistrationStatus: 'registered',
+      lastDeviceWriteSuccess,
+      lastDeviceWriteError,
+      deviceRegistrationStatus,
+      lastDeviceWriteDurationMs,
+      inFlightWriteStatus,
     });
     notifyDiagnostics();
+
   } catch (err: any) {
     console.warn('[sync] failed to register device:', err);
     isCurrentDeviceRegistered = false;
-    lastDeviceWriteError = err.message || String(err);
+    deviceRegistrationStatus = "failed";
+    const isTimeout = err instanceof SyncTimeoutError || (err.message && err.message.includes('Sync timed out'));
+    lastDeviceWriteError = isTimeout 
+      ? "Device registration write timed out after 10000ms" 
+      : (err.message || String(err));
+    inFlightWriteStatus = false;
+
     setStatus({
-      lastDeviceWriteError: lastDeviceWriteError,
-      deviceRegistrationStatus: 'failed',
+      lastDeviceWriteError,
+      deviceRegistrationStatus,
+      inFlightWriteStatus,
     });
     notifyDiagnostics();
+    throw err;
   }
+}
+
+export async function registerDevice(uid: string): Promise<void> {
+  await registerCurrentDevice(uid, 'legacy-call');
 }
 
 export async function unregisterDevice(uid: string): Promise<void> {
@@ -905,11 +1057,11 @@ export async function unregisterDevice(uid: string): Promise<void> {
   const ref = doc(db, 'users', uid, 'devices', id);
   try {
     const nowServer = serverTimestamp();
-    await setDoc(ref, {
+    await setDoc(ref, sanitizeForFirestore({
       signedIn: false,
       lastActiveAt: nowServer,
       updatedAt: nowServer,
-    }, { merge: true });
+    }), { merge: true });
     isCurrentDeviceRegistered = false;
     notifyDiagnostics();
   } catch (err) {
@@ -923,12 +1075,12 @@ export async function revokeDeviceSession(uid: string, targetDeviceId: string): 
   const ref = doc(db, 'users', uid, 'devices', targetDeviceId);
   try {
     const nowServer = serverTimestamp();
-    await setDoc(ref, {
+    await setDoc(ref, sanitizeForFirestore({
       revokedAt: nowServer,
       signedIn: false,
       lastActiveAt: nowServer,
       updatedAt: nowServer,
-    }, { merge: true });
+    }), { merge: true });
   } catch (err) {
     console.warn('[sync] failed to revoke session:', err);
   }
@@ -968,9 +1120,12 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
     devicesSnapshotIds = ids;
     devicesSnapshotCount = snap.size;
     lastDevicesListenerError = 'None';
+    lastDeviceSnapshotAt = new Date().toLocaleString();
     setStatus({
       lastDevicesListenerError: 'None',
       devicesSnapshotCount: snap.size,
+      lastDeviceSnapshotAt,
+      deviceIdsReceived: ids,
     });
     callback(list);
   }, (err) => {
@@ -981,6 +1136,7 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
     setStatus({
       lastDevicesListenerError: err.message || String(err),
       devicesSnapshotCount: 0,
+      deviceIdsReceived: [],
     });
     callback([]);
   });
@@ -1813,13 +1969,13 @@ async function pushApp(
 
   if (meta[app]?.lastHash === localHash) return { pushed: false, pulled: false };
 
-  await withAbort(withTimeout(setDoc(ref, {
+  await withAbort(withTimeout(setDoc(ref, sanitizeForFirestore({
     kind: typeof raw === 'string' ? 'json' : Array.isArray(raw) ? 'array' : 'bundle',
     body: raw,
     updatedAt: serverTimestamp(),
     deviceId: deviceId(),
     schemaVersion: 1,
-  }, { merge: false }), FIRESTORE_OP_MS, `setDoc:${app}`), signal, 'run');
+  }), { merge: false }), FIRESTORE_OP_MS, `setDoc:${app}`), signal, 'run');
 
   // Re-read to capture the server-assigned timestamp.
   const after = await withAbort(withTimeout(getDoc(ref), FIRESTORE_OP_MS, `getDoc:${app}:confirm`), signal, 'run');
@@ -2009,7 +2165,7 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
   if (!currentUser) return;
 
   // Best-effort device registration attempt at the start of every sync run
-  void registerDevice(currentUser.uid);
+  void registerCurrentDevice(currentUser.uid, 'sync-run-start');
 
   // Skip the noisy "syncing" flicker if there's literally nothing to do
   // on a push-only run. (For pull-then-push we always announce — the
@@ -2119,7 +2275,7 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
           writeFirstPullDone(currentUser.uid);
           setStatus({ phase: 'idle', lastSyncedMs: Date.now(), error: null });
           if (currentUser) {
-            void registerDevice(currentUser.uid);
+            void registerCurrentDevice(currentUser.uid, 'migration-upload');
           }
           return;
         }
@@ -2228,7 +2384,7 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
     if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
     if (neverStuckHandle) { clearTimeout(neverStuckHandle); neverStuckHandle = null; }
     if (currentUser) {
-      void registerDevice(currentUser.uid);
+      void registerCurrentDevice(currentUser.uid, 'sync-run-success');
       void triggerAutoBackup();
     }
     logSuccess(Date.now() - startedAt, pushedCount, pulledCount);
@@ -2484,7 +2640,7 @@ export function attachSyncEngine(): void {
         pendingWritesCount++;
         notifyDiagnostics();
         const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
-        setDoc(doc(db, 'users', currentUser.uid, 'settings', 'appearance'), {
+        setDoc(doc(db, 'users', currentUser.uid, 'settings', 'appearance'), sanitizeForFirestore({
           theme: themeValue,
           accentColor: settings.accentColor,
           customAccentHue: settings.customAccentHue ?? 220,
@@ -2492,7 +2648,7 @@ export function attachSyncEngine(): void {
           language: settings.language,
           updatedAt: now,
           updatedByDevice: deviceId(),
-        }, { merge: true }).catch((err) => {
+        }), { merge: true }).catch((err) => {
           console.warn('[sync] failed to write appearance settings:', err);
           lastSyncError = err.message || String(err);
         }).finally(() => {
@@ -2515,14 +2671,14 @@ export function attachSyncEngine(): void {
       if (db && currentUser) {
         pendingWritesCount++;
         notifyDiagnostics();
-        setDoc(doc(db, 'users', currentUser.uid, 'settings', 'preferences'), {
+        setDoc(doc(db, 'users', currentUser.uid, 'settings', 'preferences'), sanitizeForFirestore({
           syncEnabled: settings.syncAcrossDevices,
           updateNotifications: settings.otaNotifications,
           automaticChecks: settings.otaAutoCheck,
           showWhatsNewAfterUpdate: settings.otaShowChangelog,
           updatedAt: now,
           updatedByDevice: deviceId(),
-        }, { merge: true }).catch((err) => {
+        }), { merge: true }).catch((err) => {
           console.warn('[sync] failed to write preference settings:', err);
           lastSyncError = err.message || String(err);
         }).finally(() => {
@@ -2580,7 +2736,7 @@ export function attachSyncEngine(): void {
     }
 
     if (u) {
-      void registerDevice(u.uid);
+      void registerCurrentDevice(u.uid, 'auth-change');
       const db = getFirebaseDb();
       if (db) {
         const myId = deviceId();
@@ -2712,7 +2868,7 @@ export function attachSyncEngine(): void {
                 console.info('[sync] Local appearance is newer, uploading...');
                 const settings = useChordStore.getState().settings;
                 const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
-                setDoc(doc(db, 'users', u.uid, 'settings', 'appearance'), {
+                setDoc(doc(db, 'users', u.uid, 'settings', 'appearance'), sanitizeForFirestore({
                   theme: themeValue,
                   accentColor: settings.accentColor,
                   customAccentHue: settings.customAccentHue ?? 220,
@@ -2720,7 +2876,7 @@ export function attachSyncEngine(): void {
                   language: settings.language,
                   updatedAt: localLast,
                   updatedByDevice: deviceId(),
-                }, { merge: true }).catch(console.warn);
+                }), { merge: true }).catch(console.warn);
               }
             } else {
               localStorage.setItem(`sync_last_local_update_appearance`, remoteLast.toString());
@@ -2733,7 +2889,7 @@ export function attachSyncEngine(): void {
             const now = Date.now();
             localStorage.setItem(`sync_last_local_update_appearance`, now.toString());
             const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
-            setDoc(doc(db, 'users', u.uid, 'settings', 'appearance'), {
+            setDoc(doc(db, 'users', u.uid, 'settings', 'appearance'), sanitizeForFirestore({
               theme: themeValue,
               accentColor: settings.accentColor,
               customAccentHue: settings.customAccentHue ?? 220,
@@ -2741,7 +2897,7 @@ export function attachSyncEngine(): void {
               language: settings.language,
               updatedAt: now,
               updatedByDevice: deviceId(),
-            }, { merge: true }).catch(console.warn);
+            }), { merge: true }).catch(console.warn);
           }
         }, (err) => {
           console.warn('[sync] appearance listener error:', err);
@@ -2778,14 +2934,14 @@ export function attachSyncEngine(): void {
               } else if (localLast > remoteLast) {
                 console.info('[sync] Local preferences is newer, uploading...');
                 const settings = useChordStore.getState().settings;
-                setDoc(doc(db, 'users', u.uid, 'settings', 'preferences'), {
+                setDoc(doc(db, 'users', u.uid, 'settings', 'preferences'), sanitizeForFirestore({
                   syncEnabled: settings.syncAcrossDevices,
                   updateNotifications: settings.otaNotifications,
                   automaticChecks: settings.otaAutoCheck,
                   showWhatsNewAfterUpdate: settings.otaShowChangelog,
                   updatedAt: localLast,
                   updatedByDevice: deviceId(),
-                }, { merge: true }).catch(console.warn);
+                }), { merge: true }).catch(console.warn);
               }
             } else {
               localStorage.setItem(`sync_last_local_update_preferences`, remoteLast.toString());
@@ -2797,14 +2953,14 @@ export function attachSyncEngine(): void {
             const settings = useChordStore.getState().settings;
             const now = Date.now();
             localStorage.setItem(`sync_last_local_update_preferences`, now.toString());
-            setDoc(doc(db, 'users', u.uid, 'settings', 'preferences'), {
+            setDoc(doc(db, 'users', u.uid, 'settings', 'preferences'), sanitizeForFirestore({
               syncEnabled: settings.syncAcrossDevices,
               updateNotifications: settings.otaNotifications,
               automaticChecks: settings.otaAutoCheck,
               showWhatsNewAfterUpdate: settings.otaShowChangelog,
               updatedAt: now,
               updatedByDevice: deviceId(),
-            }, { merge: true }).catch(console.warn);
+            }), { merge: true }).catch(console.warn);
           }
         }, (err) => {
           console.warn('[sync] preferences listener error:', err);
@@ -2816,14 +2972,31 @@ export function attachSyncEngine(): void {
         const devicesRef = collection(db, 'users', u.uid, 'devices');
         unsubDevicesListListener = onSnapshot(devicesRef, (snap) => {
           let count = 0;
+          const ids: string[] = [];
           snap.forEach((doc) => {
             const data = doc.data();
+            ids.push(doc.id);
             if (data.revokedAt == null) count++;
           });
           registeredDevicesCount = count;
+          devicesSnapshotIds = ids;
+          devicesSnapshotCount = snap.size;
+          lastDevicesListenerError = 'None';
+          lastDeviceSnapshotAt = new Date().toLocaleString();
+          setStatus({
+            devicesSnapshotCount: snap.size,
+            lastDevicesListenerError: 'None',
+            lastDeviceSnapshotAt,
+            deviceIdsReceived: ids,
+          });
           notifyDiagnostics();
         }, (err) => {
           console.warn('[sync] devices list listener error:', err);
+          lastDevicesListenerError = err.message || String(err);
+          setStatus({
+            lastDevicesListenerError,
+          });
+          notifyDiagnostics();
         });
       }
       const hasPriorSync = readFirstPullDone(u.uid);
@@ -2864,7 +3037,7 @@ export function attachSyncEngine(): void {
       void enqueueRun('visibility', 'push-only');
     } else if (document.visibilityState === 'visible' && currentUser) {
       console.info('[sync] Tab visible, registering device and syncing');
-      void registerDevice(currentUser.uid);
+      void registerCurrentDevice(currentUser.uid, 'tab-visible');
       void enqueueRun('visibility', 'pull-then-push');
     }
   };
@@ -2877,7 +3050,7 @@ export function attachSyncEngine(): void {
     App.addListener('appStateChange', (state) => {
       if (state.isActive && currentUser) {
         console.info('[sync] App resumed, registering device and syncing');
-        void registerDevice(currentUser.uid);
+        void registerCurrentDevice(currentUser.uid, 'app-resume');
         void enqueueRun('visibility', 'pull-then-push');
       }
     }).then((handle) => {

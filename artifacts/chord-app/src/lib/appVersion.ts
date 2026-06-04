@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.4'; // Fix real cloud sync device registration
+export const APP_VERSION = '3.6.5'; // Fix real cloud sync device registration
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.4
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.5
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -67,6 +67,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
       "Fixed current device registration not writing to Firestore.",
       "Fixed missing device documents under users/{uid}/devices.",
       "Added diagnostics for device write status and listener status.",
+      "Implemented robust device registration with 10-second write timeout and automatic retries.",
+      "Added deep diagnostics in Devices & Sessions sheet listing 16 registration status parameters.",
+      "Implemented automatic Firestore payload sanitization to prevent write rejections due to undefined native/platform fields.",
     ],
   },
 ];
@@ -81,6 +84,9 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
       "Se corrigió que el registro del dispositivo actual no se escribiera en Firestore.",
       "Se corrigió la falta de documentos de dispositivos bajo users/{uid}/devices.",
       "Se agregaron diagnósticos para el estado de escritura y listener de dispositivos.",
+      "Se implementó el registro robusto del dispositivo con un tiempo de espera de escritura de 10 segundos y reintentos automáticos.",
+      "Se agregaron diagnósticos profundos en la hoja de Dispositivos y sesiones con 16 parámetros del estado de registro.",
+      "Se implementó la sanitización automática del payload de Firestore para evitar rechazos de escritura debido a campos de plataforma/nativos indefinidos.",
     ],
   },
   {

@@ -19,7 +19,7 @@ import {
   getSignInProviders,
   type AuthUser,
 } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus, subscribeDevices, deviceId, revokeDeviceSession, resolveMigration, registerDevice } from '../lib/sync';
+import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus, subscribeDevices, deviceId, revokeDeviceSession, resolveMigration, registerDevice, registerCurrentDevice } from '../lib/sync';
 import { scheduleAccountDeletion, disableAccount } from '../lib/accountStatus';
 import { useT } from '../lib/useT';
 import { useChordStore } from '../store/useChordStore';
@@ -1255,7 +1255,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       setDevices([]);
       return;
     }
-    void registerDevice(user.uid);
+    void registerCurrentDevice(user.uid, 'open-devices-sheet');
     const unsub = subscribeDevices(user.uid, setDevices);
     return unsub;
   }, [user, sheet]);
@@ -2749,26 +2749,47 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           <strong>Device listener path:</strong> <code style={{ wordBreak: 'break-all' }}>users/{user.uid}/devices</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last write success:</strong> <code>{sync.lastDeviceWriteSuccess || 'Never'}</code>
-                        </p>
-                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last write error:</strong> <code style={{ color: sync.lastDeviceWriteError && sync.lastDeviceWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastDeviceWriteError || 'None'}</code>
+                          <strong>Firestore state:</strong> <code>{window.navigator.onLine ? 'Online' : 'Offline'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Registration status:</strong> <code style={{ textTransform: 'capitalize', color: sync.deviceRegistrationStatus === 'registered' ? '#10b981' : sync.deviceRegistrationStatus === 'failed' ? '#ef4444' : '#f59e0b' }}>{sync.deviceRegistrationStatus || 'pending'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Firestore state:</strong> <code>{window.navigator.onLine ? 'Online' : 'Offline'}</code>
+                          <strong>Last write attempted:</strong> <code>{sync.lastDeviceWriteAttemptedAt || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last write success:</strong> <code>{sync.lastDeviceWriteSuccess || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last write error:</strong> <code style={{ color: sync.lastDeviceWriteError && sync.lastDeviceWriteError !== 'None' ? '#ef4444' : 'inherit', wordBreak: 'break-all' }}>{sync.lastDeviceWriteError || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last write duration ms:</strong> <code>{sync.lastDeviceWriteDurationMs != null ? `${sync.lastDeviceWriteDurationMs}ms` : 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last snapshot received:</strong> <code>{sync.lastDeviceSnapshotAt || 'Never'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Documents received:</strong> <code>{sync.devicesSnapshotCount ?? 0}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Device IDs received:</strong> <code style={{ wordBreak: 'break-all' }}>{(sync.deviceIdsReceived && sync.deviceIdsReceived.length > 0) ? sync.deviceIdsReceived.join(', ') : 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Manual register button state:</strong> <code>{busy ? 'Busy' : 'Idle'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>In-flight write status:</strong> <code>{sync.inFlightWriteStatus ? 'Writing...' : 'Idle'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last registration reason:</strong> <code>{sync.lastDeviceRegistrationReason || 'None'}</code>
                         </p>
                         
                         <button
                           onClick={async () => {
                             setBusy(true);
                             try {
-                              await registerDevice(user.uid);
+                              await registerCurrentDevice(user.uid, 'manual-button');
                               showToast(lang === 'es' ? '¡Registro completado!' : 'Registration complete!');
                             } catch (e: any) {
                               showToast(`Error: ${e.message || String(e)}`);
@@ -2776,7 +2797,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                               setBusy(false);
                             }
                           }}
-                          disabled={busy}
+                          disabled={busy || sync.deviceRegistrationStatus === 'pending' || sync.inFlightWriteStatus}
                           style={{
                             marginTop: 8,
                             padding: '8px 12px',
@@ -2792,6 +2813,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: 6,
+                            opacity: (busy || sync.deviceRegistrationStatus === 'pending' || sync.inFlightWriteStatus) ? 0.6 : 1,
                           }}
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>app_registration</span>

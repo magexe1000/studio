@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { useBackHandler } from '../lib/backStack';
 import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice } from '../lib/sync';
+import { subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice } from '../lib/sync';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useNavHidden, useNavCollapsed, useScrollHide } from '../lib/navScroll';
@@ -2923,7 +2923,7 @@ function HubSettings({
               return;
             }
             await wrapAction('register-device-now', async () => {
-              await registerDevice(authUser.uid);
+              await registerCurrentDevice(authUser.uid, 'dev-options-button');
               showDevToast('Device registration completed.');
             });
           }} />

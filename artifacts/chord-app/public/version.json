@@ -1,6 +1,6 @@
 {
-  "version": "3.6.4",
-  "changelog": "• Fixed Devices & Sessions showing no devices even when signed in.\n• Fixed current device registration not writing to Firestore.\n• Fixed missing device documents under users/{uid}/devices.\n• Added diagnostics for device write status and listener status.\n• Improved Devices & Sessions reliability across Android and Web.\n• Improved current device detection and last active tracking.\n• Improved cross-device session visibility.",
+  "version": "3.6.5",
+  "changelog": "• Fixed Devices & Sessions showing no devices even when signed in.\n• Fixed current device registration not writing to Firestore.\n• Fixed missing device documents under users/{uid}/devices.\n• Added diagnostics for device write status and listener status.\n• Implemented robust device registration with 10-second write timeout and automatic retries.\n• Added deep diagnostics in Devices & Sessions sheet listing 16 registration status parameters.\n• Implemented automatic Firestore payload sanitization to prevent write rejections due to undefined native/platform fields.\n• Improved Devices & Sessions reliability across Android and Web.\n• Improved current device detection and last active tracking.\n• Improved cross-device session visibility.",
   "releaseNotes": {
     "improved": [
       "Improved Devices & Sessions reliability across Android and Web.",
@@ -11,7 +11,10 @@
       "Fixed Devices & Sessions showing no devices even when signed in.",
       "Fixed current device registration not writing to Firestore.",
       "Fixed missing device documents under users/{uid}/devices.",
-      "Added diagnostics for device write status and listener status."
+      "Added diagnostics for device write status and listener status.",
+      "Implemented robust device registration with 10-second write timeout and automatic retries.",
+      "Added deep diagnostics in Devices & Sessions sheet listing 16 registration status parameters.",
+      "Implemented automatic Firestore payload sanitization to prevent write rejections due to undefined native/platform fields."
     ]
   },
   "mandatory": false
