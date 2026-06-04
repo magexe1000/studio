@@ -59,9 +59,19 @@ let _auth: Auth | null = null;
 let _db: Firestore | null = null;
 let _storage: FirebaseStorage | null = null;
 let _initError: string | null = null;
+let _persistenceMode: string = 'none';
+let _initSource: string = 'not-started';
 
 function init() {
   if (_app) return;
+  const isEnvConfigured = Boolean(
+    env.VITE_FIREBASE_API_KEY &&
+    env.VITE_FIREBASE_AUTH_DOMAIN &&
+    env.VITE_FIREBASE_PROJECT_ID &&
+    env.VITE_FIREBASE_APP_ID
+  );
+  _initSource = isEnvConfigured ? 'environment-variables' : 'bundled-config';
+
   if (!isFirebaseConfigured) {
     _initError = `Missing config fields: ${[
       !config.apiKey && 'apiKey',
@@ -146,6 +156,7 @@ function init() {
           tabManager: persistentMultipleTabManager(),
         }),
       });
+      _persistenceMode = 'persistent';
     } catch (err) {
       console.warn(
         '[firebase] persistent cache unavailable, using memory cache:',
@@ -155,6 +166,7 @@ function init() {
         ...firestoreOpts,
         localCache: memoryLocalCache(),
       });
+      _persistenceMode = 'memory';
     }
   } catch (err: any) {
     _initError = err.message || String(err);
@@ -203,6 +215,9 @@ export function getFirebaseConfigDetails() {
     appName: app?.name || 'None',
     appsCount: getApps().length,
     initError: _initError || 'None',
+    firestoreTransportMode: 'auto-detect (long-polling + fetch streams)',
+    firestorePersistenceMode: _persistenceMode,
+    firestoreInitSource: _initSource,
   };
 }
 

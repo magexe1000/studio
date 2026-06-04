@@ -2981,7 +2981,37 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                               authAvailable: sync.authAvailable ? 'Yes' : 'No',
                               storageAvailable: sync.storageAvailable ? 'Yes' : 'No',
                               firebaseInitError: sync.firebaseInitError || 'None',
-                              syncEngineInitError: sync.syncEngineInitError || 'None'
+                              syncEngineInitError: sync.syncEngineInitError || 'None',
+                              directWritePath: sync.directWritePath || 'N/A',
+                              directWriteAttempt: sync.directWriteAttempt || 'Never',
+                              directWriteSuccess: sync.directWriteSuccess || 'Never',
+                              directWriteError: sync.directWriteError || 'None',
+                              directWriteDurationMs: sync.directWriteDurationMs ?? null,
+                              directReadBackSuccess: sync.directReadBackSuccess || 'Never',
+                              directReadBackError: sync.directReadBackError || 'None',
+                              directReadBackData: sync.directReadBackData || 'N/A',
+                              directListenerDocumentsReceived: sync.directListenerDocumentsReceived ?? 0,
+                              directListenerDeviceIdsReceived: sync.directListenerDeviceIdsReceived || [],
+                              lastAction: sync.lastAction || 'None',
+                              lastActionAt: sync.lastActionAt || 'Never',
+                              buttonActionStatus: sync.buttonActionStatus || 'idle',
+                              firestoreTransportMode: sync.firestoreTransportMode || 'default',
+                              firestorePersistenceMode: sync.firestorePersistenceMode || 'none',
+                              firestoreInitSource: sync.firestoreInitSource || 'not-started',
+                              probeListenerStatus: sync.probeListenerStatus || 'idle',
+                              probeListenerAttachedAt: sync.probeListenerAttachedAt || 'Never',
+                              probeSnapshotFromCache: sync.probeSnapshotFromCache ? 'Yes' : 'No',
+                              probeSnapshotHasPendingWrites: sync.probeSnapshotHasPendingWrites ? 'Yes' : 'No',
+                              probeListenerError: sync.probeListenerError || 'None',
+                              writeStage: sync.writeStage || 'idle',
+                              writeStartedAt: sync.writeStartedAt || 'Never',
+                              writeTimedOutAt: sync.writeTimedOutAt || 'Never',
+                              writeDurationMs: sync.writeDurationMs ?? null,
+                              firebaseErrorCode: sync.firebaseErrorCode || 'None',
+                              firebaseErrorMessage: sync.firebaseErrorMessage || 'None',
+                              onlineState: sync.onlineState || 'Unknown',
+                              snapshotFromCache: sync.snapshotFromCache ? 'Yes' : 'No',
+                              hasPendingWrites: sync.hasPendingWrites ? 'Yes' : 'No'
                             };
 
                             navigator.clipboard.writeText(JSON.stringify(diagnosticsReport, null, 2))
@@ -3215,12 +3245,114 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                         </p>
 
                         <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
+                        <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Action Tracking</div>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last diagnostics action:</strong> <code style={codeBreakStyle}>{sync.lastAction || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Action timestamp:</strong> <code style={codeBreakStyle}>{sync.lastActionAt || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Button action status:</strong> <code style={{ ...codeBreakStyle, textTransform: 'capitalize', color: sync.buttonActionStatus === 'success' ? '#10b981' : sync.buttonActionStatus === 'error' ? '#ef4444' : '#f59e0b' }}>{sync.buttonActionStatus || 'idle'}</code>
+                        </p>
+
+                        <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
+                        <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Firestore Transport & Cache</div>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firestore transport mode:</strong> <code style={codeBreakStyle}>{sync.firestoreTransportMode || 'default'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firestore persistence mode:</strong> <code style={codeBreakStyle}>{sync.firestorePersistenceMode || 'none'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firestore initialization source:</strong> <code style={codeBreakStyle}>{sync.firestoreInitSource || 'not-started'}</code>
+                        </p>
+
+                        <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
+                        <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Timing & Write Stage Tracking</div>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Current write stage:</strong> <code style={codeBreakStyle}>{sync.writeStage || 'idle'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Write started at:</strong> <code style={codeBreakStyle}>{sync.writeStartedAt || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Write timed out at:</strong> <code style={codeBreakStyle}>{sync.writeTimedOutAt || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Write duration ms:</strong> <code style={codeBreakStyle}>{sync.writeDurationMs != null ? `${sync.writeDurationMs}` : 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firebase error code:</strong> <code style={codeBreakStyle}>{sync.firebaseErrorCode || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firebase error message:</strong> <code style={codeBreakStyle}>{sync.firebaseErrorMessage || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Network online state:</strong> <code style={codeBreakStyle}>{sync.onlineState || 'Unknown'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Snapshot loaded from cache:</strong> <code style={codeBreakStyle}>{sync.snapshotFromCache ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Has pending local writes:</strong> <code style={codeBreakStyle}>{sync.hasPendingWrites ? 'Yes' : 'No'}</code>
+                        </p>
+
+                        <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
+                        <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Direct Write Test (Bypass Engine)</div>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Direct write path:</strong> <code style={codeBreakStyle}>{sync.directWritePath || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Direct write attempt:</strong> <code style={codeBreakStyle}>{sync.directWriteAttempt || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Direct write success:</strong> <code style={codeBreakStyle}>{sync.directWriteSuccess || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Direct write error:</strong> <code style={{ ...codeBreakStyle, color: sync.directWriteError && sync.directWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.directWriteError || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Direct write duration ms:</strong> <code style={codeBreakStyle}>{sync.directWriteDurationMs != null ? `${sync.directWriteDurationMs}` : 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Direct read-back success:</strong> <code style={codeBreakStyle}>{sync.directReadBackSuccess || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Direct read-back error:</strong> <code style={{ ...codeBreakStyle, color: sync.directReadBackError && sync.directReadBackError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.directReadBackError || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Direct read-back data:</strong> <code style={codeBreakStyle}>{sync.directReadBackData || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Direct listener docs received:</strong> <code style={codeBreakStyle}>{sync.directListenerDocumentsReceived ?? 0}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Direct listener deviceIds received:</strong> <code style={codeBreakStyle}>{(sync.directListenerDeviceIdsReceived && sync.directListenerDeviceIdsReceived.length > 0) ? sync.directListenerDeviceIdsReceived.join(', ') : 'None'}</code>
+                        </p>
+
+                        <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
                         <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Cloud Sync Probe</div>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Probe write path:</strong> <code style={codeBreakStyle}>{sync.probeWritePath || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Probe listener path:</strong> <code style={codeBreakStyle}>{sync.probeListenerPath || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Probe listener status:</strong> <code style={codeBreakStyle}>{sync.probeListenerStatus || 'idle'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Probe listener attached:</strong> <code style={codeBreakStyle}>{sync.probeListenerAttachedAt || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Probe snapshot from cache:</strong> <code style={codeBreakStyle}>{sync.probeSnapshotFromCache ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Probe snapshot pending writes:</strong> <code style={codeBreakStyle}>{sync.probeSnapshotHasPendingWrites ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Probe listener error:</strong> <code style={{ ...codeBreakStyle, color: sync.probeListenerError ? '#ef4444' : 'inherit' }}>{sync.probeListenerError || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Last probe write attempt:</strong> <code style={codeBreakStyle}>{sync.lastProbeWriteAttempt || 'Never'}</code>
@@ -3342,6 +3474,41 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           >
                             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
                             {lang === 'es' ? 'Borrar mi sonda' : 'Clear My Probe'}
+                          </button>
+
+                          <button
+                            onClick={async () => {
+                              setBusy(true);
+                              try {
+                                const { runDirectFirestoreWriteTest } = await import('../lib/syncEngine');
+                                await runDirectFirestoreWriteTest();
+                                showToast(lang === 'es' ? '¡Prueba de escritura completada!' : 'Direct write test complete!');
+                              } catch (e: any) {
+                                showToast(`Error: ${e.message || String(e)}`);
+                              } finally {
+                                setBusy(false);
+                              }
+                            }}
+                            disabled={busy}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              background: 'rgba(34, 197, 94, 0.1)',
+                              color: '#22c55e',
+                              border: '1px solid rgba(34, 197, 94, 0.25)',
+                              fontWeight: 700,
+                              fontFamily: 'Manrope',
+                              fontSize: 11,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6,
+                              opacity: busy ? 0.6 : 1,
+                            }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>rate_review</span>
+                            {lang === 'es' ? 'Prueba escritura directa' : 'Direct Firestore Write Test'}
                           </button>
 
                           <button

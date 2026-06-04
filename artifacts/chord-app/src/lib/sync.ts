@@ -260,6 +260,46 @@ export type SyncStatus = {
   syncEngineVersion?: string;
   deviceWritePath?: string;
   devicesListenerPath?: string;
+
+  // Direct Write Test Stats
+  directWritePath?: string;
+  directWriteAttempt?: string;
+  directWriteSuccess?: string;
+  directWriteError?: string;
+  directWriteDurationMs?: number | null;
+  directReadBackSuccess?: string;
+  directReadBackError?: string;
+  directReadBackData?: string;
+  directListenerDocumentsReceived?: number;
+  directListenerDeviceIdsReceived?: string[];
+
+  // Action status logging
+  lastAction?: string;
+  lastActionAt?: string;
+  buttonActionStatus?: string;
+
+  // Additional diagnostics
+  firestoreTransportMode?: string;
+  firestorePersistenceMode?: string;
+  firestoreInitSource?: string;
+
+  // Listener diagnostic metadata
+  probeListenerStatus?: string;
+  probeListenerAttachedAt?: string;
+  probeSnapshotFromCache?: boolean;
+  probeSnapshotHasPendingWrites?: boolean;
+  probeListenerError?: string | null;
+
+  // Timing/Stage tracking during writes
+  writeStage?: string;
+  writeStartedAt?: string;
+  writeTimedOutAt?: string;
+  writeDurationMs?: number | null;
+  firebaseErrorCode?: string;
+  firebaseErrorMessage?: string;
+  onlineState?: string;
+  snapshotFromCache?: boolean;
+  hasPendingWrites?: boolean;
 };
 
 type Listener = (s: SyncStatus) => void;
@@ -737,6 +777,46 @@ let status: SyncStatus = {
   syncEngineVersion: 'sync-engine-v1',
   deviceWritePath: 'N/A',
   devicesListenerPath: 'N/A',
+
+  // Direct Write Test Stats
+  directWritePath: 'N/A',
+  directWriteAttempt: 'Never',
+  directWriteSuccess: 'Never',
+  directWriteError: 'None',
+  directWriteDurationMs: null,
+  directReadBackSuccess: 'Never',
+  directReadBackError: 'None',
+  directReadBackData: 'N/A',
+  directListenerDocumentsReceived: 0,
+  directListenerDeviceIdsReceived: [],
+
+  // Action status logging
+  lastAction: 'None',
+  lastActionAt: 'Never',
+  buttonActionStatus: 'idle',
+
+  // Additional diagnostics
+  firestoreTransportMode: 'default',
+  firestorePersistenceMode: 'none',
+  firestoreInitSource: 'not-started',
+
+  // Listener diagnostic metadata
+  probeListenerStatus: 'idle',
+  probeListenerAttachedAt: 'Never',
+  probeSnapshotFromCache: false,
+  probeSnapshotHasPendingWrites: false,
+  probeListenerError: null,
+
+  // Timing/Stage tracking during writes
+  writeStage: 'idle',
+  writeStartedAt: 'Never',
+  writeTimedOutAt: 'Never',
+  writeDurationMs: null,
+  firebaseErrorCode: 'None',
+  firebaseErrorMessage: 'None',
+  onlineState: 'Unknown',
+  snapshotFromCache: false,
+  hasPendingWrites: false,
 };
 let stageIframe: HTMLIFrameElement | null = null;
 let stageSnapshotResolvers: Array<(s: StagexSnapshot) => void> = [];

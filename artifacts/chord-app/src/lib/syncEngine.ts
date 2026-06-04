@@ -88,6 +88,44 @@ export interface SyncEngineStatus {
   lastHeartbeatSuccess: string;
   lastHeartbeatError: string;
 
+  // Direct Write Test Stats
+  directWritePath: string;
+  directWriteAttempt: string;
+  directWriteSuccess: string;
+  directWriteError: string;
+  directWriteDurationMs: number | null;
+  directReadBackSuccess: string;
+  directReadBackError: string;
+  directReadBackData: string;
+  directListenerDocumentsReceived: number;
+  directListenerDeviceIdsReceived: string[];
+
+  // Action status logging
+  lastAction: string;
+  lastActionAt: string;
+  buttonActionStatus: string;
+
+  // Additional diagnostics
+  firestoreTransportMode: string;
+  firestorePersistenceMode: string;
+  firestoreInitSource: string;
+
+  // Listener diagnostic metadata
+  probeListenerAttachedAt: string;
+  probeSnapshotFromCache: boolean;
+  probeSnapshotHasPendingWrites: boolean;
+
+  // Timing/Stage tracking during writes
+  writeStage: string;
+  writeStartedAt: string;
+  writeTimedOutAt: string;
+  writeDurationMs: number | null;
+  firebaseErrorCode: string;
+  firebaseErrorMessage: string;
+  onlineState: string;
+  snapshotFromCache: boolean;
+  hasPendingWrites: boolean;
+
   // Sync Probe Stats
   probeWritePath: string;
   probeListenerPath: string;
@@ -208,6 +246,44 @@ let engineStatus: SyncEngineStatus = {
   lastHeartbeatSuccess: 'Never',
   lastHeartbeatError: 'None',
 
+  // Direct Write Test Stats
+  directWritePath: 'N/A',
+  directWriteAttempt: 'Never',
+  directWriteSuccess: 'Never',
+  directWriteError: 'None',
+  directWriteDurationMs: null,
+  directReadBackSuccess: 'Never',
+  directReadBackError: 'None',
+  directReadBackData: 'N/A',
+  directListenerDocumentsReceived: 0,
+  directListenerDeviceIdsReceived: [],
+
+  // Action status logging
+  lastAction: 'None',
+  lastActionAt: 'Never',
+  buttonActionStatus: 'idle',
+
+  // Additional diagnostics
+  firestoreTransportMode: 'default',
+  firestorePersistenceMode: 'none',
+  firestoreInitSource: 'not-started',
+
+  // Listener diagnostic metadata
+  probeListenerAttachedAt: 'Never',
+  probeSnapshotFromCache: false,
+  probeSnapshotHasPendingWrites: false,
+
+  // Timing/Stage tracking during writes
+  writeStage: 'idle',
+  writeStartedAt: 'Never',
+  writeTimedOutAt: 'Never',
+  writeDurationMs: null,
+  firebaseErrorCode: 'None',
+  firebaseErrorMessage: 'None',
+  onlineState: 'Unknown',
+  snapshotFromCache: false,
+  hasPendingWrites: false,
+
   probeWritePath: 'N/A',
   probeListenerPath: 'N/A',
   lastProbeWriteAttempt: 'Never',
@@ -259,9 +335,13 @@ function updateStatus(patch: Partial<SyncEngineStatus>) {
     authAvailable: !!auth,
     storageAvailable: !!storage,
     firebaseInitError: config.initError,
+    firestoreTransportMode: config.firestoreTransportMode,
+    firestorePersistenceMode: config.firestorePersistenceMode,
+    firestoreInitSource: config.firestoreInitSource,
   };
 
   const nextStatus = { ...engineStatus, ...firebaseDiag, ...patch };
+  nextStatus.onlineState = typeof navigator !== 'undefined' ? (navigator.onLine ? 'Online' : 'Offline') : 'Unknown';
 
   // Calculate intended paths if uid and device ID exist
   const uid = nextStatus.authUid;
@@ -1059,13 +1139,30 @@ export async function runSyncProbe(): Promise<string> {
 
 export async function clearMyProbeOnly(): Promise<void> {
   const uid = currentUid;
-  if (!uid) return;
-  const db = getFirebaseDb();
-  if (!db) return;
-
   const deviceId = getStableDeviceId();
-  const probeRef = doc(db, 'users', uid, 'syncProbe', deviceId);
-  await deleteDoc(probeRef);
+  const db = getFirebaseDb();
+  
+  const nowStr = new Date().toLocaleString();
+  
+  updateStatus({
+    lastAction: 'Clear My Probe',
+    lastActionAt: nowStr,
+    buttonActionStatus: 'pending'
+  });
+
+  if (!uid || !deviceId || !db) {
+    updateStatus({ buttonActionStatus: 'error' });
+    return;
+  }
+
+  try {
+    const probeRef = doc(db, 'users', uid, 'syncProbe', deviceId);
+    await deleteDoc(probeRef);
+    updateStatus({ buttonActionStatus: 'success' });
+  } catch (e) {
+    console.error('[syncEngine] Failed to clear probe:', e);
+    updateStatus({ buttonActionStatus: 'error' });
+  }
 }
 
 // ── Auto Initialization ──
@@ -1103,13 +1200,169 @@ export const startDeviceHeartbeat = startHeartbeat;
 export const stopDeviceHeartbeat = stopHeartbeat;
 
 export async function reconnectDevices(): Promise<void> {
+  const nowStr = new Date().toLocaleString();
+  updateStatus({
+    lastAction: 'Reconnect Devices',
+    lastActionAt: nowStr,
+    buttonActionStatus: 'pending'
+  });
+
   const uid = currentUid;
-  if (!uid) return;
-  detachRealtimeListeners();
+  if (!uid) {
+    updateStatus({ buttonActionStatus: 'error' });
+    return;
+  }
+  
+  try {
+    detachRealtimeListeners();
+    const deviceId = getStableDeviceId();
+    attachRealtimeListeners(uid, deviceId);
+    await registerCurrentDevice('reconnect-trigger');
+    await heartbeatNow('reconnect-trigger');
+    updateStatus({ buttonActionStatus: 'success' });
+  } catch (e) {
+    console.error('[syncEngine] reconnectDevices failed:', e);
+    updateStatus({ buttonActionStatus: 'error' });
+  }
+}
+
+let unsubDirectWrites: (() => void) | null = null;
+
+export async function runDirectFirestoreWriteTest(): Promise<void> {
+  const uid = currentUid;
   const deviceId = getStableDeviceId();
-  attachRealtimeListeners(uid, deviceId);
-  await registerCurrentDevice('reconnect-trigger');
-  await heartbeatNow('reconnect-trigger');
+  const db = getFirebaseDb();
+  
+  const nowStr = new Date().toLocaleString();
+  const startTime = Date.now();
+  
+  updateStatus({
+    lastAction: 'Direct Firestore Write Test',
+    lastActionAt: nowStr,
+    buttonActionStatus: 'pending',
+    directWriteAttempt: nowStr,
+    directWriteError: 'Pending',
+    directWriteSuccess: 'Never',
+    directReadBackSuccess: 'Never',
+    directReadBackError: 'None',
+    directReadBackData: 'N/A',
+    directWritePath: uid && deviceId ? `users/${uid}/debugWrites/${deviceId}` : 'N/A'
+  });
+
+  if (!uid) {
+    updateStatus({ directWriteError: 'Auth UID missing', buttonActionStatus: 'error' });
+    throw new Error('Auth UID missing');
+  }
+  if (!deviceId) {
+    updateStatus({ directWriteError: 'Device ID missing', buttonActionStatus: 'error' });
+    throw new Error('Device ID missing');
+  }
+  if (!db) {
+    updateStatus({ directWriteError: 'Firestore db unavailable', buttonActionStatus: 'error' });
+    throw new Error('Firestore db unavailable');
+  }
+
+  if (!unsubDirectWrites) {
+    try {
+      unsubDirectWrites = onSnapshot(collection(db, 'users', uid, 'debugWrites'), (snap) => {
+        const ids: string[] = [];
+        snap.forEach(doc => ids.push(doc.id));
+        updateStatus({
+          directListenerDocumentsReceived: snap.size,
+          directListenerDeviceIdsReceived: ids
+        });
+      }, (err) => {
+        console.error('[syncEngine] directWrites listener error:', err);
+      });
+    } catch (e) {
+      console.warn('[syncEngine] Failed to attach directWrites listener:', e);
+    }
+  }
+
+  const nonce = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const payload = sanitizeForFirestore({
+    uid,
+    deviceId,
+    platform: isNative() ? 'android' : 'web',
+    appVersion: APP_VERSION,
+    buildType: isNative() ? 'Native Release' : 'Web',
+    commitSha: APP_COMMIT_SHA,
+    testName: 'direct-firestore-write-test',
+    nonce,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+
+  const docRef = doc(db, 'users', uid, 'debugWrites', deviceId);
+  const writePromise = setDoc(docRef, payload, { merge: true });
+  const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Write timeout')), 10000));
+
+  try {
+    await Promise.race([writePromise, timeoutPromise]);
+    const duration = Date.now() - startTime;
+    updateStatus({
+      directWriteSuccess: new Date().toLocaleString(),
+      directWriteError: 'None',
+      directWriteDurationMs: duration
+    });
+    
+    try {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        updateStatus({
+          directReadBackSuccess: new Date().toLocaleString(),
+          directReadBackData: JSON.stringify(snap.data())
+        });
+      } else {
+        updateStatus({
+          directReadBackError: 'Document does not exist after write'
+        });
+      }
+    } catch (readErr: any) {
+      updateStatus({
+        directReadBackError: readErr.message || String(readErr)
+      });
+    }
+    
+    updateStatus({ buttonActionStatus: 'success' });
+  } catch (err: any) {
+    const duration = Date.now() - startTime;
+    const errorMsg = err.message || String(err);
+    updateStatus({
+      directWriteError: errorMsg,
+      directWriteDurationMs: duration,
+      buttonActionStatus: 'error'
+    });
+    throw err;
+  }
+}
+
+export async function clearMyProbe(): Promise<void> {
+  const uid = currentUid;
+  const deviceId = getStableDeviceId();
+  const db = getFirebaseDb();
+  
+  const nowStr = new Date().toLocaleString();
+  
+  updateStatus({
+    lastAction: 'Clear My Probe',
+    lastActionAt: nowStr,
+    buttonActionStatus: 'pending'
+  });
+
+  if (!uid || !deviceId || !db) {
+    updateStatus({ buttonActionStatus: 'error' });
+    return;
+  }
+
+  try {
+    const probeRef = doc(db, 'users', uid, 'syncProbe', deviceId);
+    await deleteDoc(probeRef);
+    updateStatus({ buttonActionStatus: 'success' });
+  } catch (e) {
+    console.error('[syncEngine] Failed to clear probe:', e);
+    updateStatus({ buttonActionStatus: 'error' });
+  }
 }
 
 export function getSyncEngineDiagnostics(): SyncEngineStatus {
