@@ -119,7 +119,7 @@
     "redirects": [
       {
         "source": "/apk/studio-latest.apk",
-        "destination": "https://github.com/MAGEXE1000/Studio/releases/download/v3.4.0/studio-3.4.0.apk",
+        "destination": "https://github.com/MAGEXE1000/Studio/releases/download/v3.4.4/studio-3.4.4.apk",
         "type": 302
       },
       {

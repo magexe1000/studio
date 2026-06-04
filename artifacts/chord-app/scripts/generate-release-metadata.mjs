@@ -21,8 +21,19 @@ const validateResult = spawnSync('node', args, {
   shell: process.platform === 'win32',
 });
 if (validateResult.status !== 0) {
-  console.error('generate-release-metadata: ✗ AppInstaller contract validation failed!');
-  process.exit(validateResult.status ?? 1);
+  const status = validateResult.status;
+  if (status === 10) {
+    console.error('generate-release-metadata: ✗ AppInstaller contract validation failed!');
+  } else if (status === 11) {
+    console.error('generate-release-metadata: ✗ Path or temporary file setup failed!');
+  } else if (status === 12) {
+    console.error('generate-release-metadata: ✗ Previous APK download failed!');
+  } else if (status === 13) {
+    console.error('generate-release-metadata: ✗ Release validation failed (e.g. versionCode, package, or signatures)!');
+  } else {
+    console.error(`generate-release-metadata: ✗ Validation script failed with exit code ${status}`);
+  }
+  process.exit(status ?? 1);
 }
 
 const appVersionPath = path.join(appRoot, 'src/lib/appVersion.ts');
@@ -208,38 +219,43 @@ const metadata = {
   update_type: releaseType
 };
 
-fs.writeFileSync(appReleaseJsonPath, JSON.stringify(metadata, null, 2) + '\n', 'utf8');
-// Also write to dist/public in case we rebuild
-const publicReleasePath = path.join(appRoot, 'dist/public/app-release.json');
-fs.mkdirSync(path.dirname(publicReleasePath), { recursive: true });
-fs.writeFileSync(publicReleasePath, JSON.stringify(metadata, null, 2) + '\n', 'utf8');
+try {
+  fs.writeFileSync(appReleaseJsonPath, JSON.stringify(metadata, null, 2) + '\n', 'utf8');
+  // Also write to dist/public in case we rebuild
+  const publicReleasePath = path.join(appRoot, 'dist/public/app-release.json');
+  fs.mkdirSync(path.dirname(publicReleasePath), { recursive: true });
+  fs.writeFileSync(publicReleasePath, JSON.stringify(metadata, null, 2) + '\n', 'utf8');
 
-console.log(`generate-release-metadata: ✓ Wrote firebase-public/app-release.json and dist/public/app-release.json`);
+  console.log(`generate-release-metadata: ✓ Wrote firebase-public/app-release.json and dist/public/app-release.json`);
 
-// Synchronize version.json files with APK metadata
-const syncVersionJson = (filePath) => {
-  if (fs.existsSync(filePath)) {
-    try {
-      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      data.apkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
-      data.manualApkUrl = `https://studio-30f44.web.app/apk/studio-${version}.apk`;
-      data.fallbackApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
-      data.sha256 = sha256;
-      data.updateType = releaseType;
-      data.versionCode = versionCode;
-      data.signatures = signatures;
-      if (releaseNotes) {
-        data.releaseNotes = releaseNotes;
+  // Synchronize version.json files with APK metadata
+  const syncVersionJson = (filePath) => {
+    if (fs.existsSync(filePath)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        data.apkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
+        data.manualApkUrl = `https://studio-30f44.web.app/apk/studio-${version}.apk`;
+        data.fallbackApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
+        data.sha256 = sha256;
+        data.updateType = releaseType;
+        data.versionCode = versionCode;
+        data.signatures = signatures;
+        if (releaseNotes) {
+          data.releaseNotes = releaseNotes;
+        }
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
+        console.log(`generate-release-metadata: ✓ Synchronized ${path.basename(filePath)} with APK metadata`);
+      } catch (err) {
+        console.warn(`generate-release-metadata: ⚠ Could not update ${filePath}:`, err);
       }
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
-      console.log(`generate-release-metadata: ✓ Synchronized ${path.basename(filePath)} with APK metadata`);
-    } catch (err) {
-      console.warn(`generate-release-metadata: ⚠ Could not update ${filePath}:`, err);
     }
-  }
-};
+  };
 
-syncVersionJson(versionJsonPath);
-syncVersionJson(path.join(appRoot, 'dist/public/version.json'));
-syncVersionJson(path.join(appRoot, 'public/version.json'));
+  syncVersionJson(versionJsonPath);
+  syncVersionJson(path.join(appRoot, 'dist/public/version.json'));
+  syncVersionJson(path.join(appRoot, 'public/version.json'));
+} catch (err) {
+  console.error(`\x1b[31mgenerate-release-metadata: ✗ Metadata generation failure: ${err.message}\x1b[0m`);
+  process.exit(1);
+}
 
