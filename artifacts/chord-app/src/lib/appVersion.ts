@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.4.0'; // Production signing migration
+export const APP_VERSION = '3.4.1'; // Production signing migration verification
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.4.0
+export const APP_VERSION_DATE = '2026-06-04'; // 3.4.1
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,11 +55,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "What's new",
     items: [
-      'Moved Studio to production-signed release APKs.',
-      'Improved APK installation trust and release signing validation.',
-      'Added CI checks to prevent unsigned, debuggable, or incorrectly signed APKs.',
-      'Requires a one-time clean reinstall for users coming from older debug-signed builds.',
-      'Future updates after this install will work normally from inside Studio.',
+      'Verified production-signed in-app update capability.',
+      'Minor diagnostics verification update.',
     ],
   },
 ];
@@ -70,11 +67,8 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Novedades",
     items: [
-      'Studio ahora utiliza APKs de lanzamiento firmadas para producción.',
-      'Confianza de instalación de APK mejorada y validación de firma de lanzamiento.',
-      'Se agregaron comprobaciones de CI para evitar APKs no firmadas, depurables o firmadas incorrectamente.',
-      'Requiere una reinstalación limpia única para usuarios que vienen de compilaciones antiguas firmadas con claves de depuración.',
-      'Las futuras actualizaciones funcionarán normalmente desde Studio después de esta instalación.',
+      'Capacidad de actualización interna firmada para producción verificada.',
+      'Actualización menor de verificación de diagnóstico.',
     ],
   },
 ];
@@ -84,11 +78,8 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
     heading: "Neuigkeiten",
     items: [
-      'Studio verwendet nun für die Produktion signierte Release-APKs.',
-      'Verbesserte APK-Installationssicherheit und Validierung der Release-Signierung.',
-      'CI-Prüfungen hinzugefügt, um unsignierte, debugbare oder falsch signierte APKs zu verhindern.',
-      'Erfordert eine einmalige saubere Neuinstallation für Benutzer, die von älteren, mit Debug-Schlüsseln signierten Builds kommen.',
-      'Zukünftige Updates nach dieser Installation funktionieren normal in Studio.',
+      'In-App-Update-Fähigkeit mit Produktionssignatur verifiziert.',
+      'Kleines Diagnose-Verifizierungs-Update.',
     ],
   },
 ];
