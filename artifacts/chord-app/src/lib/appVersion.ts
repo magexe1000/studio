@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.4.7'; // Enforce APK-first native installer execution and block OTA
+export const APP_VERSION = '3.4.8'; // Enforce APK-first native installer execution and block OTA
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.4.7
+export const APP_VERSION_DATE = '2026-06-04'; // 3.4.8
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,17 +55,15 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Enhanced update diagnostics and checklists in Developer Options.",
-      "Added detailed final update path logic for native wrappers.",
+      "Added detailed updater trigger, block, and final path diagnostics to Developer Options.",
+      "Blocked developer OTA force updates on outdated native wrappers.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed APK-required updates to always open the native Android installer.",
-      "Blocked silent OTA updates when the native APK version is behind the required versionCode.",
-      "Disabled Capgo auto OTA bundle apply for APK-required releases to avoid WebView reload loop.",
-      "Expanded pipeline guards to fail-fast if native or update-system files change in OTA releases.",
+      "Fixed boot guard to rollback invalid OTA bundles and prevent WebView reload loops.",
+      "Correctly cleared stale OTA bundles when a native APK wrap update is required.",
     ],
   },
 ];

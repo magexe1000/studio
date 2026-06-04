@@ -1,16 +1,14 @@
 {
-  "version": "3.4.7",
-  "changelog": "• Fixed APK-required updates to always open the native Android installer.\n• Blocked silent OTA updates when the native APK version is behind the required versionCode.\n• Disabled Capgo auto OTA bundle apply for APK-required releases to avoid WebView reload loop.\n• Expanded pipeline guards to fail-fast if native or update-system files change in OTA releases.\n• Enhanced update diagnostics and checklists in Developer Options.\n• Added detailed final update path logic for native wrappers.",
+  "version": "3.4.8",
+  "changelog": "• Fixed boot guard to rollback invalid OTA bundles and prevent WebView reload loops.\n• Correctly cleared stale OTA bundles when a native APK wrap update is required.\n• Added detailed updater trigger, block, and final path diagnostics to Developer Options.\n• Blocked developer OTA force updates on outdated native wrappers.",
   "releaseNotes": {
     "improved": [
-      "Enhanced update diagnostics and checklists in Developer Options.",
-      "Added detailed final update path logic for native wrappers."
+      "Added detailed updater trigger, block, and final path diagnostics to Developer Options.",
+      "Blocked developer OTA force updates on outdated native wrappers."
     ],
     "fixed": [
-      "Fixed APK-required updates to always open the native Android installer.",
-      "Blocked silent OTA updates when the native APK version is behind the required versionCode.",
-      "Disabled Capgo auto OTA bundle apply for APK-required releases to avoid WebView reload loop.",
-      "Expanded pipeline guards to fail-fast if native or update-system files change in OTA releases."
+      "Fixed boot guard to rollback invalid OTA bundles and prevent WebView reload loops.",
+      "Correctly cleared stale OTA bundles when a native APK wrap update is required."
     ]
   },
   "mandatory": false

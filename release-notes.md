@@ -1,9 +1,7 @@
 ### Fixed
-- Fixed APK-required updates to always open the native Android installer.
-- Blocked silent OTA updates when the native APK version is behind the required versionCode.
-- Disabled Capgo auto OTA bundle apply for APK-required releases to avoid WebView reload loop.
-- Expanded pipeline guards to fail-fast if native or update-system files change in OTA releases.
+- Fixed boot guard to rollback invalid OTA bundles and prevent WebView reload loops.
+- Correctly cleared stale OTA bundles when a native APK wrap update is required.
 
 ### Improved
-- Enhanced update diagnostics and checklists in Developer Options.
-- Added detailed final update path logic for native wrappers.
+- Added detailed updater trigger, block, and final path diagnostics to Developer Options.
+- Blocked developer OTA force updates on outdated native wrappers.

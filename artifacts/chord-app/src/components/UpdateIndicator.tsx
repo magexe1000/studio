@@ -593,9 +593,9 @@ function UpdateModal({
 
   const handleStartUpdate = async () => {
     try {
-      await ota.downloadUpdate();
+      await ota.downloadUpdate('UpdateIndicator: UpdateModal');
       if (!isApkFlow) {
-        await ota.applyUpdate();
+        await ota.applyUpdate('UpdateIndicator: UpdateModal');
       }
     } catch (err) {
       console.error('[UpdateIndicator] Start update failed:', err);
@@ -614,7 +614,7 @@ function UpdateModal({
       }
       
       // Attempt to launch installer
-      await ota.applyUpdate();
+      await ota.applyUpdate('UpdateIndicator: UpdateModal');
       
       // Close dialog cleanly on successful launch
       onClose();
@@ -663,7 +663,7 @@ function UpdateModal({
         const hasPerm = (await AppInstaller.canRequestPackageInstalls()).value;
         if (hasPerm && active) {
           setPermissionBlocked(false);
-          await ota.applyUpdate();
+          await ota.applyUpdate('UpdateIndicator: UpdateModal');
           onClose();
           if (isNative()) {
             const { App } = await import('@capacitor/app');

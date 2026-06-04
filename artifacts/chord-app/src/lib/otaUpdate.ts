@@ -60,6 +60,11 @@ export let otaDebugLogs: {
   requiredVersionCode: number | null;
   nativeApkBehind: boolean;
   apkUpdateRequired: boolean;
+  pendingOtaBundleId: string | null;
+  staleOtaCleared: boolean;
+  capgoSetBlocked: boolean;
+  triggerComponent: string | null;
+  finalPathExecuted: 'OTA applied' | 'APK installer launched' | 'blocked due to APK required' | 'N/A';
 } = {
   appVersion: APP_VERSION,
   nativeApkVersion: null,
@@ -91,6 +96,11 @@ export let otaDebugLogs: {
   requiredVersionCode: null,
   nativeApkBehind: false,
   apkUpdateRequired: false,
+  pendingOtaBundleId: null,
+  staleOtaCleared: false,
+  capgoSetBlocked: false,
+  triggerComponent: null,
+  finalPathExecuted: 'N/A',
 };
 
 export interface OtaDiagnostics {
@@ -563,6 +573,11 @@ export interface CentralizedOtaState {
   requiredVersionCode: number | null;
   nativeApkBehind: boolean;
   apkUpdateRequired: boolean;
+  pendingOtaBundleId: string | null;
+  staleOtaCleared: boolean;
+  capgoSetBlocked: boolean;
+  triggerComponent: string | null;
+  finalPathExecuted: 'OTA applied' | 'APK installer launched' | 'blocked due to APK required' | 'N/A';
 }
 
 let globalOtaState: CentralizedOtaState = {
@@ -588,6 +603,11 @@ let globalOtaState: CentralizedOtaState = {
   requiredVersionCode: null,
   nativeApkBehind: false,
   apkUpdateRequired: false,
+  pendingOtaBundleId: null,
+  staleOtaCleared: false,
+  capgoSetBlocked: false,
+  triggerComponent: null,
+  finalPathExecuted: 'N/A',
 };
 
 const stateListeners = new Set<(state: CentralizedOtaState) => void>();
@@ -619,6 +639,11 @@ export function resetOtaUpdateState() {
     requiredVersionCode: null,
     nativeApkBehind: false,
     apkUpdateRequired: false,
+    pendingOtaBundleId: null,
+    staleOtaCleared: false,
+    capgoSetBlocked: false,
+    triggerComponent: null,
+    finalPathExecuted: 'N/A',
   });
 }
 
@@ -674,6 +699,16 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       // Populate debug logs baseline
       otaDebugLogs.appVersion = APP_VERSION;
       otaDebugLogs.nativeApkVersion = natVer || 'N/A';
+      try {
+        otaDebugLogs.pendingOtaBundleId = localStorage.getItem('studio:downloadedBundleId') || 'None';
+      } catch (_) {
+        otaDebugLogs.pendingOtaBundleId = 'Error';
+      }
+      otaDebugLogs.staleOtaCleared = false;
+      otaDebugLogs.capgoSetBlocked = false;
+      otaDebugLogs.triggerComponent = isManual ? 'Developer Options (Manual Check)' : 'Auto Poll / System';
+      otaDebugLogs.finalPathExecuted = 'N/A';
+
       if (isNative()) {
         try {
           const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
@@ -765,11 +800,23 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 
       let nativeApkBehind = false;
       let apkUpdateRequired = false;
+      let staleOtaCleared = false;
       if (isNative() && remote.requiredVersionCode && installedVersionCode > 0) {
         if (installedVersionCode < remote.requiredVersionCode) {
           nativeApkBehind = true;
           apkUpdateRequired = true;
+          try {
+            localStorage.removeItem('studio:downloadedBundleId');
+            localStorage.removeItem('studio:downloadedApkPath');
+            staleOtaCleared = true;
+          } catch (e) {
+            console.warn('[OTA] Failed to clear stale bundle ID/path:', e);
+          }
         }
+        // Always store requiredVersionCode so boot guard can verify it
+        try {
+          localStorage.setItem('studio:requiredVersionCode', String(remote.requiredVersionCode));
+        } catch (_) {}
       }
 
       otaDebugLogs.installedVersionCode = installedVersionCode;
@@ -777,6 +824,16 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       otaDebugLogs.requiredVersionCode = remote.requiredVersionCode || null;
       otaDebugLogs.nativeApkBehind = nativeApkBehind;
       otaDebugLogs.apkUpdateRequired = apkUpdateRequired;
+      otaDebugLogs.staleOtaCleared = staleOtaCleared;
+      
+      // Update global context mirroring variables
+      updateGlobalState({
+        pendingOtaBundleId: otaDebugLogs.pendingOtaBundleId,
+        staleOtaCleared,
+        capgoSetBlocked: false,
+        triggerComponent: otaDebugLogs.triggerComponent,
+        finalPathExecuted: 'N/A'
+      });
 
       let updateType: 'ota' | 'apk' | 'both' | 'none' = 'none';
       let apkUrl: string | null = null;
@@ -979,8 +1036,19 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 /**
  * Centralized downloadUpdate: locks the download process and mirrors progress globally.
  */
-export function downloadUpdate(): Promise<void> {
+export function downloadUpdate(trigger?: string): Promise<void> {
   if (activeDownloadPromise) return activeDownloadPromise;
+
+  if (trigger) {
+    otaDebugLogs.triggerComponent = trigger;
+    updateGlobalState({ triggerComponent: trigger });
+  }
+
+  // Force updateType override to apk if APK update is required
+  if (globalOtaState.apkUpdateRequired && globalOtaState.updateType !== 'apk') {
+    console.warn('[OTA] downloadUpdate: apkUpdateRequired is true, forcing updateType override to apk');
+    updateGlobalState({ updateType: 'apk' });
+  }
 
   const { updateType, apkUrl, downloadUrl, remoteVersion } = globalOtaState;
   const ver = remoteVersion || '';
@@ -1255,11 +1323,32 @@ export function downloadUpdate(): Promise<void> {
 /**
  * Centralized applyUpdate: locks activation, saves history, and reloads WebView.
  */
-export function applyUpdate(): Promise<void> {
+export function applyUpdate(trigger?: string): Promise<void> {
   if (activeApplyPromise) return activeApplyPromise;
 
   const { remoteVersion, updateType } = globalOtaState;
   if (!remoteVersion) return Promise.resolve();
+
+  if (trigger) {
+    otaDebugLogs.triggerComponent = trigger;
+    updateGlobalState({ triggerComponent: trigger });
+  }
+
+  // Block calling CapacitorUpdater.set() if APK update is required
+  if (globalOtaState.apkUpdateRequired) {
+    otaDebugLogs.capgoSetBlocked = true;
+    updateGlobalState({ capgoSetBlocked: true });
+    if (updateType === 'ota') {
+      console.warn('[OTA] applyUpdate blocked: apkUpdateRequired is true, refusing to apply OTA bundle');
+      otaDebugLogs.finalPathExecuted = 'blocked due to APK required';
+      updateGlobalState({ 
+        updateState: 'failed', 
+        error: 'Blocked: APK update required first.',
+        finalPathExecuted: 'blocked due to APK required'
+      });
+      return Promise.resolve();
+    }
+  }
 
   activeApplyPromise = (async () => {
     if (updateType === 'apk' || updateType === 'both') {
@@ -1283,14 +1372,22 @@ export function applyUpdate(): Promise<void> {
         // the native wrapper is immediately configured to load the new OTA build on restart.
         const downloadedId = localStorage.getItem('studio:downloadedBundleId');
         if (updateType === 'both' && downloadedId) {
-          try {
-            otaDebugLogs.installError = `Both-update: setting Capgo bundle ID: ${downloadedId}`;
-            const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
-            await CapacitorUpdater.set({ id: downloadedId });
-            otaDebugLogs.installError += `\nCapgo bundle ID set successfully.`;
-          } catch (e) {
-            console.warn('[OTA] Failed to set Capgo bundle in both-update (ignoring):', e);
-            otaDebugLogs.installError += `\nWarning: Failed to set Capgo bundle ID: ${e instanceof Error ? e.message : String(e)}`;
+          if (globalOtaState.apkUpdateRequired) {
+            console.log('[OTA] Blocked calling CapacitorUpdater.set() because APK update is required.');
+            otaDebugLogs.capgoSetBlocked = true;
+            updateGlobalState({ capgoSetBlocked: true });
+          } else {
+            try {
+              otaDebugLogs.installError = `Both-update: setting Capgo bundle ID: ${downloadedId}`;
+              const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+              await CapacitorUpdater.set({ id: downloadedId });
+              otaDebugLogs.installError += `\nCapgo bundle ID set successfully.`;
+              otaDebugLogs.capgoSetBlocked = false;
+              updateGlobalState({ capgoSetBlocked: false });
+            } catch (e) {
+              console.warn('[OTA] Failed to set Capgo bundle in both-update (ignoring):', e);
+              otaDebugLogs.installError += `\nWarning: Failed to set Capgo bundle ID: ${e instanceof Error ? e.message : String(e)}`;
+            }
           }
         }
 
@@ -1323,7 +1420,12 @@ export function applyUpdate(): Promise<void> {
         otaDebugLogs.installError += `\nAPK installer intent launched successfully!`;
         otaDebugLogs.installerLaunchStatus = 'SUCCESS';
         otaDebugLogs.lastExceptionStackTrace = 'None';
-        updateGlobalState({ updateState: 'ready_to_install', statusText: 'APK installer launched' });
+        otaDebugLogs.finalPathExecuted = 'APK installer launched';
+        updateGlobalState({ 
+          updateState: 'ready_to_install', 
+          statusText: 'APK installer launched',
+          finalPathExecuted: 'APK installer launched'
+        });
       } catch (err) {
         console.error('[OTA] APK install failed:', err);
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -1376,7 +1478,12 @@ export function applyUpdate(): Promise<void> {
         otaDebugLogs.installError += `\nOTA bundle applied and reload triggered.`;
         otaDebugLogs.installerLaunchStatus = 'SUCCESS';
         otaDebugLogs.lastExceptionStackTrace = 'None';
-        updateGlobalState({ statusText: 'OTA reload triggered', updateState: 'completed' });
+        otaDebugLogs.finalPathExecuted = 'OTA applied';
+        updateGlobalState({ 
+          statusText: 'OTA reload triggered', 
+          updateState: 'completed',
+          finalPathExecuted: 'OTA applied'
+        });
       } catch (err) {
         console.error('[OTA] Apply failed:', err);
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -1405,6 +1512,8 @@ export function applyUpdate(): Promise<void> {
       } catch {
         /* ignore */
       }
+      otaDebugLogs.finalPathExecuted = 'OTA applied';
+      updateGlobalState({ finalPathExecuted: 'OTA applied' });
       const { fadeToBlackAndReload } = await import('./capgoUpdater');
       await fadeToBlackAndReload(() => {
         window.location.reload();
@@ -1439,8 +1548,8 @@ export function markUpdateSeen(): void {
 
 export interface UseOtaUpdateResult extends CentralizedOtaState {
   checkNow: () => Promise<void>;
-  downloadUpdate: () => Promise<void>;
-  applyUpdate: () => Promise<void>;
+  downloadUpdate: (trigger?: string) => Promise<void>;
+  applyUpdate: (trigger?: string) => Promise<void>;
   dismissUpdate: () => void;
   markUpdateSeen: () => void;
 }

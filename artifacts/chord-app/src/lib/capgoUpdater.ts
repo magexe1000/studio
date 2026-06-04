@@ -51,19 +51,42 @@ export async function notifyBundleReady(): Promise<void> {
   try {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
 
-    // STALE-BUNDLE GUARD ───────────────────────────────────────────────
-    // When the user installs a NEWER APK over a device that already has
-    // an OLDER Capgo bundle persisted in app data, Capgo will keep
-    // serving the persisted (older) bundle on next boot — so the user
-    // sees the version they thought they just upgraded past. Detect
-    // this and roll back to the APK's bundled assets so the freshly
-    // installed APK actually runs.
+    // STALE-BUNDLE / OUTDATED-wrapper GUARD ──────────────────────────────
     try {
+      const { App } = await import('@capacitor/app');
+      const info = await App.getInfo();
+      const installedVersionCode = parseInt(info.build, 10) || 0;
+
+      let storedReq = 0;
+      try {
+        const storedReqVal = localStorage.getItem('studio:requiredVersionCode');
+        storedReq = storedReqVal ? parseInt(storedReqVal, 10) : 0;
+      } catch (_) {}
+
       const active = await CapacitorUpdater.current();
-      // `current()` returns `{ bundle: { version, id, ... }, native }`.
-      // The "builtin" bundle reports id "builtin" — never reset that.
       const activeVer = active?.bundle?.version;
       const activeId  = active?.bundle?.id;
+
+      // 1. Reset if the native APK wrapper is behind required version code (compile-time or stored remote)
+      const REQUIRED_VERSION_CODE = 18; // Synchronized with release requirements
+      if (
+        installedVersionCode > 0 && 
+        (installedVersionCode < REQUIRED_VERSION_CODE || (storedReq > 0 && installedVersionCode < storedReq))
+      ) {
+        console.warn(
+          `[capgo] APK versionCode ${installedVersionCode} is behind required (compile-time: ${REQUIRED_VERSION_CODE}, stored: ${storedReq}) — clearing downloaded bundle and resetting to builtin.`,
+        );
+        try {
+          localStorage.removeItem('studio:downloadedBundleId');
+          localStorage.removeItem('studio:downloadedApkPath');
+        } catch (_) {}
+        if (activeId && activeId !== 'builtin') {
+          await CapacitorUpdater.reset();
+          return;
+        }
+      }
+
+      // 2. Reset if APK is newer than the active Capgo bundle
       if (
         activeId &&
         activeId !== 'builtin' &&
@@ -78,7 +101,7 @@ export async function notifyBundleReady(): Promise<void> {
         return;
       }
     } catch (err) {
-      console.warn('[capgo] stale-bundle guard skipped:', err);
+      console.warn('[capgo] wrapper and stale-bundle guards skipped:', err);
     }
 
     await CapacitorUpdater.notifyAppReady();

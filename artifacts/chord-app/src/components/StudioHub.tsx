@@ -1735,6 +1735,10 @@ function HubSettings({
   };
 
   const handleForceOtaRefresh = async () => {
+    if (ota.apkUpdateRequired) {
+      showDevToast('Blocked: Native APK update is required first!');
+      return;
+    }
     try {
       showDevToast('Force OTA refresh started...');
       const { fetchRemoteVersion } = await import('../lib/otaUpdate');
@@ -2324,6 +2328,11 @@ function HubSettings({
                 `APK eligibility result: ${otaDebugLogs.apkEligibilityResult}`,
                 `final update path: ${otaDebugLogs.finalUpdatePath}`,
                 `reason for final decision: ${otaDebugLogs.finalDecision}`,
+                `pending OTA bundle ID: ${otaDebugLogs.pendingOtaBundleId || 'None'}`,
+                `whether stale OTA bundle was cleared: ${otaDebugLogs.staleOtaCleared}`,
+                `whether CapacitorUpdater.set() was blocked: ${otaDebugLogs.capgoSetBlocked}`,
+                `which component triggered the update: ${otaDebugLogs.triggerComponent || 'None'}`,
+                `final path actually executed: ${otaDebugLogs.finalPathExecuted}`,
                 `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
                 `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
                 `installApk Available: ${otaDebugLogs.installApkAvailable}`,
@@ -2382,6 +2391,12 @@ function HubSettings({
           <DebugRow label="APK eligibility result" desc="Outcome of downloaded APK eligibility validation checks" value={otaDebugLogs.apkEligibilityResult} />
           <DebugRow label="final update path" desc="The determined path for updating: OTA, APK first, both, or none" value={otaDebugLogs.finalUpdatePath} highlightColor={accent.from} />
           <DebugRow label="reason for final decision" desc="Final determination of the update flow" value={otaDebugLogs.finalDecision} highlightColor={accent.from} />
+          
+          <DebugRow label="pending OTA bundle ID" desc="The downloaded OTA bundle ID pending installation" value={otaDebugLogs.pendingOtaBundleId || 'None'} />
+          <DebugRow label="whether stale OTA bundle was cleared" desc="Whether the stale OTA bundle ID was cleared from localStorage" value={String(otaDebugLogs.staleOtaCleared)} />
+          <DebugRow label="whether CapacitorUpdater.set() was blocked" desc="Whether Capgo activation set call was blocked due to APK update" value={String(otaDebugLogs.capgoSetBlocked)} />
+          <DebugRow label="which component triggered the update" desc="The component that requested the update process" value={otaDebugLogs.triggerComponent || 'None'} />
+          <DebugRow label="final path actually executed" desc="The actual execution path of the update" value={otaDebugLogs.finalPathExecuted} highlightColor={accent.from} />
           
           <DebugRow label="downloadApk Available" desc="Whether downloadApk method is available on AppInstaller" value={String(otaDebugLogs.downloadApkAvailable)} />
           <DebugRow label="verifyApkSha256 Available" desc="Whether verifyApkSha256 method is available on AppInstaller" value={String(otaDebugLogs.verifyApkSha256Available)} />
