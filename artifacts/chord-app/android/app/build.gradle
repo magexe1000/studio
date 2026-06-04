@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-// Trigger APK rebuild for v3.3.3 recovery release
+// Trigger APK rebuild for v3.3.6 release - fixing Hub visual layer recovery
 
 android {
     namespace "com.chordex.app"
