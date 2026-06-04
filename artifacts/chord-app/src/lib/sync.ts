@@ -2,8 +2,8 @@ import { doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, collection,
 import { getFirebaseDb } from './firebase';
 import { subscribeAuth, type AuthUser, signOut } from './auth';
 import { isNative } from './capgoUpdater';
-import { getAllTakes, saveTake, type TakeRecord } from '../vocalex/takesDb';
-import { getAllSessions, saveSession, type LabSession, type LabLayer } from '../vocalex/labSessionDb';
+import { getAllTakes, saveTake, deleteTake as dbDeleteTake, type TakeRecord } from '../vocalex/takesDb';
+import { getAllSessions, saveSession, deleteSession as dbDeleteSession, type LabSession, type LabLayer } from '../vocalex/labSessionDb';
 import { useChordStore } from '../store/useChordStore';
 import { secureReadLocal, secureWriteLocal } from './security';
 import { logActivity } from './activityLogger';
@@ -96,6 +96,7 @@ const NEVER_STUCK_MS = 25_000;
 const CHORDEX_LS_KEY = 'chord-explorer-storage-v3';
 const DRUMEX_LS_KEY  = 'chordex-drums';
 const DRUMEX_UI_KEY  = 'chordex-drum-ui';
+const GROOVEX_LS_KEY = 'groovex-storage-v1';
 
 const STAGEX_KEYS = [
   'stagecoreProject',
@@ -125,6 +126,16 @@ type Meta = {
 
 export type SyncPhase = 'idle' | 'syncing' | 'success' | 'error';
 
+export interface ConflictLog {
+  timestamp: number;
+  app: string;
+  itemId: string;
+  itemName: string;
+  localTime: number;
+  cloudTime: number;
+  resolution: string;
+}
+
 export type SyncStatus = {
   signedIn: boolean;
   /** Source of truth for the lifecycle. */
@@ -133,6 +144,8 @@ export type SyncStatus = {
   syncing: boolean;
   lastSyncedMs: number | null;
   error: string | null;
+  showMigrationPrompt: boolean;
+  migrationChoice: 'merge' | 'upload' | 'download' | 'notNow' | null;
 };
 
 type Listener = (s: SyncStatus) => void;
@@ -156,6 +169,8 @@ let status: SyncStatus = {
   syncing: false,
   lastSyncedMs: null,
   error: null,
+  showMigrationPrompt: false,
+  migrationChoice: null,
 };
 let stageIframe: HTMLIFrameElement | null = null;
 let stageSnapshotResolvers: Array<(s: StagexSnapshot) => void> = [];
@@ -656,6 +671,240 @@ async function restoreVocalexLab(records: SessionSyncRecord[]): Promise<void> {
   }
 }
 
+// ── Conflict logging ────────────────────────────────────────────────────────
+
+let conflictLogs: ConflictLog[] = [];
+
+export function getConflictLogs(): ConflictLog[] {
+  return conflictLogs;
+}
+
+export function clearConflictLogs(): void {
+  conflictLogs = [];
+}
+
+export function logConflict(app: string, itemId: string, itemName: string, localTime: number, cloudTime: number, resolution: string) {
+  conflictLogs.push({
+    timestamp: Date.now(),
+    app,
+    itemId,
+    itemName,
+    localTime,
+    cloudTime,
+    resolution,
+  });
+  if (conflictLogs.length > 50) {
+    conflictLogs.shift();
+  }
+}
+
+// ── Groovex snapshots / restores ──────────────────────────────────────────────
+
+function snapshotGroovex(): string | null {
+  return readLocalRaw(GROOVEX_LS_KEY);
+}
+
+function restoreGroovex(raw: string) {
+  try {
+    const local = readLocalRaw(GROOVEX_LS_KEY);
+    const merged = mergeGroovexState(local, raw);
+    writeLocalRaw(GROOVEX_LS_KEY, merged);
+  } catch { /* noop */ }
+  triggerStorageEvent(GROOVEX_LS_KEY);
+}
+
+export function mergeGroovexState(localRaw: string | null, cloudRaw: string): string {
+  if (!localRaw) return cloudRaw;
+  try {
+    const localObj = JSON.parse(localRaw);
+    const cloudObj = JSON.parse(cloudRaw);
+    if (!localObj.state || !cloudObj.state) return cloudRaw;
+
+    const local = localObj.state;
+    const cloud = cloudObj.state;
+
+    // 1. Recent Songs
+    const recentSongs = Array.from(new Set([...(cloud.recentSongs || []), ...(local.recentSongs || [])])).slice(0, 20);
+
+    // 2. Preferences
+    const preferences = { ...(local.preferences || {}), ...(cloud.preferences || {}) };
+
+    // 3. Stem Volumes (merge song objects, then merge stem values)
+    const stemVolumes = { ...(local.stemVolumes || {}) };
+    for (const [songId, stems] of Object.entries(cloud.stemVolumes || {})) {
+      stemVolumes[songId] = {
+        ...(stemVolumes[songId] || {}),
+        ...(stems as Record<string, number>),
+      };
+    }
+
+    // 4. Stem Mutes
+    const stemMutes = { ...(local.stemMutes || {}) };
+    for (const [songId, mutes] of Object.entries(cloud.stemMutes || {})) {
+      stemMutes[songId] = {
+        ...(stemMutes[songId] || {}),
+        ...(mutes as Record<string, boolean>),
+      };
+    }
+
+    // 5. View, ActiveSong, Sort
+    const view = cloud.view || local.view || 'library';
+    const activeSongId = cloud.activeSongId !== undefined ? cloud.activeSongId : local.activeSongId;
+    const sortBy = cloud.sortBy || local.sortBy || 'artist';
+
+    const mergedState = {
+      ...local,
+      ...cloud,
+      recentSongs,
+      preferences,
+      stemVolumes,
+      stemMutes,
+      view,
+      activeSongId,
+      sortBy,
+    };
+
+    return JSON.stringify({
+      state: mergedState,
+      version: cloudObj.version || localObj.version || 1,
+    });
+  } catch (err) {
+    console.warn('[sync] failed to merge groovex state:', err);
+    return cloudRaw;
+  }
+}
+
+// ── First-time migration helpers ──────────────────────────────────────────────
+
+export function hasLocalData(): boolean {
+  const chordex = snapshotChordex();
+  if (chordex) {
+    try {
+      const parsed = JSON.parse(chordex);
+      const state = parsed.state || {};
+      if ((state.favorites && state.favorites.length > 0) ||
+          (state.progressions && state.progressions.length > 0) ||
+          (state.presets && state.presets.length > 0) ||
+          (state.customChords && state.customChords.length > 0)) {
+        return true;
+      }
+    } catch {}
+  }
+  const drumex = snapshotDrumex();
+  if (drumex) {
+    try {
+      const parsed = JSON.parse(drumex);
+      const state = parsed.state || {};
+      if ((state.drumSongs && state.drumSongs.length > 0) ||
+          (state.grooves && state.grooves.length > 0)) {
+        return true;
+      }
+    } catch {}
+  }
+  for (const k of STAGEX_KEYS) {
+    const v = readLocalRaw(k);
+    if (v) return true;
+  }
+  const groovex = snapshotGroovex();
+  if (groovex) {
+    try {
+      const parsed = JSON.parse(groovex);
+      const state = parsed.state || {};
+      if (state.recentSongs && state.recentSongs.length > 0) return true;
+    } catch {}
+  }
+  return false;
+}
+
+export async function checkCloudDataExists(): Promise<boolean> {
+  if (!currentUser) return false;
+  const db = getFirebaseDb();
+  if (!db) return false;
+  const ref = doc(db, 'users', currentUser.uid, 'state', 'chordex');
+  try {
+    const snap = await getDoc(ref);
+    return snap.exists();
+  } catch {
+    return false;
+  }
+}
+
+export async function createCloudBackup(label: string): Promise<void> {
+  if (!currentUser) return;
+  const db = getFirebaseDb();
+  if (!db) return;
+  const [chordex, drumex, drumexUI, stagex, vTakes, vLab, profile, profileCover, groovex] = await Promise.all([
+    Promise.resolve(snapshotChordex()),
+    Promise.resolve(snapshotDrumex()),
+    Promise.resolve(snapshotDrumexUI()),
+    snapshotStagex(),
+    snapshotVocalexTakes(),
+    snapshotVocalexLab(),
+    Promise.resolve(snapshotProfile()),
+    Promise.resolve(snapshotProfileCover()),
+    Promise.resolve(snapshotGroovex()),
+  ]);
+
+  const backupData = {
+    chordex,
+    drumex,
+    drumexUI,
+    stagex,
+    'vocalex-takes': vTakes,
+    'vocalex-lab': vLab,
+    profile,
+    'profile-cover': profileCover,
+    groovex,
+  };
+
+  const backupsColl = collection(db, 'users', currentUser.uid, 'backups');
+  const backupDocRef = doc(backupsColl);
+  await setDoc(backupDocRef, {
+    createdAt: serverTimestamp(),
+    deviceId: deviceId(),
+    label,
+    data: backupData,
+  });
+}
+
+export async function clearVocalexDbs(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const req1 = indexedDB.deleteDatabase('vocalex-takes');
+    req1.onerror = () => console.warn('[sync] failed to delete vocalex-takes DB');
+    req1.onsuccess = () => console.log('[sync] deleted vocalex-takes DB successfully');
+
+    const req2 = indexedDB.deleteDatabase('vocalex-lab');
+    req2.onerror = () => console.warn('[sync] failed to delete vocalex-lab DB');
+    req2.onsuccess = () => {
+      console.log('[sync] deleted vocalex-lab DB successfully');
+      resolve();
+    };
+    setTimeout(resolve, 1000);
+  });
+}
+
+export async function clearLocalDataBeforeDownload(): Promise<void> {
+  localStorage.removeItem(CHORDEX_LS_KEY);
+  localStorage.removeItem(DRUMEX_LS_KEY);
+  localStorage.removeItem(DRUMEX_UI_KEY);
+  localStorage.removeItem(GROOVEX_LS_KEY);
+  for (const k of STAGEX_KEYS) {
+    localStorage.removeItem(k);
+  }
+  await clearVocalexDbs();
+}
+
+let migrationResolver: ((choice: 'merge' | 'upload' | 'download' | 'notNow') => void) | null = null;
+
+export function resolveMigration(choice: 'merge' | 'upload' | 'download' | 'notNow') {
+  if (migrationResolver) {
+    migrationResolver(choice);
+    migrationResolver = null;
+  }
+}
+
+// ── Merge handlers with conflict logging ─────────────────────────────────────
+
 function mergeChordexState(localRaw: string | null, cloudRaw: string): string {
   if (!localRaw) return cloudRaw;
   try {
@@ -676,6 +925,12 @@ function mergeChordexState(localRaw: string | null, cloudRaw: string): string {
     const progressionsMap = new Map();
     (local.progressions || []).forEach((p: any) => progressionsMap.set(p.id, p));
     (cloud.progressions || []).forEach((p: any) => {
+      const existing = progressionsMap.get(p.id);
+      if (existing) {
+        if (JSON.stringify(p.chords) !== JSON.stringify(existing.chords)) {
+          logConflict('chordex', p.id, `Progression: ${p.name || 'Unnamed'}`, existing.createdAt || 0, p.createdAt || 0, 'Last-write-wins (LWW)');
+        }
+      }
       progressionsMap.set(p.id, p);
     });
     const progressions = Array.from(progressionsMap.values());
@@ -685,7 +940,16 @@ function mergeChordexState(localRaw: string | null, cloudRaw: string): string {
     (local.presets || []).forEach((p: any) => presetsMap.set(p.id, p));
     (cloud.presets || []).forEach((p: any) => {
       const existing = presetsMap.get(p.id);
-      if (!existing || (p.updatedAt || 0) > (existing.updatedAt || 0)) {
+      if (existing) {
+        const localTime = existing.updatedAt || existing.createdAt || 0;
+        const cloudTime = p.updatedAt || p.createdAt || 0;
+        if (localTime !== cloudTime && JSON.stringify(p) !== JSON.stringify(existing)) {
+          logConflict('chordex', p.id, `Preset: ${p.name || 'Unnamed'}`, localTime, cloudTime, cloudTime >= localTime ? 'Cloud wins (LWW)' : 'Local wins (LWW)');
+          if (cloudTime >= localTime) {
+            presetsMap.set(p.id, p);
+          }
+        }
+      } else {
         presetsMap.set(p.id, p);
       }
     });
@@ -696,7 +960,16 @@ function mergeChordexState(localRaw: string | null, cloudRaw: string): string {
     (local.customChords || []).forEach((p: any) => customMap.set(p.id, p));
     (cloud.customChords || []).forEach((p: any) => {
       const existing = customMap.get(p.id);
-      if (!existing || (p.createdAt || 0) > (existing.createdAt || 0)) {
+      if (existing) {
+        const localTime = existing.createdAt || 0;
+        const cloudTime = p.createdAt || 0;
+        if (JSON.stringify(p) !== JSON.stringify(existing)) {
+          logConflict('chordex', p.id, `Custom Chord: ${p.name || 'Unnamed'}`, localTime, cloudTime, cloudTime >= localTime ? 'Cloud wins (LWW)' : 'Local wins (LWW)');
+          if (cloudTime >= localTime) {
+            customMap.set(p.id, p);
+          }
+        }
+      } else {
         customMap.set(p.id, p);
       }
     });
@@ -755,7 +1028,16 @@ function mergeDrumexState(localRaw: string | null, cloudRaw: string): string {
     (local.drumSongs || []).forEach((s: any) => songsMap.set(s.id, s));
     (cloud.drumSongs || []).forEach((s: any) => {
       const existing = songsMap.get(s.id);
-      if (!existing || (s.updatedAt || 0) > (existing.updatedAt || 0)) {
+      if (existing) {
+        const localTime = existing.updatedAt || 0;
+        const cloudTime = s.updatedAt || 0;
+        if (localTime !== cloudTime && JSON.stringify(s) !== JSON.stringify(existing)) {
+          logConflict('drumex', s.id, `Drum Song: ${s.name || 'Unnamed'}`, localTime, cloudTime, cloudTime >= localTime ? 'Cloud wins (LWW)' : 'Local wins (LWW)');
+          if (cloudTime >= localTime) {
+            songsMap.set(s.id, s);
+          }
+        }
+      } else {
         songsMap.set(s.id, s);
       }
     });
@@ -766,7 +1048,16 @@ function mergeDrumexState(localRaw: string | null, cloudRaw: string): string {
     (local.grooves || []).forEach((g: any) => groovesMap.set(g.id, g));
     (cloud.grooves || []).forEach((g: any) => {
       const existing = groovesMap.get(g.id);
-      if (!existing || (g.savedAt || 0) > (existing.savedAt || 0)) {
+      if (existing) {
+        const localTime = existing.savedAt || existing.updatedAt || 0;
+        const cloudTime = g.savedAt || g.updatedAt || 0;
+        if (localTime !== cloudTime && JSON.stringify(g) !== JSON.stringify(existing)) {
+          logConflict('drumex', g.id, `Drum Groove: ${g.name || 'Unnamed'}`, localTime, cloudTime, cloudTime >= localTime ? 'Cloud wins (LWW)' : 'Local wins (LWW)');
+          if (cloudTime >= localTime) {
+            groovesMap.set(g.id, g);
+          }
+        }
+      } else {
         groovesMap.set(g.id, g);
       }
     });
@@ -1060,14 +1351,14 @@ async function pullApp(
 
 // ── The single run path ──────────────────────────────────────────────────────
 
-const ALL_APPS: SyncAppKey[] = ['chordex', 'drumex', 'drumexUI', 'stagex', 'vocalex-takes', 'vocalex-lab', 'profile', 'profile-cover'];
+const ALL_APPS: SyncAppKey[] = ['chordex', 'drumex', 'drumexUI', 'stagex', 'vocalex-takes', 'vocalex-lab', 'profile', 'profile-cover', 'groovex'];
 
 /**
  * Build the parallel work list for a push run. Skipping no-change
  * apps here keeps Firestore traffic minimal.
  */
 async function collectPushWork(meta: Meta): Promise<Array<{ app: SyncAppKey; raw: string | StagexSnapshot | unknown[] }>> {
-  const [chordex, drumex, drumexUI, stagex, vTakes, vLab, profile, profileCover] = await Promise.all([
+  const [chordex, drumex, drumexUI, stagex, vTakes, vLab, profile, profileCover, groovex] = await Promise.all([
     Promise.resolve(snapshotChordex()),
     Promise.resolve(snapshotDrumex()),
     Promise.resolve(snapshotDrumexUI()),
@@ -1076,6 +1367,7 @@ async function collectPushWork(meta: Meta): Promise<Array<{ app: SyncAppKey; raw
     snapshotVocalexLab(),
     Promise.resolve(snapshotProfile()),
     Promise.resolve(snapshotProfileCover()),
+    Promise.resolve(snapshotGroovex()),
   ]);
   const work: Array<{ app: SyncAppKey; raw: string | StagexSnapshot | unknown[] }> = [];
   if (chordex      && hashString(chordex)                      !== meta.chordex?.lastHash)          work.push({ app: 'chordex',       raw: chordex });
@@ -1086,6 +1378,7 @@ async function collectPushWork(meta: Meta): Promise<Array<{ app: SyncAppKey; raw
   if (vLab         && hashString(JSON.stringify(vLab))         !== meta['vocalex-lab']?.lastHash)   work.push({ app: 'vocalex-lab',   raw: vLab });
   if (profile      && hashString(profile)                      !== meta.profile?.lastHash)          work.push({ app: 'profile',       raw: profile });
   if (profileCover && hashString(profileCover)                 !== meta['profile-cover']?.lastHash) work.push({ app: 'profile-cover', raw: profileCover });
+  if (groovex      && hashString(groovex)                      !== meta.groovex?.lastHash)          work.push({ app: 'groovex',        raw: groovex });
   return work;
 }
 
@@ -1122,7 +1415,7 @@ async function triggerAutoBackup(): Promise<void> {
 
   try {
     // 1. Gather all snapshots
-    const [chordex, drumex, drumexUI, stagex, vTakes, vLab, profile, profileCover] = await Promise.all([
+    const [chordex, drumex, drumexUI, stagex, vTakes, vLab, profile, profileCover, groovex] = await Promise.all([
       Promise.resolve(snapshotChordex()),
       Promise.resolve(snapshotDrumex()),
       Promise.resolve(snapshotDrumexUI()),
@@ -1131,6 +1424,7 @@ async function triggerAutoBackup(): Promise<void> {
       snapshotVocalexLab(),
       Promise.resolve(snapshotProfile()),
       Promise.resolve(snapshotProfileCover()),
+      Promise.resolve(snapshotGroovex()),
     ]);
 
     const backupData = {
@@ -1142,6 +1436,7 @@ async function triggerAutoBackup(): Promise<void> {
       'vocalex-lab': vLab,
       profile,
       'profile-cover': profileCover,
+      groovex,
     };
 
     // 2. Write backup doc
@@ -1260,6 +1555,66 @@ async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
   let opSucceeded = false;
 
   try {
+    // ── First-time account migration check ──
+    if (reason === 'initial' && !readFirstPullDone(currentUser.uid)) {
+      const hasLocal = hasLocalData();
+      const hasCloud = await checkCloudDataExists();
+      if (hasLocal && hasCloud) {
+        console.info('[sync] Migration required: local and cloud data both exist.');
+        setStatus({ showMigrationPrompt: true });
+        
+        // Wait for the user to make a choice
+        const choice = await new Promise<'merge' | 'upload' | 'download' | 'notNow'>((resolve) => {
+          migrationResolver = resolve;
+        });
+
+        setStatus({ showMigrationPrompt: false });
+
+        if (choice === 'notNow') {
+          console.info('[sync] Migration cancelled by user.');
+          useChordStore.getState().updateSettings({ syncAcrossDevices: false });
+          setStatus({ phase: 'idle', error: null });
+          return;
+        }
+
+        // Create a backup snapshot of local data first (safety first!)
+        try {
+          await createCloudBackup('pre_migration_backup');
+          console.info('[sync] Pre-migration local data backup created.');
+        } catch (backupErr) {
+          console.warn('[sync] Pre-migration backup failed, continuing anyway:', backupErr);
+        }
+
+        if (choice === 'upload') {
+          console.info('[sync] Migration choice: upload (local wins)');
+          const localMeta: Meta = {};
+          const workToPush = await collectPushWork(localMeta);
+          const pushResults = await Promise.allSettled(
+            workToPush.map((w) => pushApp(w.app, w.raw, localMeta, ctrl.signal))
+          );
+          writeFirstPullDone(currentUser.uid);
+          setStatus({ phase: 'idle', lastSyncedMs: Date.now(), error: null });
+          if (currentUser) {
+            void registerDevice(currentUser.uid);
+          }
+          return;
+        }
+
+        if (choice === 'download') {
+          console.info('[sync] Migration choice: download (cloud wins)');
+          await clearLocalDataBeforeDownload();
+          // Clear meta so we pull fresh
+          localStorage.removeItem(SYNC_META_KEY);
+          // Let the rest of the pull-then-push pull down the cloud data
+        }
+
+        if (choice === 'merge') {
+          console.info('[sync] Migration choice: merge');
+          // Standard pull-then-push merges automatically
+        }
+      }
+    }
+
     /**
      * Apps whose pull threw (cloud had data we couldn't restore).
      * We MUST skip pushing these on the same run — otherwise our empty

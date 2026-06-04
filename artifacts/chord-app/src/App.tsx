@@ -354,6 +354,7 @@ export default function App() {
     let cancelled = false;
     let unsubChord: (() => void) | null = null;
     let unsubDrum: (() => void) | null = null;
+    let unsubGroove: (() => void) | null = null;
     let requestFlushFn: ((delayMs?: number) => void) | null = null;
     let pendingFlush = false;
 
@@ -370,6 +371,9 @@ export default function App() {
         } else if (detail?.key === 'chordex-drums') {
           const { useDrumStore } = await import('./store/useDrumStore');
           if (!cancelled) await useDrumStore.persist.rehydrate();
+        } else if (detail?.key === 'groovex-storage-v1') {
+          const { useGroovexStore } = await import('./groovex/useGroovexStore');
+          if (!cancelled) await useGroovexStore.persist.rehydrate();
         }
       } catch { /* noop */ }
     };
@@ -425,6 +429,17 @@ export default function App() {
         flushIfReady();
       });
     });
+    void import('./groovex/useGroovexStore').then(({ useGroovexStore }) => {
+      if (cancelled) return;
+      let lastGrooveSig: string | null = null;
+      unsubGroove = useGroovexStore.subscribe((s) => {
+        // Groovex store is small; full JSON snapshot is fine here.
+        const sig = JSON.stringify(s);
+        if (sig === lastGrooveSig) return;
+        lastGrooveSig = sig;
+        flushIfReady();
+      });
+    });
 
     const startSync = () => {
       if (cancelled) return;
@@ -449,6 +464,7 @@ export default function App() {
       window.removeEventListener('chordex:storage-rehydrate', onRehydrate as EventListener);
       unsubChord?.();
       unsubDrum?.();
+      unsubGroove?.();
     };
   }, []);
 
@@ -1034,7 +1050,14 @@ export default function App() {
     accentColor: settings.accentColor ?? 'blue',
     amoledMode:  settings.amoledMode  ?? false,
   };
-  const accent = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
+  const rawAccent = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
+  const accent = activeVis.accentColor === 'custom'
+    ? {
+        from: `hsl(${settings.customAccentHue ?? 220}, 75%, 65%)`,
+        mid: `hsl(${settings.customAccentHue ?? 220}, 80%, 55%)`,
+        to: `hsl(${((settings.customAccentHue ?? 220) + 25) % 360}, 85%, 42%)`
+      }
+    : rawAccent;
 
   // Show/hide the nav based on panel and preset state.
   // Hidden (and locked so scroll can't override) only when inside the preset editor.
@@ -1061,12 +1084,42 @@ export default function App() {
       accentTimerRef.current = null;
     }
 
-    const hexToRgbStr = (hex: string): string => {
-      const clean = hex.replace('#', '');
-      const r = parseInt(clean.substring(0, 2), 16);
-      const g = parseInt(clean.substring(2, 4), 16);
-      const b = parseInt(clean.substring(4, 6), 16);
-      return `${r}, ${g}, ${b}`;
+    const colorToRgbStr = (color: string): string => {
+      if (color.startsWith('#')) {
+        const clean = color.replace('#', '');
+        const r = parseInt(clean.substring(0, 2), 16);
+        const g = parseInt(clean.substring(2, 4), 16);
+        const b = parseInt(clean.substring(4, 6), 16);
+        return `${r}, ${g}, ${b}`;
+      }
+      if (color.startsWith('hsl')) {
+        const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+        if (match) {
+          const h = parseInt(match[1]) / 360;
+          const s = parseInt(match[2]) / 100;
+          const l = parseInt(match[3]) / 100;
+          let r, g, b;
+          if (s === 0) {
+            r = g = b = l;
+          } else {
+            const hue2rgb = (p: number, q: number, t: number) => {
+              if (t < 0) t += 1;
+              if (t > 1) t -= 1;
+              if (t < 1/6) return p + (q - p) * 6 * t;
+              if (t < 1/2) return q;
+              if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+              return p;
+            };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+          }
+          return `${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}`;
+        }
+      }
+      return '0, 122, 255';
     };
 
     const apply = () => {
@@ -1074,9 +1127,9 @@ export default function App() {
       root.style.setProperty('--accent-from', accent.from);
       root.style.setProperty('--accent-to',   accent.to);
       root.style.setProperty('--accent-mid',  accent.mid);
-      root.style.setProperty('--accent-from-rgb', hexToRgbStr(accent.from));
-      root.style.setProperty('--accent-to-rgb',   hexToRgbStr(accent.to));
-      root.style.setProperty('--accent-mid-rgb',  hexToRgbStr(accent.mid));
+      root.style.setProperty('--accent-from-rgb', colorToRgbStr(accent.from));
+      root.style.setProperty('--accent-to-rgb',   colorToRgbStr(accent.to));
+      root.style.setProperty('--accent-mid-rgb',  colorToRgbStr(accent.mid));
       if (changed) {
         accentTimerRef.current = setTimeout(() => {
           root.classList.remove('theme-transitioning');

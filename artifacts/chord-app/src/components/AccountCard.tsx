@@ -19,7 +19,7 @@ import {
   getSignInProviders,
   type AuthUser,
 } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus, subscribeDevices, deviceId, revokeDeviceSession } from '../lib/sync';
+import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus, subscribeDevices, deviceId, revokeDeviceSession, resolveMigration } from '../lib/sync';
 import { scheduleAccountDeletion, disableAccount } from '../lib/accountStatus';
 import { useT } from '../lib/useT';
 import { useChordStore } from '../store/useChordStore';
@@ -347,6 +347,8 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
     syncing: false,
     lastSyncedMs: null,
     error: null,
+    showMigrationPrompt: false,
+    migrationChoice: null,
   }));
   const [tick, setTick] = useState(0);
   const [avatarIcon, setAvatarIcon] = useState<AvatarIcon | null>(null);
@@ -571,6 +573,15 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
             {t.syncedAppsNote}
           </p>
         </div>
+
+        {sync.showMigrationPrompt && createPortal(
+          <MigrationPromptSheet
+            accent={accent}
+            lang={lang}
+            onClose={(choice) => resolveMigration(choice)}
+          />,
+          document.body
+        )}
 
         {pickerOpen && createPortal(
           <AvatarPickerSheet
@@ -1205,6 +1216,8 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     syncing: false,
     lastSyncedMs: null,
     error: null,
+    showMigrationPrompt: false,
+    migrationChoice: null,
   }));
   useEffect(() => subscribeSyncStatus(setSync), []);
 
@@ -3023,7 +3036,163 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
         </div>,
         document.body,
       )}
+
+      {sync.showMigrationPrompt && createPortal(
+        <MigrationPromptSheet
+          accent={accent}
+          lang={lang}
+          onClose={(choice) => resolveMigration(choice)}
+        />,
+        document.body
+      )}
     </>
+  );
+}
+
+interface MigrationPromptSheetProps {
+  accent: { from: string; to: string; mid: string };
+  lang: string;
+  onClose: (choice: 'merge' | 'upload' | 'download' | 'notNow') => void;
+}
+
+export function MigrationPromptSheet({ accent, lang, onClose }: MigrationPromptSheetProps) {
+  const isEs = lang === 'es';
+
+  const overlayStyle: React.CSSProperties = {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 99999,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  };
+
+  const backdropStyle: React.CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    background: 'rgba(9, 9, 11, 0.85)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+  };
+
+  const modalStyle: React.CSSProperties = {
+    position: 'relative',
+    width: '100%',
+    maxWidth: 420,
+    background: 'rgba(20, 20, 25, 0.95)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: 24,
+    padding: '24px 24px',
+    boxShadow: '0 24px 48px rgba(0, 0, 0, 0.5), 0 2px 10px rgba(255, 255, 255, 0.02)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 20,
+    color: '#fff',
+    animation: 'sheet-up 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
+  };
+
+  return (
+    <div style={overlayStyle}>
+      <div style={backdropStyle} />
+      <div style={modalStyle}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: '50%',
+            background: `linear-gradient(135deg, ${accent.from}22, ${accent.to}22)`,
+            border: `1px solid ${accent.from}44`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: accent.from,
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 24 }}>cloud_sync</span>
+          </div>
+          <h3 style={{ fontFamily: 'Manrope', fontSize: 18, fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
+            {isEs ? '¿Sincronizar tus datos de Studio?' : 'Sync your existing Studio data?'}
+          </h3>
+          <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', margin: 0, lineHeight: 1.5 }}>
+            {isEs 
+              ? 'Studio ha encontrado datos guardados localmente en este dispositivo. Puedes subirlos a tu cuenta y sincronizarlos entre todos tus dispositivos.'
+              : 'Studio found data stored locally on this device. You can back it up to your account and sync it across devices.'}
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Merge option (Recommended) */}
+          <button
+            onClick={() => onClose('merge')}
+            style={{
+              padding: '12px 16px', borderRadius: 14,
+              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+              border: 'none', color: '#fff',
+              fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+              cursor: 'pointer', textAlign: 'left',
+              display: 'flex', flexDirection: 'column', gap: 2,
+              boxShadow: `0 4px 12px ${accent.to}33`,
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>{isEs ? 'Combinar datos locales y de la nube' : 'Merge local and cloud data'}</span>
+              <span style={{ fontSize: 9, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: 99, fontWeight: 800 }}>
+                {isEs ? 'RECOMENDADO' : 'RECOMMENDED'}
+              </span>
+            </span>
+            <span style={{ fontSize: 11, opacity: 0.8, fontWeight: 400 }}>
+              {isEs ? 'Combina ambos de forma segura sin perder nada.' : 'Safely combines both without losing anything.'}
+            </span>
+          </button>
+
+          {/* Download option */}
+          <button
+            onClick={() => onClose('download')}
+            style={{
+              padding: '12px 16px', borderRadius: 14,
+              background: 'rgba(128,128,128,0.06)',
+              border: '1px solid rgba(128,128,128,0.1)', color: 'var(--c-text-primary)',
+              fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+              cursor: 'pointer', textAlign: 'left',
+              display: 'flex', flexDirection: 'column', gap: 2,
+            }}
+          >
+            <span>{isEs ? 'Descargar datos de la nube' : 'Download cloud data'}</span>
+            <span style={{ fontSize: 11, color: 'var(--c-text-secondary)', fontWeight: 400 }}>
+              {isEs ? 'Descarga el estado de la nube (sobrescribirá los datos locales).' : 'Downloads cloud state (overwrites local data).'}
+            </span>
+          </button>
+
+          {/* Backup & Upload option */}
+          <button
+            onClick={() => onClose('upload')}
+            style={{
+              padding: '12px 16px', borderRadius: 14,
+              background: 'rgba(128,128,128,0.06)',
+              border: '1px solid rgba(128,128,128,0.1)', color: 'var(--c-text-primary)',
+              fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+              cursor: 'pointer', textAlign: 'left',
+              display: 'flex', flexDirection: 'column', gap: 2,
+            }}
+          >
+            <span>{isEs ? 'Subir y sincronizar este dispositivo' : 'Back up and sync this device'}</span>
+            <span style={{ fontSize: 11, color: 'var(--c-text-secondary)', fontWeight: 400 }}>
+              {isEs ? 'Sube datos locales a la nube (sobrescribirá los datos de la nube).' : 'Uploads local data to your cloud account (overwrites cloud).'}
+            </span>
+          </button>
+
+          {/* Cancel/Not now option */}
+          <button
+            onClick={() => onClose('notNow')}
+            style={{
+              padding: '12px 16px', borderRadius: 14,
+              background: 'transparent',
+              border: '1px solid transparent', color: 'var(--c-text-secondary)',
+              fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+              cursor: 'pointer', textAlign: 'center',
+            }}
+          >
+            {isEs ? 'Ahora no' : 'Not now'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

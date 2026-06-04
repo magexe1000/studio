@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.4.12'; // Apply global accent color system to Studio apps
+export const APP_VERSION = '3.5.0'; // Add real cloud sync across devices
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.4.12
+export const APP_VERSION_DATE = '2026-06-04'; // 3.5.0
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,19 +53,28 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
+    heading: "Added",
+    items: [
+      "Added real Studio Cloud Sync for signed-in users.",
+      "Added cross-device sync support for Studio account data.",
+      "Added sync status, last synced time, and manual Sync Now controls.",
+      "Added device registration for signed-in devices.",
+      "Added local-to-cloud migration for existing data.",
+      "Added sync diagnostics in Developer Options.",
+    ],
+  },
+  {
     heading: "Improved",
     items: [
-      "Unified accent color behavior across Hub, Settings, Chordex, Drumex, Stagex, Groovex, and Vocalex.",
-      "Added polished horizontal fade behavior for scrollable chip rows.",
-      "Improved visual consistency across the Studio ecosystem.",
+      "Improved account functionality with real backup and restore behavior.",
+      "Improved profile/settings persistence across devices.",
+      "Improved offline handling for syncable data.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed internal Studio apps not following the selected accent color.",
-      "Removed hardcoded blue accent styling from app controls.",
-      "Fixed Chordex Discover genre chips appearing abruptly cut off while scrolling.",
+      "Fixed sync buttons appearing functional when sync was not actually implemented.",
     ],
   },
 ];
@@ -74,19 +83,28 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Corregido",
+    heading: "Añadido",
     items: [
-      "Se corrigió que las aplicaciones internas no siguieran el color de acento seleccionado.",
-      "Se eliminó el estilo de acento azul predeterminado de los controles de la aplicación.",
-      "Se corrigieron los chips de género de Chordex Discover que se cortaban abruptamente al desplazarse.",
+      "Sincronización real en la nube de Studio para usuarios registrados.",
+      "Soporte de sincronización entre dispositivos para datos de cuenta.",
+      "Estado de sincronización, fecha de última sincronización y botón Sincronizar ahora.",
+      "Registro automático de dispositivos para sesiones iniciadas.",
+      "Migración guiada de datos locales a la nube al iniciar sesión.",
+      "Diagnósticos detallados de sincronización en Opciones de desarrollador.",
     ],
   },
   {
     heading: "Mejorado",
     items: [
-      "Se unificó el comportamiento del color de acento en todo el ecosistema de Studio.",
-      "Se agregó un comportamiento de desvanecimiento horizontal para las filas de chips desplazables.",
-      "Se mejoró la consistencia visual en todas las aplicaciones de Studio.",
+      "Funcionalidad de cuenta mejorada con copias de seguridad reales.",
+      "Persistencia de perfil y configuraciones mejorada entre dispositivos.",
+      "Gestión sin conexión mejorada para datos sincronizables.",
+    ],
+  },
+  {
+    heading: "Corregido",
+    items: [
+      "Se corrigieron los botones de sincronización que parecían activos pero no hacían nada.",
     ],
   },
 ];

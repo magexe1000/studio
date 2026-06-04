@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { useBackHandler } from '../lib/backStack';
 import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, type SyncStatus } from '../lib/sync';
+import { subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup } from '../lib/sync';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useNavHidden, useNavCollapsed, useScrollHide } from '../lib/navScroll';
@@ -221,6 +221,7 @@ export default function StudioHub() {
   const [devToast, setDevToast] = useState<string | null>(null);
   const [devToastTimer, setDevToastTimer] = useState<number | null>(null);
   
+
   const showDevToast = (msg: string) => {
     if (devToastTimer) {
       window.clearTimeout(devToastTimer);
@@ -1449,6 +1450,8 @@ function HubSettings({
     syncing: false,
     lastSyncedMs: null,
     error: null,
+    showMigrationPrompt: false,
+    migrationChoice: null,
   });
 
   useEffect(() => {
@@ -2693,6 +2696,83 @@ function HubSettings({
       });
     };
 
+    const getLocalRecordCounts = () => {
+      let chordexPresets = 0;
+      let chordexProgressions = 0;
+      let chordexChords = 0;
+      let drumexSongs = 0;
+      let drumexGrooves = 0;
+      let groovexSongs = 0;
+
+      try {
+        const chordex = localStorage.getItem('chord-explorer-storage-v3');
+        if (chordex) {
+          const parsed = JSON.parse(chordex);
+          const state = parsed.state || {};
+          chordexPresets = state.presets?.length || 0;
+          chordexProgressions = state.progressions?.length || 0;
+          chordexChords = state.customChords?.length || 0;
+        }
+      } catch {}
+
+      try {
+        const drumex = localStorage.getItem('chordex-drums');
+        if (drumex) {
+          const parsed = JSON.parse(drumex);
+          const state = parsed.state || {};
+          drumexSongs = state.drumSongs?.length || 0;
+          drumexGrooves = state.grooves?.length || 0;
+        }
+      } catch {}
+
+      try {
+        const groovex = localStorage.getItem('groovex-storage-v1');
+        if (groovex) {
+          const parsed = JSON.parse(groovex);
+          const state = parsed.state || {};
+          groovexSongs = state.recentSongs?.length || 0;
+        }
+      } catch {}
+
+      return `Chordex: ${chordexPresets} presets, ${chordexProgressions} progressions, ${chordexChords} custom chords\nDrumex: ${drumexSongs} songs, ${drumexGrooves} grooves\nGroovex: ${groovexSongs} recent songs`;
+    };
+
+    const handleForceSyncNow = () => {
+      wrapAction('force-sync', async () => {
+        await syncNow();
+        showDevToast('Force sync completed.');
+      });
+    };
+
+    const handleResetSyncState = () => {
+      if (!window.confirm('WARNING: This will reset local sync state. It will NOT delete local data. Reset now?')) return;
+      wrapAction('reset-sync', () => {
+        localStorage.removeItem('chordex_sync_meta_v1');
+        localStorage.removeItem('chordex_sync_first_pull_done_v1');
+        showDevToast('Local sync state reset. Re-syncing on next app open.');
+        setTimeout(() => window.location.reload(), 1500);
+      });
+    };
+
+    const handleUploadSnapshot = () => {
+      if (!window.confirm('Upload a full backup snapshot of your current local data to your cloud account?')) return;
+      wrapAction('upload-snapshot', async () => {
+        await createCloudBackup('manual_dev_options');
+        showDevToast('Backup snapshot uploaded successfully.');
+      });
+    };
+
+    const handleClearSyncLogs = () => {
+      wrapAction('clear-sync-logs', () => {
+        clearConflictLogs();
+        showDevToast('Sync conflict logs cleared.');
+      });
+    };
+
+    const conflictLogsText = getConflictLogs().map(log => 
+      `[${new Date(log.timestamp).toLocaleTimeString()}] App: ${log.app}\nItem: ${log.itemName} (${log.itemId})\nLocal Time: ${new Date(log.localTime).toLocaleString()}\nCloud Time: ${new Date(log.cloudTime).toLocaleString()}\nResolution: ${log.resolution}`
+    ).join('\n\n') || 'No conflicts logged in this session.';
+
     return (
       <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
@@ -2783,8 +2863,22 @@ function HubSettings({
         {/* 4. Storage & Sync Debug */}
         <SettingsSectionLabel>4. Storage & Sync</SettingsSectionLabel>
         <div style={cardStyle}>
+          <DevInfoRow label="Auth UID" value={authUser?.uid || 'Not signed in'} />
+          <DevInfoRow label="Current Device ID" value={deviceId()} />
+          <DevInfoRow label="Sync Enabled" value={settings.syncAcrossDevices ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="Last Sync Time" value={syncStatus.lastSyncedMs ? new Date(syncStatus.lastSyncedMs).toLocaleString() : 'Never'} />
+          <DevInfoRow label="Last Sync Error" value={syncStatus.error || 'None'} />
           <DevInfoRow label="Local Storage Status" desc="Key counts and total memory estimation" value={localStorageStatus} />
+          <DevInfoRow label="Local Records by Category" value={getLocalRecordCounts()} />
+          <DevInfoRow label="Sync Conflict Count" value={String(getConflictLogs().length)} />
+          <DevCollapsibleRow label="Sync Conflict Logs" desc="Item-level conflicts logged during merge runs" value={conflictLogsText} canCopy />
           <DevCollapsibleRow label="Capacitor Preferences Dump" desc="Read values in Capacitor Preferences storage" value={preferencesDump} canCopy />
+          
+          <DevButtonRow label="Force Sync Now" desc="Bypass all throttling and trigger cloud sync" actionLabel="Sync Now" actionId="force-sync" onPress={handleForceSyncNow} />
+          <DevButtonRow label="Reset Local Sync State Only" desc="Clear metadata to force a clean pull next open" actionLabel="Reset Sync State" actionId="reset-sync" onPress={handleResetSyncState} isDestructive />
+          <DevButtonRow label="Upload Local Data Snapshot" desc="Write a custom backup doc to backups collection" actionLabel="Upload Backup" actionId="upload-snapshot" onPress={handleUploadSnapshot} />
+          <DevButtonRow label="Clear Sync Logs & Errors" desc="Flush all logged conflict history and reset phase error" actionLabel="Clear Logs" actionId="clear-sync-logs" onPress={handleClearSyncLogs} />
+          
           <DevButtonRow label="Clear Temporary Files" desc="Reset session-scoped configs" actionLabel="Clear" actionId="clear-temp" onPress={handleClearTemporaryAction} />
           <DevButtonRow label="Export Local Diagnostics" desc="Download complete preferences and storage dump" actionLabel="Export" actionId="export-local" onPress={handleExportLocalDiagnosticsAction} />
         </div>

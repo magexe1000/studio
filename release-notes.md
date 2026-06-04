@@ -1,9 +1,15 @@
-### Fixed
-- Fixed internal Studio apps not following the selected accent color.
-- Removed hardcoded blue accent styling from app controls.
-- Fixed Chordex Discover genre chips appearing abruptly cut off while scrolling.
+### Added
+- Added real Studio Cloud Sync for signed-in users.
+- Added cross-device sync support for Studio account data.
+- Added sync status, last synced time, and manual Sync Now controls.
+- Added device registration for signed-in devices.
+- Added local-to-cloud migration for existing data.
+- Added sync diagnostics in Developer Options.
 
 ### Improved
-- Unified accent color behavior across Hub, Settings, Chordex, Drumex, Stagex, Groovex, and Vocalex.
-- Added polished horizontal fade behavior for scrollable chip rows.
-- Improved visual consistency across the Studio ecosystem.
+- Improved account functionality with real backup and restore behavior.
+- Improved profile/settings persistence across devices.
+- Improved offline handling for syncable data.
+
+### Fixed
+- Fixed sync buttons appearing functional when sync was not actually implemented.

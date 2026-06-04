@@ -217,7 +217,7 @@ interface ChordStore {
   deduplicateAllPresets: () => void;
 }
 
-export const ACCENT_COLORS: Record<AccentColor, { from: string; to: string; mid: string }> = {
+const rawAccentColors = {
   blue:   { from: '#679cff', to: '#007aff', mid: '#4d8ef7' },
   purple: { from: '#b57bee', to: '#7c3aed', mid: '#9d60e6' },
   green:  { from: '#34d399', to: '#059669', mid: '#10b981' },
@@ -226,6 +226,25 @@ export const ACCENT_COLORS: Record<AccentColor, { from: string; to: string; mid:
   teal:   { from: '#2dd4bf', to: '#0891b2', mid: '#14b8a6' },
   custom: { from: '#6ea8fe', to: '#0d6efd', mid: '#4188fc' },
 };
+
+export const ACCENT_COLORS = new Proxy(rawAccentColors, {
+  get(target, prop) {
+    if (prop === 'custom') {
+      try {
+        const state = useChordStore.getState();
+        const hue = state?.settings?.customAccentHue ?? 220;
+        return {
+          from: `hsl(${hue}, 75%, 65%)`,
+          mid: `hsl(${hue}, 80%, 55%)`,
+          to: `hsl(${(hue + 25) % 360}, 85%, 42%)`
+        };
+      } catch (e) {
+        return target.custom;
+      }
+    }
+    return target[prop as keyof typeof target] || target.blue;
+  }
+}) as typeof rawAccentColors;
 
 export const useChordStore = create<ChordStore>()(
   persist(
