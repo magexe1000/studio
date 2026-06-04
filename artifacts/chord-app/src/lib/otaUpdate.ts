@@ -249,14 +249,19 @@ const FETCH_TIMEOUT_MS = 6000;
  *  handles the background path. */
 const FOREGROUND_POLL_MS = 60 * 1000;
 
+export interface StructuredReleaseNotes {
+  added?: string[];
+  improved?: string[];
+  fixed?: string[];
+}
+
 export interface RemoteVersionInfo {
   version: string;
+  /** Flat user-facing changelog string, separated by newlines. */
   changelog?: string;
-  mandatory?: boolean;
-  /**
-   * Absolute URL to a Capgo-compatible zip of the new bundle. Only
-   * present in releases published with `scripts/release-firebase.mjs`.
-   * Used by the Capgo updater on native (Android APK). Web ignores it
+  /** Mandatory update flag — disables the "Later" button. */
+  mandatory: boolean;
+  /** Absolute OTA zip bundle URL. Missing on APK-only updates
    * — service-worker reload handles bundle swaps in the browser.
    */
   downloadUrl?: string;
@@ -265,7 +270,7 @@ export interface RemoteVersionInfo {
   apkSha256?: string;
   manualApkUrl?: string;
   fallbackApkUrl?: string;
-  releaseNotes?: string[];
+  releaseNotes?: string[] | StructuredReleaseNotes;
 }
 
 export interface OtaState {
@@ -385,6 +390,28 @@ async function fetchOne(
     const manualApkUrl = typeof obj.manual_download_url === 'string' ? obj.manual_download_url : (typeof obj.manualApkUrl === 'string' ? obj.manualApkUrl : undefined);
     const fallbackApkUrl = typeof obj.fallback_download_url === 'string' ? obj.fallback_download_url : (typeof obj.fallbackApkUrl === 'string' ? obj.fallbackApkUrl : undefined);
     
+    let parsedReleaseNotes: string[] | StructuredReleaseNotes | undefined = undefined;
+    if (obj.releaseNotes) {
+      if (Array.isArray(obj.releaseNotes)) {
+        parsedReleaseNotes = obj.releaseNotes.filter((item: any) => typeof item === 'string') as string[];
+      } else if (typeof obj.releaseNotes === 'object') {
+        const rnObj = obj.releaseNotes as any;
+        const notesObj: StructuredReleaseNotes = {};
+        if (Array.isArray(rnObj.added)) {
+          notesObj.added = rnObj.added.filter((item: any) => typeof item === 'string') as string[];
+        }
+        if (Array.isArray(rnObj.improved)) {
+          notesObj.improved = rnObj.improved.filter((item: any) => typeof item === 'string') as string[];
+        }
+        if (Array.isArray(rnObj.fixed)) {
+          notesObj.fixed = rnObj.fixed.filter((item: any) => typeof item === 'string') as string[];
+        }
+        if (notesObj.added || notesObj.improved || notesObj.fixed) {
+          parsedReleaseNotes = notesObj;
+        }
+      }
+    }
+
     return {
       version: obj.version,
       changelog,
@@ -395,7 +422,7 @@ async function fetchOne(
       apkSha256,
       manualApkUrl,
       fallbackApkUrl,
-      releaseNotes: Array.isArray(obj.releaseNotes) ? (obj.releaseNotes.filter(item => typeof item === 'string') as string[]) : undefined,
+      releaseNotes: parsedReleaseNotes,
     };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -501,7 +528,7 @@ export interface CentralizedOtaState {
   apkSha256: string | null;
   manualApkUrl: string | null;
   fallbackApkUrl: string | null;
-  releaseNotes: string[] | null;
+  releaseNotes: string[] | StructuredReleaseNotes | null;
   statusText: string | null;
 }
 

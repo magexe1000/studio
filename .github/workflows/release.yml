@@ -157,7 +157,9 @@ jobs:
           VERSION=$(node -p "require('./artifacts/chord-app/package.json').version")
           TAG="v$VERSION"
           if ! gh release view "$TAG" > /dev/null 2>&1; then
-            gh release create "$TAG" --title "Studio v$VERSION" --notes "Release v$VERSION"
+            gh release create "$TAG" --title "Studio v$VERSION" --notes-file release-notes.md
+          else
+            gh release edit "$TAG" --notes-file release-notes.md
           fi
           FILE_NAME="studio-$VERSION.apk"
           HASH_NAME="studio-$VERSION.sha256"

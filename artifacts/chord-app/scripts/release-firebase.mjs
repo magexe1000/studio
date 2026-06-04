@@ -175,39 +175,100 @@ function copyTree(srcRoot, dstRoot, skip = new Set()) {
 }
 copyTree(distDir, firebasePublicDir, new Set(['bundles', 'version.json', 'app-release.json']));
 
-// ── Parse CHANGELOG.md for the current version ───────────────────────
+// ── Parse and Validate CHANGELOG.md for the current version ───────────
 const changelogPath = path.join(pkgRoot, 'CHANGELOG.md');
-let changelog = `Version ${version}`;
-if (existsSync(changelogPath)) {
-  const text = readFileSync(changelogPath, 'utf8');
-  const esc = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(
-    `^##\\s+${esc}\\s*$([\\s\\S]*?)(?=^##\\s+|(?![\\s\\S]))`,
-    'm',
-  );
-  const match = text.match(re);
-  if (match) {
-    const lines = match[1].split('\n');
-    const bullets = [];
-    let current = null;
-    for (const raw of lines) {
-      const line = raw.trimEnd();
-      if (/^\s*-\s+/.test(line)) {
-        if (current) bullets.push(current);
-        current = '• ' + line.replace(/^\s*-\s+/, '').trim();
-      } else if (/^\s+\S/.test(line) && current) {
-        current += ' ' + line.trim();
-      } else if (line.trim() === '' && current) {
-        bullets.push(current);
-        current = null;
-      }
+if (!existsSync(changelogPath)) {
+  console.error(`release-firebase: ✗ Release blocked: CHANGELOG.md not found at ${changelogPath}`);
+  process.exit(1);
+}
+
+const changelogText = readFileSync(changelogPath, 'utf8');
+const esc = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const re = new RegExp(
+  `^##\\s+${esc}\\s*$([\\s\\S]*?)(?=^##\\s+|(?![\\s\\S]))`,
+  'm'
+);
+const match = changelogText.match(re);
+
+if (!match) {
+  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: missing changelog entry for version ${version} in CHANGELOG.md. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+const sectionContent = match[1].trim();
+if (!sectionContent) {
+  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: changelog entry for version ${version} is empty. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+if (sectionContent.toLowerCase() === `version ${version}`.toLowerCase() ||
+    sectionContent.toLowerCase() === `release v${version}`.toLowerCase() ||
+    sectionContent.toLowerCase() === `version: ${version}`.toLowerCase()) {
+  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: changelog entry for version ${version} contains only generic placeholder text. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+// Extract bullets and structure by category (Added, Improved, Fixed)
+const categories = {
+  added: [],
+  improved: [],
+  fixed: []
+};
+
+const lines = sectionContent.split('\n');
+let currentCategory = null;
+const flatBullets = [];
+
+for (const rawLine of lines) {
+  const line = rawLine.trim();
+  if (!line) continue;
+
+  // Detect category headings
+  const hMatch = line.match(/^###\s+(Added|Improved|Fixed|Changes|Bug\s*Fixes|Fixes)\b/i);
+  if (hMatch) {
+    const heading = hMatch[1].toLowerCase();
+    if (heading.startsWith('add')) {
+      currentCategory = 'added';
+    } else if (heading.startsWith('improv')) {
+      currentCategory = 'improved';
+    } else if (heading.startsWith('fix') || heading.startsWith('bug')) {
+      currentCategory = 'fixed';
+    } else {
+      currentCategory = null;
     }
-    if (current) bullets.push(current);
-    if (bullets.length > 0) {
-      changelog = bullets.join('\n');
+    continue;
+  }
+
+  // Detect bullets starting with - or *
+  const bMatch = line.match(/^[-*]\s+(.*)$/);
+  if (bMatch) {
+    const bulletContent = bMatch[1].trim();
+    if (currentCategory) {
+      categories[currentCategory].push(bulletContent);
     }
+    flatBullets.push(bulletContent);
   }
 }
+
+if (flatBullets.length === 0) {
+  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: changelog entry for version ${version} has no meaningful bullet points. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+// For version.json changelog
+const changelog = flatBullets.map(b => `• ${b}`).join('\n');
+const releaseNotes = {
+  added: categories.added.length > 0 ? categories.added : undefined,
+  improved: categories.improved.length > 0 ? categories.improved : undefined,
+  fixed: categories.fixed.length > 0 ? categories.fixed : undefined
+};
+
+console.log(`release-firebase: ✓ Validated changelog for version ${version}. Found ${flatBullets.length} bullets.`);
+
+// Write to release-notes.md in repo root for GitHub Release usage
+const releaseNotesMdPath = path.join(repoRoot, 'release-notes.md');
+writeFileSync(releaseNotesMdPath, sectionContent + '\n', 'utf8');
+console.log(`release-firebase: ✓ Wrote ${path.relative(repoRoot, releaseNotesMdPath)}`);
 
 // ── Update version.json with the absolute Firebase download URL ────────
 const versionJsonPath = path.join(firebasePublicDir, 'version.json');
@@ -217,9 +278,11 @@ const existing = existsSync(versionJsonPath)
 
 existing.version = version;
 existing.changelog = changelog;
+existing.releaseNotes = releaseNotes;
 existing.downloadUrl = `${otaBase}/ota/${zipName}`;
 
 writeFileSync(versionJsonPath, JSON.stringify(existing, null, 2) + '\n', 'utf8');
 console.log(`release-firebase: ✓ Wrote ${path.relative(repoRoot, versionJsonPath)}`);
 
 console.log('release-firebase: ✓ Done.');
+

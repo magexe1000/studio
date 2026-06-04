@@ -53,27 +53,20 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Removed",
-    items: [
-      'Removed Push Notifications support and related settings for now.',
-      'Removed inactive push notification messaging from update checks.',
-    ],
-  },
-  {
     heading: "Improved",
     items: [
-      'Revamped Developer Options with clearer sections and diagnostics.',
-      'Improved Developer Options actions, confirmations, and visual feedback.',
-      'Improved return-to-Hub transition to avoid black screen frames.',
-      'Added a smoother app-to-Hub exit animation.',
+      "Revamped Developer Options with clearer sections and diagnostics.",
+      "Improved Developer Options actions, statuses, confirmations, and feedback.",
+      "Improved return-to-Hub transition to avoid black screen frames.",
+      "Added a smoother app-to-Hub exit animation.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      'Fixed Developer Options buttons with incomplete or unclear behavior.',
-      'Fixed return-to-Hub visual transition showing a black screen.',
-      'Fixed app shell visual reset during app exit.',
+      "Fixed Developer Options buttons that had incomplete or unclear behavior.",
+      "Fixed return-to-Hub visual transition showing a black screen before the Hub appears.",
+      "Fixed app shell visual reset during app exit.",
     ],
   },
 ];

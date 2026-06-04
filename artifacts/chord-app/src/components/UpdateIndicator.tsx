@@ -32,7 +32,7 @@ import { useState, useEffect, useRef } from 'react';
 import StudioSpinner from './animata/progress/spinner';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import StudioUpdateScreen from './StudioUpdateScreen';
-import { useOtaUpdate } from '../lib/otaUpdate';
+import { useOtaUpdate, type StructuredReleaseNotes } from '../lib/otaUpdate';
 import UpdateDiagnosticsSheet from './UpdateDiagnosticsSheet';
 import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
 import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
@@ -1111,7 +1111,108 @@ function UpdateModal({
   };
 
   const renderChangelog = () => {
-    const bullets = ota.releaseNotes || (ota.changelog ? ota.changelog.split('\n').map(l => l.trim()).filter(Boolean) : []);
+    const releaseNotes = ota.releaseNotes;
+
+    // Check if we have structured release notes with at least one item
+    const hasStructured = releaseNotes && typeof releaseNotes === 'object' && !Array.isArray(releaseNotes) && (
+      ((releaseNotes as StructuredReleaseNotes).added && (releaseNotes as StructuredReleaseNotes).added!.length > 0) ||
+      ((releaseNotes as StructuredReleaseNotes).improved && (releaseNotes as StructuredReleaseNotes).improved!.length > 0) ||
+      ((releaseNotes as StructuredReleaseNotes).fixed && (releaseNotes as StructuredReleaseNotes).fixed!.length > 0)
+    );
+
+    if (hasStructured) {
+      const rn = releaseNotes as StructuredReleaseNotes;
+      const categories = [
+        { label: 'Added', items: rn.added },
+        { label: 'Improved', items: rn.improved },
+        { label: 'Fixed', items: rn.fixed },
+      ].filter(cat => cat.items && cat.items.length > 0);
+
+      return (
+        <div style={{
+          width: '100%',
+          margin: '12px 0 4px',
+          borderRadius: 14,
+          background: 'rgba(128, 128, 128, 0.05)',
+          border: '1px solid rgba(128, 128, 128, 0.08)',
+          overflow: 'hidden',
+          transition: 'all 200ms ease',
+        }}>
+          {/* Toggle Header */}
+          <button
+            type="button"
+            onClick={() => setChangelogExpanded(!changelogExpanded)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 14px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--c-text-primary)',
+              fontFamily: 'Manrope',
+              fontWeight: 700,
+              fontSize: 12.5,
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16, color: purpleFrom }}>info</span>
+              <span>What's New</span>
+            </div>
+            <span className="material-symbols-outlined" style={{
+              fontSize: 16,
+              color: 'var(--c-text-secondary)',
+              transform: changelogExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 200ms ease',
+            }}>
+              expand_more
+            </span>
+          </button>
+
+          {/* Categories list */}
+          {changelogExpanded && (
+            <div style={{
+              maxHeight: 150,
+              overflowY: 'auto',
+              padding: '0 14px 12px',
+              borderTop: '1px solid rgba(128, 128, 128, 0.06)',
+            }}>
+              {categories.map((cat, idx) => (
+                <div key={idx} style={{ marginTop: idx === 0 ? 8 : 12 }}>
+                  <div style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: 'var(--c-text-primary)',
+                    fontFamily: 'Manrope',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: 4,
+                  }}>
+                    {cat.label}
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.55 }}>
+                    {cat.items!.map((item: string, itemIdx: number) => (
+                      <li key={itemIdx} style={{ marginBottom: 4 }}>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Fallback to flat list or plain text splits
+    const bullets = Array.isArray(releaseNotes)
+      ? (releaseNotes as string[])
+      : (ota.changelog ? ota.changelog.split('\n').map(l => l.trim()).filter(Boolean) : []);
+
     if (bullets.length === 0) return null;
 
     return (
@@ -1161,7 +1262,7 @@ function UpdateModal({
         {/* Bullet List Container */}
         {changelogExpanded && (
           <div style={{
-            maxHeight: 110,
+            maxHeight: 150,
             overflowY: 'auto',
             padding: '0 14px 12px',
             borderTop: '1px solid rgba(128, 128, 128, 0.06)',

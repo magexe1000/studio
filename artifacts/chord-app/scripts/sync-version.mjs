@@ -5,31 +5,10 @@
  * drift. Run automatically before every `vite build` via the
  * `prebuild` npm hook; safe to run by hand too.
  *
- * Source of truth:  src/lib/appVersion.ts  (APP_VERSION, APP_CHANGELOG)
- * Generates:        public/version.json     ({ version, changelog, mandatory })
- *
- * Implementation note: we parse the TS source with a regex rather
- * than spinning up a TS compiler. The constants are intentionally
- * trivial string / array literals so a one-line regex is robust.
- * If the format ever changes, this script will exit non-zero (loud
- * failure) instead of silently writing the wrong version.
- *
- * ─── Flags ─────────────────────────────────────────────────────────
- * --preserve-newer   DEV-ONLY OTA OVERRIDE.
- *   When set, if `public/version.json` already exists AND its
- *   `version` field is a STRICTLY-VALID semver that compares greater
- *   than `APP_VERSION`, the existing file is left untouched. This
- *   lets a developer hand-edit `public/version.json` to a higher
- *   version (with a custom changelog) to demo the in-app
- *   UpdateIndicator without every `pnpm dev` restart wiping it.
- *
- *   The `prebuild` hook must NOT pass this flag — production builds
- *   require strict lockstep so the shipped APK reports its real
- *   version. Only the `predev` hook passes it.
- *
- *   Any malformed / non-strict-semver value in the existing file is
- *   treated as a parse failure and the file is rewritten — preserve
- *   only kicks in for unambiguously-newer, strict versions.
+ * Source of truth:  CHANGELOG.md (repo root) & src/lib/appVersion.ts
+ * Generates:        public/version.json     ({ version, changelog, releaseNotes, mandatory })
+ *                   repo-root/release-notes.md (Markdown release notes)
+ * Updates:          src/lib/appVersion.ts   (APP_CHANGELOG_SECTIONS)
  */
 
 import fs from 'node:fs';
@@ -38,16 +17,12 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
+const repoRoot = path.resolve(root, '../..');
 const sourcePath = path.join(root, 'src/lib/appVersion.ts');
 const outPath = path.join(root, 'public/version.json');
 
 const preserveNewer = process.argv.includes('--preserve-newer');
 
-// Strict semver parser — anchored end-to-end so values like
-// "3.1.0junk", "3.1.0.1", or "v3.1.0" are rejected (return null).
-// We only need core MAJOR.MINOR.PATCH for the preserve check; any
-// prerelease / build metadata is treated as "not a clean release"
-// and falls through to a rewrite.
 function parseSemver(v) {
   const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(String(v).trim());
   return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
@@ -62,56 +37,145 @@ function semverGt(a, b) {
   return false;
 }
 
-const src = fs.readFileSync(sourcePath, 'utf8');
+// 1. Synchronize CHANGELOG.md from repo root if present
+const rootChangelogPath = path.join(repoRoot, 'CHANGELOG.md');
+const localChangelogPath = path.join(root, 'CHANGELOG.md');
+if (fs.existsSync(rootChangelogPath)) {
+  fs.copyFileSync(rootChangelogPath, localChangelogPath);
+  console.log(`sync-version: ✓ synchronized local CHANGELOG.md from repo root`);
+}
 
+// 2. Get version from src/lib/appVersion.ts
+const src = fs.readFileSync(sourcePath, 'utf8');
 const versionMatch = src.match(/export\s+const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
 if (!versionMatch) {
   console.error(`sync-version: ✗ could not find APP_VERSION in ${sourcePath}`);
-  console.error('  Expected:  export const APP_VERSION = \'X.Y.Z\';');
+  console.error("  Expected:  export const APP_VERSION = 'X.Y.Z';");
   process.exit(1);
 }
 const version = versionMatch[1];
 
-const changelogMatch = src.match(/export\s+const\s+APP_CHANGELOG\s*=\s*\[([\s\S]*?)\]\s*;/);
-let changelog;
-if (!changelogMatch) {
-  // No APP_CHANGELOG export defined at all — fine, fall back to a
-  // generic "Version X.Y.Z" notice rather than failing the build.
-  changelog = `Version ${version}`;
-} else {
-  // APP_CHANGELOG IS defined → parse it. If parsing yields nothing,
-  // the upstream format has drifted and silently shipping a stale or
-  // empty changelog would be worse than failing loudly. Exit non-zero
-  // so the developer knows to either fix the format or update this
-  // script to handle the new shape.
-  const lines = changelogMatch[1]
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-    // strip trailing comma + surrounding quotes
-    .map((l) => l.replace(/,$/, ''))
-    .map((l) => {
-      const m = l.match(/^['"`](.*)['"`]$/);
-      return m ? m[1] : null;
-    })
-    .filter((s) => typeof s === 'string' && s.length > 0);
-  if (lines.length === 0) {
-    console.error(`sync-version: ✗ APP_CHANGELOG is exported in ${sourcePath} but no entries could be parsed.`);
-    console.error('  Expected each entry on its own line as a quoted string literal:');
-    console.error('    export const APP_CHANGELOG = [');
-    console.error("      'Some user-facing change.',");
-    console.error("      'Another change.',");
-    console.error('    ];');
-    console.error('  If the array intentionally uses a different shape (template literals, inline format, computed values),');
-    console.error('  update scripts/sync-version.mjs to handle it.');
-    process.exit(1);
+// 3. Open and parse CHANGELOG.md
+if (!fs.existsSync(localChangelogPath)) {
+  console.error(`sync-version: ✗ Release blocked: CHANGELOG.md not found at ${localChangelogPath}`);
+  process.exit(1);
+}
+
+const changelogText = fs.readFileSync(localChangelogPath, 'utf8');
+const esc = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const re = new RegExp(
+  `^##\\s+${esc}\\s*$([\\s\\S]*?)(?=^##\\s+|(?![\\s\\S]))`,
+  'm'
+);
+const match = changelogText.match(re);
+
+if (!match) {
+  console.error(`\x1b[31msync-version: ✗ Release blocked: missing changelog entry for version ${version} in CHANGELOG.md. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+const sectionContent = match[1].trim();
+if (!sectionContent) {
+  console.error(`\x1b[31msync-version: ✗ Release blocked: changelog entry for version ${version} is empty. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+if (sectionContent.toLowerCase() === `version ${version}`.toLowerCase() ||
+    sectionContent.toLowerCase() === `release v${version}`.toLowerCase() ||
+    sectionContent.toLowerCase() === `version: ${version}`.toLowerCase()) {
+  console.error(`\x1b[31msync-version: ✗ Release blocked: changelog entry for version ${version} contains only generic placeholder text. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+// Extract bullets and structure by category (Added, Improved, Fixed)
+const categories = {
+  added: [],
+  improved: [],
+  fixed: []
+};
+
+const lines = sectionContent.split('\n');
+let currentCategory = null;
+const flatBullets = [];
+
+for (const rawLine of lines) {
+  const line = rawLine.trim();
+  if (!line) continue;
+
+  // Detect category headings
+  const hMatch = line.match(/^###\s+(Added|Improved|Fixed|Changes|Bug\s*Fixes|Fixes)\b/i);
+  if (hMatch) {
+    const heading = hMatch[1].toLowerCase();
+    if (heading.startsWith('add')) {
+      currentCategory = 'added';
+    } else if (heading.startsWith('improv')) {
+      currentCategory = 'improved';
+    } else if (heading.startsWith('fix') || heading.startsWith('bug')) {
+      currentCategory = 'fixed';
+    } else {
+      currentCategory = null;
+    }
+    continue;
   }
-  changelog = lines.map((s) => `• ${s}`).join('\n');
+
+  // Detect bullets starting with - or *
+  const bMatch = line.match(/^[-*]\s+(.*)$/);
+  if (bMatch) {
+    const bulletContent = bMatch[1].trim();
+    if (currentCategory) {
+      categories[currentCategory].push(bulletContent);
+    }
+    flatBullets.push(bulletContent);
+  }
+}
+
+if (flatBullets.length === 0) {
+  console.error(`\x1b[31msync-version: ✗ Release blocked: changelog entry for version ${version} has no meaningful bullet points. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+const changelog = flatBullets.map(b => `• ${b}`).join('\n');
+const releaseNotes = {
+  added: categories.added.length > 0 ? categories.added : undefined,
+  improved: categories.improved.length > 0 ? categories.improved : undefined,
+  fixed: categories.fixed.length > 0 ? categories.fixed : undefined
+};
+
+console.log(`sync-version: ✓ Validated changelog for version ${version}. Found ${flatBullets.length} bullets.`);
+
+// 4. Write to release-notes.md in repo root for GitHub Release usage
+const releaseNotesMdPath = path.join(repoRoot, 'release-notes.md');
+fs.writeFileSync(releaseNotesMdPath, sectionContent + '\n', 'utf8');
+console.log(`sync-version: ✓ Wrote repo-root/release-notes.md`);
+
+// 5. Rewrite APP_CHANGELOG_SECTIONS in src/lib/appVersion.ts
+let tsSections = 'export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [\n';
+if (categories.added.length > 0) {
+  tsSections += '  {\n    heading: "Added",\n    items: [\n' + categories.added.map(i => `      ${JSON.stringify(i)},`).join('\n') + '\n    ],\n  },\n';
+}
+if (categories.improved.length > 0) {
+  tsSections += '  {\n    heading: "Improved",\n    items: [\n' + categories.improved.map(i => `      ${JSON.stringify(i)},`).join('\n') + '\n    ],\n  },\n';
+}
+if (categories.fixed.length > 0) {
+  tsSections += '  {\n    heading: "Fixed",\n    items: [\n' + categories.fixed.map(i => `      ${JSON.stringify(i)},`).join('\n') + '\n    ],\n  },\n';
+}
+tsSections += '];';
+
+const changelogSectionsPat = /export\s+const\s+APP_CHANGELOG_SECTIONS:\s*ChangelogSection\[\]\s*=\s*\[([\s\S]*?)\]\s*;/;
+if (changelogSectionsPat.test(src)) {
+  const updatedSrc = src.replace(changelogSectionsPat, tsSections);
+  if (updatedSrc !== src) {
+    fs.writeFileSync(sourcePath, updatedSrc, 'utf8');
+    console.log(`sync-version: ✓ updated APP_CHANGELOG_SECTIONS in ${path.relative(root, sourcePath)}`);
+  }
+} else {
+  console.warn(`sync-version: ⚠ Could not find APP_CHANGELOG_SECTIONS pattern in ${sourcePath}`);
 }
 
 const payload = {
   version,
   changelog,
+  releaseNotes,
   mandatory: false,
 };
 

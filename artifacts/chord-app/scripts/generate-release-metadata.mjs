@@ -38,18 +38,31 @@ if (!versionMatch) {
 }
 const version = versionMatch[1];
 
-// Read changelog description from firebase-public/version.json
+// Read changelog description and releaseNotes from firebase-public/version.json
 let description = `Release v${version}`;
+let releaseNotes = undefined;
 if (fs.existsSync(versionJsonPath)) {
   try {
     const versionJson = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8'));
     if (versionJson.changelog) {
       description = versionJson.changelog;
     }
+    if (versionJson.releaseNotes) {
+      releaseNotes = versionJson.releaseNotes;
+    }
   } catch (err) {
     console.warn('generate-release-metadata: ⚠ Could not parse version.json', err);
   }
 }
+
+// Validate that the description is not generic
+if (description.toLowerCase() === `version ${version}`.toLowerCase() ||
+    description.toLowerCase() === `release v${version}`.toLowerCase() ||
+    description.toLowerCase() === `version: ${version}`.toLowerCase()) {
+  console.error(`\x1b[31mgenerate-release-metadata: ✗ Release blocked: version.json contains generic/placeholder changelog info. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
 
 // Compute SHA-256 hash of APK and copy to Firebase Hosting mirror
 const apkPath = path.join(appRoot, 'android/app/build/outputs/apk/release/app-release.apk');
@@ -164,6 +177,7 @@ const metadata = {
   created_at: new Date().toISOString(),
   version: version,
   description: description,
+  releaseNotes: releaseNotes,
   download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
   manual_download_url: `https://studio-30f44.web.app/apk/studio-${version}.apk`,
   fallback_download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
@@ -191,6 +205,9 @@ const syncVersionJson = (filePath) => {
       data.fallbackApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
       data.sha256 = sha256;
       data.updateType = releaseType;
+      if (releaseNotes) {
+        data.releaseNotes = releaseNotes;
+      }
       fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
       console.log(`generate-release-metadata: ✓ Synchronized ${path.basename(filePath)} with APK metadata`);
     } catch (err) {

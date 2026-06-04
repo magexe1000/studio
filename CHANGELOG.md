@@ -15,6 +15,23 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.4.2
+
+### Removed
+- Removed Push Notifications support and related settings for now.
+- Removed inactive push notification messaging from the update experience.
+
+### Improved
+- Revamped Developer Options with clearer sections and diagnostics.
+- Improved Developer Options actions, statuses, confirmations, and feedback.
+- Improved return-to-Hub transition to avoid black screen frames.
+- Added a smoother app-to-Hub exit animation.
+
+### Fixed
+- Fixed Developer Options buttons that had incomplete or unclear behavior.
+- Fixed return-to-Hub visual transition showing a black screen before the Hub appears.
+- Fixed app shell visual reset during app exit.
+
 ## 3.4.0
 
 - Moved Studio to production-signed release APKs.
