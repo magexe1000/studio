@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { useBackHandler } from '../lib/backStack';
 import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup } from '../lib/sync';
+import { subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud } from '../lib/sync';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useNavHidden, useNavCollapsed, useScrollHide } from '../lib/navScroll';
@@ -2429,6 +2429,7 @@ function HubSettings({
   /* ── DEVELOPER OPTIONS ───────────────────────────────────────────── */
   if (page === 'developer') {
     try {
+    const diag = getSyncDiagnostics();
     const wrapAction = async (actionId: string, fn: () => Promise<void> | void) => {
       setDevLoadingAction(actionId);
       try {
@@ -2863,11 +2864,27 @@ function HubSettings({
         {/* 4. Storage & Sync Debug */}
         <SettingsSectionLabel>4. Storage & Sync</SettingsSectionLabel>
         <div style={cardStyle}>
-          <DevInfoRow label="Auth UID" value={authUser?.uid || 'Not signed in'} />
-          <DevInfoRow label="Current Device ID" value={deviceId()} />
-          <DevInfoRow label="Sync Enabled" value={settings.syncAcrossDevices ? 'TRUE' : 'FALSE'} />
-          <DevInfoRow label="Last Sync Time" value={syncStatus.lastSyncedMs ? new Date(syncStatus.lastSyncedMs).toLocaleString() : 'Never'} />
-          <DevInfoRow label="Last Sync Error" value={syncStatus.error || 'None'} />
+          <DevInfoRow label="Auth UID" value={diag.authUid} />
+          <DevInfoRow label="Current Device ID" value={diag.deviceId} />
+          <DevInfoRow label="Sync Enabled" value={diag.syncEnabled ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="Firestore Connected" value={diag.firestoreConnected ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="Profile Listener Active" value={diag.profileListenerActive ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="Appearance Listener Active" value={diag.appearanceListenerActive ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="Preferences Listener Active" value={diag.preferencesListenerActive ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="Last Profile Sync" value={diag.lastProfileSync} />
+          <DevInfoRow label="Last Appearance Sync" value={diag.lastAppearanceSync} />
+          <DevInfoRow label="Last Preferences Sync" value={diag.lastPreferencesSync} />
+          <DevInfoRow label="Pending Writes" value={String(diag.pendingWrites)} />
+          <DevInfoRow label="Last Sync Error" value={diag.lastSyncError} />
+          <DevInfoRow label="Local Theme" value={diag.localTheme} />
+          <DevInfoRow label="Remote Theme" value={diag.remoteTheme} />
+          <DevInfoRow label="Local Accent Color" value={diag.localAccentColor} />
+          <DevInfoRow label="Remote Accent Color" value={diag.remoteAccentColor} />
+          <DevInfoRow label="Local Photo URL" value={diag.localPhotoURL} canCopy />
+          <DevInfoRow label="Remote Photo URL" value={diag.remotePhotoURL} canCopy />
+          <DevInfoRow label="Last Remote Update Timestamp" value={diag.lastRemoteUpdateTimestamp} />
+          <DevInfoRow label="Last Local Update Timestamp" value={diag.lastLocalUpdateTimestamp} />
+          
           <DevInfoRow label="Local Storage Status" desc="Key counts and total memory estimation" value={localStorageStatus} />
           <DevInfoRow label="Local Records by Category" value={getLocalRecordCounts()} />
           <DevInfoRow label="Sync Conflict Count" value={String(getConflictLogs().length)} />
@@ -2875,6 +2892,22 @@ function HubSettings({
           <DevCollapsibleRow label="Capacitor Preferences Dump" desc="Read values in Capacitor Preferences storage" value={preferencesDump} canCopy />
           
           <DevButtonRow label="Force Sync Now" desc="Bypass all throttling and trigger cloud sync" actionLabel="Sync Now" actionId="force-sync" onPress={handleForceSyncNow} />
+          <DevButtonRow label="Push Local Settings to Cloud" desc="Overwrite cloud profile/settings with this device's state" actionLabel="Push Settings" actionId="push-settings" onPress={async () => {
+            if (window.confirm('Overwrite cloud settings with local state?')) {
+              await wrapAction('push-settings', pushLocalSettingsToCloud);
+              showDevToast('Settings pushed successfully.');
+            }
+          }} />
+          <DevButtonRow label="Pull Cloud Settings to Device" desc="Overwrite local settings with cloud profile/settings" actionLabel="Pull Settings" actionId="pull-settings" onPress={async () => {
+            if (window.confirm('Overwrite local settings with cloud state?')) {
+              await wrapAction('pull-settings', pullCloudSettingsFromCloud);
+              showDevToast('Settings pulled successfully.');
+            }
+          }} />
+          <DevButtonRow label="Copy Sync Diagnostics" desc="Copy formatted sync state details to clipboard" actionLabel="Copy" actionId="copy-sync-diag" onPress={() => {
+            const report = Object.entries(getSyncDiagnostics()).map(([k, v]) => `${k}: ${v}`).join('\n');
+            navigator.clipboard.writeText(report).then(() => showDevToast('Sync diagnostics copied.'));
+          }} />
           <DevButtonRow label="Reset Local Sync State Only" desc="Clear metadata to force a clean pull next open" actionLabel="Reset Sync State" actionId="reset-sync" onPress={handleResetSyncState} isDestructive />
           <DevButtonRow label="Upload Local Data Snapshot" desc="Write a custom backup doc to backups collection" actionLabel="Upload Backup" actionId="upload-snapshot" onPress={handleUploadSnapshot} />
           <DevButtonRow label="Clear Sync Logs & Errors" desc="Flush all logged conflict history and reset phase error" actionLabel="Clear Logs" actionId="clear-sync-logs" onPress={handleClearSyncLogs} />

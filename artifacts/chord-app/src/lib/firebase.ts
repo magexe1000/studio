@@ -13,6 +13,7 @@ import {
   persistentMultipleTabManager,
   type Firestore,
 } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 // Committed public client config — these keys are safe to ship in the
 // JS bundle (Firebase web client keys identify the project, they don't
 // grant access; access control lives in Firestore Security Rules).
@@ -56,6 +57,7 @@ export const isFirebaseConfigured = Boolean(
 let _app: FirebaseApp | null = null;
 let _auth: Auth | null = null;
 let _db: Firestore | null = null;
+let _storage: FirebaseStorage | null = null;
 
 function init() {
   if (!isFirebaseConfigured) return;
@@ -69,6 +71,7 @@ function init() {
     appId: config.appId!,
   });
   _auth = getAuth(_app);
+  _storage = getStorage(_app);
   setPersistence(_auth, browserLocalPersistence).catch((err) => {
     console.warn('[firebase] failed to set auth persistence:', err);
   });
@@ -148,6 +151,11 @@ export function getFirebaseAuth(): Auth | null {
 export function getFirebaseDb(): Firestore | null {
   init();
   return _db;
+}
+
+export function getFirebaseStorage(): FirebaseStorage | null {
+  init();
+  return _storage;
 }
 
 export const googleProvider = new GoogleAuthProvider();

@@ -1,15 +1,16 @@
 ### Added
-- Added real Studio Cloud Sync for signed-in users.
-- Added cross-device sync support for Studio account data.
-- Added sync status, last synced time, and manual Sync Now controls.
-- Added device registration for signed-in devices.
-- Added local-to-cloud migration for existing data.
+- Added real cross-device sync for profile and account settings.
+- Added live sync for theme, accent color, language, and preferences.
+- Added profile photo upload and sync across devices.
 - Added sync diagnostics in Developer Options.
 
 ### Improved
-- Improved account functionality with real backup and restore behavior.
-- Improved profile/settings persistence across devices.
-- Improved offline handling for syncable data.
+- Improved local-first sync behavior.
+- Improved offline sync handling.
+- Improved account/profile state consistency across Studio.
 
 ### Fixed
-- Fixed sync buttons appearing functional when sync was not actually implemented.
+- Fixed account sync controls not actually syncing settings across devices.
+- Fixed theme and accent color not appearing on other devices.
+- Fixed profile photo not syncing between phone and laptop.
+- Fixed Settings account card using stale local profile data.

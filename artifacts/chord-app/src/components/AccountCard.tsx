@@ -33,6 +33,60 @@ import {
 import { useBackHandler } from '../lib/backStack';
 import { logActivity, getActivityEmoji } from '../lib/activityLogger';
 import StudioPricingSection from './StudioPricingSection';
+import { getFirebaseAuth } from '../lib/firebase';
+import { updateProfile } from 'firebase/auth';
+
+function compressAndResizeImage(file: File, maxWidth = 256, maxHeight = 256): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context not available'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Canvas conversion failed'));
+        }, 'image/jpeg', 0.85);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function selectAvatarIcon(user: AuthUser | null, icon: AvatarIcon | null) {
+  if (!user?.uid) return;
+  setUserAvatar(user.uid, icon);
+  try {
+    const { syncWriteProfileMain } = await import('../lib/sync');
+    await syncWriteProfileMain(user.displayName, user.photoURL, icon);
+  } catch (e) {
+    console.error('Failed to sync avatar icon selection:', e);
+  }
+}
 import { Capacitor } from '@capacitor/core';
 import { Toggle } from './SettingControls';
 import {
@@ -591,7 +645,7 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
             t={t}
             closing={pickerClosing}
             onPick={(icon) => {
-              setUserAvatar(user.uid, icon);
+              selectAvatarIcon(user, icon);
             }}
             onClose={() => {
               setPickerClosing(true);
@@ -1589,33 +1643,79 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     } finally { setBusy(false); }
   }
 
-  function handlePhotoFile(file: File) {
+  async function handlePhotoFile(file: File) {
     if (!user?.uid || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      try { localStorage.setItem(`chordex_cp_${user!.uid}`, dataUrl); } catch { /* quota */ }
-      setCustomPhoto(dataUrl);
-      setUserAvatar(user!.uid, null);
+    setBusy(true);
+    setErr(null);
+    try {
+      showToast(lang === 'es' ? 'Optimizando imagen...' : 'Optimizing image...');
+      const blob = await compressAndResizeImage(file);
+      
+      showToast(lang === 'es' ? 'Subiendo foto de perfil...' : 'Uploading profile photo...');
+      const { uploadProfilePhoto, syncWriteProfileMain } = await import('../lib/sync');
+      const downloadUrl = await uploadProfilePhoto(user.uid, blob);
+      
+      const auth = getFirebaseAuth();
+      if (auth?.currentUser) {
+        await updateProfile(auth.currentUser, { photoURL: downloadUrl });
+      }
+      
+      const { updateLocalAuthUser } = await import('../lib/auth');
+      updateLocalAuthUser({ photoURL: downloadUrl });
+      
+      setUserAvatar(user.uid, null);
+      await syncWriteProfileMain(user.displayName, downloadUrl, null);
+      
+      localStorage.setItem(`chordex_cp_${user.uid}`, downloadUrl);
+      setCustomPhoto(downloadUrl);
       window.dispatchEvent(
         new CustomEvent('chordex:user-cover-changed', {
-          detail: { uid: user!.uid, cover: dataUrl },
+          detail: { uid: user.uid, cover: downloadUrl },
         })
       );
-    };
-    reader.readAsDataURL(file);
+      
+      showToast(lang === 'es' ? 'Foto de perfil actualizada con éxito' : 'Profile photo updated successfully');
+    } catch (e: any) {
+      console.error('[photo upload] failed:', e);
+      setErr(prettyErr(e, lang));
+      showToast(lang === 'es' ? 'Error al subir la foto' : 'Failed to upload photo');
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function clearCustomPhoto() {
+  async function clearCustomPhoto() {
     if (!user?.uid) return;
-    localStorage.removeItem(`chordex_cp_${user.uid}`);
-    setCustomPhoto(null);
-    window.dispatchEvent(
-      new CustomEvent('chordex:user-cover-changed', {
-        detail: { uid: user.uid, cover: null },
-      })
-    );
+    setBusy(true);
+    setErr(null);
+    try {
+      const auth = getFirebaseAuth();
+      if (auth?.currentUser) {
+        await updateProfile(auth.currentUser, { photoURL: null });
+      }
+      
+      const { updateLocalAuthUser } = await import('../lib/auth');
+      updateLocalAuthUser({ photoURL: null });
+      
+      const { syncWriteProfileMain } = await import('../lib/sync');
+      await syncWriteProfileMain(user.displayName, null, null);
+      
+      localStorage.removeItem(`chordex_cp_${user.uid}`);
+      setCustomPhoto(null);
+      window.dispatchEvent(
+        new CustomEvent('chordex:user-cover-changed', {
+          detail: { uid: user.uid, cover: null },
+        })
+      );
+      showToast(lang === 'es' ? 'Foto de perfil eliminada' : 'Profile photo removed');
+    } catch (e: any) {
+      console.error('[photo clear] failed:', e);
+      setErr(prettyErr(e, lang));
+    } finally {
+      setBusy(false);
+    }
   }
+
 
   const canConfirmEmail = !busy
     && !!emailToConfirm
@@ -1988,7 +2088,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
           hasGooglePhoto={!!user.photoURL && !photoFailed}
           t={t}
           closing={pickerClosing}
-          onPick={(icon) => { setUserAvatar(user.uid, icon); }}
+          onPick={(icon) => { selectAvatarIcon(user, icon); }}
           onClose={() => { setPickerClosing(true); setTimeout(() => { setPickerOpen(false); setPickerClosing(false); }, 280); }}
         />,
         document.body,
@@ -2237,7 +2337,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                 </button>
                 {(customPhoto || avatarIcon) && (
                   <button
-                    onClick={() => { clearCustomPhoto(); setUserAvatar(user.uid, null); }}
+                    onClick={() => { clearCustomPhoto(); selectAvatarIcon(user, null); }}
                     style={{
                       padding: '8px 10px', borderRadius: 10,
                       background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.25)',

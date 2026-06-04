@@ -1,5 +1,6 @@
 import { doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
-import { getFirebaseDb } from './firebase';
+import { getFirebaseDb, getFirebaseStorage } from './firebase';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { subscribeAuth, type AuthUser, signOut } from './auth';
 import { isNative } from './capgoUpdater';
 import { getAllTakes, saveTake, deleteTake as dbDeleteTake, type TakeRecord } from '../vocalex/takesDb';
@@ -153,6 +154,266 @@ type Listener = (s: SyncStatus) => void;
 // ── Engine state ─────────────────────────────────────────────────────────────
 
 let currentUser: AuthUser | null = null;
+
+// ── Settings, Profile and Live Listeners State ────────────────────────────────
+let unsubProfileListener: (() => void) | null = null;
+let unsubAppearanceListener: (() => void) | null = null;
+let unsubPreferencesListener: (() => void) | null = null;
+
+let lastProfileSyncMs: number | null = null;
+let lastAppearanceSyncMs: number | null = null;
+let lastPreferencesSyncMs: number | null = null;
+let lastSyncError: string | null = null;
+let remoteTheme: string | null = null;
+let remoteAccentColor: string | null = null;
+let remotePhotoURL: string | null = null;
+let lastRemoteUpdateTimestamp: number | null = null;
+let pendingWritesCount = 0;
+let isApplyingRemoteUpdate = false;
+let unsubStoreSubscription: (() => void) | null = null;
+
+function notifyDiagnostics() {
+  setStatus({}); // Trigger state updates for reactive subscribers
+}
+
+export function getSyncDiagnostics() {
+  const store = useChordStore.getState();
+  const authUser = currentUser;
+  
+  const localTheme = store.settings.amoledMode ? 'AMOLED' : store.settings.theme;
+  
+  const localLastUpdateProfile = parseInt(localStorage.getItem(`sync_last_local_update_profile`) ?? '0', 10);
+  const localLastUpdateAppearance = parseInt(localStorage.getItem(`sync_last_local_update_appearance`) ?? '0', 10);
+  const localLastUpdatePreferences = parseInt(localStorage.getItem(`sync_last_local_update_preferences`) ?? '0', 10);
+  const localLastUpdate = Math.max(localLastUpdateProfile, localLastUpdateAppearance, localLastUpdatePreferences);
+
+  return {
+    authUid: authUser?.uid || 'Not signed in',
+    deviceId: deviceId(),
+    syncEnabled: store.settings.syncAcrossDevices,
+    firestoreConnected: window.navigator.onLine,
+    profileListenerActive: unsubProfileListener !== null,
+    appearanceListenerActive: unsubAppearanceListener !== null,
+    preferencesListenerActive: unsubPreferencesListener !== null,
+    lastProfileSync: lastProfileSyncMs ? new Date(lastProfileSyncMs).toLocaleString() : 'Never',
+    lastAppearanceSync: lastAppearanceSyncMs ? new Date(lastAppearanceSyncMs).toLocaleString() : 'Never',
+    lastPreferencesSync: lastPreferencesSyncMs ? new Date(lastPreferencesSyncMs).toLocaleString() : 'Never',
+    pendingWrites: pendingWritesCount,
+    lastSyncError: lastSyncError || 'None',
+    localTheme: localTheme,
+    remoteTheme: remoteTheme || 'N/A',
+    localAccentColor: store.settings.accentColor,
+    remoteAccentColor: remoteAccentColor || 'N/A',
+    localPhotoURL: authUser?.photoURL || 'None',
+    remotePhotoURL: remotePhotoURL || 'N/A',
+    lastRemoteUpdateTimestamp: lastRemoteUpdateTimestamp ? new Date(lastRemoteUpdateTimestamp).toLocaleString() : 'Never',
+    lastLocalUpdateTimestamp: localLastUpdate ? new Date(localLastUpdate).toLocaleString() : 'Never',
+  };
+}
+
+export async function pushLocalSettingsToCloud(): Promise<void> {
+  if (!currentUser) return;
+  const db = getFirebaseDb();
+  if (!db) return;
+  
+  pendingWritesCount++;
+  notifyDiagnostics();
+  try {
+    const settings = useChordStore.getState().settings;
+    const now = Date.now();
+    
+    // 1. Write appearance settings
+    const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
+    const appRef = doc(db, 'users', currentUser.uid, 'settings', 'appearance');
+    await setDoc(appRef, {
+      theme: themeValue,
+      accentColor: settings.accentColor,
+      customAccentHue: settings.customAccentHue ?? 220,
+      palette: 'default',
+      language: settings.language,
+      updatedAt: now,
+      updatedByDevice: deviceId(),
+    }, { merge: true });
+    localStorage.setItem(`sync_last_local_update_appearance`, now.toString());
+    
+    // 2. Write preference settings
+    const prefRef = doc(db, 'users', currentUser.uid, 'settings', 'preferences');
+    await setDoc(prefRef, {
+      syncEnabled: settings.syncAcrossDevices,
+      updateNotifications: settings.otaNotifications,
+      automaticChecks: settings.otaAutoCheck,
+      showWhatsNewAfterUpdate: settings.otaShowChangelog,
+      updatedAt: now,
+      updatedByDevice: deviceId(),
+    }, { merge: true });
+    localStorage.setItem(`sync_last_local_update_preferences`, now.toString());
+    
+    // 3. Write profile settings
+    const { getUserAvatar } = await import('./userAvatar');
+    const avatarIcon = getUserAvatar(currentUser.uid);
+    const profileRef = doc(db, 'users', currentUser.uid, 'profile', 'main');
+    await setDoc(profileRef, {
+      displayName: currentUser.displayName,
+      email: currentUser.email,
+      photoURL: currentUser.photoURL,
+      avatarIcon,
+      role: 'user',
+      updatedAt: now,
+      updatedByDevice: deviceId(),
+    }, { merge: true });
+    localStorage.setItem(`sync_last_local_update_profile`, now.toString());
+    
+    console.info('[sync] pushed local settings to cloud');
+  } catch (err: any) {
+    console.warn('[sync] push local settings failed:', err);
+    lastSyncError = err.message || String(err);
+  } finally {
+    pendingWritesCount = Math.max(0, pendingWritesCount - 1);
+    notifyDiagnostics();
+  }
+}
+
+export async function pullCloudSettingsFromCloud(): Promise<void> {
+  if (!currentUser) return;
+  const db = getFirebaseDb();
+  if (!db) return;
+  
+  try {
+    // 1. Pull profile
+    const profileSnap = await getDoc(doc(db, 'users', currentUser.uid, 'profile', 'main'));
+    if (profileSnap.exists()) {
+      const data = profileSnap.data();
+      remotePhotoURL = data.photoURL || null;
+      lastRemoteUpdateTimestamp = data.updatedAt || null;
+      
+      // Update local profile
+      if (data.displayName !== currentUser.displayName || data.photoURL !== currentUser.photoURL) {
+        const { updateLocalAuthUser } = await import('./auth');
+        updateLocalAuthUser({
+          displayName: data.displayName,
+          photoURL: data.photoURL,
+        });
+        currentUser.displayName = data.displayName;
+        currentUser.photoURL = data.photoURL;
+      }
+      
+      if (data.avatarIcon !== undefined) {
+        const { setUserAvatar } = await import('./userAvatar');
+        setUserAvatar(currentUser.uid, data.avatarIcon);
+      }
+      
+      if (data.photoURL) {
+        localStorage.setItem(`chordex_cp_${currentUser.uid}`, data.photoURL);
+        window.dispatchEvent(
+          new CustomEvent('chordex:user-cover-changed', {
+            detail: { uid: currentUser.uid, cover: data.photoURL },
+          })
+        );
+      } else {
+        localStorage.removeItem(`chordex_cp_${currentUser.uid}`);
+        window.dispatchEvent(
+          new CustomEvent('chordex:user-cover-changed', {
+            detail: { uid: currentUser.uid, cover: null },
+          })
+        );
+      }
+      localStorage.setItem(`sync_last_local_update_profile`, (data.updatedAt || 0).toString());
+      lastProfileSyncMs = Date.now();
+    }
+    
+    // 2. Pull appearance
+    const appSnap = await getDoc(doc(db, 'users', currentUser.uid, 'settings', 'appearance'));
+    if (appSnap.exists()) {
+      const data = appSnap.data();
+      remoteTheme = data.theme || null;
+      remoteAccentColor = data.accentColor || null;
+      lastRemoteUpdateTimestamp = data.updatedAt || null;
+      
+      isApplyingRemoteUpdate = true;
+      try {
+        const nextTheme = data.theme === 'AMOLED' ? 'dark' : (data.theme || 'dark');
+        const nextAmoled = data.theme === 'AMOLED';
+        useChordStore.getState().updateSettings({
+          theme: nextTheme as any,
+          amoledMode: nextAmoled,
+          accentColor: (data.accentColor || 'blue') as any,
+          language: (data.language || 'en') as any,
+          customAccentHue: data.customAccentHue ?? 220,
+        });
+      } finally {
+        isApplyingRemoteUpdate = false;
+      }
+      localStorage.setItem(`sync_last_local_update_appearance`, (data.updatedAt || 0).toString());
+      lastAppearanceSyncMs = Date.now();
+    }
+    
+    // 3. Pull preferences
+    const prefSnap = await getDoc(doc(db, 'users', currentUser.uid, 'settings', 'preferences'));
+    if (prefSnap.exists()) {
+      const data = prefSnap.data();
+      isApplyingRemoteUpdate = true;
+      try {
+        useChordStore.getState().updateSettings({
+          syncAcrossDevices: data.syncEnabled ?? true,
+          otaNotifications: data.updateNotifications ?? true,
+          otaAutoCheck: data.automaticChecks ?? true,
+          otaShowChangelog: data.showWhatsNewAfterUpdate ?? true,
+        });
+      } finally {
+        isApplyingRemoteUpdate = false;
+      }
+      localStorage.setItem(`sync_last_local_update_preferences`, (data.updatedAt || 0).toString());
+      lastPreferencesSyncMs = Date.now();
+    }
+    
+    console.info('[sync] pulled cloud settings');
+  } catch (err: any) {
+    console.warn('[sync] pull cloud settings failed:', err);
+    lastSyncError = err.message || String(err);
+  } finally {
+    notifyDiagnostics();
+  }
+}
+
+export async function uploadProfilePhoto(uid: string, blob: Blob): Promise<string> {
+  const storage = getFirebaseStorage();
+  if (!storage) throw new Error('Firebase Storage not configured');
+  
+  const avatarRef = storageRef(storage, `users/${uid}/profile/avatar.jpg`);
+  await uploadBytes(avatarRef, blob, { contentType: 'image/jpeg' });
+  const downloadUrl = await getDownloadURL(avatarRef);
+  return downloadUrl;
+}
+
+export async function syncWriteProfileMain(displayName: string | null, photoURL: string | null, avatarIcon: string | null): Promise<void> {
+  if (!currentUser) return;
+  const db = getFirebaseDb();
+  if (!db) return;
+  
+  pendingWritesCount++;
+  notifyDiagnostics();
+  try {
+    const now = Date.now();
+    localStorage.setItem(`sync_last_local_update_profile`, now.toString());
+    
+    const ref = doc(db, 'users', currentUser.uid, 'profile', 'main');
+    await setDoc(ref, {
+      displayName,
+      email: currentUser.email,
+      photoURL,
+      avatarIcon,
+      role: 'user',
+      updatedAt: now,
+      updatedByDevice: deviceId(),
+    }, { merge: true });
+  } catch (err: any) {
+    console.warn('[sync] write profile main failed:', err);
+    lastSyncError = err.message || String(err);
+  } finally {
+    pendingWritesCount = Math.max(0, pendingWritesCount - 1);
+    notifyDiagnostics();
+  }
+}
 /**
  * Bumped on every auth change, on detach, and any time we want to make
  * in-flight work give up its results without breaking the actual JS
@@ -1937,27 +2198,110 @@ export function attachSyncEngine(): void {
   };
   window.addEventListener('online', onOnline);
 
+  let lastSettings = useChordStore.getState().settings;
+  unsubStoreSubscription = useChordStore.subscribe((state) => {
+    if (isApplyingRemoteUpdate || !currentUser) return;
+    const settings = state.settings;
+    
+    const appearanceChanged =
+      settings.theme !== lastSettings.theme ||
+      settings.amoledMode !== lastSettings.amoledMode ||
+      settings.accentColor !== lastSettings.accentColor ||
+      settings.customAccentHue !== lastSettings.customAccentHue ||
+      settings.language !== lastSettings.language;
+      
+    if (appearanceChanged) {
+      const now = Date.now();
+      localStorage.setItem(`sync_last_local_update_appearance`, now.toString());
+      const db = getFirebaseDb();
+      if (db && currentUser) {
+        pendingWritesCount++;
+        notifyDiagnostics();
+        const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
+        setDoc(doc(db, 'users', currentUser.uid, 'settings', 'appearance'), {
+          theme: themeValue,
+          accentColor: settings.accentColor,
+          customAccentHue: settings.customAccentHue ?? 220,
+          palette: 'default',
+          language: settings.language,
+          updatedAt: now,
+          updatedByDevice: deviceId(),
+        }, { merge: true }).catch((err) => {
+          console.warn('[sync] failed to write appearance settings:', err);
+          lastSyncError = err.message || String(err);
+        }).finally(() => {
+          pendingWritesCount = Math.max(0, pendingWritesCount - 1);
+          notifyDiagnostics();
+        });
+      }
+    }
+    
+    const preferencesChanged =
+      settings.syncAcrossDevices !== lastSettings.syncAcrossDevices ||
+      settings.otaNotifications !== lastSettings.otaNotifications ||
+      settings.otaAutoCheck !== lastSettings.otaAutoCheck ||
+      settings.otaShowChangelog !== lastSettings.otaShowChangelog;
+      
+    if (preferencesChanged) {
+      const now = Date.now();
+      localStorage.setItem(`sync_last_local_update_preferences`, now.toString());
+      const db = getFirebaseDb();
+      if (db && currentUser) {
+        pendingWritesCount++;
+        notifyDiagnostics();
+        setDoc(doc(db, 'users', currentUser.uid, 'settings', 'preferences'), {
+          syncEnabled: settings.syncAcrossDevices,
+          updateNotifications: settings.otaNotifications,
+          automaticChecks: settings.otaAutoCheck,
+          showWhatsNewAfterUpdate: settings.otaShowChangelog,
+          updatedAt: now,
+          updatedByDevice: deviceId(),
+        }, { merge: true }).catch((err) => {
+          console.warn('[sync] failed to write preference settings:', err);
+          lastSyncError = err.message || String(err);
+        }).finally(() => {
+          pendingWritesCount = Math.max(0, pendingWritesCount - 1);
+          notifyDiagnostics();
+        });
+      }
+    }
+    
+    lastSettings = settings;
+  });
+
   unsubAuth = subscribeAuth((u) => {
-    // Bumping the epoch makes any in-flight run discard its results —
-    // we never want a write under a stale uid, and we never want a
-    // pre-signin `pullAll` to land into a now-signed-out world.
     epoch += 1;
     const priorUser = currentUser;
     currentUser = u;
     pendingFollowup = false;
-    runPromise = null; // forget the lock; the in-flight run will see epoch shift and bail.
+    runPromise = null;
 
     if (lingerTimer) { clearTimeout(lingerTimer); lingerTimer = null; }
-
     if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
-
     if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }
-
     if (neverStuckHandle) { clearTimeout(neverStuckHandle); neverStuckHandle = null; }
 
     if (unsubDeviceSession) {
       unsubDeviceSession();
       unsubDeviceSession = null;
+    }
+
+    unsubProfileListener?.();
+    unsubProfileListener = null;
+    unsubAppearanceListener?.();
+    unsubAppearanceListener = null;
+    unsubPreferencesListener?.();
+    unsubPreferencesListener = null;
+
+    if (!u) {
+      remoteTheme = null;
+      remoteAccentColor = null;
+      remotePhotoURL = null;
+      lastRemoteUpdateTimestamp = null;
+      lastProfileSyncMs = null;
+      lastAppearanceSyncMs = null;
+      lastPreferencesSyncMs = null;
+      lastSyncError = null;
     }
 
     if (!u && priorUser) {
@@ -1981,14 +2325,194 @@ export function attachSyncEngine(): void {
             }
           }
         });
+
+        // 1. Subscribe to profile document
+        unsubProfileListener = onSnapshot(doc(db, 'users', u.uid, 'profile', 'main'), (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            remotePhotoURL = data.photoURL || null;
+            lastRemoteUpdateTimestamp = data.updatedAt || 0;
+            
+            const localLast = parseInt(localStorage.getItem(`sync_last_local_update_profile`) ?? '0', 10);
+            const remoteLast = data.updatedAt || 0;
+            if (remoteLast > localLast && data.updatedByDevice !== deviceId()) {
+              console.info('[sync] applying remote profile update:', data);
+              if (data.displayName !== u.displayName || data.photoURL !== u.photoURL) {
+                import('./auth').then(({ updateLocalAuthUser }) => {
+                  updateLocalAuthUser({
+                    displayName: data.displayName,
+                    photoURL: data.photoURL,
+                  });
+                  if (currentUser) {
+                    currentUser.displayName = data.displayName;
+                    currentUser.photoURL = data.photoURL;
+                  }
+                });
+              }
+              if (data.avatarIcon !== undefined) {
+                import('./userAvatar').then(({ setUserAvatar }) => {
+                  setUserAvatar(u.uid, data.avatarIcon);
+                });
+              }
+              if (data.photoURL) {
+                localStorage.setItem(`chordex_cp_${u.uid}`, data.photoURL);
+                window.dispatchEvent(
+                  new CustomEvent('chordex:user-cover-changed', {
+                    detail: { uid: u.uid, cover: data.photoURL },
+                  })
+                );
+              } else {
+                localStorage.removeItem(`chordex_cp_${u.uid}`);
+                window.dispatchEvent(
+                  new CustomEvent('chordex:user-cover-changed', {
+                    detail: { uid: u.uid, cover: null },
+                  })
+                );
+              }
+              localStorage.setItem(`sync_last_local_update_profile`, remoteLast.toString());
+              lastProfileSyncMs = Date.now();
+            } else if (localLast > remoteLast) {
+              console.info('[sync] Local profile is newer, uploading...');
+              import('./userAvatar').then(({ getUserAvatar }) => {
+                const avatarIcon = getUserAvatar(u.uid);
+                syncWriteProfileMain(u.displayName, u.photoURL, avatarIcon).catch(console.warn);
+              });
+            }
+            notifyDiagnostics();
+          } else {
+            console.info('[sync] Remote profile missing, uploading local profile as initial cloud state');
+            import('./userAvatar').then(({ getUserAvatar }) => {
+              const avatarIcon = getUserAvatar(u.uid);
+              syncWriteProfileMain(u.displayName, u.photoURL, avatarIcon).catch(console.warn);
+            });
+          }
+        }, (err) => {
+          console.warn('[sync] profile listener error:', err);
+          lastSyncError = err.message || String(err);
+          notifyDiagnostics();
+        });
+
+        // 2. Subscribe to appearance settings document
+        unsubAppearanceListener = onSnapshot(doc(db, 'users', u.uid, 'settings', 'appearance'), (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            remoteTheme = data.theme || null;
+            remoteAccentColor = data.accentColor || null;
+            lastRemoteUpdateTimestamp = data.updatedAt || 0;
+            
+            const localLast = parseInt(localStorage.getItem(`sync_last_local_update_appearance`) ?? '0', 10);
+            const remoteLast = data.updatedAt || 0;
+            if (remoteLast > localLast && data.updatedByDevice !== deviceId()) {
+              console.info('[sync] applying remote appearance update:', data);
+              isApplyingRemoteUpdate = true;
+              try {
+                const nextTheme = data.theme === 'AMOLED' ? 'dark' : (data.theme || 'dark');
+                const nextAmoled = data.theme === 'AMOLED';
+                useChordStore.getState().updateSettings({
+                  theme: nextTheme as any,
+                  amoledMode: nextAmoled,
+                  accentColor: (data.accentColor || 'blue') as any,
+                  language: (data.language || 'en') as any,
+                  customAccentHue: data.customAccentHue ?? 220,
+                });
+              } finally {
+                isApplyingRemoteUpdate = false;
+              }
+              localStorage.setItem(`sync_last_local_update_appearance`, remoteLast.toString());
+              lastAppearanceSyncMs = Date.now();
+            } else if (localLast > remoteLast) {
+              console.info('[sync] Local appearance is newer, uploading...');
+              const settings = useChordStore.getState().settings;
+              const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
+              setDoc(doc(db, 'users', u.uid, 'settings', 'appearance'), {
+                theme: themeValue,
+                accentColor: settings.accentColor,
+                customAccentHue: settings.customAccentHue ?? 220,
+                palette: 'default',
+                language: settings.language,
+                updatedAt: localLast,
+                updatedByDevice: deviceId(),
+              }, { merge: true }).catch(console.warn);
+            }
+            notifyDiagnostics();
+          } else {
+            console.info('[sync] Remote appearance missing, uploading local appearance as initial cloud state');
+            const settings = useChordStore.getState().settings;
+            const now = Date.now();
+            localStorage.setItem(`sync_last_local_update_appearance`, now.toString());
+            const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
+            setDoc(doc(db, 'users', u.uid, 'settings', 'appearance'), {
+              theme: themeValue,
+              accentColor: settings.accentColor,
+              customAccentHue: settings.customAccentHue ?? 220,
+              palette: 'default',
+              language: settings.language,
+              updatedAt: now,
+              updatedByDevice: deviceId(),
+            }, { merge: true }).catch(console.warn);
+          }
+        }, (err) => {
+          console.warn('[sync] appearance listener error:', err);
+          lastSyncError = err.message || String(err);
+          notifyDiagnostics();
+        });
+
+        // 3. Subscribe to preferences settings document
+        unsubPreferencesListener = onSnapshot(doc(db, 'users', u.uid, 'settings', 'preferences'), (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            lastRemoteUpdateTimestamp = data.updatedAt || 0;
+            
+            const localLast = parseInt(localStorage.getItem(`sync_last_local_update_preferences`) ?? '0', 10);
+            const remoteLast = data.updatedAt || 0;
+            if (remoteLast > localLast && data.updatedByDevice !== deviceId()) {
+              console.info('[sync] applying remote preferences update:', data);
+              isApplyingRemoteUpdate = true;
+              try {
+                useChordStore.getState().updateSettings({
+                  syncAcrossDevices: data.syncEnabled ?? true,
+                  otaNotifications: data.updateNotifications ?? true,
+                  otaAutoCheck: data.automaticChecks ?? true,
+                  otaShowChangelog: data.showWhatsNewAfterUpdate ?? true,
+                });
+              } finally {
+                isApplyingRemoteUpdate = false;
+              }
+              localStorage.setItem(`sync_last_local_update_preferences`, remoteLast.toString());
+              lastPreferencesSyncMs = Date.now();
+            } else if (localLast > remoteLast) {
+              console.info('[sync] Local preferences is newer, uploading...');
+              const settings = useChordStore.getState().settings;
+              setDoc(doc(db, 'users', u.uid, 'settings', 'preferences'), {
+                syncEnabled: settings.syncAcrossDevices,
+                updateNotifications: settings.otaNotifications,
+                automaticChecks: settings.otaAutoCheck,
+                showWhatsNewAfterUpdate: settings.otaShowChangelog,
+                updatedAt: localLast,
+                updatedByDevice: deviceId(),
+              }, { merge: true }).catch(console.warn);
+            }
+            notifyDiagnostics();
+          } else {
+            console.info('[sync] Remote preferences missing, uploading local preferences as initial cloud state');
+            const settings = useChordStore.getState().settings;
+            const now = Date.now();
+            localStorage.setItem(`sync_last_local_update_preferences`, now.toString());
+            setDoc(doc(db, 'users', u.uid, 'settings', 'preferences'), {
+              syncEnabled: settings.syncAcrossDevices,
+              updateNotifications: settings.otaNotifications,
+              automaticChecks: settings.otaAutoCheck,
+              showWhatsNewAfterUpdate: settings.otaShowChangelog,
+              updatedAt: now,
+              updatedByDevice: deviceId(),
+            }, { merge: true }).catch(console.warn);
+          }
+        }, (err) => {
+          console.warn('[sync] preferences listener error:', err);
+          lastSyncError = err.message || String(err);
+          notifyDiagnostics();
+        });
       }
-      // OPTIMISTIC STAMP: if this uid has previously completed a full
-      // round-trip on this device (FIRST_PULL_DONE_KEY), assume we're
-      // still in sync and show "Synced just now" immediately. This kills
-      // the "Esperando para sincronizar…" flash that otherwise persists
-      // until the next pull-then-push completes — which on a flaky
-      // network can be 8 s, 60 s, or never. The next successful run
-      // will overwrite this stamp with its real completion time.
       const hasPriorSync = readFirstPullDone(u.uid);
       setStatus({
         signedIn: true,
@@ -1996,15 +2520,6 @@ export function attachSyncEngine(): void {
         error: null,
         lastSyncedMs: hasPriorSync ? Date.now() : null,
       });
-      // NEVER-STUCK FALLBACK. For brand-new devices (no prior sync) we
-      // arm a wall-clock timer: if the indicator hasn't escaped
-      // "Waiting to sync…" within NEVER_STUCK_MS, we force-stamp it.
-      // This is the absolute last line of defence against the chronic
-      // v3.0.55 stuck-on-syncing bug — even if every layer above fails
-      // (Firestore handshake hangs, watchdog mis-fires, opSucceeded
-      // gate stays false), the user is GUARANTEED to escape the
-      // waiting state within ~25 s. The next real sync overwrites the
-      // stamp with its true completion time.
       if (!hasPriorSync) {
         const armedForUid = u.uid;
         const armedEpoch = epoch;
@@ -2012,22 +2527,12 @@ export function attachSyncEngine(): void {
           neverStuckHandle = null;
           if (!currentUser || currentUser.uid !== armedForUid) return;
           if (epoch !== armedEpoch) return;
-          if (status.phase === 'syncing') return; // watchdog handles this
-          if (status.lastSyncedMs != null) return; // a real sync already stamped
+          if (status.phase === 'syncing') return;
+          if (status.lastSyncedMs != null) return;
           console.warn(`${LOG} never-stuck fallback: stamping lastSyncedMs after ${NEVER_STUCK_MS}ms with no completed sync`);
           setStatus({ phase: 'idle', lastSyncedMs: Date.now(), error: null });
         }, NEVER_STUCK_MS);
       }
-      // Schedule the periodic tick FIRST so we're never blocked on the
-      // initial pull. The first run is fire-and-forget.
-      //
-      // Tick mode is ADAPTIVE: if this uid has never completed a full
-      // pull-then-push (because the initial run timed out or the user
-      // signed in while offline), we keep promoting ticks to
-      // pull-then-push. Once the first round-trip succeeds we revert
-      // to cheap push-only ticks. This is what stops a device from
-      // being stuck on "Waiting to sync…" forever — the next tick
-      // after coming back online will actually pull cloud state.
       tickHandle = setInterval(() => {
         const mode: RunMode = currentUser && !readFirstPullDone(currentUser.uid)
           ? 'pull-then-push'
@@ -2053,9 +2558,19 @@ export function attachSyncEngine(): void {
 export function detachSyncEngine(): void {
   if (!attached) return;
   attached = false;
-  epoch += 1; // invalidate any in-flight run
+  epoch += 1;
   if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
   if (unsubAuth) { unsubAuth(); unsubAuth = null; }
+  if (unsubStoreSubscription) {
+    unsubStoreSubscription();
+    unsubStoreSubscription = null;
+  }
+  unsubProfileListener?.();
+  unsubProfileListener = null;
+  unsubAppearanceListener?.();
+  unsubAppearanceListener = null;
+  unsubPreferencesListener?.();
+  unsubPreferencesListener = null;
   if (lingerTimer) { clearTimeout(lingerTimer); lingerTimer = null; }
   if (flushDebounce) { clearTimeout(flushDebounce); flushDebounce = null; }
   if (initialRetryHandle) { clearTimeout(initialRetryHandle); initialRetryHandle = null; }

@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.5.0'; // Add real cloud sync across devices
+export const APP_VERSION = '3.6.0'; // Add real cloud sync across devices
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.5.0
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.0
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,26 +55,27 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Added real Studio Cloud Sync for signed-in users.",
-      "Added cross-device sync support for Studio account data.",
-      "Added sync status, last synced time, and manual Sync Now controls.",
-      "Added device registration for signed-in devices.",
-      "Added local-to-cloud migration for existing data.",
+      "Added real cross-device sync for profile and account settings.",
+      "Added live sync for theme, accent color, language, and preferences.",
+      "Added profile photo upload and sync across devices.",
       "Added sync diagnostics in Developer Options.",
     ],
   },
   {
     heading: "Improved",
     items: [
-      "Improved account functionality with real backup and restore behavior.",
-      "Improved profile/settings persistence across devices.",
-      "Improved offline handling for syncable data.",
+      "Improved local-first sync behavior.",
+      "Improved offline sync handling.",
+      "Improved account/profile state consistency across Studio.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed sync buttons appearing functional when sync was not actually implemented.",
+      "Fixed account sync controls not actually syncing settings across devices.",
+      "Fixed theme and accent color not appearing on other devices.",
+      "Fixed profile photo not syncing between phone and laptop.",
+      "Fixed Settings account card using stale local profile data.",
     ],
   },
 ];

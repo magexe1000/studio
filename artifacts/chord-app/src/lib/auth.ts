@@ -239,6 +239,15 @@ export async function updateDisplayName(name: string): Promise<void> {
   }
 }
 
+export function updateLocalAuthUser(details: Partial<AuthUser>) {
+  if (lastAuthUser) {
+    lastAuthUser = { ...lastAuthUser, ...details };
+    for (const cb of authCallbacks) {
+      cb(lastAuthUser);
+    }
+  }
+}
+
 export async function sendPasswordReset(email: string): Promise<void> {
   const auth = getFirebaseAuth();
   if (!auth) throw new Error('Firebase not configured');

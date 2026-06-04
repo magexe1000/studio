@@ -1,22 +1,23 @@
 {
-  "version": "3.5.0",
-  "changelog": "• Added real Studio Cloud Sync for signed-in users.\n• Added cross-device sync support for Studio account data.\n• Added sync status, last synced time, and manual Sync Now controls.\n• Added device registration for signed-in devices.\n• Added local-to-cloud migration for existing data.\n• Added sync diagnostics in Developer Options.\n• Improved account functionality with real backup and restore behavior.\n• Improved profile/settings persistence across devices.\n• Improved offline handling for syncable data.\n• Fixed sync buttons appearing functional when sync was not actually implemented.",
+  "version": "3.6.0",
+  "changelog": "• Added real cross-device sync for profile and account settings.\n• Added live sync for theme, accent color, language, and preferences.\n• Added profile photo upload and sync across devices.\n• Added sync diagnostics in Developer Options.\n• Improved local-first sync behavior.\n• Improved offline sync handling.\n• Improved account/profile state consistency across Studio.\n• Fixed account sync controls not actually syncing settings across devices.\n• Fixed theme and accent color not appearing on other devices.\n• Fixed profile photo not syncing between phone and laptop.\n• Fixed Settings account card using stale local profile data.",
   "releaseNotes": {
     "added": [
-      "Added real Studio Cloud Sync for signed-in users.",
-      "Added cross-device sync support for Studio account data.",
-      "Added sync status, last synced time, and manual Sync Now controls.",
-      "Added device registration for signed-in devices.",
-      "Added local-to-cloud migration for existing data.",
+      "Added real cross-device sync for profile and account settings.",
+      "Added live sync for theme, accent color, language, and preferences.",
+      "Added profile photo upload and sync across devices.",
       "Added sync diagnostics in Developer Options."
     ],
     "improved": [
-      "Improved account functionality with real backup and restore behavior.",
-      "Improved profile/settings persistence across devices.",
-      "Improved offline handling for syncable data."
+      "Improved local-first sync behavior.",
+      "Improved offline sync handling.",
+      "Improved account/profile state consistency across Studio."
     ],
     "fixed": [
-      "Fixed sync buttons appearing functional when sync was not actually implemented."
+      "Fixed account sync controls not actually syncing settings across devices.",
+      "Fixed theme and accent color not appearing on other devices.",
+      "Fixed profile photo not syncing between phone and laptop.",
+      "Fixed Settings account card using stale local profile data."
     ]
   },
   "mandatory": false
