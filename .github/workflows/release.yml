@@ -113,11 +113,19 @@ jobs:
         working-directory: artifacts/chord-app
         run: pnpm exec cap sync android
 
+      - name: Decode Android Keystore
+        if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > artifacts/chord-app/android/app/release.keystore
+
       - name: Build Release APK
         if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
         working-directory: artifacts/chord-app/android
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace

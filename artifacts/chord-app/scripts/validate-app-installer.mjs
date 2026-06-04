@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 import AdmZip from 'adm-zip';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -107,6 +108,75 @@ if (!fs.existsSync(paths.apkPath)) {
     console.log('✓ APK contains the packaged AppInstallerPlugin class.');
   } catch (err) {
     assert(false, `Error occurred while unzipping/reading classes.dex from APK: ${err.message}`);
+  }
+}
+
+// 5. Android Tools signature & debuggable validation
+function getAndroidTool(toolName) {
+  try {
+    execSync(`${toolName} --version`, { stdio: 'ignore' });
+    return toolName;
+  } catch (e) {}
+
+  let sdkPath = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || '';
+  if (!sdkPath && process.platform === 'win32') {
+    const localAppData = process.env.LOCALAPPDATA || '';
+    if (localAppData) {
+      const standardPath = path.join(localAppData, 'Android/Sdk');
+      if (fs.existsSync(standardPath)) {
+        sdkPath = standardPath;
+      }
+    }
+  }
+
+  if (sdkPath) {
+    const buildToolsDir = path.join(sdkPath, 'build-tools');
+    if (fs.existsSync(buildToolsDir)) {
+      const versions = fs.readdirSync(buildToolsDir).sort().reverse();
+      for (const ver of versions) {
+        const fullPath = path.join(buildToolsDir, ver, toolName + (process.platform === 'win32' ? '.bat' : ''));
+        const fullPathExe = path.join(buildToolsDir, ver, toolName + (process.platform === 'win32' ? '.exe' : ''));
+        if (fs.existsSync(fullPath)) return `"${fullPath}"`;
+        if (fs.existsSync(fullPathExe)) return `"${fullPathExe}"`;
+      }
+    }
+  }
+  return toolName;
+}
+
+if (fs.existsSync(paths.apkPath)) {
+  // A. Verify non-debuggable status
+  try {
+    const aapt2 = getAndroidTool('aapt2');
+    console.log(`Verifying release APK is non-debuggable via ${aapt2}...`);
+    const manifestXml = execSync(`${aapt2} dump xmltree --file AndroidManifest.xml "${paths.apkPath}"`, { encoding: 'utf8' });
+    if (manifestXml.includes('http://schemas.android.com/apk/res/android:debuggable') && manifestXml.includes('true')) {
+      assert(false, 'The release APK is compiled as debuggable (android:debuggable="true")!');
+    }
+    console.log('✓ APK is confirmed to be non-debuggable.');
+  } catch (err) {
+    assert(false, `Failed to verify debuggable status: ${err.message}`);
+  }
+
+  // B. Verify signature status
+  try {
+    const apksigner = getAndroidTool('apksigner');
+    console.log(`Verifying release APK signature status via ${apksigner}...`);
+    const signInfo = execSync(`${apksigner} verify --print-certs "${paths.apkPath}"`, { encoding: 'utf8' });
+    if (!signInfo.includes('SHA-256 digest')) {
+      assert(false, 'The release APK is not signed!');
+    }
+    console.log('✓ APK is successfully signed.');
+
+    // C. Expected signature matching (if variable defined in env)
+    if (process.env.EXPECTED_SIGNATURE_SHA256) {
+      const expected = process.env.EXPECTED_SIGNATURE_SHA256.replace(/:/g, '').toLowerCase();
+      const matches = signInfo.toLowerCase().replace(/:/g, '').includes(expected);
+      assert(matches, `Signing certificate fingerprint mismatch! Expected SHA-256 containing: ${process.env.EXPECTED_SIGNATURE_SHA256}`);
+      console.log('✓ APK signing certificate matches the expected production certificate.');
+    }
+  } catch (err) {
+    assert(false, `Failed to verify APK signature: ${err.message}`);
   }
 }
 
