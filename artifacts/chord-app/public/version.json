@@ -1,21 +1,18 @@
 {
-  "version": "3.6.2",
-  "changelog": "• Fixed Cloud Sync not working correctly on Web builds.\n• Fixed web/laptop sessions not registering as real devices.\n• Fixed sync logic incorrectly depending on native APK/OTA fields.\n• Fixed theme, accent color, and profile photo not syncing between Android and Web.\n• Fixed Devices & Sessions not showing all signed-in devices.\n• Added platform-aware sync diagnostics for Web and Android in Developer Options.\n• Added detailed Build and platform labels for Devices & Sessions.\n• Improved cross-device sync reliability.\n• Improved Devices & Sessions layout for web/browser sessions.",
+  "version": "3.6.3",
+  "changelog": "• Fixed Android device not registering in Devices & Sessions.\n• Fixed Web and Android sessions not seeing each other.\n• Fixed Cloud Sync listeners appearing active without actual cross-device data updates.\n• Fixed theme, accent color, profile name, and profile photo sync not propagating between devices.\n• Fixed sync errors being hidden or treated as successful.\n• Added stronger Sync Diagnostics for device registration and Firestore listener state.\n• Improved Devices & Sessions accuracy across Web and Android.\n• Improved sync failure reporting.",
   "releaseNotes": {
-    "added": [
-      "Added platform-aware sync diagnostics for Web and Android in Developer Options.",
-      "Added detailed Build and platform labels for Devices & Sessions."
-    ],
     "improved": [
-      "Improved cross-device sync reliability.",
-      "Improved Devices & Sessions layout for web/browser sessions."
+      "Added stronger Sync Diagnostics for device registration and Firestore listener state.",
+      "Improved Devices & Sessions accuracy across Web and Android.",
+      "Improved sync failure reporting."
     ],
     "fixed": [
-      "Fixed Cloud Sync not working correctly on Web builds.",
-      "Fixed web/laptop sessions not registering as real devices.",
-      "Fixed sync logic incorrectly depending on native APK/OTA fields.",
-      "Fixed theme, accent color, and profile photo not syncing between Android and Web.",
-      "Fixed Devices & Sessions not showing all signed-in devices."
+      "Fixed Android device not registering in Devices & Sessions.",
+      "Fixed Web and Android sessions not seeing each other.",
+      "Fixed Cloud Sync listeners appearing active without actual cross-device data updates.",
+      "Fixed theme, accent color, profile name, and profile photo sync not propagating between devices.",
+      "Fixed sync errors being hidden or treated as successful."
     ]
   },
   "mandatory": false

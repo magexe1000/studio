@@ -158,4 +158,9 @@ export function getFirebaseStorage(): FirebaseStorage | null {
   return _storage;
 }
 
+export function getFirebaseProjectId(): string {
+  init();
+  return _app?.options.projectId || 'Not Configured';
+}
+
 export const googleProvider = new GoogleAuthProvider();

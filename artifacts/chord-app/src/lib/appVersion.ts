@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.2'; // Fix Web cloud sync and device detection
+export const APP_VERSION = '3.6.3'; // Fix real cloud sync device registration
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.2
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.3
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,27 +53,21 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
-    items: [
-      "Added platform-aware sync diagnostics for Web and Android in Developer Options.",
-      "Added detailed Build and platform labels for Devices & Sessions.",
-    ],
-  },
-  {
     heading: "Improved",
     items: [
-      "Improved cross-device sync reliability.",
-      "Improved Devices & Sessions layout for web/browser sessions.",
+      "Added stronger Sync Diagnostics for device registration and Firestore listener state.",
+      "Improved Devices & Sessions accuracy across Web and Android.",
+      "Improved sync failure reporting.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed Cloud Sync not working correctly on Web builds.",
-      "Fixed web/laptop sessions not registering as real devices.",
-      "Fixed sync logic incorrectly depending on native APK/OTA fields.",
-      "Fixed theme, accent color, and profile photo not syncing between Android and Web.",
-      "Fixed Devices & Sessions not showing all signed-in devices.",
+      "Fixed Android device not registering in Devices & Sessions.",
+      "Fixed Web and Android sessions not seeing each other.",
+      "Fixed Cloud Sync listeners appearing active without actual cross-device data updates.",
+      "Fixed theme, accent color, profile name, and profile photo sync not propagating between devices.",
+      "Fixed sync errors being hidden or treated as successful.",
     ],
   },
 ];
@@ -82,26 +76,21 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Añadido",
+    heading: "Corregido",
     items: [
-      "Diagnósticos de sincronización web y estado de Firebase en Opciones de desarrollador.",
-      "Etiquetas detalladas de compilación y plataforma para Dispositivos y sesiones.",
+      "Se corrigió el registro de dispositivos Android en Dispositivos y sesiones.",
+      "Se corrigió que las sesiones de Web y Android no se detectaran entre sí.",
+      "Se corrigieron los listeners de sincronización activa sin cambios reales.",
+      "Se corrigió la sincronización de temas, colores, nombres y fotos de perfil.",
+      "Se corrigió el ocultamiento de errores de sincronización.",
     ],
   },
   {
     heading: "Mejorado",
     items: [
-      "Fiabilidad de sincronización entre dispositivos mejorada.",
-      "Diseño de Dispositivos y sesiones mejorado para sesiones web.",
-    ],
-  },
-  {
-    heading: "Corregido",
-    items: [
-      "Se corrigió la sincronización en la nube que no funcionaba en la web.",
-      "Se corrigieron las sesiones web que no se registraban como dispositivos.",
-      "Se corrigió la dependencia incorrecta de campos nativos APK/OTA para sincronización.",
-      "Se corrigió la sincronización de temas, colores y fotos entre Android y web.",
+      "Se agregaron diagnósticos de sincronización de Firebase y listeners en UI.",
+      "Se mejoró la precisión de Dispositivos y sesiones en Web y Android.",
+      "Se mejoró el reporte de fallos de sincronización.",
     ],
   },
 ];

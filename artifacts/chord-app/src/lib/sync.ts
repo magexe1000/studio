@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
-import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth } from './firebase';
+import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth, getFirebaseProjectId } from './firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { subscribeAuth, type AuthUser, signOut } from './auth';
 import { isNative } from './capgoUpdater';
@@ -148,6 +148,8 @@ export type SyncStatus = {
   error: string | null;
   showMigrationPrompt: boolean;
   migrationChoice: 'merge' | 'upload' | 'download' | 'notNow' | null;
+  lastDevicesListenerError?: string | null;
+  devicesSnapshotCount?: number;
 };
 
 type Listener = (s: SyncStatus) => void;
@@ -177,6 +179,12 @@ let unsubStoreSubscription: (() => void) | null = null;
 let registeredDevicesCount = 0;
 let isCurrentDeviceRegistered = false;
 let appStateListenerHandle: any = null;
+
+let lastDeviceWriteSuccess: string | null = null;
+let lastDeviceWriteError: string | null = null;
+let lastDevicesListenerError: string | null = null;
+let devicesSnapshotIds: string[] = [];
+let devicesSnapshotCount = 0;
 
 function notifyDiagnostics() {
   setStatus({}); // Trigger state updates for reactive subscribers
@@ -225,13 +233,22 @@ export function getSyncDiagnostics() {
     lastSyncSuccess: status.lastSyncedMs ? new Date(status.lastSyncedMs).toLocaleString() : 'Never',
     registeredDevicesCount: registeredDevicesCount,
     currentDeviceDocPath: authUser ? `users/${authUser.uid}/devices/${deviceId()}` : 'N/A',
-    buildType: isNative() ? 'native' : 'web',
+    buildType: isNative() ? 'Native Release' : 'Web',
     platform: isNative() ? 'native' : 'web',
     firebaseAuthAvailable: !!getFirebaseAuth(),
     firestoreAvailable: !!getFirebaseDb(),
     storageAvailable: !!getFirebaseStorage(),
     deviceRegistrationStatus: isCurrentDeviceRegistered ? 'registered' : 'not registered',
     webSyncSupported: !!getFirebaseDb() && !!getFirebaseAuth() && !!getFirebaseStorage(),
+    
+    firebaseProjectId: getFirebaseProjectId(),
+    userEmail: authUser?.email || 'N/A',
+    devicesCollectionPath: authUser ? `users/${authUser.uid}/devices` : 'N/A',
+    devicesSnapshotCount: devicesSnapshotCount,
+    devicesSnapshotIds: devicesSnapshotIds.join(', ') || 'None',
+    lastDeviceWriteSuccess: lastDeviceWriteSuccess || 'Never',
+    lastDeviceWriteError: lastDeviceWriteError || 'None',
+    lastDevicesListenerError: lastDevicesListenerError || 'None',
   };
 }
 
@@ -456,6 +473,8 @@ let status: SyncStatus = {
   error: null,
   showMigrationPrompt: false,
   migrationChoice: null,
+  lastDevicesListenerError: null,
+  devicesSnapshotCount: 0,
 };
 let stageIframe: HTMLIFrameElement | null = null;
 let stageSnapshotResolvers: Array<(s: StagexSnapshot) => void> = [];
@@ -721,9 +740,9 @@ export function getDeviceDetails() {
     appVersion: APP_VERSION,
     apkVersion: isNativeApp ? APP_VERSION : null,
     otaVersion: isNativeApp ? APP_VERSION : null,
-    buildType: isNativeApp ? 'native' : 'web',
-    model,
-    manufacturer,
+    buildType: isNativeApp ? 'Native Release' : 'Web',
+    model: model || 'Android device',
+    manufacturer: manufacturer || 'N/A',
     userAgent: isNativeApp ? undefined : ua,
     isCurrentDevice: true,
   };
@@ -734,11 +753,31 @@ export async function registerDevice(uid: string): Promise<void> {
   if (!db) return;
   const id = deviceId();
   const ref = doc(db, 'users', uid, 'devices', id);
-  const details = getDeviceDetails();
+  let details;
+  try {
+    details = getDeviceDetails();
+  } catch (err: any) {
+    console.warn('[sync] getDeviceDetails failed, using fallback:', err);
+    details = {
+      deviceId: id,
+      deviceName: 'Studio Device',
+      platform: isNative() ? 'native' : 'web',
+      deviceType: isNative() ? 'mobile' : 'browser',
+      browser: 'Unknown',
+      os: 'Unknown',
+      appVersion: APP_VERSION,
+      apkVersion: 'unknown',
+      otaVersion: 'unknown',
+      buildType: isNative() ? 'Native Release' : 'Web',
+      model: 'Android device',
+      manufacturer: 'N/A',
+      isCurrentDevice: true,
+    };
+  }
+
   try {
     const snap = await getDoc(ref);
     const nowServer = serverTimestamp();
-    const syncState = getSyncStatus();
     
     const payload: any = {
       ...details,
@@ -746,7 +785,7 @@ export async function registerDevice(uid: string): Promise<void> {
       lastActiveAt: nowServer,
       updatedAt: nowServer,
       signedIn: true,
-      syncStatus: syncState.phase,
+      syncStatus: 'active',
       revokedAt: null,
     };
     
@@ -756,10 +795,13 @@ export async function registerDevice(uid: string): Promise<void> {
     
     await setDoc(ref, payload, { merge: true });
     isCurrentDeviceRegistered = true;
+    lastDeviceWriteSuccess = new Date().toLocaleString();
+    lastDeviceWriteError = 'None';
     notifyDiagnostics();
-  } catch (err) {
+  } catch (err: any) {
     console.warn('[sync] failed to register device:', err);
     isCurrentDeviceRegistered = false;
+    lastDeviceWriteError = err.message || String(err);
     notifyDiagnostics();
   }
 }
@@ -810,8 +852,10 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
   const q = query(ref, orderBy('lastActiveAt', 'desc'));
   return onSnapshot(q, (snap) => {
     const list: any[] = [];
+    const ids: string[] = [];
     snap.forEach((doc) => {
       const data = doc.data();
+      ids.push(doc.id);
       if (data.revokedAt != null) return; // Skip revoked devices
       
       const lastActiveTimestamp = data.lastActiveAt || data.lastActive;
@@ -829,9 +873,23 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
         otaVersion: data.otaVersion || null,
       });
     });
+    devicesSnapshotIds = ids;
+    devicesSnapshotCount = snap.size;
+    lastDevicesListenerError = 'None';
+    setStatus({
+      lastDevicesListenerError: 'None',
+      devicesSnapshotCount: snap.size,
+    });
     callback(list);
   }, (err) => {
     console.warn('[sync] subscribeDevices error:', err);
+    lastDevicesListenerError = err.message || String(err);
+    devicesSnapshotCount = 0;
+    devicesSnapshotIds = [];
+    setStatus({
+      lastDevicesListenerError: err.message || String(err),
+      devicesSnapshotCount: 0,
+    });
     callback([]);
   });
 }
@@ -1858,6 +1916,9 @@ async function triggerAutoBackup(): Promise<void> {
 async function executeRun(reason: RunReason, mode: RunMode): Promise<void> {
   if (!currentUser) return;
 
+  // Best-effort device registration attempt at the start of every sync run
+  void registerDevice(currentUser.uid);
+
   // Skip the noisy "syncing" flicker if there's literally nothing to do
   // on a push-only run. (For pull-then-push we always announce — the
   // user just signed in and deserves feedback that something happened.)
@@ -2704,7 +2765,13 @@ export function attachSyncEngine(): void {
   });
 
   onVisibility = () => {
-    if (document.visibilityState === 'hidden') void enqueueRun('visibility', 'push-only');
+    if (document.visibilityState === 'hidden') {
+      void enqueueRun('visibility', 'push-only');
+    } else if (document.visibilityState === 'visible' && currentUser) {
+      console.info('[sync] Tab visible, registering device and syncing');
+      void registerDevice(currentUser.uid);
+      void enqueueRun('visibility', 'pull-then-push');
+    }
   };
   document.addEventListener('visibilitychange', onVisibility);
 

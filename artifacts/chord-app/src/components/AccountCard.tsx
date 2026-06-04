@@ -2576,92 +2576,129 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                 </p>
               ) : (
                 <>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '320px', overflowY: 'auto', paddingRight: 4 }}>
-                    {devices.map((device) => {
-                      const isMe = device.id === deviceId();
-                      return (
-                        <div
-                          key={device.id}
-                          style={{
-                            background: 'rgba(128,128,128,0.06)',
-                            borderRadius: 14,
-                            padding: '12px 14px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            border: isMe ? `1px solid color-mix(in srgb, var(--accent-to, #a855f7) 20%, transparent)` : '1px solid transparent',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: 20, color: isMe ? 'var(--accent-to, #a855f7)' : 'var(--c-text-primary)', opacity: isMe ? 1 : 0.7 }}>
-                              {device.platform === 'native' ? 'smartphone' : 'laptop_mac'}
-                            </span>
-                            <div>
-                              <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)', margin: 0 }}>
-                                {device.name} {isMe && `(${lang === 'es' ? 'Este dispositivo' : 'This device'})`}
-                              </p>
-                              <p style={{ fontFamily: 'Inter', fontSize: 11, color: isMe ? '#10b981' : 'var(--c-text-muted)', margin: '2px 0 0', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <span>
-                                  {!device.signedIn 
-                                    ? (lang === 'es' ? 'Sesión cerrada' : 'Signed out') 
-                                    : isMe 
-                                      ? `● ${lang === 'es' ? 'Sesión activa' : 'Active session'}` 
-                                      : formatLastActive(device.lastActive, lang)}
-                                </span>
-                                <span style={{ opacity: 0.5 }}>•</span>
-                                <span>{lang === 'es' ? 'Versión' : 'Version'}: {device.appVersion}</span>
-                                {device.buildType === 'web' ? (
-                                  <>
-                                    <span style={{ opacity: 0.5 }}>•</span>
-                                    <span>{lang === 'es' ? 'Compilación: Web' : 'Build: Web'}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    {device.apkVersion && (
-                                      <>
-                                        <span style={{ opacity: 0.5 }}>•</span>
-                                        <span>APK: {device.apkVersion}</span>
-                                      </>
-                                    )}
-                                    <span style={{ opacity: 0.5 }}>•</span>
-                                    <span>{lang === 'es' ? 'Compilación: Versión Nativa' : 'Build: Native Release'}</span>
-                                  </>
-                                )}
-                                <span style={{ opacity: 0.5 }}>•</span>
-                                <span style={{ 
-                                  color: device.syncStatus === 'success' || device.syncStatus === 'idle' ? '#10b981' : device.syncStatus === 'syncing' ? 'var(--accent-to, #a855f7)' : '#ff6b6b',
-                                  fontWeight: 600,
-                                  textTransform: 'capitalize'
-                                }}>{device.syncStatus}</span>
-                              </p>
+                  {devices.length === 0 ? (
+                    <div style={{
+                      padding: '16px 20px',
+                      background: 'rgba(239, 68, 68, 0.05)',
+                      borderRadius: 14,
+                      border: '1px solid rgba(239, 68, 68, 0.15)',
+                      fontFamily: 'Inter',
+                      fontSize: '12.5px',
+                      color: 'var(--c-text-primary)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className="material-symbols-outlined" style={{ color: '#ef4444', fontSize: 20 }}>warning</span>
+                        <span style={{ fontWeight: 800, fontSize: 14, color: '#ef4444', fontFamily: 'Manrope' }}>
+                          {lang === 'es' ? 'No se encontraron dispositivos' : 'No Devices Detected'}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.4, color: 'var(--c-text-secondary)' }}>
+                        {lang === 'es' 
+                          ? 'Si esta sesión está iniciada pero el dispositivo actual no aparece, confirma la conectividad de Firebase y los diagnósticos detallados a continuación.'
+                          : 'If this session is signed in but the current device does not list, verify Firebase connectivity and details below.'}
+                      </p>
+                      <div style={{ height: 1, background: 'rgba(128,128,128,0.1)', margin: '4px 0' }} />
+                      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
+                        <strong>{lang === 'es' ? 'Colección:' : 'Collection:'}</strong> <code style={{ wordBreak: 'break-all', fontSize: 11 }}>users/{user.uid}/devices</code>
+                      </p>
+                      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
+                        <strong>{lang === 'es' ? 'Error del Listener:' : 'Listener Error:'}</strong> <code style={{ color: sync.lastDevicesListenerError && sync.lastDevicesListenerError !== 'None' ? '#ef4444' : 'var(--c-text-primary)', fontSize: 11 }}>{sync.lastDevicesListenerError || 'None'}</code>
+                      </p>
+                      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
+                        <strong>{lang === 'es' ? 'Documentos recibidos:' : 'Documents Received:'}</strong> <code style={{ fontSize: 11 }}>{sync.devicesSnapshotCount ?? 0}</code>
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '320px', overflowY: 'auto', paddingRight: 4 }}>
+                      {devices.map((device) => {
+                        const isMe = device.id === deviceId();
+                        return (
+                          <div
+                            key={device.id}
+                            style={{
+                              background: 'rgba(128,128,128,0.06)',
+                              borderRadius: 14,
+                              padding: '12px 14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              border: isMe ? `1px solid color-mix(in srgb, var(--accent-to, #a855f7) 20%, transparent)` : '1px solid transparent',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: 20, color: isMe ? 'var(--accent-to, #a855f7)' : 'var(--c-text-primary)', opacity: isMe ? 1 : 0.7 }}>
+                                {device.platform === 'native' ? 'smartphone' : 'laptop_mac'}
+                              </span>
+                              <div>
+                                <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)', margin: 0 }}>
+                                  {device.name} {isMe && `(${lang === 'es' ? 'Este dispositivo' : 'This device'})`}
+                                </p>
+                                <p style={{ fontFamily: 'Inter', fontSize: 11, color: isMe ? '#10b981' : 'var(--c-text-muted)', margin: '2px 0 0', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                                  <span>
+                                    {!device.signedIn 
+                                      ? (lang === 'es' ? 'Sesión cerrada' : 'Signed out') 
+                                      : isMe 
+                                        ? `● ${lang === 'es' ? 'Sesión activa' : 'Active session'}` 
+                                        : formatLastActive(device.lastActive, lang)}
+                                  </span>
+                                  <span style={{ opacity: 0.5 }}>•</span>
+                                  <span>{lang === 'es' ? 'Versión' : 'Version'}: {device.appVersion}</span>
+                                  {device.buildType === 'Web' || device.platform === 'web' ? (
+                                    <>
+                                      <span style={{ opacity: 0.5 }}>•</span>
+                                      <span>{lang === 'es' ? 'Compilación: Web' : 'Build: Web'}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      {device.apkVersion && (
+                                        <>
+                                          <span style={{ opacity: 0.5 }}>•</span>
+                                          <span>APK: {device.apkVersion}</span>
+                                        </>
+                                      )}
+                                      <span style={{ opacity: 0.5 }}>•</span>
+                                      <span>{lang === 'es' ? 'Compilación: Versión Nativa' : 'Build: Native Release'}</span>
+                                    </>
+                                  )}
+                                  <span style={{ opacity: 0.5 }}>•</span>
+                                  <span style={{ 
+                                    color: device.syncStatus === 'success' || device.syncStatus === 'idle' ? '#10b981' : device.syncStatus === 'syncing' ? 'var(--accent-to, #a855f7)' : '#ff6b6b',
+                                    fontWeight: 600,
+                                    textTransform: 'capitalize'
+                                  }}>{device.syncStatus}</span>
+                                </p>
+                              </div>
                             </div>
+                            {!isMe && (
+                              <button
+                                onClick={async () => {
+                                  if (confirm(lang === 'es' ? '¿Revocar esta sesión? El dispositivo tendrá que iniciar sesión de nuevo.' : 'Revoke this session? The device will be signed out.')) {
+                                    await revokeDeviceSession(user.uid, device.id);
+                                  }
+                                }}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  padding: 6,
+                                  borderRadius: 8,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  color: '#ff6b6b',
+                                }}
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                              </button>
+                            )}
                           </div>
-                          {!isMe && (
-                            <button
-                              onClick={async () => {
-                                if (confirm(lang === 'es' ? '¿Revocar esta sesión? El dispositivo tendrá que iniciar sesión de nuevo.' : 'Revoke this session? The device will be signed out.')) {
-                                  await revokeDeviceSession(user.uid, device.id);
-                                }
-                              }}
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                padding: 6,
-                                borderRadius: 8,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                color: '#ff6b6b',
-                              }}
-                            >
-                              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   
                   <div style={{ height: 1, background: 'rgba(128,128,128,0.1)', margin: '4px 0' }} />
                   

@@ -1,14 +1,11 @@
 ### Fixed
-- Fixed Cloud Sync not working correctly on Web builds.
-- Fixed web/laptop sessions not registering as real devices.
-- Fixed sync logic incorrectly depending on native APK/OTA fields.
-- Fixed theme, accent color, and profile photo not syncing between Android and Web.
-- Fixed Devices & Sessions not showing all signed-in devices.
-
-### Added
-- Added platform-aware sync diagnostics for Web and Android in Developer Options.
-- Added detailed Build and platform labels for Devices & Sessions.
+- Fixed Android device not registering in Devices & Sessions.
+- Fixed Web and Android sessions not seeing each other.
+- Fixed Cloud Sync listeners appearing active without actual cross-device data updates.
+- Fixed theme, accent color, profile name, and profile photo sync not propagating between devices.
+- Fixed sync errors being hidden or treated as successful.
 
 ### Improved
-- Improved cross-device sync reliability.
-- Improved Devices & Sessions layout for web/browser sessions.
+- Added stronger Sync Diagnostics for device registration and Firestore listener state.
+- Improved Devices & Sessions accuracy across Web and Android.
+- Improved sync failure reporting.

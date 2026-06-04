@@ -2877,6 +2877,13 @@ function HubSettings({
           <DevInfoRow label="Auth UID" value={diag.authUid} />
           <DevInfoRow label="Current Device ID" value={diag.deviceId} />
           <DevInfoRow label="Current Device Doc Path" value={diag.currentDeviceDocPath} canCopy />
+          <DevInfoRow label="Firebase Project ID" value={diag.firebaseProjectId} />
+          <DevInfoRow label="Devices Collection Path" value={diag.devicesCollectionPath} canCopy />
+          <DevInfoRow label="Devices Snapshot Count" value={String(diag.devicesSnapshotCount)} />
+          <DevInfoRow label="Devices Snapshot IDs" value={diag.devicesSnapshotIds} />
+          <DevInfoRow label="Last Device Write Success" value={diag.lastDeviceWriteSuccess} />
+          <DevInfoRow label="Last Device Write Error" value={diag.lastDeviceWriteError} />
+          <DevInfoRow label="Last Devices Listener Error" value={diag.lastDevicesListenerError} />
           <DevInfoRow label="Build Type" value={diag.buildType} />
           <DevInfoRow label="Platform" value={diag.platform} />
           <DevInfoRow label="Sync Enabled" value={diag.syncEnabled ? 'TRUE' : 'FALSE'} />
