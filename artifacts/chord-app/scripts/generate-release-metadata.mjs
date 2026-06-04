@@ -207,9 +207,9 @@ const signatures = expectedSignature.replace(/:/g, '').toLowerCase();
 let requiredApkVersion = version;
 let requiredVersionCode = versionCode;
 let prevVersionCode = 0;
+let prevData = null;
 
 try {
-  let prevData = null;
   if (fs.existsSync(appReleaseJsonPath)) {
     prevData = JSON.parse(fs.readFileSync(appReleaseJsonPath, 'utf8'));
   } else {
@@ -256,7 +256,7 @@ if (releaseType === 'apk' || releaseType === 'both') {
     console.error("generate-release-metadata: ✗ requiredVersionCode is missing for apk/both release!");
     process.exit(1);
   }
-  if (prevVersionCode && requiredVersionCode <= prevVersionCode) {
+  if (prevVersionCode && prevData && prevData.version !== version && requiredVersionCode <= prevVersionCode) {
     console.error(`generate-release-metadata: ✗ requiredVersionCode (${requiredVersionCode}) must be greater than previous versionCode (${prevVersionCode})!`);
     process.exit(1);
   }
