@@ -426,4 +426,4 @@ patchFile(
   }
 );
 
-console.log('\nDone. Ready to build:\n  .\\gradlew.bat assembleDebug\n');
+console.log('\nDone. Ready to build:\n  .\\gradlew.bat assembleRelease\n');

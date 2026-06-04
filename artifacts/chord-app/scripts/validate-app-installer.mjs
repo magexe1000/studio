@@ -10,7 +10,7 @@ const paths = {
   pluginJava: path.join(appRoot, 'android/app/src/main/java/com/chordex/app/AppInstallerPlugin.java'),
   mainActivityJava: path.join(appRoot, 'android/app/src/main/java/com/chordex/app/MainActivity.java'),
   apkDownloaderTs: path.join(appRoot, 'src/lib/apkDownloader.ts'),
-  apkPath: path.join(appRoot, 'android/app/build/outputs/apk/debug/app-debug.apk'),
+  apkPath: path.join(appRoot, 'android/app/build/outputs/apk/release/app-release.apk'),
 };
 
 console.log('=== RUNNING APPINSTALLER CONTRACT VALIDATION ===');

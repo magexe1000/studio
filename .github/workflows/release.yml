@@ -113,14 +113,14 @@ jobs:
         working-directory: artifacts/chord-app
         run: pnpm exec cap sync android
 
-      - name: Build Debug APK
+      - name: Build Release APK
         if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
         working-directory: artifacts/chord-app/android
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Write and Update Release Metadata
         if: steps.gate.outputs.skip != 'true'
@@ -140,7 +140,7 @@ jobs:
           fi
           FILE_NAME="studio-$VERSION.apk"
           HASH_NAME="studio-$VERSION.sha256"
-          cp artifacts/chord-app/android/app/build/outputs/apk/debug/app-debug.apk "./$FILE_NAME"
+          cp artifacts/chord-app/android/app/build/outputs/apk/release/app-release.apk "./$FILE_NAME"
           sha256sum "$FILE_NAME" > "./$HASH_NAME"
           gh release upload "$TAG" "./$FILE_NAME" "./$HASH_NAME" --clobber
 

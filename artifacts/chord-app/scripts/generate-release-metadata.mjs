@@ -52,7 +52,7 @@ if (fs.existsSync(versionJsonPath)) {
 }
 
 // Compute SHA-256 hash of APK and copy to Firebase Hosting mirror
-const apkPath = path.join(appRoot, 'android/app/build/outputs/apk/debug/app-debug.apk');
+const apkPath = path.join(appRoot, 'android/app/build/outputs/apk/release/app-release.apk');
 let sha256 = '';
 
 if (releaseType !== 'ota') {
