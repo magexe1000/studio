@@ -12,7 +12,7 @@ import ApplyToSheet from './ApplyToSheet';
 import { APP_VERSION_LABEL, compareSemver, APP_VERSION } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
-import { useOtaUpdate, otaDebugLogs, otaDiagnostics } from '../lib/otaUpdate';
+import { useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable } from '../lib/otaUpdate';
 import UpdateDiagnosticsSheet from './UpdateDiagnosticsSheet';
 import { applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable } from '../lib/capgoUpdater';
 import { resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl } from '../lib/apkDownloader';
@@ -1449,26 +1449,6 @@ function HubSettings({
     return 'main';
   });
   const [pageKey, setPageKey] = useState(0);
-  const [pushPermissionStatus, setPushPermissionStatus] = useState<string>('checking');
-  useEffect(() => {
-    let active = true;
-    const updatePermission = () => {
-      import('../lib/pushNotifications')
-        .then(({ checkNotificationPermission }) => checkNotificationPermission())
-        .then((status) => {
-          if (active) setPushPermissionStatus(status);
-        })
-        .catch(() => {
-          if (active) setPushPermissionStatus('unknown');
-        });
-    };
-    updatePermission();
-    const interval = setInterval(updatePermission, 5000);
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
-  }, [page]);
   const [slideDir, setSlideDir] = useState<'forward' | 'back'>('forward');
 
   const [customPhoto, setCustomPhoto] = useState<string | null>(null);
@@ -1582,6 +1562,10 @@ function HubSettings({
   const [devNativeVersion, setDevNativeVersion] = useState<string>('Loading...');
   const [devOtaVersion, setDevOtaVersion] = useState<string>('Loading...');
   const [devBundleId, setDevBundleId] = useState<string>('Loading...');
+  const [devVersionCode, setDevVersionCode] = useState<string>('Loading...');
+  const [preferencesDump, setPreferencesDump] = useState<string>('Loading...');
+  const [localStorageStatus, setLocalStorageStatus] = useState<string>('Loading...');
+  const [devLoadingAction, setDevLoadingAction] = useState<string | null>(null);
   const [firebaseVersionJson, setFirebaseVersionJson] = useState<string>('Loading...');
   const [firebaseAppReleaseJson, setFirebaseAppReleaseJson] = useState<string>('Loading...');
   const [verboseLogs, setVerboseLogs] = useState<boolean>(() => localStorage.getItem('studio:verboseLogs') === 'true');
@@ -1596,13 +1580,16 @@ function HubSettings({
           const info = await App.getInfo();
           setDevNativeVersion(info.version);
           setDevBundleId(info.id);
+          setDevVersionCode(info.build);
         } else {
           setDevNativeVersion('N/A (Web)');
           setDevBundleId('N/A (Web)');
+          setDevVersionCode('N/A (Web)');
         }
       } catch (e) {
         setDevNativeVersion('Error loading native info');
         setDevBundleId('Error loading native info');
+        setDevVersionCode('Error');
       }
 
       try {
@@ -1615,6 +1602,34 @@ function HubSettings({
         }
       } catch (e) {
         setDevOtaVersion('Error loading OTA info');
+      }
+
+      // Load local storage status
+      try {
+        let size = 0;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key) {
+            size += key.length + (localStorage.getItem(key)?.length || 0);
+          }
+        }
+        setLocalStorageStatus(`${localStorage.length} keys (~${(size / 1024).toFixed(2)} KB)`);
+      } catch (e) {
+        setLocalStorageStatus('Error loading storage info');
+      }
+
+      // Load Capacitor Preferences dump
+      try {
+        const { Preferences } = await import('@capacitor/preferences');
+        const { keys } = await Preferences.keys();
+        const dump: Record<string, string | null> = {};
+        for (const k of keys) {
+          const { value } = await Preferences.get({ key: k });
+          dump[k] = value;
+        }
+        setPreferencesDump(JSON.stringify(dump, null, 2));
+      } catch (e: any) {
+        setPreferencesDump(`Error loading Preferences: ${e?.message || String(e)}`);
       }
     };
     
@@ -2346,38 +2361,76 @@ function HubSettings({
 
   /* ── DEVELOPER OPTIONS ───────────────────────────────────────────── */
   if (page === 'developer') {
-    const DevButtonRow = ({ label, desc, actionLabel, onPress }: { label: string; desc?: string; actionLabel: string; onPress: () => void }) => (
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(128,128,128,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 'var(--font-base)', fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>{label}</p>
-          {desc && <p style={{ fontSize: 'var(--font-sm)', marginTop: '2px', lineHeight: 1.3, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '4px 0 0' }}>{desc}</p>}
-        </div>
-        <button
-          onClick={onPress}
-          className="btn-smooth"
-          style={{
-            padding: '8px 16px',
-            borderRadius: '8px',
-            background: 'rgba(128,128,128,0.08)',
-            border: '1px solid rgba(128,128,128,0.15)',
-            color: 'var(--c-text-primary)',
-            fontFamily: 'Manrope',
-            fontWeight: 700,
-            fontSize: '12.5px',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {actionLabel}
-        </button>
-      </div>
-    );
+    const wrapAction = async (actionId: string, fn: () => Promise<void> | void) => {
+      setDevLoadingAction(actionId);
+      try {
+        await fn();
+      } catch (err: any) {
+        showDevToast(`Failed: ${err?.message || String(err)}`);
+      } finally {
+        setDevLoadingAction(null);
+      }
+    };
 
-    const DevInfoRow = ({ label, desc, value }: { label: string; desc?: string; value: string }) => (
+    const DevButtonRow = ({ label, desc, actionLabel, actionId, onPress, disabled = false, isDestructive = false }: { label: string; desc?: string; actionLabel: string; actionId: string; onPress: () => void; disabled?: boolean; isDestructive?: boolean }) => {
+      const isLoading = devLoadingAction === actionId;
+      return (
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(128,128,128,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 'var(--font-base)', fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>{label}</p>
+            {desc && <p style={{ fontSize: 'var(--font-sm)', marginTop: '2px', lineHeight: 1.3, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '4px 0 0' }}>{desc}</p>}
+          </div>
+          <button
+            onClick={onPress}
+            disabled={disabled || isLoading || devLoadingAction !== null}
+            className="btn-smooth"
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              background: isDestructive ? 'rgba(239, 68, 68, 0.08)' : 'rgba(128,128,128,0.08)',
+              border: isDestructive ? '1px solid rgba(239, 68, 68, 0.20)' : '1px solid rgba(128,128,128,0.15)',
+              color: isDestructive ? '#ef4444' : 'var(--c-text-primary)',
+              fontFamily: 'Manrope',
+              fontWeight: 700,
+              fontSize: '12.5px',
+              cursor: (disabled || isLoading) ? 'not-allowed' : 'pointer',
+              opacity: (disabled || isLoading) ? 0.6 : 1,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {isLoading ? 'Running...' : actionLabel}
+          </button>
+        </div>
+      );
+    };
+
+    const DevInfoRow = ({ label, desc, value, canCopy = false }: { label: string; desc?: string; value: string; canCopy?: boolean }) => (
       <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-        <div style={{ flex: 1, minWidth: 0, marginBottom: '8px' }}>
-          <p style={{ fontSize: 'var(--font-base)', fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>{label}</p>
-          {desc && <p style={{ fontSize: 'var(--font-sm)', marginTop: '2px', lineHeight: 1.3, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '4px 0 0' }}>{desc}</p>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: '6px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 'var(--font-base)', fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>{label}</p>
+            {desc && <p style={{ fontSize: 'var(--font-sm)', marginTop: '2px', lineHeight: 1.3, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '4px 0 0' }}>{desc}</p>}
+          </div>
+          {canCopy && (
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(value).then(() => showDevToast('Copied to clipboard'));
+              }}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '6px',
+                background: 'rgba(128,128,128,0.08)',
+                border: '1px solid rgba(128,128,128,0.15)',
+                color: 'var(--c-text-primary)',
+                fontSize: '11px',
+                fontFamily: 'Manrope',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Copy
+            </button>
+          )}
         </div>
         <div style={{
           padding: '8px 12px',
@@ -2387,130 +2440,273 @@ function HubSettings({
           fontSize: '12px',
           color: 'var(--c-text-primary)',
           wordBreak: 'break-word',
-          whiteSpace: 'pre-wrap'
+          whiteSpace: 'pre-wrap',
+          maxHeight: '160px',
+          overflowY: 'auto'
         }}>
           {value}
         </div>
       </div>
     );
 
+    const DevCollapsibleRow = ({ label, desc, value, canCopy = false }: { label: string; desc?: string; value: string; canCopy?: boolean }) => {
+      const [open, setOpen] = useState(false);
+      return (
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setOpen(!open)}>
+              <p style={{ fontSize: 'var(--font-base)', fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>
+                {open ? '▼' : '▶'} {label}
+              </p>
+              {desc && <p style={{ fontSize: 'var(--font-sm)', marginTop: '2px', lineHeight: 1.3, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '4px 0 0' }}>{desc}</p>}
+            </div>
+            {canCopy && (
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(value).then(() => showDevToast('Copied to clipboard'));
+                }}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(128,128,128,0.08)',
+                  border: '1px solid rgba(128,128,128,0.15)',
+                  color: 'var(--c-text-primary)',
+                  fontSize: '11px',
+                  fontFamily: 'Manrope',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Copy
+              </button>
+            )}
+          </div>
+          {open && (
+            <div style={{
+              marginTop: '10px',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              background: 'rgba(128,128,128,0.06)',
+              fontFamily: 'monospace',
+              fontSize: '11px',
+              color: 'var(--c-text-primary)',
+              wordBreak: 'break-word',
+              whiteSpace: 'pre-wrap',
+              maxHeight: '240px',
+              overflowY: 'auto',
+              border: '1px solid rgba(128,128,128,0.12)'
+            }}>
+              {value}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const handleClearUpdateCacheAction = () => {
+      if (!window.confirm('Delete downloaded APK files and reset local update history?')) return;
+      wrapAction('clear-cache', handleClearUpdateCache);
+    };
+
+    const handleClearDismissedAction = () => {
+      if (!window.confirm('Clear skip update choices?')) return;
+      wrapAction('clear-dismissed', handleClearDismissed);
+    };
+
+    const handleClearAppliedAction = () => {
+      if (!window.confirm('Clear list of installed OTA/APK updates?')) return;
+      wrapAction('clear-applied', handleClearApplied);
+    };
+
+    const handleClearFailedUpdateAction = () => {
+      if (!window.confirm('Clear update error codes and reset checking status?')) return;
+      wrapAction('clear-failed', () => {
+        resetOtaUpdateState();
+        showDevToast('Failed update state cleared.');
+      });
+    };
+
+    const handleResetOtaAction = () => {
+      if (!window.confirm('Revert OTA bundles back to built-in factory default? App will reload.')) return;
+      wrapAction('reset-ota', handleResetOta);
+    };
+
+    const handleValidateInstallerAction = () => {
+      wrapAction('validate-installer', async () => {
+        const cap = (window as any).Capacitor;
+        const appInstallerExists = cap ? cap.isPluginAvailable?.('AppInstaller') ?? false : false;
+        if (!appInstallerExists) {
+          throw new Error('AppInstaller native plugin is unavailable on this platform.');
+        }
+        const avail = isAppInstallerAvailable();
+        if (avail) {
+          showDevToast('AppInstaller validation PASSED: all native methods are registered.');
+        } else {
+          throw new Error('AppInstaller registered but missing required native methods.');
+        }
+      });
+    };
+
+    const handleClearTemporaryAction = () => {
+      if (!window.confirm('Clear all session configurations and temporary mock data?')) return;
+      wrapAction('clear-temp', () => {
+        sessionStorage.clear();
+        showDevToast('Temporary mock settings cleared.');
+      });
+    };
+
+    const handleExportLocalDiagnosticsAction = () => {
+      wrapAction('export-local', () => {
+        const dump = {
+          timestamp: new Date().toISOString(),
+          localStorage: { ...localStorage },
+          preferencesDump
+        };
+        const text = JSON.stringify(dump, null, 2);
+        const filename = `studio-local-diagnostics-${Date.now()}.json`;
+        const blob = new Blob([text], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        showDevToast('Local diagnostics exported.');
+      });
+    };
+
+    const handleResetAppShellAction = () => {
+      if (!window.confirm('Reset all user settings, active theme, and layouts to factory default?')) return;
+      wrapAction('reset-shell', () => {
+        localStorage.clear();
+        sessionStorage.clear();
+        showDevToast('App shell reset completed. Please restart the app.');
+        setTimeout(() => window.location.reload(), 1500);
+      });
+    };
+
+    const handleForceReturnHubAction = () => {
+      wrapAction('force-return', () => {
+        (window as any).returnToStudioHub?.();
+        showDevToast('Return to Hub triggered.');
+      });
+    };
+
+    const handleResetDeveloperAction = () => {
+      if (!window.confirm('Disable developer mode and hide this menu?')) return;
+      wrapAction('reset-developer', () => {
+        updateSettings({ developerMode: false });
+        goBack();
+        showDevToast('Developer options disabled.');
+      });
+    };
+
+    const handleClearDebugLogsAction = () => {
+      if (!window.confirm('Clear diagnostic logs memory?')) return;
+      wrapAction('clear-logs', () => {
+        otaDebugLogs.fetchedVersionJson = null;
+        otaDebugLogs.fetchedAppReleaseJson = null;
+        otaDebugLogs.installError = null;
+        otaDebugLogs.lastExceptionStackTrace = null;
+        showDevToast('Logs memory reset.');
+      });
+    };
+
+    const handleResetUpdateStateAction = () => {
+      if (!window.confirm('Reset all OTA and APK update logs and persistent history?')) return;
+      wrapAction('reset-update-state', () => {
+        resetOtaUpdateState();
+        localStorage.removeItem('studio:appliedVersions');
+        localStorage.removeItem('studio:appliedUpdateVersion');
+        localStorage.removeItem('studio:dismissedVersions');
+        localStorage.removeItem('studio:notifiedVersions');
+        localStorage.removeItem('studio:downloadedApkPath');
+        localStorage.removeItem('studio:downloadedBundleId');
+        localStorage.removeItem('studio:downloadedVersions');
+        showDevToast('Update state fully reset.');
+      });
+    };
+
     return (
       <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title="Developer Options" onBack={goBack} />
-        
-        <SettingsSectionLabel>Actions & Diagnostics</SettingsSectionLabel>
+
+        {/* 1. App & Build */}
+        <SettingsSectionLabel>1. App & Build</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingRow label="Disable Developer Options" desc="Disable developer mode and hide this menu">
-            <button
-              onClick={() => {
-                updateSettings({ developerMode: false });
-                goBack();
-              }}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '8px',
-                background: '#ef444415',
-                border: '1px solid #ef444430',
-                color: '#ef4444',
-                fontFamily: 'Manrope',
-                fontWeight: 700,
-                fontSize: '12.5px',
-                cursor: 'pointer'
-              }}
-            >
-              Disable
-            </button>
-          </SettingRow>
-
-          <DevButtonRow label="Update Debug Screen" desc="View comprehensive update logs & exception traces" actionLabel="Open" onPress={() => navigate('debug')} />
-          <DevButtonRow label="Force Check For Updates" desc="Execute update check bypassing standard intervals" actionLabel="Check" onPress={() => ota.checkNow()} />
-          <DevButtonRow label="Force OTA Refresh" desc="Re-downloads and applies current OTA bundle" actionLabel="Refresh" onPress={handleForceOtaRefresh} />
-          <DevButtonRow label="Clear Update Cache" desc="Delete downloaded APK files and update local records" actionLabel="Clear" onPress={handleClearUpdateCache} />
-          <DevButtonRow label="Clear Dismissed Versions" desc="Clear previously skipped update configurations" actionLabel="Clear" onPress={handleClearDismissed} />
-          <DevButtonRow label="Clear Applied Versions" desc="Clear list of successfully installed OTA/APK update history" actionLabel="Clear" onPress={handleClearApplied} />
-          <DevButtonRow label="Reset OTA State" desc="Revert native Capgo wrapper bundle to default builtin" actionLabel="Reset" onPress={handleResetOta} />
+          <DevInfoRow label="App Version" desc="Hardcoded version in app bundle (APP_VERSION)" value={APP_VERSION} />
+          <DevInfoRow label="APK Version" desc="Android native APK binary version wrapper" value={devNativeVersion} />
+          <DevInfoRow label="OTA Version" desc="Active dynamically applied bundle version" value={devOtaVersion} />
+          <DevInfoRow label="Build Type" desc="Execution platform compilation target" value={isNative() ? 'Native Release' : 'Web'} />
+          <DevInfoRow label="Package Name" desc="Unique application package identifier" value={devBundleId} />
+          <DevInfoRow label="versionCode" desc="Android manifest build increment number" value={devVersionCode} />
+          <DevInfoRow label="Signing Fingerprint" desc="Public SHA-256 production certificate key" value="90:0C:F2:59:18:5C:81:10:0C:DA:8B:B0:85:71:FA:23:55:2E:97:89:13:1C:F0:7A:8F:40:56:E4:D4:12:92:06" canCopy />
+          <DevInfoRow label="Debuggable Status" desc="Security debugging compiled state" value={isNative() ? 'false (Release Build)' : 'true (Web Dev Mode)'} />
         </div>
 
-        <SettingsSectionLabel>Simulations & Testing</SettingsSectionLabel>
+        {/* 2. Update System */}
+        <SettingsSectionLabel>2. Update System</SettingsSectionLabel>
         <div style={cardStyle}>
-          <DevButtonRow label="Test Local Notification" desc="Triggers immediate mock OS notification for test update" actionLabel="Test" onPress={handleTestNotification} />
-          <DevButtonRow label="Test OTA Detection" desc="Simulate finding a new OTA update (v3.3.1)" actionLabel="Simulate" onPress={handleTestOtaDetection} />
-          <DevButtonRow label="Test APK Detection" desc="Simulate finding a new APK wrapper update (v3.3.2)" actionLabel="Simulate" onPress={handleTestApkDetection} />
+          <DevButtonRow label="Check For Updates" desc="Run default foreground query" actionLabel="Check" actionId="check-normal" onPress={() => wrapAction('check-normal', async () => { await checkForUpdate(false); })} />
+          <DevButtonRow label="Force Update Check" desc="Bypass all skip & check intervals" actionLabel="Force Check" actionId="check-force" onPress={() => wrapAction('check-force', async () => { await checkForUpdate(true); })} />
+          <DevButtonRow label="Clear Update Cache" desc="Delete downloaded APK files & paths" actionLabel="Clear" actionId="clear-cache" onPress={handleClearUpdateCacheAction} isDestructive />
+          <DevButtonRow label="Clear Dismissed Versions" desc="Reset choices for skipped versions" actionLabel="Clear" actionId="clear-dismissed" onPress={handleClearDismissedAction} />
+          <DevButtonRow label="Clear Applied Versions" desc="Reset installed update database" actionLabel="Clear" actionId="clear-applied" onPress={handleClearAppliedAction} />
+          <DevButtonRow label="Clear Failed Update State" desc="Clear error logs and update states" actionLabel="Reset" actionId="clear-failed" onPress={handleClearFailedUpdateAction} />
+          <DevButtonRow label="Reset OTA State" desc="Revert active bundle to standard build" actionLabel="Reset Bundle" actionId="reset-ota" onPress={handleResetOtaAction} isDestructive />
+          <DevCollapsibleRow label="version.json Manifest" desc="Cached raw content of version.json metadata" value={firebaseVersionJson} canCopy />
+          <DevCollapsibleRow label="app-release.json Manifest" desc="Cached raw content of app-release.json metadata" value={firebaseAppReleaseJson} canCopy />
+          <DevButtonRow label="Copy Update Diagnostics" desc="Copy full updater debug reports" actionLabel="Copy" actionId="copy-diag" onPress={() => {
+            navigator.clipboard.writeText(getDiagnosticsText()).then(() => showDevToast('Diagnostics copied.'));
+          }} />
+          <DevButtonRow label="Export Update Diagnostics" desc="Save reports file to memory" actionLabel="Export" actionId="export-diag" onPress={() => wrapAction('export-diag', handleExportDiagnostics)} />
         </div>
 
-        <SettingsSectionLabel>App & Metadata Information</SettingsSectionLabel>
+        {/* 3. AppInstaller / Native Capabilities */}
+        <SettingsSectionLabel>3. AppInstaller & Plugins</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingRow label="Enable Verbose Update Logs" desc="Enable highly detailed logging during OTA / APK processes">
-            <Toggle
-              value={verboseLogs}
-              onChange={(v) => {
-                setVerboseLogs(v);
-                localStorage.setItem('studio:verboseLogs', v ? 'true' : 'false');
-                showDevToast(`Verbose logging: ${v ? 'enabled' : 'disabled'}`);
-              }}
-              accentFrom={accent.from}
-              accentTo={accent.to}
-            />
-          </SettingRow>
-
-          <DevInfoRow label="Current App Version" desc="The hardcoded version in the app bundle (APP_VERSION)" value={APP_VERSION} />
-          <DevInfoRow label="Current APK Version" desc="The native Android APK version wrapper" value={devNativeVersion} />
-          <DevInfoRow label="Current OTA Version" desc="The active Capgo bundle version identifier" value={devOtaVersion} />
-          <DevInfoRow label="Installed Bundle ID" desc="The package name identifier on native Android" value={devBundleId} />
-          <DevInfoRow label="Push Notification Permission" desc="The current native system permission state for push notifications" value={pushPermissionStatus.toUpperCase()} />
-          <DevInfoRow label="Cached FCM Registration Token" desc="The device registration token from Firebase Cloud Messaging" value={localStorage.getItem('studio_fcm_token') || 'NONE'} />
-          
-          <DevInfoRow label="Firebase manifest (version.json)" value={firebaseVersionJson} />
-          <DevInfoRow label="Firebase manifest (app-release.json)" value={firebaseAppReleaseJson} />
+          <DevInfoRow label="AppInstaller Available" value={otaDebugLogs.appInstallerAvailable ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="downloadApk Available" value={otaDebugLogs.downloadApkAvailable ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="verifyApkSha256 Available" value={otaDebugLogs.verifyApkSha256Available ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="installApk Available" value={otaDebugLogs.installApkAvailable ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="openInstallPermissionSettings Available" value={otaDebugLogs.openInstallPermissionSettingsAvailable ? 'TRUE' : 'FALSE'} />
+          <DevInfoRow label="Registered Capacitor Plugins" value={otaDebugLogs.registeredPlugins} />
+          <DevButtonRow label="Validate Installer Capability" desc="Perform active registration assertions" actionLabel="Validate" actionId="validate-installer" onPress={handleValidateInstallerAction} />
         </div>
 
-        <div style={{ padding: '20px', display: 'flex', gap: 12 }}>
-          <button
-            onClick={() => {
-              const text = getDiagnosticsText();
-              navigator.clipboard.writeText(text).then(() => {
-                showDevToast('Diagnostics copied to clipboard.');
-              });
-            }}
-            className="btn-smooth"
-            style={{
-              flex: 1,
-              padding: '12px',
-              borderRadius: '0.75rem',
-              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-              color: 'white',
-              fontFamily: 'Manrope',
-              fontWeight: 700,
-              fontSize: '13px',
-              border: 'none',
-              cursor: 'pointer',
-              textAlign: 'center',
-            }}
-          >
-            Copy Diagnostics
-          </button>
-          
-          <button
-            onClick={handleExportDiagnostics}
-            className="btn-smooth"
-            style={{
-              flex: 1,
-              padding: '12px',
-              borderRadius: '0.75rem',
-              background: 'rgba(128,128,128,0.08)',
-              color: 'var(--c-text-primary)',
-              border: '1px solid rgba(128,128,128,0.15)',
-              fontFamily: 'Manrope',
-              fontWeight: 700,
-              fontSize: '13px',
-              cursor: 'pointer',
-              textAlign: 'center',
-            }}
-          >
-            Export Diagnostics
-          </button>
+        {/* 4. Storage & Sync Debug */}
+        <SettingsSectionLabel>4. Storage & Sync</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <DevInfoRow label="Local Storage Status" desc="Key counts and total memory estimation" value={localStorageStatus} />
+          <DevCollapsibleRow label="Capacitor Preferences Dump" desc="Read values in Capacitor Preferences storage" value={preferencesDump} canCopy />
+          <DevButtonRow label="Clear Temporary Files" desc="Reset session-scoped configs" actionLabel="Clear" actionId="clear-temp" onPress={handleClearTemporaryAction} />
+          <DevButtonRow label="Export Local Diagnostics" desc="Download complete preferences and storage dump" actionLabel="Export" actionId="export-local" onPress={handleExportLocalDiagnosticsAction} />
         </div>
+
+        {/* 5. UI & Navigation Debug */}
+        <SettingsSectionLabel>5. UI & Navigation</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <DevInfoRow label="Current Root View" value="App" />
+          <DevInfoRow label="Current Active App" value={settings.appMode || 'hub'} />
+          <DevInfoRow label="Return-to-Hub State" value="Idle" />
+          <DevInfoRow label="Overlay State" desc="Count of active modals/sheets in viewport" value={String(document.querySelectorAll('.modal-backdrop, .overlay').length)} />
+          <DevInfoRow label="Transition State" value="Inactive" />
+          <DevButtonRow label="Reset App Shell State" desc="Revert all store configurations to default" actionLabel="Reset Shell" actionId="reset-shell" onPress={handleResetAppShellAction} isDestructive />
+          <DevButtonRow label="Force Return to Hub" desc="Bypass view locks & trigger returnToStudioHub" actionLabel="Trigger Return" actionId="force-return" onPress={handleForceReturnHubAction} />
+        </div>
+
+        {/* 6. Danger Zone */}
+        <SettingsSectionLabel>6. Danger Zone</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <DevButtonRow label="Reset Developer Options" desc="Disable developer options and lock this menu" actionLabel="Reset" actionId="reset-developer" onPress={handleResetDeveloperAction} isDestructive />
+          <DevButtonRow label="Clear Debug Logs" desc="Reset all current memory logs" actionLabel="Clear Logs" actionId="clear-logs" onPress={handleClearDebugLogsAction} isDestructive />
+          <DevButtonRow label="Reset Update State" desc="Wipe update configurations, logs & choices" actionLabel="Reset Update State" actionId="reset-update-state" onPress={handleResetUpdateStateAction} isDestructive />
+          <DevButtonRow label="Disable Developer Options" desc="Exit developer mode immediately" actionLabel="Disable" actionId="disable-dev" onPress={handleResetDeveloperAction} isDestructive />
+        </div>
+
+        <div style={{ height: '32px' }} />
         {devToast && renderDevToast()}
       </div>
     );
@@ -2670,30 +2866,7 @@ function HubSettings({
       <div style={cardStyle}>
         <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'OTA update system'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={210} />
         <SettingsNavRow icon="history" iconColor={accent.from} title={(t.hub as { studioSettings?: { changelog?: string } }).studioSettings?.changelog ?? 'Changelog'} desc={(t.hub as { studioSettings?: { changelogDesc?: string } }).studioSettings?.changelogDesc ?? "What's new in this version"} onPress={() => setChangelogOpen(true)} delay={220} />
-        <SettingsNavRow
-          icon={pushPermissionStatus === 'granted' ? 'notifications_active' : pushPermissionStatus === 'denied' ? 'notifications_off' : 'notifications'}
-          iconColor={pushPermissionStatus === 'denied' ? '#ef4444' : accent.from}
-          title="Push Notifications"
-          desc={
-            pushPermissionStatus === 'granted' ? 'Enabled (real-time system update alerts)' :
-            pushPermissionStatus === 'denied' ? 'Disabled (blocked by Android settings; alerts disabled)' :
-            'Enable real-time update alerts'
-          }
-          badge={
-            pushPermissionStatus === 'granted' ? 'Active' :
-            pushPermissionStatus === 'denied' ? 'Blocked' :
-            'Off'
-          }
-          onPress={async () => {
-            if (isNative()) {
-              const { registerPushNotifications } = await import('../lib/pushNotifications');
-              await registerPushNotifications();
-            } else {
-              showDevToast('Push notifications are only supported on native Android');
-            }
-          }}
-          delay={225}
-        />
+
         <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last={!settings.developerMode} delay={230} />
         {settings.developerMode && (
           <SettingsNavRow icon="terminal" iconColor={accent.from} title="Developer Options" desc="Update simulation, logs, and controls" onPress={() => navigate('developer')} last delay={240} />

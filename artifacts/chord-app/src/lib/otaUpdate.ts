@@ -531,6 +531,25 @@ function updateGlobalState(updates: Partial<CentralizedOtaState>) {
   stateListeners.forEach((l) => l(globalOtaState));
 }
 
+export function resetOtaUpdateState() {
+  updateGlobalState({
+    updateState: 'idle',
+    updateAvailable: false,
+    remoteVersion: null,
+    changelog: null,
+    mandatory: false,
+    downloadUrl: null,
+    error: null,
+    progress: 0,
+    updateType: 'none',
+    apkUrl: null,
+    apkSha256: null,
+    manualApkUrl: null,
+    fallbackApkUrl: null,
+    releaseNotes: null,
+  });
+}
+
 let activeCheckPromise: Promise<CentralizedOtaState> | null = null;
 let activeDownloadPromise: Promise<void> | null = null;
 let activeApplyPromise: Promise<void> | null = null;

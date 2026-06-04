@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.4.1'; // Production signing migration verification
+export const APP_VERSION = '3.4.2'; // Developer Options revamp and push notifications removal
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.4.1
+export const APP_VERSION_DATE = '2026-06-04'; // 3.4.2
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,10 +53,27 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "What's new",
+    heading: "Removed",
     items: [
-      'Verified production-signed in-app update capability.',
-      'Minor diagnostics verification update.',
+      'Removed Push Notifications support and related settings for now.',
+      'Removed inactive push notification messaging from update checks.',
+    ],
+  },
+  {
+    heading: "Improved",
+    items: [
+      'Revamped Developer Options with clearer sections and diagnostics.',
+      'Improved Developer Options actions, confirmations, and visual feedback.',
+      'Improved return-to-Hub transition to avoid black screen frames.',
+      'Added a smoother app-to-Hub exit animation.',
+    ],
+  },
+  {
+    heading: "Fixed",
+    items: [
+      'Fixed Developer Options buttons with incomplete or unclear behavior.',
+      'Fixed return-to-Hub visual transition showing a black screen.',
+      'Fixed app shell visual reset during app exit.',
     ],
   },
 ];
@@ -65,10 +82,27 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Novedades",
+    heading: "Eliminado",
     items: [
-      'Capacidad de actualización interna firmada para producción verificada.',
-      'Actualización menor de verificación de diagnóstico.',
+      'Se eliminó el soporte de notificaciones push por ahora.',
+      'Se eliminaron mensajes de notificaciones push inactivas en actualizaciones.',
+    ],
+  },
+  {
+    heading: "Mejorado",
+    items: [
+      'Opciones de desarrollador renovadas con secciones y diagnósticos más claros.',
+      'Se mejoraron acciones, confirmaciones y comentarios visuales de desarrollo.',
+      'Se mejoró la animación de retorno al Hub evitando pantallas negras.',
+      'Se agregó una animación de salida app-a-Hub más suave.',
+    ],
+  },
+  {
+    heading: "Corregido",
+    items: [
+      'Se corrigieron botones de desarrollo con comportamiento incompleto.',
+      'Se corrigió la pantalla negra breve antes de que aparezca el Hub.',
+      'Se corrigió el reinicio visual del shell durante la salida de la aplicación.',
     ],
   },
 ];
@@ -76,10 +110,27 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Neuigkeiten",
+    heading: "Entfernt",
     items: [
-      'In-App-Update-Fähigkeit mit Produktionssignatur verifiziert.',
-      'Kleines Diagnose-Verifizierungs-Update.',
+      'Push-Benachrichtigungen vorübergehend entfernt.',
+      'Inaktive Push-Benachrichtigungsmeldungen bei Updates entfernt.',
+    ],
+  },
+  {
+    heading: "Verbessert",
+    items: [
+      'Entwickleroptionen mit klareren Abschnitten und Diagnosen überarbeitet.',
+      'Aktionen, Bestätigungen und visuelles Feedback für Entwickler verbessert.',
+      'Zurück-zum-Hub Animation verbessert um Schwarzbilder zu vermeiden.',
+      'Geschmeidigere App-zu-Hub Ausgangs-Animation hinzugefügt.',
+    ],
+  },
+  {
+    heading: "Behoben",
+    items: [
+      'Entwickleroptionen-Schaltflächen mit unklarem Verhalten behoben.',
+      'Kurzes Schwarzbild vor dem Erscheinen des Hubs behoben.',
+      'Visueller Reset der App-Shell bei App-Ausgang behoben.',
     ],
   },
 ];

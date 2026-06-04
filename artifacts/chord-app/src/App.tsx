@@ -754,6 +754,9 @@ export default function App() {
     }
     setExitingToHub(true);
 
+    // Reset Hub's zoom/opacity animation state immediately so it starts fading in as the sub-app exits
+    window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
+
     // Reset predictive back / touch swipe state
     touchState.current.isSwiping = false;
     if (subAppWrapperRef.current && !isSwipeSuccess) {
@@ -784,9 +787,6 @@ export default function App() {
         subAppWrapperRef.current.style.transform = '';
         subAppWrapperRef.current.style.transition = '';
       }
-
-      // Reset Hub's zoom/opacity animation state
-      window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
     }, 370);
 
     transitionTimerRef.current = timer;
@@ -999,37 +999,17 @@ export default function App() {
         if (isInitialAuth.current) {
           prevUserUid.current = user ? user.uid : null;
           isInitialAuth.current = false;
-          if (user) {
-            const token = localStorage.getItem('studio_fcm_token');
-            if (token) {
-              import('./lib/pushNotifications').then(({ saveFcmTokenToFirestore }) => {
-                saveFcmTokenToFirestore(user.uid, token);
-              });
-            }
-          }
           return;
         }
         if (user && prevUserUid.current !== user.uid) {
           logActivity('login', 'Logged In');
           prevUserUid.current = user.uid;
-          const token = localStorage.getItem('studio_fcm_token');
-          if (token) {
-            import('./lib/pushNotifications').then(({ saveFcmTokenToFirestore }) => {
-              saveFcmTokenToFirestore(user.uid, token);
-            });
-          }
         } else if (!user && prevUserUid.current !== null) {
           logActivity('logout', 'Logged Out');
           prevUserUid.current = null;
         }
       });
     }).catch(() => {});
-
-    // 3. Initialize FCM Push Notifications
-    import('./lib/pushNotifications').then(({ setupPushNotifications, registerPushNotifications }) => {
-      setupPushNotifications();
-      registerPushNotifications();
-    }).catch((err) => console.warn('[PUSH] Init failed:', err));
 
     return () => {
       cancelled = true;
