@@ -1292,7 +1292,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         changelogTitle: 'Mostrar novedades tras actualizar',
         changelogDesc: 'Abre la hoja de cambios la primera vez tras instalar una nueva versión.',
         howItWorks: 'Cómo funciona',
-        howItWorksBody: 'Las actualizaciones de Studio se descargan dentro de la aplicación y se instalan de forma segura.',
+        howItWorksBody: 'Studio soporta actualizaciones de la aplicación, actualizaciones nativas de APK y notificaciones de actualización.',
       }
     : {
         title: 'Updater',
@@ -1312,7 +1312,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         changelogTitle: "Show what's new after updating",
         changelogDesc: 'Open the changelog sheet the first time you launch after installing a new version.',
         howItWorks: 'How it works',
-        howItWorksBody: 'Studio updates download inside the app and install securely.',
+        howItWorksBody: 'Studio supports app updates, native APK updates, and update notifications.',
       };
 
   const statusColor = ota.loading
@@ -2425,6 +2425,7 @@ function HubSettings({
 
   /* ── DEVELOPER OPTIONS ───────────────────────────────────────────── */
   if (page === 'developer') {
+    try {
     const wrapAction = async (actionId: string, fn: () => Promise<void> | void) => {
       setDevLoadingAction(actionId);
       try {
@@ -2706,7 +2707,9 @@ function HubSettings({
           <DevInfoRow label="Build Type" desc="Execution platform compilation target" value={isNative() ? 'Native Release' : 'Web'} />
           <DevInfoRow label="Package Name" desc="Unique application package identifier" value={devBundleId} />
           <DevInfoRow label="versionCode" desc="Android manifest build increment number" value={devVersionCode} />
+          <DevInfoRow label="Firebase App ID" desc="Firebase application reference ID" value={devBundleId} />
           <DevInfoRow label="Signing Fingerprint" desc="Public SHA-256 production certificate key" value="90:0C:F2:59:18:5C:81:10:0C:DA:8B:B0:85:71:FA:23:55:2E:97:89:13:1C:F0:7A:8F:40:56:E4:D4:12:92:06" canCopy />
+          <DevInfoRow label="Signature SHA-256" desc="Active loaded certificate hash key" value={installedPackageDetails?.signingSha256 || 'N/A'} canCopy />
           <DevInfoRow label="Debuggable Status" desc="Security debugging compiled state" value={isNative() ? 'false (Release Build)' : 'true (Web Dev Mode)'} />
         </div>
 
@@ -2767,9 +2770,9 @@ function HubSettings({
             <>
               <div style={{ height: 1, background: 'rgba(128,128,128,0.12)', margin: '8px 0' }} />
               <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>APK Install Eligibility</div>
-              <DevInfoRow label="Package Name Match" value={apkEligibility.installed && apkEligibility.downloaded ? String(apkEligibility.installed.packageName === apkEligibility.downloaded.packageName).toUpperCase() : 'N/A'} />
-              <DevInfoRow label="Signing Certificate Match" value={apkEligibility.installed && apkEligibility.downloaded ? String(apkEligibility.installed.signatures.replace(/:/g,'').toLowerCase() === apkEligibility.downloaded.signatures.replace(/:/g,'').toLowerCase()).toUpperCase() : 'N/A'} />
-              <DevInfoRow label="New Version Code Higher" value={apkEligibility.installed && apkEligibility.downloaded ? String(apkEligibility.downloaded.versionCode > apkEligibility.installed.versionCode).toUpperCase() : 'N/A'} />
+              <DevInfoRow label="Package Name Match" value={apkEligibility.installed?.packageName && apkEligibility.downloaded?.packageName ? String(apkEligibility.installed.packageName === apkEligibility.downloaded.packageName).toUpperCase() : 'N/A'} />
+              <DevInfoRow label="Signing Certificate Match" value={apkEligibility.installed?.signingSha256 && apkEligibility.downloaded?.signingSha256 ? String(apkEligibility.installed.signingSha256.replace(/:/g,'').toLowerCase() === apkEligibility.downloaded.signingSha256.replace(/:/g,'').toLowerCase()).toUpperCase() : 'N/A'} />
+              <DevInfoRow label="New Version Code Higher" value={apkEligibility.installed?.versionCode && apkEligibility.downloaded?.versionCode ? String(apkEligibility.downloaded.versionCode > apkEligibility.installed.versionCode).toUpperCase() : 'N/A'} />
               <DevInfoRow label="APK Installable" value={apkEligibility.eligible ? 'TRUE' : 'FALSE'} />
               <DevInfoRow label="Final Decision" value={apkEligibility.eligible ? 'CAN INSTALL' : 'CANNOT INSTALL'} />
               {!apkEligibility.eligible && <DevInfoRow label="Reason if Cannot Install" value={apkEligibility.errorDetails || apkEligibility.reason || 'N/A'} />}
@@ -2811,7 +2814,22 @@ function HubSettings({
         {devToast && renderDevToast()}
       </div>
     );
+    } catch (e: any) {
+      console.error('Error rendering Developer Options:', e);
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Developer Options" onBack={goBack} />
+          <div style={{ padding: '24px 20px', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', textAlign: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#ef4444', marginBottom: 12 }}>error</span>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: 16, color: 'var(--c-text-primary)' }}>Diagnostics unavailable</p>
+            <p style={{ margin: '8px 0 0', fontSize: 13 }}>An error occurred while loading developer details.</p>
+          </div>
+        </div>
+      );
+    }
   }
+  /* ── ABOUT ──────────────────────────────────────────────────────── */
   /* ── ABOUT ──────────────────────────────────────────────────────── */
   if (page === 'about') {
     const lang = settings.language ?? 'en';
@@ -2840,74 +2858,6 @@ function HubSettings({
                 ? 'Suite de producción musical todo en uno. Graba, mezcla, sintetiza y compone pistas directamente en tu dispositivo.'
                 : 'All-in-one music production suite. Record, mix, synthesize, and compose tracks directly on your device.'}
             </p>
-          </div>
-
-          {/* App Info Card */}
-          <div style={{ ...cardStyle, padding: '10px 20px' }}>
-            <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-              <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)' }}>App Version</span>
-              <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--c-text-primary)' }}>{APP_VERSION}</span>
-            </div>
-            <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-              <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)' }}>APK Version</span>
-              <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--c-text-primary)' }}>{devNativeVersion}</span>
-            </div>
-            <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-              <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)' }}>Build Type</span>
-              <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: 'var(--c-text-primary)' }}>
-                {installedPackageDetails?.debuggable ? 'Debug' : 'Release'}
-              </span>
-            </div>
-            <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', alignItems: 'center' }}>
-              <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)', marginRight: 16 }}>Package Name</span>
-              <span style={{ fontFamily: 'monospace', fontSize: 12.5, color: 'var(--c-text-primary)', wordBreak: 'break-all', textAlign: 'right' }}>
-                {installedPackageDetails?.packageName || 'com.chordex.app'}
-              </span>
-            </div>
-          </div>
-
-          {/* Update System Card */}
-          <div style={{ ...cardStyle, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)' }}>Update System</span>
-                <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: 'var(--c-text-primary)' }}>APK only</span>
-              </div>
-              <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)' }}>Last Checked</span>
-                <span style={{ fontFamily: 'Inter', fontSize: 12.5, color: 'var(--c-text-secondary)' }}>
-                  {localStorage.getItem('studio:lastUpdateCheck') || 'Never'}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={async () => {
-                try {
-                  await ota.checkNow();
-                  showDevToast(lang === 'es' ? 'Búsqueda completada' : 'Update check finished');
-                } catch (e) {
-                  showDevToast(lang === 'es' ? 'Error al buscar' : 'Check failed');
-                }
-              }}
-              className="btn-smooth"
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '0.75rem',
-                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                color: 'white',
-                fontFamily: 'Manrope',
-                fontWeight: 700,
-                fontSize: '12.5px',
-                border: 'none',
-                cursor: 'pointer',
-                textAlign: 'center',
-              }}
-            >
-              {ota.updateState === 'checking'
-                ? (lang === 'es' ? 'Buscando actualizaciones...' : 'Checking for updates...')
-                : (lang === 'es' ? 'Buscar actualizaciones' : 'Check for Updates')}
-            </button>
           </div>
 
           {/* Credits / Legal / Links Card */}
@@ -2956,29 +2906,6 @@ function HubSettings({
               <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)' }}>chevron_right</span>
             </button>
           </div>
-
-          {/* Developer Details Card */}
-          {settings.developerMode && (
-            <div style={{ ...cardStyle, padding: '14px 20px' }}>
-              <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, color: 'var(--c-text-primary)', paddingBottom: 10, borderBottom: '1px solid rgba(128,128,128,0.08)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Developer Info
-              </div>
-              <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-secondary)' }}>versionCode</span>
-                <span style={{ fontFamily: 'monospace', fontSize: 12.5, color: 'var(--c-text-primary)' }}>{devVersionCode}</span>
-              </div>
-              <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
-                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-secondary)' }}>Firebase App ID</span>
-                <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--c-text-primary)' }}>{devBundleId}</span>
-              </div>
-              <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-secondary)', marginRight: 16 }}>Signature SHA-256</span>
-                <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--c-text-primary)', wordBreak: 'break-all', textAlign: 'right' }}>
-                  {installedPackageDetails?.signingSha256 || 'N/A'}
-                </span>
-              </div>
-            </div>
-          )}
 
           {/* Footer */}
           <div style={{ padding: '16px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
@@ -3109,7 +3036,7 @@ function HubSettings({
       {/* System & About */}
       <SettingsSectionLabel delay={200}>{(t.hub as { studioSettings?: { systemAbout?: string } }).studioSettings?.systemAbout ?? 'System & About'}</SettingsSectionLabel>
       <div style={cardStyle}>
-        <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'OTA update system'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={210} />
+        <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'App updates and installation'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={210} />
         <SettingsNavRow icon="history" iconColor={accent.from} title={(t.hub as { studioSettings?: { changelog?: string } }).studioSettings?.changelog ?? 'Changelog'} desc={(t.hub as { studioSettings?: { changelogDesc?: string } }).studioSettings?.changelogDesc ?? "What's new in this version"} onPress={() => setChangelogOpen(true)} delay={220} />
 
         <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last={!settings.developerMode} delay={230} />

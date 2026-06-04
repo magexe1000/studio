@@ -471,7 +471,7 @@
       "appearanceDesc": "テーマ、カラー、表示とパフォーマンス",
       "languageDesc": "アプリ表示言語",
       "aiAssistantDesc": "スマートな提案と分析",
-      "updaterDesc": "OTAアップデートシステム",
+      "updaterDesc": "アプリのアップデートとインストール",
       "changelogDesc": "このバージョンの新機能",
       "autoBadge": "自動",
       "dynamicHelper": "ライト{{lightStart}}–{{lightEnd}} · 夜間ダーク"

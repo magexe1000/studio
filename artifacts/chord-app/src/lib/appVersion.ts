@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.4.10'; // Polish APK updater UI and About responsiveness
+export const APP_VERSION = '3.4.11'; // Clean up Settings, About, Updater, and Developer Options
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.4.10
+export const APP_VERSION_DATE = '2026-06-04'; // 3.4.11
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,19 +55,19 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Redesigned the APK-only updater dialog with clearer status, better spacing, and Studio visual styling.",
-      "Improved the “What’s New” section in the update dialog.",
-      "Replaced old OTA terminology with APK-only update wording.",
-      "Improved Developer Options update diagnostics organization.",
-      "Improved About screen responsiveness across phones, tablets, and desktop layouts.",
+      "Cleaned up the About screen to focus on user-facing app information.",
+      "Moved technical build and update diagnostics into Developer Options.",
+      "Updated the Updater Settings description to reflect Studio’s current update system.",
+      "Improved Updater screen clarity and consistency.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed cramped About section layout on some devices.",
-      "Fixed updater labels that still referenced the old OTA system.",
-      "Fixed update dialog copy to better explain the Android installation step.",
+      "Fixed Developer Options turning black after opening.",
+      "Fixed profile display name changes not updating the main Settings account card.",
+      "Removed the unnecessary floating “Up to date” badge.",
+      "Removed technical developer/build diagnostics from the About screen.",
     ],
   },
 ];
@@ -76,27 +76,21 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Eliminado",
+    heading: "Corregido",
     items: [
-      'Se eliminó el soporte de notificaciones push por ahora.',
-      'Se eliminaron mensajes de notificaciones push inactivas en actualizaciones.',
+      "Se corrigió que las Opciones de Desarrollador se volvieran negras al abrirse.",
+      "Se corrigieron los cambios de nombre del perfil que no actualizaban la tarjeta de cuenta en Ajustes.",
+      "Se eliminó el indicador flotante innecesario de 'Actualizado'.",
+      "Se eliminaron los diagnósticos técnicos del compilado de la pantalla Acerca de.",
     ],
   },
   {
     heading: "Mejorado",
     items: [
-      'Opciones de desarrollador renovadas con secciones y diagnósticos más claros.',
-      'Se mejoraron acciones, confirmaciones y comentarios visuales de desarrollo.',
-      'Se mejoró la animación de retorno al Hub evitando pantallas negras.',
-      'Se agregó una animación de salida app-a-Hub más suave.',
-    ],
-  },
-  {
-    heading: "Corregido",
-    items: [
-      'Se corrigieron botones de desarrollo con comportamiento incompleto.',
-      'Se corrigió la pantalla negra breve antes de que aparezca el Hub.',
-      'Se corrigió el reinicio visual del shell durante la salida de la aplicación.',
+      "Se limpió la pantalla Acerca de para enfocarse en la información del usuario.",
+      "Se movieron los diagnósticos técnicos del compilado a Opciones de Desarrollador.",
+      "Se actualizó la descripción del Updater en Ajustes para reflejar el sistema actual.",
+      "Se mejoró la claridad y consistencia de la pantalla del Updater.",
     ],
   },
 ];
@@ -104,27 +98,21 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Entfernt",
+    heading: "Behoben",
     items: [
-      'Push-Benachrichtigungen vorübergehend entfernt.',
-      'Inaktive Push-Benachrichtigungsmeldungen bei Updates entfernt.',
+      "Entwickleroptionen-Schwarzbild beim Öffnen behoben.",
+      "Änderungen des Profilnamens aktualisieren die Haupt-Kontokarte in den Einstellungen sofort.",
+      "Unnötige schwebende 'Aktuell'-Plakette entfernt.",
+      "Technische Entwickler-/Build-Diagnosen aus dem Info-Bildschirm entfernt.",
     ],
   },
   {
     heading: "Verbessert",
     items: [
-      'Entwickleroptionen mit klareren Abschnitten und Diagnosen überarbeitet.',
-      'Aktionen, Bestätigungen und visuelles Feedback für Entwickler verbessert.',
-      'Zurück-zum-Hub Animation verbessert um Schwarzbilder zu vermeiden.',
-      'Geschmeidigere App-zu-Hub Ausgangs-Animation hinzugefügt.',
-    ],
-  },
-  {
-    heading: "Behoben",
-    items: [
-      'Entwickleroptionen-Schaltflächen mit unklarem Verhalten behoben.',
-      'Kurzes Schwarzbild vor dem Erscheinen des Hubs behoben.',
-      'Visueller Reset der App-Shell bei App-Ausgang behoben.',
+      "Info-Bildschirm bereinigt, um sich auf benutzerseitige App-Informationen zu konzentrieren.",
+      "Technische Build- und Update-Diagnosen in die Entwickleroptionen verschoben.",
+      "Updater-Einstellungsbeschreibung aktualisiert, um das aktuelle Update-System widerzuspiegeln.",
+      "Updater-Bildschirm-Klarheit und Konsistenz verbessert.",
     ],
   },
 ];

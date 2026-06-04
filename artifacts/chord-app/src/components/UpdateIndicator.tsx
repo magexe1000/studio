@@ -271,65 +271,23 @@ export default function UpdateIndicator({
   }, [phase, ota.updateAvailable]);
 
   if (!ota.updateAvailable) {
-    if (checkPhase === 'gone') return null;
-    const fading = checkPhase === 'fading';
-    const isOk   = checkPhase === 'ok' || fading;
-    const cFrom = `var(--accent-from, ${accentFrom})`;
-    const cTo   = `var(--accent-to, ${accentTo})`;
-
-    const amoledBg = isLight
-      ? 'rgba(255, 255, 255, 0.40)'
-      : 'rgba(26, 26, 30, 0.72)';
-    const fallbackBorder = isLight
-      ? '1px solid rgba(0, 0, 0, 0.08)'
-      : '1px solid rgba(255, 255, 255, 0.28)';
-    const fallbackShadow = isLight
-      ? '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1.5px 0 rgba(255, 255, 255, 0.70)'
-      : '0 12px 48px rgba(0, 0, 0, 0.50), inset 0 1.5px 0 rgba(255, 255, 255, 0.08)';
-
+    if (!open) return null;
     return (
-      <>
-        <div
-          ref={checkRef}
-          aria-live="polite"
-          aria-label={isOk ? 'App is up to date' : 'Checking for updates'}
-          style={{
-            position: 'fixed',
-            top: 'calc(env(safe-area-inset-top) + 14px)',
-            right: 14,
-            zIndex: 60,
-            height: 32,
-            padding: '0 14px 0 10px',
-            borderRadius: 999,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 7,
-            whiteSpace: 'nowrap',
-            background: amoledBg,
-            border: fallbackBorder,
-            color: 'var(--c-text-primary)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            boxShadow: fallbackShadow,
-            fontFamily: 'Manrope, sans-serif',
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: '-0.005em',
-            opacity: entered && !fading ? 1 : 0,
-            transform: entered && !fading ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.95)',
-            transition: 'opacity 800ms cubic-bezier(0.16, 1, 0.3, 1), transform 800ms cubic-bezier(0.16, 1, 0.3, 1)',
-            pointerEvents: 'none',
-            willChange: 'transform, opacity',
-          }}
-        >
-          {isOk ? (
-            <CheckIconSvg />
-          ) : (
-            <SpinnerSvg cFrom={cFrom} cTo={cTo} />
-          )}
-          <span>{isOk ? 'Up to date' : 'Checking\u2026'}</span>
-        </div>
-      </>
+      <UpdateModal
+        fromLabel={APP_VERSION_LABEL}
+        toVersion={ota.remoteVersion ?? '—'}
+        mandatory={ota.mandatory}
+        downloadUrl={ota.downloadUrl}
+        accentFrom={`var(--accent-from, ${accentFrom})`}
+        accentTo={`var(--accent-to, ${accentTo})`}
+        onLater={() => setOpen(false)}
+        onClose={() => {
+          setOpen(false);
+          if (ota.updateState === 'failed') {
+            ota.dismissUpdate();
+          }
+        }}
+      />
     );
   }
 

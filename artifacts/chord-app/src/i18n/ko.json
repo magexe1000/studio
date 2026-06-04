@@ -471,7 +471,7 @@
       "appearanceDesc": "테마, 색상, 디스플레이 및 성능",
       "languageDesc": "앱 표시 언어",
       "aiAssistantDesc": "스마트 제안 및 분석",
-      "updaterDesc": "OTA 업데이트 시스템",
+      "updaterDesc": "앱 업데이트 및 설치",
       "changelogDesc": "이 버전의 새 기능",
       "autoBadge": "자동",
       "dynamicHelper": "라이트 {{lightStart}} – {{lightEnd}} · 야간 다크"

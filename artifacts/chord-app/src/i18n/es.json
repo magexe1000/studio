@@ -478,7 +478,7 @@
       "appearanceDesc": "Tema, colores, pantalla y rendimiento",
       "languageDesc": "Idioma de la app",
       "aiAssistantDesc": "Sugerencias inteligentes y análisis",
-      "updaterDesc": "Sistema de actualizaciones OTA",
+      "updaterDesc": "Actualizaciones e instalación de la app",
       "changelogDesc": "Novedades en esta versión",
       "autoBadge": "Auto",
       "dynamicHelper": "Claro {{lightStart}} – {{lightEnd}} · Oscuro de noche"

@@ -471,7 +471,7 @@
       "appearanceDesc": "主题、颜色、显示与性能",
       "languageDesc": "应用显示语言",
       "aiAssistantDesc": "智能建议和分析",
-      "updaterDesc": "OTA更新系统",
+      "updaterDesc": "应用更新与安装",
       "changelogDesc": "此版本的新功能",
       "autoBadge": "自动",
       "dynamicHelper": "浅色 {{lightStart}} – {{lightEnd}} · 夜间深色"

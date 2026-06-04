@@ -478,7 +478,7 @@
       "appearanceDesc": "Theme, colors, display & performance",
       "languageDesc": "App display language",
       "aiAssistantDesc": "Smart chord suggestions and analysis",
-      "updaterDesc": "OTA update system",
+      "updaterDesc": "App updates and installation",
       "changelogDesc": "What's new in this version",
       "autoBadge": "Auto",
       "dynamicHelper": "Light {{lightStart}} – {{lightEnd}} · Dark at night"

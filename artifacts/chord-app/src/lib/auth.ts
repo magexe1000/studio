@@ -36,6 +36,9 @@ function toAuthUser(u: User | null): AuthUser | null {
   };
 }
 
+let lastAuthUser: AuthUser | null = null;
+const authCallbacks = new Set<(u: AuthUser | null) => void>();
+
 export function subscribeAuth(cb: (u: AuthUser | null) => void): () => void {
   const auth = getFirebaseAuth();
   if (!auth) {
@@ -44,11 +47,23 @@ export function subscribeAuth(cb: (u: AuthUser | null) => void): () => void {
   }
   // Resolve any in-flight redirect result so signed-in state shows up after a Google redirect.
   getRedirectResult(auth).catch(() => {});
-  return onAuthStateChanged(auth, (u) => {
+
+  authCallbacks.add(cb);
+  if (lastAuthUser !== null) {
+    cb(lastAuthUser);
+  }
+
+  const unsub = onAuthStateChanged(auth, (u) => {
     const authUser = toAuthUser(u);
+    lastAuthUser = authUser;
     syncProfileListener(authUser);
     cb(authUser);
   });
+
+  return () => {
+    authCallbacks.delete(cb);
+    unsub();
+  };
 }
 
 /**
@@ -215,6 +230,13 @@ export async function updateDisplayName(name: string): Promise<void> {
   const auth = getFirebaseAuth();
   if (!auth?.currentUser) throw new Error('Not signed in');
   await updateProfile(auth.currentUser, { displayName: name.trim() || null });
+  if (auth.currentUser) {
+    const authUser = toAuthUser(auth.currentUser);
+    lastAuthUser = authUser;
+    for (const cb of authCallbacks) {
+      cb(lastAuthUser);
+    }
+  }
 }
 
 export async function sendPasswordReset(email: string): Promise<void> {

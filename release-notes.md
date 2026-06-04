@@ -1,11 +1,11 @@
-### Improved
-- Redesigned the APK-only updater dialog with clearer status, better spacing, and Studio visual styling.
-- Improved the “What’s New” section in the update dialog.
-- Replaced old OTA terminology with APK-only update wording.
-- Improved Developer Options update diagnostics organization.
-- Improved About screen responsiveness across phones, tablets, and desktop layouts.
-
 ### Fixed
-- Fixed cramped About section layout on some devices.
-- Fixed updater labels that still referenced the old OTA system.
-- Fixed update dialog copy to better explain the Android installation step.
+- Fixed Developer Options turning black after opening.
+- Fixed profile display name changes not updating the main Settings account card.
+- Removed the unnecessary floating “Up to date” badge.
+- Removed technical developer/build diagnostics from the About screen.
+
+### Improved
+- Cleaned up the About screen to focus on user-facing app information.
+- Moved technical build and update diagnostics into Developer Options.
+- Updated the Updater Settings description to reflect Studio’s current update system.
+- Improved Updater screen clarity and consistency.

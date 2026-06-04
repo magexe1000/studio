@@ -478,7 +478,7 @@
       "appearanceDesc": "Design, Farben, Anzeige & Leistung",
       "languageDesc": "App-Anzeigesprache",
       "aiAssistantDesc": "Intelligente Vorschläge und Analyse",
-      "updaterDesc": "OTA-Updatesystem",
+      "updaterDesc": "App-Updates und Installation",
       "changelogDesc": "Neuigkeiten in dieser Version",
       "autoBadge": "Auto",
       "dynamicHelper": "Hell {{lightStart}} – {{lightEnd}} · Dunkel nachts"
