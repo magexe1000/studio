@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(__dirname, '../../..');
 
-const releaseType = process.env.RELEASE_TYPE || 'both';
+const releaseType = 'apk';
 
 console.log('generate-release-metadata: → Running AppInstaller contract validation...');
 const args = ['scripts/validate-app-installer.mjs'];
@@ -231,35 +231,26 @@ try {
 }
 
 const metadata = {
-  created_at: new Date().toISOString(),
   version: version,
+  version_code: versionCode,
   versionCode: versionCode,
-  signatures: signatures,
-  description: description,
-  releaseNotes: releaseNotes,
+  update_type: 'apk',
+  updateType: 'apk',
   download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
   manual_download_url: `https://studio-30f44.web.app/apk/studio-${version}.apk`,
   fallback_download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
-  downloadUrl: `https://studio-30f44.web.app/ota/studio-ota-${version}.zip`,
-  signature_download_url: "",
   sha256: sha256,
-  update_type: releaseType === 'both' ? 'apk' : releaseType,
-  required_apk_version: requiredApkVersion,
-  required_version_code: requiredVersionCode,
-  requiredApkVersion: requiredApkVersion,
-  requiredVersionCode: requiredVersionCode
+  description: description,
+  releaseNotes: releaseNotes,
+  required_version_code: versionCode,
+  requiredVersionCode: versionCode,
+  signatures: signatures
 };
 
 // Validate the constructed metadata before writing
-if (releaseType === 'apk' || releaseType === 'both') {
-  if (!requiredVersionCode) {
-    console.error("generate-release-metadata: ✗ requiredVersionCode is missing for apk/both release!");
-    process.exit(1);
-  }
-  if (prevVersionCode && prevData && prevData.version !== version && requiredVersionCode <= prevVersionCode) {
-    console.error(`generate-release-metadata: ✗ requiredVersionCode (${requiredVersionCode}) must be greater than previous versionCode (${prevVersionCode})!`);
-    process.exit(1);
-  }
+if (prevVersionCode && prevData && prevData.version !== version && versionCode <= prevVersionCode) {
+  console.error(`generate-release-metadata: ✗ versionCode (${versionCode}) must be greater than previous versionCode (${prevVersionCode})!`);
+  process.exit(1);
 }
 
 try {
@@ -275,18 +266,20 @@ try {
   const syncVersionJson = (filePath) => {
     if (fs.existsSync(filePath)) {
       try {
-        const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        const data = {};
+        data.version = version;
+        data.versionCode = versionCode;
+        data.updateType = 'apk';
         data.apkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
         data.manualApkUrl = `https://studio-30f44.web.app/apk/studio-${version}.apk`;
         data.fallbackApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
         data.sha256 = sha256;
-        data.updateType = releaseType === 'both' ? 'apk' : releaseType;
-        data.versionCode = versionCode;
+        data.requiredVersionCode = versionCode;
+        data.required_version_code = versionCode;
         data.signatures = signatures;
-        data.requiredApkVersion = requiredApkVersion;
-        data.requiredVersionCode = requiredVersionCode;
-        data.required_apk_version = requiredApkVersion;
-        data.required_version_code = requiredVersionCode;
+        if (description) {
+          data.changelog = description;
+        }
         if (releaseNotes) {
           data.releaseNotes = releaseNotes;
         }

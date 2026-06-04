@@ -1,7 +1,16 @@
+### Changed
+- Migrated Studio updates to APK-only delivery.
+- Removed OTA bundle application from the updater.
+- Simplified update flow to use the native Android installer for every update.
+
 ### Fixed
-- Fixed boot guard to rollback invalid OTA bundles and prevent WebView reload loops.
-- Correctly cleared stale OTA bundles when a native APK wrap update is required.
+- Fixed mixed App/OTA/APK version states.
+- Fixed updates applying as OTA instead of opening the Android installer.
+- Fixed black screen caused by WebView reload during updates.
+- Fixed stale OTA bundle state affecting APK updates.
 
 ### Improved
-- Added detailed updater trigger, block, and final path diagnostics to Developer Options.
-- Blocked developer OTA force updates on outdated native wrappers.
+- More reliable update process.
+- Cleaner update diagnostics.
+- Stronger APK validation before install.
+- Consistent App Version and APK Version after updates.

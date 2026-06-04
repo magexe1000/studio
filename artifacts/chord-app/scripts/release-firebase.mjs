@@ -122,41 +122,7 @@ if (!existsSync(distDir)) {
   process.exit(1);
 }
 
-// Make sure target directories exist
-mkdirSync(firebaseOtaDir, { recursive: true });
-
-// ── Build the OTA Zip bundle ─────────────────────────────────────────
-const zipName = `studio-ota-${version}.zip`;
-const zipPath = path.join(firebaseOtaDir, zipName);
-if (existsSync(zipPath)) rmSync(zipPath);
-
-console.log(`release-firebase: → Zipping OTA bundle to ${path.relative(repoRoot, zipPath)}`);
-
-await new Promise((resolve, reject) => {
-  const writeStream = fs.createWriteStream(zipPath);
-  const archive = archiver('zip', { zlib: { level: 9 } });
-  
-  writeStream.on('close', resolve);
-  writeStream.on('error', reject);
-  archive.on('error', reject);
-  archive.pipe(writeStream);
-  
-  const slim = process.env.OTA_SLIM !== '0';
-  const ignore = ['bundles/**', 'version.json', 'app-release.json'];
-  if (slim) {
-    ignore.push('drums/**');
-    console.log('release-firebase: → OTA_SLIM=1 (default) — excluding drums/** from bundle');
-  }
-  archive.glob('**/*', {
-    cwd: distDir,
-    dot: false,
-    ignore,
-  });
-  archive.finalize();
-});
-
-const sizeKb = (statSync(zipPath).size / 1024).toFixed(1);
-console.log(`release-firebase: ✓ Created bundle zip (${sizeKb} KB)`);
+// Zipping OTA bundle is disabled. All updates are delivered as complete signed APKs.
 
 // ── Copy all web assets into the Firebase public directory ────────────
 console.log(`release-firebase: → Copying assets from dist/public to firebase-public`);
@@ -270,7 +236,7 @@ const releaseNotesMdPath = path.join(repoRoot, 'release-notes.md');
 writeFileSync(releaseNotesMdPath, sectionContent + '\n', 'utf8');
 console.log(`release-firebase: ✓ Wrote ${path.relative(repoRoot, releaseNotesMdPath)}`);
 
-// ── Update version.json with the absolute Firebase download URL ────────
+// ── Update version.json ────────────────────────────────────────────────
 const versionJsonPath = path.join(firebasePublicDir, 'version.json');
 const existing = existsSync(versionJsonPath)
   ? JSON.parse(readFileSync(versionJsonPath, 'utf8'))
@@ -279,7 +245,7 @@ const existing = existsSync(versionJsonPath)
 existing.version = version;
 existing.changelog = changelog;
 existing.releaseNotes = releaseNotes;
-existing.downloadUrl = `${otaBase}/ota/${zipName}`;
+if (existing.downloadUrl) delete existing.downloadUrl; // Strip any legacy OTA downloadUrl
 
 writeFileSync(versionJsonPath, JSON.stringify(existing, null, 2) + '\n', 'utf8');
 console.log(`release-firebase: ✓ Wrote ${path.relative(repoRoot, versionJsonPath)}`);

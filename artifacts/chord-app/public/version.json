@@ -1,14 +1,18 @@
 {
-  "version": "3.4.8",
-  "changelog": "• Fixed boot guard to rollback invalid OTA bundles and prevent WebView reload loops.\n• Correctly cleared stale OTA bundles when a native APK wrap update is required.\n• Added detailed updater trigger, block, and final path diagnostics to Developer Options.\n• Blocked developer OTA force updates on outdated native wrappers.",
+  "version": "3.4.9",
+  "changelog": "• Migrated Studio updates to APK-only delivery.\n• Removed OTA bundle application from the updater.\n• Simplified update flow to use the native Android installer for every update.\n• Fixed mixed App/OTA/APK version states.\n• Fixed updates applying as OTA instead of opening the Android installer.\n• Fixed black screen caused by WebView reload during updates.\n• Fixed stale OTA bundle state affecting APK updates.\n• More reliable update process.\n• Cleaner update diagnostics.\n• Stronger APK validation before install.\n• Consistent App Version and APK Version after updates.",
   "releaseNotes": {
     "improved": [
-      "Added detailed updater trigger, block, and final path diagnostics to Developer Options.",
-      "Blocked developer OTA force updates on outdated native wrappers."
+      "More reliable update process.",
+      "Cleaner update diagnostics.",
+      "Stronger APK validation before install.",
+      "Consistent App Version and APK Version after updates."
     ],
     "fixed": [
-      "Fixed boot guard to rollback invalid OTA bundles and prevent WebView reload loops.",
-      "Correctly cleared stale OTA bundles when a native APK wrap update is required."
+      "Fixed mixed App/OTA/APK version states.",
+      "Fixed updates applying as OTA instead of opening the Android installer.",
+      "Fixed black screen caused by WebView reload during updates.",
+      "Fixed stale OTA bundle state affecting APK updates."
     ]
   },
   "mandatory": false

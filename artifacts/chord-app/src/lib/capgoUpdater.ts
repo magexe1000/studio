@@ -47,67 +47,8 @@ export function isNative(): boolean {
  * worst case is the user stays on the same bundle.
  */
 export async function notifyBundleReady(): Promise<void> {
-  if (!isNative()) return;
-  try {
-    const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
-
-    // STALE-BUNDLE / OUTDATED-wrapper GUARD ──────────────────────────────
-    try {
-      const { App } = await import('@capacitor/app');
-      const info = await App.getInfo();
-      const installedVersionCode = parseInt(info.build, 10) || 0;
-
-      let storedReq = 0;
-      try {
-        const storedReqVal = localStorage.getItem('studio:requiredVersionCode');
-        storedReq = storedReqVal ? parseInt(storedReqVal, 10) : 0;
-      } catch (_) {}
-
-      const active = await CapacitorUpdater.current();
-      const activeVer = active?.bundle?.version;
-      const activeId  = active?.bundle?.id;
-
-      // 1. Reset if the native APK wrapper is behind required version code (compile-time or stored remote)
-      const REQUIRED_VERSION_CODE = 18; // Synchronized with release requirements
-      if (
-        installedVersionCode > 0 && 
-        (installedVersionCode < REQUIRED_VERSION_CODE || (storedReq > 0 && installedVersionCode < storedReq))
-      ) {
-        console.warn(
-          `[capgo] APK versionCode ${installedVersionCode} is behind required (compile-time: ${REQUIRED_VERSION_CODE}, stored: ${storedReq}) — clearing downloaded bundle and resetting to builtin.`,
-        );
-        try {
-          localStorage.removeItem('studio:downloadedBundleId');
-          localStorage.removeItem('studio:downloadedApkPath');
-        } catch (_) {}
-        if (activeId && activeId !== 'builtin') {
-          await CapacitorUpdater.reset();
-          return;
-        }
-      }
-
-      // 2. Reset if APK is newer than the active Capgo bundle
-      if (
-        activeId &&
-        activeId !== 'builtin' &&
-        typeof activeVer === 'string' &&
-        compareSemver(APP_VERSION, activeVer) > 0
-      ) {
-        console.warn(
-          `[capgo] APK ${APP_VERSION} is newer than active bundle ${activeVer} — resetting to builtin.`,
-        );
-        await CapacitorUpdater.reset();
-        // reset() reloads to builtin, so anything below this won't run.
-        return;
-      }
-    } catch (err) {
-      console.warn('[capgo] wrapper and stale-bundle guards skipped:', err);
-    }
-
-    await CapacitorUpdater.notifyAppReady();
-  } catch (err) {
-    console.warn('[capgo] notifyAppReady failed (continuing):', err);
-  }
+  // OTA updates have been completely removed. This is a safe no-op.
+  return Promise.resolve();
 }
 
 export interface ApplyUpdateOptions {
@@ -203,106 +144,8 @@ const inFlightNotifications = new Set<string>();
  *     update banner UI from appearing in-app.
  */
 export async function notifyOtaAvailable(version: string): Promise<void> {
-  if (!version) return;
-  // Canonicalize so trivially-different formats ("3.0.3 ", "v3.0.3")
-  // can't slip past the dedup. Empty after trim → bail out.
-  const v = version.trim();
-  if (!v) return;
-  if (readNotifiedVersion() === v) return;
-
-  // Suppress system-level notification if the app is currently in the foreground
-  if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-    console.log('[notifyOtaAvailable] App is in foreground, suppressing system notification.');
-    writeNotifiedVersion(v); // Mark seen so we don't notify later
-    return;
-  }
-
-  // In-flight guard: a second concurrent caller for the same version
-  // short-circuits without racing the permission/schedule pipeline.
-  if (inFlightNotifications.has(v)) return;
-  inFlightNotifications.add(v);
-
-  try {
-    if (isNative()) {
-      try {
-        const { LocalNotifications } = await import('@capacitor/local-notifications');
-        const { App } = await import('@capacitor/app');
-        const info = await App.getInfo();
-        const nativeVer = info.version;
-
-        const isNativeUpgrade = compareSemver(v, nativeVer) > 0;
-        const isEs = navigator.language?.startsWith('es');
-
-        const title = isNativeUpgrade
-          ? (isEs ? 'Actualización de Sistema Studio (APK)' : 'Studio Native System Update (APK)')
-          : (isEs ? 'Actualización de Interfaz Studio (OTA)' : 'Studio Interface Update (OTA)');
-        const body = isNativeUpgrade
-          ? (isEs 
-              ? `La versión ${v} requiere reinstalar la APK para aplicar cambios de permisos y seguridad.` 
-              : `Version ${v} requires reinstalling the APK for native system and permission fixes.`)
-          : (isEs 
-              ? `La versión ${v} está lista. ¡Cambios visuales aplicados al instante en segundo plano!` 
-              : `Version ${v} UI improvements are ready. Applied instantly in the background!`);
-
-        // Android 13+ requires explicit grant of POST_NOTIFICATIONS.
-        // checkPermissions() returns 'granted' / 'denied' / 'prompt'.
-        // If the user has previously denied, don't re-prompt — that
-        // re-runs the system permission dialog every launch and is
-        // hostile UX. We just stay silent on this version.
-        let display = (await LocalNotifications.checkPermissions()).display;
-        if (display === 'prompt' || display === 'prompt-with-rationale') {
-          display = (await LocalNotifications.requestPermissions()).display;
-        }
-        if (display !== 'granted') return;
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              // 32-bit signed positive id — Android rejects negatives
-              // and overflow values. Using a stable hash of the
-              // version means the same version can never produce two
-              // simultaneous visible notifications even if dedup misfires.
-              id: hash31(`ota:${v}`),
-              title,
-              body,
-              // Tiny delay so the notification fires from the system
-              // scheduler (more reliable than "show now" on some OEMs).
-              schedule: { at: new Date(Date.now() + 200) },
-              // NOTE: no `smallIcon` — the plugin falls back to the
-              // app icon, which is always present. Specifying a name
-              // that doesn't exist as a drawable causes the schedule
-              // to fail silently and the user sees nothing.
-            },
-          ],
-        });
-        writeNotifiedVersion(v);
-      } catch (err) {
-        console.warn('[ota] local notification failed:', err);
-      }
-      return;
-    }
-
-    // Web fallback — same behaviour via the browser's Notification API.
-    if (typeof window === 'undefined' || !('Notification' in window)) return;
-    try {
-      let perm = Notification.permission;
-      if (perm === 'default') perm = await Notification.requestPermission();
-      if (perm !== 'granted') return;
-      const isEs = navigator.language?.startsWith('es');
-      const title = isEs ? 'Actualización de Interfaz Studio (OTA)' : 'Studio Interface Update (OTA)';
-      const body = isEs 
-        ? `La versión ${v} está lista. ¡Cambios visuales aplicados al instante!` 
-        : `Version ${v} UI improvements are ready. Applied instantly!`;
-      new Notification(title, {
-        body,
-        tag: `ota:${v}`,
-      });
-      writeNotifiedVersion(v);
-    } catch (err) {
-      console.warn('[ota] web notification failed:', err);
-    }
-  } finally {
-    inFlightNotifications.delete(v);
-  }
+  // OTA updates have been completely removed. This is a safe no-op.
+  return Promise.resolve();
 }
 
 /**
@@ -355,60 +198,7 @@ function hash31(s: string): number {
 export async function applyUpdate(
   options: ApplyUpdateOptions,
 ): Promise<ApplyUpdateResult> {
-  if (!isNative()) return { ok: false, error: 'not native' };
-  try {
-    const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
-    // Listen for download progress so the UI can render a bar.
-    let progressListener: { remove: () => Promise<void> } | undefined;
-    if (options.onProgress) {
-      const cb = options.onProgress;
-      progressListener = await CapacitorUpdater.addListener(
-        'download',
-        (info: { percent?: number }) => {
-          if (typeof info?.percent === 'number') {
-            cb(Math.max(0, Math.min(1, info.percent / 100)));
-          }
-        },
-      );
-    }
-    try {
-      const downloaded = await CapacitorUpdater.download({
-        url: options.url,
-        version: options.version,
-      });
-      // Force progress to 100% when download completes
-      if (options.onProgress) {
-        options.onProgress(1.0);
-      }
-      // Wait 800ms for the count-up animation to reach 100% smoothly in the UI
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      // Fade to black first, then call set() which reloads
-      await fadeToBlackAndReload(async () => {
-        await CapacitorUpdater.set({ id: downloaded.id });
-        // `set()` already reloads, but call reload() defensively in case
-        // the plugin's behaviour drifts in a future version.
-        try {
-          await CapacitorUpdater.reload();
-        } catch {
-          /* set() handled the reload */
-        }
-      });
-      return { ok: true };
-    } finally {
-      if (progressListener) {
-        try {
-          await progressListener.remove();
-        } catch {
-          /* ignore cleanup errors */
-        }
-      }
-    }
-  } catch (err) {
-    const msg =
-      err instanceof Error ? err.message : 'Unknown OTA error';
-    console.error('[capgo] applyUpdate failed:', err);
-    return { ok: false, error: msg };
-  }
+  return { ok: false, error: 'OTA updates are disabled in this version.' };
 }
 
 /**

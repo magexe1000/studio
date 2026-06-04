@@ -800,23 +800,22 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 
       let nativeApkBehind = false;
       let apkUpdateRequired = false;
-      let staleOtaCleared = false;
-      if (isNative() && remote.requiredVersionCode && installedVersionCode > 0) {
-        if (installedVersionCode < remote.requiredVersionCode) {
-          nativeApkBehind = true;
-          apkUpdateRequired = true;
-          try {
-            localStorage.removeItem('studio:downloadedBundleId');
-            localStorage.removeItem('studio:downloadedApkPath');
-            staleOtaCleared = true;
-          } catch (e) {
-            console.warn('[OTA] Failed to clear stale bundle ID/path:', e);
-          }
-        }
-        // Always store requiredVersionCode so boot guard can verify it
-        try {
-          localStorage.setItem('studio:requiredVersionCode', String(remote.requiredVersionCode));
-        } catch (_) {}
+      let staleOtaCleared = true;
+
+      // Ensure old Capgo OTA state is completely cleared
+      try {
+        localStorage.removeItem('studio:downloadedBundleId');
+      } catch (_) {}
+
+      const isUpgrade = isNative()
+        ? (remote.requiredVersionCode && installedVersionCode > 0
+            ? remote.requiredVersionCode > installedVersionCode
+            : compareSemver(remote.version, APP_VERSION) > 0)
+        : compareSemver(remote.version, APP_VERSION) > 0;
+
+      if (isUpgrade) {
+        nativeApkBehind = true;
+        apkUpdateRequired = true;
       }
 
       otaDebugLogs.installedVersionCode = installedVersionCode;
@@ -828,7 +827,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       
       // Update global context mirroring variables
       updateGlobalState({
-        pendingOtaBundleId: otaDebugLogs.pendingOtaBundleId,
+        pendingOtaBundleId: null,
         staleOtaCleared,
         capgoSetBlocked: false,
         triggerComponent: otaDebugLogs.triggerComponent,
@@ -840,29 +839,13 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       let manualApkUrl: string | null = null;
       let fallbackApkUrl: string | null = null;
 
-      // Force updateAvailable if APK update is required (even if semver comparison is 0)
-      const updateAvailable = cmp > 0 || apkUpdateRequired;
+      const updateAvailable = isUpgrade;
 
       if (updateAvailable) {
-        if (remote.updateType === 'apk' || remote.updateType === 'both' || remote.updateType === 'ota') {
-          updateType = remote.updateType;
-        } else if (isNative()) {
-          if (natVer && compareSemver(remote.version, natVer) > 0) {
-            updateType = remote.downloadUrl ? 'both' : 'apk';
-          } else {
-            updateType = 'ota';
-          }
-        } else {
-          updateType = 'ota';
-        }
-
-        // Force APK updates if native wrapper is behind the required version code
-        if (apkUpdateRequired) {
-          updateType = 'apk';
-        }
+        updateType = 'apk';
       }
 
-      const otaBlockedBecauseApkRequired = apkUpdateRequired && (remote.updateType === 'ota' || remote.updateType === 'both');
+      const otaBlockedBecauseApkRequired = false;
 
       otaDebugLogs.updateType = updateType;
       otaDebugLogs.remoteUpdateType = remote.updateType || 'none';
@@ -872,7 +855,6 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       if (updateType === 'none') {
         console.log('[OTA DEBUG] Skip: updateType evaluated to "none" because remote.version <= APP_VERSION and no APK update required.', {
           remoteVersion: remote.version,
-          comparisonCmp: cmp,
           updateType
         });
         otaDebugLogs.finalDecision = `Skip: updateType is 'none' (remote.version=${remote.version} <= APP_VERSION=${APP_VERSION})`;
@@ -891,34 +873,23 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         return globalOtaState;
       }
 
-      if (updateType === 'apk' || updateType === 'both') {
-        if (remote.apkUrl) {
-          apkUrl = remote.apkUrl;
-        } else {
-          const { resolveApkUrl } = await import('./apkDownloader');
-          apkUrl = await resolveApkUrl(remote.version);
-        }
-        manualApkUrl = remote.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${remote.version}.bin`;
-        fallbackApkUrl = remote.fallbackApkUrl || apkUrl;
+      if (remote.apkUrl) {
+        apkUrl = remote.apkUrl;
+      } else {
+        const { resolveApkUrl } = await import('./apkDownloader');
+        apkUrl = await resolveApkUrl(remote.version);
       }
+      manualApkUrl = remote.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${remote.version}.apk`;
+      fallbackApkUrl = remote.fallbackApkUrl || apkUrl;
 
-      // Check if already applied or dismissed in persistent storage
-      const inApplied = appliedList.includes(remote.version);
-      const inInstalled = installedList.includes(remote.version);
-      const cmpC = compareSemver(remote.version, APP_VERSION) <= 0;
-      
-      // If native update is required, do NOT skip the update check even if JS version matches
-      const shouldSkip = (inApplied || inInstalled || cmpC) && !apkUpdateRequired;
+      const shouldSkip = !isUpgrade;
 
       if (shouldSkip) {
-        console.log('[OTA DEBUG] Skip: Version already processed or not newer.', {
+        console.log('[OTA DEBUG] Skip: No upgrade required.', {
           version: remote.version,
-          inApplied,
-          inInstalled,
-          compareSemverLEZero: cmpC,
-          comparison: compareSemver(remote.version, APP_VERSION)
+          isUpgrade
         });
-        otaDebugLogs.finalDecision = `Skip: Already processed (inApplied=${inApplied}, inInstalled=${inInstalled}, cmpC=${cmpC})`;
+        otaDebugLogs.finalDecision = `Skip: No upgrade required (isUpgrade=false)`;
         updateGlobalState({
           updateState: 'idle',
           updateAvailable: false,
@@ -940,55 +911,25 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         finalPath = 'no update';
       } else if (isNative()) {
         const isAppInstallerAvail = isAppInstallerAvailable();
-        if (apkUpdateRequired) {
-          if (!isAppInstallerAvail) {
-            finalPath = 'manual recovery required';
-          } else if (remote.updateType === 'both') {
-            finalPath = 'both: APK first then OTA';
-          } else {
-            finalPath = 'APK first';
-          }
-        } else {
-          // Native wrapper is up to date
-          if (remote.updateType === 'ota') {
-            finalPath = 'OTA only';
-          } else {
-            // remote is both or apk
-            if (natVer && compareSemver(remote.version, natVer) > 0) {
-              finalPath = isAppInstallerAvail ? 'APK first' : 'manual recovery required';
-            } else {
-              finalPath = 'OTA only'; // Native is already up to date, just OTA
-            }
-          }
-        }
+        finalPath = isAppInstallerAvail ? 'APK first' : 'manual recovery required';
       } else {
-        // Web/PWA
-        if (remote.updateType === 'ota') {
-          finalPath = 'OTA only';
-        } else {
-          finalPath = 'manual recovery required';
-        }
+        finalPath = 'manual recovery required';
       }
       otaDebugLogs.finalUpdatePath = finalPath;
 
       const isDismissed = dismissedList.includes(remote.version) || laterVersion === remote.version;
       
-      let nextState: OtaUpdateState = (isNative() && (updateType === 'apk' || updateType === 'both') && !isAppInstallerAvailable())
+      let nextState: OtaUpdateState = (isNative() && !isAppInstallerAvailable())
         ? 'manual_apk_required'
         : 'available';
       
-      if (apkUpdateRequired && remote.updateType === 'ota') {
-        otaDebugLogs.finalDecision = "Manifest says OTA, but native wrapper is below required APK version.";
-      } else {
-        otaDebugLogs.finalDecision = `Show: ${nextState === 'manual_apk_required' ? 'Manual APK Update Required' : 'Available'} (isDismissed=${isDismissed})`;
-      }
+      otaDebugLogs.finalDecision = `Show: ${nextState === 'manual_apk_required' ? 'Manual APK Update Required' : 'Available'} (isDismissed=${isDismissed})`;
 
       console.log('[OTA DEBUG] Showing Update:', {
         version: remote.version,
         updateType,
         isDismissed,
         apkUrl,
-        downloadUrl: remote.downloadUrl,
         nextState,
         apkUpdateRequired
       });
@@ -999,7 +940,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         remoteVersion: remote.version,
         changelog: remote.changelog ?? null,
         mandatory: remote.mandatory === true,
-        downloadUrl: remote.downloadUrl ?? null,
+        downloadUrl: null,
         updateType,
         remoteUpdateType: remote.updateType || 'none',
         otaBlockedBecauseApkRequired,
@@ -1044,31 +985,17 @@ export function downloadUpdate(trigger?: string): Promise<void> {
     updateGlobalState({ triggerComponent: trigger });
   }
 
-  // Force updateType override to apk if APK update is required
-  if (globalOtaState.apkUpdateRequired && globalOtaState.updateType !== 'apk') {
-    console.warn('[OTA] downloadUpdate: apkUpdateRequired is true, forcing updateType override to apk');
-    updateGlobalState({ updateType: 'apk' });
-  }
-
-  const { updateType, apkUrl, downloadUrl, remoteVersion } = globalOtaState;
+  const { apkUrl, remoteVersion } = globalOtaState;
   const ver = remoteVersion || '';
 
   if (globalOtaState.updateState === 'ready_to_install' || globalOtaState.updateState === 'completed') {
-    if (updateType === 'apk' || updateType === 'both') {
-      const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
-      if (downloadedPath) {
-        return Promise.resolve();
-      }
-    } else {
-      // Safety check: if native, verify the bundle ID actually exists, otherwise force re-download
-      const downloadedId = localStorage.getItem('studio:downloadedBundleId');
-      if (!isNative() || downloadedId) {
-        return Promise.resolve();
-      }
+    const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
+    if (downloadedPath) {
+      return Promise.resolve();
     }
   }
 
-  if (isNative() && (updateType === 'apk' || updateType === 'both')) {
+  if (isNative()) {
     if (!isAppInstallerAvailable()) {
       otaDebugLogs.finalDecision = 'Manual update required (AppInstaller missing)';
       otaDebugLogs.downloadStatus = 'Error: AppInstaller missing';
@@ -1078,245 +1005,81 @@ export function downloadUpdate(trigger?: string): Promise<void> {
   }
 
   if (!isNative()) {
-    // Web: instant download/ready transition (handled on apply reload)
-    updateGlobalState({ updateState: 'ready_to_install', progress: 1.0 });
+    // Web: fallback to manual update page
+    updateGlobalState({ updateState: 'manual_apk_required', progress: 1.0 });
     return Promise.resolve();
   }
 
-  if (updateType === 'both') {
-    if (!apkUrl || !downloadUrl || !remoteVersion) {
-      otaDebugLogs.downloadStatus = 'Error: Missing URL(s)';
-      updateGlobalState({ updateState: 'failed', error: 'Missing OTA or APK update URL' });
-      return Promise.reject(new Error('Missing OTA or APK update URL'));
-    }
-
-    activeDownloadPromise = (async () => {
-      otaDebugLogs.downloadStatus = `Update started: both\nOTA URL: ${downloadUrl}\nAPK URL: ${apkUrl}`;
-      updateGlobalState({ updateState: 'downloading_apk', progress: 0.01, statusText: 'Downloading update', error: null });
-      try {
-        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
-        const { downloadApk } = await import('./apkDownloader');
-
-        // 1. Download OTA bundle (allocated to first 20% of progress bar)
-        otaDebugLogs.downloadStatus += `\nOTA download started...`;
-        let otaProgress = 0;
-        const progressListener = await CapacitorUpdater.addListener(
-          'download',
-          (info: { percent?: number }) => {
-            if (typeof info?.percent === 'number') {
-              otaProgress = Math.max(0, Math.min(1, info.percent / 100));
-              updateGlobalState({ 
-                progress: otaProgress * 0.2,
-                statusText: 'Downloading update'
-              });
-            }
-          },
-        );
-
-        let downloadedBundle;
-        try {
-          downloadedBundle = await CapacitorUpdater.download({
-            url: downloadUrl,
-            version: ver,
-          });
-          otaDebugLogs.downloadStatus += `\nOTA download completed. Bundle ID: ${downloadedBundle.id}`;
-          updateGlobalState({ progress: 0.2 });
-        } finally {
-          if (progressListener) {
-            await progressListener.remove().catch(() => {});
-          }
-        }
-
-        // 2. Download APK (allocated to remaining 80% of progress bar)
-        otaDebugLogs.downloadStatus += `\nAPK download started...`;
-        const filePath = await downloadApk(apkUrl, (percent) => {
-          const apkProgress = Math.max(0, Math.min(1, percent / 100));
-          updateGlobalState({ 
-            progress: 0.2 + apkProgress * 0.8,
-            statusText: 'Downloading update'
-          });
-        });
-        otaDebugLogs.downloadStatus += `\nAPK download completed. Path: ${filePath}`;
-
-        // Compute/Verify SHA-256 if expected hash is available
-        const expectedHash = globalOtaState.apkSha256;
-        if (expectedHash) {
-          otaDebugLogs.downloadStatus += `\nStarting SHA verification (Expected: ${expectedHash})...`;
-          updateGlobalState({ updateState: 'verifying_apk', statusText: 'Verifying package' });
-          const { verifyApkSha256 } = await import('./apkDownloader');
-          const isValid = await verifyApkSha256(filePath, expectedHash);
-          otaDebugLogs.shaVerification = isValid ? 'SUCCESS' : 'FAILED';
-          if (!isValid) {
-            throw new Error('APK hash verification failed (corrupted download)');
-          }
-        } else {
-          otaDebugLogs.shaVerification = 'SKIPPED (No expected hash)';
-        }
-
-        // Get file details
-        try {
-          const { Filesystem } = await import('@capacitor/filesystem');
-          const info = await Filesystem.stat({ path: filePath });
-          otaDebugLogs.fileDetails = `Size: ${info.size} bytes\nURI: ${info.uri}`;
-        } catch (statErr) {
-          otaDebugLogs.fileDetails = `Error reading file stats: ${statErr instanceof Error ? statErr.message : String(statErr)}`;
-        }
-
-        updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
-        await new Promise((resolve) => setTimeout(resolve, 300));
-
-        updateGlobalState({ statusText: 'Ready to install', updateState: 'ready_to_install' });
-        localStorage.setItem('studio:downloadedApkPath', filePath);
-        localStorage.setItem('studio:downloadedBundleId', downloadedBundle.id);
-        addToStoredList('studio:downloadedVersions', ver);
-      } catch (err) {
-        console.error('[OTA] Both update failed:', err);
-        const errMsg = err instanceof Error ? err.message : String(err);
-        const errStack = (err instanceof Error && err.stack ? err.stack : null);
-        otaDebugLogs.installError = `Download/Verify Exception: ${errMsg}\nStack: ${errStack || ''}`;
-        otaDebugLogs.lastExceptionStackTrace = errStack;
-        otaDebugLogs.installerLaunchStatus = 'FAILED';
-        await populateDiagnostics(err, 'Both OTA/APK update download or verification failed');
-        updateGlobalState({ 
-          updateState: 'failed', 
-          error: errMsg,
-          statusText: null
-        });
-        throw err;
-      } finally {
-        activeDownloadPromise = null;
-      }
-    })();
-    return activeDownloadPromise;
-  }
-
-  if (updateType === 'apk') {
-    if (!apkUrl) {
-      otaDebugLogs.downloadStatus = 'Error: Missing APK URL';
-      updateGlobalState({ updateState: 'failed', error: 'No APK download URL available' });
-      return Promise.reject(new Error('No APK download URL available'));
-    }
-
-    activeDownloadPromise = (async () => {
-      otaDebugLogs.downloadStatus = `Update started: apk\nAPK URL: ${apkUrl}`;
-      updateGlobalState({ updateState: 'downloading_apk', progress: 0.01, statusText: 'Downloading update', error: null });
-      try {
-        const { downloadApk } = await import('./apkDownloader');
-        
-        otaDebugLogs.downloadStatus += `\nAPK download started...`;
-        const filePath = await downloadApk(apkUrl, (percent) => {
-          updateGlobalState({ 
-            progress: Math.max(0, Math.min(1, percent / 100)),
-            statusText: 'Downloading update'
-          });
-        });
-        otaDebugLogs.downloadStatus += `\nAPK download completed. Path: ${filePath}`;
-
-        // Compute/Verify SHA-256 if expected hash is available
-        const expectedHash = globalOtaState.apkSha256;
-        if (expectedHash) {
-          otaDebugLogs.downloadStatus += `\nStarting SHA verification (Expected: ${expectedHash})...`;
-          updateGlobalState({ updateState: 'verifying_apk', statusText: 'Verifying package' });
-          const { verifyApkSha256 } = await import('./apkDownloader');
-          const isValid = await verifyApkSha256(filePath, expectedHash);
-          otaDebugLogs.shaVerification = isValid ? 'SUCCESS' : 'FAILED';
-          if (!isValid) {
-            throw new Error('APK hash verification failed (corrupted download)');
-          }
-        } else {
-          otaDebugLogs.shaVerification = 'SKIPPED (No expected hash)';
-        }
-
-        // Get file details
-        try {
-          const { Filesystem } = await import('@capacitor/filesystem');
-          const info = await Filesystem.stat({ path: filePath });
-          otaDebugLogs.fileDetails = `Size: ${info.size} bytes\nURI: ${info.uri}`;
-        } catch (statErr) {
-          otaDebugLogs.fileDetails = `Error reading file stats: ${statErr instanceof Error ? statErr.message : String(statErr)}`;
-        }
-
-        updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
-        await new Promise((resolve) => setTimeout(resolve, 300));
-
-        updateGlobalState({ statusText: 'Ready to install', updateState: 'ready_to_install' });
-        localStorage.setItem('studio:downloadedApkPath', filePath);
-        localStorage.removeItem('studio:downloadedBundleId');
-        addToStoredList('studio:downloadedVersions', ver);
-      } catch (err) {
-        console.error('[OTA] APK download failed:', err);
-        const errMsg = err instanceof Error ? err.message : String(err);
-        const errStack = (err instanceof Error && err.stack ? err.stack : null);
-        otaDebugLogs.installError = `Download/Verify Exception: ${errMsg}\nStack: ${errStack || ''}`;
-        otaDebugLogs.lastExceptionStackTrace = errStack;
-        otaDebugLogs.installerLaunchStatus = 'FAILED';
-        await populateDiagnostics(err, 'APK download or verification failed');
-        updateGlobalState({ 
-          updateState: 'failed', 
-          error: errMsg,
-          statusText: null
-        });
-        throw err;
-      } finally {
-        activeDownloadPromise = null;
-      }
-    })();
-    return activeDownloadPromise;
-  }
-
-  if (!downloadUrl || !remoteVersion) {
-    otaDebugLogs.downloadStatus = 'Error: Missing downloadUrl';
-    updateGlobalState({ updateState: 'failed', error: 'No download URL available' });
-    return Promise.reject(new Error('No download URL available'));
+  if (!apkUrl) {
+    otaDebugLogs.downloadStatus = 'Error: Missing APK URL';
+    updateGlobalState({ updateState: 'failed', error: 'No APK download URL available' });
+    return Promise.reject(new Error('No APK download URL available'));
   }
 
   activeDownloadPromise = (async () => {
-    otaDebugLogs.downloadStatus = `Update started: ota\nOTA URL: ${downloadUrl}`;
-    updateGlobalState({ updateState: 'downloading_ota', progress: 0, error: null });
+    otaDebugLogs.downloadStatus = `Update started: apk\nAPK URL: ${apkUrl}`;
+    updateGlobalState({ updateState: 'downloading_apk', progress: 0.01, statusText: 'Downloading update', error: null });
     try {
-      const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
-
-      otaDebugLogs.downloadStatus += `\nOTA download started...`;
-      let progressListener: { remove: () => Promise<void> } | undefined;
-      progressListener = await CapacitorUpdater.addListener(
-         'download',
-        (info: { percent?: number }) => {
-          if (typeof info?.percent === 'number') {
-            updateGlobalState({ progress: Math.max(0, Math.min(1, info.percent / 100)) });
-          }
-        },
-      );
-
-      try {
-        const downloaded = await CapacitorUpdater.download({
-          url: downloadUrl,
-          version: ver,
+      const { downloadApk } = await import('./apkDownloader');
+      
+      otaDebugLogs.downloadStatus += `\nAPK download started...`;
+      const filePath = await downloadApk(apkUrl, (percent) => {
+        updateGlobalState({ 
+          progress: Math.max(0, Math.min(1, percent / 100)),
+          statusText: 'Downloading update'
         });
-        otaDebugLogs.downloadStatus += `\nOTA download completed. Bundle ID: ${downloaded.id}`;
-        updateGlobalState({ progress: 1.0, updateState: 'ready_to_install' });
-        localStorage.setItem('studio:downloadedBundleId', downloaded.id);
-        localStorage.removeItem('studio:downloadedApkPath');
-        addToStoredList('studio:downloadedVersions', ver);
-      } finally {
-        if (progressListener) {
-          await progressListener.remove().catch(() => {});
+      });
+      otaDebugLogs.downloadStatus += `\nAPK download completed. Path: ${filePath}`;
+
+      // Compute/Verify SHA-256 if expected hash is available
+      const expectedHash = globalOtaState.apkSha256;
+      if (expectedHash) {
+        otaDebugLogs.downloadStatus += `\nStarting SHA verification (Expected: ${expectedHash})...`;
+        updateGlobalState({ updateState: 'verifying_apk', statusText: 'Verifying package' });
+        const { verifyApkSha256 } = await import('./apkDownloader');
+        const isValid = await verifyApkSha256(filePath, expectedHash);
+        otaDebugLogs.shaVerification = isValid ? 'SUCCESS' : 'FAILED';
+        if (!isValid) {
+          throw new Error('APK hash verification failed (corrupted download)');
         }
+      } else {
+        otaDebugLogs.shaVerification = 'SKIPPED (No expected hash)';
       }
+
+      // Get file details
+      try {
+        const { Filesystem } = await import('@capacitor/filesystem');
+        const info = await Filesystem.stat({ path: filePath });
+        otaDebugLogs.fileDetails = `Size: ${info.size} bytes\nURI: ${info.uri}`;
+      } catch (statErr) {
+        otaDebugLogs.fileDetails = `Error reading file stats: ${statErr instanceof Error ? statErr.message : String(statErr)}`;
+      }
+
+      updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      updateGlobalState({ statusText: 'Ready to install', updateState: 'ready_to_install' });
+      localStorage.setItem('studio:downloadedApkPath', filePath);
+      localStorage.removeItem('studio:downloadedBundleId');
+      addToStoredList('studio:downloadedVersions', ver);
     } catch (err) {
-      console.error('[OTA] Download failed:', err);
+      console.error('[OTA] APK download failed:', err);
       const errMsg = err instanceof Error ? err.message : String(err);
       const errStack = (err instanceof Error && err.stack ? err.stack : null);
-      otaDebugLogs.installError = `Download Exception: ${errMsg}\nStack: ${errStack || ''}`;
+      otaDebugLogs.installError = `Download/Verify Exception: ${errMsg}\nStack: ${errStack || ''}`;
       otaDebugLogs.lastExceptionStackTrace = errStack;
       otaDebugLogs.installerLaunchStatus = 'FAILED';
-      await populateDiagnostics(err, 'OTA bundle download failed');
-      updateGlobalState({ updateState: 'failed', error: errMsg });
+      await populateDiagnostics(err, 'APK download or verification failed');
+      updateGlobalState({ 
+        updateState: 'failed', 
+        error: errMsg,
+        statusText: null
+      });
       throw err;
     } finally {
       activeDownloadPromise = null;
     }
   })();
-
   return activeDownloadPromise;
 }
 
@@ -1326,7 +1089,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
 export function applyUpdate(trigger?: string): Promise<void> {
   if (activeApplyPromise) return activeApplyPromise;
 
-  const { remoteVersion, updateType } = globalOtaState;
+  const { remoteVersion } = globalOtaState;
   if (!remoteVersion) return Promise.resolve();
 
   if (trigger) {
@@ -1334,116 +1097,13 @@ export function applyUpdate(trigger?: string): Promise<void> {
     updateGlobalState({ triggerComponent: trigger });
   }
 
-  // Block calling CapacitorUpdater.set() if APK update is required
-  if (globalOtaState.apkUpdateRequired) {
-    otaDebugLogs.capgoSetBlocked = true;
-    updateGlobalState({ capgoSetBlocked: true });
-    if (updateType === 'ota') {
-      console.warn('[OTA] applyUpdate blocked: apkUpdateRequired is true, refusing to apply OTA bundle');
-      otaDebugLogs.finalPathExecuted = 'blocked due to APK required';
-      updateGlobalState({ 
-        updateState: 'failed', 
-        error: 'Blocked: APK update required first.',
-        finalPathExecuted: 'blocked due to APK required'
-      });
-      return Promise.resolve();
-    }
-  }
-
   activeApplyPromise = (async () => {
-    if (updateType === 'apk' || updateType === 'both') {
-      updateGlobalState({ updateState: 'installing' });
-      localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
-      addToStoredList('studio:installedVersions', remoteVersion);
-      addToStoredList('studio:appliedVersions', remoteVersion);
-      if (updateType === 'both') {
-        logActivity('ota_install', `Installing OTA app update (v${remoteVersion})`, 'Studio');
-        logActivity('apk_install', `Installing APK system update (v${remoteVersion})`, 'Studio');
-      } else {
-        logActivity('apk_install', `Installing APK system update (v${remoteVersion})`, 'Studio');
-      }
-      try {
-        const filePath = localStorage.getItem('studio:downloadedApkPath');
-        if (!filePath) {
-          throw new Error('No downloaded APK path found.');
-        }
-
-        // If both updates are downloaded, configure the Capgo bundle ID so that
-        // the native wrapper is immediately configured to load the new OTA build on restart.
-        const downloadedId = localStorage.getItem('studio:downloadedBundleId');
-        if (updateType === 'both' && downloadedId) {
-          if (globalOtaState.apkUpdateRequired) {
-            console.log('[OTA] Blocked calling CapacitorUpdater.set() because APK update is required.');
-            otaDebugLogs.capgoSetBlocked = true;
-            updateGlobalState({ capgoSetBlocked: true });
-          } else {
-            try {
-              otaDebugLogs.installError = `Both-update: setting Capgo bundle ID: ${downloadedId}`;
-              const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
-              await CapacitorUpdater.set({ id: downloadedId });
-              otaDebugLogs.installError += `\nCapgo bundle ID set successfully.`;
-              otaDebugLogs.capgoSetBlocked = false;
-              updateGlobalState({ capgoSetBlocked: false });
-            } catch (e) {
-              console.warn('[OTA] Failed to set Capgo bundle in both-update (ignoring):', e);
-              otaDebugLogs.installError += `\nWarning: Failed to set Capgo bundle ID: ${e instanceof Error ? e.message : String(e)}`;
-            }
-          }
-        }
-
-        const { AppInstaller, checkApkEligibility } = await import('./apkDownloader');
-        otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nChecking APK eligibility for: ${filePath}`;
-        updateGlobalState({ statusText: 'Verifying update eligibility' });
-
-        const eligibility = await checkApkEligibility(filePath);
-        otaDebugLogs.apkEligibilityResult = eligibility.eligible ? 'eligible' : (eligibility.reason || 'unknown');
-        if (!eligibility.eligible) {
-          let userMessage = 'Installation eligibility check failed. The update cannot be installed.';
-          if (eligibility.reason === 'versionCode_low') {
-            userMessage = 'This update package cannot be installed because its Android version code is not newer than the installed app.';
-          } else if (eligibility.reason === 'signature_mismatch') {
-            userMessage = 'This update was signed with a different certificate and cannot update the installed app.';
-          } else if (eligibility.reason === 'packageName_mismatch') {
-            userMessage = 'This APK does not match the installed Studio package.';
-          } else if (eligibility.reason === 'parse_failed' || eligibility.reason === 'invalid_apk') {
-            userMessage = 'The downloaded APK appears invalid or incomplete.';
-          }
-          
-          throw new Error(userMessage);
-        }
-
-        otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
-        updateGlobalState({ statusText: 'Launching APK installer' });
-
-        await AppInstaller.installApk({ filePath });
-        
-        otaDebugLogs.installError += `\nAPK installer intent launched successfully!`;
-        otaDebugLogs.installerLaunchStatus = 'SUCCESS';
-        otaDebugLogs.lastExceptionStackTrace = 'None';
-        otaDebugLogs.finalPathExecuted = 'APK installer launched';
-        updateGlobalState({ 
-          updateState: 'ready_to_install', 
-          statusText: 'APK installer launched',
-          finalPathExecuted: 'APK installer launched'
-        });
-      } catch (err) {
-        console.error('[OTA] APK install failed:', err);
-        const errMsg = err instanceof Error ? err.message : String(err);
-        const errStack = (err instanceof Error && err.stack ? err.stack : null);
-        otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nAPK Install Exception: ${errMsg}\nStack: ${errStack || ''}`;
-        otaDebugLogs.installerLaunchStatus = 'FAILED';
-        otaDebugLogs.lastExceptionStackTrace = errStack;
-        await populateDiagnostics(err, 'APK installation failed');
-        updateGlobalState({ 
-          updateState: 'failed', 
-          error: errMsg,
-          statusText: 'Installation failed'
-        });
-        localStorage.removeItem('studio:appliedUpdateVersion');
-        throw err;
-      } finally {
-        activeApplyPromise = null;
-      }
+    if (!isNative()) {
+      otaDebugLogs.finalPathExecuted = 'N/A';
+      updateGlobalState({ 
+        updateState: 'manual_apk_required', 
+        error: 'Manual update required.' 
+      });
       return;
     }
 
@@ -1451,76 +1111,68 @@ export function applyUpdate(trigger?: string): Promise<void> {
     localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
     addToStoredList('studio:installedVersions', remoteVersion);
     addToStoredList('studio:appliedVersions', remoteVersion);
-    logActivity('ota_install', `Installing OTA app update (v${remoteVersion})`, 'Studio');
+    logActivity('apk_install', `Installing APK system update (v${remoteVersion})`, 'Studio');
+    try {
+      const filePath = localStorage.getItem('studio:downloadedApkPath');
+      if (!filePath) {
+        throw new Error('No downloaded APK path found.');
+      }
 
-    if (isNative()) {
-      try {
-        const downloadedId = localStorage.getItem('studio:downloadedBundleId');
-        if (!downloadedId) {
-          throw new Error('No downloaded bundle found.');
+      const { AppInstaller, checkApkEligibility } = await import('./apkDownloader');
+      otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nChecking APK eligibility for: ${filePath}`;
+      updateGlobalState({ statusText: 'Verifying update eligibility' });
+
+      const eligibility = await checkApkEligibility(filePath);
+      otaDebugLogs.apkEligibilityResult = eligibility.eligible ? 'eligible' : (eligibility.reason || 'unknown');
+      if (!eligibility.eligible) {
+        let userMessage = 'Installation eligibility check failed. The update cannot be installed.';
+        if (eligibility.reason === 'versionCode_low') {
+          userMessage = 'This update package cannot be installed because its Android version code is not newer than the installed app.';
+        } else if (eligibility.reason === 'signature_mismatch') {
+          userMessage = 'This update was signed with a different certificate and cannot update the installed app.';
+        } else if (eligibility.reason === 'packageName_mismatch') {
+          userMessage = 'This APK does not match the installed Studio package.';
+        } else if (eligibility.reason === 'parse_failed' || eligibility.reason === 'invalid_apk') {
+          userMessage = 'The downloaded APK appears invalid or incomplete.';
         }
-
-        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
-        const { fadeToBlackAndReload } = await import('./capgoUpdater');
-
-        otaDebugLogs.installError = `Applying OTA bundle ID: ${downloadedId}`;
-        updateGlobalState({ statusText: 'Applying OTA bundle' });
-
-        await fadeToBlackAndReload(async () => {
-          await CapacitorUpdater.set({ id: downloadedId });
-          try {
-            await CapacitorUpdater.reload();
-          } catch {
-            /* reload handled by set() */
-          }
-        });
         
-        otaDebugLogs.installError += `\nOTA bundle applied and reload triggered.`;
-        otaDebugLogs.installerLaunchStatus = 'SUCCESS';
-        otaDebugLogs.lastExceptionStackTrace = 'None';
-        otaDebugLogs.finalPathExecuted = 'OTA applied';
-        updateGlobalState({ 
-          statusText: 'OTA reload triggered', 
-          updateState: 'completed',
-          finalPathExecuted: 'OTA applied'
-        });
-      } catch (err) {
-        console.error('[OTA] Apply failed:', err);
-        const errMsg = err instanceof Error ? err.message : String(err);
-        const errStack = (err instanceof Error && err.stack ? err.stack : null);
-        otaDebugLogs.installError = `OTA Apply Exception: ${errMsg}\nStack: ${errStack || ''}`;
-        otaDebugLogs.installerLaunchStatus = 'FAILED';
-        otaDebugLogs.lastExceptionStackTrace = errStack;
-        await populateDiagnostics(err, 'OTA apply failed');
-        updateGlobalState({ 
-          updateState: 'failed', 
-          error: errMsg,
-          statusText: 'OTA apply failed'
-        });
-        localStorage.removeItem('studio:appliedUpdateVersion');
-        throw err; // Re-throw to propagate exception
-      } finally {
-        activeApplyPromise = null;
+        throw new Error(userMessage);
       }
-    } else {
-      // Web: clear caches and reload page
-      try {
-        if ('caches' in window) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map((k) => caches.delete(k)));
-        }
-      } catch {
-        /* ignore */
-      }
-      otaDebugLogs.finalPathExecuted = 'OTA applied';
-      updateGlobalState({ finalPathExecuted: 'OTA applied' });
-      const { fadeToBlackAndReload } = await import('./capgoUpdater');
-      await fadeToBlackAndReload(() => {
-        window.location.reload();
+
+      otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
+      updateGlobalState({ statusText: 'Launching APK installer' });
+
+      await AppInstaller.installApk({ filePath });
+      
+      otaDebugLogs.installError += `\nAPK installer intent launched successfully!`;
+      otaDebugLogs.installerLaunchStatus = 'SUCCESS';
+      otaDebugLogs.lastExceptionStackTrace = 'None';
+      otaDebugLogs.finalPathExecuted = 'APK installer launched';
+      updateGlobalState({ 
+        updateState: 'idle', 
+        updateAvailable: false,
+        statusText: 'APK installer launched',
+        finalPathExecuted: 'APK installer launched'
       });
+    } catch (err) {
+      console.error('[OTA] APK install failed:', err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const errStack = (err instanceof Error && err.stack ? err.stack : null);
+      otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nAPK Install Exception: ${errMsg}\nStack: ${errStack || ''}`;
+      otaDebugLogs.installerLaunchStatus = 'FAILED';
+      otaDebugLogs.lastExceptionStackTrace = errStack;
+      await populateDiagnostics(err, 'APK installation failed');
+      updateGlobalState({ 
+        updateState: 'failed', 
+        error: errMsg,
+        statusText: 'Installation failed'
+      });
+      localStorage.removeItem('studio:appliedUpdateVersion');
+      throw err;
+    } finally {
+      activeApplyPromise = null;
     }
   })();
-
   return activeApplyPromise;
 }
 
