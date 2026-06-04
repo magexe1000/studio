@@ -163,7 +163,7 @@ if (fs.existsSync(paths.apkPath)) {
       
       if (prevVersion && prevVersion !== currentVersion) {
         const prevApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${prevVersion}/studio-${prevVersion}.apk`;
-        const tempApkPath = path.join(appRoot, `artifacts/chord-app/studio-temp-prev.apk`);
+        const tempApkPath = path.join(appRoot, `studio-temp-prev.apk`);
         
         console.log(`Downloading previous APK to compare: ${prevApkUrl}`);
         const downloadRes = await fetch(prevApkUrl);
