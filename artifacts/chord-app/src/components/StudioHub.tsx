@@ -1094,6 +1094,25 @@ const HUB_SETTINGS_CSS = `
     animation: sync-spin-kf 1.1s linear infinite;
     display: inline-block;
   }
+  @media (max-width: 480px) {
+    .about-row {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 4px !important;
+      padding: 10px 0 !important;
+    }
+    .about-row span:last-child {
+      text-align: left !important;
+      margin-right: 0 !important;
+      word-break: break-all !important;
+    }
+  }
+  @media (max-width: 360px) {
+    .settings-panel-sheet {
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+    }
+  }
 `;
 
 function SettingsNavRow({
@@ -1267,13 +1286,13 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         updateStudio: 'Actualizar Studio',
         controls: 'Controles',
         notifTitle: 'Notificaciones de actualización',
-        notifDesc: 'Recibe un aviso del sistema cuando haya un bundle nuevo.',
+        notifDesc: 'Recibe un aviso del sistema cuando haya una actualización disponible.',
         autoTitle: 'Comprobación automática',
         autoDesc: 'Studio comprueba cada 60 s mientras la app está abierta.',
         changelogTitle: 'Mostrar novedades tras actualizar',
         changelogDesc: 'Abre la hoja de cambios la primera vez tras instalar una nueva versión.',
         howItWorks: 'Cómo funciona',
-        howItWorksBody: 'Las actualizaciones de Studio se descargan automáticamente en la aplicación y se aplican al instante.',
+        howItWorksBody: 'Las actualizaciones de Studio se descargan dentro de la aplicación y se instalan de forma segura.',
       }
     : {
         title: 'Updater',
@@ -1287,7 +1306,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         updateStudio: 'Update Studio',
         controls: 'Controls',
         notifTitle: 'Update notifications',
-        notifDesc: 'Get a system notification when a new bundle is ready.',
+        notifDesc: 'Get a system notification when a new update is ready.',
         autoTitle: 'Automatic checks',
         autoDesc: 'Studio checks every 60 s while the app is open.',
         changelogTitle: "Show what's new after updating",
@@ -1303,7 +1322,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   const statusLabel = ota.loading
     ? L.checking
     : ota.updateAvailable
-      ? (ota.updateType === 'ota' ? L.studioUpdateAvailable : L.appUpdateAvailable)
+      ? L.studioUpdateAvailable
       : L.upToDate;
 
   return (
@@ -1363,7 +1382,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
-              {isApkFlow ? 'system_update' : 'download'}
+              system_update
             </span>
             {L.updateStudio}
           </button>
@@ -2371,61 +2390,34 @@ function HubSettings({
         </div>
 
         <div style={cardStyle}>
-          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>INSTALLED APP</div>
-          <DebugRow label="packageName" value={installedPackageDetails?.packageName || 'N/A'} />
-          <DebugRow label="versionName" value={installedPackageDetails?.versionName || 'N/A'} />
-          <DebugRow label="versionCode" value={installedPackageDetails ? String(installedPackageDetails.versionCode) : 'N/A'} />
-          <DebugRow label="signing SHA-256" value={installedPackageDetails?.signingSha256 || 'N/A'} />
-          <DebugRow label="debuggable" value={installedPackageDetails ? String(installedPackageDetails.debuggable) : 'N/A'} />
-
-          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>DOWNLOADED APK</div>
-          <DebugRow label="packageName" value={downloadedApkDetails?.packageName || 'N/A'} />
-          <DebugRow label="versionName" value={downloadedApkDetails?.versionName || 'N/A'} />
-          <DebugRow label="versionCode" value={downloadedApkDetails ? String(downloadedApkDetails.versionCode) : 'N/A'} />
-          <DebugRow label="signing SHA-256" value={downloadedApkDetails?.signingSha256 || 'N/A'} />
-          <DebugRow label="debuggable" value={downloadedApkDetails ? String(downloadedApkDetails.debuggable) : 'N/A'} />
-          <DebugRow label="APK file path" value={downloadedApkDetails?.filePath || 'N/A'} />
-          <DebugRow label="APK file size" value={downloadedApkDetails?.fileSize || 'N/A'} />
-          <DebugRow label="APK SHA-256" value={otaDiagnostics.shaExpected || 'N/A'} />
-          <DebugRow label="valid APK" value={downloadedApkDetails ? String(downloadedApkDetails.isValidApk) : 'N/A'} />
-          <DebugRow label="universal APK" value={downloadedApkDetails ? String(downloadedApkDetails.isUniversalApk) : 'N/A'} />
-
-          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>ELIGIBILITY</div>
-          <DebugRow label="package name match" value={apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.installed.packageName === apkEligibility.downloaded.packageName) : 'N/A'} />
-          <DebugRow label="signing certificate match" value={apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.installed.signingSha256.replace(/:/g, '').toLowerCase() === apkEligibility.downloaded.signingSha256.replace(/:/g, '').toLowerCase()) : 'N/A'} />
-          <DebugRow label="versionCode higher" value={apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.downloaded.versionCode > apkEligibility.installed.versionCode) : 'N/A'} />
-          <DebugRow label="APK release build" value={apkEligibility?.downloaded ? String(!apkEligibility.downloaded.debuggable) : 'N/A'} />
-          <DebugRow label="APK valid" value={apkEligibility?.downloaded ? String(apkEligibility.downloaded.isValidApk) : 'N/A'} />
-          <DebugRow label="final install eligibility" value={apkEligibility ? (apkEligibility.eligible ? 'can install' : 'cannot install') : 'N/A'} highlightColor={apkEligibility ? (apkEligibility.eligible ? '#22c55e' : '#ef4444') : undefined} />
-          <DebugRow label="reason if cannot install" value={apkEligibility?.reason || 'none'} />
-
-          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>GENERAL DIAGNOSTICS & SYSTEM STATUS</div>
-          <DebugRow label="App Version (JS)" desc="The hardcoded version in the app bundle" value={APP_VERSION} />
-          <DebugRow label="APK Version (Wrapper)" desc="The native Android APK version wrapper" value={devNativeVersion} />
+          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>CURRENT APP</div>
+          <DebugRow label="App Version" desc="The hardcoded version in the app bundle" value={APP_VERSION} />
+          <DebugRow label="APK Version" desc="The native Android APK version wrapper" value={devNativeVersion} />
           <DebugRow label="versionCode" desc="The version code of the installed native wrapper" value={devVersionCode} />
           <DebugRow label="Update System" desc="The update delivery channel used by the app" value="APK only" />
-          <DebugRow label="OTA System" desc="State of the Capgo bundle update system" value="disabled" />
-          <DebugRow label="AppInstaller available" desc="Whether the native AppInstaller Capacitor plugin is loaded" value={String(otaDebugLogs.appInstallerAvailable)} />
-          <DebugRow label="APK eligibility status" desc="Outcome of downloaded APK eligibility validation checks" value={otaDebugLogs.apkEligibilityResult} />
-          <DebugRow label="Current release channel" desc="The deployment channel targeted for updates" value="production" />
-          <DebugRow label="Last update check" desc="Timestamp of the most recent update manifest check" value={localStorage.getItem('studio:lastUpdateCheck') || 'Never'} />
-          <DebugRow label="remote version" desc="The latest version released on the remote server" value={ota.remoteVersion} />
+          <DebugRow label="OTA System" desc="State of the Capgo bundle update system" value="Disabled" />
 
-          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>NATIVE METHOD AVAILABILITY</div>
-          <DebugRow label="downloadApk Available" value={String(otaDebugLogs.downloadApkAvailable)} />
-          <DebugRow label="verifyApkSha256 Available" value={String(otaDebugLogs.verifyApkSha256Available)} />
-          <DebugRow label="installApk Available" value={String(otaDebugLogs.installApkAvailable)} />
-          <DebugRow label="openInstallPermissionSettings Available" value={String(otaDebugLogs.openInstallPermissionSettingsAvailable)} />
-          <DebugRow label="Registered Plugins" value={otaDebugLogs.registeredPlugins} />
-          <DebugRow label="Plugin Method Check" value={otaDebugLogs.pluginMethodCheck} />
-          <DebugRow label="Fetched version.json" value={otaDebugLogs.fetchedVersionJson} />
-          <DebugRow label="Fetched app-release.json" value={otaDebugLogs.fetchedAppReleaseJson} />
-          <DebugRow label="Download Status" value={otaDebugLogs.downloadStatus} />
-          <DebugRow label="SHA Verification" value={otaDebugLogs.shaVerification} />
-          <DebugRow label="File Details" value={otaDebugLogs.fileDetails} />
-          <DebugRow label="Install Error / Log" value={otaDebugLogs.installError} />
-          <DebugRow label="Installer Launch Status" value={otaDebugLogs.installerLaunchStatus} />
-          <DebugRow label="Last Exception Stack Trace" value={otaDebugLogs.lastExceptionStackTrace} />
+          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>LATEST UPDATE</div>
+          <DebugRow label="Remote Version" desc="The latest version released on the remote server" value={ota.remoteVersion} />
+          <DebugRow label="Remote versionCode" desc="The required version code on the remote server" value={ota.requiredVersionCode ? String(ota.requiredVersionCode) : 'N/A'} />
+          <DebugRow label="updateType" desc="The remote update category type" value="apk" />
+          <DebugRow label="APK URL" desc="Resolved browser download URL for the update package" value={ota.apkUrl} />
+          <DebugRow label="SHA-256" desc="SHA-256 hash expected from the update manifest" value={ota.apkSha256} />
+
+          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>PACKAGE VALIDATION</div>
+          <DebugRow label="packageName match" value={apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.installed.packageName === apkEligibility.downloaded.packageName) : 'N/A'} />
+          <DebugRow label="signing match" value={apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.installed.signingSha256.replace(/:/g, '').toLowerCase() === apkEligibility.downloaded.signingSha256.replace(/:/g, '').toLowerCase()) : 'N/A'} />
+          <DebugRow label="versionCode higher" value={apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.downloaded.versionCode > apkEligibility.installed.versionCode) : 'N/A'} />
+          <DebugRow label="APK valid" value={apkEligibility?.downloaded ? String(apkEligibility.downloaded.isValidApk) : 'N/A'} />
+          <DebugRow label="release build" value={apkEligibility?.downloaded ? String(!apkEligibility.downloaded.debuggable) : 'N/A'} />
+          <DebugRow label="debuggable=false" value={apkEligibility?.downloaded ? String(apkEligibility.downloaded.debuggable === false) : 'N/A'} />
+          <DebugRow label="final eligibility" value={apkEligibility ? (apkEligibility.eligible ? 'can install' : 'cannot install') : 'N/A'} highlightColor={apkEligibility ? (apkEligibility.eligible ? '#22c55e' : '#ef4444') : undefined} />
+
+          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>LAST INSTALL ATTEMPT</div>
+          <DebugRow label="status" value={otaDebugLogs.installerLaunchStatus} />
+          <DebugRow label="file path" value={downloadedApkDetails?.filePath || 'N/A'} />
+          <DebugRow label="file size" value={downloadedApkDetails?.fileSize || 'N/A'} />
+          <DebugRow label="error if any" value={otaDebugLogs.installError} />
         </div>
       </div>
     );
@@ -2820,7 +2812,6 @@ function HubSettings({
       </div>
     );
   }
-
   /* ── ABOUT ──────────────────────────────────────────────────────── */
   if (page === 'about') {
     const lang = settings.language ?? 'en';
@@ -2832,27 +2823,172 @@ function HubSettings({
       { key: 'vocalex', label: 'Vocalex', node: <VocalexLogo size={34} /> },
     ];
     return (
-      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+      <div key={pageKey} className="settings-panel-sheet" style={{ ...subStyle, paddingBottom: 'calc(var(--content-bottom-pad) + 20px)' }}>
         <style>{HUB_SETTINGS_CSS}</style>
         <SettingsSubHeader title={t.settings.sections.about} onBack={goBack} />
 
-        {/* Sub-app family — clean monochrome orbit of all 5 apps around the
-            Studio sine-wave center. This is the only visual on the About
-            page now (per design); version + footer sit minimally below. */}
-        <div style={cardStyle}>
-          <StudioFamilyOrbit items={subAppLogos} onLogoPress={handleLogoTap} />
-          <div style={{ textAlign: 'center', padding: '0 0 22px' }}>
-            <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 26, letterSpacing: '-0.03em', color: 'var(--c-text-primary)', lineHeight: 1.1 }}>Studio</p>
-            <p style={{ margin: '6px 0 0', fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', letterSpacing: '0.04em' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 520, margin: '0 auto', paddingBottom: 24 }}>
+          {/* Hero Card */}
+          <div style={{ ...cardStyle, padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            <StudioFamilyOrbit items={subAppLogos} onLogoPress={handleLogoTap} />
+            <p style={{ margin: '16px 0 0', fontFamily: 'Manrope', fontWeight: 800, fontSize: 24, letterSpacing: '-0.03em', color: 'var(--c-text-primary)', lineHeight: 1.1 }}>Studio</p>
+            <p style={{ margin: '4px 0 0', fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', fontWeight: 500 }}>
               {t.settings.about.version} {APP_VERSION_LABEL}
+            </p>
+            <p style={{ margin: '14px 0 0', fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5, padding: '0 8px' }}>
+              {lang === 'es'
+                ? 'Suite de producción musical todo en uno. Graba, mezcla, sintetiza y compone pistas directamente en tu dispositivo.'
+                : 'All-in-one music production suite. Record, mix, synthesize, and compose tracks directly on your device.'}
+            </p>
+          </div>
+
+          {/* App Info Card */}
+          <div style={{ ...cardStyle, padding: '10px 20px' }}>
+            <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
+              <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)' }}>App Version</span>
+              <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--c-text-primary)' }}>{APP_VERSION}</span>
+            </div>
+            <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
+              <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)' }}>APK Version</span>
+              <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--c-text-primary)' }}>{devNativeVersion}</span>
+            </div>
+            <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
+              <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)' }}>Build Type</span>
+              <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: 'var(--c-text-primary)' }}>
+                {installedPackageDetails?.debuggable ? 'Debug' : 'Release'}
+              </span>
+            </div>
+            <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', alignItems: 'center' }}>
+              <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)', marginRight: 16 }}>Package Name</span>
+              <span style={{ fontFamily: 'monospace', fontSize: 12.5, color: 'var(--c-text-primary)', wordBreak: 'break-all', textAlign: 'right' }}>
+                {installedPackageDetails?.packageName || 'com.chordex.app'}
+              </span>
+            </div>
+          </div>
+
+          {/* Update System Card */}
+          <div style={{ ...cardStyle, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)' }}>Update System</span>
+                <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 13, color: 'var(--c-text-primary)' }}>APK only</span>
+              </div>
+              <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-secondary)' }}>Last Checked</span>
+                <span style={{ fontFamily: 'Inter', fontSize: 12.5, color: 'var(--c-text-secondary)' }}>
+                  {localStorage.getItem('studio:lastUpdateCheck') || 'Never'}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await ota.checkNow();
+                  showDevToast(lang === 'es' ? 'Búsqueda completada' : 'Update check finished');
+                } catch (e) {
+                  showDevToast(lang === 'es' ? 'Error al buscar' : 'Check failed');
+                }
+              }}
+              className="btn-smooth"
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '0.75rem',
+                background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                color: 'white',
+                fontFamily: 'Manrope',
+                fontWeight: 700,
+                fontSize: '12.5px',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'center',
+              }}
+            >
+              {ota.updateState === 'checking'
+                ? (lang === 'es' ? 'Buscando actualizaciones...' : 'Checking for updates...')
+                : (lang === 'es' ? 'Buscar actualizaciones' : 'Check for Updates')}
+            </button>
+          </div>
+
+          {/* Credits / Legal / Links Card */}
+          <div style={{ ...cardStyle, padding: '6px 20px' }}>
+            <button
+              onClick={() => window.open('https://github.com/MAGEXE1000/Studio', '_system')}
+              className="btn-smooth"
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                width: '100%', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.08)',
+                background: 'transparent', borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+                color: 'var(--c-text-primary)', cursor: 'pointer', textAlign: 'left'
+              }}
+            >
+              <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5 }}>GitHub Repository</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)' }}>open_in_new</span>
+            </button>
+            <button
+              onClick={() => navigate('privacy')}
+              className="btn-smooth"
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                width: '100%', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.08)',
+                background: 'transparent', borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+                color: 'var(--c-text-primary)', cursor: 'pointer', textAlign: 'left'
+              }}
+            >
+              <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5 }}>
+                {lang === 'es' ? 'Política de Privacidad' : 'Privacy Policy'}
+              </span>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)' }}>chevron_right</span>
+            </button>
+            <button
+              onClick={() => showDevToast(lang === 'es' ? 'Licencias de código abierto' : 'Open Source Licenses')}
+              className="btn-smooth"
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                width: '100%', padding: '12px 0',
+                background: 'transparent', border: 'none',
+                color: 'var(--c-text-primary)', cursor: 'pointer', textAlign: 'left'
+              }}
+            >
+              <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5 }}>
+                {lang === 'es' ? 'Licencias de Software' : 'Software Licenses'}
+              </span>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)' }}>chevron_right</span>
+            </button>
+          </div>
+
+          {/* Developer Details Card */}
+          {settings.developerMode && (
+            <div style={{ ...cardStyle, padding: '14px 20px' }}>
+              <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, color: 'var(--c-text-primary)', paddingBottom: 10, borderBottom: '1px solid rgba(128,128,128,0.08)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Developer Info
+              </div>
+              <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
+                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-secondary)' }}>versionCode</span>
+                <span style={{ fontFamily: 'monospace', fontSize: 12.5, color: 'var(--c-text-primary)' }}>{devVersionCode}</span>
+              </div>
+              <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
+                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-secondary)' }}>Firebase App ID</span>
+                <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--c-text-primary)' }}>{devBundleId}</span>
+              </div>
+              <div className="about-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-secondary)', marginRight: 16 }}>Signature SHA-256</span>
+                <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--c-text-primary)', wordBreak: 'break-all', textAlign: 'right' }}>
+                  {installedPackageDetails?.signingSha256 || 'N/A'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ padding: '16px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 32, height: 2, borderRadius: 999, background: 'rgba(128,128,128,0.25)', marginBottom: 4 }} />
+            <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', textTransform: 'uppercase', letterSpacing: '0.18em', margin: 0 }}>
+              {t.settings.about.footer}
             </p>
           </div>
         </div>
 
-        <div style={{ padding: '28px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 32, height: 2, borderRadius: 999, background: 'rgba(128,128,128,0.35)', marginBottom: 4 }} />
-          <p style={{ color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-xs)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>{t.settings.about.footer}</p>
-        </div>
         <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
         {devToast && renderDevToast()}
       </div>

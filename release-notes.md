@@ -1,16 +1,11 @@
-### Changed
-- Migrated Studio updates to APK-only delivery.
-- Removed OTA bundle application from the updater.
-- Simplified update flow to use the native Android installer for every update.
+### Improved
+- Redesigned the APK-only updater dialog with clearer status, better spacing, and Studio visual styling.
+- Improved the “What’s New” section in the update dialog.
+- Replaced old OTA terminology with APK-only update wording.
+- Improved Developer Options update diagnostics organization.
+- Improved About screen responsiveness across phones, tablets, and desktop layouts.
 
 ### Fixed
-- Fixed mixed App/OTA/APK version states.
-- Fixed updates applying as OTA instead of opening the Android installer.
-- Fixed black screen caused by WebView reload during updates.
-- Fixed stale OTA bundle state affecting APK updates.
-
-### Improved
-- More reliable update process.
-- Cleaner update diagnostics.
-- Stronger APK validation before install.
-- Consistent App Version and APK Version after updates.
+- Fixed cramped About section layout on some devices.
+- Fixed updater labels that still referenced the old OTA system.
+- Fixed update dialog copy to better explain the Android installation step.

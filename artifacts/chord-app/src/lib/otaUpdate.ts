@@ -321,6 +321,7 @@ export interface StructuredReleaseNotes {
   added?: string[];
   improved?: string[];
   fixed?: string[];
+  changed?: string[];
 }
 
 export interface RemoteVersionInfo {
@@ -483,7 +484,10 @@ async function fetchOne(
         if (Array.isArray(rnObj.fixed)) {
           notesObj.fixed = rnObj.fixed.filter((item: any) => typeof item === 'string') as string[];
         }
-        if (notesObj.added || notesObj.improved || notesObj.fixed) {
+        if (Array.isArray(rnObj.changed)) {
+          notesObj.changed = rnObj.changed.filter((item: any) => typeof item === 'string') as string[];
+        }
+        if (notesObj.added || notesObj.improved || notesObj.fixed || notesObj.changed) {
           parsedReleaseNotes = notesObj;
         }
       }

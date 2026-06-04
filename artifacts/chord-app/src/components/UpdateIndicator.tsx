@@ -477,9 +477,7 @@ export default function UpdateIndicator({
             pointerEvents: isBanner ? 'auto' : 'none',
           }}
         >
-          {ota.updateType === 'ota'
-            ? (ota.remoteVersion ? `Version ${ota.remoteVersion} available` : 'Studio update available')
-            : 'App update available'}
+          {ota.remoteVersion ? `Studio update v${ota.remoteVersion} available` : 'Studio update available'}
         </span>
 
         <span
@@ -755,29 +753,22 @@ function UpdateModal({
     case 'idle':
       iconName = 'check_circle';
       iconColor = '#22c55e';
-      title = 'You are up to date';
-      description = `Studio version ${fromLabel} is the latest available version.`;
+      title = 'Studio is up to date';
+      description = 'You’re running the latest version of Studio.';
       break;
 
     case 'available':
-      iconName = isApkFlow ? 'system_update' : 'download';
+      iconName = 'system_update';
       iconColor = purpleFrom;
-      if ((ota as any).apkUpdateRequired) {
-        title = 'Native update required';
-        description = 'A native update is required to apply the latest security, features, and library upgrades. Current wrapper is outdated.';
-      } else {
-        title = isApkFlow ? 'Studio update available' : 'App update available';
-        description = isApkFlow 
-          ? 'A native update is required to apply the latest security, features, and library upgrades.'
-          : `Version ${toVersion} is ready to install. You are currently on ${fromLabel}.`;
-      }
+      title = 'Studio update available';
+      description = 'A new version of Studio is ready to install.';
       break;
 
     case 'manual_apk_required':
       iconName = 'download_for_offline';
       iconColor = '#eab308';
       title = 'Manual update required';
-      description = 'This version of Studio cannot install native updates automatically. Download and install Studio manually once. Future updates will install automatically.';
+      description = 'This version of Studio cannot install updates automatically. Please download and install Studio manually once. Future updates will install automatically.';
       break;
 
     case 'downloading_ota':
@@ -785,7 +776,7 @@ function UpdateModal({
       iconName = 'cloud_download';
       iconColor = purpleFrom;
       title = 'Downloading update';
-      description = ota.statusText || (state === 'downloading_ota' ? 'Downloading OTA package...' : 'Downloading APK package...');
+      description = 'Studio is downloading the latest app package.';
       showProgress = true;
       showButtons = false;
       break;
@@ -794,7 +785,7 @@ function UpdateModal({
       iconName = 'verified_user';
       iconColor = purpleFrom;
       title = 'Verifying update';
-      description = ota.statusText || 'Verifying package integrity...';
+      description = 'Studio is checking the update package before installation.';
       showSpinner = true;
       showButtons = false;
       break;
@@ -803,9 +794,7 @@ function UpdateModal({
       iconName = 'task_alt';
       iconColor = '#22c55e';
       title = 'Ready to install';
-      description = isApkFlow
-        ? 'Update package downloaded and verified. Ready to initiate system installer.'
-        : 'Update downloaded successfully. Ready to reload and apply changes.';
+      description = 'The update package is verified. Android will now ask you to confirm the installation.';
       break;
 
     case 'installing':
@@ -814,7 +803,7 @@ function UpdateModal({
       iconColor = purpleFrom;
       showSpinner = true;
       title = 'Installing update';
-      description = ota.statusText || 'Applying update and rebooting App shell...';
+      description = ota.statusText || 'Handing over to Android Package Installer...';
       showButtons = false;
       break;
 
@@ -822,7 +811,7 @@ function UpdateModal({
       iconName = 'warning';
       iconColor = '#f87171';
       title = 'Manual reinstall required';
-      description = 'This installed copy of Studio was signed with a different certificate and cannot be updated in place. Back up or sync your data, uninstall Studio, then install the latest official APK.';
+      description = 'This installed copy of Studio cannot be updated in place because it was signed differently. Back up your data, uninstall Studio, and install the latest official APK.';
       break;
 
     case 'versionCode_low':
@@ -835,8 +824,8 @@ function UpdateModal({
     case 'failed':
       iconName = 'error';
       iconColor = '#f87171';
-      title = 'Update failed';
-      description = ota.error || 'An unexpected error occurred during the update process.';
+      title = 'Update could not be installed';
+      description = ota.error || 'Studio could not complete the update. You can try again or copy diagnostics.';
       break;
   }
 
@@ -1256,9 +1245,10 @@ function UpdateModal({
   const renderProgress = () => {
     if (!showProgress) return null;
     const pct = Math.round(progressVal * 100);
+    const fileName = `studio-update-${toVersion || 'latest'}.apk`;
     return (
-      <div style={{ width: '100%', marginTop: 12, marginBottom: 8 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12, fontWeight: 700, fontFamily: 'Manrope', color: 'var(--c-text-primary)' }}>
+      <div style={{ width: '100%', marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope', color: 'var(--c-text-primary)' }}>
           <span>Downloading update</span>
           <span>{pct}%</span>
         </div>
@@ -1268,6 +1258,14 @@ function UpdateModal({
             background: `linear-gradient(90deg, ${purpleFrom}, ${purpleTo})`,
             transition: 'width 200ms ease-out',
           }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'monospace', opacity: 0.8 }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', textAlign: 'left' }}>
+            {fileName}
+          </span>
+          {otaDebugLogs.downloadedApkSize && otaDebugLogs.downloadedApkSize !== 'N/A' && (
+            <span>{otaDebugLogs.downloadedApkSize}</span>
+          )}
         </div>
       </div>
     );
@@ -1324,7 +1322,8 @@ function UpdateModal({
     const hasStructured = releaseNotes && typeof releaseNotes === 'object' && !Array.isArray(releaseNotes) && (
       ((releaseNotes as StructuredReleaseNotes).added && (releaseNotes as StructuredReleaseNotes).added!.length > 0) ||
       ((releaseNotes as StructuredReleaseNotes).improved && (releaseNotes as StructuredReleaseNotes).improved!.length > 0) ||
-      ((releaseNotes as StructuredReleaseNotes).fixed && (releaseNotes as StructuredReleaseNotes).fixed!.length > 0)
+      ((releaseNotes as StructuredReleaseNotes).fixed && (releaseNotes as StructuredReleaseNotes).fixed!.length > 0) ||
+      ((releaseNotes as StructuredReleaseNotes).changed && (releaseNotes as StructuredReleaseNotes).changed!.length > 0)
     );
 
     if (hasStructured) {
@@ -1333,6 +1332,7 @@ function UpdateModal({
         { label: 'Added', items: rn.added },
         { label: 'Improved', items: rn.improved },
         { label: 'Fixed', items: rn.fixed },
+        { label: 'Changed', items: rn.changed },
       ].filter(cat => cat.items && cat.items.length > 0);
 
       return (
@@ -1487,8 +1487,8 @@ function UpdateModal({
     );
   };
 
-  // Fullscreen premium progress overlay for active download, verification and installation states
-  if (state === 'downloading_ota' || state === 'downloading_apk' || state === 'verifying_apk' || state === 'installing' || state === 'completed') {
+  // Fullscreen premium progress overlay for active installation states
+  if (state === 'installing' || state === 'completed') {
     return (
       <StudioUpdateScreen
         progress={progressVal}
@@ -1550,6 +1550,43 @@ function UpdateModal({
           }}>
             {description}
           </p>
+
+          {(state === 'available' || state === 'ready_to_install' || state === 'verifying_apk') && (
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 6, width: '100%',
+              alignItems: 'center', margin: '8px 0 2px',
+              fontSize: 12.5, fontFamily: 'Manrope', fontWeight: 700,
+              color: 'var(--c-text-secondary)'
+            }}>
+              {(state === 'available' || state === 'ready_to_install') && (
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <span>Current: <span style={{ color: 'var(--c-text-primary)', fontFamily: 'monospace' }}>{fromLabel}</span></span>
+                  <span>New: <span style={{ color: 'var(--c-text-primary)', fontFamily: 'monospace' }}>{toVersion}</span></span>
+                </div>
+              )}
+              {state === 'ready_to_install' && otaDebugLogs.downloadedApkSize && otaDebugLogs.downloadedApkSize !== 'N/A' && (
+                <span style={{ fontSize: 11.5, color: 'var(--c-text-secondary)', opacity: 0.85 }}>
+                  Size: <span style={{ color: 'var(--c-text-primary)', fontFamily: 'monospace' }}>{otaDebugLogs.downloadedApkSize}</span>
+                </span>
+              )}
+              {state === 'verifying_apk' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', opacity: 0.85, width: '100%', padding: '4px 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 15, color: otaDebugLogs.shaVerification === 'SUCCESS' ? '#22c55e' : '#f59e0b', animation: otaDebugLogs.shaVerification ? 'none' : 'lg-spin-spinner 1.2s linear infinite' }}>
+                      {otaDebugLogs.shaVerification === 'SUCCESS' ? 'verified' : (otaDebugLogs.shaVerification === 'FAILED' ? 'warning' : 'sync')}
+                    </span>
+                    <span style={{ fontSize: 12 }}>SHA-256 Checksum: {otaDebugLogs.shaVerification === 'SUCCESS' ? 'Verified' : (otaDebugLogs.shaVerification === 'FAILED' ? 'Failed' : 'Verifying...')}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#f59e0b', animation: 'lg-spin-spinner 1.2s linear infinite' }}>
+                      sync
+                    </span>
+                    <span style={{ fontSize: 12 }}>Package Compatibility: Checking...</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {renderChangelog()}
           {renderProgress()}

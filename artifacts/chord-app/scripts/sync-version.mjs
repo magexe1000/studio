@@ -87,11 +87,12 @@ if (sectionContent.toLowerCase() === `version ${version}`.toLowerCase() ||
   process.exit(1);
 }
 
-// Extract bullets and structure by category (Added, Improved, Fixed)
+// Extract bullets and structure by category (Added, Improved, Fixed, Changed)
 const categories = {
   added: [],
   improved: [],
-  fixed: []
+  fixed: [],
+  changed: []
 };
 
 const lines = sectionContent.split('\n');
@@ -103,7 +104,7 @@ for (const rawLine of lines) {
   if (!line) continue;
 
   // Detect category headings
-  const hMatch = line.match(/^###\s+(Added|Improved|Fixed|Changes|Bug\s*Fixes|Fixes)\b/i);
+  const hMatch = line.match(/^###\s+(Added|Improved|Fixed|Changes|Bug\s*Fixes|Fixes|Changed)\b/i);
   if (hMatch) {
     const heading = hMatch[1].toLowerCase();
     if (heading.startsWith('add')) {
@@ -112,6 +113,8 @@ for (const rawLine of lines) {
       currentCategory = 'improved';
     } else if (heading.startsWith('fix') || heading.startsWith('bug')) {
       currentCategory = 'fixed';
+    } else if (heading.startsWith('change')) {
+      currentCategory = 'changed';
     } else {
       currentCategory = null;
     }
@@ -138,7 +141,8 @@ const changelog = flatBullets.map(b => `• ${b}`).join('\n');
 const releaseNotes = {
   added: categories.added.length > 0 ? categories.added : undefined,
   improved: categories.improved.length > 0 ? categories.improved : undefined,
-  fixed: categories.fixed.length > 0 ? categories.fixed : undefined
+  fixed: categories.fixed.length > 0 ? categories.fixed : undefined,
+  changed: categories.changed.length > 0 ? categories.changed : undefined
 };
 
 console.log(`sync-version: ✓ Validated changelog for version ${version}. Found ${flatBullets.length} bullets.`);
@@ -158,6 +162,9 @@ if (categories.improved.length > 0) {
 }
 if (categories.fixed.length > 0) {
   tsSections += '  {\n    heading: "Fixed",\n    items: [\n' + categories.fixed.map(i => `      ${JSON.stringify(i)},`).join('\n') + '\n    ],\n  },\n';
+}
+if (categories.changed.length > 0) {
+  tsSections += '  {\n    heading: "Changed",\n    items: [\n' + categories.changed.map(i => `      ${JSON.stringify(i)},`).join('\n') + '\n    ],\n  },\n';
 }
 tsSections += '];';
 

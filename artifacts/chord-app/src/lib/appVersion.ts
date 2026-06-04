@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.4.9'; // Migrate Studio to APK-only updates and remove OTA system completely
+export const APP_VERSION = '3.4.10'; // Polish APK updater UI and About responsiveness
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.4.9
+export const APP_VERSION_DATE = '2026-06-04'; // 3.4.10
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,19 +55,19 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "More reliable update process.",
-      "Cleaner update diagnostics.",
-      "Stronger APK validation before install.",
-      "Consistent App Version and APK Version after updates.",
+      "Redesigned the APK-only updater dialog with clearer status, better spacing, and Studio visual styling.",
+      "Improved the “What’s New” section in the update dialog.",
+      "Replaced old OTA terminology with APK-only update wording.",
+      "Improved Developer Options update diagnostics organization.",
+      "Improved About screen responsiveness across phones, tablets, and desktop layouts.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed mixed App/OTA/APK version states.",
-      "Fixed updates applying as OTA instead of opening the Android installer.",
-      "Fixed black screen caused by WebView reload during updates.",
-      "Fixed stale OTA bundle state affecting APK updates.",
+      "Fixed cramped About section layout on some devices.",
+      "Fixed updater labels that still referenced the old OTA system.",
+      "Fixed update dialog copy to better explain the Android installation step.",
     ],
   },
 ];
