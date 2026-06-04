@@ -1,5 +1,5 @@
-import { doc, setDoc, deleteDoc, serverTimestamp, collection, onSnapshot, getDoc } from 'firebase/firestore';
-import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth, getFirebaseProjectId, getFirebaseConfigDetails } from './firebase';
+import { doc, setDoc, deleteDoc, serverTimestamp, collection, onSnapshot, getDoc, Timestamp } from 'firebase/firestore';
+import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth, getFirebaseProjectId, getFirebaseConfigDetails, getFirebaseInitError } from './firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useChordStore } from '../store/useChordStore';
 import { isNative } from './capgoUpdater';
@@ -18,6 +18,24 @@ export interface SyncEngineStatus {
   lastAuthChangeAt: string;
   currentDeviceId: string;
   currentPlatform: string;
+
+  // Firebase configurations
+  firebaseAppsCount: number;
+  firebaseAppName: string;
+  firebaseProjectId: string;
+  firebaseAppId: string;
+  firebaseAuthDomain: string;
+  firebaseStorageBucket: string;
+  dbAvailable: boolean;
+  authAvailable: boolean;
+  storageAvailable: boolean;
+  firebaseInitError: string;
+  syncEngineInitError: string;
+  devicesLogicVersion: string;
+  syncEngineVersion: string;
+  deviceWritePath: string;
+  devicesListenerPath: string;
+  listenerPath: string; // Back-compat duplicate of devicesListenerPath
 
   // Listeners
   devicesListenerStatus: 'idle' | 'attaching' | 'active' | 'error';
@@ -124,6 +142,23 @@ let engineStatus: SyncEngineStatus = {
   currentDeviceId: 'Unknown',
   currentPlatform: isNative() ? 'android' : 'web',
 
+  firebaseAppsCount: 0,
+  firebaseAppName: 'None',
+  firebaseProjectId: 'Not Configured',
+  firebaseAppId: 'Not Configured',
+  firebaseAuthDomain: 'Not Configured',
+  firebaseStorageBucket: 'Not Configured',
+  dbAvailable: false,
+  authAvailable: false,
+  storageAvailable: false,
+  firebaseInitError: 'None',
+  syncEngineInitError: 'None',
+  devicesLogicVersion: 'devices-v3.6.10-sync-probe',
+  syncEngineVersion: 'sync-engine-v1',
+  deviceWritePath: 'N/A',
+  devicesListenerPath: 'N/A',
+  listenerPath: 'N/A',
+
   devicesListenerStatus: 'idle',
   devicesListenerError: null,
   devicesLastSnapshotAt: 'Never',
@@ -207,7 +242,40 @@ export function subscribeSyncEngine(l: SyncEngineListener): () => void {
 }
 
 function updateStatus(patch: Partial<SyncEngineStatus>) {
-  engineStatus = { ...engineStatus, ...patch };
+  // Retrieve Firebase details dynamically from firebase.ts
+  const config = getFirebaseConfigDetails();
+  const db = getFirebaseDb();
+  const auth = getFirebaseAuth();
+  const storage = getFirebaseStorage();
+  
+  const firebaseDiag = {
+    firebaseAppsCount: config.appsCount,
+    firebaseAppName: config.appName,
+    firebaseProjectId: config.projectId,
+    firebaseAppId: config.appId,
+    firebaseAuthDomain: config.authDomain,
+    firebaseStorageBucket: config.storageBucket,
+    dbAvailable: !!db,
+    authAvailable: !!auth,
+    storageAvailable: !!storage,
+    firebaseInitError: config.initError,
+  };
+
+  const nextStatus = { ...engineStatus, ...firebaseDiag, ...patch };
+
+  // Calculate intended paths if uid and device ID exist
+  const uid = nextStatus.authUid;
+  const deviceIdVal = getStableDeviceId();
+  const isAuthed = uid && uid !== 'Not signed in' && uid !== 'Not Configured';
+
+  nextStatus.probeWritePath = isAuthed ? `users/${uid}/syncProbe/${deviceIdVal}` : 'N/A';
+  nextStatus.probeListenerPath = isAuthed ? `users/${uid}/syncProbe` : 'N/A';
+  nextStatus.devicesListenerPath = isAuthed ? `users/${uid}/devices` : 'N/A';
+  nextStatus.listenerPath = isAuthed ? `users/${uid}/devices` : 'N/A';
+  nextStatus.deviceWritePath = isAuthed ? `users/${uid}/devices/${deviceIdVal}` : 'N/A';
+
+  engineStatus = nextStatus;
+
   statusListeners.forEach((l) => {
     try { l(engineStatus); } catch (e) { console.error('[syncEngine] listener error:', e); }
   });
@@ -347,8 +415,43 @@ export function getDeviceDetails() {
   return { shortName, displayName, technicalName, browser, os, model: modelClean, manufacturer, userAgent: ua };
 }
 
+// Helper to scan for undefined properties recursively in development/diagnostics
+function scanForUndefined(val: any, path = '') {
+  if (val === undefined) {
+    console.warn(`[syncEngine] Undefined value found at path: ${path || 'root'}`);
+    return;
+  }
+  if (val === null || typeof val !== 'object') return;
+  if (val instanceof Date || val instanceof Timestamp) return;
+  const FieldValueClass = serverTimestamp()?.constructor;
+  if (FieldValueClass && val instanceof FieldValueClass) return;
+  if (typeof Blob !== 'undefined' && val instanceof Blob) return;
+  if (typeof File !== 'undefined' && val instanceof File) return;
+  
+  if (Array.isArray(val)) {
+    val.forEach((item, index) => {
+      scanForUndefined(item, `${path}[${index}]`);
+    });
+  } else {
+    for (const key in val) {
+      if (Object.prototype.hasOwnProperty.call(val, key)) {
+        scanForUndefined(val[key], path ? `${path}.${key}` : key);
+      }
+    }
+  }
+}
+
 // Helper to sanitize payload for firestore
 export function sanitizeForFirestore(val: any): any {
+  try {
+    scanForUndefined(val);
+  } catch (e) {
+    // Ignore diagnostic scanner errors
+  }
+  return sanitizeValue(val);
+}
+
+function sanitizeValue(val: any): any {
   if (val === undefined) {
     return null;
   }
@@ -361,38 +464,32 @@ export function sanitizeForFirestore(val: any): any {
   if (val instanceof Date) {
     return val;
   }
+  if (val instanceof Timestamp) {
+    return val;
+  }
+  const FieldValueClass = serverTimestamp()?.constructor;
+  if (FieldValueClass && val instanceof FieldValueClass) {
+    return val;
+  }
   if (typeof Blob !== 'undefined' && val instanceof Blob) {
     return val;
   }
   if (typeof File !== 'undefined' && val instanceof File) {
     return val;
   }
-  // Firestore Timestamp
-  if (typeof val.toMillis === 'function' && 'seconds' in val && 'nanoseconds' in val) {
-    return val;
-  }
-  // Firestore FieldValue
-  if (val.constructor && (
-    val.constructor.name === 'FieldValue' || 
-    val.constructor.name === 'DeleteFieldValue' || 
-    val.constructor.name === 'ServerTimestampFieldValue' || 
-    typeof val.isEqual === 'function' ||
-    val._methodName !== undefined
-  )) {
-    return val;
-  }
+  
+  // Array: convert undefined array elements to null
   if (Array.isArray(val)) {
-    // Convert undefined array entries to null
-    return val.map(item => item === undefined ? null : sanitizeForFirestore(item));
+    return val.map(item => item === undefined ? null : sanitizeValue(item));
   }
   
-  // Plain object: remove undefined fields from objects
+  // Plain object: remove undefined fields from objects, and sanitize values
   const res: any = {};
   for (const key in val) {
     if (Object.prototype.hasOwnProperty.call(val, key)) {
       const v = val[key];
       if (v !== undefined) {
-        res[key] = sanitizeForFirestore(v);
+        res[key] = sanitizeValue(v);
       }
     }
   }
@@ -455,11 +552,27 @@ export function startSyncEngine(uid: string) {
   currentUid = uid;
   const deviceId = getStableDeviceId();
 
+  const db = getFirebaseDb();
+  if (!db) {
+    const initError = getFirebaseInitError() || 'Firestore db is null / unavailable';
+    updateStatus({
+      authReady: true,
+      authUid: uid,
+      authEmail: getFirebaseAuth()?.currentUser?.email || 'N/A',
+      syncEngineStatus: 'error',
+      syncEngineInitError: `Sync Engine failed to start: ${initError}`,
+      lastAuthChangeAt: new Date().toLocaleString(),
+    });
+    console.error('[syncEngine] Cannot start Sync Engine: Firestore db is unavailable');
+    return;
+  }
+
   updateStatus({
     authReady: true,
     authUid: uid,
     authEmail: getFirebaseAuth()?.currentUser?.email || 'N/A',
     syncEngineStatus: 'active',
+    syncEngineInitError: 'None',
     lastAuthChangeAt: new Date().toLocaleString(),
     activeListenerCount: 5,
   });
@@ -507,7 +620,11 @@ export async function registerCurrentDevice(reason: string): Promise<void> {
 
   const db = getFirebaseDb();
   if (!db) {
-    updateStatus({ lastDeviceWriteError: 'Firestore unavailable', deviceRegistrationStatus: 'failed' });
+    updateStatus({
+      lastDeviceWriteError: 'Firestore db unavailable',
+      deviceRegistrationStatus: 'failed',
+      inFlightWriteStatus: false
+    });
     return;
   }
 
@@ -579,21 +696,28 @@ export async function heartbeatNow(reason: string): Promise<void> {
   const uid = currentUid;
   if (!uid) return;
   const db = getFirebaseDb();
-  if (!db) return;
+  if (!db) {
+    updateStatus({ lastHeartbeatError: 'Firestore db unavailable' });
+    return;
+  }
 
   const deviceId = getStableDeviceId();
   const docRef = doc(db, 'users', uid, 'devices', deviceId);
 
+  // 10s timeout wrapper
+  const writePromise = setDoc(docRef, sanitizeForFirestore({
+    lastActiveAt: serverTimestamp(),
+    lastSeenAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    signedIn: true,
+    currentSession: true,
+    syncStatus: 'active',
+    updatedByDevice: deviceId,
+  }), { merge: true });
+  const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Write timeout')), 10000));
+
   try {
-    await setDoc(docRef, sanitizeForFirestore({
-      lastActiveAt: serverTimestamp(),
-      lastSeenAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      signedIn: true,
-      currentSession: true,
-      syncStatus: 'active',
-      updatedByDevice: deviceId,
-    }), { merge: true });
+    await Promise.race([writePromise, timeoutPromise]);
     updateStatus({ lastHeartbeatSuccess: new Date().toLocaleString(), lastHeartbeatError: 'None' });
   } catch (e: any) {
     console.warn('[syncEngine] Heartbeat failed:', e);
@@ -859,46 +983,74 @@ export async function uploadProfilePhoto(file: File | Blob): Promise<string> {
 // ── Sync Probe ──
 export async function runSyncProbe(): Promise<string> {
   const uid = currentUid;
-  if (!uid) throw new Error('Not signed in');
-  const db = getFirebaseDb();
-  if (!db) throw new Error('Firestore unavailable');
-
   const deviceId = getStableDeviceId();
-  const probeRef = doc(db, 'users', uid, 'syncProbe', deviceId);
-  const nonce = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const db = getFirebaseDb();
 
+  const path = uid && deviceId ? `users/${uid}/syncProbe/${deviceId}` : 'N/A';
+  const listenerPath = uid ? `users/${uid}/syncProbe` : 'N/A';
+
+  // 1. Set lastProbeWriteAttempt immediately.
+  // 2. Build intended probe path.
   updateStatus({
-    probeWritePath: `users/${uid}/syncProbe/${deviceId}`,
-    probeListenerPath: `users/${uid}/syncProbe`,
+    probeWritePath: path,
+    probeListenerPath: listenerPath,
     lastProbeWriteAttempt: new Date().toLocaleString(),
   });
 
+  // 3. Validate uid.
+  if (!uid) {
+    const errorMsg = 'Auth UID missing';
+    updateStatus({ lastProbeWriteError: errorMsg });
+    throw new Error(errorMsg);
+  }
+
+  // 4. Validate deviceId.
+  if (!deviceId) {
+    const errorMsg = 'Device ID missing';
+    updateStatus({ lastProbeWriteError: errorMsg });
+    throw new Error(errorMsg);
+  }
+
+  // 5 & 6. Validate db and set lastProbeWriteError immediately if missing.
+  if (!db) {
+    const errorMsg = 'Firestore db unavailable';
+    updateStatus({ lastProbeWriteError: errorMsg });
+    throw new Error(errorMsg);
+  }
+
+  const probeRef = doc(db, 'users', uid, 'syncProbe', deviceId);
+  const nonce = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+  // 7 & 8. Call setDoc and race it with a 10s timeout
+  const writePromise = setDoc(probeRef, sanitizeForFirestore({
+    uid,
+    deviceId,
+    platform: isNative() ? 'android' : 'web',
+    shortName: getDeviceDetails().shortName,
+    appVersion: APP_VERSION,
+    buildType: isNative() ? 'Native Release' : 'Web',
+    firebaseProjectId: getFirebaseProjectId(),
+    commitSha: APP_COMMIT_SHA,
+    nonce,
+    writtenAt: Date.now(),
+    updatedAt: Date.now(),
+    userAgent: !isNative() ? navigator.userAgent : null,
+    model: isNative() ? getDeviceDetails().model : null,
+    manufacturer: isNative() ? getDeviceDetails().manufacturer : null,
+  }));
+  
+  const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Write timeout')), 10000));
+
   try {
-    const rawPayload = {
-      uid,
-      deviceId,
-      platform: isNative() ? 'android' : 'web',
-      shortName: getDeviceDetails().shortName,
-      appVersion: APP_VERSION,
-      buildType: isNative() ? 'Native Release' : 'Web',
-      firebaseProjectId: getFirebaseProjectId(),
-      commitSha: APP_COMMIT_SHA,
-      nonce,
-      writtenAt: Date.now(),
-      updatedAt: Date.now(),
-      userAgent: !isNative() ? navigator.userAgent : null,
-      model: isNative() ? getDeviceDetails().model : null,
-      manufacturer: isNative() ? getDeviceDetails().manufacturer : null,
-    };
-    await setDoc(probeRef, sanitizeForFirestore(rawPayload));
-
-
+    await Promise.race([writePromise, timeoutPromise]);
+    // 9. On success, set lastProbeWriteSuccess.
     updateStatus({
       lastProbeWriteSuccess: new Date().toLocaleString(),
       lastProbeWriteError: 'None',
     });
     return nonce;
   } catch (err: any) {
+    // 10. On failure, set lastProbeWriteError with exact error.
     const errorMsg = err.message || String(err);
     updateStatus({ lastProbeWriteError: errorMsg });
     throw err;

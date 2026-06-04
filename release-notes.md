@@ -1,10 +1,9 @@
 ### Fixed
-- Fixed Cloud Sync Probe failing on Android because Firestore rejected undefined userAgent values.
-- Fixed Firestore sync writes to sanitize undefined fields before setDoc.
-- Fixed Sync Diagnostics overflow on mobile by making the diagnostics section scrollable.
-- Fixed Cloud Sync validation so probe errors show real Firestore failures.
+- Fixed Cloud Sync initialization errors where Firestore or Firebase config was missing or not resolved.
+- Fixed Diagnostics UI panel issues to prevent nested scrolling and text overflow on mobile viewports.
+- Fixed manual registration button to prevent false successes when Firestore is unavailable.
 
 ### Improved
-- Improved Android and Web sync diagnostics with copyable runtime reports.
-- Improved Firestore payload sanitization across probe, devices, profile, and settings writes.
-- Improved mobile usability for long diagnostics, paths, errors, and device metadata.
+- Added clear warning cards in settings when Cloud Sync is not initialized.
+- Added dynamic real-time Firebase configuration metrics (Apps count, App name, services state, and init errors) to Sync Diagnostics.
+- Improved clipboard copy diagnostics payload to include all newly introduced Firebase state diagnostics.

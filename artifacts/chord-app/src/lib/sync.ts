@@ -250,6 +250,16 @@ export type SyncStatus = {
   sameUidConfirmed?: boolean;
   sameProjectConfirmed?: boolean;
   probeDocs?: any[];
+  firebaseAppsCount?: number;
+  firebaseAppName?: string;
+  dbAvailable?: boolean;
+  authAvailable?: boolean;
+  storageAvailable?: boolean;
+  firebaseInitError?: string;
+  syncEngineInitError?: string;
+  syncEngineVersion?: string;
+  deviceWritePath?: string;
+  devicesListenerPath?: string;
 };
 
 type Listener = (s: SyncStatus) => void;
@@ -315,7 +325,7 @@ let authUid = 'Not Configured';
 let currentPlatform = isNative() ? 'android' : 'web';
 let currentDeviceDocExists = false;
 let listenerPath = 'N/A';
-let devicesLogicVersion = 'v3.6.7-heartbeat';
+let devicesLogicVersion = 'devices-v3.6.10-sync-probe';
 let profileListenerStatus = 'inactive';
 let appearanceListenerStatus = 'inactive';
 let preferencesListenerStatus = 'inactive';
@@ -695,7 +705,7 @@ let status: SyncStatus = {
   currentPlatform: isNative() ? 'android' : 'web',
   currentDeviceDocExists: false,
   listenerPath: 'N/A',
-  devicesLogicVersion: 'v3.6.7-heartbeat',
+  devicesLogicVersion: 'devices-v3.6.10-sync-probe',
   lastHeartbeatSuccess: 'Never',
   lastHeartbeatError: 'None',
   profileListenerStatus: 'inactive',
@@ -717,6 +727,16 @@ let status: SyncStatus = {
   cloudPhotoURL: 'N/A',
   localPhotoURL: 'N/A',
   probeDocs: [],
+  firebaseAppsCount: 0,
+  firebaseAppName: 'None',
+  dbAvailable: false,
+  authAvailable: false,
+  storageAvailable: false,
+  firebaseInitError: 'None',
+  syncEngineInitError: 'None',
+  syncEngineVersion: 'sync-engine-v1',
+  deviceWritePath: 'N/A',
+  devicesListenerPath: 'N/A',
 };
 let stageIframe: HTMLIFrameElement | null = null;
 let stageSnapshotResolvers: Array<(s: StagexSnapshot) => void> = [];

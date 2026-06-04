@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.10'; // Rebuild Studio Cloud Sync using a real Firebase source-of-truth model
+export const APP_VERSION = '3.6.11'; // Rebuild Studio Cloud Sync using a real Firebase source-of-truth model
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,11 +35,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.10
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.11
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = '4887d28';
-export const APP_BUILD_TIMESTAMP = '6/4/2026, 10:55:01 PM UTC';
+export const APP_COMMIT_SHA = '4887d285';
+export const APP_BUILD_TIMESTAMP = '6/4/2026, 5:25:30 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -58,18 +58,17 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Improved Android and Web sync diagnostics with copyable runtime reports.",
-      "Improved Firestore payload sanitization across probe, devices, profile, and settings writes.",
-      "Improved mobile usability for long diagnostics, paths, errors, and device metadata.",
+      "Added clear warning cards in settings when Cloud Sync is not initialized.",
+      "Added dynamic real-time Firebase configuration metrics (Apps count, App name, services state, and init errors) to Sync Diagnostics.",
+      "Improved clipboard copy diagnostics payload to include all newly introduced Firebase state diagnostics.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed Cloud Sync Probe failing on Android because Firestore rejected undefined userAgent values.",
-      "Fixed Firestore sync writes to sanitize undefined fields before setDoc.",
-      "Fixed Sync Diagnostics overflow on mobile by making the diagnostics section scrollable.",
-      "Fixed Cloud Sync validation so probe errors show real Firestore failures.",
+      "Fixed Cloud Sync initialization errors where Firestore or Firebase config was missing or not resolved.",
+      "Fixed Diagnostics UI panel issues to prevent nested scrolling and text overflow on mobile viewports.",
+      "Fixed manual registration button to prevent false successes when Firestore is unavailable.",
     ],
   },
 ];

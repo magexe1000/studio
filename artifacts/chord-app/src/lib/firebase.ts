@@ -1,4 +1,4 @@
-import { initializeApp, type FirebaseApp } from 'firebase/app';
+import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
@@ -58,23 +58,38 @@ let _app: FirebaseApp | null = null;
 let _auth: Auth | null = null;
 let _db: Firestore | null = null;
 let _storage: FirebaseStorage | null = null;
+let _initError: string | null = null;
 
 function init() {
-  if (!isFirebaseConfigured) return;
   if (_app) return;
-  _app = initializeApp({
-    apiKey: config.apiKey!,
-    authDomain: config.authDomain!,
-    projectId: config.projectId!,
-    storageBucket: config.storageBucket,
-    messagingSenderId: config.messagingSenderId,
-    appId: config.appId!,
-  });
-  _auth = getAuth(_app);
-  _storage = getStorage(_app);
-  setPersistence(_auth, browserLocalPersistence).catch((err) => {
-    console.warn('[firebase] failed to set auth persistence:', err);
-  });
+  if (!isFirebaseConfigured) {
+    _initError = `Missing config fields: ${[
+      !config.apiKey && 'apiKey',
+      !config.authDomain && 'authDomain',
+      !config.projectId && 'projectId',
+      !config.appId && 'appId'
+    ].filter(Boolean).join(', ')}`;
+    return;
+  }
+  try {
+    const apps = getApps();
+    if (apps.length > 0) {
+      _app = apps[0];
+    } else {
+      _app = initializeApp({
+        apiKey: config.apiKey!,
+        authDomain: config.authDomain!,
+        projectId: config.projectId!,
+        storageBucket: config.storageBucket,
+        messagingSenderId: config.messagingSenderId,
+        appId: config.appId!,
+      });
+    }
+    _auth = getAuth(_app);
+    _storage = getStorage(_app);
+    setPersistence(_auth, browserLocalPersistence).catch((err) => {
+      console.warn('[firebase] failed to set auth persistence:', err);
+    });
 
   // Use initializeFirestore (NOT getFirestore) so we can configure two
   // critical things up front:
@@ -120,27 +135,41 @@ function init() {
   //      initial handshake before the SDK gives up and decides it's
   //      "offline". Default is 30s but we set it explicitly so the
   //      change is visible to anyone reading this code.
-  const firestoreOpts = {
-    experimentalAutoDetectLongPolling: true,
-    experimentalLongPollingOptions: { timeoutSeconds: 30 },
-  } as const;
-  try {
-    _db = initializeFirestore(_app, {
-      ...firestoreOpts,
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager(),
-      }),
-    });
-  } catch (err) {
-    console.warn(
-      '[firebase] persistent cache unavailable, using memory cache:',
-      err,
-    );
-    _db = initializeFirestore(_app, {
-      ...firestoreOpts,
-      localCache: memoryLocalCache(),
-    });
+    const firestoreOpts = {
+      experimentalAutoDetectLongPolling: true,
+      experimentalLongPollingOptions: { timeoutSeconds: 30 },
+    } as const;
+    try {
+      _db = initializeFirestore(_app, {
+        ...firestoreOpts,
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      });
+    } catch (err) {
+      console.warn(
+        '[firebase] persistent cache unavailable, using memory cache:',
+        err,
+      );
+      _db = initializeFirestore(_app, {
+        ...firestoreOpts,
+        localCache: memoryLocalCache(),
+      });
+    }
+  } catch (err: any) {
+    _initError = err.message || String(err);
+    console.error('[firebase] initialization failed:', err);
   }
+}
+
+export function getFirebaseApp(): FirebaseApp | null {
+  init();
+  return _app;
+}
+
+export function getFirebaseInitError(): string | null {
+  init();
+  return _initError;
 }
 
 export function getFirebaseAuth(): Auth | null {
@@ -165,11 +194,15 @@ export function getFirebaseProjectId(): string {
 
 export function getFirebaseConfigDetails() {
   init();
+  const app = _app;
   return {
-    projectId: _app?.options.projectId || 'Not Configured',
-    appId: _app?.options.appId || 'Not Configured',
-    authDomain: _app?.options.authDomain || 'Not Configured',
-    storageBucket: _app?.options.storageBucket || 'Not Configured',
+    projectId: app?.options.projectId || 'Not Configured',
+    appId: app?.options.appId || 'Not Configured',
+    authDomain: app?.options.authDomain || 'Not Configured',
+    storageBucket: app?.options.storageBucket || 'Not Configured',
+    appName: app?.name || 'None',
+    appsCount: getApps().length,
+    initError: _initError || 'None',
   };
 }
 

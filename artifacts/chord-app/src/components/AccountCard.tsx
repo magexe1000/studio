@@ -19,7 +19,7 @@ import {
   getSignInProviders,
   type AuthUser,
 } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus, subscribeDevices, deviceId, revokeDeviceSession, resolveMigration, registerDevice, registerCurrentDevice } from '../lib/sync';
+import { subscribeSyncStatus, getSyncStatus, syncNow, retrySync, type SyncStatus, subscribeDevices, deviceId, revokeDeviceSession, resolveMigration, registerDevice, registerCurrentDevice } from '../lib/sync';
 import { scheduleAccountDeletion, disableAccount } from '../lib/accountStatus';
 import { useT } from '../lib/useT';
 import { useChordStore } from '../store/useChordStore';
@@ -2885,7 +2885,43 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                         gap: 6,
                         fontFamily: 'Inter',
                         fontSize: 11,
+                        maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - 220px)',
+                        overflowY: 'auto',
+                        WebkitOverflowScrolling: 'touch',
+                        overflowWrap: 'anywhere',
+                        wordBreak: 'break-word',
                       }}>
+                        {(!sync.dbAvailable || sync.firebaseProjectId === 'Not Configured') && (
+                          <div style={{
+                            padding: '10px 12px',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            borderRadius: 8,
+                            color: '#ff6b6b',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 4,
+                            marginBottom: 8,
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>error_outline</span>
+                              <span>Cloud Sync is not initialized</span>
+                            </div>
+                            <div style={{ fontSize: 10, opacity: 0.9, marginLeft: 22 }}>
+                              <div><strong>Auth Signed In:</strong> {user?.uid ? 'Yes' : 'No'}</div>
+                              <div><strong>Firebase Apps Count:</strong> {sync.firebaseAppsCount ?? 0}</div>
+                              <div><strong>Firebase App Name:</strong> {sync.firebaseAppName || 'None'}</div>
+                              <div><strong>Firestore Db Available:</strong> {sync.dbAvailable ? 'Yes' : 'No'}</div>
+                              <div><strong>Firebase Project ID:</strong> {sync.firebaseProjectId || 'Not Configured'}</div>
+                              <div><strong>Firebase App ID:</strong> {sync.firebaseAppId || 'Not Configured'}</div>
+                              <div><strong>Init Error:</strong> {sync.firebaseInitError || 'None'}</div>
+                              <div style={{ marginTop: 6, color: '#ff8787', fontWeight: 700 }}>Next Action: Check build keys or network connection</div>
+                            </div>
+                          </div>
+                        )}
+
                         <div style={{
                           marginBottom: 8,
                           padding: '6px 8px',
@@ -2915,7 +2951,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                               email: user?.email || 'N/A',
                               currentDeviceId: deviceId(),
                               currentPlatform: sync.currentDevicePlatform || 'web',
-                              syncEngineVersion: 'sync-engine-v1',
+                              syncEngineVersion: sync.syncEngineVersion || 'sync-engine-v1',
                               devicesLogicVersion: sync.devicesLogicVersion || 'N/A',
                               probeWritePath: sync.probeWritePath || 'N/A',
                               probeListenerPath: sync.probeListenerPath || 'N/A',
@@ -2936,7 +2972,16 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                               lastDeviceWriteSuccess: sync.lastDeviceWriteSuccess || 'Never',
                               lastDeviceWriteError: sync.lastDeviceWriteError || 'None',
                               lastHeartbeatSuccess: sync.lastHeartbeatSuccess || 'Never',
-                              lastHeartbeatError: sync.lastHeartbeatError || 'None'
+                              lastHeartbeatError: sync.lastHeartbeatError || 'None',
+                              firebaseAppsCount: sync.firebaseAppsCount ?? 0,
+                              firebaseAppName: sync.firebaseAppName || 'None',
+                              authDomain: sync.firebaseAuthDomain || 'Not Configured',
+                              storageBucket: sync.firebaseStorageBucket || 'Not Configured',
+                              dbAvailable: sync.dbAvailable ? 'Yes' : 'No',
+                              authAvailable: sync.authAvailable ? 'Yes' : 'No',
+                              storageAvailable: sync.storageAvailable ? 'Yes' : 'No',
+                              firebaseInitError: sync.firebaseInitError || 'None',
+                              syncEngineInitError: sync.syncEngineInitError || 'None'
                             };
 
                             navigator.clipboard.writeText(JSON.stringify(diagnosticsReport, null, 2))
@@ -2980,6 +3025,30 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           <strong>Storage Bucket:</strong> <code style={codeBreakStyle}>{sync.firebaseStorageBucket || 'Not Configured'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firebase Apps Count:</strong> <code style={codeBreakStyle}>{sync.firebaseAppsCount ?? 0}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firebase App Name:</strong> <code style={codeBreakStyle}>{sync.firebaseAppName || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firebase Auth Available:</strong> <code style={codeBreakStyle}>{sync.authAvailable ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firestore Db Available:</strong> <code style={codeBreakStyle}>{sync.dbAvailable ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firebase Storage Available:</strong> <code style={codeBreakStyle}>{sync.storageAvailable ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firebase Init Error:</strong> <code style={{ ...codeBreakStyle, color: sync.firebaseInitError && sync.firebaseInitError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.firebaseInitError || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Sync Engine Init Error:</strong> <code style={{ ...codeBreakStyle, color: sync.syncEngineInitError && sync.syncEngineInitError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.syncEngineInitError || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Sync Engine Version:</strong> <code style={codeBreakStyle}>{sync.syncEngineVersion || 'sync-engine-v1'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Current deviceId:</strong> <code style={codeBreakStyle}>{deviceId()}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
@@ -2995,10 +3064,10 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           <strong>Device technicalName:</strong> <code style={codeBreakStyle}>{sync.technicalName || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Device write path:</strong> <code style={codeBreakStyle}>users/{user.uid}/devices/{deviceId()}</code>
+                          <strong>Device write path:</strong> <code style={codeBreakStyle}>{sync.deviceWritePath || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Device listener path:</strong> <code style={codeBreakStyle}>users/{user.uid}/devices</code>
+                          <strong>Device listener path:</strong> <code style={codeBreakStyle}>{sync.devicesListenerPath || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Firestore state:</strong> <code style={codeBreakStyle}>{window.navigator.onLine ? 'Online' : 'Offline'}</code>
@@ -3277,10 +3346,19 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
 
                           <button
                             onClick={async () => {
+                              if (!sync.dbAvailable) {
+                                showToast('Error: Firestore db unavailable');
+                                return;
+                              }
                               setBusy(true);
                               try {
                                 await registerCurrentDevice(user.uid, 'manual-button');
-                                showToast(lang === 'es' ? '¡Registro completado!' : 'Registration complete!');
+                                const currentStatus = getSyncStatus();
+                                if (currentStatus.lastDeviceWriteError && currentStatus.lastDeviceWriteError !== 'None') {
+                                  showToast(`Error: ${currentStatus.lastDeviceWriteError}`);
+                                } else {
+                                  showToast(lang === 'es' ? '¡Registro completado!' : 'Registration complete!');
+                                }
                               } catch (e: any) {
                                 showToast(`Error: ${e.message || String(e)}`);
                               } finally {
