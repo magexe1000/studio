@@ -818,6 +818,20 @@ function UpdateModal({
       showButtons = false;
       break;
 
+    case 'signature_mismatch':
+      iconName = 'warning';
+      iconColor = '#f87171';
+      title = 'Manual reinstall required';
+      description = 'This installed copy of Studio was signed with a different certificate and cannot be updated in place. Back up or sync your data, uninstall Studio, then install the latest official APK.';
+      break;
+
+    case 'versionCode_low':
+      iconName = 'error';
+      iconColor = '#f87171';
+      title = 'Invalid update package';
+      description = 'This update cannot be installed because its Android versionCode is not newer than the installed app.';
+      break;
+
     case 'failed':
       iconName = 'error';
       iconColor = '#f87171';
@@ -1011,50 +1025,168 @@ function UpdateModal({
       );
     }
 
+    const getDiagnosticsText = () => {
+      return [
+        '=== STUDIO UPDATE DIAGNOSTICS ===',
+        `Failure Timestamp: ${otaDiagnostics.timestamp || 'N/A'}`,
+        `Device Model/Manufacturer: ${otaDiagnostics.deviceModel || 'N/A'}`,
+        `Android Version: ${otaDiagnostics.androidVersion || 'N/A'}`,
+        `Permission State: ${otaDiagnostics.permissionState || 'N/A'}`,
+        `Exception Message: ${otaDiagnostics.exceptionMessage || 'N/A'}`,
+        `Failure Reason & Stack Trace:`,
+        otaDiagnostics.failureReason || 'N/A',
+        `Download URL Used: ${otaDiagnostics.downloadUrl || 'N/A'}`,
+        `APK Path: ${otaDiagnostics.apkPath || 'N/A'}`,
+        `File Size: ${otaDiagnostics.fileSize || 'N/A'}`,
+        `SHA-256 Expected: ${otaDiagnostics.shaExpected || 'N/A'}`,
+        `SHA-256 Calculated: ${otaDiagnostics.shaCalculated || 'N/A'}`,
+        `Installer Result: ${otaDiagnostics.installerResult || 'N/A'}`,
+        '',
+        '=== COMPREHENSIVE DEBUG LOGS ===',
+        `App Version (APP_VERSION): ${otaDebugLogs.appVersion}`,
+        `APK Version (Wrapper): ${otaDebugLogs.nativeApkVersion || 'N/A'}`,
+        `Update System: APK only`,
+        `OTA System: disabled`,
+        `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
+        `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
+        `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
+        `installApk Available: ${otaDebugLogs.installApkAvailable}`,
+        `openInstallPermissionSettings Available: ${otaDebugLogs.openInstallPermissionSettingsAvailable}`,
+        `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
+        `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
+        `Fetched version.json: ${otaDebugLogs.fetchedVersionJson || 'N/A'}`,
+        `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson || 'N/A'}`,
+        `Update Type: ${otaDebugLogs.updateType || 'N/A'}`,
+        `Download Status: ${otaDebugLogs.downloadStatus || 'N/A'}`,
+        `SHA Verification Status: ${otaDebugLogs.shaVerification || 'N/A'}`,
+        `File Details: ${otaDebugLogs.fileDetails || 'N/A'}`,
+        `Install Error / Log: ${otaDebugLogs.installError || 'N/A'}`,
+        `Installer Launch Status: ${otaDebugLogs.installerLaunchStatus || 'N/A'}`,
+        `Last Exception Stack Trace:`,
+        otaDebugLogs.lastExceptionStackTrace || 'N/A',
+        '',
+        '=== ELIGIBILITY DETAILS ===',
+        `Installed package: ${otaDebugLogs.installedPackageName || 'N/A'}`,
+        `Installed versionName: ${otaDebugLogs.installedVersionName || 'N/A'}`,
+        `Installed versionCode: ${otaDebugLogs.installedVersionCode || 'N/A'}`,
+        `Installed signing SHA-256: ${otaDebugLogs.installedSigningSha256 || 'N/A'}`,
+        `Installed debuggable: ${otaDebugLogs.installedDebuggable !== null ? otaDebugLogs.installedDebuggable : 'N/A'}`,
+        '',
+        `Downloaded package: ${otaDebugLogs.downloadedPackageName || 'N/A'}`,
+        `Downloaded versionName: ${otaDebugLogs.downloadedVersionName || 'N/A'}`,
+        `Downloaded versionCode: ${otaDebugLogs.downloadedVersionCode || 'N/A'}`,
+        `Downloaded signing SHA-256: ${otaDebugLogs.downloadedSigningSha256 || 'N/A'}`,
+        `Downloaded debuggable: ${otaDebugLogs.downloadedDebuggable !== null ? otaDebugLogs.downloadedDebuggable : 'N/A'}`,
+        `Downloaded isValidApk: ${otaDebugLogs.downloadedIsValidApk !== null ? otaDebugLogs.downloadedIsValidApk : 'N/A'}`,
+        `Downloaded isUniversalApk: ${otaDebugLogs.downloadedIsUniversalApk !== null ? otaDebugLogs.downloadedIsUniversalApk : 'N/A'}`,
+        `Downloaded size: ${otaDebugLogs.downloadedApkSize || 'N/A'}`,
+        '',
+        `Eligibility package match: ${otaDebugLogs.eligibilityPackageNameMatch !== null ? otaDebugLogs.eligibilityPackageNameMatch : 'N/A'}`,
+        `Eligibility signing match: ${otaDebugLogs.eligibilitySigningMatch !== null ? otaDebugLogs.eligibilitySigningMatch : 'N/A'}`,
+        `Eligibility versionCode higher: ${otaDebugLogs.eligibilityVersionCodeHigher !== null ? otaDebugLogs.eligibilityVersionCodeHigher : 'N/A'}`,
+        `Eligibility release build: ${otaDebugLogs.eligibilityReleaseBuild !== null ? otaDebugLogs.eligibilityReleaseBuild : 'N/A'}`,
+        `Eligibility valid APK: ${otaDebugLogs.eligibilityValidApk !== null ? otaDebugLogs.eligibilityValidApk : 'N/A'}`,
+        `Eligibility final install: ${otaDebugLogs.eligibilityFinalInstall || 'N/A'}`,
+        `Eligibility reason: ${otaDebugLogs.eligibilityReason || 'N/A'}`
+      ].join('\n');
+    };
+
+    if (state === 'signature_mismatch') {
+      const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
+      
+      const copyDiagnostics = async () => {
+        const diagnosticText = getDiagnosticsText();
+        try {
+          await navigator.clipboard.writeText(diagnosticText);
+          alert('Diagnostics copied to clipboard!');
+        } catch (err) {
+          console.error('Failed to copy diagnostics:', err);
+        }
+      };
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
+          <button
+            type="button"
+            onClick={() => window.open(manualApkUrl, '_system')}
+            style={primaryButtonStyle}
+          >
+            Download Latest APK
+          </button>
+          
+          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+            <button
+              type="button"
+              onClick={copyDiagnostics}
+              style={halfSecondaryButtonStyle}
+            >
+              Copy Diagnostics
+            </button>
+            <button
+              type="button"
+              onClick={() => setDiagnosticsOpen(true)}
+              style={halfSecondaryButtonStyle}
+            >
+              Diagnostics UI
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={onLater}
+            style={tertiaryButtonStyle}
+          >
+            Later
+          </button>
+        </div>
+      );
+    }
+
+    if (state === 'versionCode_low') {
+      const copyDiagnostics = async () => {
+        const diagnosticText = getDiagnosticsText();
+        try {
+          await navigator.clipboard.writeText(diagnosticText);
+          alert('Diagnostics copied to clipboard!');
+        } catch (err) {
+          console.error('Failed to copy diagnostics:', err);
+        }
+      };
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
+          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+            <button
+              type="button"
+              onClick={copyDiagnostics}
+              style={halfSecondaryButtonStyle}
+            >
+              Copy Diagnostics
+            </button>
+            <button
+              type="button"
+              onClick={() => setDiagnosticsOpen(true)}
+              style={halfSecondaryButtonStyle}
+            >
+              Diagnostics UI
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={onLater}
+            style={primaryButtonStyle}
+          >
+            Later
+          </button>
+        </div>
+      );
+    }
+
     if (state === 'failed') {
       const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
       const copyDiagnostics = async () => {
-        const diagnosticText = [
-          '=== STUDIO UPDATE DIAGNOSTICS ===',
-          `Failure Timestamp: ${otaDiagnostics.timestamp || 'N/A'}`,
-          `Device Model/Manufacturer: ${otaDiagnostics.deviceModel || 'N/A'}`,
-          `Android Version: ${otaDiagnostics.androidVersion || 'N/A'}`,
-          `Permission State: ${otaDiagnostics.permissionState || 'N/A'}`,
-          `Exception Message: ${otaDiagnostics.exceptionMessage || 'N/A'}`,
-          `Failure Reason & Stack Trace:`,
-          otaDiagnostics.failureReason || 'N/A',
-          `Download URL Used: ${otaDiagnostics.downloadUrl || 'N/A'}`,
-          `APK Path: ${otaDiagnostics.apkPath || 'N/A'}`,
-          `File Size: ${otaDiagnostics.fileSize || 'N/A'}`,
-          `SHA-256 Expected: ${otaDiagnostics.shaExpected || 'N/A'}`,
-          `SHA-256 Calculated: ${otaDiagnostics.shaCalculated || 'N/A'}`,
-          `Installer Result: ${otaDiagnostics.installerResult || 'N/A'}`,
-          '',
-          '=== COMPREHENSIVE DEBUG LOGS ===',
-          `App Version (APP_VERSION): ${otaDebugLogs.appVersion}`,
-          `APK Version (Wrapper): ${otaDebugLogs.nativeApkVersion || 'N/A'}`,
-          `OTA Version (Capgo): ${otaDebugLogs.currentOtaVersion || 'N/A'}`,
-          `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
-          `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
-          `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
-          `installApk Available: ${otaDebugLogs.installApkAvailable}`,
-          `openInstallPermissionSettings Available: ${otaDebugLogs.openInstallPermissionSettingsAvailable}`,
-          `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
-          `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
-          `Final Update Path: ${otaDebugLogs.finalUpdatePath}`,
-          `Fetched version.json: ${otaDebugLogs.fetchedVersionJson || 'N/A'}`,
-          `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson || 'N/A'}`,
-          `Comparison Result: ${otaDebugLogs.compareResult !== null ? otaDebugLogs.compareResult : 'N/A'}`,
-          `Update Type: ${otaDebugLogs.updateType || 'N/A'}`,
-          `Final Decision: ${otaDebugLogs.finalDecision || 'N/A'}`,
-          `Download Status: ${otaDebugLogs.downloadStatus || 'N/A'}`,
-          `SHA Verification Status: ${otaDebugLogs.shaVerification || 'N/A'}`,
-          `File Details: ${otaDebugLogs.fileDetails || 'N/A'}`,
-          `Install Error / Log: ${otaDebugLogs.installError || 'N/A'}`,
-          `Installer Launch Status: ${otaDebugLogs.installerLaunchStatus || 'N/A'}`,
-          `Last Exception Stack Trace:`,
-          otaDebugLogs.lastExceptionStackTrace || 'N/A'
-        ].join('\n');
+        const diagnosticText = getDiagnosticsText();
 
         try {
           await navigator.clipboard.writeText(diagnosticText);

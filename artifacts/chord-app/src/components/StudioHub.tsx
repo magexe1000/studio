@@ -1574,7 +1574,7 @@ function HubSettings({
   const [apkEligibility, setApkEligibility] = useState<any>(null);
 
   useEffect(() => {
-    if (page !== 'developer') return;
+    if (page !== 'developer' && page !== 'debug') return;
     
     const loadInfo = async () => {
       try {
@@ -1638,20 +1638,40 @@ function HubSettings({
       if (isNative()) {
         try {
           const { AppInstaller, checkApkEligibility } = await import('../lib/apkDownloader');
-          const installed = await AppInstaller.getInstalledAppDetails();
-          setInstalledPackageDetails(installed);
+          const installed = await AppInstaller.getInstalledAppInfo();
+          setInstalledPackageDetails({
+            ...installed,
+            signatures: installed.signingSha256
+          });
 
           const apkPath = localStorage.getItem('studio:downloadedApkPath');
           if (apkPath) {
             try {
               const inspected = await AppInstaller.inspectApk({ filePath: apkPath });
-              setDownloadedApkDetails(inspected);
+              
+              let sizeStr = 'N/A';
+              try {
+                const { Filesystem } = await import('@capacitor/filesystem');
+                const statInfo = await Filesystem.stat({ path: apkPath });
+                sizeStr = `${(statInfo.size / (1024 * 1024)).toFixed(2)} MB (${statInfo.size} bytes)`;
+              } catch (e) {
+                console.warn('Error reading APK size:', e);
+              }
+
+              setDownloadedApkDetails({
+                ...inspected,
+                fileSize: sizeStr,
+                filePath: apkPath
+              });
               
               const eligibility = await checkApkEligibility(apkPath);
               setApkEligibility(eligibility);
             } catch (apkErr) {
               console.warn('Error loading downloaded APK details:', apkErr);
             }
+          } else {
+            setDownloadedApkDetails(null);
+            setApkEligibility(null);
           }
         } catch (err) {
           console.warn('Error loading native package/APK details:', err);
@@ -1689,7 +1709,7 @@ function HubSettings({
 
     loadInfo();
     loadManifests();
-  }, [page]);
+  }, [page, ota.updateState]);
 
   const handleClearUpdateCache = async () => {
     try {
@@ -2299,7 +2319,31 @@ function HubSettings({
                 `File Details: ${otaDebugLogs.fileDetails}`,
                 `Install Error / Log: ${otaDebugLogs.installError}`,
                 `Installer Launch Status: ${otaDebugLogs.installerLaunchStatus}`,
-                `Last Exception Stack Trace: ${otaDebugLogs.lastExceptionStackTrace}`
+                `Last Exception Stack Trace: ${otaDebugLogs.lastExceptionStackTrace}`,
+                '',
+                '=== ELIGIBILITY DETAILS ===',
+                `Installed package: ${installedPackageDetails?.packageName || 'N/A'}`,
+                `Installed versionName: ${installedPackageDetails?.versionName || 'N/A'}`,
+                `Installed versionCode: ${installedPackageDetails ? String(installedPackageDetails.versionCode) : 'N/A'}`,
+                `Installed signing SHA-256: ${installedPackageDetails?.signingSha256 || 'N/A'}`,
+                `Installed debuggable: ${installedPackageDetails ? String(installedPackageDetails.debuggable) : 'N/A'}`,
+                '',
+                `Downloaded package: ${downloadedApkDetails?.packageName || 'N/A'}`,
+                `Downloaded versionName: ${downloadedApkDetails?.versionName || 'N/A'}`,
+                `Downloaded versionCode: ${downloadedApkDetails ? String(downloadedApkDetails.versionCode) : 'N/A'}`,
+                `Downloaded signing SHA-256: ${downloadedApkDetails?.signingSha256 || 'N/A'}`,
+                `Downloaded debuggable: ${downloadedApkDetails ? String(downloadedApkDetails.debuggable) : 'N/A'}`,
+                `Downloaded isValidApk: ${downloadedApkDetails ? String(downloadedApkDetails.isValidApk) : 'N/A'}`,
+                `Downloaded isUniversalApk: ${downloadedApkDetails ? String(downloadedApkDetails.isUniversalApk) : 'N/A'}`,
+                `Downloaded size: ${downloadedApkDetails?.fileSize || 'N/A'}`,
+                '',
+                `Eligibility package match: ${apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.installed.packageName === apkEligibility.downloaded.packageName) : 'N/A'}`,
+                `Eligibility signing match: ${apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.installed.signingSha256.replace(/:/g, '').toLowerCase() === apkEligibility.downloaded.signingSha256.replace(/:/g, '').toLowerCase()) : 'N/A'}`,
+                `Eligibility versionCode higher: ${apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.downloaded.versionCode > apkEligibility.installed.versionCode) : 'N/A'}`,
+                `Eligibility release build: ${apkEligibility?.downloaded ? String(!apkEligibility.downloaded.debuggable) : 'N/A'}`,
+                `Eligibility valid APK: ${apkEligibility?.downloaded ? String(apkEligibility.downloaded.isValidApk) : 'N/A'}`,
+                `Eligibility final install: ${apkEligibility ? (apkEligibility.eligible ? 'can install' : 'cannot install') : 'N/A'}`,
+                `Eligibility reason: ${apkEligibility?.reason || 'none'}`
               ].join('\n');
               navigator.clipboard.writeText(debugLogsText).then(() => {
                 setCopiedLogs(true);
@@ -2327,8 +2371,37 @@ function HubSettings({
         </div>
 
         <div style={cardStyle}>
-          <DebugRow label="App Version" desc="The hardcoded version in the app bundle" value={APP_VERSION} />
-          <DebugRow label="APK Version" desc="The native Android APK version wrapper" value={devNativeVersion} />
+          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>INSTALLED APP</div>
+          <DebugRow label="packageName" value={installedPackageDetails?.packageName || 'N/A'} />
+          <DebugRow label="versionName" value={installedPackageDetails?.versionName || 'N/A'} />
+          <DebugRow label="versionCode" value={installedPackageDetails ? String(installedPackageDetails.versionCode) : 'N/A'} />
+          <DebugRow label="signing SHA-256" value={installedPackageDetails?.signingSha256 || 'N/A'} />
+          <DebugRow label="debuggable" value={installedPackageDetails ? String(installedPackageDetails.debuggable) : 'N/A'} />
+
+          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>DOWNLOADED APK</div>
+          <DebugRow label="packageName" value={downloadedApkDetails?.packageName || 'N/A'} />
+          <DebugRow label="versionName" value={downloadedApkDetails?.versionName || 'N/A'} />
+          <DebugRow label="versionCode" value={downloadedApkDetails ? String(downloadedApkDetails.versionCode) : 'N/A'} />
+          <DebugRow label="signing SHA-256" value={downloadedApkDetails?.signingSha256 || 'N/A'} />
+          <DebugRow label="debuggable" value={downloadedApkDetails ? String(downloadedApkDetails.debuggable) : 'N/A'} />
+          <DebugRow label="APK file path" value={downloadedApkDetails?.filePath || 'N/A'} />
+          <DebugRow label="APK file size" value={downloadedApkDetails?.fileSize || 'N/A'} />
+          <DebugRow label="APK SHA-256" value={otaDiagnostics.shaExpected || 'N/A'} />
+          <DebugRow label="valid APK" value={downloadedApkDetails ? String(downloadedApkDetails.isValidApk) : 'N/A'} />
+          <DebugRow label="universal APK" value={downloadedApkDetails ? String(downloadedApkDetails.isUniversalApk) : 'N/A'} />
+
+          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>ELIGIBILITY</div>
+          <DebugRow label="package name match" value={apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.installed.packageName === apkEligibility.downloaded.packageName) : 'N/A'} />
+          <DebugRow label="signing certificate match" value={apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.installed.signingSha256.replace(/:/g, '').toLowerCase() === apkEligibility.downloaded.signingSha256.replace(/:/g, '').toLowerCase()) : 'N/A'} />
+          <DebugRow label="versionCode higher" value={apkEligibility?.installed && apkEligibility?.downloaded ? String(apkEligibility.downloaded.versionCode > apkEligibility.installed.versionCode) : 'N/A'} />
+          <DebugRow label="APK release build" value={apkEligibility?.downloaded ? String(!apkEligibility.downloaded.debuggable) : 'N/A'} />
+          <DebugRow label="APK valid" value={apkEligibility?.downloaded ? String(apkEligibility.downloaded.isValidApk) : 'N/A'} />
+          <DebugRow label="final install eligibility" value={apkEligibility ? (apkEligibility.eligible ? 'can install' : 'cannot install') : 'N/A'} highlightColor={apkEligibility ? (apkEligibility.eligible ? '#22c55e' : '#ef4444') : undefined} />
+          <DebugRow label="reason if cannot install" value={apkEligibility?.reason || 'none'} />
+
+          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>GENERAL DIAGNOSTICS & SYSTEM STATUS</div>
+          <DebugRow label="App Version (JS)" desc="The hardcoded version in the app bundle" value={APP_VERSION} />
+          <DebugRow label="APK Version (Wrapper)" desc="The native Android APK version wrapper" value={devNativeVersion} />
           <DebugRow label="versionCode" desc="The version code of the installed native wrapper" value={devVersionCode} />
           <DebugRow label="Update System" desc="The update delivery channel used by the app" value="APK only" />
           <DebugRow label="OTA System" desc="State of the Capgo bundle update system" value="disabled" />
@@ -2336,23 +2409,23 @@ function HubSettings({
           <DebugRow label="APK eligibility status" desc="Outcome of downloaded APK eligibility validation checks" value={otaDebugLogs.apkEligibilityResult} />
           <DebugRow label="Current release channel" desc="The deployment channel targeted for updates" value="production" />
           <DebugRow label="Last update check" desc="Timestamp of the most recent update manifest check" value={localStorage.getItem('studio:lastUpdateCheck') || 'Never'} />
-          <DebugRow label="Last downloaded APK SHA" desc="SHA-256 hash of the last downloaded APK file" value={otaDiagnostics.shaExpected || 'N/A'} />
           <DebugRow label="remote version" desc="The latest version released on the remote server" value={ota.remoteVersion} />
 
-          <DebugRow label="downloadApk Available" desc="Whether downloadApk method is available on AppInstaller" value={String(otaDebugLogs.downloadApkAvailable)} />
-          <DebugRow label="verifyApkSha256 Available" desc="Whether verifyApkSha256 method is available on AppInstaller" value={String(otaDebugLogs.verifyApkSha256Available)} />
-          <DebugRow label="installApk Available" desc="Whether installApk method is available on AppInstaller" value={String(otaDebugLogs.installApkAvailable)} />
-          <DebugRow label="openInstallPermissionSettings Available" desc="Whether openInstallPermissionSettings method is available on AppInstaller" value={String(otaDebugLogs.openInstallPermissionSettingsAvailable)} />
-          <DebugRow label="Registered Plugins" desc="List of all registered native Capacitor plugins" value={otaDebugLogs.registeredPlugins} />
-          <DebugRow label="Plugin Method Check" desc="Verification of required plugin methods" value={otaDebugLogs.pluginMethodCheck} />
-          <DebugRow label="Fetched version.json" desc="The full body read from version.json" value={otaDebugLogs.fetchedVersionJson} />
-          <DebugRow label="Fetched app-release.json" desc="The full body read from app-release.json" value={otaDebugLogs.fetchedAppReleaseJson} />
-          <DebugRow label="Download Status" desc="Download steps, URLs, and status" value={otaDebugLogs.downloadStatus} />
-          <DebugRow label="SHA Verification" desc="Result of computed APK hash check" value={otaDebugLogs.shaVerification} />
-          <DebugRow label="File Details" desc="Downloaded APK details" value={otaDebugLogs.fileDetails} />
-          <DebugRow label="Install Error / Log" desc="Log messages and exceptions from installer intent launch" value={otaDebugLogs.installError} />
-          <DebugRow label="Installer Launch Status" desc="Outcome of triggering Android package installer intent" value={otaDebugLogs.installerLaunchStatus} />
-          <DebugRow label="Last Exception Stack Trace" desc="Full stack trace for the most recent updating exception" value={otaDebugLogs.lastExceptionStackTrace} />
+          <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '16px 20px 8px', opacity: 0.75, color: 'var(--c-text-primary)', borderBottom: '1px solid rgba(128,128,128,0.08)', letterSpacing: '0.05em' }}>NATIVE METHOD AVAILABILITY</div>
+          <DebugRow label="downloadApk Available" value={String(otaDebugLogs.downloadApkAvailable)} />
+          <DebugRow label="verifyApkSha256 Available" value={String(otaDebugLogs.verifyApkSha256Available)} />
+          <DebugRow label="installApk Available" value={String(otaDebugLogs.installApkAvailable)} />
+          <DebugRow label="openInstallPermissionSettings Available" value={String(otaDebugLogs.openInstallPermissionSettingsAvailable)} />
+          <DebugRow label="Registered Plugins" value={otaDebugLogs.registeredPlugins} />
+          <DebugRow label="Plugin Method Check" value={otaDebugLogs.pluginMethodCheck} />
+          <DebugRow label="Fetched version.json" value={otaDebugLogs.fetchedVersionJson} />
+          <DebugRow label="Fetched app-release.json" value={otaDebugLogs.fetchedAppReleaseJson} />
+          <DebugRow label="Download Status" value={otaDebugLogs.downloadStatus} />
+          <DebugRow label="SHA Verification" value={otaDebugLogs.shaVerification} />
+          <DebugRow label="File Details" value={otaDebugLogs.fileDetails} />
+          <DebugRow label="Install Error / Log" value={otaDebugLogs.installError} />
+          <DebugRow label="Installer Launch Status" value={otaDebugLogs.installerLaunchStatus} />
+          <DebugRow label="Last Exception Stack Trace" value={otaDebugLogs.lastExceptionStackTrace} />
         </div>
       </div>
     );

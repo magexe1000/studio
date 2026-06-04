@@ -65,6 +65,27 @@ export let otaDebugLogs: {
   capgoSetBlocked: boolean;
   triggerComponent: string | null;
   finalPathExecuted: 'OTA applied' | 'APK installer launched' | 'blocked due to APK required' | 'N/A';
+  installedPackageName: string | null;
+  installedVersionName: string | null;
+  installedSigningSha256: string | null;
+  installedDebuggable: boolean | null;
+  downloadedPackageName: string | null;
+  downloadedVersionName: string | null;
+  downloadedVersionCode: number | null;
+  downloadedSigningSha256: string | null;
+  downloadedDebuggable: boolean | null;
+  downloadedApkPath: string | null;
+  downloadedApkSize: string | null;
+  downloadedApkSha256: string | null;
+  downloadedIsValidApk: boolean | null;
+  downloadedIsUniversalApk: boolean | null;
+  eligibilityPackageNameMatch: boolean | null;
+  eligibilitySigningMatch: boolean | null;
+  eligibilityVersionCodeHigher: boolean | null;
+  eligibilityReleaseBuild: boolean | null;
+  eligibilityValidApk: boolean | null;
+  eligibilityFinalInstall: string | null;
+  eligibilityReason: string | null;
 } = {
   appVersion: APP_VERSION,
   nativeApkVersion: null,
@@ -101,6 +122,27 @@ export let otaDebugLogs: {
   capgoSetBlocked: false,
   triggerComponent: null,
   finalPathExecuted: 'N/A',
+  installedPackageName: null,
+  installedVersionName: null,
+  installedSigningSha256: null,
+  installedDebuggable: null,
+  downloadedPackageName: null,
+  downloadedVersionName: null,
+  downloadedVersionCode: null,
+  downloadedSigningSha256: null,
+  downloadedDebuggable: null,
+  downloadedApkPath: null,
+  downloadedApkSize: null,
+  downloadedApkSha256: null,
+  downloadedIsValidApk: null,
+  downloadedIsUniversalApk: null,
+  eligibilityPackageNameMatch: null,
+  eligibilitySigningMatch: null,
+  eligibilityVersionCodeHigher: null,
+  eligibilityReleaseBuild: null,
+  eligibilityValidApk: null,
+  eligibilityFinalInstall: null,
+  eligibilityReason: null,
 };
 
 export interface OtaDiagnostics {
@@ -548,7 +590,9 @@ export type OtaUpdateState =
   | 'ready_to_install'
   | 'installing'
   | 'completed'
-  | 'failed';
+  | 'failed'
+  | 'signature_mismatch'
+  | 'versionCode_low';
 
 export interface CentralizedOtaState {
   updateState: OtaUpdateState;
@@ -974,6 +1018,85 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
   return activeCheckPromise;
 }
 
+export async function runEligibilityCheck(filePath: string): Promise<boolean> {
+  try {
+    const { checkApkEligibility } = await import('./apkDownloader');
+    const el = await checkApkEligibility(filePath);
+    
+    // Populate installed app info
+    otaDebugLogs.installedPackageName = el.installed?.packageName ?? null;
+    otaDebugLogs.installedVersionName = el.installed?.versionName ?? null;
+    otaDebugLogs.installedVersionCode = el.installed?.versionCode ?? null;
+    otaDebugLogs.installedSigningSha256 = el.installed?.signingSha256 ?? null;
+    otaDebugLogs.installedDebuggable = el.installed?.debuggable ?? null;
+
+    // Populate downloaded APK info
+    otaDebugLogs.downloadedPackageName = el.downloaded?.packageName ?? null;
+    otaDebugLogs.downloadedVersionName = el.downloaded?.versionName ?? null;
+    otaDebugLogs.downloadedVersionCode = el.downloaded?.versionCode ?? null;
+    otaDebugLogs.downloadedSigningSha256 = el.downloaded?.signingSha256 ?? null;
+    otaDebugLogs.downloadedDebuggable = el.downloaded?.debuggable ?? null;
+    otaDebugLogs.downloadedApkPath = filePath;
+    otaDebugLogs.downloadedIsValidApk = el.downloaded?.isValidApk ?? null;
+    otaDebugLogs.downloadedIsUniversalApk = el.downloaded?.isUniversalApk ?? null;
+    
+    // Get file size from filesystem
+    try {
+      const { Filesystem } = await import('@capacitor/filesystem');
+      const info = await Filesystem.stat({ path: filePath });
+      otaDebugLogs.downloadedApkSize = `${(info.size / (1024 * 1024)).toFixed(2)} MB (${info.size} bytes)`;
+    } catch {
+      otaDebugLogs.downloadedApkSize = 'N/A';
+    }
+    otaDebugLogs.downloadedApkSha256 = globalOtaState.apkSha256 ?? null;
+
+    // Populate eligibility checks
+    if (el.installed && el.downloaded) {
+      otaDebugLogs.eligibilityPackageNameMatch = el.installed.packageName === el.downloaded.packageName;
+      otaDebugLogs.eligibilitySigningMatch = el.installed.signingSha256.replace(/:/g, '').toLowerCase() === el.downloaded.signingSha256.replace(/:/g, '').toLowerCase();
+      otaDebugLogs.eligibilityVersionCodeHigher = el.downloaded.versionCode > el.installed.versionCode;
+      otaDebugLogs.eligibilityReleaseBuild = el.downloaded.debuggable === false;
+      otaDebugLogs.eligibilityValidApk = el.downloaded.isValidApk === true;
+    } else {
+      otaDebugLogs.eligibilityPackageNameMatch = null;
+      otaDebugLogs.eligibilitySigningMatch = null;
+      otaDebugLogs.eligibilityVersionCodeHigher = null;
+      otaDebugLogs.eligibilityReleaseBuild = null;
+      otaDebugLogs.eligibilityValidApk = null;
+    }
+    
+    otaDebugLogs.eligibilityFinalInstall = el.eligible ? 'can install' : 'cannot install';
+    otaDebugLogs.eligibilityReason = el.reason ?? null;
+    otaDebugLogs.apkEligibilityResult = el.eligible ? 'eligible' : (el.reason ?? 'unknown');
+
+    if (!el.eligible) {
+      if (el.reason === 'signature_mismatch') {
+        updateGlobalState({ updateState: 'signature_mismatch' });
+      } else if (el.reason === 'versionCode_low') {
+        updateGlobalState({ updateState: 'versionCode_low' });
+      } else {
+        updateGlobalState({
+          updateState: 'failed',
+          error: el.errorDetails || 'APK eligibility validation failed.'
+        });
+      }
+      return false;
+    }
+    
+    return true;
+  } catch (err) {
+    console.error('[OTA] Eligibility helper check failed:', err);
+    otaDebugLogs.eligibilityFinalInstall = 'cannot install';
+    otaDebugLogs.eligibilityReason = 'parse_failed';
+    otaDebugLogs.apkEligibilityResult = 'parse_failed';
+    updateGlobalState({
+      updateState: 'failed',
+      error: err instanceof Error ? err.message : String(err)
+    });
+    return false;
+  }
+}
+
 /**
  * Centralized downloadUpdate: locks the download process and mirrors progress globally.
  */
@@ -1023,7 +1146,8 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       const { downloadApk } = await import('./apkDownloader');
       
       otaDebugLogs.downloadStatus += `\nAPK download started...`;
-      const filePath = await downloadApk(apkUrl, (percent) => {
+      const fileName = `studio-update-${ver}.apk`;
+      const filePath = await downloadApk(apkUrl, fileName, (percent) => {
         updateGlobalState({ 
           progress: Math.max(0, Math.min(1, percent / 100)),
           statusText: 'Downloading update'
@@ -1057,6 +1181,12 @@ export function downloadUpdate(trigger?: string): Promise<void> {
 
       updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
       await new Promise((resolve) => setTimeout(resolve, 300));
+
+      otaDebugLogs.downloadStatus += `\nRunning pre-install eligibility check...`;
+      const isEligible = await runEligibilityCheck(filePath);
+      if (!isEligible) {
+        throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
+      }
 
       updateGlobalState({ statusText: 'Ready to install', updateState: 'ready_to_install' });
       localStorage.setItem('studio:downloadedApkPath', filePath);
@@ -1122,21 +1252,9 @@ export function applyUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nChecking APK eligibility for: ${filePath}`;
       updateGlobalState({ statusText: 'Verifying update eligibility' });
 
-      const eligibility = await checkApkEligibility(filePath);
-      otaDebugLogs.apkEligibilityResult = eligibility.eligible ? 'eligible' : (eligibility.reason || 'unknown');
-      if (!eligibility.eligible) {
-        let userMessage = 'Installation eligibility check failed. The update cannot be installed.';
-        if (eligibility.reason === 'versionCode_low') {
-          userMessage = 'This update package cannot be installed because its Android version code is not newer than the installed app.';
-        } else if (eligibility.reason === 'signature_mismatch') {
-          userMessage = 'This update was signed with a different certificate and cannot update the installed app.';
-        } else if (eligibility.reason === 'packageName_mismatch') {
-          userMessage = 'This APK does not match the installed Studio package.';
-        } else if (eligibility.reason === 'parse_failed' || eligibility.reason === 'invalid_apk') {
-          userMessage = 'The downloaded APK appears invalid or incomplete.';
-        }
-        
-        throw new Error(userMessage);
+      const isEligible = await runEligibilityCheck(filePath);
+      if (!isEligible) {
+        throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
       }
 
       otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;

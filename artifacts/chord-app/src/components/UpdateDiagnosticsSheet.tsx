@@ -131,7 +131,31 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
       `Install Error / Log: ${otaDebugLogs.installError || 'N/A'}`,
       `Installer Launch Status: ${otaDebugLogs.installerLaunchStatus || 'N/A'}`,
       `Last Exception Stack Trace:`,
-      otaDebugLogs.lastExceptionStackTrace || 'N/A'
+      otaDebugLogs.lastExceptionStackTrace || 'N/A',
+      '',
+      '=== ELIGIBILITY DETAILS ===',
+      `Installed package: ${otaDebugLogs.installedPackageName || 'N/A'}`,
+      `Installed versionName: ${otaDebugLogs.installedVersionName || 'N/A'}`,
+      `Installed versionCode: ${otaDebugLogs.installedVersionCode || 'N/A'}`,
+      `Installed signing SHA-256: ${otaDebugLogs.installedSigningSha256 || 'N/A'}`,
+      `Installed debuggable: ${otaDebugLogs.installedDebuggable !== null ? otaDebugLogs.installedDebuggable : 'N/A'}`,
+      '',
+      `Downloaded package: ${otaDebugLogs.downloadedPackageName || 'N/A'}`,
+      `Downloaded versionName: ${otaDebugLogs.downloadedVersionName || 'N/A'}`,
+      `Downloaded versionCode: ${otaDebugLogs.downloadedVersionCode || 'N/A'}`,
+      `Downloaded signing SHA-256: ${otaDebugLogs.downloadedSigningSha256 || 'N/A'}`,
+      `Downloaded debuggable: ${otaDebugLogs.downloadedDebuggable !== null ? otaDebugLogs.downloadedDebuggable : 'N/A'}`,
+      `Downloaded isValidApk: ${otaDebugLogs.downloadedIsValidApk !== null ? otaDebugLogs.downloadedIsValidApk : 'N/A'}`,
+      `Downloaded isUniversalApk: ${otaDebugLogs.downloadedIsUniversalApk !== null ? otaDebugLogs.downloadedIsUniversalApk : 'N/A'}`,
+      `Downloaded size: ${otaDebugLogs.downloadedApkSize || 'N/A'}`,
+      '',
+      `Eligibility package match: ${otaDebugLogs.eligibilityPackageNameMatch !== null ? otaDebugLogs.eligibilityPackageNameMatch : 'N/A'}`,
+      `Eligibility signing match: ${otaDebugLogs.eligibilitySigningMatch !== null ? otaDebugLogs.eligibilitySigningMatch : 'N/A'}`,
+      `Eligibility versionCode higher: ${otaDebugLogs.eligibilityVersionCodeHigher !== null ? otaDebugLogs.eligibilityVersionCodeHigher : 'N/A'}`,
+      `Eligibility release build: ${otaDebugLogs.eligibilityReleaseBuild !== null ? otaDebugLogs.eligibilityReleaseBuild : 'N/A'}`,
+      `Eligibility valid APK: ${otaDebugLogs.eligibilityValidApk !== null ? otaDebugLogs.eligibilityValidApk : 'N/A'}`,
+      `Eligibility final install: ${otaDebugLogs.eligibilityFinalInstall || 'N/A'}`,
+      `Eligibility reason: ${otaDebugLogs.eligibilityReason || 'N/A'}`
     ].join('\n');
 
     navigator.clipboard.writeText(diagnosticText).then(() => {

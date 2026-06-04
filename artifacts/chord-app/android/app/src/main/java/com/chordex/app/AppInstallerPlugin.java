@@ -288,10 +288,23 @@ public class AppInstallerPlugin extends Plugin {
                     if (cacheDir == null) {
                         cacheDir = getContext().getCacheDir();
                     }
-                    File apkFile = new File(cacheDir, "update.apk");
-                    if (apkFile.exists()) {
-                        apkFile.delete();
+                    // Clean stale cached files
+                    File[] files = cacheDir.listFiles();
+                    if (files != null) {
+                        for (File f : files) {
+                            String name = f.getName();
+                            if (name.equals("update.apk") || (name.startsWith("studio-update-") && name.endsWith(".apk"))) {
+                                try {
+                                    f.delete();
+                                } catch (Exception ignored) {}
+                            }
+                        }
                     }
+                    String fileName = call.getString("fileName");
+                    if (fileName == null || fileName.isEmpty()) {
+                        fileName = "update.apk";
+                    }
+                    File apkFile = new File(cacheDir, fileName);
                     
                     output = new java.io.FileOutputStream(apkFile);
 
@@ -378,10 +391,23 @@ public class AppInstallerPlugin extends Plugin {
                     if (cacheDir == null) {
                         cacheDir = getContext().getCacheDir();
                     }
-                    File apkFile = new File(cacheDir, "update.apk");
-                    if (apkFile.exists()) {
-                        apkFile.delete();
+                    // Clean stale cached files
+                    File[] files = cacheDir.listFiles();
+                    if (files != null) {
+                        for (File f : files) {
+                            String name = f.getName();
+                            if (name.equals("update.apk") || (name.startsWith("studio-update-") && name.endsWith(".apk"))) {
+                                try {
+                                    f.delete();
+                                } catch (Exception ignored) {}
+                            }
+                        }
                     }
+                    String fileName = call.getString("fileName");
+                    if (fileName == null || fileName.isEmpty()) {
+                        fileName = "update.apk";
+                    }
+                    File apkFile = new File(cacheDir, fileName);
                     
                     output = new java.io.FileOutputStream(apkFile);
 
@@ -595,6 +621,7 @@ public class AppInstallerPlugin extends Plugin {
             JSObject result = new JSObject();
             if (!file.exists()) {
                 result.put("isValidApk", false);
+                result.put("isUniversalApk", false);
                 result.put("packageName", "");
                 result.put("versionName", "");
                 result.put("versionCode", 0);
@@ -629,6 +656,13 @@ public class AppInstallerPlugin extends Plugin {
             }
 
             result.put("isValidApk", true);
+            boolean isUniversal = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                if (info.splitNames != null && info.splitNames.length > 0) {
+                    isUniversal = false;
+                }
+            }
+            result.put("isUniversalApk", isUniversal);
             result.put("packageName", info.packageName);
             result.put("versionName", info.versionName);
             
@@ -691,6 +725,7 @@ public class AppInstallerPlugin extends Plugin {
         } catch (Exception e) {
             JSObject errorResult = new JSObject();
             errorResult.put("isValidApk", false);
+            errorResult.put("isUniversalApk", false);
             errorResult.put("error", e.getMessage());
             call.resolve(errorResult);
         }
@@ -750,6 +785,69 @@ public class AppInstallerPlugin extends Plugin {
             call.resolve(result);
         } catch (Exception e) {
             call.reject("Failed to read installed app details: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void getInstalledAppInfo(PluginCall call) {
+        try {
+            Context context = getContext();
+            PackageManager pm = context.getPackageManager();
+            String packageName = context.getPackageName();
+            
+            int flags = PackageManager.GET_SIGNATURES;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                flags = PackageManager.GET_SIGNING_CERTIFICATES;
+            }
+            
+            PackageInfo info = pm.getPackageInfo(packageName, flags);
+            JSObject result = new JSObject();
+            result.put("packageName", info.packageName);
+            result.put("versionName", info.versionName);
+            
+            long versionCode = info.versionCode;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                versionCode = info.getLongVersionCode();
+            }
+            result.put("versionCode", versionCode);
+
+            boolean debuggable = false;
+            if (info.applicationInfo != null) {
+                debuggable = (info.applicationInfo.flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+            }
+            result.put("debuggable", debuggable);
+
+            String sha256 = "";
+            Signature[] signatures = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                if (info.signingInfo != null) {
+                    if (info.signingInfo.hasMultipleSigners()) {
+                        signatures = info.signingInfo.getApkContentsSigners();
+                    } else {
+                        signatures = info.signingInfo.getSigningCertificateHistory();
+                    }
+                }
+            } else {
+                signatures = info.signatures;
+            }
+
+            if (signatures != null && signatures.length > 0) {
+                byte[] cert = signatures[0].toByteArray();
+                java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                byte[] publicKey = md.digest(cert);
+                StringBuilder hexString = new StringBuilder();
+                for (byte b : publicKey) {
+                    String append = Integer.toHexString(0xFF & b);
+                    if (append.length() == 1) hexString.append('0');
+                    hexString.append(append);
+                }
+                sha256 = hexString.toString().toLowerCase();
+            }
+            result.put("signingSha256", sha256);
+
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to read installed app info: " + e.getMessage(), e);
         }
     }
 }

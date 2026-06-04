@@ -80,7 +80,9 @@ const requiredMethods = [
   'downloadApk',
   'verifyApkSha256',
   'installApk',
-  'openInstallPermissionSettings'
+  'openInstallPermissionSettings',
+  'inspectApk',
+  'getInstalledAppInfo'
 ];
 
 for (const method of requiredMethods) {

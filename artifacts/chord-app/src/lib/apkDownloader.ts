@@ -11,8 +11,8 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 // Do NOT rename the plugin name, the methods, or remove them.
 export interface AppInstallerPlugin {
   installApk(options: { filePath: string }): Promise<void>;
-  downloadAndInstallApk(options: { url: string }): Promise<void>;
-  downloadApk(options: { url: string }): Promise<{ filePath: string }>;
+  downloadAndInstallApk(options: { url: string; fileName?: string }): Promise<void>;
+  downloadApk(options: { url: string; fileName?: string }): Promise<{ filePath: string }>;
   checkPermissions(): Promise<any>;
   requestPermissions(options?: { aliases?: string[] }): Promise<any>;
   getSharedFile(): Promise<{ none?: boolean; type?: 'json' | 'audio'; data?: string; fileName?: string }>;
@@ -27,6 +27,7 @@ export interface AppInstallerPlugin {
   getDeviceInfo(): Promise<{ manufacturer: string; model: string; androidVersion: string; sdkInt: number; canRequestPackageInstalls: boolean }>;
   getApkDetails(options: { filePath: string }): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
   getInstalledAppDetails(): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
+  getInstalledAppInfo(): Promise<{ packageName: string; versionName: string; versionCode: number; signingSha256: string; debuggable: boolean }>;
   inspectApk(options: { filePath: string }): Promise<{
     packageName: string;
     versionName: string;
@@ -36,6 +37,7 @@ export interface AppInstallerPlugin {
     minSdk: number;
     targetSdk: number;
     isValidApk: boolean;
+    isUniversalApk: boolean;
   }>;
 }
 
@@ -162,6 +164,7 @@ export async function resolveReleasePageUrl(targetVersion?: string): Promise<str
  */
 export async function downloadAndInstallApk(
   url: string,
+  fileName?: string,
   onProgress?: (progress: number) => void
 ): Promise<void> {
   let progressListener: any = null;
@@ -180,7 +183,7 @@ export async function downloadAndInstallApk(
     }
     
     console.log(`[apkDownloader] Invoking native downloadAndInstallApk for ${url}`);
-    await AppInstaller.downloadAndInstallApk({ url });
+    await AppInstaller.downloadAndInstallApk({ url, fileName });
     
     if (progressListener) {
       await progressListener.remove();
@@ -200,6 +203,7 @@ export async function downloadAndInstallApk(
  */
 export async function downloadApk(
   url: string,
+  fileName?: string,
   onProgress?: (progress: number) => void
 ): Promise<string> {
   let progressListener: any = null;
@@ -218,7 +222,7 @@ export async function downloadApk(
     }
     
     console.log(`[apkDownloader] Invoking native downloadApk for ${url}`);
-    const res = await AppInstaller.downloadApk({ url });
+    const res = await AppInstaller.downloadApk({ url, fileName });
     
     if (progressListener) {
       await progressListener.remove();
@@ -317,17 +321,19 @@ export interface InstallEligibility {
     packageName: string;
     versionName: string;
     versionCode: number;
-    signatures: string;
+    signingSha256: string;
+    debuggable: boolean;
   };
   downloaded?: {
     packageName: string;
     versionName: string;
     versionCode: number;
-    signatures: string;
+    signingSha256: string;
     debuggable: boolean;
     minSdk: number;
     targetSdk: number;
     isValidApk: boolean;
+    isUniversalApk: boolean;
   };
 }
 
@@ -338,18 +344,19 @@ export async function checkApkEligibility(filePath: string): Promise<InstallElig
   }
 
   try {
-    const installed = await AppInstaller.getInstalledAppDetails();
+    const installed = await AppInstaller.getInstalledAppInfo();
     const downloadedInspect = await AppInstaller.inspectApk({ filePath });
 
     const downloaded = {
       packageName: downloadedInspect.packageName,
       versionName: downloadedInspect.versionName,
       versionCode: downloadedInspect.versionCode,
-      signatures: downloadedInspect.signingSha256,
+      signingSha256: downloadedInspect.signingSha256,
       debuggable: downloadedInspect.debuggable,
       minSdk: downloadedInspect.minSdk,
       targetSdk: downloadedInspect.targetSdk,
-      isValidApk: downloadedInspect.isValidApk
+      isValidApk: downloadedInspect.isValidApk,
+      isUniversalApk: downloadedInspect.isUniversalApk
     };
 
     if (!downloaded.isValidApk) {
@@ -372,13 +379,13 @@ export async function checkApkEligibility(filePath: string): Promise<InstallElig
       };
     }
 
-    const cleanInstSig = installed.signatures.replace(/:/g, '').toLowerCase();
-    const cleanDownSig = downloaded.signatures.replace(/:/g, '').toLowerCase();
+    const cleanInstSig = installed.signingSha256.replace(/:/g, '').toLowerCase();
+    const cleanDownSig = downloaded.signingSha256.replace(/:/g, '').toLowerCase();
     if (cleanInstSig !== cleanDownSig) {
       return {
         eligible: false,
         reason: 'signature_mismatch',
-        errorDetails: `Signing certificate signature mismatch. Installed: ${installed.signatures}, Downloaded: ${downloaded.signatures}`,
+        errorDetails: `Signing certificate fingerprint mismatch. Installed: ${installed.signingSha256}, Downloaded: ${downloaded.signingSha256}`,
         installed,
         downloaded
       };
@@ -394,7 +401,7 @@ export async function checkApkEligibility(filePath: string): Promise<InstallElig
       };
     }
 
-    if (downloaded.debuggable) {
+    if (downloaded.debuggable && !installed.debuggable) {
       return {
         eligible: false,
         reason: 'debuggable',
