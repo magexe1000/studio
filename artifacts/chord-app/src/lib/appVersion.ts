@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.5'; // Fix real cloud sync device registration
+export const APP_VERSION = '3.6.6'; // Fix real cloud sync device registration
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.5
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.6
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,21 +55,19 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Improved Devices & Sessions reliability across Android and Web.",
-      "Improved current device detection and last active tracking.",
-      "Improved cross-device session visibility.",
+      "Improved Android and Web session visibility from users/{uid}/devices.",
+      "Improved Web device metadata handling for APK/OTA N/A cases.",
+      "Improved device display names for cleaner session cards.",
+      "Improved diagnostics for device IDs received, devices rendered, filtered devices, and raw technical metadata.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed Devices & Sessions showing no devices even when signed in.",
-      "Fixed current device registration not writing to Firestore.",
-      "Fixed missing device documents under users/{uid}/devices.",
-      "Added diagnostics for device write status and listener status.",
-      "Implemented robust device registration with 10-second write timeout and automatic retries.",
-      "Added deep diagnostics in Devices & Sessions sheet listing 16 registration status parameters.",
-      "Implemented automatic Firestore payload sanitization to prevent write rejections due to undefined native/platform fields.",
+      "Fixed Web/laptop devices not appearing in Devices & Sessions after Android registration was restored.",
+      "Fixed Web device registration being skipped or not reflected across devices.",
+      "Fixed Devices & Sessions rendering only the current device when multiple Firestore device documents exist.",
+      "Fixed overly technical device names appearing in session cards.",
     ],
   },
 ];

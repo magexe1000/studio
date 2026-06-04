@@ -163,4 +163,14 @@ export function getFirebaseProjectId(): string {
   return _app?.options.projectId || 'Not Configured';
 }
 
+export function getFirebaseConfigDetails() {
+  init();
+  return {
+    projectId: _app?.options.projectId || 'Not Configured',
+    appId: _app?.options.appId || 'Not Configured',
+    authDomain: _app?.options.authDomain || 'Not Configured',
+    storageBucket: _app?.options.storageBucket || 'Not Configured',
+  };
+}
+
 export const googleProvider = new GoogleAuthProvider();

@@ -1,13 +1,11 @@
 ### Fixed
-- Fixed Devices & Sessions showing no devices even when signed in.
-- Fixed current device registration not writing to Firestore.
-- Fixed missing device documents under users/{uid}/devices.
-- Added diagnostics for device write status and listener status.
-- Implemented robust device registration with 10-second write timeout and automatic retries.
-- Added deep diagnostics in Devices & Sessions sheet listing 16 registration status parameters.
-- Implemented automatic Firestore payload sanitization to prevent write rejections due to undefined native/platform fields.
+- Fixed Web/laptop devices not appearing in Devices & Sessions after Android registration was restored.
+- Fixed Web device registration being skipped or not reflected across devices.
+- Fixed Devices & Sessions rendering only the current device when multiple Firestore device documents exist.
+- Fixed overly technical device names appearing in session cards.
 
 ### Improved
-- Improved Devices & Sessions reliability across Android and Web.
-- Improved current device detection and last active tracking.
-- Improved cross-device session visibility.
+- Improved Android and Web session visibility from users/{uid}/devices.
+- Improved Web device metadata handling for APK/OTA N/A cases.
+- Improved device display names for cleaner session cards.
+- Improved diagnostics for device IDs received, devices rendered, filtered devices, and raw technical metadata.

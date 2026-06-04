@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
-import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth, getFirebaseProjectId } from './firebase';
+import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth, getFirebaseProjectId, getFirebaseConfigDetails } from './firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { subscribeAuth, type AuthUser, signOut } from './auth';
 import { isNative } from './capgoUpdater';
@@ -159,6 +159,19 @@ export type SyncStatus = {
   deviceIdsReceived?: string[];
   lastDeviceRegistrationReason?: string | null;
   inFlightWriteStatus?: boolean;
+  firebaseProjectId?: string;
+  firebaseAppId?: string;
+  firebaseAuthDomain?: string;
+  firebaseStorageBucket?: string;
+  devicesRenderedCount?: number;
+  currentDeviceMatchedInSnapshot?: boolean;
+  otherDevicesCount?: number;
+  hiddenDevicesCount?: number;
+  hiddenDeviceReasons?: string;
+  currentDevicePlatform?: string;
+  shortName?: string;
+  displayName?: string;
+  technicalName?: string;
 };
 
 type Listener = (s: SyncStatus) => void;
@@ -200,6 +213,11 @@ let lastDeviceSnapshotAt: string | null = null;
 let deviceRegistrationStatus: 'idle' | 'pending' | 'registered' | 'failed' = 'idle';
 let lastDeviceRegistrationReason: string | null = null;
 let inFlightWriteStatus = false;
+let devicesRenderedCount = 0;
+let currentDeviceMatchedInSnapshot = false;
+let otherDevicesCount = 0;
+let hiddenDevicesCount = 0;
+let hiddenDeviceReasons = 'None';
 
 function notifyDiagnostics() {
   setStatus({}); // Trigger state updates for reactive subscribers
@@ -269,6 +287,18 @@ export function getSyncDiagnostics() {
     lastDeviceSnapshotAt: lastDeviceSnapshotAt || 'Never',
     lastDeviceRegistrationReason: lastDeviceRegistrationReason || 'None',
     inFlightWriteStatus: inFlightWriteStatus,
+    firebaseAppId: getFirebaseConfigDetails().appId,
+    firebaseAuthDomain: getFirebaseConfigDetails().authDomain,
+    firebaseStorageBucket: getFirebaseConfigDetails().storageBucket,
+    devicesRenderedCount: devicesRenderedCount,
+    currentDeviceMatchedInSnapshot: currentDeviceMatchedInSnapshot,
+    otherDevicesCount: otherDevicesCount,
+    hiddenDevicesCount: hiddenDevicesCount,
+    hiddenDeviceReasons: hiddenDeviceReasons,
+    currentDevicePlatform: isNative() ? 'android' : 'web',
+    shortName: (() => { try { return getDeviceDetails().shortName; } catch(e) { return 'Error'; } })(),
+    displayName: (() => { try { return getDeviceDetails().displayName; } catch(e) { return 'Error'; } })(),
+    technicalName: (() => { try { return getDeviceDetails().technicalName; } catch(e) { return 'Error'; } })(),
   };
 }
 
@@ -504,6 +534,19 @@ let status: SyncStatus = {
   deviceIdsReceived: [],
   lastDeviceRegistrationReason: null,
   inFlightWriteStatus: false,
+  firebaseProjectId: 'Not Configured',
+  firebaseAppId: 'Not Configured',
+  firebaseAuthDomain: 'Not Configured',
+  firebaseStorageBucket: 'Not Configured',
+  devicesRenderedCount: 0,
+  currentDeviceMatchedInSnapshot: false,
+  otherDevicesCount: 0,
+  hiddenDevicesCount: 0,
+  hiddenDeviceReasons: 'None',
+  currentDevicePlatform: isNative() ? 'android' : 'web',
+  shortName: '',
+  displayName: '',
+  technicalName: '',
 };
 let stageIframe: HTMLIFrameElement | null = null;
 let stageSnapshotResolvers: Array<(s: StagexSnapshot) => void> = [];
@@ -814,15 +857,76 @@ export function getDeviceDetails() {
   else if (/opr/i.test(ua)) browser = 'Opera';
 
   const isNativeApp = isNative();
-  let deviceName = '';
+  
+  // 1. Clean the Android model if we are on Android
+  let modelClean = model;
+  if (os === 'Android') {
+    const buildIdx = modelClean.indexOf(' Build/');
+    if (buildIdx !== -1) {
+      modelClean = modelClean.substring(0, buildIdx);
+    }
+    const semiIdx = modelClean.indexOf(';');
+    if (semiIdx !== -1) {
+      modelClean = modelClean.substring(0, semiIdx);
+    }
+    modelClean = modelClean.trim();
+  }
+
+  // Common Android friendly lookup dictionary
+  const modelFriendlyMap: Record<string, string> = {
+    'sm-s921b': 'Samsung Galaxy S24',
+    'sm-s921u': 'Samsung Galaxy S24',
+    'sm-s921w': 'Samsung Galaxy S24',
+    'sm-s921n': 'Samsung Galaxy S24',
+    'sm-s9210': 'Samsung Galaxy S24',
+    'sm-s926b': 'Samsung Galaxy S24+',
+    'sm-s926u': 'Samsung Galaxy S24+',
+    'sm-s928b': 'Samsung Galaxy S24 Ultra',
+    'sm-s928u': 'Samsung Galaxy S24 Ultra',
+    'sm-s911b': 'Samsung Galaxy S23',
+    'sm-s901b': 'Samsung Galaxy S22',
+    'sm-g991b': 'Samsung Galaxy S21',
+    'sm-g980f': 'Samsung Galaxy S20',
+  };
+
+  const modelLower = modelClean.toLowerCase();
+  const friendlyName = modelFriendlyMap[modelLower];
+
+  // 2. Resolve clean shortName, displayName, and technicalName
+  let shortName = 'Studio Device';
+  let displayName = 'Studio Device';
+  let technicalName = '';
+
   if (isNativeApp) {
     if (os === 'Android' && model !== 'Browser') {
-      deviceName = `Studio Android / ${manufacturer !== 'N/A' ? manufacturer + ' ' : ''}${model}`;
+      technicalName = `Studio Android / ${manufacturer !== 'N/A' ? manufacturer + ' ' : ''}${model}`;
+      shortName = friendlyName || (manufacturer !== 'N/A' ? `${manufacturer} ${modelClean}` : modelClean);
+      displayName = `Studio Android · ${shortName}`;
     } else {
-      deviceName = `Studio App (${os})`;
+      technicalName = `Studio App (${os})`;
+      shortName = `Studio App (${os})`;
+      displayName = `Studio App (${os})`;
     }
   } else {
-    deviceName = `Studio Web / ${browser} on ${os}`;
+    technicalName = `Studio Web / ${browser} on ${os}`;
+    shortName = `${browser} on ${os}`;
+    displayName = `Studio Web · ${shortName}`;
+  }
+
+  // 3. Resolve OS version
+  let osVersion = 'Unknown';
+  if (os === 'Windows') {
+    const m = ua.match(/Windows NT ([0-9.]+)/);
+    if (m) osVersion = m[1];
+  } else if (os === 'macOS') {
+    const m = ua.match(/Mac OS X ([0-9._]+)/);
+    if (m) osVersion = m[1].replace(/_/g, '.');
+  } else if (os === 'Android') {
+    const m = ua.match(/Android ([0-9.]+)/);
+    if (m) osVersion = m[1];
+  } else if (os === 'iOS') {
+    const m = ua.match(/OS ([0-9._]+) like Mac/);
+    if (m) osVersion = m[1].replace(/_/g, '.');
   }
 
   let deviceType = 'browser';
@@ -834,16 +938,20 @@ export function getDeviceDetails() {
 
   return {
     deviceId: deviceId(),
-    deviceName,
+    deviceName: shortName, // Older UI reads device.name, so return clean shortName!
+    shortName,
+    displayName,
+    technicalName,
     platform: isNativeApp ? 'android' : 'web',
     deviceType,
     browser: isNativeApp ? 'N/A' : browser,
     os,
+    osVersion,
     appVersion: APP_VERSION,
     apkVersion: isNativeApp ? APP_VERSION : null,
     otaVersion: isNativeApp ? APP_VERSION : null,
     buildType: isNativeApp ? 'native' : 'web',
-    model: model || 'Android device',
+    model: modelClean || 'Android device',
     manufacturer: manufacturer || 'N/A',
     userAgent: isNativeApp ? undefined : ua,
     isCurrentDevice: true,
@@ -1093,39 +1201,85 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
     return () => {};
   }
   const ref = collection(db, 'users', uid, 'devices');
-  const q = query(ref, orderBy('lastActiveAt', 'desc'));
-  return onSnapshot(q, (snap) => {
+  // Querying without orderBy prevents Firestore from omitting documents with missing or pending timestamp fields
+  return onSnapshot(ref, (snap) => {
     const list: any[] = [];
     const ids: string[] = [];
+    let renderingMe = false;
+    let others = 0;
+    let hidden = 0;
+    const filterReasons: string[] = [];
+
     snap.forEach((doc) => {
       const data = doc.data();
       ids.push(doc.id);
-      if (data.revokedAt != null) return; // Skip revoked devices
+      
+      if (data.revokedAt != null) {
+        hidden++;
+        filterReasons.push(`${doc.id}: revoked`);
+        return; // Skip revoked devices
+      }
+      
+      const isMe = doc.id === deviceId();
+      if (isMe) {
+        renderingMe = true;
+      } else {
+        others++;
+      }
       
       const lastActiveTimestamp = data.lastActiveAt || data.lastActive;
+      const lastActiveMs = lastActiveTimestamp?.toMillis 
+        ? lastActiveTimestamp.toMillis() 
+        : (typeof lastActiveTimestamp === 'number' 
+          ? lastActiveTimestamp 
+          : Date.now());
+
       list.push({
         id: doc.id,
-        name: data.deviceName || data.name || 'Unknown Device',
+        name: data.shortName || data.deviceName || data.name || 'Unknown Device',
         platform: data.platform || 'web',
         userAgent: data.userAgent || '',
-        lastActive: lastActiveTimestamp?.toMillis ? lastActiveTimestamp.toMillis() : (typeof lastActiveTimestamp === 'number' ? lastActiveTimestamp : Date.now()),
+        lastActive: lastActiveMs,
         appVersion: data.appVersion || 'Unknown',
         syncStatus: data.syncStatus || 'idle',
         signedIn: data.signedIn !== false,
-        buildType: data.buildType || (data.platform === 'native' ? 'native' : 'web'),
+        buildType: data.buildType || (data.platform === 'native' || data.platform === 'android' ? 'native' : 'web'),
         apkVersion: data.apkVersion || null,
         otaVersion: data.otaVersion || null,
+        shortName: data.shortName || '',
+        displayName: data.displayName || '',
+        technicalName: data.technicalName || data.deviceName || '',
+        model: data.model || '',
+        os: data.os || '',
+        osVersion: data.osVersion || '',
+        browser: data.browser || '',
       });
     });
+
+    // Sort by lastActive descending in memory
+    list.sort((a, b) => b.lastActive - a.lastActive);
+
     devicesSnapshotIds = ids;
     devicesSnapshotCount = snap.size;
     lastDevicesListenerError = 'None';
     lastDeviceSnapshotAt = new Date().toLocaleString();
+    
+    devicesRenderedCount = list.length;
+    currentDeviceMatchedInSnapshot = renderingMe;
+    otherDevicesCount = others;
+    hiddenDevicesCount = hidden;
+    hiddenDeviceReasons = filterReasons.join(', ') || 'None';
+
     setStatus({
       lastDevicesListenerError: 'None',
       devicesSnapshotCount: snap.size,
       lastDeviceSnapshotAt,
       deviceIdsReceived: ids,
+      devicesRenderedCount: list.length,
+      currentDeviceMatchedInSnapshot: renderingMe,
+      otherDevicesCount: others,
+      hiddenDevicesCount: hidden,
+      hiddenDeviceReasons: hiddenDeviceReasons,
     });
     callback(list);
   }, (err) => {
@@ -1133,10 +1287,21 @@ export function subscribeDevices(uid: string, callback: (devices: any[]) => void
     lastDevicesListenerError = err.message || String(err);
     devicesSnapshotCount = 0;
     devicesSnapshotIds = [];
+    devicesRenderedCount = 0;
+    currentDeviceMatchedInSnapshot = false;
+    otherDevicesCount = 0;
+    hiddenDevicesCount = 0;
+    hiddenDeviceReasons = `Listener error: ${lastDevicesListenerError}`;
+
     setStatus({
       lastDevicesListenerError: err.message || String(err),
       devicesSnapshotCount: 0,
       deviceIdsReceived: [],
+      devicesRenderedCount: 0,
+      currentDeviceMatchedInSnapshot: false,
+      otherDevicesCount: 0,
+      hiddenDevicesCount: 0,
+      hiddenDeviceReasons,
     });
     callback([]);
   });

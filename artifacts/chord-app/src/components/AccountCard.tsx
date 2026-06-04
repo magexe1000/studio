@@ -2634,7 +2634,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                               </span>
                               <div>
                                 <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)', margin: 0 }}>
-                                  {device.name} {isMe && `(${lang === 'es' ? 'Este dispositivo' : 'This device'})`}
+                                  {device.shortName || device.name} {isMe && `(${lang === 'es' ? 'Este dispositivo' : 'This device'})`}
                                 </p>
                                 <p style={{ fontFamily: 'Inter', fontSize: 11, color: isMe ? '#10b981' : 'var(--c-text-muted)', margin: '2px 0 0', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                                   <span>
@@ -2740,7 +2740,31 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           <strong>Auth UID:</strong> <code style={{ wordBreak: 'break-all' }}>{user.uid}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firebase Project ID:</strong> <code>{sync.firebaseProjectId || 'Not Configured'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firebase App ID:</strong> <code>{sync.firebaseAppId || 'Not Configured'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Auth Domain:</strong> <code>{sync.firebaseAuthDomain || 'Not Configured'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Storage Bucket:</strong> <code>{sync.firebaseStorageBucket || 'Not Configured'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Current deviceId:</strong> <code>{deviceId()}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Current platform:</strong> <code>{sync.currentDevicePlatform || 'web'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Device shortName:</strong> <code>{sync.shortName || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Device displayName:</strong> <code>{sync.displayName || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Device technicalName:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.technicalName || 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Device write path:</strong> <code style={{ wordBreak: 'break-all' }}>users/{user.uid}/devices/{deviceId()}</code>
@@ -2764,7 +2788,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           <strong>Last write error:</strong> <code style={{ color: sync.lastDeviceWriteError && sync.lastDeviceWriteError !== 'None' ? '#ef4444' : 'inherit', wordBreak: 'break-all' }}>{sync.lastDeviceWriteError || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Last write duration ms:</strong> <code>{sync.lastDeviceWriteDurationMs != null ? `${sync.lastDeviceWriteDurationMs}ms` : 'N/A'}</code>
+                          <strong>Last write duration ms:</strong> <code>{sync.lastDeviceWriteDurationMs != null ? `${sync.lastDeviceWriteDurationMs}` : 'N/A'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Last snapshot received:</strong> <code>{sync.lastDeviceSnapshotAt || 'Never'}</code>
@@ -2774,6 +2798,21 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Device IDs received:</strong> <code style={{ wordBreak: 'break-all' }}>{(sync.deviceIdsReceived && sync.deviceIdsReceived.length > 0) ? sync.deviceIdsReceived.join(', ') : 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Devices rendered count:</strong> <code>{sync.devicesRenderedCount ?? 0}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Current device matched in snapshot:</strong> <code>{sync.currentDeviceMatchedInSnapshot ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Other devices count:</strong> <code>{sync.otherDevicesCount ?? 0}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Hidden/filtered devices count:</strong> <code>{sync.hiddenDevicesCount ?? 0}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Hidden/filtered device reasons:</strong> <code style={{ wordBreak: 'break-all' }}>{sync.hiddenDeviceReasons || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Manual register button state:</strong> <code>{busy ? 'Busy' : 'Idle'}</code>
