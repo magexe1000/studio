@@ -886,6 +886,14 @@ export default function App() {
       if (subAppWrapperRef.current) {
         subAppWrapperRef.current.style.transform = '';
         subAppWrapperRef.current.style.transition = '';
+        subAppWrapperRef.current.style.display = 'none';
+        subAppWrapperRef.current.style.opacity = '0';
+        subAppWrapperRef.current.style.pointerEvents = 'none';
+      }
+      if (hubWrapperRef.current) {
+        hubWrapperRef.current.style.opacity = '1';
+        hubWrapperRef.current.style.pointerEvents = 'auto';
+        hubWrapperRef.current.style.transform = '';
       }
       // Remove any stuck modals or overlays
       document.querySelectorAll('.modal-backdrop, .overlay').forEach(el => {
@@ -1384,7 +1392,7 @@ export default function App() {
   if (settings.appMode && settings.appMode !== 'hub') {
     lastActiveAppRef.current = settings.appMode;
   }
-  const activeAppToRender = settings.appMode === 'hub' ? lastActiveAppRef.current : settings.appMode;
+  const activeAppToRender = (settings.appMode === 'hub' && !exitingToHub) ? null : (settings.appMode === 'hub' ? lastActiveAppRef.current : settings.appMode);
 
   // Groovex theme configuration
   const groovexIsAmoled = activeVis.amoledMode;

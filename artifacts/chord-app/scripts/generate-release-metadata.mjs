@@ -73,13 +73,13 @@ if (releaseType !== 'ota') {
     const firebaseApkDir = path.join(repoRoot, 'firebase-public/apk');
     fs.mkdirSync(firebaseApkDir, { recursive: true });
 
-    // Clean up old bin files to prevent clutter on deployment
+    // Clean up old bin and apk files to prevent clutter on deployment
     if (fs.existsSync(firebaseApkDir)) {
       const files = fs.readdirSync(firebaseApkDir);
       for (const file of files) {
-        if (file.endsWith('.bin')) {
+        if (file.endsWith('.bin') || file.endsWith('.apk')) {
           fs.unlinkSync(path.join(firebaseApkDir, file));
-          console.log(`generate-release-metadata: Cleaned up old bin file: ${file}`);
+          console.log(`generate-release-metadata: Cleaned up old file: ${file}`);
         }
       }
     }

@@ -362,6 +362,20 @@ export default function StudioHub() {
     }
   }, [settings.appMode]);
 
+  // Safety watchdog: recover from stuck zooming state on the Hub
+  useEffect(() => {
+    let watchdogTimer: ReturnType<typeof setTimeout> | undefined;
+    if (settings.appMode === 'hub' && zooming) {
+      watchdogTimer = setTimeout(() => {
+        console.warn('[Safety] Hub zooming stuck on Hub mode for too long, forcing reset.');
+        setZooming(false);
+      }, 600);
+    }
+    return () => {
+      if (watchdogTimer) clearTimeout(watchdogTimer);
+    };
+  }, [settings.appMode, zooming]);
+
   useEffect(() => {
     const handleReset = () => {
       setZooming(false);
