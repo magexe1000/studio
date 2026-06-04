@@ -36,23 +36,30 @@ function assert(condition, message, exitCode = EXIT_CODES.APP_INSTALLER_VALIDATI
 const releaseType = process.env.RELEASE_TYPE || 'both';
 if (process.env.CI) {
   try {
-    console.log(`Checking for native changes in CI environment (releaseType: ${releaseType})...`);
+    console.log(`Checking for native or update-system changes in CI environment (releaseType: ${releaseType})...`);
     const changedFiles = execSync('git diff --name-only HEAD^ HEAD', { encoding: 'utf8' })
       .split('\n')
       .map(f => f.trim())
       .filter(Boolean);
     
-    // Check if any native files changed
-    const nativeFiles = changedFiles.filter(f => f.startsWith('artifacts/chord-app/android/'));
+    // Check if any native files or update-system files changed
+    const nativeFiles = changedFiles.filter(f => 
+      f.startsWith('artifacts/chord-app/android/') ||
+      f === 'artifacts/chord-app/src/lib/apkDownloader.ts' ||
+      f === 'artifacts/chord-app/src/lib/capgoUpdater.ts' ||
+      f === 'artifacts/chord-app/src/lib/otaUpdate.ts' ||
+      f === 'artifacts/chord-app/scripts/validate-app-installer.mjs' ||
+      f === 'artifacts/chord-app/scripts/generate-release-metadata.mjs'
+    );
     if (nativeFiles.length > 0) {
       assert(
         releaseType !== 'ota',
-        `Native files changed but releaseType is '${releaseType}'! The release type must be 'apk' or 'both' to upgrade native wrappers. Changed native files:\n${nativeFiles.join('\n')}`,
+        `Native or update-system files changed but releaseType is '${releaseType}'! The release type must be 'apk' or 'both' to upgrade native wrappers. Changed files:\n${nativeFiles.join('\n')}`,
         EXIT_CODES.RELEASE_VALIDATION
       );
-      console.log('✓ Release type is correctly set for native changes.');
+      console.log('✓ Release type is correctly set for native / update-system changes.');
     } else {
-      console.log('✓ No native changes detected.');
+      console.log('✓ No native or update-system changes detected.');
     }
   } catch (err) {
     console.warn('validate-app-installer: Warning: Could not verify changed files using git:', err.message);

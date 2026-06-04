@@ -37,6 +37,9 @@ export let otaDebugLogs: {
   fetchedAppReleaseJson: string | null;
   compareResult: number | null;
   updateType: string | null;
+  remoteUpdateType: string | null;
+  otaBlockedBecauseApkRequired: boolean;
+  apkEligibilityResult: string;
   finalDecision: string | null;
   downloadStatus: string | null;
   installError: string | null;
@@ -65,6 +68,9 @@ export let otaDebugLogs: {
   fetchedAppReleaseJson: null,
   compareResult: null,
   updateType: null,
+  remoteUpdateType: null,
+  otaBlockedBecauseApkRequired: false,
+  apkEligibilityResult: 'N/A',
   finalDecision: null,
   downloadStatus: null,
   installError: null,
@@ -545,6 +551,8 @@ export interface CentralizedOtaState {
   progress: number;
   error: string | null;
   updateType: 'ota' | 'apk' | 'both' | 'none';
+  remoteUpdateType: 'ota' | 'apk' | 'both' | 'none';
+  otaBlockedBecauseApkRequired: boolean;
   apkUrl: string | null;
   apkSha256: string | null;
   manualApkUrl: string | null;
@@ -568,6 +576,8 @@ let globalOtaState: CentralizedOtaState = {
   progress: 0,
   error: null,
   updateType: 'none',
+  remoteUpdateType: 'none',
+  otaBlockedBecauseApkRequired: false,
   apkUrl: null,
   apkSha256: null,
   manualApkUrl: null,
@@ -598,6 +608,8 @@ export function resetOtaUpdateState() {
     error: null,
     progress: 0,
     updateType: 'none',
+    remoteUpdateType: 'none',
+    otaBlockedBecauseApkRequired: false,
     apkUrl: null,
     apkSha256: null,
     manualApkUrl: null,
@@ -789,13 +801,16 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 
         // Force APK updates if native wrapper is behind the required version code
         if (apkUpdateRequired) {
-          if (updateType === 'ota' || (updateType as string) === 'none') {
-            updateType = 'apk';
-          }
+          updateType = 'apk';
         }
       }
 
+      const otaBlockedBecauseApkRequired = apkUpdateRequired && (remote.updateType === 'ota' || remote.updateType === 'both');
+
       otaDebugLogs.updateType = updateType;
+      otaDebugLogs.remoteUpdateType = remote.updateType || 'none';
+      otaDebugLogs.otaBlockedBecauseApkRequired = otaBlockedBecauseApkRequired;
+      otaDebugLogs.apkEligibilityResult = 'N/A';
 
       if (updateType === 'none') {
         console.log('[OTA DEBUG] Skip: updateType evaluated to "none" because remote.version <= APP_VERSION and no APK update required.', {
@@ -808,6 +823,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           updateState: 'idle',
           updateAvailable: false,
           updateType: 'none',
+          remoteUpdateType: remote.updateType || 'none',
+          otaBlockedBecauseApkRequired: false,
           loading: false,
           requiredApkVersion: remote.requiredApkVersion ?? null,
           requiredVersionCode: remote.requiredVersionCode ?? null,
@@ -849,6 +866,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           updateState: 'idle',
           updateAvailable: false,
           updateType,
+          remoteUpdateType: remote.updateType || 'none',
+          otaBlockedBecauseApkRequired,
           loading: false,
           requiredApkVersion: remote.requiredApkVersion ?? null,
           requiredVersionCode: remote.requiredVersionCode ?? null,
@@ -858,19 +877,39 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         return globalOtaState;
       }
 
-      const cap = (window as any).Capacitor;
-      const isNativePlat = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
-      
       // Determine final update path
-      let finalPath: 'OTA only' | 'APK automatic' | 'manual APK required' | 'no update' = 'no update';
-      if (updateType === 'ota') {
-        finalPath = 'OTA only';
-      } else if (updateType === 'apk' || updateType === 'both') {
-        if (isNativePlat) {
-          const avail = isAppInstallerAvailable();
-          finalPath = avail ? 'APK automatic' : 'manual APK required';
+      let finalPath: 'OTA only' | 'APK first' | 'both: APK first then OTA' | 'manual recovery required' | 'no update' = 'no update';
+      if (!updateAvailable) {
+        finalPath = 'no update';
+      } else if (isNative()) {
+        const isAppInstallerAvail = isAppInstallerAvailable();
+        if (apkUpdateRequired) {
+          if (!isAppInstallerAvail) {
+            finalPath = 'manual recovery required';
+          } else if (remote.updateType === 'both') {
+            finalPath = 'both: APK first then OTA';
+          } else {
+            finalPath = 'APK first';
+          }
         } else {
-          finalPath = 'manual APK required';
+          // Native wrapper is up to date
+          if (remote.updateType === 'ota') {
+            finalPath = 'OTA only';
+          } else {
+            // remote is both or apk
+            if (natVer && compareSemver(remote.version, natVer) > 0) {
+              finalPath = isAppInstallerAvail ? 'APK first' : 'manual recovery required';
+            } else {
+              finalPath = 'OTA only'; // Native is already up to date, just OTA
+            }
+          }
+        }
+      } else {
+        // Web/PWA
+        if (remote.updateType === 'ota') {
+          finalPath = 'OTA only';
+        } else {
+          finalPath = 'manual recovery required';
         }
       }
       otaDebugLogs.finalUpdatePath = finalPath;
@@ -905,6 +944,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         mandatory: remote.mandatory === true,
         downloadUrl: remote.downloadUrl ?? null,
         updateType,
+        remoteUpdateType: remote.updateType || 'none',
+        otaBlockedBecauseApkRequired,
         apkUrl,
         apkSha256: remote.apkSha256 ?? null,
         manualApkUrl,
@@ -1258,6 +1299,7 @@ export function applyUpdate(): Promise<void> {
         updateGlobalState({ statusText: 'Verifying update eligibility' });
 
         const eligibility = await checkApkEligibility(filePath);
+        otaDebugLogs.apkEligibilityResult = eligibility.eligible ? 'eligible' : (eligibility.reason || 'unknown');
         if (!eligibility.eligible) {
           let userMessage = 'Installation eligibility check failed. The update cannot be installed.';
           if (eligibility.reason === 'versionCode_low') {

@@ -2309,27 +2309,31 @@ function HubSettings({
             onClick={() => {
               const debugLogsText = [
                 '=== COMPREHENSIVE DEBUG LOGS ===',
-                `App Version: ${otaDebugLogs.appVersion}`,
-                `APK Version: ${otaDebugLogs.nativeApkVersion}`,
+                `App Version / JS Version: ${otaDebugLogs.appVersion}`,
                 `OTA Version: ${otaDebugLogs.currentOtaVersion}`,
-                `Installed APK versionCode: ${otaDebugLogs.installedVersionCode}`,
-                `Required APK version: ${otaDebugLogs.requiredApkVersion}`,
-                `Required versionCode: ${otaDebugLogs.requiredVersionCode}`,
-                `Native APK behind: ${otaDebugLogs.nativeApkBehind}`,
+                `APK Version: ${otaDebugLogs.nativeApkVersion}`,
+                `installed versionCode: ${otaDebugLogs.installedVersionCode}`,
+                `remote version: ${ota.remoteVersion || 'N/A'}`,
+                `remote updateType: ${otaDebugLogs.remoteUpdateType}`,
+                `requiredApkVersion: ${otaDebugLogs.requiredApkVersion}`,
+                `requiredVersionCode: ${otaDebugLogs.requiredVersionCode}`,
+                `installed APK behind: ${otaDebugLogs.nativeApkBehind}`,
                 `APK update required: ${otaDebugLogs.apkUpdateRequired}`,
-                `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
+                `OTA blocked because APK required: ${otaDebugLogs.otaBlockedBecauseApkRequired}`,
+                `AppInstaller available: ${otaDebugLogs.appInstallerAvailable}`,
+                `APK eligibility result: ${otaDebugLogs.apkEligibilityResult}`,
+                `final update path: ${otaDebugLogs.finalUpdatePath}`,
+                `reason for final decision: ${otaDebugLogs.finalDecision}`,
                 `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
                 `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
                 `installApk Available: ${otaDebugLogs.installApkAvailable}`,
                 `openInstallPermissionSettings Available: ${otaDebugLogs.openInstallPermissionSettingsAvailable}`,
                 `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
                 `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
-                `Final Update Path: ${otaDebugLogs.finalUpdatePath}`,
                 `Fetched version.json: ${otaDebugLogs.fetchedVersionJson}`,
                 `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson}`,
                 `Comparison Result: ${otaDebugLogs.compareResult}`,
                 `Update Type: ${otaDebugLogs.updateType}`,
-                `Final Decision: ${otaDebugLogs.finalDecision}`,
                 `Download Status: ${otaDebugLogs.downloadStatus}`,
                 `SHA Verification: ${otaDebugLogs.shaVerification}`,
                 `File Details: ${otaDebugLogs.fileDetails}`,
@@ -2363,27 +2367,32 @@ function HubSettings({
         </div>
 
         <div style={cardStyle}>
-          <DebugRow label="Current App Version" desc="The hardcoded version in the app bundle (APP_VERSION)" value={otaDebugLogs.appVersion} />
-          <DebugRow label="Current APK Version" desc="The native Android APK version wrapper" value={otaDebugLogs.nativeApkVersion} />
-          <DebugRow label="Current OTA Version" desc="The Capgo active bundle version" value={otaDebugLogs.currentOtaVersion} />
-          <DebugRow label="Installed APK versionCode" desc="The version code of the installed native wrapper" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
-          <DebugRow label="Required APK version" desc="The native wrapper version required by this release" value={otaDebugLogs.requiredApkVersion} />
-          <DebugRow label="Required versionCode" desc="The native versionCode required by this release" value={otaDebugLogs.requiredVersionCode !== null ? String(otaDebugLogs.requiredVersionCode) : 'N/A'} />
-          <DebugRow label="Native APK behind" desc="Whether the installed wrapper versionCode is below required" value={String(otaDebugLogs.nativeApkBehind)} />
+          <DebugRow label="App Version / JS Version" desc="The hardcoded version in the app bundle (APP_VERSION)" value={otaDebugLogs.appVersion} />
+          <DebugRow label="OTA Version" desc="The Capgo active bundle version" value={otaDebugLogs.currentOtaVersion} />
+          <DebugRow label="APK Version" desc="The native Android APK version wrapper" value={otaDebugLogs.nativeApkVersion} />
+          <DebugRow label="installed versionCode" desc="The version code of the installed native wrapper" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
+          <DebugRow label="remote version" desc="The latest version released on the remote server" value={ota.remoteVersion} />
+          <DebugRow label="remote updateType" desc="The updateType specified in the remote manifest" value={otaDebugLogs.remoteUpdateType} />
+          <DebugRow label="requiredApkVersion" desc="The native wrapper version required by this release" value={otaDebugLogs.requiredApkVersion} />
+          <DebugRow label="requiredVersionCode" desc="The native versionCode required by this release" value={otaDebugLogs.requiredVersionCode !== null ? String(otaDebugLogs.requiredVersionCode) : 'N/A'} />
+          <DebugRow label="installed APK behind" desc="Whether the installed wrapper versionCode is below required" value={String(otaDebugLogs.nativeApkBehind)} />
           <DebugRow label="APK update required" desc="Whether the native app wrapper must be upgraded" value={String(otaDebugLogs.apkUpdateRequired)} />
-          <DebugRow label="AppInstaller Available" desc="Whether the native AppInstaller Capacitor plugin is loaded" value={String(otaDebugLogs.appInstallerAvailable)} />
+          <DebugRow label="OTA blocked because APK required" desc="Whether OTA updates are blocked due to outdated native shell" value={String(otaDebugLogs.otaBlockedBecauseApkRequired)} />
+          <DebugRow label="AppInstaller available" desc="Whether the native AppInstaller Capacitor plugin is loaded" value={String(otaDebugLogs.appInstallerAvailable)} />
+          <DebugRow label="APK eligibility result" desc="Outcome of downloaded APK eligibility validation checks" value={otaDebugLogs.apkEligibilityResult} />
+          <DebugRow label="final update path" desc="The determined path for updating: OTA, APK first, both, or none" value={otaDebugLogs.finalUpdatePath} highlightColor={accent.from} />
+          <DebugRow label="reason for final decision" desc="Final determination of the update flow" value={otaDebugLogs.finalDecision} highlightColor={accent.from} />
+          
           <DebugRow label="downloadApk Available" desc="Whether downloadApk method is available on AppInstaller" value={String(otaDebugLogs.downloadApkAvailable)} />
           <DebugRow label="verifyApkSha256 Available" desc="Whether verifyApkSha256 method is available on AppInstaller" value={String(otaDebugLogs.verifyApkSha256Available)} />
           <DebugRow label="installApk Available" desc="Whether installApk method is available on AppInstaller" value={String(otaDebugLogs.installApkAvailable)} />
           <DebugRow label="openInstallPermissionSettings Available" desc="Whether openInstallPermissionSettings method is available on AppInstaller" value={String(otaDebugLogs.openInstallPermissionSettingsAvailable)} />
           <DebugRow label="Registered Plugins" desc="List of all registered native Capacitor plugins" value={otaDebugLogs.registeredPlugins} />
           <DebugRow label="Plugin Method Check" desc="Verification of required plugin methods" value={otaDebugLogs.pluginMethodCheck} />
-          <DebugRow label="Final Update Path" desc="The determined path for updating: OTA, APK automatic, manual, or none" value={otaDebugLogs.finalUpdatePath} highlightColor={accent.from} />
-          <DebugRow label="Fetched version.json" desc="The version read from version.json" value={otaDebugLogs.fetchedVersionJson} />
-          <DebugRow label="Fetched app-release.json" desc="The version read from app-release.json" value={otaDebugLogs.fetchedAppReleaseJson} />
+          <DebugRow label="Fetched version.json" desc="The full body read from version.json" value={otaDebugLogs.fetchedVersionJson} />
+          <DebugRow label="Fetched app-release.json" desc="The full body read from app-release.json" value={otaDebugLogs.fetchedAppReleaseJson} />
           <DebugRow label="Comparison Result" desc="Semver comparison result (positive means remote is newer)" value={otaDebugLogs.compareResult !== null ? String(otaDebugLogs.compareResult) : 'N/A'} />
-          <DebugRow label="Update Type" desc="Evaluated updateType ('ota', 'apk', 'both', 'none')" value={otaDebugLogs.updateType} />
-          <DebugRow label="Final Decision" desc="Final determination of the update flow" value={otaDebugLogs.finalDecision} highlightColor={accent.from} />
+          <DebugRow label="Update Type" desc="Evaluated client-side updateType ('ota', 'apk', 'both', 'none')" value={otaDebugLogs.updateType} />
           <DebugRow label="Download Status" desc="Download steps, URLs, and status" value={otaDebugLogs.downloadStatus} />
           <DebugRow label="SHA Verification" desc="Result of computed APK hash check" value={otaDebugLogs.shaVerification} />
           <DebugRow label="File Details" desc="Downloaded APK details" value={otaDebugLogs.fileDetails} />

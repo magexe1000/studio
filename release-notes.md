@@ -1,10 +1,9 @@
 ### Fixed
-- Fixed mixed OTA/APK version state where App Version could advance while APK Version stayed behind.
-- Added required APK version enforcement.
-- Prevented OTA-only updates when native APK updates are required.
-- Added diagnostics for “Native APK behind” and “APK update required”.
-- Improved release classification for ota/apk/both updates.
+- Fixed APK-required updates to always open the native Android installer.
+- Blocked silent OTA updates when the native APK version is behind the required versionCode.
+- Disabled Capgo auto OTA bundle apply for APK-required releases to avoid WebView reload loop.
+- Expanded pipeline guards to fail-fast if native or update-system files change in OTA releases.
 
 ### Improved
-- Safer update flow for users with older native wrappers.
-- Better recovery path when APK Version is behind App/OTA Version.
+- Enhanced update diagnostics and checklists in Developer Options.
+- Added detailed final update path logic for native wrappers.
