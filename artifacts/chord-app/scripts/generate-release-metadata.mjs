@@ -243,7 +243,7 @@ const metadata = {
   downloadUrl: `https://studio-30f44.web.app/ota/studio-ota-${version}.zip`,
   signature_download_url: "",
   sha256: sha256,
-  update_type: releaseType,
+  update_type: releaseType === 'both' ? 'apk' : releaseType,
   required_apk_version: requiredApkVersion,
   required_version_code: requiredVersionCode,
   requiredApkVersion: requiredApkVersion,
@@ -280,7 +280,7 @@ try {
         data.manualApkUrl = `https://studio-30f44.web.app/apk/studio-${version}.apk`;
         data.fallbackApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
         data.sha256 = sha256;
-        data.updateType = releaseType;
+        data.updateType = releaseType === 'both' ? 'apk' : releaseType;
         data.versionCode = versionCode;
         data.signatures = signatures;
         data.requiredApkVersion = requiredApkVersion;
