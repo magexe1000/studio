@@ -19,7 +19,7 @@ import {
   getSignInProviders,
   type AuthUser,
 } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus, subscribeDevices, deviceId, revokeDeviceSession, resolveMigration } from '../lib/sync';
+import { subscribeSyncStatus, syncNow, retrySync, type SyncStatus, subscribeDevices, deviceId, revokeDeviceSession, resolveMigration, registerDevice } from '../lib/sync';
 import { scheduleAccountDeletion, disableAccount } from '../lib/accountStatus';
 import { useT } from '../lib/useT';
 import { useChordStore } from '../store/useChordStore';
@@ -1248,12 +1248,14 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
   const [err, setErr] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [devices, setDevices] = useState<any[]>([]);
+  const [showDbDiag, setShowDbDiag] = useState(false);
 
   useEffect(() => {
     if (!user || sheet !== 'devices-sessions') {
       setDevices([]);
       return;
     }
+    void registerDevice(user.uid);
     const unsub = subscribeDevices(user.uid, setDevices);
     return unsub;
   }, [user, sheet]);
@@ -2579,9 +2581,9 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                   {devices.length === 0 ? (
                     <div style={{
                       padding: '16px 20px',
-                      background: 'rgba(239, 68, 68, 0.05)',
+                      background: sync.deviceRegistrationStatus === 'failed' ? 'rgba(239, 68, 68, 0.05)' : 'rgba(128,128,128,0.05)',
                       borderRadius: 14,
-                      border: '1px solid rgba(239, 68, 68, 0.15)',
+                      border: sync.deviceRegistrationStatus === 'failed' ? '1px solid rgba(239, 68, 68, 0.15)' : '1px solid rgba(128,128,128,0.12)',
                       fontFamily: 'Inter',
                       fontSize: '12.5px',
                       color: 'var(--c-text-primary)',
@@ -2590,25 +2592,23 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                       gap: 8,
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="material-symbols-outlined" style={{ color: '#ef4444', fontSize: 20 }}>warning</span>
-                        <span style={{ fontWeight: 800, fontSize: 14, color: '#ef4444', fontFamily: 'Manrope' }}>
-                          {lang === 'es' ? 'No se encontraron dispositivos' : 'No Devices Detected'}
+                        <span className="material-symbols-outlined" style={{ color: sync.deviceRegistrationStatus === 'failed' ? '#ff6b6b' : '#f59e0b', fontSize: 20 }}>
+                          {sync.deviceRegistrationStatus === 'failed' ? 'error' : sync.deviceRegistrationStatus === 'registered' ? 'sync' : 'hourglass_empty'}
+                        </span>
+                        <span style={{ fontWeight: 800, fontSize: 14, color: sync.deviceRegistrationStatus === 'failed' ? '#ff6b6b' : 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
+                          {sync.deviceRegistrationStatus === 'failed' 
+                            ? (lang === 'es' ? 'No se pudo registrar el dispositivo' : 'Studio could not register this device.')
+                            : sync.deviceRegistrationStatus === 'registered'
+                            ? (lang === 'es' ? 'Buscando dispositivos...' : 'Checking devices...')
+                            : (lang === 'es' ? 'El registro del dispositivo no ha terminado' : 'Device registration has not completed yet.')}
                         </span>
                       </div>
                       <p style={{ margin: 0, fontSize: 12, lineHeight: 1.4, color: 'var(--c-text-secondary)' }}>
-                        {lang === 'es' 
-                          ? 'Si esta sesión está iniciada pero el dispositivo actual no aparece, confirma la conectividad de Firebase y los diagnósticos detallados a continuación.'
-                          : 'If this session is signed in but the current device does not list, verify Firebase connectivity and details below.'}
-                      </p>
-                      <div style={{ height: 1, background: 'rgba(128,128,128,0.1)', margin: '4px 0' }} />
-                      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
-                        <strong>{lang === 'es' ? 'Colección:' : 'Collection:'}</strong> <code style={{ wordBreak: 'break-all', fontSize: 11 }}>users/{user.uid}/devices</code>
-                      </p>
-                      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
-                        <strong>{lang === 'es' ? 'Error del Listener:' : 'Listener Error:'}</strong> <code style={{ color: sync.lastDevicesListenerError && sync.lastDevicesListenerError !== 'None' ? '#ef4444' : 'var(--c-text-primary)', fontSize: 11 }}>{sync.lastDevicesListenerError || 'None'}</code>
-                      </p>
-                      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
-                        <strong>{lang === 'es' ? 'Documentos recibidos:' : 'Documents Received:'}</strong> <code style={{ fontSize: 11 }}>{sync.devicesSnapshotCount ?? 0}</code>
+                        {sync.deviceRegistrationStatus === 'failed'
+                          ? (lang === 'es' ? 'Error al registrar el dispositivo. Revise los diagnósticos a continuación.' : 'Failed to register this device. Review the diagnostics below.')
+                          : sync.deviceRegistrationStatus === 'registered'
+                          ? (lang === 'es' ? 'Se ha registrado el dispositivo, pero no se recibieron documentos de la nube.' : 'Device registered successfully, but no device documents were received.')
+                          : (lang === 'es' ? 'Studio está registrando este dispositivo en la nube...' : 'Studio is registering this device to the cloud...')}
                       </p>
                     </div>
                   ) : (
@@ -2630,7 +2630,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <span className="material-symbols-outlined" style={{ fontSize: 20, color: isMe ? 'var(--accent-to, #a855f7)' : 'var(--c-text-primary)', opacity: isMe ? 1 : 0.7 }}>
-                                {device.platform === 'native' ? 'smartphone' : 'laptop_mac'}
+                                {device.platform === 'native' || device.platform === 'android' ? 'smartphone' : 'laptop_mac'}
                               </span>
                               <div>
                                 <p style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)', margin: 0 }}>
@@ -2699,7 +2699,108 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                       })}
                     </div>
                   )}
-                  
+
+                  {/* Sync Diagnostics & Debug section */}
+                  <div style={{ marginTop: 6 }}>
+                    <button
+                      onClick={() => setShowDbDiag(!showDbDiag)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: accent.from,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        fontFamily: 'Manrope',
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                        {showDbDiag ? 'expand_less' : 'expand_more'}
+                      </span>
+                      {lang === 'es' ? 'Ver diagnósticos de sincronización' : 'View Sync Diagnostics'}
+                    </button>
+                    {showDbDiag && (
+                      <div style={{
+                        marginTop: 10,
+                        padding: '12px 14px',
+                        background: 'rgba(128,128,128,0.05)',
+                        borderRadius: 12,
+                        border: '1px solid rgba(128,128,128,0.1)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                      }}>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Auth UID:</strong> <code style={{ wordBreak: 'break-all' }}>{user.uid}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Current deviceId:</strong> <code>{deviceId()}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Device write path:</strong> <code style={{ wordBreak: 'break-all' }}>users/{user.uid}/devices/{deviceId()}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Device listener path:</strong> <code style={{ wordBreak: 'break-all' }}>users/{user.uid}/devices</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last write success:</strong> <code>{sync.lastDeviceWriteSuccess || 'Never'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last write error:</strong> <code style={{ color: sync.lastDeviceWriteError && sync.lastDeviceWriteError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.lastDeviceWriteError || 'None'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Registration status:</strong> <code style={{ textTransform: 'capitalize', color: sync.deviceRegistrationStatus === 'registered' ? '#10b981' : sync.deviceRegistrationStatus === 'failed' ? '#ef4444' : '#f59e0b' }}>{sync.deviceRegistrationStatus || 'pending'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firestore state:</strong> <code>{window.navigator.onLine ? 'Online' : 'Offline'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Documents received:</strong> <code>{sync.devicesSnapshotCount ?? 0}</code>
+                        </p>
+                        
+                        <button
+                          onClick={async () => {
+                            setBusy(true);
+                            try {
+                              await registerDevice(user.uid);
+                              showToast(lang === 'es' ? '¡Registro completado!' : 'Registration complete!');
+                            } catch (e: any) {
+                              showToast(`Error: ${e.message || String(e)}`);
+                            } finally {
+                              setBusy(false);
+                            }
+                          }}
+                          disabled={busy}
+                          style={{
+                            marginTop: 8,
+                            padding: '8px 12px',
+                            borderRadius: 8,
+                            background: accent.from,
+                            color: '#fff',
+                            border: 'none',
+                            fontWeight: 700,
+                            fontFamily: 'Manrope',
+                            fontSize: 11,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>app_registration</span>
+                          {lang === 'es' ? 'Registrar este dispositivo ahora' : 'Register this device now'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <div style={{ height: 1, background: 'rgba(128,128,128,0.1)', margin: '4px 0' }} />
                   
                   <button

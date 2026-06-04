@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { useBackHandler } from '../lib/backStack';
 import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud } from '../lib/sync';
+import { subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice } from '../lib/sync';
 import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useNavHidden, useNavCollapsed, useScrollHide } from '../lib/navScroll';
@@ -2917,6 +2917,16 @@ function HubSettings({
           <DevCollapsibleRow label="Capacitor Preferences Dump" desc="Read values in Capacitor Preferences storage" value={preferencesDump} canCopy />
           
           <DevButtonRow label="Force Sync Now" desc="Bypass all throttling and trigger cloud sync" actionLabel="Sync Now" actionId="force-sync" onPress={handleForceSyncNow} />
+          <DevButtonRow label="Register This Device Now" desc="Manually write/update this device document in Firestore" actionLabel="Register" actionId="register-device-now" onPress={async () => {
+            if (!authUser?.uid) {
+              showDevToast('Error: Not signed in');
+              return;
+            }
+            await wrapAction('register-device-now', async () => {
+              await registerDevice(authUser.uid);
+              showDevToast('Device registration completed.');
+            });
+          }} />
           <DevButtonRow label="Push Local Settings to Cloud" desc="Overwrite cloud profile/settings with this device's state" actionLabel="Push Settings" actionId="push-settings" onPress={async () => {
             if (window.confirm('Overwrite cloud settings with local state?')) {
               await wrapAction('push-settings', pushLocalSettingsToCloud);

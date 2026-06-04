@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.3'; // Fix real cloud sync device registration
+export const APP_VERSION = '3.6.4'; // Fix real cloud sync device registration
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.3
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.4
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -55,19 +55,18 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Added stronger Sync Diagnostics for device registration and Firestore listener state.",
-      "Improved Devices & Sessions accuracy across Web and Android.",
-      "Improved sync failure reporting.",
+      "Improved Devices & Sessions reliability across Android and Web.",
+      "Improved current device detection and last active tracking.",
+      "Improved cross-device session visibility.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed Android device not registering in Devices & Sessions.",
-      "Fixed Web and Android sessions not seeing each other.",
-      "Fixed Cloud Sync listeners appearing active without actual cross-device data updates.",
-      "Fixed theme, accent color, profile name, and profile photo sync not propagating between devices.",
-      "Fixed sync errors being hidden or treated as successful.",
+      "Fixed Devices & Sessions showing no devices even when signed in.",
+      "Fixed current device registration not writing to Firestore.",
+      "Fixed missing device documents under users/{uid}/devices.",
+      "Added diagnostics for device write status and listener status.",
     ],
   },
 ];
@@ -78,19 +77,18 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
-      "Se corrigió el registro de dispositivos Android en Dispositivos y sesiones.",
-      "Se corrigió que las sesiones de Web y Android no se detectaran entre sí.",
-      "Se corrigieron los listeners de sincronización activa sin cambios reales.",
-      "Se corrigió la sincronización de temas, colores, nombres y fotos de perfil.",
-      "Se corrigió el ocultamiento de errores de sincronización.",
+      "Se corrigió que Dispositivos y sesiones no mostrara ningún dispositivo al iniciar sesión.",
+      "Se corrigió que el registro del dispositivo actual no se escribiera en Firestore.",
+      "Se corrigió la falta de documentos de dispositivos bajo users/{uid}/devices.",
+      "Se agregaron diagnósticos para el estado de escritura y listener de dispositivos.",
     ],
   },
   {
     heading: "Mejorado",
     items: [
-      "Se agregaron diagnósticos de sincronización de Firebase y listeners en UI.",
-      "Se mejoró la precisión de Dispositivos y sesiones en Web y Android.",
-      "Se mejoró el reporte de fallos de sincronización.",
+      "Se mejoró la confiabilidad de Dispositivos y sesiones en Android y Web.",
+      "Se mejoró la detección del dispositivo actual y el seguimiento de actividad.",
+      "Se mejoró la visibilidad de sesiones entre dispositivos.",
     ],
   },
 ];

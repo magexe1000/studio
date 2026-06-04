@@ -150,6 +150,9 @@ export type SyncStatus = {
   migrationChoice: 'merge' | 'upload' | 'download' | 'notNow' | null;
   lastDevicesListenerError?: string | null;
   devicesSnapshotCount?: number;
+  lastDeviceWriteError?: string | null;
+  lastDeviceWriteSuccess?: string | null;
+  deviceRegistrationStatus?: 'pending' | 'registered' | 'failed';
 };
 
 type Listener = (s: SyncStatus) => void;
@@ -475,6 +478,9 @@ let status: SyncStatus = {
   migrationChoice: null,
   lastDevicesListenerError: null,
   devicesSnapshotCount: 0,
+  lastDeviceWriteError: null,
+  lastDeviceWriteSuccess: null,
+  deviceRegistrationStatus: 'pending',
 };
 let stageIframe: HTMLIFrameElement | null = null;
 let stageSnapshotResolvers: Array<(s: StagexSnapshot) => void> = [];
@@ -663,15 +669,86 @@ function writeFirstPullDone(uid: string): void {
   } catch { /* noop */ }
 }
 
+let cachedDeviceId: string | null = null;
+
 export function deviceId(): string {
+  if (cachedDeviceId) return cachedDeviceId;
   try {
-    let id = localStorage.getItem(DEVICE_ID_KEY);
-    if (!id) {
-      id = `dev_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
-      localStorage.setItem(DEVICE_ID_KEY, id);
+    const id = localStorage.getItem('studioDeviceId');
+    if (id) {
+      cachedDeviceId = id;
+      return id;
     }
-    return id;
-  } catch { return 'dev_unknown'; }
+  } catch (e) {}
+
+  const platform = isNative() ? 'android' : 'web';
+  const randomUUID = typeof crypto !== 'undefined' && crypto.randomUUID 
+    ? crypto.randomUUID() 
+    : `dev-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
+  const newId = `${platform}-${randomUUID}`;
+  cachedDeviceId = newId;
+
+  try {
+    localStorage.setItem('studioDeviceId', newId);
+  } catch (e) {}
+
+  if (isNative()) {
+    import('@capacitor/preferences').then(({ Preferences }) => {
+      Preferences.set({ key: 'studioDeviceId', value: newId }).catch((err) => {
+        console.warn('[sync] failed to set native Preferences deviceId:', err);
+      });
+    }).catch(() => {});
+  }
+
+  return newId;
+}
+
+export async function initializeDeviceId(): Promise<string> {
+  if (cachedDeviceId) return cachedDeviceId;
+  
+  try {
+    const id = localStorage.getItem('studioDeviceId');
+    if (id) {
+      cachedDeviceId = id;
+      return id;
+    }
+  } catch (e) {}
+
+  if (isNative()) {
+    try {
+      const { Preferences } = await import('@capacitor/preferences');
+      const { value } = await Preferences.get({ key: 'studioDeviceId' });
+      if (value) {
+        cachedDeviceId = value;
+        try {
+          localStorage.setItem('studioDeviceId', value);
+        } catch {}
+        return value;
+      }
+    } catch (e) {
+      console.warn('[sync] error loading deviceId from Preferences:', e);
+    }
+  }
+
+  const platform = isNative() ? 'android' : 'web';
+  const randomUUID = typeof crypto !== 'undefined' && crypto.randomUUID 
+    ? crypto.randomUUID() 
+    : `${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
+  const newId = `${platform}-${randomUUID}`;
+  cachedDeviceId = newId;
+
+  try {
+    localStorage.setItem('studioDeviceId', newId);
+  } catch {}
+
+  if (isNative()) {
+    try {
+      const { Preferences } = await import('@capacitor/preferences');
+      await Preferences.set({ key: 'studioDeviceId', value: newId });
+    } catch {}
+  }
+
+  return newId;
 }
 
 export function getDeviceDetails() {
@@ -717,30 +794,32 @@ export function getDeviceDetails() {
   let deviceName = '';
   if (isNativeApp) {
     if (os === 'Android' && model !== 'Browser') {
-      deviceName = model;
+      deviceName = `Studio Android / ${manufacturer !== 'N/A' ? manufacturer + ' ' : ''}${model}`;
     } else {
       deviceName = `Studio App (${os})`;
     }
   } else {
-    deviceName = `Studio Web (${browser} on ${os})`;
+    deviceName = `Studio Web / ${browser} on ${os}`;
   }
 
   let deviceType = 'browser';
-  if (!isNativeApp && (os === 'Windows' || os === 'macOS' || os === 'Linux')) {
+  if (isNativeApp) {
+    deviceType = (os === 'iOS' && model === 'iPad') ? 'tablet' : 'phone';
+  } else if (os === 'Windows' || os === 'macOS' || os === 'Linux') {
     deviceType = 'desktop';
   }
 
   return {
     deviceId: deviceId(),
     deviceName,
-    platform: isNativeApp ? 'native' : 'web',
-    deviceType: isNativeApp ? 'mobile' : deviceType,
+    platform: isNativeApp ? 'android' : 'web',
+    deviceType,
     browser: isNativeApp ? 'N/A' : browser,
     os,
     appVersion: APP_VERSION,
     apkVersion: isNativeApp ? APP_VERSION : null,
     otaVersion: isNativeApp ? APP_VERSION : null,
-    buildType: isNativeApp ? 'Native Release' : 'Web',
+    buildType: isNativeApp ? 'native' : 'web',
     model: model || 'Android device',
     manufacturer: manufacturer || 'N/A',
     userAgent: isNativeApp ? undefined : ua,
@@ -750,7 +829,10 @@ export function getDeviceDetails() {
 
 export async function registerDevice(uid: string): Promise<void> {
   const db = getFirebaseDb();
-  if (!db) return;
+  if (!db) {
+    console.warn('[sync] FirebaseDb not initialized during registerDevice');
+    return;
+  }
   const id = deviceId();
   const ref = doc(db, 'users', uid, 'devices', id);
   let details;
@@ -761,14 +843,14 @@ export async function registerDevice(uid: string): Promise<void> {
     details = {
       deviceId: id,
       deviceName: 'Studio Device',
-      platform: isNative() ? 'native' : 'web',
-      deviceType: isNative() ? 'mobile' : 'browser',
+      platform: isNative() ? 'android' : 'web',
+      deviceType: isNative() ? 'phone' : 'browser',
       browser: 'Unknown',
       os: 'Unknown',
       appVersion: APP_VERSION,
       apkVersion: 'unknown',
       otaVersion: 'unknown',
-      buildType: isNative() ? 'Native Release' : 'Web',
+      buildType: isNative() ? 'native' : 'web',
       model: 'Android device',
       manufacturer: 'N/A',
       isCurrentDevice: true,
@@ -785,6 +867,7 @@ export async function registerDevice(uid: string): Promise<void> {
       lastActiveAt: nowServer,
       updatedAt: nowServer,
       signedIn: true,
+      currentSession: true,
       syncStatus: 'active',
       revokedAt: null,
     };
@@ -797,11 +880,20 @@ export async function registerDevice(uid: string): Promise<void> {
     isCurrentDeviceRegistered = true;
     lastDeviceWriteSuccess = new Date().toLocaleString();
     lastDeviceWriteError = 'None';
+    setStatus({
+      lastDeviceWriteSuccess: lastDeviceWriteSuccess,
+      lastDeviceWriteError: 'None',
+      deviceRegistrationStatus: 'registered',
+    });
     notifyDiagnostics();
   } catch (err: any) {
     console.warn('[sync] failed to register device:', err);
     isCurrentDeviceRegistered = false;
     lastDeviceWriteError = err.message || String(err);
+    setStatus({
+      lastDeviceWriteError: lastDeviceWriteError,
+      deviceRegistrationStatus: 'failed',
+    });
     notifyDiagnostics();
   }
 }
@@ -2346,6 +2438,9 @@ let onOnline: (() => void) | null = null;
 export function attachSyncEngine(): void {
   if (attached) return;
   attached = true;
+
+  // Initialize stable device ID from storage
+  void initializeDeviceId();
 
   onMessage = (e: MessageEvent) => {
     if (e.origin !== window.location.origin) return;
