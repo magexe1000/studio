@@ -1569,6 +1569,9 @@ function HubSettings({
   const [firebaseVersionJson, setFirebaseVersionJson] = useState<string>('Loading...');
   const [firebaseAppReleaseJson, setFirebaseAppReleaseJson] = useState<string>('Loading...');
   const [verboseLogs, setVerboseLogs] = useState<boolean>(() => localStorage.getItem('studio:verboseLogs') === 'true');
+  const [installedPackageDetails, setInstalledPackageDetails] = useState<any>(null);
+  const [downloadedApkDetails, setDownloadedApkDetails] = useState<any>(null);
+  const [apkEligibility, setApkEligibility] = useState<any>(null);
 
   useEffect(() => {
     if (page !== 'developer') return;
@@ -1630,6 +1633,29 @@ function HubSettings({
         setPreferencesDump(JSON.stringify(dump, null, 2));
       } catch (e: any) {
         setPreferencesDump(`Error loading Preferences: ${e?.message || String(e)}`);
+      }
+
+      if (isNative()) {
+        try {
+          const { AppInstaller, checkApkEligibility } = await import('../lib/apkDownloader');
+          const installed = await AppInstaller.getInstalledAppDetails();
+          setInstalledPackageDetails(installed);
+
+          const apkPath = localStorage.getItem('studio:downloadedApkPath');
+          if (apkPath) {
+            try {
+              const downloaded = await AppInstaller.getApkDetails({ filePath: apkPath });
+              setDownloadedApkDetails(downloaded);
+              
+              const eligibility = await checkApkEligibility(apkPath);
+              setApkEligibility(eligibility);
+            } catch (apkErr) {
+              console.warn('Error loading downloaded APK details:', apkErr);
+            }
+          }
+        } catch (err) {
+          console.warn('Error loading native package/APK details:', err);
+        }
       }
     };
     
@@ -2674,6 +2700,39 @@ function HubSettings({
           <DevInfoRow label="openInstallPermissionSettings Available" value={otaDebugLogs.openInstallPermissionSettingsAvailable ? 'TRUE' : 'FALSE'} />
           <DevInfoRow label="Registered Capacitor Plugins" value={otaDebugLogs.registeredPlugins} />
           <DevButtonRow label="Validate Installer Capability" desc="Perform active registration assertions" actionLabel="Validate" actionId="validate-installer" onPress={handleValidateInstallerAction} />
+          
+          {isNative() && installedPackageDetails && (
+            <>
+              <div style={{ height: 1, background: 'rgba(128,128,128,0.12)', margin: '8px 0' }} />
+              <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Installed Package Details</div>
+              <DevInfoRow label="Installed Package Name" value={installedPackageDetails.packageName} />
+              <DevInfoRow label="Installed Version Name" value={installedPackageDetails.versionName} />
+              <DevInfoRow label="Installed Version Code" value={String(installedPackageDetails.versionCode)} />
+              <DevInfoRow label="Installed Signature SHA-256" value={installedPackageDetails.signatures} canCopy />
+            </>
+          )}
+
+          {isNative() && downloadedApkDetails && (
+            <>
+              <div style={{ height: 1, background: 'rgba(128,128,128,0.12)', margin: '8px 0' }} />
+              <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Downloaded APK Details</div>
+              <DevInfoRow label="Downloaded Package Name" value={downloadedApkDetails.packageName} />
+              <DevInfoRow label="Downloaded Version Name" value={downloadedApkDetails.versionName} />
+              <DevInfoRow label="Downloaded Version Code" value={String(downloadedApkDetails.versionCode)} />
+              <DevInfoRow label="Downloaded Signature SHA-256" value={downloadedApkDetails.signatures} canCopy />
+            </>
+          )}
+
+          {isNative() && apkEligibility && (
+            <>
+              <div style={{ height: 1, background: 'rgba(128,128,128,0.12)', margin: '8px 0' }} />
+              <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>APK Install Eligibility</div>
+              <DevInfoRow label="Version Code Check" value={apkEligibility.installed && apkEligibility.downloaded ? `${apkEligibility.installed.versionCode} -> ${apkEligibility.downloaded.versionCode} (${apkEligibility.downloaded.versionCode > apkEligibility.installed.versionCode ? 'VALID' : 'INVALID: MUST BE HIGHER'})` : 'N/A'} />
+              <DevInfoRow label="Signature Matches" value={apkEligibility.installed && apkEligibility.downloaded ? String(apkEligibility.installed.signatures.replace(/:/g,'').toLowerCase() === apkEligibility.downloaded.signatures.replace(/:/g,'').toLowerCase()).toUpperCase() : 'N/A'} />
+              <DevInfoRow label="Eligibility Status" value={apkEligibility.eligible ? 'ELIGIBLE (CAN UPDATE)' : `INELIGIBLE: ${apkEligibility.reason || 'UNRESOLVED'}`} />
+              {!apkEligibility.eligible && <DevInfoRow label="Ineligibility Reason" value={apkEligibility.errorDetails || 'N/A'} />}
+            </>
+          )}
         </div>
 
         {/* 4. Storage & Sync Debug */}

@@ -144,6 +144,69 @@ function getAndroidTool(toolName) {
   return toolName;
 }
 
+// Resolve previous version from Firebase and compare
+let prevVersionCode = 0;
+let prevPackageName = '';
+let prevSignature = '';
+if (fs.existsSync(paths.apkPath)) {
+  console.log('Resolving previous release info from Firebase...');
+  try {
+    const versionRes = await fetch('https://studio-30f44.web.app/version.json');
+    if (versionRes.ok) {
+      const versionData = await versionRes.json();
+      const prevVersion = versionData.version;
+      console.log(`Previous deployed version: ${prevVersion}`);
+      
+      const packageJsonPath = path.join(appRoot, 'package.json');
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      const currentVersion = packageJson.version;
+      
+      if (prevVersion && prevVersion !== currentVersion) {
+        const prevApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${prevVersion}/studio-${prevVersion}.apk`;
+        const tempApkPath = path.join(appRoot, `artifacts/chord-app/studio-temp-prev.apk`);
+        
+        console.log(`Downloading previous APK to compare: ${prevApkUrl}`);
+        const downloadRes = await fetch(prevApkUrl);
+        if (downloadRes.ok) {
+          const fileStream = fs.createWriteStream(tempApkPath);
+          const buffer = await downloadRes.arrayBuffer();
+          fs.writeFileSync(tempApkPath, Buffer.from(buffer));
+          console.log(`✓ Previous APK downloaded to ${tempApkPath}`);
+          
+          // Parse previous APK details
+          const aapt2 = getAndroidTool('aapt2');
+          const apksigner = getAndroidTool('apksigner');
+          
+          const prevManifestXml = execSync(`${aapt2} dump xmltree --file AndroidManifest.xml "${tempApkPath}"`, { encoding: 'utf8' });
+          const prevPackageMatch = prevManifestXml.match(/package="([^"]+)"/);
+          prevPackageName = prevPackageMatch ? prevPackageMatch[1] : '';
+          
+          const prevCodeMatch = prevManifestXml.match(/versionCode\([^)]+\)=(\d+|0x[0-9a-f]+)/i);
+          prevVersionCode = prevCodeMatch ? (prevCodeMatch[1].startsWith('0x') ? parseInt(prevCodeMatch[1], 16) : parseInt(prevCodeMatch[1], 10)) : 0;
+          
+          const prevSignInfo = execSync(`${apksigner} verify --print-certs "${tempApkPath}"`, { encoding: 'utf8' });
+          const prevSha256Match = prevSignInfo.match(/certificate SHA-256 digest:\s+([a-fA-F0-9:]+)/i);
+          prevSignature = prevSha256Match ? prevSha256Match[1].replace(/:/g, '').toLowerCase() : '';
+          
+          console.log(`Previous APK Details: package=${prevPackageName}, versionCode=${prevVersionCode}, signature=${prevSignature}`);
+          
+          try {
+            fs.unlinkSync(tempApkPath);
+          } catch (_) {}
+        } else {
+          console.warn(`⚠ Could not download previous APK (Status ${downloadRes.status}). Skipping previous APK comparison.`);
+        }
+      } else {
+        console.log(`Previous version is same as current version (${currentVersion}). Skipping download.`);
+      }
+    } else {
+      console.warn(`⚠ Could not fetch version.json from Firebase. Skipping previous APK comparison.`);
+    }
+  } catch (err) {
+    console.warn(`⚠ Failed during previous APK fetch/analysis: ${err.message}. Skipping previous APK comparison.`);
+  }
+}
+
 if (fs.existsSync(paths.apkPath)) {
   // A. Verify non-debuggable and package manifest attributes
   try {
@@ -160,6 +223,9 @@ if (fs.existsSync(paths.apkPath)) {
     // 2. Package name check
     const packageMatch = manifestXml.match(/package="([^"]+)"/);
     assert(packageMatch && packageMatch[1] === 'com.chordex.app', `Package name mismatch! Expected com.chordex.app but found: ${packageMatch ? packageMatch[1] : 'null'}`);
+    if (prevPackageName) {
+      assert(packageMatch[1] === prevPackageName, `Package name changed! Previous: ${prevPackageName}, Current: ${packageMatch[1]}`);
+    }
     console.log('✓ APK package name is com.chordex.app.');
 
     // 3. VersionCode check
@@ -167,6 +233,9 @@ if (fs.existsSync(paths.apkPath)) {
     assert(codeMatch, 'Could not parse versionCode from APK manifest!');
     const versionCodeVal = codeMatch[1].startsWith('0x') ? parseInt(codeMatch[1], 16) : parseInt(codeMatch[1], 10);
     assert(versionCodeVal > 0, `Invalid versionCode parsed: ${versionCodeVal}`);
+    if (prevVersionCode) {
+      assert(versionCodeVal > prevVersionCode, `Release blocked: versionCode must increase! Installed/Previous: ${prevVersionCode}, Current: ${versionCodeVal}. Please increment versionCode in build.gradle.`);
+    }
     console.log(`✓ APK versionCode is ${versionCodeVal}.`);
 
     // 4. VersionName check
@@ -196,13 +265,26 @@ if (fs.existsSync(paths.apkPath)) {
     }
     console.log('✓ APK is successfully signed.');
 
-    // C. Expected signature matching (if variable defined in env)
-    if (process.env.EXPECTED_SIGNATURE_SHA256) {
-      const expected = process.env.EXPECTED_SIGNATURE_SHA256.replace(/:/g, '').toLowerCase();
-      const matches = signInfo.toLowerCase().replace(/:/g, '').includes(expected);
-      assert(matches, `Signing certificate fingerprint mismatch! Expected SHA-256 containing: ${process.env.EXPECTED_SIGNATURE_SHA256}`);
-      console.log('✓ APK signing certificate matches the expected production certificate.');
+    const sha256Match = signInfo.match(/certificate SHA-256 digest:\s+([a-fA-F0-9:]+)/i);
+    const currentSignature = sha256Match ? sha256Match[1].replace(/:/g, '').toLowerCase() : '';
+    
+    // Check signature consistency with previous release
+    if (prevSignature) {
+      assert(currentSignature === prevSignature, `Release blocked: signing certificate signature fingerprint changed! Previous: ${prevSignature}, Current: ${currentSignature}`);
     }
+    
+    // Check signature consistency with expected production key
+    const expectedProdSignature = "900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206";
+    if (process.env.CI) {
+      assert(currentSignature === expectedProdSignature, `Release blocked: APK is not signed with the production certificate in CI! Expected: ${expectedProdSignature}, Found: ${currentSignature}`);
+    } else {
+      // Local expected signature matching (if variable defined in env)
+      if (process.env.EXPECTED_SIGNATURE_SHA256) {
+        const expected = process.env.EXPECTED_SIGNATURE_SHA256.replace(/:/g, '').toLowerCase();
+        assert(currentSignature === expected, `Signing certificate fingerprint mismatch! Expected: ${process.env.EXPECTED_SIGNATURE_SHA256}, Found: ${currentSignature}`);
+      }
+    }
+    console.log('✓ APK signing certificate validation check passed.');
   } catch (err) {
     assert(false, `Failed to verify APK signature: ${err.message}`);
   }

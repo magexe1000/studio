@@ -173,9 +173,30 @@ if (releaseType !== 'ota') {
   }
 }
 
+// Parse versionCode from build.gradle
+let versionCode = 0;
+try {
+  const gradlePath = path.join(appRoot, 'android/app/build.gradle');
+  if (fs.existsSync(gradlePath)) {
+    const gradleSrc = fs.readFileSync(gradlePath, 'utf8');
+    const codeMatch = gradleSrc.match(/versionCode\s+(\d+)/);
+    if (codeMatch) {
+      versionCode = parseInt(codeMatch[1], 10);
+    }
+  }
+} catch (err) {
+  console.warn('generate-release-metadata: ⚠ Could not parse versionCode from build.gradle:', err);
+}
+
+// Get signature
+const expectedSignature = process.env.EXPECTED_SIGNATURE_SHA256 || '90:0C:F2:59:18:5C:81:10:0C:DA:8B:B0:85:71:FA:23:55:2E:97:89:13:1C:F0:7A:8F:40:56:E4:D4:12:92:06';
+const signatures = expectedSignature.replace(/:/g, '').toLowerCase();
+
 const metadata = {
   created_at: new Date().toISOString(),
   version: version,
+  versionCode: versionCode,
+  signatures: signatures,
   description: description,
   releaseNotes: releaseNotes,
   download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
@@ -205,6 +226,8 @@ const syncVersionJson = (filePath) => {
       data.fallbackApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
       data.sha256 = sha256;
       data.updateType = releaseType;
+      data.versionCode = versionCode;
+      data.signatures = signatures;
       if (releaseNotes) {
         data.releaseNotes = releaseNotes;
       }

@@ -17,6 +17,9 @@ import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKeys;
 import java.io.File;
 import java.net.URI;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 
 @CapacitorPlugin(
     name = "AppInstaller",
@@ -485,6 +488,145 @@ public class AppInstallerPlugin extends Plugin {
             call.resolve();
         } catch (Exception e) {
             call.reject("Failed to trigger installation: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void getApkDetails(PluginCall call) {
+        String path = call.getString("filePath");
+        if (path == null) {
+            call.reject("filePath is required");
+            return;
+        }
+        try {
+            File file;
+            if (path.startsWith("file://")) {
+                try {
+                    file = new File(new URI(path));
+                } catch (Exception e) {
+                    file = new File(path.substring(7));
+                }
+            } else {
+                file = new File(path);
+            }
+
+            if (!file.exists()) {
+                call.reject("File does not exist: " + file.getAbsolutePath());
+                return;
+            }
+
+            Context context = getContext();
+            PackageManager pm = context.getPackageManager();
+            
+            int flags = PackageManager.GET_SIGNATURES;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                flags = PackageManager.GET_SIGNING_CERTIFICATES;
+            }
+            
+            PackageInfo info = pm.getPackageArchiveInfo(file.getAbsolutePath(), flags);
+            if (info == null) {
+                call.reject("Failed to parse APK: " + file.getAbsolutePath());
+                return;
+            }
+
+            JSObject result = new JSObject();
+            result.put("packageName", info.packageName);
+            result.put("versionName", info.versionName);
+            
+            long versionCode = info.versionCode;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                versionCode = info.getLongVersionCode();
+            }
+            result.put("versionCode", versionCode);
+
+            String sha256 = "";
+            Signature[] signatures = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                if (info.signingInfo != null) {
+                    if (info.signingInfo.hasMultipleSigners()) {
+                        signatures = info.signingInfo.getApkContentsSigners();
+                    } else {
+                        signatures = info.signingInfo.getSigningCertificateHistory();
+                    }
+                }
+            } else {
+                signatures = info.signatures;
+            }
+
+            if (signatures != null && signatures.length > 0) {
+                byte[] cert = signatures[0].toByteArray();
+                java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                byte[] publicKey = md.digest(cert);
+                StringBuilder hexString = new StringBuilder();
+                for (byte b : publicKey) {
+                    String append = Integer.toHexString(0xFF & b);
+                    if (append.length() == 1) hexString.append('0');
+                    hexString.append(append);
+                }
+                sha256 = hexString.toString().toLowerCase();
+            }
+            result.put("signatures", sha256);
+
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to read APK details: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void getInstalledAppDetails(PluginCall call) {
+        try {
+            Context context = getContext();
+            PackageManager pm = context.getPackageManager();
+            String packageName = context.getPackageName();
+            
+            int flags = PackageManager.GET_SIGNATURES;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                flags = PackageManager.GET_SIGNING_CERTIFICATES;
+            }
+            
+            PackageInfo info = pm.getPackageInfo(packageName, flags);
+            JSObject result = new JSObject();
+            result.put("packageName", info.packageName);
+            result.put("versionName", info.versionName);
+            
+            long versionCode = info.versionCode;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                versionCode = info.getLongVersionCode();
+            }
+            result.put("versionCode", versionCode);
+
+            String sha256 = "";
+            Signature[] signatures = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                if (info.signingInfo != null) {
+                    if (info.signingInfo.hasMultipleSigners()) {
+                        signatures = info.signingInfo.getApkContentsSigners();
+                    } else {
+                        signatures = info.signingInfo.getSigningCertificateHistory();
+                    }
+                }
+            } else {
+                signatures = info.signatures;
+            }
+
+            if (signatures != null && signatures.length > 0) {
+                byte[] cert = signatures[0].toByteArray();
+                java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                byte[] publicKey = md.digest(cert);
+                StringBuilder hexString = new StringBuilder();
+                for (byte b : publicKey) {
+                    String append = Integer.toHexString(0xFF & b);
+                    if (append.length() == 1) hexString.append('0');
+                    hexString.append(append);
+                }
+                sha256 = hexString.toString().toLowerCase();
+            }
+            result.put("signatures", sha256);
+
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to read installed app details: " + e.getMessage(), e);
         }
     }
 }

@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.4.3'; // Release notes enforcement and metadata automation
+export const APP_VERSION = '3.4.4'; // Release installer fixes and pre-release APK validations
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.4.3
+export const APP_VERSION_DATE = '2026-06-04'; // 3.4.4
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,16 +53,20 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Improved",
     items: [
-      "Added automated validation for changelog structure and release note placeholders.",
-      "Added structured releaseNotes field support to update manifests.",
+      "Strengthened APK release validation.",
+      "Improved consistency between GitHub Release APK, Firebase APK mirror, and update metadata.",
     ],
   },
   {
-    heading: "Improved",
+    heading: "Fixed",
     items: [
-      "Improved updater UI to dynamically categorize and render release notes.",
+      "Fixed Android “App not installed” failure during APK updates.",
+      "Added APK versionCode validation before release.",
+      "Added signing certificate consistency checks.",
+      "Added APK install eligibility diagnostics.",
+      "Improved update failure messages for Android installer errors.",
     ],
   },
 ];

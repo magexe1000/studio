@@ -25,6 +25,8 @@ export interface AppInstallerPlugin {
   verifySha256(options: { filePath: string; expectedHash: string }): Promise<{ matches: boolean; computedHash: string }>;
   verifyApkSha256(options: { filePath: string; expectedHash: string }): Promise<{ matches: boolean; computedHash: string }>;
   getDeviceInfo(): Promise<{ manufacturer: string; model: string; androidVersion: string; sdkInt: number; canRequestPackageInstalls: boolean }>;
+  getApkDetails(options: { filePath: string }): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
+  getInstalledAppDetails(): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
 }
 
 export const AppInstaller = registerPlugin<AppInstallerPlugin>('AppInstaller');
@@ -295,4 +297,83 @@ export async function openApkInstaller(filePath: string): Promise<void> {
 export async function openInstallPermissionSettings(): Promise<void> {
   console.log('[apkDownloader] Opening unknown app sources settings');
   await AppInstaller.openUnknownAppSourcesSettings();
+}
+
+export interface InstallEligibility {
+  eligible: boolean;
+  reason?: 'packageName_mismatch' | 'signature_mismatch' | 'versionCode_low' | 'parse_failed' | 'not_native' | 'generic';
+  errorDetails?: string;
+  installed?: {
+    packageName: string;
+    versionName: string;
+    versionCode: number;
+    signatures: string;
+  };
+  downloaded?: {
+    packageName: string;
+    versionName: string;
+    versionCode: number;
+    signatures: string;
+  };
+}
+
+export async function checkApkEligibility(filePath: string): Promise<InstallEligibility> {
+  const { Capacitor } = await import('@capacitor/core');
+  if (!Capacitor.isNativePlatform()) {
+    return { eligible: true, reason: 'not_native' };
+  }
+
+  try {
+    const installed = await AppInstaller.getInstalledAppDetails();
+    const downloaded = await AppInstaller.getApkDetails({ filePath });
+
+    if (!installed || !downloaded) {
+      return { eligible: false, reason: 'parse_failed', errorDetails: 'Failed to parse package details.' };
+    }
+
+    if (installed.packageName !== downloaded.packageName) {
+      return {
+        eligible: false,
+        reason: 'packageName_mismatch',
+        errorDetails: `Package name mismatch. Installed: ${installed.packageName}, Downloaded: ${downloaded.packageName}`,
+        installed,
+        downloaded
+      };
+    }
+
+    const cleanInstSig = installed.signatures.replace(/:/g, '').toLowerCase();
+    const cleanDownSig = downloaded.signatures.replace(/:/g, '').toLowerCase();
+    if (cleanInstSig !== cleanDownSig) {
+      return {
+        eligible: false,
+        reason: 'signature_mismatch',
+        errorDetails: `Signing certificate signature mismatch. Installed: ${installed.signatures}, Downloaded: ${downloaded.signatures}`,
+        installed,
+        downloaded
+      };
+    }
+
+    if (downloaded.versionCode <= installed.versionCode) {
+      return {
+        eligible: false,
+        reason: 'versionCode_low',
+        errorDetails: `Version code is not higher. Installed: ${installed.versionCode}, Downloaded: ${downloaded.versionCode}`,
+        installed,
+        downloaded
+      };
+    }
+
+    return {
+      eligible: true,
+      installed,
+      downloaded
+    };
+  } catch (err) {
+    console.error('[apkDownloader] Eligibility check failed:', err);
+    return {
+      eligible: false,
+      reason: 'parse_failed',
+      errorDetails: err instanceof Error ? err.message : String(err)
+    };
+  }
 }

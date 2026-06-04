@@ -32,7 +32,7 @@ import { useState, useEffect, useRef } from 'react';
 import StudioSpinner from './animata/progress/spinner';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import StudioUpdateScreen from './StudioUpdateScreen';
-import { useOtaUpdate, type StructuredReleaseNotes } from '../lib/otaUpdate';
+import { useOtaUpdate, type StructuredReleaseNotes, otaDiagnostics, otaDebugLogs } from '../lib/otaUpdate';
 import UpdateDiagnosticsSheet from './UpdateDiagnosticsSheet';
 import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
 import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
@@ -1007,11 +1007,63 @@ function UpdateModal({
     }
 
     if (state === 'failed') {
+      const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
+      const copyDiagnostics = async () => {
+        const diagnosticText = [
+          '=== STUDIO UPDATE DIAGNOSTICS ===',
+          `Failure Timestamp: ${otaDiagnostics.timestamp || 'N/A'}`,
+          `Device Model/Manufacturer: ${otaDiagnostics.deviceModel || 'N/A'}`,
+          `Android Version: ${otaDiagnostics.androidVersion || 'N/A'}`,
+          `Permission State: ${otaDiagnostics.permissionState || 'N/A'}`,
+          `Exception Message: ${otaDiagnostics.exceptionMessage || 'N/A'}`,
+          `Failure Reason & Stack Trace:`,
+          otaDiagnostics.failureReason || 'N/A',
+          `Download URL Used: ${otaDiagnostics.downloadUrl || 'N/A'}`,
+          `APK Path: ${otaDiagnostics.apkPath || 'N/A'}`,
+          `File Size: ${otaDiagnostics.fileSize || 'N/A'}`,
+          `SHA-256 Expected: ${otaDiagnostics.shaExpected || 'N/A'}`,
+          `SHA-256 Calculated: ${otaDiagnostics.shaCalculated || 'N/A'}`,
+          `Installer Result: ${otaDiagnostics.installerResult || 'N/A'}`,
+          '',
+          '=== COMPREHENSIVE DEBUG LOGS ===',
+          `App Version (APP_VERSION): ${otaDebugLogs.appVersion}`,
+          `APK Version (Wrapper): ${otaDebugLogs.nativeApkVersion || 'N/A'}`,
+          `OTA Version (Capgo): ${otaDebugLogs.currentOtaVersion || 'N/A'}`,
+          `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
+          `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
+          `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
+          `installApk Available: ${otaDebugLogs.installApkAvailable}`,
+          `openInstallPermissionSettings Available: ${otaDebugLogs.openInstallPermissionSettingsAvailable}`,
+          `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
+          `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
+          `Final Update Path: ${otaDebugLogs.finalUpdatePath}`,
+          `Fetched version.json: ${otaDebugLogs.fetchedVersionJson || 'N/A'}`,
+          `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson || 'N/A'}`,
+          `Comparison Result: ${otaDebugLogs.compareResult !== null ? otaDebugLogs.compareResult : 'N/A'}`,
+          `Update Type: ${otaDebugLogs.updateType || 'N/A'}`,
+          `Final Decision: ${otaDebugLogs.finalDecision || 'N/A'}`,
+          `Download Status: ${otaDebugLogs.downloadStatus || 'N/A'}`,
+          `SHA Verification Status: ${otaDebugLogs.shaVerification || 'N/A'}`,
+          `File Details: ${otaDebugLogs.fileDetails || 'N/A'}`,
+          `Install Error / Log: ${otaDebugLogs.installError || 'N/A'}`,
+          `Installer Launch Status: ${otaDebugLogs.installerLaunchStatus || 'N/A'}`,
+          `Last Exception Stack Trace:`,
+          otaDebugLogs.lastExceptionStackTrace || 'N/A'
+        ].join('\n');
+
+        try {
+          await navigator.clipboard.writeText(diagnosticText);
+          alert('Diagnostics copied to clipboard!');
+        } catch (err) {
+          console.error('Failed to copy diagnostics:', err);
+        }
+      };
+
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
           <button
             type="button"
-            onClick={() => setDiagnosticsOpen(true)}
+            onClick={() => window.open(manualApkUrl, '_system')}
             style={{
               width: '100%', height: 42, borderRadius: 12,
               background: 'rgba(128,128,128,0.08)',
@@ -1021,8 +1073,26 @@ function UpdateModal({
               cursor: 'pointer',
             }}
           >
-            Open Diagnostics
+            Download APK Manually
           </button>
+          
+          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+            <button
+              type="button"
+              onClick={copyDiagnostics}
+              style={halfSecondaryButtonStyle}
+            >
+              Copy Diagnostics
+            </button>
+            <button
+              type="button"
+              onClick={() => setDiagnosticsOpen(true)}
+              style={halfSecondaryButtonStyle}
+            >
+              Diagnostics UI
+            </button>
+          </div>
+
           <div style={{ display: 'flex', gap: 8, width: '100%' }}>
             <button
               type="button"

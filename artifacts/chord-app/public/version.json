@@ -1,6 +1,6 @@
 {
-  "version": "3.4.3",
-  "changelog": "• Added automated validation for changelog structure and release note placeholders.\n• Added structured releaseNotes field support to update manifests.\n• Improved updater UI to dynamically categorize and render release notes.",
+  "version": "3.4.4",
+  "changelog": "• Fixed Android “App not installed” failure during APK updates.\n• Added APK versionCode validation before release.\n• Added signing certificate consistency checks.\n• Added APK install eligibility diagnostics.\n• Improved update failure messages for Android installer errors.\n• Strengthened APK release validation.\n• Improved consistency between GitHub Release APK, Firebase APK mirror, and update metadata.",
   "releaseNotes": {
     "improved": [
       "Revamped Developer Options with clearer sections and diagnostics.",
@@ -15,9 +15,11 @@
     ]
   },
   "mandatory": false,
-  "apkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.4.3/studio-3.4.3.apk",
-  "manualApkUrl": "https://studio-30f44.web.app/apk/studio-3.4.3.apk",
-  "fallbackApkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.4.3/studio-3.4.3.apk",
+  "apkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.4.4/studio-3.4.4.apk",
+  "manualApkUrl": "https://studio-30f44.web.app/apk/studio-3.4.4.apk",
+  "fallbackApkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.4.4/studio-3.4.4.apk",
   "sha256": "",
-  "updateType": "ota"
+  "updateType": "ota",
+  "versionCode": 15,
+  "signatures": "900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206"
 }

@@ -1153,8 +1153,27 @@ export function applyUpdate(): Promise<void> {
           }
         }
 
-        const { AppInstaller } = await import('./apkDownloader');
-        otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nLaunching APK installer intent for file: ${filePath}`;
+        const { AppInstaller, checkApkEligibility } = await import('./apkDownloader');
+        otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nChecking APK eligibility for: ${filePath}`;
+        updateGlobalState({ statusText: 'Verifying update eligibility' });
+
+        const eligibility = await checkApkEligibility(filePath);
+        if (!eligibility.eligible) {
+          let userMessage = 'Installation eligibility check failed. The update cannot be installed.';
+          if (eligibility.reason === 'versionCode_low') {
+            userMessage = 'This update package has an invalid Android version code. Please wait for a corrected update.';
+          } else if (eligibility.reason === 'signature_mismatch') {
+            userMessage = 'This APK was signed with a different certificate and cannot update the installed app.';
+          } else if (eligibility.reason === 'packageName_mismatch') {
+            userMessage = 'Package name mismatch. The downloaded APK belongs to a different app.';
+          } else if (eligibility.reason === 'parse_failed') {
+            userMessage = 'The downloaded APK appears invalid or incomplete.';
+          }
+          
+          throw new Error(userMessage);
+        }
+
+        otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
         updateGlobalState({ statusText: 'Launching APK installer' });
 
         await AppInstaller.installApk({ filePath });
