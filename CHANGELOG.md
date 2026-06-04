@@ -15,6 +15,14 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.4.0
+
+- Moved Studio to production-signed release APKs.
+- Improved APK installation trust and release signing validation.
+- Added CI checks to prevent unsigned, debuggable, or incorrectly signed APKs.
+- Requires a one-time clean reinstall for users coming from older debug-signed builds.
+- Future updates after this install will work normally from inside Studio.
+
 ## 3.3.8
 
 - Redesigned the update dialog with Studio’s visual style.

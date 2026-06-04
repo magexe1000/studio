@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.3.8'; // Polish updater dialog and install handoff behavior
+export const APP_VERSION = '3.4.0'; // Production signing migration
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-03'; // 3.3.8
+export const APP_VERSION_DATE = '2026-06-04'; // 3.4.0
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 /**
@@ -53,22 +53,13 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Improved",
+    heading: "What's new",
     items: [
-      'Redesigned the update dialog with Studio’s visual style.',
-      'Improved the update progress screen with percentage, status, and polished visuals.',
-      'Improved the “What’s new” section layout.',
-      'Improved the Ready to Install screen.',
-      'Replaced generic blue update buttons with Studio accent styling.',
-      'Improved install handoff so Studio does not intentionally reopen after launching the Android installer.',
-    ],
-  },
-  {
-    heading: "Fixed",
-    items: [
-      'Fixed updater overlay cleanup after install/later actions.',
-      'Fixed potential stuck fade or black overlay states.',
-      'Ensured only one updater dialog is used across the app.',
+      'Moved Studio to production-signed release APKs.',
+      'Improved APK installation trust and release signing validation.',
+      'Added CI checks to prevent unsigned, debuggable, or incorrectly signed APKs.',
+      'Requires a one-time clean reinstall for users coming from older debug-signed builds.',
+      'Future updates after this install will work normally from inside Studio.',
     ],
   },
 ];
@@ -77,22 +68,13 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Mejorado",
+    heading: "Novedades",
     items: [
-      'Rediseñado el diálogo de actualización con el estilo visual de Studio.',
-      'Se mejoró la pantalla de progreso de actualización con porcentaje, estado y visuales pulidos.',
-      'Se mejoró el diseño de la sección "Qué hay de nuevo".',
-      'Se mejoró la pantalla Listo para instalar.',
-      'Se reemplazaron los botones azules genéricos con el estilo de acento de Studio.',
-      'Sincronización de instalación mejorada para que Studio no se vuelva a abrir intencionadamente después de iniciar el instalador de Android.',
-    ],
-  },
-  {
-    heading: "Corregido",
-    items: [
-      'Se corrigió la limpieza del panel de actualización después de las acciones de instalación/más tarde.',
-      'Se corrigieron posibles estados de desvanecimiento atascado o superposición negra.',
-      'Se aseguró de que solo se use un diálogo de actualización en toda la aplicación.',
+      'Studio ahora utiliza APKs de lanzamiento firmadas para producción.',
+      'Confianza de instalación de APK mejorada y validación de firma de lanzamiento.',
+      'Se agregaron comprobaciones de CI para evitar APKs no firmadas, depurables o firmadas incorrectamente.',
+      'Requiere una reinstalación limpia única para usuarios que vienen de compilaciones antiguas firmadas con claves de depuración.',
+      'Las futuras actualizaciones funcionarán normalmente desde Studio después de esta instalación.',
     ],
   },
 ];
@@ -100,22 +82,13 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Verbessert",
+    heading: "Neuigkeiten",
     items: [
-      'Das Update-Dialogfeld wurde mit dem visuellen Stil von Studio neu gestaltet.',
-      'Der Update-Fortschrittsbildschirm mit Prozentangabe, Status und polierten Grafiken wurde verbessert.',
-      'Das Layout des Abschnitts „Was gibt’s Neues“ wurde verbessert.',
-      'Der Bildschirm „Bereit zur Installation“ wurde verbessert.',
-      'Generische blaue Update-Schaltflächen wurden durch Studio-Akzent-Styling ersetzt.',
-      'Die Installationsübergabe wurde verbessert, sodass Studio nach dem Starten des Android-Installationsprogramms nicht absichtlich erneut geöffnet wird.',
-    ],
-  },
-  {
-    heading: "Behoben",
-    items: [
-      'Bereinigung des Update-Overlays nach Installations-/Später-Aktionen behoben.',
-      'Mögliche blockierte Überlagerungs- oder Schwarzbildzustände behoben.',
-      'Es wurde sichergestellt, dass in der gesamten App nur ein Update-Dialogfeld verwendet wird.',
+      'Studio verwendet nun für die Produktion signierte Release-APKs.',
+      'Verbesserte APK-Installationssicherheit und Validierung der Release-Signierung.',
+      'CI-Prüfungen hinzugefügt, um unsignierte, debugbare oder falsch signierte APKs zu verhindern.',
+      'Erfordert eine einmalige saubere Neuinstallation für Benutzer, die von älteren, mit Debug-Schlüsseln signierten Builds kommen.',
+      'Zukünftige Updates nach dieser Installation funktionieren normal in Studio.',
     ],
   },
 ];

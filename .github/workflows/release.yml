@@ -113,6 +113,18 @@ jobs:
         working-directory: artifacts/chord-app
         run: pnpm exec cap sync android
 
+      - name: Assert Production Signing Secrets
+        if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
+        run: |
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ] || \
+             [ -z "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" ] || \
+             [ -z "${{ secrets.ANDROID_KEY_ALIAS }}" ] || \
+             [ -z "${{ secrets.ANDROID_KEY_PASSWORD }}" ] || \
+             [ -z "${{ secrets.EXPECTED_SIGNATURE_SHA256 }}" ]; then
+            echo "::error::Production signing secrets are missing. Refusing to publish release APK."
+            exit 1
+          fi
+
       - name: Decode Android Keystore
         if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
         run: |
@@ -134,6 +146,7 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         env:
           RELEASE_TYPE: ${{ steps.gate.outputs.release_type }}
+          EXPECTED_SIGNATURE_SHA256: ${{ secrets.EXPECTED_SIGNATURE_SHA256 }}
         run: node artifacts/chord-app/scripts/generate-release-metadata.mjs
 
       - name: Upload APK Asset to GitHub Release

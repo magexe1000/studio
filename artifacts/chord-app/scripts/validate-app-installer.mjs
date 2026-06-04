@@ -145,17 +145,45 @@ function getAndroidTool(toolName) {
 }
 
 if (fs.existsSync(paths.apkPath)) {
-  // A. Verify non-debuggable status
+  // A. Verify non-debuggable and package manifest attributes
   try {
     const aapt2 = getAndroidTool('aapt2');
-    console.log(`Verifying release APK is non-debuggable via ${aapt2}...`);
+    console.log(`Verifying release APK manifest via ${aapt2}...`);
     const manifestXml = execSync(`${aapt2} dump xmltree --file AndroidManifest.xml "${paths.apkPath}"`, { encoding: 'utf8' });
+    
+    // 1. Debuggable check
     if (manifestXml.includes('http://schemas.android.com/apk/res/android:debuggable') && manifestXml.includes('true')) {
       assert(false, 'The release APK is compiled as debuggable (android:debuggable="true")!');
     }
     console.log('✓ APK is confirmed to be non-debuggable.');
+
+    // 2. Package name check
+    const packageMatch = manifestXml.match(/package="([^"]+)"/);
+    assert(packageMatch && packageMatch[1] === 'com.chordex.app', `Package name mismatch! Expected com.chordex.app but found: ${packageMatch ? packageMatch[1] : 'null'}`);
+    console.log('✓ APK package name is com.chordex.app.');
+
+    // 3. VersionCode check
+    const codeMatch = manifestXml.match(/versionCode\([^)]+\)=(\d+|0x[0-9a-f]+)/i);
+    assert(codeMatch, 'Could not parse versionCode from APK manifest!');
+    const versionCodeVal = codeMatch[1].startsWith('0x') ? parseInt(codeMatch[1], 16) : parseInt(codeMatch[1], 10);
+    assert(versionCodeVal > 0, `Invalid versionCode parsed: ${versionCodeVal}`);
+    console.log(`✓ APK versionCode is ${versionCodeVal}.`);
+
+    // 4. VersionName check
+    const nameMatch = manifestXml.match(/versionName\([^)]+\)="([^"]+)"/i);
+    assert(nameMatch, 'Could not parse versionName from APK manifest!');
+    const versionNameVal = nameMatch[1];
+    
+    // Get expected versionName from package.json
+    const packageJsonPath = path.join(appRoot, 'package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    const expectedVersionName = packageJson.version;
+    
+    assert(versionNameVal === expectedVersionName, `VersionName mismatch! Expected ${expectedVersionName} but found: ${versionNameVal}`);
+    console.log(`✓ APK versionName is ${versionNameVal} (matches expected ${expectedVersionName}).`);
+
   } catch (err) {
-    assert(false, `Failed to verify debuggable status: ${err.message}`);
+    assert(false, `Failed to verify manifest configuration: ${err.message}`);
   }
 
   // B. Verify signature status
