@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.16'; // Cleaned up unfinished sync sections and fixed UI issues
+export const APP_VERSION = '3.6.17'; // Redesigned Updates page, Settings subtitle
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-05'; // 3.6.16
+export const APP_VERSION_DATE = '2026-06-05'; // 3.6.17
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = '559e333';
@@ -56,22 +56,17 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Improved",
+    heading: "New",
     items: [
-      "Improved account/settings clarity by hiding unfinished sync controls behind Coming Soon states.",
-      "Improved profile avatar consistency across account surfaces.",
-      "Improved Settings header layout on mobile.",
-      "Improved Stagex floating controls behavior when the Elements menu is open.",
+      "Redesigned the Updates page with a hero card, structured changelog, and Stitch-inspired layout.",
+      "Added recent releases section with expandable changelogs.",
     ],
   },
   {
-    heading: "Fixed",
+    heading: "Improved",
     items: [
-      "Paused unfinished cloud sync surfaces by marking Devices & Sessions, Backup & Sync, and Storage & Export as Coming Soon.",
-      "Fixed profile photo updates so the new image appears consistently in Profile and Settings.",
-      "Removed the misleading uploading profile picture dialog while cloud profile photo sync is paused.",
-      "Fixed the Settings update button alignment and sizing.",
-      "Fixed the Stagex visibility button overlapping the Elements menu.",
+      "Changed Settings subtitle to 'Studio Settings'.",
+      "Renamed the Updater navigation row to 'Updates'.",
     ],
   },
 ];
@@ -80,20 +75,17 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Mejorado",
+    heading: "Nuevo",
     items: [
-      "Se agregó un motor de sincronización real respaldado por Firebase para unificar Firestore y Storage.",
-      "Se implementó identidad estable de dispositivos, heartbeats de presencia y clasificación determinista de sesiones.",
-      "Se agregaron diagnósticos completos para UID, proyecto, listeners, escrituras y resultados de sondas.",
-      "Se mejoró la gestión de Firestore como fuente única de verdad para perfil y configuraciones.",
+      "Se rediseñó la página de Actualizaciones con una tarjeta principal, historial estructurado y diseño inspirado en Stitch.",
+      "Se agregó sección de versiones recientes con historiales expandibles.",
     ],
   },
   {
-    heading: "Corregido",
+    heading: "Mejorado",
     items: [
-      "Se corrigió la conexión inestable de sincronización en la nube entre Android y Web.",
-      "Se corrigió el etiquetado incorrecto del dispositivo actual como sesión anterior.",
-      "Se corrigieron problemas donde la sincronización dependía de estados locales/nube inconsistentes.",
+      "Se cambió el subtítulo de Configuración a 'Studio Settings'.",
+      "Se renombró la fila de navegación del Actualizador a 'Updates'.",
     ],
   },
 ];
@@ -101,19 +93,17 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Behoben",
+    heading: "Neu",
     items: [
-      "Problem behoben, bei dem interne Studio-Apps nicht dem ausgewählten Akzentton folgten.",
-      "Fest codiertes blaues Akzentstyling aus den App-Bedienelementen entfernt.",
-      "Chordex Discover Genre-Chips werden beim Scrollen nicht mehr abrupt abgeschnitten.",
+      "Updates-Seite mit Hero-Karte, strukturiertem Changelog und Stitch-inspiriertem Layout neu gestaltet.",
+      "Abschnitt für aktuelle Versionen mit erweiterbaren Changelogs hinzugefügt.",
     ],
   },
   {
     heading: "Verbessert",
     items: [
-      "Akzentfarbenverhalten im gesamten Studio-Ökosystem vereinheitlicht.",
-      "Elegantes horizontales Ausblendverhalten für scrollbare Chip-Reihen hinzugefügt.",
-      "Visuelle Konsistenz im gesamten Studio-Ökosystem verbessert.",
+      "Untertitel der Einstellungen zu 'Studio Settings' geändert.",
+      "Navigationszeile des Updaters in 'Updates' umbenannt.",
     ],
   },
 ];

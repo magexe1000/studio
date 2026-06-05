@@ -15,6 +15,16 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.6.17
+
+### New
+- Redesigned the Updates page with a hero card, structured changelog, and Stitch-inspired layout.
+- Added recent releases section with expandable changelogs.
+
+### Improved
+- Changed Settings subtitle to "Studio Settings".
+- Renamed the Updater navigation row to "Updates".
+
 ## 3.6.16
 
 ### Fixed
