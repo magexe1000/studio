@@ -9,7 +9,7 @@ import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import StudioThemeToggler from './StudioThemeToggler';
 import ApplyToSheet from './ApplyToSheet';
-import { APP_VERSION_LABEL, compareSemver, APP_VERSION } from '../lib/appVersion';
+import { APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
 import { useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable } from '../lib/otaUpdate';
@@ -1271,127 +1271,435 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   const ota = useOtaUpdate();
   const { settings, updateSettings } = useChordStore();
   const lang = settings.language ?? 'en';
+  const changelogSections = getChangelogSections(lang);
+  const [changelogExpanded, setChangelogExpanded] = useState(false);
 
   const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
 
   const L = lang === 'es'
     ? {
         title: 'Actualizaciones',
-        version: 'Versión',
+        latestRelease: 'Última versión',
+        currentVersion: 'Versión actual',
+        releaseDate: 'Fecha de publicación',
         status: 'Estado',
         checking: 'Buscando actualizaciones…',
-        upToDate: 'Tu aplicación está al día',
-        checkNow: 'Buscar ahora',
-        studioUpdateAvailable: 'Actualización de Studio disponible',
-        appUpdateAvailable: 'Actualización de aplicación disponible',
-        updateStudio: 'Actualizar Studio',
-        controls: 'Controles',
+        upToDate: 'Estás al día',
+        upToDateDesc: 'Estás usando la versión más reciente de Studio.',
+        updateAvailable: 'Actualización disponible',
+        updateAvailableDesc: 'Una nueva versión de Studio está lista.',
+        updateNow: 'Actualizar ahora',
+        checkForUpdates: 'Buscar actualizaciones',
+        whatsNew: 'Novedades en esta versión',
+        showFullChangelog: 'Ver registro de cambios completo',
+        hideChangelog: 'Ocultar registro de cambios',
+        controls: 'Preferencias de actualización',
         notifTitle: 'Notificaciones de actualización',
-        notifDesc: 'Recibe un aviso del sistema cuando haya una actualización disponible.',
+        notifDesc: 'Recibe un aviso del sistema cuando haya una actualización.',
         autoTitle: 'Comprobación automática',
-        autoDesc: 'Studio comprueba cada 60 s mientras la app está abierta.',
+        autoDesc: 'Busca actualizaciones mientras la app está abierta.',
         changelogTitle: 'Mostrar novedades tras actualizar',
-        changelogDesc: 'Abre la hoja de cambios la primera vez tras instalar una nueva versión.',
-        howItWorks: 'Cómo funciona',
-        howItWorksBody: 'Studio soporta actualizaciones de la aplicación, actualizaciones nativas de APK y notificaciones de actualización.',
+        changelogDesc: 'Abre la hoja de cambios al iniciar tras una actualización.',
+        howItWorks: 'Cómo funcionan las actualizaciones',
+        howItWorksBody: 'Studio descarga e instala actualizaciones de la app directamente. No se requiere tienda de aplicaciones.',
+        reinstallRequired: 'Requiere reinstalación',
+        reinstallDesc: 'Esta versión requiere reinstalar Studio debido a un cambio de certificado de firma.',
       }
     : {
-        title: 'Updater',
-        version: 'Version',
+        title: 'Updates',
+        latestRelease: 'Latest Release',
+        currentVersion: 'Current version',
+        releaseDate: 'Release date',
         status: 'Status',
         checking: 'Checking for updates…',
-        upToDate: 'Your app is up to date',
-        checkNow: 'Check now',
-        studioUpdateAvailable: 'Studio update available',
-        appUpdateAvailable: 'App update available',
-        updateStudio: 'Update Studio',
-        controls: 'Controls',
+        upToDate: 'You\'re up to date',
+        upToDateDesc: 'You\'re running the latest version of Studio.',
+        updateAvailable: 'Update available',
+        updateAvailableDesc: 'A new version of Studio is ready to install.',
+        updateNow: 'Update Now',
+        checkForUpdates: 'Check for Updates',
+        whatsNew: "What's new in this version",
+        showFullChangelog: 'Show full changelog',
+        hideChangelog: 'Hide changelog',
+        controls: 'Update preferences',
         notifTitle: 'Update notifications',
         notifDesc: 'Get a system notification when a new update is ready.',
         autoTitle: 'Automatic checks',
-        autoDesc: 'Studio checks every 60 s while the app is open.',
+        autoDesc: 'Check for updates while the app is open.',
         changelogTitle: "Show what's new after updating",
         changelogDesc: 'Open the changelog sheet the first time you launch after installing a new version.',
-        howItWorks: 'How it works',
-        howItWorksBody: 'Studio supports app updates, native APK updates, and update notifications.',
+        howItWorks: 'How updates work',
+        howItWorksBody: 'Studio downloads and installs app updates directly. No app store required.',
+        reinstallRequired: 'Reinstall required',
+        reinstallDesc: 'This version requires reinstalling Studio due to a signing certificate change.',
       };
 
-  const statusColor = ota.loading
-    ? 'var(--c-text-secondary)'
-    : ota.updateAvailable ? '#f59e0b' : '#4ade80';
+  // Determine status state
+  const isChecking = ota.loading;
+  const hasUpdate = ota.updateAvailable;
+  const isReinstall = ota.reinstallRequired;
 
-  const statusLabel = ota.loading
-    ? L.checking
-    : ota.updateAvailable
-      ? L.studioUpdateAvailable
-      : L.upToDate;
+  // Status indicator config
+  const statusConfig = isChecking
+    ? { color: accent.from, label: L.checking, icon: 'refresh' as const, pulse: true }
+    : hasUpdate
+      ? isReinstall
+        ? { color: '#f87171', label: L.reinstallRequired, icon: 'warning' as const, pulse: false }
+        : { color: '#f59e0b', label: L.updateAvailable, icon: 'system_update' as const, pulse: false }
+      : { color: '#4ade80', label: L.upToDate, icon: 'check_circle' as const, pulse: false };
+
+  // Format date nicely
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString(lang === 'es' ? 'es-MX' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    } catch { return dateStr; }
+  };
+
+  // Category badge colors
+  const categoryColors: Record<string, { bg: string; text: string }> = {
+    added: { bg: 'rgba(74, 222, 128, 0.12)', text: '#4ade80' },
+    improved: { bg: `color-mix(in srgb, ${accent.from} 12%, transparent)`, text: accent.from },
+    fixed: { bg: 'rgba(251, 191, 36, 0.12)', text: '#fbbf24' },
+    changed: { bg: 'rgba(147, 130, 220, 0.12)', text: '#9382dc' },
+    "what's new": { bg: `color-mix(in srgb, ${accent.from} 12%, transparent)`, text: accent.from },
+    whats_new: { bg: `color-mix(in srgb, ${accent.from} 12%, transparent)`, text: accent.from },
+  };
+
+  const getCategoryStyle = (heading: string) => {
+    const key = heading.toLowerCase();
+    return categoryColors[key] || { bg: 'rgba(128,128,128,0.1)', text: 'var(--c-text-secondary)' };
+  };
 
   return (
     <div className={className} style={style}>
-      <style>{HUB_SETTINGS_CSS}</style>
+      <style>{HUB_SETTINGS_CSS}{`
+        @keyframes updater-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        @keyframes updater-check-spin {
+          to { transform: rotate(360deg); }
+        }
+        .updater-hero-card {
+          position: relative;
+          border-radius: 20px;
+          overflow: hidden;
+          margin: 0 0 16px;
+        }
+        .updater-hero-bg {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg,
+            color-mix(in srgb, ${accent.from} 15%, transparent),
+            color-mix(in srgb, ${accent.to} 8%, transparent)
+          );
+          pointer-events: none;
+        }
+        .updater-hero-inner {
+          position: relative;
+          padding: 22px 20px 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .updater-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-family: Manrope, sans-serif;
+          font-weight: 700;
+          font-size: 11px;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+          width: fit-content;
+        }
+        .updater-version-headline {
+          font-family: Manrope, sans-serif;
+          font-weight: 800;
+          font-size: 32px;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+          color: var(--c-text-primary);
+          margin: 0;
+        }
+        .updater-version-tag {
+          font-size: 14px;
+          font-weight: 600;
+          opacity: 0.5;
+          margin-left: 6px;
+          letter-spacing: -0.01em;
+        }
+        .updater-status-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 14px;
+          border-radius: 12px;
+          background: rgba(128,128,128,0.06);
+          border: 1px solid rgba(128,128,128,0.08);
+        }
+        .updater-status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .updater-cta-btn {
+          width: 100%;
+          padding: 14px 20px;
+          border-radius: 14px;
+          border: none;
+          font-family: Manrope, sans-serif;
+          font-weight: 800;
+          font-size: 14px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          transition: transform 120ms ease, box-shadow 200ms ease;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .updater-cta-btn:active {
+          transform: scale(0.97);
+        }
+        .updater-section-title {
+          font-family: Manrope, sans-serif;
+          font-weight: 700;
+          font-size: 13px;
+          color: var(--c-text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          padding: 20px 4px 8px;
+          margin: 0;
+        }
+        .updater-changelog-card {
+          border-radius: 16px;
+          overflow: hidden;
+        }
+        .updater-changelog-section {
+          padding: 14px 18px;
+          border-bottom: 1px solid rgba(128,128,128,0.06);
+        }
+        .updater-changelog-section:last-child {
+          border-bottom: none;
+        }
+        .updater-changelog-heading {
+          display: inline-flex;
+          align-items: center;
+          padding: 3px 9px;
+          border-radius: 6px;
+          font-family: Manrope, sans-serif;
+          font-weight: 700;
+          font-size: 11.5px;
+          letter-spacing: 0.02em;
+          margin-bottom: 10px;
+        }
+        .updater-changelog-item {
+          display: flex;
+          gap: 10px;
+          padding: 4px 0;
+          font-family: Inter, sans-serif;
+          font-size: var(--font-sm, 13px);
+          line-height: 1.5;
+          color: var(--c-text-secondary);
+        }
+        .updater-changelog-bullet {
+          flex-shrink: 0;
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          margin-top: 7px;
+        }
+        .updater-tip-card {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          margin: 16px 0 0;
+          padding: 14px 16px;
+          border-radius: 14px;
+          background: rgba(128,128,128,0.05);
+          border: 1px solid rgba(128,128,128,0.08);
+        }
+      `}</style>
       <SettingsSubHeader title={L.title} onBack={onBack} />
 
-      {/* ── CARD: UNIFIED UPDATER CARD ── */}
-      <div style={cardStyle}>
-        <div style={{ padding: '15px 18px', borderBottom: '1px solid rgba(128,128,128,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)' }}>{L.version}</span>
-          <span style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 'var(--font-sm)' }}>{APP_VERSION}</span>
-        </div>
-        
-        <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
-          {ota.loading
-            ? <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)', flexShrink: 0, animation: 'hub-spin 1s linear infinite' }}>refresh</span>
-            : <div style={{ width: 9, height: 9, borderRadius: '50%', background: statusColor, flexShrink: 0, boxShadow: `0 0 8px ${statusColor}88` }} />
-          }
-          <span style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 'var(--font-base)', flex: 1 }}>{statusLabel}</span>
-        </div>
+      {/* ── HERO CARD ── */}
+      <div className="updater-hero-card spring-in" style={{ ...cardStyle, margin: 0, marginBottom: 16 }}>
+        <div className="updater-hero-bg" />
+        <div className="updater-hero-inner">
+          {/* Badge */}
+          <div className="updater-badge" style={{
+            background: hasUpdate
+              ? isReinstall ? 'rgba(248,113,113,0.12)' : `color-mix(in srgb, ${accent.from} 14%, transparent)`
+              : 'rgba(74,222,128,0.12)',
+            color: hasUpdate
+              ? isReinstall ? '#f87171' : accent.from
+              : '#4ade80',
+          }}>
+            <span className="material-symbols-outlined" style={{
+              fontSize: 13,
+              fontVariationSettings: "'FILL' 1",
+            }}>{statusConfig.icon}</span>
+            {hasUpdate ? L.latestRelease : L.upToDate}
+          </div>
 
-        {/* Action Buttons */}
-        {!ota.updateAvailable ? (
+          {/* Version Headline */}
+          <h1 className="updater-version-headline">
+            {hasUpdate ? (
+              <>v{ota.remoteVersion}</>
+            ) : (
+              <>v{APP_VERSION}<span className="updater-version-tag">{APP_VERSION_TAG}</span></>
+            )}
+          </h1>
+
+          {/* Status Row */}
+          <div className="updater-status-row">
+            {isChecking ? (
+              <span className="material-symbols-outlined" style={{
+                fontSize: 16,
+                color: accent.from,
+                animation: 'updater-check-spin 1s linear infinite',
+                flexShrink: 0,
+              }}>refresh</span>
+            ) : (
+              <div className="updater-status-dot" style={{
+                background: statusConfig.color,
+                boxShadow: `0 0 8px ${statusConfig.color}66`,
+                animation: statusConfig.pulse ? 'updater-pulse 1.5s ease-in-out infinite' : 'none',
+              }} />
+            )}
+            <span style={{
+              fontFamily: 'Manrope, sans-serif',
+              fontWeight: 600,
+              fontSize: 'var(--font-sm, 13px)',
+              color: 'var(--c-text-primary)',
+              flex: 1,
+            }}>{statusConfig.label}</span>
+            {!hasUpdate && !isChecking && (
+              <span style={{
+                fontFamily: 'Inter, sans-serif',
+                fontSize: 11.5,
+                color: 'var(--c-text-tertiary)',
+              }}>{formatDate(APP_VERSION_DATE)}</span>
+            )}
+          </div>
+
+          {/* Reinstall Warning */}
+          {hasUpdate && isReinstall && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+              padding: '12px 14px', borderRadius: 12,
+              background: 'rgba(248,113,113,0.08)',
+              border: '1px solid rgba(248,113,113,0.15)',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#f87171', flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1" }}>warning</span>
+              <div>
+                <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, color: '#f87171' }}>{L.reinstallRequired}</p>
+                <p style={{ margin: '4px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>{L.reinstallDesc}</p>
+              </div>
+            </div>
+          )}
+
+          {/* CTA Button */}
+          {hasUpdate ? (
+            <button
+              className="updater-cta-btn"
+              onClick={() => window.dispatchEvent(new CustomEvent('studio:open-update-dialog'))}
+              style={{
+                background: isReinstall
+                  ? 'linear-gradient(135deg, #f87171, #ef4444)'
+                  : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                color: '#fff',
+                boxShadow: isReinstall
+                  ? '0 4px 20px rgba(248,113,113,0.3)'
+                  : `0 4px 20px color-mix(in srgb, ${accent.to} 30%, transparent)`,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
+                {isReinstall ? 'download' : 'system_update'}
+              </span>
+              {L.updateNow}
+            </button>
+          ) : (
+            <button
+              className="updater-cta-btn"
+              onClick={async () => {
+                window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+                await ota.checkNow();
+              }}
+              disabled={isChecking}
+              style={{
+                background: 'rgba(128,128,128,0.08)',
+                color: isChecking ? 'var(--c-text-tertiary)' : 'var(--c-text-primary)',
+                border: '1px solid rgba(128,128,128,0.12)',
+                cursor: isChecking ? 'default' : 'pointer',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{
+                fontSize: 18,
+                animation: isChecking ? 'updater-check-spin 1s linear infinite' : 'none',
+              }}>refresh</span>
+              {L.checkForUpdates}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── CHANGELOG SECTION ── */}
+      <p className="updater-section-title spring-in" style={{ animationDelay: '40ms' }}>{L.whatsNew}</p>
+      <div className="updater-changelog-card spring-in" style={{ ...cardStyle, margin: 0, animationDelay: '60ms' }}>
+        {changelogSections.slice(0, changelogExpanded ? undefined : 2).map((section, si) => (
+          <div key={si} className="updater-changelog-section">
+            <div className="updater-changelog-heading" style={{
+              background: getCategoryStyle(section.heading).bg,
+              color: getCategoryStyle(section.heading).text,
+            }}>
+              {section.heading}
+            </div>
+            {section.items.slice(0, changelogExpanded ? undefined : 3).map((item, ii) => (
+              <div key={ii} className="updater-changelog-item">
+                <div className="updater-changelog-bullet" style={{
+                  background: getCategoryStyle(section.heading).text,
+                  opacity: 0.6,
+                }} />
+                <span>{item}</span>
+              </div>
+            ))}
+            {!changelogExpanded && section.items.length > 3 && (
+              <div style={{ paddingLeft: 15, paddingTop: 2, fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-tertiary)' }}>
+                +{section.items.length - 3} more
+              </div>
+            )}
+          </div>
+        ))}
+        {changelogSections.length > 0 && (
           <button
             type="button"
-            onClick={async () => {
-              window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
-              await ota.checkNow();
-            }}
-            disabled={ota.loading}
+            onClick={() => setChangelogExpanded(!changelogExpanded)}
             style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              width: '100%', padding: '14px 18px', border: 'none', background: 'transparent',
-              color: ota.loading ? 'var(--c-text-secondary)' : accent.from,
-              fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
-              cursor: ota.loading ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              width: '100%', padding: '13px 18px', border: 'none', background: 'transparent',
+              color: accent.from,
+              fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm, 13px)',
+              cursor: 'pointer',
+              borderTop: '1px solid rgba(128,128,128,0.06)',
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span>
-            {L.checkNow}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
-            }}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              margin: '16px', padding: '13px', borderRadius: 12,
-              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, 
-              color: '#fff',
-              fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm)',
-              border: 'none', cursor: 'pointer',
-              boxShadow: `0 4px 16px ${accent.to}44`
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
-              system_update
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+              {changelogExpanded ? 'expand_less' : 'expand_more'}
             </span>
-            {L.updateStudio}
+            {changelogExpanded ? L.hideChangelog : L.showFullChangelog}
           </button>
         )}
       </div>
 
-      <SettingsSectionLabel delay={80}>{L.controls}</SettingsSectionLabel>
-      <div style={cardStyle}>
+      {/* ── CONTROLS SECTION ── */}
+      <p className="updater-section-title spring-in" style={{ animationDelay: '80ms' }}>{L.controls}</p>
+      <div className="spring-in" style={{ ...cardStyle, margin: 0, animationDelay: '100ms' }}>
         <SettingRow label={L.notifTitle} desc={L.notifDesc}>
           <Toggle value={settings.otaNotifications ?? true} onChange={v => updateSettings({ otaNotifications: v })} accentFrom={accent.from} accentTo={accent.to} />
         </SettingRow>
@@ -1403,16 +1711,18 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         </SettingRow>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '14px 4px 0', padding: '12px 14px', borderRadius: 12, background: 'rgba(128,128,128,0.06)', border: '1px solid rgba(128,128,128,0.09)' }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 15, color: 'var(--c-text-secondary)', flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1" }}>cloud_download</span>
+      {/* ── TIP CARD ── */}
+      <div className="updater-tip-card spring-in" style={{ animationDelay: '120ms' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 16, color: accent.from, flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1", opacity: 0.8 }}>info</span>
         <div>
-          <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 600, fontSize: 12.5, margin: '0 0 3px' }}>{L.howItWorks}</p>
-          <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 11.5, margin: 0, lineHeight: 1.55 }}>{L.howItWorksBody}</p>
+          <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, color: 'var(--c-text-primary)' }}>{L.howItWorks}</p>
+          <p style={{ margin: '4px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', lineHeight: 1.55 }}>{L.howItWorksBody}</p>
         </div>
       </div>
     </div>
   );
 }
+
 
 
 function HubSettings({
