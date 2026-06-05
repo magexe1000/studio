@@ -18,16 +18,17 @@ Conventions:
 ## 3.6.15
 
 ### Fixed
-- Fixed the release pipeline failing when Supabase sync was selected without required Supabase build configuration.
-- Fixed Supabase sync releases being blocked unless VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are present at build time.
-- Fixed misleading backend diagnostics by separating Firebase and Supabase configuration status.
-- Fixed release validation to prevent shipping Supabase-backed builds with an uninitialized Supabase client.
+- Completed the signing reset path for builds where the original production keystore is unavailable.
+- Added explicit reinstall-required metadata for APKs signed with the new certificate.
+- Improved updater messaging when Android cannot install over an app signed with a different certificate.
 
 ### Improved
-- Added stricter Supabase build-gate validation for CI and release builds.
-- Improved release diagnostics to show Supabase URL/key presence without exposing secrets.
-- Improved release safety so production update metadata is not published without real changelog notes.
-- Improved sync release readiness checks for supabase-realtime builds.
+- Added safer release handling for signing certificate changes.
+- Improved AppInstaller diagnostics for reinstall-required builds.
+- Preserved strict signature validation for normal future updates.
+
+### Changed
+- This build requires a one-time uninstall/reinstall because the original Android signing key is unavailable. After reinstalling this version, future Studio updates can continue using the new signing certificate.
 
 ## 3.6.14
 

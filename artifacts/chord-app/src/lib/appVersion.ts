@@ -38,8 +38,8 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 export const APP_VERSION_DATE = '2026-06-05'; // 3.6.15
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = '05608038';
-export const APP_BUILD_TIMESTAMP = '6/4/2026, 11:25:33 PM CST';
+export const APP_COMMIT_SHA = '94c13c7f';
+export const APP_BUILD_TIMESTAMP = '6/5/2026, 1:29:47 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -56,16 +56,25 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "What's New",
+    heading: "Improved",
     items: [
-      "Cloud sync now powered by Supabase — real-time sync across all your devices.",
-      "Added Supabase database tables with Row Level Security for secure per-user data.",
+      "Added safer release handling for signing certificate changes.",
+      "Improved AppInstaller diagnostics for reinstall-required builds.",
+      "Preserved strict signature validation for normal future updates.",
     ],
   },
   {
-    heading: "Improved",
+    heading: "Fixed",
     items: [
-      "Build pipeline now validates Supabase configuration before producing releases.",
+      "Completed the signing reset path for builds where the original production keystore is unavailable.",
+      "Added explicit reinstall-required metadata for APKs signed with the new certificate.",
+      "Improved updater messaging when Android cannot install over an app signed with a different certificate.",
+    ],
+  },
+  {
+    heading: "Changed",
+    items: [
+      "This build requires a one-time uninstall/reinstall because the original Android signing key is unavailable. After reinstalling this version, future Studio updates can continue using the new signing certificate.",
     ],
   },
 ];
