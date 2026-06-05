@@ -682,16 +682,38 @@ function UpdateModal({
   let showButtons = true;
   let showSpinner = false;
 
-  const state = permissionBlocked ? 'permission_blocked' : ota.updateState;
+  let state = permissionBlocked ? 'permission_blocked' : ota.updateState;
+  if (state === 'available' && ota.reinstallRequired) {
+    state = 'reinstall_warning';
+  }
 
   // Collapsible changelog section state
-  const [changelogExpanded, setChangelogExpanded] = useState(state === 'available');
+  const [changelogExpanded, setChangelogExpanded] = useState(state === 'available' || state === 'reinstall_warning');
 
   useEffect(() => {
-    setChangelogExpanded(state === 'available');
+    setChangelogExpanded(state === 'available' || state === 'reinstall_warning');
   }, [state]);
 
   switch (state) {
+    case 'reinstall_warning':
+      iconName = 'warning';
+      iconColor = '#f87171';
+      title = 'Manual reinstall required';
+      description = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left', fontSize: 13, marginTop: 4 }}>
+          <p style={{ margin: 0, fontWeight: 700, color: '#f87171', lineHeight: 1.4 }}>
+            This version requires reinstalling Studio.
+          </p>
+          <p style={{ margin: 0, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
+            Android cannot install this APK over your current app because the signing certificate changed. To install this version, uninstall the current app first, then install the new APK.
+          </p>
+          <p style={{ margin: 0, color: 'var(--c-text-tertiary)', fontSize: 12, lineHeight: 1.4 }}>
+            Local app data may be removed when uninstalling. Cloud data will be restored after signing in if sync is working.
+          </p>
+        </div>
+      );
+      break;
+
     case 'permission_blocked':
       iconName = 'security';
       iconColor = '#eab308';
@@ -894,6 +916,57 @@ function UpdateModal({
             style={{ ...primaryButtonStyle, width: '100%' }}
           >
             Close
+          </button>
+        </div>
+      );
+    }
+
+    if (state === 'reinstall_warning') {
+      const copyDiagnostics = async () => {
+        const diagnosticText = getDiagnosticsText();
+        try {
+          await navigator.clipboard.writeText(diagnosticText);
+          alert('Diagnostics copied to clipboard!');
+        } catch (err) {
+          console.error('Failed to copy diagnostics:', err);
+        }
+      };
+
+      const downloadUrlToUse = ota.manualApkUrl || ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/tag/v${ota.remoteVersion}`;
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
+          <button
+            type="button"
+            onClick={() => window.open(downloadUrlToUse, '_system')}
+            style={primaryButtonStyle}
+          >
+            Download reinstall build
+          </button>
+          
+          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+            <button
+              type="button"
+              onClick={copyDiagnostics}
+              style={halfSecondaryButtonStyle}
+            >
+              Copy diagnostics
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              style={halfSecondaryButtonStyle}
+            >
+              I understand
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={onLater}
+            style={tertiaryButtonStyle}
+          >
+            Cancel
           </button>
         </div>
       );

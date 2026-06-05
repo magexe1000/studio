@@ -342,6 +342,12 @@ export interface RemoteVersionInfo {
   releaseNotes?: string[] | StructuredReleaseNotes;
   requiredApkVersion?: string;
   requiredVersionCode?: number;
+  reinstallRequired?: boolean;
+  signatureChanged?: boolean;
+  previousSignatureSha256?: string;
+  newSignatureSha256?: string;
+  installMode?: 'reinstall-required';
+  packageName?: string;
 }
 
 export interface OtaState {
@@ -461,6 +467,13 @@ async function fetchOne(
     const manualApkUrl = typeof obj.manual_download_url === 'string' ? obj.manual_download_url : (typeof obj.manualApkUrl === 'string' ? obj.manualApkUrl : undefined);
     const fallbackApkUrl = typeof obj.fallback_download_url === 'string' ? obj.fallback_download_url : (typeof obj.fallbackApkUrl === 'string' ? obj.fallbackApkUrl : undefined);
     
+    const reinstallRequired = !!(obj.reinstallRequired || obj.reinstall_required);
+    const signatureChanged = !!(obj.signatureChanged || obj.signature_changed);
+    const previousSignatureSha256 = typeof obj.previousSignatureSha256 === 'string' ? obj.previousSignatureSha256 : (typeof obj.previous_signature_sha256 === 'string' ? obj.previous_signature_sha256 : undefined);
+    const newSignatureSha256 = typeof obj.newSignatureSha256 === 'string' ? obj.newSignatureSha256 : (typeof obj.new_signature_sha256 === 'string' ? obj.new_signature_sha256 : undefined);
+    const installMode = (obj.installMode === 'reinstall-required' || obj.install_mode === 'reinstall-required') ? 'reinstall-required' : undefined;
+    const packageName = typeof obj.packageName === 'string' ? obj.packageName : (typeof obj.package_name === 'string' ? obj.package_name : undefined);
+    
     const requiredApkVersion = typeof obj.required_apk_version === 'string'
       ? obj.required_apk_version
       : (typeof obj.requiredApkVersion === 'string' ? obj.requiredApkVersion : undefined);
@@ -506,6 +519,12 @@ async function fetchOne(
       releaseNotes: parsedReleaseNotes,
       requiredApkVersion,
       requiredVersionCode,
+      reinstallRequired,
+      signatureChanged,
+      previousSignatureSha256,
+      newSignatureSha256,
+      installMode,
+      packageName,
     };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -626,6 +645,12 @@ export interface CentralizedOtaState {
   capgoSetBlocked: boolean;
   triggerComponent: string | null;
   finalPathExecuted: 'OTA applied' | 'APK installer launched' | 'blocked due to APK required' | 'N/A';
+  reinstallRequired: boolean;
+  signatureChanged: boolean;
+  previousSignatureSha256: string | null;
+  newSignatureSha256: string | null;
+  installMode: 'reinstall-required' | null;
+  packageName: string | null;
 }
 
 let globalOtaState: CentralizedOtaState = {
@@ -656,6 +681,12 @@ let globalOtaState: CentralizedOtaState = {
   capgoSetBlocked: false,
   triggerComponent: null,
   finalPathExecuted: 'N/A',
+  reinstallRequired: false,
+  signatureChanged: false,
+  previousSignatureSha256: null,
+  newSignatureSha256: null,
+  installMode: null,
+  packageName: null,
 };
 
 const stateListeners = new Set<(state: CentralizedOtaState) => void>();
@@ -836,13 +867,15 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       otaDebugLogs.compareResult = cmp;
 
       let installedVersionCode = 0;
+      let installedSignature = '';
       if (isNative()) {
         try {
           const { AppInstaller } = await import('./apkDownloader');
           const installedDetails = await AppInstaller.getInstalledAppDetails();
           installedVersionCode = installedDetails.versionCode;
+          installedSignature = (installedDetails.signatures || '').replace(/:/g, '').toLowerCase().trim();
         } catch (err) {
-          console.warn('[OTA] Failed to query installed version code:', err);
+          console.warn('[OTA] Failed to query installed details:', err);
         }
       }
 
@@ -923,6 +956,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           requiredVersionCode: remote.requiredVersionCode ?? null,
           nativeApkBehind,
           apkUpdateRequired,
+          reinstallRequired: false,
+          signatureChanged: false,
+          previousSignatureSha256: null,
+          newSignatureSha256: null,
+          installMode: null,
+          packageName: null,
         });
         return globalOtaState;
       }
@@ -955,6 +994,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           requiredVersionCode: remote.requiredVersionCode ?? null,
           nativeApkBehind,
           apkUpdateRequired,
+          reinstallRequired: false,
+          signatureChanged: false,
+          previousSignatureSha256: null,
+          newSignatureSha256: null,
+          installMode: null,
+          packageName: null,
         });
         return globalOtaState;
       }
@@ -988,6 +1033,14 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         apkUpdateRequired
       });
 
+      let clientReinstallRequired = false;
+      if (remote.reinstallRequired || remote.installMode === 'reinstall-required') {
+        const cleanNewSig = (remote.newSignatureSha256 || '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206').replace(/:/g, '').toLowerCase().trim();
+        if (isNative() && installedSignature && installedSignature !== cleanNewSig) {
+          clientReinstallRequired = true;
+        }
+      }
+
       updateGlobalState({
         updateState: nextState,
         updateAvailable: true,
@@ -1008,6 +1061,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         requiredVersionCode: remote.requiredVersionCode ?? null,
         nativeApkBehind,
         apkUpdateRequired,
+        reinstallRequired: clientReinstallRequired,
+        signatureChanged: remote.signatureChanged === true,
+        previousSignatureSha256: remote.previousSignatureSha256 ?? null,
+        newSignatureSha256: remote.newSignatureSha256 ?? null,
+        installMode: remote.installMode ?? null,
+        packageName: remote.packageName ?? null,
       });
 
       // System notification if never seen and not already dismissed

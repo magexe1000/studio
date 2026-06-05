@@ -200,8 +200,9 @@ try {
 }
 
 // Get signature
-const expectedSignature = process.env.EXPECTED_SIGNATURE_SHA256 || '58:B9:BF:2D:E5:06:4C:62:AC:3C:A1:81:B5:60:8F:E1:35:C6:89:4A:83:59:FF:65:88:E1:92:18:CD:38:47:64';
+const expectedSignature = process.env.EXPECTED_SIGNATURE_SHA256 || '90:0C:F2:59:18:5C:81:10:0C:DA:8B:B0:85:71:FA:23:55:2E:97:89:13:1C:F0:7A:8F:40:56:E4:D4:12:92:06';
 const signatures = expectedSignature.replace(/:/g, '').toLowerCase();
+const reinstallRequired = process.env.REINSTALL_REQUIRED === 'true';
 
 // Get previous required version code and version name to carry forward if releaseType is 'ota'
 let requiredApkVersion = version;
@@ -244,8 +245,17 @@ const metadata = {
   releaseNotes: releaseNotes,
   required_version_code: versionCode,
   requiredVersionCode: versionCode,
-  signatures: signatures
+  signatures: signatures,
+  packageName: 'com.chordex.app'
 };
+
+if (reinstallRequired) {
+  metadata.reinstallRequired = true;
+  metadata.signatureChanged = true;
+  metadata.previousSignatureSha256 = '58b9bf2de5064c62ac3ca181b5608fe135c6894a8359ff6588e19218cd384764';
+  metadata.newSignatureSha256 = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
+  metadata.installMode = 'reinstall-required';
+}
 
 // Validate the constructed metadata before writing
 if (prevVersionCode && prevData && prevData.version !== version && versionCode <= prevVersionCode) {
@@ -277,6 +287,14 @@ try {
         data.requiredVersionCode = versionCode;
         data.required_version_code = versionCode;
         data.signatures = signatures;
+        data.packageName = 'com.chordex.app';
+        if (reinstallRequired) {
+          data.reinstallRequired = true;
+          data.signatureChanged = true;
+          data.previousSignatureSha256 = '58b9bf2de5064c62ac3ca181b5608fe135c6894a8359ff6588e19218cd384764';
+          data.newSignatureSha256 = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
+          data.installMode = 'reinstall-required';
+        }
         if (description) {
           data.changelog = description;
         }

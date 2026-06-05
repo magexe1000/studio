@@ -395,9 +395,23 @@ if (fs.existsSync(paths.apkPath)) {
     const currentSignature = sha256Match ? sha256Match[1].replace(/:/g, '').toLowerCase() : '';
     
     // Check signature consistency with previous release
+    const expectedProdSignature = "900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206";
+    const oldProdSignature = "58b9bf2de5064c62ac3ca181b5608fe135c6894a8359ff6588e19218cd384764";
+
     if (prevSignature) {
       if (process.env.CI) {
-        assert(currentSignature === prevSignature, `Release blocked: signing certificate signature fingerprint changed! Previous: ${prevSignature}, Current: ${currentSignature}`, EXIT_CODES.RELEASE_VALIDATION);
+        if (currentSignature !== prevSignature) {
+          if (process.env.REINSTALL_REQUIRED === 'true') {
+            assert(
+              prevSignature === oldProdSignature && currentSignature === expectedProdSignature,
+              `Controlled reset mismatch! Reset is only allowed from old signature (${oldProdSignature}) to new signature (${expectedProdSignature}). Found previous: ${prevSignature}, current: ${currentSignature}`,
+              EXIT_CODES.RELEASE_VALIDATION
+            );
+            console.log(`✓ Controlled signature reset allowed: upgrading from old cert (${prevSignature}) to new cert (${currentSignature})`);
+          } else {
+            assert(false, `Release blocked: signing certificate signature fingerprint changed! Previous: ${prevSignature}, Current: ${currentSignature}. (For controlled reset, set REINSTALL_REQUIRED=true)`, EXIT_CODES.RELEASE_VALIDATION);
+          }
+        }
       } else {
         if (currentSignature !== prevSignature) {
           console.warn(`⚠ Local validation warning: signing certificate signature fingerprint changed! Previous: ${prevSignature}, Current: ${currentSignature}. Proceeding anyway since we are not in CI.`);
@@ -406,7 +420,6 @@ if (fs.existsSync(paths.apkPath)) {
     }
     
     // Check signature consistency with expected production key
-    const expectedProdSignature = "58b9bf2de5064c62ac3ca181b5608fe135c6894a8359ff6588e19218cd384764";
     if (process.env.CI) {
       assert(currentSignature === expectedProdSignature, `Release blocked: APK is not signed with the production certificate in CI! Expected: ${expectedProdSignature}, Found: ${currentSignature}`, EXIT_CODES.RELEASE_VALIDATION);
     } else {

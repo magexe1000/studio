@@ -191,20 +191,25 @@ if (process.env.CI) {
     if (!sha256Match) {
       console.error('\\x1b[31mrelease-firebase: ✗ Signing preflight failed: could not extract SHA-256 from keytool output.\\x1b[0m');
       // Print non-secret keytool output for debugging
-      const safeLines = keytoolOut.split('\\n').filter(l =>
+      const safeLines = keytoolOut.split('\n').filter(l =>
         /alias|SHA256|valid|owner|issuer|entry type|certificate/i.test(l)
       );
-      if (safeLines.length) console.error(safeLines.join('\\n'));
+      if (safeLines.length) console.error(safeLines.join('\n'));
       process.exit(1);
     }
     const actualFingerprint = sha256Match[1].replace(/:/g, '').toLowerCase();
     console.log(`release-firebase: Keystore alias "${ksAlias}" certificate SHA-256: ${actualFingerprint}`);
-    console.log(`release-firebase: Expected production SHA-256:                     ${expectedSig}`);
+    
+    const targetSig = process.env.REINSTALL_REQUIRED === 'true'
+      ? '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206'
+      : expectedSig;
+      
+    console.log(`release-firebase: Expected production SHA-256:                     ${targetSig}`);
 
-    if (actualFingerprint !== expectedSig) {
-      console.error('\\x1b[31mrelease-firebase: ✗ Signing preflight FAILED: keystore certificate does not match production fingerprint.\\x1b[0m');
+    if (actualFingerprint !== targetSig) {
+      console.error('\x1b[31mrelease-firebase: ✗ Signing preflight FAILED: keystore certificate does not match production fingerprint.\x1b[0m');
       console.error(`  Keystore fingerprint: ${actualFingerprint}`);
-      console.error(`  Expected fingerprint: ${expectedSig}`);
+      console.error(`  Expected fingerprint: ${targetSig}`);
       console.error('');
       console.error('  The ANDROID_KEYSTORE_BASE64 secret contains the wrong keystore,');
       console.error('  or ANDROID_KEY_ALIAS points to the wrong alias.');
