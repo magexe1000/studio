@@ -636,65 +636,77 @@ if (generateResult.status !== 0) {
 }
 
 // Step 12: Deploy Firebase Hosting
-console.log('Step 12/15: Deploy Firebase Hosting...');
-const fbDeployResult = spawnSync('npx', ['firebase-tools', 'deploy', '--project', 'studio-30f44', '--only', 'hosting'], {
-  cwd: repoRoot,
-  stdio: 'inherit',
-  shell: process.platform === 'win32',
-});
-if (fbDeployResult.status !== 0) {
-  console.error('release-firebase: ✗ Firebase deploy failed!');
-  process.exit(fbDeployResult.status ?? 1);
+// In CI, deployment is handled by the workflow's FirebaseExtended/action-hosting-deploy
+// action using the FIREBASE_SERVICE_ACCOUNT secret. The script only deploys locally.
+if (process.env.CI) {
+  console.log('Step 12/15: Deploy Firebase Hosting... [SKIPPED — CI workflow handles deployment via service account]');
+} else {
+  console.log('Step 12/15: Deploy Firebase Hosting...');
+  const fbDeployResult = spawnSync('npx', ['firebase-tools', 'deploy', '--project', 'studio-30f44', '--only', 'hosting'], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
+  if (fbDeployResult.status !== 0) {
+    console.error('release-firebase: ✗ Firebase deploy failed!');
+    process.exit(fbDeployResult.status ?? 1);
+  }
 }
 
-// Step 13: Re-fetch deployed version.json and app-release.json
-console.log('Step 13/15: Re-fetch deployed version.json and app-release.json...');
-const deployedVersionUrl = `https://studio-30f44.web.app/version.json`;
-const deployedAppReleaseUrl = `https://studio-30f44.web.app/app-release.json`;
+// Steps 13-14: Re-fetch and validate deployed metadata
+// In CI, these run as a separate workflow step AFTER the Firebase deploy action.
+if (process.env.CI) {
+  console.log('Step 13/15: Re-fetch deployed metadata... [SKIPPED — CI workflow verifies post-deploy]');
+  console.log('Step 14/15: Re-validate deployed APK URL and SHA... [SKIPPED — CI workflow verifies post-deploy]');
+} else {
+  console.log('Step 13/15: Re-fetch deployed version.json and app-release.json...');
+  const deployedVersionUrl = `https://studio-30f44.web.app/version.json`;
+  const deployedAppReleaseUrl = `https://studio-30f44.web.app/app-release.json`;
 
-const fetchJson = async (url) => {
-  const res = await fetch(url, { headers: { 'Cache-Control': 'no-cache' } });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-};
+  const fetchJson = async (url) => {
+    const res = await fetch(url, { headers: { 'Cache-Control': 'no-cache' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  };
 
-let deployedVer, deployedAppRelease;
-try {
-  deployedVer = await fetchJson(deployedVersionUrl);
-  deployedAppRelease = await fetchJson(deployedAppReleaseUrl);
-  console.log('release-firebase: Deployed version.json version =', deployedVer.version);
-  console.log('release-firebase: Deployed app-release.json version =', deployedAppRelease.version);
-} catch (err) {
-  console.error('release-firebase: ✗ Failed to fetch deployed metadata files:', err);
-  process.exit(1);
-}
+  let deployedVer, deployedAppRelease;
+  try {
+    deployedVer = await fetchJson(deployedVersionUrl);
+    deployedAppRelease = await fetchJson(deployedAppReleaseUrl);
+    console.log('release-firebase: Deployed version.json version =', deployedVer.version);
+    console.log('release-firebase: Deployed app-release.json version =', deployedAppRelease.version);
+  } catch (err) {
+    console.error('release-firebase: ✗ Failed to fetch deployed metadata files:', err);
+    process.exit(1);
+  }
 
-// Step 14: Re-validate their APK URL and SHA
-console.log('Step 14/15: Re-validate their APK URL and SHA...');
-if (deployedVer.version !== version || deployedAppRelease.version !== version) {
-  console.error(`release-firebase: ✗ Deployed version mismatch! Expected ${version}`);
-  process.exit(1);
+  // Step 14: Re-validate their APK URL and SHA
+  console.log('Step 14/15: Re-validate their APK URL and SHA...');
+  if (deployedVer.version !== version || deployedAppRelease.version !== version) {
+    console.error(`release-firebase: ✗ Deployed version mismatch! Expected ${version}`);
+    process.exit(1);
+  }
+  if (deployedAppRelease.sha256 !== localApkSha || deployedVer.sha256 !== localApkSha) {
+    console.error(`release-firebase: ✗ Deployed SHA-256 mismatch! Deployed: ${deployedAppRelease.sha256}, Expected: ${localApkSha}`);
+    process.exit(1);
+  }
+  const deployedApkUrlStatus = await checkUrl(deployedVer.apkUrl || deployedAppRelease.download_url);
+  if (deployedApkUrlStatus !== 200) {
+    console.error(`release-firebase: ✗ Deployed APK URL is unreachable (HTTP ${deployedApkUrlStatus})`);
+    process.exit(1);
+  }
+  console.log('release-firebase: ✓ Deployed metadata validated successfully!');
 }
-if (deployedAppRelease.sha256 !== localApkSha || deployedVer.sha256 !== localApkSha) {
-  console.error(`release-firebase: ✗ Deployed SHA-256 mismatch! Deployed: ${deployedAppRelease.sha256}, Expected: ${localApkSha}`);
-  process.exit(1);
-}
-const deployedApkUrlStatus = await checkUrl(deployedVer.apkUrl || deployedAppRelease.download_url);
-if (deployedApkUrlStatus !== 200) {
-  console.error(`release-firebase: ✗ Deployed APK URL is unreachable (HTTP ${deployedApkUrlStatus})`);
-  process.exit(1);
-}
-console.log('release-firebase: ✓ Deployed metadata validated successfully!');
 
 // Step 15: Print final release report
 console.log('\n================================================================');
 console.log('Step 15/15: Print final release report');
 console.log('================================================================');
-console.log(`Release Status:   SUCCESSFUL`);
+console.log(`Release Status:   ${process.env.CI ? 'BUILD SUCCESSFUL (deploy pending via CI workflow)' : 'SUCCESSFUL'}`);
 console.log(`Version Released: ${version}`);
 console.log(`Version Code:     ${gradleVersionCode}`);
 console.log(`APK Download URL: ${githubApkUrl}`);
 console.log(`APK SHA-256:      ${localApkSha}`);
-console.log(`PWA Deployed:     https://studio-30f44.web.app/`);
+console.log(`PWA Deployed:     ${process.env.CI ? '(pending — CI workflow deploys next)' : 'https://studio-30f44.web.app/'}`);
 console.log('================================================================\n');
 

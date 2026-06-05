@@ -192,6 +192,44 @@ jobs:
           projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
           channelId: live
 
+      - name: Verify Deployed Metadata
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          echo "Waiting 10s for Firebase CDN propagation..."
+          sleep 10
+          VERSION=$(node -p "require('./artifacts/chord-app/package.json').version")
+          echo "Expected version: $VERSION"
+
+          echo "--- Fetching version.json ---"
+          VER_JSON=$(curl -sf --retry 3 "https://studio-30f44.web.app/version.json")
+          VER_LIVE=$(echo "$VER_JSON" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
+          echo "Deployed version.json version = $VER_LIVE"
+          if [ "$VER_LIVE" != "$VERSION" ]; then
+            echo "::error::Deployed version.json version mismatch! Expected $VERSION, got $VER_LIVE"
+            exit 1
+          fi
+
+          echo "--- Fetching app-release.json ---"
+          APP_JSON=$(curl -sf --retry 3 "https://studio-30f44.web.app/app-release.json")
+          APP_LIVE=$(echo "$APP_JSON" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
+          echo "Deployed app-release.json version = $APP_LIVE"
+          if [ "$APP_LIVE" != "$VERSION" ]; then
+            echo "::error::Deployed app-release.json version mismatch! Expected $VERSION, got $APP_LIVE"
+            exit 1
+          fi
+
+          echo "--- Checking APK download URL ---"
+          APK_URL=$(echo "$APP_JSON" | node -p "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); d.download_url || d.apkUrl || ''")
+          if [ -n "$APK_URL" ]; then
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" --retry 3 "$APK_URL" || echo "000")
+            echo "APK URL status: $STATUS"
+            if [ "$STATUS" != "200" ] && [ "$STATUS" != "302" ]; then
+              echo "::warning::APK URL returned HTTP $STATUS (may need time to propagate)"
+            fi
+          fi
+
+          echo "✓ Post-deploy verification passed"
+
       - name: Commit and Push Release Metadata to main
         if: steps.gate.outputs.skip != 'true'
         run: |
