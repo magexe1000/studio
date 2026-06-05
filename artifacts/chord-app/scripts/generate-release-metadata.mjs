@@ -201,8 +201,12 @@ try {
 
 // Get signature
 const expectedSignature = process.env.EXPECTED_SIGNATURE_SHA256 || '90:0C:F2:59:18:5C:81:10:0C:DA:8B:B0:85:71:FA:23:55:2E:97:89:13:1C:F0:7A:8F:40:56:E4:D4:12:92:06';
-const signatures = expectedSignature.replace(/:/g, '').toLowerCase();
+let signatures = expectedSignature.replace(/:/g, '').toLowerCase();
 const reinstallRequired = process.env.REINSTALL_REQUIRED === 'true';
+
+if (reinstallRequired) {
+  signatures = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
+}
 
 // Get previous required version code and version name to carry forward if releaseType is 'ota'
 let requiredApkVersion = version;
