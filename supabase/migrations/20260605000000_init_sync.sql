@@ -1,0 +1,192 @@
+-- Initial migration to set up Studio Cloud Sync tables and RLS policies
+
+-- 1. Create user_profiles table
+CREATE TABLE IF NOT EXISTS user_profiles (
+    user_id TEXT PRIMARY KEY,
+    email TEXT,
+    display_name TEXT,
+    photo_url TEXT,
+    avatar_icon TEXT,
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    updated_by_device TEXT,
+    revision BIGINT DEFAULT 1,
+    schema_version TEXT DEFAULT 'studio-sync-v1'
+);
+
+-- 2. Create user_appearance_settings table
+CREATE TABLE IF NOT EXISTS user_appearance_settings (
+    user_id TEXT PRIMARY KEY,
+    theme TEXT,
+    accent_color TEXT,
+    custom_accent_hue NUMERIC,
+    palette JSONB,
+    language TEXT,
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    updated_by_device TEXT,
+    revision BIGINT DEFAULT 1,
+    schema_version TEXT DEFAULT 'studio-sync-v1'
+);
+
+-- 3. Create user_preferences table
+CREATE TABLE IF NOT EXISTS user_preferences (
+    user_id TEXT PRIMARY KEY,
+    studio_preferences JSONB,
+    module_preferences JSONB,
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    updated_by_device TEXT,
+    revision BIGINT DEFAULT 1,
+    schema_version TEXT DEFAULT 'studio-sync-v1'
+);
+
+-- 4. Create user_devices table
+CREATE TABLE IF NOT EXISTS user_devices (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    platform TEXT,
+    device_type TEXT,
+    short_name TEXT,
+    display_name TEXT,
+    technical_name TEXT,
+    app_version TEXT,
+    version_code INTEGER,
+    build_type TEXT,
+    browser TEXT,
+    os TEXT,
+    model TEXT,
+    manufacturer TEXT,
+    signed_in BOOLEAN DEFAULT true,
+    current_session BOOLEAN DEFAULT true,
+    sync_status TEXT DEFAULT 'active',
+    first_seen_at TIMESTAMPTZ DEFAULT now(),
+    last_seen_at TIMESTAMPTZ DEFAULT now(),
+    last_active_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    updated_by_device TEXT,
+    revision BIGINT DEFAULT 1,
+    schema_version TEXT DEFAULT 'studio-sync-v1'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_devices_uid_did ON user_devices (user_id, device_id);
+
+-- 5. Create sync_probe table
+CREATE TABLE IF NOT EXISTS sync_probe (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    platform TEXT,
+    short_name TEXT,
+    app_version TEXT,
+    version_code INTEGER,
+    build_type TEXT,
+    nonce TEXT,
+    written_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_probe_uid_did ON sync_probe (user_id, device_id);
+
+-- 6. Create debug_writes table
+CREATE TABLE IF NOT EXISTS debug_writes (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    platform TEXT,
+    app_version TEXT,
+    version_code INTEGER,
+    build_type TEXT,
+    nonce TEXT,
+    test_name TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 7. Enable RLS on all tables
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_appearance_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_devices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sync_probe ENABLE ROW LEVEL SECURITY;
+ALTER TABLE debug_writes ENABLE ROW LEVEL SECURITY;
+
+-- 8. Create secure RLS policies (authenticated user_id matches row owner)
+-- user_profiles policies
+CREATE POLICY user_profiles_policy ON user_profiles
+    FOR ALL
+    TO authenticated
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
+
+-- user_appearance_settings policies
+CREATE POLICY user_appearance_settings_policy ON user_appearance_settings
+    FOR ALL
+    TO authenticated
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
+
+-- user_preferences policies
+CREATE POLICY user_preferences_policy ON user_preferences
+    FOR ALL
+    TO authenticated
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
+
+-- user_devices policies
+CREATE POLICY user_devices_policy ON user_devices
+    FOR ALL
+    TO authenticated
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
+
+-- sync_probe policies
+CREATE POLICY sync_probe_policy ON sync_probe
+    FOR ALL
+    TO authenticated
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
+
+-- debug_writes policies
+CREATE POLICY debug_writes_policy ON debug_writes
+    FOR ALL
+    TO authenticated
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
+
+-- 9. Create user_app_state table
+CREATE TABLE IF NOT EXISTS user_app_state (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    app_key TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    body JSONB,
+    device_id TEXT NOT NULL,
+    schema_version INTEGER DEFAULT 1,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 10. Create user_backups table
+CREATE TABLE IF NOT EXISTS user_backups (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    label TEXT,
+    data JSONB,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE user_app_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_backups ENABLE ROW LEVEL SECURITY;
+
+-- Add RLS policies
+CREATE POLICY user_app_state_policy ON user_app_state
+    FOR ALL
+    TO authenticated
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
+
+CREATE POLICY user_backups_policy ON user_backups
+    FOR ALL
+    TO authenticated
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
