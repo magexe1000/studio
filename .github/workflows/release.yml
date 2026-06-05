@@ -139,9 +139,9 @@ jobs:
             status=$?
             echo "::error::Release pipeline failed with status $status"
             cat build.log
-            tail -n 200 build.log | while read -r line; do
-              echo "::error::$line"
-            done
+            # Replace newlines with %0A to print the last 150 lines in a single GitHub Actions error annotation
+            LOG_CONTENT=$(tail -n 150 build.log | awk '{printf "%s%%0A", $0}')
+            echo "::error::Last 150 lines of build.log:%0A$LOG_CONTENT"
             exit $status
           }
 
