@@ -317,6 +317,28 @@ run('npx', ['cap', 'sync', 'android']);
 
 // Step 3: Build signed Android release APK
 console.log('Step 3/15: Build signed Android release APK...');
+
+// Guard: reject hardcoded local JDK paths in committed Gradle config
+const gradlePropsPath = path.join(pkgRoot, 'android', 'gradle.properties');
+if (existsSync(gradlePropsPath)) {
+  const gp = readFileSync(gradlePropsPath, 'utf8');
+  const badPatterns = [
+    /org\.gradle\.java\.home\s*=\s*C:/i,
+    /org\.gradle\.java\.home\s*=\s*\/Users\//,
+    /org\.gradle\.java\.home\s*=\s*\/home\//,
+    /Eclipse Adoptium/i,
+    /Program Files/i,
+  ];
+  for (const pat of badPatterns) {
+    if (pat.test(gp)) {
+      console.error(`\\x1b[31mrelease-firebase: ✗ Hardcoded org.gradle.java.home detected in gradle.properties.\\x1b[0m`);
+      console.error('  Do not commit local JDK paths. Use JAVA_HOME from the environment instead.');
+      console.error(`  Matched pattern: ${pat}`);
+      process.exit(1);
+    }
+  }
+  console.log('release-firebase: ✓ No hardcoded Java paths in gradle.properties');
+}
 const gradleCmd = process.platform === 'win32' ? '.\\gradlew.bat' : './gradlew';
 const gradleArgs = ['assembleRelease', '-x', 'lint', '-x', 'lintVitalRelease', '--stacktrace'];
 const gradleCwd = path.join(pkgRoot, 'android');
