@@ -132,10 +132,18 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > artifacts/chord-app/android/app/release.keystore
 
-      # ── Full release pipeline (web build, cap sync, Gradle APK, deploy) ──
       - name: Run Release Pipeline
         if: steps.gate.outputs.skip != 'true'
-        run: pnpm --filter @workspace/chord-app run release:firebase --no-bump
+        run: |
+          pnpm --filter @workspace/chord-app run release:firebase --no-bump > build.log 2>&1 || {
+            status=$?
+            echo "::error::Release pipeline failed with status $status"
+            cat build.log
+            tail -n 200 build.log | while read -r line; do
+              echo "::error::$line"
+            done
+            exit $status
+          }
 
       - name: Upload Build Diagnostics on Failure
         if: failure() && steps.gate.outputs.skip != 'true'
