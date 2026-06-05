@@ -49,10 +49,25 @@ if (!versionMatch) {
 }
 const version = versionMatch[1];
 
-// Read changelog description and releaseNotes from firebase-public/version.json
+// Read changelog description and releaseNotes from temp notes JSON if it exists, otherwise from version.json
 let description = `Release v${version}`;
 let releaseNotes = undefined;
-if (fs.existsSync(versionJsonPath)) {
+const tempNotesPath = path.join(appRoot, '.release-temp-notes.json');
+
+if (fs.existsSync(tempNotesPath)) {
+  try {
+    const tempNotes = JSON.parse(fs.readFileSync(tempNotesPath, 'utf8'));
+    if (tempNotes.changelog) {
+      description = tempNotes.changelog;
+    }
+    if (tempNotes.releaseNotes) {
+      releaseNotes = tempNotes.releaseNotes;
+    }
+    console.log('generate-release-metadata: ✓ Loaded release notes from .release-temp-notes.json');
+  } catch (err) {
+    console.warn('generate-release-metadata: ⚠ Could not parse .release-temp-notes.json', err);
+  }
+} else if (fs.existsSync(versionJsonPath)) {
   try {
     const versionJson = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8'));
     if (versionJson.changelog) {
@@ -78,6 +93,7 @@ if (description.toLowerCase() === `version ${version}`.toLowerCase() ||
 // Compute SHA-256 hash of APK and copy to Firebase Hosting mirror
 const apkPath = path.join(appRoot, 'android/app/build/outputs/apk/release/app-release.apk');
 let sha256 = '';
+let apkSizeBytes = 0;
 
 if (releaseType !== 'ota') {
   if (!fs.existsSync(apkPath)) {
@@ -85,12 +101,13 @@ if (releaseType !== 'ota') {
     process.exit(1);
   }
 
-  // Compute SHA-256
+  // Compute SHA-256 and size in bytes
   const fileBuffer = fs.readFileSync(apkPath);
   const hashSum = crypto.createHash('sha256');
   hashSum.update(fileBuffer);
   sha256 = hashSum.digest('hex');
-  console.log(`generate-release-metadata: Computed APK SHA-256 = ${sha256}`);
+  apkSizeBytes = fs.statSync(apkPath).size;
+  console.log(`generate-release-metadata: Computed APK SHA-256 = ${sha256}, size = ${apkSizeBytes} bytes`);
 
   // Copy to Firebase Hosting paths
   try {
@@ -237,28 +254,34 @@ try {
 
 const metadata = {
   version: version,
+  versionName: version,
   version_code: versionCode,
   versionCode: versionCode,
+  packageName: 'com.chordex.app',
   update_type: 'apk',
   updateType: 'apk',
   download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
+  apkUrl: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
   manual_download_url: `https://studio-30f44.web.app/apk/studio-${version}.apk`,
   fallback_download_url: `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`,
   sha256: sha256,
+  apkSha256: sha256,
+  apkSizeBytes: apkSizeBytes,
   description: description,
+  whatsNew: description,
+  changelog: description,
   releaseNotes: releaseNotes,
   required_version_code: versionCode,
   requiredVersionCode: versionCode,
   signatures: signatures,
-  packageName: 'com.chordex.app'
+  installMode: reinstallRequired ? 'reinstall-required' : 'normal-update',
+  reinstallRequired: reinstallRequired ? true : false,
+  signatureChanged: reinstallRequired ? true : false
 };
 
 if (reinstallRequired) {
-  metadata.reinstallRequired = true;
-  metadata.signatureChanged = true;
   metadata.previousSignatureSha256 = '58b9bf2de5064c62ac3ca181b5608fe135c6894a8359ff6588e19218cd384764';
   metadata.newSignatureSha256 = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
-  metadata.installMode = 'reinstall-required';
 }
 
 // Validate the constructed metadata before writing
@@ -278,38 +301,17 @@ try {
 
   // Synchronize version.json files with APK metadata
   const syncVersionJson = (filePath) => {
-    if (fs.existsSync(filePath)) {
-      try {
-        const data = {};
-        data.version = version;
-        data.versionCode = versionCode;
-        data.updateType = 'apk';
-        data.apkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
-        data.manualApkUrl = `https://studio-30f44.web.app/apk/studio-${version}.apk`;
-        data.fallbackApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
-        data.sha256 = sha256;
-        data.requiredVersionCode = versionCode;
-        data.required_version_code = versionCode;
-        data.signatures = signatures;
-        data.packageName = 'com.chordex.app';
-        if (reinstallRequired) {
-          data.reinstallRequired = true;
-          data.signatureChanged = true;
-          data.previousSignatureSha256 = '58b9bf2de5064c62ac3ca181b5608fe135c6894a8359ff6588e19218cd384764';
-          data.newSignatureSha256 = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
-          data.installMode = 'reinstall-required';
-        }
-        if (description) {
-          data.changelog = description;
-        }
-        if (releaseNotes) {
-          data.releaseNotes = releaseNotes;
-        }
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
-        console.log(`generate-release-metadata: ✓ Synchronized ${path.basename(filePath)} with APK metadata`);
-      } catch (err) {
-        console.warn(`generate-release-metadata: ⚠ Could not update ${filePath}:`, err);
-      }
+    // Check if parent directory exists or if we should create it
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    try {
+      const data = { ...metadata };
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
+      console.log(`generate-release-metadata: ✓ Synchronized ${path.basename(filePath)} with APK metadata`);
+    } catch (err) {
+      console.warn(`generate-release-metadata: ⚠ Could not update ${filePath}:`, err);
     }
   };
 

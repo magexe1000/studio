@@ -92,30 +92,174 @@ if (existsSync(appVersionPath)) {
   console.warn(`release-firebase: ⚠ ${appVersionPath} does not exist. Skipping auto-bump.`);
 }
 
-// Validate Supabase build configuration
-console.log('release-firebase: → Validating build gates...');
+// ── Early Validation Checks ──────────────────────────────────────────
+console.log('release-firebase: → Running early validation checks...');
+
+// A. GH_TOKEN check
+const ghToken = (process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '').trim();
+if (!ghToken || ghToken === 'github_pat_antigravitydummytoken') {
+  console.error('\x1b[31mrelease-firebase: ✗ GITHUB_TOKEN / GH_TOKEN env variable is missing or invalid. Refusing to start release pipeline.\x1b[0m');
+  process.exit(1);
+}
+console.log('release-firebase: ✓ GH_TOKEN presence validated.');
+
+// B. CHANGELOG entry check
+const changelogPath = path.join(pkgRoot, 'CHANGELOG.md');
+if (!existsSync(changelogPath)) {
+  console.error(`release-firebase: ✗ Release blocked: CHANGELOG.md not found at ${changelogPath}`);
+  process.exit(1);
+}
+
+const changelogText = readFileSync(changelogPath, 'utf8');
+const esc = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const re = new RegExp(
+  `^##\\s+${esc}\\s*$([\\s\\S]*?)(?=^##\\s+|(?![\\s\\S]))`,
+  'm'
+);
+const match = changelogText.match(re);
+
+if (!match) {
+  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: missing changelog entry for version ${version} in CHANGELOG.md. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+const sectionContent = match[1].trim();
+if (!sectionContent) {
+  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: changelog entry for version ${version} is empty. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+if (sectionContent.toLowerCase() === `version ${version}`.toLowerCase() ||
+    sectionContent.toLowerCase() === `release v${version}`.toLowerCase() ||
+    sectionContent.toLowerCase() === `version: ${version}`.toLowerCase()) {
+  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: changelog entry for version ${version} contains only generic placeholder text. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+const categories = {
+  added: [],
+  improved: [],
+  fixed: [],
+  changed: []
+};
+
+const lines = sectionContent.split('\n');
+let currentCategory = null;
+const flatBullets = [];
+
+for (const rawLine of lines) {
+  const line = rawLine.trim();
+  if (!line) continue;
+
+  const hMatch = line.match(/^###\s+(Added|Improved|Fixed|Changes|Bug\s*Fixes|Fixes|Changed)\b/i);
+  if (hMatch) {
+    const heading = hMatch[1].toLowerCase();
+    if (heading.startsWith('add')) {
+      currentCategory = 'added';
+    } else if (heading.startsWith('improv')) {
+      currentCategory = 'improved';
+    } else if (heading.startsWith('fix') || heading.startsWith('bug')) {
+      currentCategory = 'fixed';
+    } else if (heading.startsWith('change')) {
+      currentCategory = 'changed';
+    } else {
+      currentCategory = null;
+    }
+    continue;
+  }
+
+  const bMatch = line.match(/^[-*]\s+(.*)$/);
+  if (bMatch) {
+    const bulletContent = bMatch[1].trim();
+    if (currentCategory) {
+      categories[currentCategory].push(bulletContent);
+    }
+    flatBullets.push(bulletContent);
+  }
+}
+
+if (flatBullets.length === 0) {
+  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: changelog entry for version ${version} has no meaningful bullet points. Add real release notes before publishing.\x1b[0m`);
+  process.exit(1);
+}
+
+const changelog = flatBullets.map(b => `• ${b}`).join('\n');
+const releaseNotes = {
+  added: categories.added.length > 0 ? categories.added : undefined,
+  improved: categories.improved.length > 0 ? categories.improved : undefined,
+  fixed: categories.fixed.length > 0 ? categories.fixed : undefined,
+  changed: categories.changed.length > 0 ? categories.changed : undefined
+};
+
+console.log(`release-firebase: ✓ Validated changelog for version ${version}. Found ${flatBullets.length} bullets.`);
+
+// Write to release-notes.md in repo root
+const releaseNotesMdPath = path.join(repoRoot, 'release-notes.md');
+writeFileSync(releaseNotesMdPath, sectionContent + '\n', 'utf8');
+console.log(`release-firebase: ✓ Wrote ${path.relative(repoRoot, releaseNotesMdPath)}`);
+
+// Write temp notes file
+const tempNotesPath = path.join(pkgRoot, '.release-temp-notes.json');
+writeFileSync(tempNotesPath, JSON.stringify({ changelog, releaseNotes, description: changelog }, null, 2) + '\n', 'utf8');
+console.log(`release-firebase: ✓ Wrote temporary notes to ${tempNotesPath}`);
+
+// C. Verify versionName consistency
+let gradleVersionName = '';
+const gradlePath = path.join(pkgRoot, 'android/app/build.gradle');
+if (existsSync(gradlePath)) {
+  const gradleSrc = readFileSync(gradlePath, 'utf8');
+  const nameMatch = gradleSrc.match(/versionName\s+['"]([^'"]+)['"]/);
+  if (nameMatch) gradleVersionName = nameMatch[1];
+}
+if (gradleVersionName !== version) {
+  console.error(`release-firebase: ✗ versionName mismatch! build.gradle: ${gradleVersionName}, package.json: ${version}`);
+  process.exit(1);
+}
+console.log(`release-firebase: ✓ versionName is consistent: ${version}`);
+
+// D. Check for hardcoded java home in gradle.properties
+const gradlePropsPath = path.join(pkgRoot, 'android', 'gradle.properties');
+if (existsSync(gradlePropsPath)) {
+  const gp = readFileSync(gradlePropsPath, 'utf8');
+  const badPatterns = [
+    /org\.gradle\.java\.home\s*=\s*C:/i,
+    /org\.gradle\.java\.home\s*=\s*\/Users\//,
+    /org\.gradle\.java\.home\s*=\s*\/home\//,
+    /Eclipse Adoptium/i,
+    /Program Files/i,
+  ];
+  for (const pat of badPatterns) {
+    if (pat.test(gp)) {
+      console.error(`\x1b[31mrelease-firebase: ✗ Hardcoded org.gradle.java.home detected in gradle.properties.\x1b[0m`);
+      console.error('  Do not commit local JDK paths. Use JAVA_HOME from the environment instead.');
+      process.exit(1);
+    }
+  }
+}
+console.log('release-firebase: ✓ gradle.properties JVM configuration validated.');
+
+// E. Chmod safety for gradlew
+const gradleCwd = path.join(pkgRoot, 'android');
+if (process.platform !== 'win32') {
+  const gradlewPath = path.join(gradleCwd, 'gradlew');
+  try {
+    chmodSync(gradlewPath, 0o755);
+    console.log(`release-firebase: chmod +x ${gradlewPath}`);
+  } catch (e) {
+    console.warn(`release-firebase: ⚠ chmod failed: ${e.message}`);
+  }
+}
+console.log('release-firebase: ✓ gradlew permissions verified.');
+
+// F. Validate Supabase build configuration
 const supabaseUrl = (process.env.VITE_SUPABASE_URL || '').trim();
 const supabaseAnonKey = (process.env.VITE_SUPABASE_ANON_KEY || '').trim();
 const syncBackendProvider = (process.env.VITE_SYNC_BACKEND_PROVIDER || '').trim();
 
 if (!supabaseUrl || !supabaseAnonKey || syncBackendProvider !== 'supabase-realtime') {
   console.error('\x1b[31mrelease-firebase: ✗ Supabase config missing. Refusing to build a Supabase sync release.\x1b[0m');
-  console.error(`VITE_SUPABASE_URL present: ${supabaseUrl ? 'Yes' : 'No'}`);
-  console.error(`VITE_SUPABASE_ANON_KEY present: ${supabaseAnonKey ? 'Yes' : 'No'}`);
-  console.error(`VITE_SYNC_BACKEND_PROVIDER: ${syncBackendProvider}`);
   process.exit(1);
 }
-
-const supabaseHost = (() => {
-  try { return new URL(supabaseUrl).host; } catch (_) { return 'invalid-url'; }
-})();
-console.log('release-firebase: VITE_SUPABASE_URL present: Yes');
-console.log(`release-firebase: VITE_SUPABASE_URL host: ${supabaseHost}`);
-console.log('release-firebase: VITE_SUPABASE_ANON_KEY present: Yes');
-console.log(`release-firebase: VITE_SUPABASE_ANON_KEY length: ${supabaseAnonKey.length}`);
-console.log(`release-firebase: VITE_SUPABASE_ANON_KEY prefix: ${supabaseAnonKey.slice(0, 8)}`);
-console.log(`release-firebase: VITE_SYNC_BACKEND_PROVIDER: ${syncBackendProvider}`);
-
 console.log('release-firebase: ✓ Supabase build gate validation passed.');
 
 // Update other version configurations
@@ -167,13 +311,13 @@ if (process.env.CI) {
   console.log(`release-firebase: release.keystore exists: ${existsSync(ksPath) ? 'Yes' : 'No'}`);
 
   if (!existsSync(ksPath)) {
-    console.error('\\x1b[31mrelease-firebase: ✗ Signing preflight failed: release.keystore not found.\\x1b[0m');
+    console.error('\x1b[31mrelease-firebase: ✗ Signing preflight failed: release.keystore not found.\x1b[0m');
     console.error(`  Expected at: ${ksPath}`);
     console.error('  Ensure ANDROID_KEYSTORE_BASE64 is configured and the Decode step ran before this script.');
     process.exit(1);
   }
   if (!ksPwd || !ksAlias || !expectedSig) {
-    console.error('\\x1b[31mrelease-firebase: ✗ Signing preflight failed: missing signing env vars.\\x1b[0m');
+    console.error('\x1b[31mrelease-firebase: ✗ Signing preflight failed: missing signing env vars.\x1b[0m');
     process.exit(1);
   }
 
@@ -189,7 +333,7 @@ if (process.env.CI) {
     const keytoolOut = (keytoolResult.stdout || '') + (keytoolResult.stderr || '');
     const sha256Match = keytoolOut.match(/SHA256:\s+([A-Fa-f0-9:]+)/);
     if (!sha256Match) {
-      console.error('\\x1b[31mrelease-firebase: ✗ Signing preflight failed: could not extract SHA-256 from keytool output.\\x1b[0m');
+      console.error('\x1b[31mrelease-firebase: ✗ Signing preflight failed: could not extract SHA-256 from keytool output.\x1b[0m');
       // Print non-secret keytool output for debugging
       const safeLines = keytoolOut.split('\n').filter(l =>
         /alias|SHA256|valid|owner|issuer|entry type|certificate/i.test(l)
@@ -220,7 +364,7 @@ if (process.env.CI) {
     }
     console.log('release-firebase: ✓ Signing preflight passed — keystore matches production certificate.');
   } catch (err) {
-    console.error(`\\x1b[31mrelease-firebase: ✗ Signing preflight error: ${err.message}\\x1b[0m`);
+    console.error(`\x1b[31mrelease-firebase: ✗ Signing preflight error: ${err.message}\x1b[0m`);
     process.exit(1);
   }
 } else {
@@ -259,118 +403,7 @@ function copyTree(srcRoot, dstRoot, skip = new Set()) {
 }
 copyTree(distDir, firebasePublicDir, new Set(['bundles', 'version.json', 'app-release.json']));
 
-// ── Parse and Validate CHANGELOG.md for the current version ───────────
-const changelogPath = path.join(pkgRoot, 'CHANGELOG.md');
-if (!existsSync(changelogPath)) {
-  console.error(`release-firebase: ✗ Release blocked: CHANGELOG.md not found at ${changelogPath}`);
-  process.exit(1);
-}
-
-const changelogText = readFileSync(changelogPath, 'utf8');
-const esc = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const re = new RegExp(
-  `^##\\s+${esc}\\s*$([\\s\\S]*?)(?=^##\\s+|(?![\\s\\S]))`,
-  'm'
-);
-const match = changelogText.match(re);
-
-if (!match) {
-  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: missing changelog entry for version ${version} in CHANGELOG.md. Add real release notes before publishing.\x1b[0m`);
-  process.exit(1);
-}
-
-const sectionContent = match[1].trim();
-if (!sectionContent) {
-  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: changelog entry for version ${version} is empty. Add real release notes before publishing.\x1b[0m`);
-  process.exit(1);
-}
-
-if (sectionContent.toLowerCase() === `version ${version}`.toLowerCase() ||
-    sectionContent.toLowerCase() === `release v${version}`.toLowerCase() ||
-    sectionContent.toLowerCase() === `version: ${version}`.toLowerCase()) {
-  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: changelog entry for version ${version} contains only generic placeholder text. Add real release notes before publishing.\x1b[0m`);
-  process.exit(1);
-}
-
-// Extract bullets and structure by category (Added, Improved, Fixed, Changed)
-const categories = {
-  added: [],
-  improved: [],
-  fixed: [],
-  changed: []
-};
-
-const lines = sectionContent.split('\n');
-let currentCategory = null;
-const flatBullets = [];
-
-for (const rawLine of lines) {
-  const line = rawLine.trim();
-  if (!line) continue;
-
-  // Detect category headings
-  const hMatch = line.match(/^###\s+(Added|Improved|Fixed|Changes|Bug\s*Fixes|Fixes|Changed)\b/i);
-  if (hMatch) {
-    const heading = hMatch[1].toLowerCase();
-    if (heading.startsWith('add')) {
-      currentCategory = 'added';
-    } else if (heading.startsWith('improv')) {
-      currentCategory = 'improved';
-    } else if (heading.startsWith('fix') || heading.startsWith('bug')) {
-      currentCategory = 'fixed';
-    } else if (heading.startsWith('change')) {
-      currentCategory = 'changed';
-    } else {
-      currentCategory = null;
-    }
-    continue;
-  }
-
-  // Detect bullets starting with - or *
-  const bMatch = line.match(/^[-*]\s+(.*)$/);
-  if (bMatch) {
-    const bulletContent = bMatch[1].trim();
-    if (currentCategory) {
-      categories[currentCategory].push(bulletContent);
-    }
-    flatBullets.push(bulletContent);
-  }
-}
-
-if (flatBullets.length === 0) {
-  console.error(`\x1b[31mrelease-firebase: ✗ Release blocked: changelog entry for version ${version} has no meaningful bullet points. Add real release notes before publishing.\x1b[0m`);
-  process.exit(1);
-}
-
-// For version.json changelog
-const changelog = flatBullets.map(b => `• ${b}`).join('\n');
-const releaseNotes = {
-  added: categories.added.length > 0 ? categories.added : undefined,
-  improved: categories.improved.length > 0 ? categories.improved : undefined,
-  fixed: categories.fixed.length > 0 ? categories.fixed : undefined,
-  changed: categories.changed.length > 0 ? categories.changed : undefined
-};
-
-console.log(`release-firebase: ✓ Validated changelog for version ${version}. Found ${flatBullets.length} bullets.`);
-
-// Write to release-notes.md in repo root for GitHub Release usage
-const releaseNotesMdPath = path.join(repoRoot, 'release-notes.md');
-writeFileSync(releaseNotesMdPath, sectionContent + '\n', 'utf8');
-console.log(`release-firebase: ✓ Wrote ${path.relative(repoRoot, releaseNotesMdPath)}`);
-
-// ── Update version.json ────────────────────────────────────────────────
-const versionJsonPath = path.join(firebasePublicDir, 'version.json');
-const existing = existsSync(versionJsonPath)
-  ? JSON.parse(readFileSync(versionJsonPath, 'utf8'))
-  : { mandatory: false };
-
-existing.version = version;
-existing.changelog = changelog;
-existing.releaseNotes = releaseNotes;
-if (existing.downloadUrl) delete existing.downloadUrl; // Strip any legacy OTA downloadUrl
-
-writeFileSync(versionJsonPath, JSON.stringify(existing, null, 2) + '\n', 'utf8');
-console.log(`release-firebase: ✓ Wrote ${path.relative(repoRoot, versionJsonPath)}`);
+// (Changelog has been validated and parsed early)
 
 // Helper to compute SHA-256 of a file
 function computeSha256(filePath) {
@@ -397,30 +430,8 @@ run('npx', ['cap', 'sync', 'android']);
 // Step 3: Build signed Android release APK
 console.log('Step 3/15: Build signed Android release APK...');
 
-// Guard: reject hardcoded local JDK paths in committed Gradle config
-const gradlePropsPath = path.join(pkgRoot, 'android', 'gradle.properties');
-if (existsSync(gradlePropsPath)) {
-  const gp = readFileSync(gradlePropsPath, 'utf8');
-  const badPatterns = [
-    /org\.gradle\.java\.home\s*=\s*C:/i,
-    /org\.gradle\.java\.home\s*=\s*\/Users\//,
-    /org\.gradle\.java\.home\s*=\s*\/home\//,
-    /Eclipse Adoptium/i,
-    /Program Files/i,
-  ];
-  for (const pat of badPatterns) {
-    if (pat.test(gp)) {
-      console.error(`\\x1b[31mrelease-firebase: ✗ Hardcoded org.gradle.java.home detected in gradle.properties.\\x1b[0m`);
-      console.error('  Do not commit local JDK paths. Use JAVA_HOME from the environment instead.');
-      console.error(`  Matched pattern: ${pat}`);
-      process.exit(1);
-    }
-  }
-  console.log('release-firebase: ✓ No hardcoded Java paths in gradle.properties');
-}
 const gradleCmd = process.platform === 'win32' ? '.\\gradlew.bat' : './gradlew';
 const gradleArgs = ['assembleRelease', '-x', 'lint', '-x', 'lintVitalRelease', '--stacktrace'];
-const gradleCwd = path.join(pkgRoot, 'android');
 const gradleEnv = { ...process.env };
 if (gradleEnv.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
   delete gradleEnv.GITHUB_TOKEN;
@@ -433,18 +444,6 @@ console.log(`release-firebase: JAVA_HOME: ${gradleEnv.JAVA_HOME || '(not set)'}`
 console.log(`release-firebase: ANDROID_KEYSTORE_PASSWORD present: ${gradleEnv.ANDROID_KEYSTORE_PASSWORD ? 'Yes' : 'No'}`);
 console.log(`release-firebase: ANDROID_KEY_ALIAS present: ${gradleEnv.ANDROID_KEY_ALIAS ? 'Yes' : 'No'}`);
 console.log(`release-firebase: ANDROID_KEY_PASSWORD present: ${gradleEnv.ANDROID_KEY_PASSWORD ? 'Yes' : 'No'}`);
-
-// Ensure gradlew is executable on Linux/macOS (defensive — the git
-// index already has 100755, but some checkout tools strip the bit).
-if (process.platform !== 'win32') {
-  const gradlewPath = path.join(gradleCwd, 'gradlew');
-  try {
-    chmodSync(gradlewPath, 0o755);
-    console.log(`release-firebase: chmod +x ${gradlewPath}`);
-  } catch (e) {
-    console.warn(`release-firebase: ⚠ chmod failed: ${e.message}`);
-  }
-}
 
 const gradleResult = spawnSync(gradleCmd, gradleArgs, {
   cwd: gradleCwd,
@@ -483,9 +482,8 @@ if (appInstallerValidateResult.status !== 0) {
 
 // Step 5: Validate APK metadata
 console.log('Step 5/15: Validate APK metadata...');
-let gradleVersionName = '';
+gradleVersionName = '';
 let gradleVersionCode = 0;
-const gradlePath = path.join(pkgRoot, 'android/app/build.gradle');
 if (existsSync(gradlePath)) {
   const gradleSrc = readFileSync(gradlePath, 'utf8');
   const nameMatch = gradleSrc.match(/versionName\s+['"]([^'"]+)['"]/);

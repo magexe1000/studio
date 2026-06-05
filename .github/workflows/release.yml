@@ -21,6 +21,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   release:
@@ -134,6 +135,8 @@ jobs:
 
       - name: Run Release Pipeline
         if: steps.gate.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           pnpm --filter @workspace/chord-app run release:firebase --no-bump > build.log 2>&1 || {
             status=$?
