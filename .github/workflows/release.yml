@@ -26,6 +26,10 @@ jobs:
   release:
     runs-on: ubuntu-latest
     if: github.actor != 'github-actions[bot]'
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_SYNC_BACKEND_PROVIDER: "supabase-realtime"
 
     steps:
       - uses: actions/checkout@v4
