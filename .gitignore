@@ -62,3 +62,5 @@ signing-secrets.txt
 # ── Env files ─────────────────────────────────────────────────────────────────
 .env
 .env.*
+!.env.example
+

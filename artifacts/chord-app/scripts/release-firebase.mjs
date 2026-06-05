@@ -105,6 +105,17 @@ if (!supabaseUrl || !supabaseAnonKey || syncBackendProvider !== 'supabase-realti
   console.error(`VITE_SYNC_BACKEND_PROVIDER: ${syncBackendProvider}`);
   process.exit(1);
 }
+
+const supabaseHost = (() => {
+  try { return new URL(supabaseUrl).host; } catch (_) { return 'invalid-url'; }
+})();
+console.log('release-firebase: VITE_SUPABASE_URL present: Yes');
+console.log(`release-firebase: VITE_SUPABASE_URL host: ${supabaseHost}`);
+console.log('release-firebase: VITE_SUPABASE_ANON_KEY present: Yes');
+console.log(`release-firebase: VITE_SUPABASE_ANON_KEY length: ${supabaseAnonKey.length}`);
+console.log(`release-firebase: VITE_SUPABASE_ANON_KEY prefix: ${supabaseAnonKey.slice(0, 8)}`);
+console.log(`release-firebase: VITE_SYNC_BACKEND_PROVIDER: ${syncBackendProvider}`);
+
 console.log('release-firebase: ✓ Supabase build gate validation passed.');
 
 // Update other version configurations
