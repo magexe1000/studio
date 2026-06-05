@@ -55,7 +55,7 @@ interface StudioUpdateScreenProps {
   progress: number;
   accentFrom: string;
   accentTo: string;
-  statusText?: string | null;
+  statusText?: React.ReactNode;
 }
 
 export default function StudioUpdateScreen({
@@ -170,8 +170,8 @@ export default function StudioUpdateScreen({
           </div>
 
           {/* ── Status message ── */}
-          <motion.p
-            key={displayMsg}
+          <motion.div
+            key={typeof displayMsg === 'string' ? displayMsg : 'rich-status'}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
@@ -187,7 +187,7 @@ export default function StudioUpdateScreen({
             }}
           >
             {displayMsg}
-          </motion.p>
+          </motion.div>
         </div>
       </StudioUpdateAuroraBackground>
     </motion.div>

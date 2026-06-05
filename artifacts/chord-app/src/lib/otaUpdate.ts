@@ -864,6 +864,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       if (isUpgrade) {
         nativeApkBehind = true;
         apkUpdateRequired = true;
+        
+        // Clear stale cached APK path if the cached version name is different from target remote version
+        const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
+        if (downloadedPath && !downloadedPath.includes(`studio-update-${remote.version}.apk`)) {
+          localStorage.removeItem('studio:downloadedApkPath');
+        }
       }
 
       otaDebugLogs.installedVersionCode = installedVersionCode;
@@ -1144,6 +1150,12 @@ export function downloadUpdate(trigger?: string): Promise<void> {
   }
 
   activeDownloadPromise = (async () => {
+    // Clear stale path for different versions before starting the download
+    const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
+    if (downloadedPath && !downloadedPath.includes(`studio-update-${ver}.apk`)) {
+      localStorage.removeItem('studio:downloadedApkPath');
+    }
+    
     otaDebugLogs.downloadStatus = `Update started: apk\nAPK URL: ${apkUrl}`;
     updateGlobalState({ updateState: 'downloading_apk', progress: 0.01, statusText: 'Downloading update', error: null });
     try {

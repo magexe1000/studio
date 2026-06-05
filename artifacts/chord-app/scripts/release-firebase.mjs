@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import fs, { cpSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync, copyFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
 import archiver from 'archiver';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -250,5 +251,270 @@ if (existing.downloadUrl) delete existing.downloadUrl; // Strip any legacy OTA d
 writeFileSync(versionJsonPath, JSON.stringify(existing, null, 2) + '\n', 'utf8');
 console.log(`release-firebase: ✓ Wrote ${path.relative(repoRoot, versionJsonPath)}`);
 
-console.log('release-firebase: ✓ Done.');
+// Helper to compute SHA-256 of a file
+function computeSha256(filePath) {
+  const fileBuffer = fs.readFileSync(filePath);
+  const hashSum = crypto.createHash('sha256');
+  hashSum.update(fileBuffer);
+  return hashSum.digest('hex');
+}
+
+// =========================================================================
+// ── 15-STEP RELEASE ORCHESTRATION PIPELINE ────────────────────────────────
+// =========================================================================
+console.log('\n=== STARTING 15-STEP RELEASE ORCHESTRATION ===\n');
+
+// crypto is imported at the top level
+
+// Step 1: Build Frontend (already executed via Vite build earlier in this script)
+console.log('Step 1/15: Build Frontend ... [DONE]');
+
+// Step 2: Sync Capacitor
+console.log('Step 2/15: Sync Capacitor...');
+run('npx', ['cap', 'sync', 'android']);
+
+// Step 3: Build signed Android release APK
+console.log('Step 3/15: Build signed Android release APK...');
+const gradleCmd = process.platform === 'win32' ? '.\\gradlew.bat' : './gradlew';
+const gradleArgs = ['assembleRelease', '-x', 'lint', '-x', 'lintVitalRelease'];
+const gradleCwd = path.join(pkgRoot, 'android');
+const gradleEnv = { ...process.env };
+if (gradleEnv.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
+  delete gradleEnv.GITHUB_TOKEN;
+}
+const gradleResult = spawnSync(gradleCmd, gradleArgs, {
+  cwd: gradleCwd,
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+  env: gradleEnv
+});
+if (gradleResult.status !== 0) {
+  console.error('release-firebase: ✗ Gradle build failed!');
+  process.exit(gradleResult.status ?? 1);
+}
+
+// Step 4: Validate AppInstaller native plugin
+console.log('Step 4/15: Validate AppInstaller native plugin...');
+const appInstallerValidateResult = spawnSync('node', ['scripts/validate-app-installer.mjs'], {
+  cwd: pkgRoot,
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+});
+if (appInstallerValidateResult.status !== 0) {
+  console.error('release-firebase: ✗ AppInstaller contract validation failed!');
+  process.exit(appInstallerValidateResult.status ?? 1);
+}
+
+// Step 5: Validate APK metadata
+console.log('Step 5/15: Validate APK metadata...');
+let gradleVersionName = '';
+let gradleVersionCode = 0;
+const gradlePath = path.join(pkgRoot, 'android/app/build.gradle');
+if (existsSync(gradlePath)) {
+  const gradleSrc = readFileSync(gradlePath, 'utf8');
+  const nameMatch = gradleSrc.match(/versionName\s+['"]([^'"]+)['"]/);
+  const codeMatch = gradleSrc.match(/versionCode\s+(\d+)/);
+  if (nameMatch) gradleVersionName = nameMatch[1];
+  if (codeMatch) gradleVersionCode = parseInt(codeMatch[1], 10);
+}
+console.log(`release-firebase: build.gradle versionName = ${gradleVersionName}, versionCode = ${gradleVersionCode}`);
+if (gradleVersionName !== version) {
+  console.error(`release-firebase: ✗ versionName mismatch! build.gradle: ${gradleVersionName}, package.json: ${version}`);
+  process.exit(1);
+}
+
+// Step 6: Generate local APK SHA-256
+console.log('Step 6/15: Generate local APK SHA-256...');
+const localApkPath = path.join(pkgRoot, 'android/app/build/outputs/apk/release/app-release.apk');
+if (!existsSync(localApkPath)) {
+  console.error(`release-firebase: ✗ APK not found at ${localApkPath}`);
+  process.exit(1);
+}
+const localApkSha = computeSha256(localApkPath);
+console.log(`release-firebase: Local APK SHA-256 = ${localApkSha}`);
+
+// Step 7: Create GitHub Release tag if missing
+console.log('Step 7/15: Create GitHub Release tag if missing...');
+const tag = `v${version}`;
+const titleText = `Studio v${version}`;
+const releaseNotesFile = path.join(repoRoot, 'release-notes.md');
+
+const runGh = (args) => {
+  const env = { ...process.env };
+  if (env.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
+    delete env.GITHUB_TOKEN;
+  }
+  return spawnSync('gh', args, {
+    cwd: repoRoot,
+    stdio: 'pipe',
+    shell: process.platform === 'win32',
+    env
+  });
+};
+
+const viewRes = runGh(['release', 'view', tag, '--repo', 'MAGEXE1000/Studio']);
+if (viewRes.status !== 0) {
+  console.log(`release-firebase: Release ${tag} not found. Creating it...`);
+  const createRes = runGh(['release', 'create', tag, '--title', titleText, '--notes-file', releaseNotesFile, '--repo', 'MAGEXE1000/Studio']);
+  if (createRes.status !== 0) {
+    console.error(`release-firebase: ✗ Failed to create GitHub Release: ${createRes.stderr.toString()}`);
+    process.exit(1);
+  }
+} else {
+  console.log(`release-firebase: Release ${tag} already exists. Updating notes...`);
+  runGh(['release', 'edit', tag, '--notes-file', releaseNotesFile, '--repo', 'MAGEXE1000/Studio']);
+}
+
+// Step 8: Upload APK asset with exact expected name
+console.log('Step 8/15: Upload APK asset with exact expected name...');
+const uploadApkName = `studio-${version}.apk`;
+const uploadShaName = `studio-${version}.sha256`;
+const localUploadApkPath = path.join(repoRoot, uploadApkName);
+const localUploadShaPath = path.join(repoRoot, uploadShaName);
+
+copyFileSync(localApkPath, localUploadApkPath);
+writeFileSync(localUploadShaPath, `${localApkSha}  ${uploadApkName}\n`, 'utf8');
+
+const uploadRes = runGh(['release', 'upload', tag, localUploadApkPath, localUploadShaPath, '--clobber', '--repo', 'MAGEXE1000/Studio']);
+if (uploadRes.status !== 0) {
+  console.error(`release-firebase: ✗ Failed to upload APK asset to GitHub: ${uploadRes.stderr.toString()}`);
+  process.exit(1);
+}
+console.log(`release-firebase: ✓ Uploaded assets ${uploadApkName} and ${uploadShaName}`);
+
+try {
+  rmSync(localUploadApkPath);
+  rmSync(localUploadShaPath);
+} catch (_) {}
+
+// Step 9: Verify GitHub Release asset URL returns HTTP 200
+console.log('Step 9/15: Verify GitHub Release asset URL returns HTTP 200...');
+const githubApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
+
+const checkUrl = async (url) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
+    clearTimeout(timeoutId);
+    return res.status;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.warn(`release-firebase: ⚠ Fetch error for ${url}:`, err.message);
+    return 0;
+  }
+};
+
+let status = await checkUrl(githubApkUrl);
+console.log(`release-firebase: URL status for ${githubApkUrl} = ${status}`);
+if (status !== 200) {
+  console.error(`release-firebase: ✗ APK URL returned non-200 status code: ${status}`);
+  process.exit(1);
+}
+
+// Step 10: Verify downloaded APK SHA-256 matches expected
+console.log('Step 10/15: Verify downloaded APK SHA-256 matches expected...');
+const downloadPath = path.join(pkgRoot, `.release-temp-verify-${version}.apk`);
+const downloadFile = async (url, dest) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Status ${res.status}`);
+  const fileStream = fs.createWriteStream(dest);
+  await new Promise((resolve, reject) => {
+    res.body.pipe(fileStream);
+    res.body.on("error", reject);
+    fileStream.on("finish", resolve);
+  });
+};
+
+try {
+  console.log(`release-firebase: Downloading APK from ${githubApkUrl} to verify SHA...`);
+  await downloadFile(githubApkUrl, downloadPath);
+  const downloadedSha = computeSha256(downloadPath);
+  rmSync(downloadPath);
+  console.log(`release-firebase: Downloaded APK SHA-256 = ${downloadedSha}`);
+  if (downloadedSha !== localApkSha) {
+    console.error(`release-firebase: ✗ SHA-256 mismatch! Expected ${localApkSha}, got ${downloadedSha}`);
+    process.exit(1);
+  }
+  console.log('release-firebase: ✓ Downloaded APK SHA matches local APK SHA exactly!');
+} catch (err) {
+  console.error('release-firebase: ✗ Download or verification failed:', err);
+  if (existsSync(downloadPath)) rmSync(downloadPath);
+  process.exit(1);
+}
+
+// Step 11: Generate version.json and app-release.json using verified URL/SHA
+console.log('Step 11/15: Generate version.json and app-release.json using verified URL/SHA...');
+const generateResult = spawnSync('node', ['scripts/generate-release-metadata.mjs'], {
+  cwd: pkgRoot,
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+});
+if (generateResult.status !== 0) {
+  console.error('release-firebase: ✗ Metadata generation script failed!');
+  process.exit(generateResult.status ?? 1);
+}
+
+// Step 12: Deploy Firebase Hosting
+console.log('Step 12/15: Deploy Firebase Hosting...');
+const fbDeployResult = spawnSync('npx', ['firebase-tools', 'deploy', '--project', 'studio-30f44', '--only', 'hosting'], {
+  cwd: repoRoot,
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+});
+if (fbDeployResult.status !== 0) {
+  console.error('release-firebase: ✗ Firebase deploy failed!');
+  process.exit(fbDeployResult.status ?? 1);
+}
+
+// Step 13: Re-fetch deployed version.json and app-release.json
+console.log('Step 13/15: Re-fetch deployed version.json and app-release.json...');
+const deployedVersionUrl = `https://studio-30f44.web.app/version.json`;
+const deployedAppReleaseUrl = `https://studio-30f44.web.app/app-release.json`;
+
+const fetchJson = async (url) => {
+  const res = await fetch(url, { headers: { 'Cache-Control': 'no-cache' } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+};
+
+let deployedVer, deployedAppRelease;
+try {
+  deployedVer = await fetchJson(deployedVersionUrl);
+  deployedAppRelease = await fetchJson(deployedAppReleaseUrl);
+  console.log('release-firebase: Deployed version.json version =', deployedVer.version);
+  console.log('release-firebase: Deployed app-release.json version =', deployedAppRelease.version);
+} catch (err) {
+  console.error('release-firebase: ✗ Failed to fetch deployed metadata files:', err);
+  process.exit(1);
+}
+
+// Step 14: Re-validate their APK URL and SHA
+console.log('Step 14/15: Re-validate their APK URL and SHA...');
+if (deployedVer.version !== version || deployedAppRelease.version !== version) {
+  console.error(`release-firebase: ✗ Deployed version mismatch! Expected ${version}`);
+  process.exit(1);
+}
+if (deployedAppRelease.sha256 !== localApkSha || deployedVer.sha256 !== localApkSha) {
+  console.error(`release-firebase: ✗ Deployed SHA-256 mismatch! Deployed: ${deployedAppRelease.sha256}, Expected: ${localApkSha}`);
+  process.exit(1);
+}
+const deployedApkUrlStatus = await checkUrl(deployedVer.apkUrl || deployedAppRelease.download_url);
+if (deployedApkUrlStatus !== 200) {
+  console.error(`release-firebase: ✗ Deployed APK URL is unreachable (HTTP ${deployedApkUrlStatus})`);
+  process.exit(1);
+}
+console.log('release-firebase: ✓ Deployed metadata validated successfully!');
+
+// Step 15: Print final release report
+console.log('\n================================================================');
+console.log('Step 15/15: Print final release report');
+console.log('================================================================');
+console.log(`Release Status:   SUCCESSFUL`);
+console.log(`Version Released: ${version}`);
+console.log(`Version Code:     ${gradleVersionCode}`);
+console.log(`APK Download URL: ${githubApkUrl}`);
+console.log(`APK SHA-256:      ${localApkSha}`);
+console.log(`PWA Deployed:     https://studio-30f44.web.app/`);
+console.log('================================================================\n');
 

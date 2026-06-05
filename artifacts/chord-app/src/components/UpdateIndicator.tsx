@@ -676,7 +676,7 @@ function UpdateModal({
   let iconName = 'download';
   let iconColor = purpleFrom;
   let title = 'Update available';
-  let description = '';
+  let description: React.ReactNode = '';
   let showProgress = false;
   let progressVal = ota.progress;
   let showButtons = true;
@@ -782,8 +782,27 @@ function UpdateModal({
     case 'failed':
       iconName = 'error';
       iconColor = '#f87171';
-      title = 'Update could not be installed';
-      description = ota.error || 'Studio could not complete the update. You can try again or copy diagnostics.';
+      title = 'Update download failed';
+      if (ota.error && (ota.error.includes('404') || ota.error.includes('non-OK status: 404'))) {
+        description = (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left', fontSize: 13, marginTop: 4 }}>
+            <p style={{ margin: 0, fontWeight: 700, color: '#f87171', lineHeight: 1.4 }}>
+              Studio update package was not found on the release server.
+            </p>
+            <div style={{ background: 'rgba(128,128,128,0.05)', padding: '10px 12px', borderRadius: 10, fontFamily: 'monospace', fontSize: 11, border: '1px solid rgba(128,128,128,0.1)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div>Target Version: {ota.remoteVersion || 'N/A'}</div>
+              <div style={{ wordBreak: 'break-all' }}>APK URL: {ota.apkUrl || 'N/A'}</div>
+              <div>HTTP Status: 404 (Not Found)</div>
+              <div>Metadata (app-release.json) fetched: Yes</div>
+            </div>
+            <p style={{ margin: 0, color: 'var(--c-text-secondary)', fontSize: 12, lineHeight: 1.4 }}>
+              <strong>Suggested action:</strong> Try again later. This usually means the release metadata was published before the APK upload completed.
+            </p>
+          </div>
+        );
+      } else {
+        description = ota.error || 'Studio could not complete the update. You can try again or copy diagnostics.';
+      }
       break;
   }
 
@@ -1501,13 +1520,13 @@ function UpdateModal({
             {title}
           </p>
 
-          <p style={{
+          <div style={{
             margin: '2px 0 0', fontSize: 13.5,
             color: 'var(--c-text-secondary)',
             fontFamily: 'Inter', lineHeight: 1.5,
           }}>
             {description}
-          </p>
+          </div>
 
           {(state === 'available' || state === 'ready_to_install' || state === 'verifying_apk') && (
             <div style={{
