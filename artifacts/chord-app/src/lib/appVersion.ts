@@ -38,8 +38,8 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 export const APP_VERSION_DATE = '2026-06-05'; // 3.6.17
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = '559e333';
-export const APP_BUILD_TIMESTAMP = '6/5/2026, 8:35:21 PM UTC';
+export const APP_COMMIT_SHA = 'dced8e9';
+export const APP_BUILD_TIMESTAMP = '6/5/2026, 9:05:47 PM UTC';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -56,17 +56,10 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "New",
-    items: [
-      "Redesigned the Updates page with a hero card, structured changelog, and Stitch-inspired layout.",
-      "Added recent releases section with expandable changelogs.",
-    ],
-  },
-  {
     heading: "Improved",
     items: [
-      "Changed Settings subtitle to 'Studio Settings'.",
-      "Renamed the Updater navigation row to 'Updates'.",
+      "Changed Settings subtitle to \"Studio Settings\".",
+      "Renamed the Updater navigation row to \"Updates\".",
     ],
   },
 ];
