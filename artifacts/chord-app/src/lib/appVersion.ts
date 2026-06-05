@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.12'; // Rebuild Studio Cloud Sync using a real Firebase source-of-truth model
+export const APP_VERSION = '3.6.10'; // Rebuild Studio Cloud Sync using a real Firebase source-of-truth model
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.12
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.10
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = 'f3dc14e';
@@ -56,11 +56,20 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Improved",
     items: [
-      "Added Supabase Realtime Sync provider as an option alongside Firebase Cloud.",
-      "Added Sync Provider selector to settings to allow switching between database backends.",
-      "Added dynamic diagnostics information for the active sync provider.",
+      "Improved Android and Web sync diagnostics with copyable runtime reports.",
+      "Improved Firestore payload sanitization across probe, devices, profile, and settings writes.",
+      "Improved mobile usability for long diagnostics, paths, errors, and device metadata.",
+    ],
+  },
+  {
+    heading: "Fixed",
+    items: [
+      "Fixed Cloud Sync Probe failing on Android because Firestore rejected undefined userAgent values.",
+      "Fixed Firestore sync writes to sanitize undefined fields before setDoc.",
+      "Fixed Sync Diagnostics overflow on mobile by making the diagnostics section scrollable.",
+      "Fixed Cloud Sync validation so probe errors show real Firestore failures.",
     ],
   },
 ];

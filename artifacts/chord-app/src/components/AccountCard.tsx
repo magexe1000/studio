@@ -2891,7 +2891,8 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                         overflowWrap: 'anywhere',
                         wordBreak: 'break-word',
                       }}>
-                        {(!sync.dbAvailable || sync.firebaseProjectId === 'Not Configured') && (
+                        {((sync.syncEngineVersion !== 'supabase-v1' && (!sync.dbAvailable || sync.firebaseProjectId === 'Not Configured')) ||
+                          (sync.syncEngineVersion === 'supabase-v1' && (!sync.dbAvailable || !sync.supabaseClientReady))) && (
                           <div style={{
                             padding: '10px 12px',
                             background: 'rgba(239, 68, 68, 0.1)',
@@ -2911,12 +2912,25 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                             </div>
                             <div style={{ fontSize: 10, opacity: 0.9, marginLeft: 22 }}>
                               <div><strong>Auth Signed In:</strong> {user?.uid ? 'Yes' : 'No'}</div>
-                              <div><strong>Firebase Apps Count:</strong> {sync.firebaseAppsCount ?? 0}</div>
-                              <div><strong>Firebase App Name:</strong> {sync.firebaseAppName || 'None'}</div>
-                              <div><strong>Firestore Db Available:</strong> {sync.dbAvailable ? 'Yes' : 'No'}</div>
-                              <div><strong>Firebase Project ID:</strong> {sync.firebaseProjectId || 'Not Configured'}</div>
-                              <div><strong>Firebase App ID:</strong> {sync.firebaseAppId || 'Not Configured'}</div>
-                              <div><strong>Init Error:</strong> {sync.firebaseInitError || 'None'}</div>
+                              {sync.syncEngineVersion === 'supabase-v1' ? (
+                                <>
+                                  <div><strong>Supabase Client Ready:</strong> {sync.supabaseClientReady ? 'Yes' : 'No'}</div>
+                                  <div><strong>Supabase URL Configured:</strong> {sync.supabaseUrlConfigured ? 'Yes' : 'No'}</div>
+                                  <div><strong>Supabase Anon Key Configured:</strong> {sync.supabaseAnonKeyConfigured ? 'Yes' : 'No'}</div>
+                                  <div><strong>Firebase Auth Bridge Ready:</strong> {sync.firebaseAuthBridgeReady ? 'Yes' : 'No'}</div>
+                                  <div><strong>Supabase Db Available:</strong> {sync.dbAvailable ? 'Yes' : 'No'}</div>
+                                  <div><strong>Init Error:</strong> {sync.syncEngineInitError || 'None'}</div>
+                                </>
+                              ) : (
+                                <>
+                                  <div><strong>Firebase Apps Count:</strong> {sync.firebaseAppsCount ?? 0}</div>
+                                  <div><strong>Firebase App Name:</strong> {sync.firebaseAppName || 'None'}</div>
+                                  <div><strong>Firestore Db Available:</strong> {sync.dbAvailable ? 'Yes' : 'No'}</div>
+                                  <div><strong>Firebase Project ID:</strong> {sync.firebaseProjectId || 'Not Configured'}</div>
+                                  <div><strong>Firebase App ID:</strong> {sync.firebaseAppId || 'Not Configured'}</div>
+                                  <div><strong>Init Error:</strong> {sync.firebaseInitError || 'None'}</div>
+                                </>
+                              )}
                               <div style={{ marginTop: 6, color: '#ff8787', fontWeight: 700 }}>Next Action: Check build keys or network connection</div>
                             </div>
                           </div>
@@ -2982,6 +2996,10 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                               storageAvailable: sync.storageAvailable ? 'Yes' : 'No',
                               firebaseInitError: sync.firebaseInitError || 'None',
                               syncEngineInitError: sync.syncEngineInitError || 'None',
+                              supabaseUrlConfigured: sync.supabaseUrlConfigured ? 'Yes' : 'No',
+                              supabaseAnonKeyConfigured: sync.supabaseAnonKeyConfigured ? 'Yes' : 'No',
+                              supabaseClientReady: sync.supabaseClientReady ? 'Yes' : 'No',
+                              firebaseAuthBridgeReady: sync.firebaseAuthBridgeReady ? 'Yes' : 'No',
                               directWritePath: sync.directWritePath || 'N/A',
                               directWriteAttempt: sync.directWriteAttempt || 'Never',
                               directWriteSuccess: sync.directWriteSuccess || 'Never',
@@ -3077,6 +3095,18 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Sync Engine Version:</strong> <code style={codeBreakStyle}>{sync.syncEngineVersion || 'sync-engine-v1'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Supabase URL Configured:</strong> <code style={codeBreakStyle}>{sync.supabaseUrlConfigured ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Supabase Anon Key Configured:</strong> <code style={codeBreakStyle}>{sync.supabaseAnonKeyConfigured ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Supabase Client Ready:</strong> <code style={codeBreakStyle}>{sync.supabaseClientReady ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firebase Auth Bridge Ready:</strong> <code style={codeBreakStyle}>{sync.firebaseAuthBridgeReady ? 'Yes' : 'No'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Current deviceId:</strong> <code style={codeBreakStyle}>{deviceId()}</code>
@@ -3726,9 +3756,9 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                   </SettingRowUI>
                   <SettingRowUI label={lang === 'es' ? 'Proveedor de Sincronización' : 'Sync Provider'} desc={lang === 'es' ? 'Elige el backend en la nube para tus sincronizaciones.' : 'Choose the cloud backend for your syncs.'}>
                     <SelectControl
-                      value={settings.syncBackendProvider || 'firebase-legacy'}
+                      value={settings.syncBackendProvider || 'firebase-firestore-legacy'}
                       options={[
-                        { value: 'firebase-legacy', label: 'Firebase Cloud (Legacy)' },
+                        { value: 'firebase-firestore-legacy', label: 'Firebase Cloud (Legacy)' },
                         { value: 'supabase-realtime', label: 'Supabase Realtime (New)' },
                       ]}
                       onChange={(v) => updateSettings({ syncBackendProvider: v as any })}

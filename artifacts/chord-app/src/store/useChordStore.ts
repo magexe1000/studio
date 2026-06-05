@@ -715,7 +715,7 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
-      version: 11,
+      version: 12,
       migrate: (stored: unknown, fromVersion: number) => {
         const s = stored as Record<string, unknown>;
         if (fromVersion < 1) {
@@ -833,6 +833,12 @@ export const useChordStore = create<ChordStore>()(
             if (typeof settings.syncBackendProvider !== 'string') {
               settings.syncBackendProvider = 'supabase-realtime';
             }
+          }
+        }
+        if (fromVersion < 12) {
+          if (s.settings && typeof s.settings === 'object') {
+            const settings = s.settings as Record<string, unknown>;
+            settings.syncBackendProvider = 'supabase-realtime';
           }
         }
         return s;

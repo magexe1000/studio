@@ -250,6 +250,11 @@ export interface SyncDiagnostics {
   cloudPreferences: any;
 
   probeDocs: ProbeDoc[];
+
+  supabaseUrlConfigured?: boolean;
+  supabaseAnonKeyConfigured?: boolean;
+  supabaseClientReady?: boolean;
+  firebaseAuthBridgeReady?: boolean;
 }
 
 export type Unsubscribe = () => void;

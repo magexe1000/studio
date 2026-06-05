@@ -14,7 +14,7 @@ import {
   SyncDevice,
   ProbeDoc
 } from './types';
-import { supabase, isSupabaseConfigured, setFirebaseIdToken } from '../supabaseClient';
+import { supabase, isSupabaseConfigured, setFirebaseIdToken, getSupabaseConfigDetails } from '../supabaseClient';
 import { getFirebaseAuth } from '../firebase';
 import { subscribeAuth } from '../auth';
 import { getStableDeviceId, getDeviceDetails } from '../syncEngine';
@@ -248,7 +248,8 @@ export class SupabaseRealtimeProvider implements SyncBackendProvider {
   }
 
   private updateDiag(patch: Partial<SyncDiagnostics>) {
-    this.diagState = { ...this.diagState, ...patch } as SyncDiagnostics;
+    const configDetails = getSupabaseConfigDetails();
+    this.diagState = { ...this.diagState, ...configDetails, ...patch } as SyncDiagnostics;
     this.diagState.activeListenerCount = 
       (this.devicesCallbacks.size > 0 ? 1 : 0) + 
       (this.profileCallbacks.size > 0 ? 1 : 0) + 

@@ -262,6 +262,11 @@ export type SyncStatus = {
   deviceWritePath?: string;
   devicesListenerPath?: string;
 
+  supabaseUrlConfigured?: boolean;
+  supabaseAnonKeyConfigured?: boolean;
+  supabaseClientReady?: boolean;
+  firebaseAuthBridgeReady?: boolean;
+
   // Direct Write Test Stats
   directWritePath?: string;
   directWriteAttempt?: string;
@@ -778,6 +783,10 @@ let status: SyncStatus = {
   syncEngineVersion: 'sync-engine-v1',
   deviceWritePath: 'N/A',
   devicesListenerPath: 'N/A',
+  supabaseUrlConfigured: false,
+  supabaseAnonKeyConfigured: false,
+  supabaseClientReady: false,
+  firebaseAuthBridgeReady: false,
 
   // Direct Write Test Stats
   directWritePath: 'N/A',
