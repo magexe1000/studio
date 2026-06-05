@@ -10,6 +10,22 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkgRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(pkgRoot, '../..');
 
+// Load .env file if it exists in pkgRoot
+const envPath = path.join(pkgRoot, '.env');
+if (existsSync(envPath)) {
+  const envContent = readFileSync(envPath, 'utf8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const parts = trimmed.split('=');
+    if (parts.length >= 2) {
+      const key = parts[0].trim();
+      const val = parts.slice(1).join('=').trim();
+      process.env[key] = val;
+    }
+  }
+}
+
 const otaBase = 'https://studio-30f44.web.app';
 const firebasePublicDir = path.join(repoRoot, 'firebase-public');
 const firebaseOtaDir = path.join(firebasePublicDir, 'ota');
@@ -75,6 +91,21 @@ if (existsSync(appVersionPath)) {
 } else {
   console.warn(`release-firebase: ⚠ ${appVersionPath} does not exist. Skipping auto-bump.`);
 }
+
+// Validate Supabase build configuration
+console.log('release-firebase: → Validating build gates...');
+const supabaseUrl = (process.env.VITE_SUPABASE_URL || '').trim();
+const supabaseAnonKey = (process.env.VITE_SUPABASE_ANON_KEY || '').trim();
+const syncBackendProvider = (process.env.VITE_SYNC_BACKEND_PROVIDER || '').trim();
+
+if (!supabaseUrl || !supabaseAnonKey || syncBackendProvider !== 'supabase-realtime') {
+  console.error('\x1b[31mrelease-firebase: ✗ Supabase config missing. Refusing to build a Supabase sync release.\x1b[0m');
+  console.error(`VITE_SUPABASE_URL present: ${supabaseUrl ? 'Yes' : 'No'}`);
+  console.error(`VITE_SUPABASE_ANON_KEY present: ${supabaseAnonKey ? 'Yes' : 'No'}`);
+  console.error(`VITE_SYNC_BACKEND_PROVIDER: ${syncBackendProvider}`);
+  process.exit(1);
+}
+console.log('release-firebase: ✓ Supabase build gate validation passed.');
 
 // Update other version configurations
 console.log('release-firebase: → Running version-sync...');
@@ -416,14 +447,20 @@ if (status !== 200) {
 console.log('Step 10/15: Verify downloaded APK SHA-256 matches expected...');
 const downloadPath = path.join(pkgRoot, `.release-temp-verify-${version}.apk`);
 const downloadFile = async (url, dest) => {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Status ${res.status}`);
-  const fileStream = fs.createWriteStream(dest);
-  await new Promise((resolve, reject) => {
-    res.body.pipe(fileStream);
-    res.body.on("error", reject);
-    fileStream.on("finish", resolve);
-  });
+  let attempts = 5;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const buffer = await res.arrayBuffer();
+      writeFileSync(dest, Buffer.from(buffer));
+      return;
+    } catch (err) {
+      if (i === attempts) throw err;
+      console.warn(`release-firebase: ⚠ Download attempt ${i} failed. Retrying in ${i * 2}s... Error: ${err.message || err}`);
+      await new Promise(r => setTimeout(r, i * 2000));
+    }
+  }
 };
 
 try {

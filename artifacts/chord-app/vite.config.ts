@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
@@ -9,34 +9,56 @@ const basePath = process.env.BASE_PATH ?? "/";
 // Expose Firebase web config from process.env (Replit secrets) into
 // import.meta.env at build time. The web config is non-sensitive (it goes to
 // the client anyway) but we keep it in env vars for portability.
-const firebaseEnvKeys = [
+const injectEnvKeys = [
   "VITE_FIREBASE_API_KEY",
   "VITE_FIREBASE_AUTH_DOMAIN",
   "VITE_FIREBASE_PROJECT_ID",
   "VITE_FIREBASE_STORAGE_BUCKET",
   "VITE_FIREBASE_MESSAGING_SENDER_ID",
   "VITE_FIREBASE_APP_ID",
+  "VITE_SUPABASE_URL",
+  "VITE_SUPABASE_ANON_KEY",
+  "VITE_SYNC_BACKEND_PROVIDER",
 ] as const;
-const firebaseDefines: Record<string, string> = {};
-for (const k of firebaseEnvKeys) {
-  firebaseDefines[`import.meta.env.${k}`] = JSON.stringify(process.env[k] ?? "");
-}
 
-export default defineConfig({
-  base: basePath,
-  define: firebaseDefines,
-  plugins: [
-    react(),
-    tailwindcss(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-dev-banner").then((m) =>
-            m.devBanner(),
-          ),
-        ]
-      : []),
-  ],
+export default defineConfig(async ({ command, mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const envDefines: Record<string, string> = {};
+  for (const k of injectEnvKeys) {
+    const val = (process.env[k] ?? env[k] ?? "").trim();
+    envDefines[`import.meta.env.${k}`] = JSON.stringify(val);
+  }
+
+  // Hard gate validation during vite build
+  if (command === "build") {
+    const url = (process.env.VITE_SUPABASE_URL ?? env.VITE_SUPABASE_URL ?? "").trim();
+    const key = (process.env.VITE_SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY ?? "").trim();
+    const provider = (process.env.VITE_SYNC_BACKEND_PROVIDER ?? env.VITE_SYNC_BACKEND_PROVIDER ?? "").trim();
+
+    if (!url || !key || provider !== "supabase-realtime") {
+      console.error("\x1b[31mVite Build: ✗ Supabase config missing. Refusing to build a Supabase sync release.\x1b[0m");
+      console.error(`VITE_SUPABASE_URL: ${url ? "Configured" : "Missing"}`);
+      console.error(`VITE_SUPABASE_ANON_KEY: ${key ? "Configured" : "Missing"}`);
+      console.error(`VITE_SYNC_BACKEND_PROVIDER: ${provider}`);
+      throw new Error("Supabase config missing. Refusing to build a Supabase sync release.");
+    }
+  }
+
+  return {
+    base: basePath,
+    define: envDefines,
+    plugins: [
+      react(),
+      tailwindcss(),
+      ...(process.env.NODE_ENV !== "production" &&
+      process.env.REPL_ID !== undefined
+        ? [
+            await import("@replit/vite-plugin-dev-banner").then((m) =>
+              m.devBanner(),
+            ),
+          ]
+        : []),
+    ],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
@@ -110,4 +132,5 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
   },
+};
 });

@@ -2874,11 +2874,45 @@ function HubSettings({
         {/* 4. Storage & Sync Debug */}
         <SettingsSectionLabel>4. Storage & Sync</SettingsSectionLabel>
         <div style={cardStyle}>
+          <DevInfoRow label="Active Sync Provider" value={diag.activeSyncProvider || 'firebase-legacy'} />
+          <DevInfoRow label="Database Provider" value={diag.databaseProvider || 'firestore'} />
           <DevInfoRow label="Auth UID" value={diag.authUid} />
-          <DevInfoRow label="Current Device ID" value={diag.deviceId} />
-          <DevInfoRow label="Current Device Doc Path" value={diag.currentDeviceDocPath} canCopy />
-          <DevInfoRow label="Firebase Project ID" value={diag.firebaseProjectId} />
-          <DevInfoRow label="Devices Collection Path" value={diag.devicesCollectionPath} canCopy />
+          <DevInfoRow label="Current Device ID" value={diag.deviceId || diag.currentDeviceId} />
+          
+          {diag.activeSyncProvider === 'supabase-realtime' ? (
+            <>
+              <DevInfoRow label="Supabase Host" value={diag.supabaseUrlHost || 'N/A'} />
+              <DevInfoRow label="Supabase Key Mask" value={diag.supabaseAnonKeyPrefix ? `${diag.supabaseAnonKeyPrefix}... (${diag.supabaseAnonKeyLength} chars)` : 'N/A'} />
+              <DevInfoRow label="Supabase Client Ready" value={diag.supabaseClientReady ? 'Yes' : 'No'} />
+              <DevInfoRow label="Supabase Db Available" value={diag.supabaseDbAvailable ? 'Yes' : 'No'} />
+              <DevInfoRow label="Supabase Auth Strategy" value={diag.supabaseAuthStrategy || 'N/A'} />
+              <DevInfoRow label="Supabase Mapped User ID" value={diag.mappedUserId || 'N/A'} />
+              <DevInfoRow label="Supabase RLS User ID" value={diag.rlsUserId || 'N/A'} />
+              <DevInfoRow label="Devices Table" value={diag.devicesTable || 'user_devices'} />
+              <DevInfoRow label="Device Row Key" value={diag.deviceRowId || 'N/A'} />
+              <DevInfoRow label="Probe Table" value={diag.probeTable || 'sync_probe'} />
+              <DevInfoRow label="Probe Row Key" value={diag.probeRowId || 'N/A'} />
+              <DevInfoRow label="Direct Write Table" value={diag.directWriteTable || 'debug_writes'} />
+              <DevInfoRow label="Direct Write Row Key" value={diag.directWriteRowId || 'N/A'} />
+              <DevInfoRow label="Profiles Table" value={diag.profileTable || 'user_profiles'} />
+              <DevInfoRow label="Appearance Table" value={diag.appearanceTable || 'user_appearance_settings'} />
+              <DevInfoRow label="Preferences Table" value={diag.preferencesTable || 'user_preferences'} />
+              <DevInfoRow label="Supabase Client Init Error" value={diag.supabaseInitError || 'None'} />
+              <DevInfoRow label="Last Supabase Auth Error" value={diag.lastSupabaseAuthError || 'None'} />
+            </>
+          ) : (
+            <>
+              <DevInfoRow label="Current Device Doc Path" value={diag.currentDeviceDocPath} canCopy />
+              <DevInfoRow label="Firebase Project ID" value={diag.firebaseProjectId} />
+              <DevInfoRow label="Devices Collection Path" value={diag.devicesCollectionPath} canCopy />
+              <DevInfoRow label="Device write path" value={diag.deviceWritePath || 'N/A'} />
+              <DevInfoRow label="Device listener path" value={diag.devicesListenerPath || 'N/A'} />
+              <DevInfoRow label="Probe write path" value={diag.probeWritePath || 'N/A'} />
+              <DevInfoRow label="Probe listener path" value={diag.probeListenerPath || 'N/A'} />
+              <DevInfoRow label="Direct write path" value={diag.directWritePath || 'N/A'} />
+            </>
+          )}
+
           <DevInfoRow label="Devices Snapshot Count" value={String(diag.devicesSnapshotCount)} />
           <DevInfoRow label="Devices Snapshot IDs" value={diag.devicesSnapshotIds} />
           <DevInfoRow label="Last Device Write Success" value={diag.lastDeviceWriteSuccess} />

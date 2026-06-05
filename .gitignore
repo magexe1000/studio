@@ -58,3 +58,7 @@ testem.log
 *.keystore
 *.jks
 signing-secrets.txt
+
+# ── Env files ─────────────────────────────────────────────────────────────────
+.env
+.env.*

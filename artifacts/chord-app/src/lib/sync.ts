@@ -1,6 +1,3 @@
-import { doc, getDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
-import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth, getFirebaseProjectId, getFirebaseConfigDetails } from './firebase';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { subscribeAuth, type AuthUser, signOut } from './auth';
 import { isNative } from './capgoUpdater';
 import { APP_VERSION } from './appVersion';
@@ -9,22 +6,7 @@ import {
   initializeDeviceId as engineInitDeviceId,
   getDeviceDetails as engineGetDeviceDetails,
   classifyDeviceSession as engineClassifyDeviceSession,
-  heartbeatNow,
-  startDeviceHeartbeat as engineStartHeartbeat,
-  stopDeviceHeartbeat as engineStopHeartbeat,
-  reconnectDevices as engineReconnectDevices,
   sanitizeForFirestore as engineSanitize,
-  registerCurrentDevice as engineRegisterCurrentDevice,
-  writeProfilePatch,
-  writeAppearancePatch,
-  writePreferencesPatch,
-  uploadProfilePhoto as engineUploadPhoto,
-  runSyncProbe,
-  clearMyProbeOnly,
-  subscribeSyncEngine,
-  initAuthSyncEngineHook,
-  getSyncEngineDiagnostics,
-  SyncEngineStatus
 } from './syncEngine';
 import { getActiveSyncProvider, initSyncBackends, disposeSyncBackends } from './syncBackends';
 import { getAllTakes, saveTake, deleteTake as dbDeleteTake, type TakeRecord } from '../vocalex/takesDb';
@@ -266,6 +248,34 @@ export type SyncStatus = {
   supabaseAnonKeyConfigured?: boolean;
   supabaseClientReady?: boolean;
   firebaseAuthBridgeReady?: boolean;
+  supabaseAuthBridgeReady?: boolean;
+  activeSyncProvider?: string;
+  databaseProvider?: string;
+  firebaseDbAvailable?: boolean;
+  firebaseAuthAvailable?: boolean;
+  firebaseStorageAvailable?: boolean;
+  supabaseDbAvailable?: boolean;
+  supabaseStorageAvailable?: boolean;
+  supabaseUrlHost?: string;
+  supabaseAnonKeyPrefix?: string;
+  supabaseAnonKeyLength?: number;
+  firebaseIdTokenAvailable?: 'Yes' | 'No';
+  supabaseAuthStrategy?: string;
+  supabaseUserId?: string;
+  mappedUserId?: string;
+  rlsUserId?: string;
+  lastSupabaseAuthError?: string;
+  probeTable?: string;
+  probeRowId?: string;
+  devicesTable?: string;
+  deviceRowId?: string;
+  directWriteTable?: string;
+  directWriteRowId?: string;
+  profileTable?: string;
+  appearanceTable?: string;
+  preferencesTable?: string;
+  versionCode?: number;
+  probeRowsReceived?: number;
 
   // Direct Write Test Stats
   directWritePath?: string;
@@ -398,131 +408,19 @@ export function setLastSyncError(err: string | null) {
   notifyDiagnostics();
 }
 
-export function getSyncDiagnostics() {
-  const store = useChordStore.getState();
-  const authUser = currentUser;
-  
-  const localTheme = store.settings.amoledMode ? 'AMOLED' : store.settings.theme;
-  
-  const localLastUpdateProfile = parseInt(localStorage.getItem(`sync_last_local_update_profile`) ?? '0', 10);
-  const localLastUpdateAppearance = parseInt(localStorage.getItem(`sync_last_local_update_appearance`) ?? '0', 10);
-  const localLastUpdatePreferences = parseInt(localStorage.getItem(`sync_last_local_update_preferences`) ?? '0', 10);
-  const localLastUpdate = Math.max(localLastUpdateProfile, localLastUpdateAppearance, localLastUpdatePreferences);
-
-  const engineDiag = getSyncEngineDiagnostics();
-
-  return {
-    ...engineDiag,
-    authUid: authUser?.uid || 'Not signed in',
-    deviceId: deviceId(),
-    syncEnabled: store.settings.syncAcrossDevices,
-    firestoreConnected: window.navigator.onLine,
-    profileListenerActive: unsubProfileListener !== null,
-    appearanceListenerActive: unsubAppearanceListener !== null,
-    preferencesListenerActive: unsubPreferencesListener !== null,
-    devicesListenerActive: unsubDevicesListListener !== null,
-    lastProfileSync: lastProfileSyncMs ? new Date(lastProfileSyncMs).toLocaleString() : 'Never',
-    lastAppearanceSync: lastAppearanceSyncMs ? new Date(lastAppearanceSyncMs).toLocaleString() : 'Never',
-    lastPreferencesSync: lastPreferencesSyncMs ? new Date(lastPreferencesSyncMs).toLocaleString() : 'Never',
-    pendingWrites: pendingWritesCount,
-    lastSyncError: lastSyncError || 'None',
-    localTheme: localTheme,
-    remoteTheme: remoteTheme || 'N/A',
-    localAccentColor: store.settings.accentColor,
-    remoteAccentColor: remoteAccentColor || 'N/A',
-    localPhotoURL: authUser?.photoURL || 'None',
-    remotePhotoURL: remotePhotoURL || 'N/A',
-    localDisplayName: authUser?.displayName || 'None',
-    remoteDisplayName: remoteDisplayName || 'N/A',
-    lastRemoteUpdateTimestamp: lastRemoteUpdateTimestamp ? new Date(lastRemoteUpdateTimestamp).toLocaleString() : 'Never',
-    lastLocalUpdateTimestamp: localLastUpdate ? new Date(localLastUpdate).toLocaleString() : 'Never',
-    lastSyncSuccess: status.lastSyncedMs ? new Date(status.lastSyncedMs).toLocaleString() : 'Never',
-    registeredDevicesCount: registeredDevicesCount,
-    currentDeviceDocPath: authUser ? `users/${authUser.uid}/devices/${deviceId()}` : 'N/A',
-    buildType: isNative() ? 'Native Release' : 'Web',
-    platform: isNative() ? 'native' : 'web',
-    firebaseAuthAvailable: !!getFirebaseAuth(),
-    firestoreAvailable: !!getFirebaseDb(),
-    storageAvailable: !!getFirebaseStorage(),
-    deviceRegistrationStatus: deviceRegistrationStatus,
-    webSyncSupported: !!getFirebaseDb() && !!getFirebaseAuth() && !!getFirebaseStorage(),
-    
-    firebaseProjectId: getFirebaseProjectId(),
-    userEmail: authUser?.email || 'N/A',
-    devicesCollectionPath: authUser ? `users/${authUser.uid}/devices` : 'N/A',
-    devicesSnapshotCount: devicesSnapshotCount,
-    devicesSnapshotIds: devicesSnapshotIds.join(', ') || 'None',
-    lastDeviceWriteSuccess: lastDeviceWriteSuccess || 'Never',
-    lastDeviceWriteError: lastDeviceWriteError || 'None',
-    lastDevicesListenerError: lastDevicesListenerError || 'None',
-    lastDeviceWriteAttemptedAt: lastDeviceWriteAttemptedAt || 'Never',
-    lastDeviceWriteDurationMs: lastDeviceWriteDurationMs != null ? `${lastDeviceWriteDurationMs}ms` : 'N/A',
-    lastDeviceSnapshotAt: lastDeviceSnapshotAt || 'Never',
-    lastDeviceRegistrationReason: lastDeviceRegistrationReason || 'None',
-    inFlightWriteStatus: inFlightWriteStatus,
-    firebaseAppId: getFirebaseConfigDetails().appId,
-    firebaseAuthDomain: getFirebaseConfigDetails().authDomain,
-    firebaseStorageBucket: getFirebaseConfigDetails().storageBucket,
-    devicesRenderedCount: devicesRenderedCount,
-    currentDeviceMatchedInSnapshot: currentDeviceMatchedInSnapshot,
-    otherDevicesCount: otherDevicesCount,
-    hiddenDevicesCount: hiddenDevicesCount,
-    hiddenDeviceReasons: hiddenDeviceReasons,
-    currentDevicePlatform: isNative() ? 'android' : 'web',
-    shortName: (() => { try { return getDeviceDetails().shortName; } catch(e) { return 'Error'; } })(),
-    displayName: (() => { try { return getDeviceDetails().displayName; } catch(e) { return 'Error'; } })(),
-    technicalName: (() => { try { return getDeviceDetails().technicalName; } catch(e) { return 'Error'; } })(),
-    activeDevicesCount: activeDevicesCount,
-    staleDevicesCount: staleDevicesCount,
-    legacyDevicesCount: legacyDevicesCount,
-    groupedDeviceIds: groupedDeviceIds,
-    duplicateCandidates: duplicateCandidates,
-    replacementMap: replacementMap,
-    legacyDocumentsDetected: legacyDocumentsDetected,
-    deviceIdStorageKey: deviceIdStorageKey,
-    // Legacy identity trackers
-    oldLegacyDeviceIdKeysFound: (() => {
-      try {
-        const foundKeys: string[] = [];
-        const legacyKeys = ['chordex_device_id', 'chordexDeviceId', 'appDeviceId', 'deviceId', 'previousDeviceId'];
-        for (const k of legacyKeys) {
-          if (localStorage.getItem(k)) foundKeys.push(k);
-        }
-        return foundKeys.join(', ') || 'None';
-      } catch(e) { return 'Error'; }
-    })(),
-    storedDeviceId: (() => { try { return localStorage.getItem('studioDeviceId') || 'None'; } catch(e) { return 'Error'; } })(),
-    lastLegacyCleanupAttempt: lastLegacyCleanupAttempt,
-    lastLegacyCleanupSuccess: lastLegacyCleanupSuccess,
-    lastLegacyCleanupError: lastLegacyCleanupError,
-    authReady: authReady,
-    currentDeviceId: deviceId(),
-    currentPlatform: currentPlatform,
-    currentDeviceDocExists: currentDeviceMatchedInSnapshot,
-    listenerPath: authUser ? `users/${authUser.uid}/devices` : 'N/A',
-    devicesLogicVersion: devicesLogicVersion,
-    lastHeartbeatSuccess: engineDiag.lastHeartbeatSuccess,
-    lastHeartbeatError: engineDiag.lastHeartbeatError,
-    profileListenerStatus: profileListenerStatus,
-    appearanceListenerStatus: appearanceListenerStatus,
-    preferencesListenerStatus: preferencesListenerStatus,
-    lastProfileWriteSuccess: lastProfileWriteSuccess,
-    lastProfileWriteError: lastProfileWriteError,
-    lastAppearanceWriteSuccess: lastAppearanceWriteSuccess,
-    lastAppearanceWriteError: lastAppearanceWriteError,
-    lastPreferencesWriteSuccess: lastPreferencesWriteSuccess,
-    lastPreferencesWriteError: lastPreferencesWriteError,
-    lastPhotoUploadError: lastPhotoUploadError,
-    cloudTheme: cloudTheme,
-    cloudAccentColor: cloudAccentColor,
-    cloudDisplayName: cloudDisplayName,
-    cloudPhotoURL: cloudPhotoURL,
-  };
+export function getSyncDiagnostics(): any {
+  try {
+    return getActiveSyncProvider().getDiagnostics();
+  } catch (e) {
+    console.warn('[sync] failed to get diagnostics:', e);
+    return {} as any;
+  }
 }
 
 export async function pushLocalSettingsToCloud(): Promise<void> {
   if (!currentUser) return;
   
+  const provider = getActiveSyncProvider();
   pendingWritesCount++;
   notifyDiagnostics();
   try {
@@ -532,7 +430,7 @@ export async function pushLocalSettingsToCloud(): Promise<void> {
     
     // 1. Write appearance settings
     const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
-    await writeAppearancePatch({
+    await provider.updateAppearanceSettings({
       theme: themeValue,
       accentColor: settings.accentColor,
       customAccentHue: settings.customAccentHue ?? 220,
@@ -542,7 +440,7 @@ export async function pushLocalSettingsToCloud(): Promise<void> {
     localStorage.setItem(`sync_last_local_update_appearance`, now.toString());
     
     // 2. Write preference settings
-    await writePreferencesPatch({
+    await provider.updatePreferences({
       syncEnabled: settings.syncAcrossDevices,
       updateNotifications: settings.otaNotifications,
       automaticChecks: settings.otaAutoCheck,
@@ -553,16 +451,14 @@ export async function pushLocalSettingsToCloud(): Promise<void> {
     // 3. Write profile settings
     const { getUserAvatar } = await import('./userAvatar');
     const avatarIcon = getUserAvatar(currentUser.uid);
-    await writeProfilePatch({
+    await provider.updateProfile({
       displayName: currentUser.displayName,
-      email: currentUser.email,
       photoURL: currentUser.photoURL,
       avatarIcon,
-      role: 'user',
     });
     localStorage.setItem(`sync_last_local_update_profile`, now.toString());
     
-    console.info('[sync] pushed local settings to cloud');
+    console.info('[sync] pushed local settings to cloud via provider');
   } catch (err: any) {
     console.warn('[sync] push local settings failed:', err);
     lastSyncError = err.message || String(err);
@@ -574,38 +470,37 @@ export async function pushLocalSettingsToCloud(): Promise<void> {
 
 export async function pullCloudSettingsFromCloud(): Promise<void> {
   if (!currentUser) return;
-  const db = getFirebaseDb();
-  if (!db) return;
+  const provider = getActiveSyncProvider();
   
   try {
     // 1. Pull profile
-    const profileSnap = await getDoc(doc(db, 'users', currentUser.uid, 'profile', 'main'));
-    if (profileSnap.exists()) {
-      const data = profileSnap.data();
-      remotePhotoURL = data.photoURL || null;
-      lastRemoteUpdateTimestamp = data.updatedAt || null;
+    const profileData = await provider.getProfile();
+    if (profileData) {
+      remotePhotoURL = profileData.photoURL || null;
+      remoteDisplayName = profileData.displayName || null;
+      lastRemoteUpdateTimestamp = profileData.updatedAt || null;
       
       // Update local profile
-      if (data.displayName !== currentUser.displayName || data.photoURL !== currentUser.photoURL) {
+      if (profileData.displayName !== currentUser.displayName || profileData.photoURL !== currentUser.photoURL) {
         const { updateLocalAuthUser } = await import('./auth');
         updateLocalAuthUser({
-          displayName: data.displayName,
-          photoURL: data.photoURL,
+          displayName: profileData.displayName,
+          photoURL: profileData.photoURL,
         });
-        currentUser.displayName = data.displayName;
-        currentUser.photoURL = data.photoURL;
+        currentUser.displayName = profileData.displayName;
+        currentUser.photoURL = profileData.photoURL;
       }
       
-      if (data.avatarIcon !== undefined) {
+      if (profileData.avatarIcon !== undefined) {
         const { setUserAvatar } = await import('./userAvatar');
-        setUserAvatar(currentUser.uid, data.avatarIcon as any);
+        setUserAvatar(currentUser.uid, profileData.avatarIcon as any);
       }
       
-      if (data.photoURL) {
-        localStorage.setItem(`chordex_cp_${currentUser.uid}`, data.photoURL);
+      if (profileData.photoURL) {
+        localStorage.setItem(`chordex_cp_${currentUser.uid}`, profileData.photoURL);
         window.dispatchEvent(
           new CustomEvent('chordex:user-cover-changed', {
-            detail: { uid: currentUser.uid, cover: data.photoURL },
+            detail: { uid: currentUser.uid, cover: profileData.photoURL },
           })
         );
       } else {
@@ -616,46 +511,44 @@ export async function pullCloudSettingsFromCloud(): Promise<void> {
           })
         );
       }
-      localStorage.setItem(`sync_last_local_update_profile`, (data.updatedAt || 0).toString());
+      localStorage.setItem(`sync_last_local_update_profile`, (profileData.updatedAt || 0).toString());
       lastProfileSyncMs = Date.now();
     }
     
     // 2. Pull appearance
-    const appSnap = await getDoc(doc(db, 'users', currentUser.uid, 'settings', 'appearance'));
-    if (appSnap.exists()) {
-      const data = appSnap.data();
-      remoteTheme = data.theme || null;
-      remoteAccentColor = data.accentColor || null;
-      lastRemoteUpdateTimestamp = data.updatedAt || null;
+    const appData = await provider.getAppearanceSettings();
+    if (appData) {
+      remoteTheme = appData.theme || null;
+      remoteAccentColor = appData.accentColor || null;
+      lastRemoteUpdateTimestamp = appData.updatedAt || null;
       
       isApplyingRemoteUpdate = true;
       try {
-        const nextTheme = data.theme === 'AMOLED' ? 'dark' : (data.theme || 'dark');
-        const nextAmoled = data.theme === 'AMOLED';
+        const nextTheme = appData.theme === 'AMOLED' ? 'dark' : (appData.theme || 'dark');
+        const nextAmoled = appData.theme === 'AMOLED';
         useChordStore.getState().updateSettings({
           theme: nextTheme as any,
           amoledMode: nextAmoled,
-          accentColor: (data.accentColor || 'blue') as any,
-          language: (data.language || 'en') as any,
-          customAccentHue: data.customAccentHue ?? 220,
+          accentColor: (appData.accentColor || 'blue') as any,
+          language: (appData.language || 'en') as any,
+          customAccentHue: appData.customAccentHue ?? 220,
         });
       } finally {
         isApplyingRemoteUpdate = false;
       }
-      localStorage.setItem(`sync_last_local_update_appearance`, (data.updatedAt || 0).toString());
+      localStorage.setItem(`sync_last_local_update_appearance`, (appData.updatedAt || 0).toString());
       lastAppearanceSyncMs = Date.now();
     }
     
     // 3. Pull preferences
-    const prefSnap = await getDoc(doc(db, 'users', currentUser.uid, 'settings', 'preferences'));
-    if (prefSnap.exists()) {
-      const data = prefSnap.data();
+    const prefData = await provider.getPreferences();
+    if (prefData) {
       isApplyingRemoteUpdate = true;
       try {
-        const syncEnabled = data.studioPreferences?.syncEnabled ?? data.syncEnabled ?? true;
-        const updateNotifications = data.studioPreferences?.updateNotifications ?? data.updateNotifications ?? true;
-        const automaticChecks = data.studioPreferences?.automaticChecks ?? data.automaticChecks ?? true;
-        const showWhatsNewAfterUpdate = data.studioPreferences?.showWhatsNewAfterUpdate ?? data.showWhatsNewAfterUpdate ?? true;
+        const syncEnabled = prefData.studioPreferences?.syncEnabled ?? true;
+        const updateNotifications = prefData.studioPreferences?.updateNotifications ?? true;
+        const automaticChecks = prefData.studioPreferences?.automaticChecks ?? true;
+        const showWhatsNewAfterUpdate = prefData.studioPreferences?.showWhatsNewAfterUpdate ?? true;
 
         useChordStore.getState().updateSettings({
           syncAcrossDevices: syncEnabled,
@@ -666,11 +559,11 @@ export async function pullCloudSettingsFromCloud(): Promise<void> {
       } finally {
         isApplyingRemoteUpdate = false;
       }
-      localStorage.setItem(`sync_last_local_update_preferences`, (data.updatedAt || 0).toString());
+      localStorage.setItem(`sync_last_local_update_preferences`, (prefData.updatedAt || 0).toString());
       lastPreferencesSyncMs = Date.now();
     }
     
-    console.info('[sync] pulled cloud settings');
+    console.info('[sync] pulled cloud settings via provider');
   } catch (err: any) {
     console.warn('[sync] pull cloud settings failed:', err);
     lastSyncError = err.message || String(err);
@@ -680,11 +573,13 @@ export async function pullCloudSettingsFromCloud(): Promise<void> {
 }
 
 export async function uploadProfilePhoto(uid: string, blob: Blob): Promise<string> {
-  return engineUploadPhoto(blob);
+  const provider = getActiveSyncProvider();
+  return provider.uploadProfilePhoto(blob);
 }
 
 export async function syncWriteProfileMain(displayName: string | null, photoURL: string | null, avatarIcon: string | null): Promise<void> {
-  await writeProfilePatch({
+  const provider = getActiveSyncProvider();
+  await provider.updateProfile({
     displayName,
     photoURL,
     avatarIcon,
@@ -1036,20 +931,35 @@ function getOrMigrateDeviceId(): string | null {
   return null;
 }
 
+let heartbeatInterval: any = null;
+
 export async function performHeartbeat(uid: string) {
-  await heartbeatNow('legacy-call');
+  const provider = getActiveSyncProvider();
+  await provider.heartbeatNow('legacy-call');
 }
 
 export function startDeviceHeartbeat(uid: string) {
-  engineStartHeartbeat(uid);
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  const provider = getActiveSyncProvider();
+  // Trigger immediately
+  provider.heartbeatNow('start-heartbeat').catch(console.error);
+  // Then run every 60s
+  heartbeatInterval = setInterval(() => {
+    const p = getActiveSyncProvider();
+    p.heartbeatNow('periodic-tick').catch(console.error);
+  }, 60000);
 }
 
 export function stopDeviceHeartbeat() {
-  engineStopHeartbeat();
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
 }
 
 export async function reconnectDevices(): Promise<void> {
-  await engineReconnectDevices();
+  const provider = getActiveSyncProvider();
+  await provider.reconnectDevices();
 }
 
 export function sanitizeForFirestore(val: any): any {
@@ -1057,39 +967,23 @@ export function sanitizeForFirestore(val: any): any {
 }
 
 export async function registerCurrentDevice(uid: string | null | undefined, reason: string): Promise<void> {
-  await engineRegisterCurrentDevice(reason);
+  const provider = getActiveSyncProvider();
+  await provider.registerCurrentDevice(reason);
 }
 
 export async function registerDevice(uid: string): Promise<void> {
-  await engineRegisterCurrentDevice('legacy-call');
+  const provider = getActiveSyncProvider();
+  await provider.registerCurrentDevice('legacy-call');
 }
 
 export async function unregisterDevice(uid: string): Promise<void> {
-  const db = getFirebaseDb();
-  if (db) {
-    const id = getStableDeviceId();
-    await setDoc(doc(db, 'users', uid, 'devices', id), engineSanitize({
-      signedIn: false,
-      currentSession: false,
-      syncStatus: 'signedOut',
-      lastSeenAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    }), { merge: true });
-  }
+  const provider = getActiveSyncProvider();
+  await provider.unregisterDevice();
 }
 
 export async function revokeDeviceSession(uid: string, targetDeviceId: string): Promise<void> {
-  const db = getFirebaseDb();
-  if (db) {
-    await setDoc(doc(db, 'users', uid, 'devices', targetDeviceId), engineSanitize({
-      revokedAt: serverTimestamp(),
-      signedIn: false,
-      currentSession: false,
-      syncStatus: 'revoked',
-      lastSeenAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    }), { merge: true });
-  }
+  const provider = getActiveSyncProvider();
+  await provider.revokeDeviceSession(targetDeviceId);
 }
 
 export function deviceId(): string {
@@ -1109,160 +1003,8 @@ export function classifyDeviceSession(data: any, currentDeviceId: string): { cla
 }
 
 export function subscribeDevices(uid: string, callback: (devices: any[]) => void): () => void {
-  const db = getFirebaseDb();
-  if (!db) {
-    callback([]);
-    return () => {};
-  }
-  const ref = collection(db, 'users', uid, 'devices');
-  // Querying without orderBy prevents Firestore from omitting documents with missing or pending timestamp fields
-  return onSnapshot(ref, (snap) => {
-    const list: any[] = [];
-    const ids: string[] = [];
-    let renderingMe = false;
-    let others = 0;
-    let hidden = 0;
-    const filterReasons: string[] = [];
-
-    let activeCount = 0;
-    let staleCount = 0;
-    let legacyCount = 0;
-
-    snap.forEach((doc) => {
-      const data = doc.data();
-      ids.push(doc.id);
-      
-      if (data.revokedAt != null) {
-        hidden++;
-        filterReasons.push(`${doc.id}: revoked`);
-        return; // Skip revoked devices
-      }
-      
-      const lastActiveTimestamp = data.lastActiveAt || data.lastActive;
-      const lastActiveMs = lastActiveTimestamp?.toMillis 
-        ? lastActiveTimestamp.toMillis() 
-        : (typeof lastActiveTimestamp === 'number' 
-          ? lastActiveTimestamp 
-          : 0); // Default to 0 for stale records so they do not show active
-
-      // Build item to classify
-      const itemToClassify = {
-        id: doc.id,
-        deviceId: data.deviceId,
-        revokedAt: data.revokedAt,
-        signedIn: data.signedIn,
-        currentSession: data.currentSession,
-        legacy: data.legacy,
-        replacedByDeviceId: data.replacedByDeviceId,
-        lastActive: lastActiveMs,
-        appVersion: data.appVersion,
-        name: data.shortName || data.deviceName || data.name,
-      };
-
-      const { classification, reason } = classifyDeviceSession(itemToClassify, deviceId());
-
-      if (classification === 'current') {
-        renderingMe = true;
-      } else {
-        others++;
-      }
-
-      if (classification === 'current' || classification === 'activeRemote' || classification === 'recentRemote') {
-        activeCount++;
-      } else if (classification === 'signedOut' || classification === 'revoked') {
-        staleCount++;
-      } else {
-        legacyCount++;
-      }
-
-      list.push({
-        id: doc.id,
-        name: data.shortName || data.deviceName || data.name || 'Unknown Device',
-        platform: data.platform || 'web',
-        userAgent: data.userAgent || '',
-        lastActive: lastActiveMs,
-        appVersion: data.appVersion || 'Unknown',
-        syncStatus: data.syncStatus || 'idle',
-        signedIn: data.signedIn !== false,
-        buildType: data.buildType || (data.platform === 'native' || data.platform === 'android' ? 'native' : 'web'),
-        apkVersion: data.apkVersion || null,
-        otaVersion: data.otaVersion || null,
-        shortName: data.shortName || '',
-        displayName: data.displayName || '',
-        technicalName: data.technicalName || data.deviceName || '',
-        model: data.model || '',
-        os: data.os || '',
-        osVersion: data.osVersion || '',
-        browser: data.browser || '',
-        classification,
-        classificationReason: reason,
-        isLegacy: classification === 'legacy',
-        isStale: classification === 'signedOut' || classification === 'revoked' || classification === 'legacy' || classification === 'unknown',
-        currentSession: data.currentSession !== false,
-        replacedByDeviceId: data.replacedByDeviceId || null,
-        legacy: data.legacy === true,
-      });
-    });
-
-    // Sort by lastActive descending in memory
-    list.sort((a, b) => b.lastActive - a.lastActive);
-
-    devicesSnapshotIds = ids;
-    devicesSnapshotCount = snap.size;
-    lastDevicesListenerError = 'None';
-    lastDeviceSnapshotAt = new Date().toLocaleString();
-    
-    devicesRenderedCount = list.length;
-    currentDeviceMatchedInSnapshot = renderingMe;
-    otherDevicesCount = others;
-    hiddenDevicesCount = hidden;
-    hiddenDeviceReasons = filterReasons.join(', ') || 'None';
-    activeDevicesCount = activeCount;
-    staleDevicesCount = staleCount;
-    legacyDevicesCount = legacyCount;
-    groupedDeviceIds = ids.join(', ') || 'None';
-    currentDeviceDocExists = renderingMe;
-
-    setStatus({
-      lastDevicesListenerError: 'None',
-      devicesSnapshotCount: snap.size,
-      lastDeviceSnapshotAt,
-      deviceIdsReceived: ids,
-      devicesRenderedCount: list.length,
-      currentDeviceMatchedInSnapshot: renderingMe,
-      otherDevicesCount: others,
-      hiddenDevicesCount: hidden,
-      hiddenDeviceReasons: hiddenDeviceReasons,
-      activeDevicesCount: activeCount,
-      staleDevicesCount: staleCount,
-      legacyDevicesCount: legacyCount,
-      groupedDeviceIds: groupedDeviceIds,
-      currentDeviceDocExists: renderingMe,
-    });
-    callback(list);
-  }, (err) => {
-    console.warn('[sync] subscribeDevices error:', err);
-    lastDevicesListenerError = err.message || String(err);
-    devicesSnapshotCount = 0;
-    devicesSnapshotIds = [];
-    devicesRenderedCount = 0;
-    currentDeviceMatchedInSnapshot = false;
-    otherDevicesCount = 0;
-    hiddenDevicesCount = 0;
-    hiddenDeviceReasons = `Listener error: ${lastDevicesListenerError}`;
-
-    setStatus({
-      lastDevicesListenerError: err.message || String(err),
-      devicesSnapshotCount: 0,
-      deviceIdsReceived: [],
-      devicesRenderedCount: 0,
-      currentDeviceMatchedInSnapshot: false,
-      otherDevicesCount: 0,
-      hiddenDevicesCount: 0,
-      hiddenDeviceReasons,
-    });
-    callback([]);
-  });
+  const provider = getActiveSyncProvider();
+  return provider.subscribeDevices(callback);
 }
 
 // ── Hash ────────────────────────────────────────────────────────────────────
@@ -1618,21 +1360,13 @@ export function hasLocalData(): boolean {
 
 export async function checkCloudDataExists(): Promise<boolean> {
   if (!currentUser) return false;
-  const db = getFirebaseDb();
-  if (!db) return false;
-  const ref = doc(db, 'users', currentUser.uid, 'state', 'chordex');
-  try {
-    const snap = await getDoc(ref);
-    return snap.exists();
-  } catch {
-    return false;
-  }
+  return getActiveSyncProvider().checkCloudDataExists('chordex');
 }
 
 export async function createCloudBackup(label: string): Promise<void> {
   if (!currentUser) return;
-  const db = getFirebaseDb();
-  if (!db) return;
+  const provider = getActiveSyncProvider();
+  
   const [chordex, drumex, drumexUI, stagex, vTakes, vLab, profile, profileCover, groovex] = await Promise.all([
     Promise.resolve(snapshotChordex()),
     Promise.resolve(snapshotDrumex()),
@@ -1657,14 +1391,7 @@ export async function createCloudBackup(label: string): Promise<void> {
     groovex,
   };
 
-  const backupsColl = collection(db, 'users', currentUser.uid, 'backups');
-  const backupDocRef = doc(backupsColl);
-  await setDoc(backupDocRef, engineSanitize({
-    createdAt: serverTimestamp(),
-    deviceId: deviceId(),
-    label,
-    data: backupData,
-  }));
+  await provider.createCloudBackup(label, backupData);
 }
 
 export async function clearVocalexDbs(): Promise<void> {
@@ -2007,22 +1734,6 @@ function handleStageMessage(data: unknown) {
 
 // ── Push / pull a single app ────────────────────────────────────────────────
 
-type CloudDoc = {
-  kind?: string;
-  body?: unknown;
-  updatedAt?: Timestamp;
-  deviceId?: string;
-  schemaVersion?: number;
-};
-
-function cloudMs(v: CloudDoc | null | undefined): number {
-  const ts = v?.updatedAt;
-  if (ts && typeof ts.toMillis === 'function') {
-    try { return ts.toMillis(); } catch { /* noop */ }
-  }
-  return 0;
-}
-
 async function applyCloudBody(app: SyncAppKey, body: unknown, meta: Meta, cloudUpdatedMs: number): Promise<boolean> {
   if (app === 'stagex' && body && typeof body === 'object' && !Array.isArray(body)) {
     restoreStagex(body as StagexSnapshot);
@@ -2058,15 +1769,13 @@ async function pushApp(
   meta: Meta,
   signal: AbortSignal,
 ): Promise<{ pushed: boolean; pulled: boolean }> {
-  const db = getFirebaseDb();
-  if (!db || !currentUser) return { pushed: false, pulled: false };
-  const ref = doc(db, 'users', currentUser.uid, 'state', app);
+  const provider = getActiveSyncProvider();
+  if (!currentUser) return { pushed: false, pulled: false };
   const serialized = typeof raw === 'string' ? raw : JSON.stringify(raw);
   const localHash = hashString(serialized);
 
-  const snap = await withAbort(withTimeout(getDoc(ref), FIRESTORE_OP_MS, `getDoc:${app}`), signal, 'run');
-  const v = snap.exists() ? (snap.data() as CloudDoc) : null;
-  const cloudTs = cloudMs(v);
+  const v = await withAbort(withTimeout(provider.pullAppState(app), FIRESTORE_OP_MS, `pullAppState:${app}`), signal, 'run');
+  const cloudTs = v ? v.updatedAt : 0;
   const knownCloudTs = meta[app]?.cloudUpdatedMs ?? 0;
 
   // Cloud is newer — let cloud win (pull instead of push).
@@ -2092,17 +1801,14 @@ async function pushApp(
 
   if (meta[app]?.lastHash === localHash) return { pushed: false, pulled: false };
 
-  await withAbort(withTimeout(setDoc(ref, sanitizeForFirestore({
-    kind: typeof raw === 'string' ? 'json' : Array.isArray(raw) ? 'array' : 'bundle',
+  const kind = typeof raw === 'string' ? 'json' : Array.isArray(raw) ? 'array' : 'bundle';
+  const afterTs = await withAbort(withTimeout(provider.pushAppState(app, {
+    kind,
     body: raw,
-    updatedAt: serverTimestamp(),
     deviceId: deviceId(),
     schemaVersion: 1,
-  }), { merge: false }), FIRESTORE_OP_MS, `setDoc:${app}`), signal, 'run');
+  }), FIRESTORE_OP_MS, `pushAppState:${app}`), signal, 'run');
 
-  // Re-read to capture the server-assigned timestamp.
-  const after = await withAbort(withTimeout(getDoc(ref), FIRESTORE_OP_MS, `getDoc:${app}:confirm`), signal, 'run');
-  const afterTs = after.exists() ? cloudMs(after.data() as CloudDoc) : Date.now();
   meta[app] = { lastHash: localHash, cloudUpdatedMs: afterTs };
   writeMeta(meta);
   return { pushed: true, pulled: false };
@@ -2113,13 +1819,11 @@ async function pullApp(
   meta: Meta,
   signal: AbortSignal,
 ): Promise<{ pulled: boolean }> {
-  const db = getFirebaseDb();
-  if (!db || !currentUser) return { pulled: false };
-  const ref = doc(db, 'users', currentUser.uid, 'state', app);
-  const snap = await withAbort(withTimeout(getDoc(ref), FIRESTORE_OP_MS, `getDoc:${app}`), signal, 'run');
-  if (!snap.exists()) return { pulled: false };
-  const v = snap.data() as CloudDoc;
-  const cloudTs = cloudMs(v);
+  const provider = getActiveSyncProvider();
+  if (!currentUser) return { pulled: false };
+  const v = await withAbort(withTimeout(provider.pullAppState(app), FIRESTORE_OP_MS, `pullAppState:${app}`), signal, 'run');
+  if (!v) return { pulled: false };
+  const cloudTs = v.updatedAt;
   const knownCloudTs = meta[app]?.cloudUpdatedMs ?? 0;
 
   if (cloudTs > 0 && cloudTs <= knownCloudTs) return { pulled: false };
@@ -2184,14 +1888,11 @@ async function collectPushWork(meta: Meta): Promise<Array<{ app: SyncAppKey; raw
 
 async function triggerAutoBackup(): Promise<void> {
   if (!currentUser) return;
-  const db = getFirebaseDb();
-  if (!db) return;
 
   const settings = useChordStore.getState().settings;
   if (!settings.autoBackup) return;
 
   const frequency = settings.backupFrequency ?? 'daily'; // 'daily' | 'weekly' | 'monthly'
-  const retention = settings.backupRetention ?? 'forever'; // 'forever' | '90days' | '30days'
 
   // Read the last auto backup time
   const lastBackupKey = `chordex_last_auto_backup_ms_${currentUser.uid}`;
@@ -2214,62 +1915,10 @@ async function triggerAutoBackup(): Promise<void> {
   console.log(`[sync] Auto Backup triggered (frequency: ${frequency})`);
 
   try {
-    // 1. Gather all snapshots
-    const [chordex, drumex, drumexUI, stagex, vTakes, vLab, profile, profileCover, groovex] = await Promise.all([
-      Promise.resolve(snapshotChordex()),
-      Promise.resolve(snapshotDrumex()),
-      Promise.resolve(snapshotDrumexUI()),
-      snapshotStagex(),
-      snapshotVocalexTakes(),
-      snapshotVocalexLab(),
-      Promise.resolve(snapshotProfile()),
-      Promise.resolve(snapshotProfileCover()),
-      Promise.resolve(snapshotGroovex()),
-    ]);
-
-    const backupData = {
-      chordex,
-      drumex,
-      drumexUI,
-      stagex,
-      'vocalex-takes': vTakes,
-      'vocalex-lab': vLab,
-      profile,
-      'profile-cover': profileCover,
-      groovex,
-    };
-
-    // 2. Write backup doc
-    const backupsColl = collection(db, 'users', currentUser.uid, 'backups');
-    const backupDocRef = doc(backupsColl);
-    await setDoc(backupDocRef, engineSanitize({
-      createdAt: serverTimestamp(),
-      deviceId: deviceId(),
-      frequency,
-      data: backupData,
-    }));
-
+    await createCloudBackup(`auto_${frequency}`);
     localStorage.setItem(lastBackupKey, now.toString());
-    console.log(`[sync] Auto Backup saved successfully to Firestore: ${backupDocRef.id}`);
+    console.log(`[sync] Auto Backup saved successfully`);
     logActivity('backup', `Auto backup saved successfully`, 'Studio');
-
-    // 3. Process retention (delete old backups)
-    if (retention !== 'forever') {
-      const days = retention === '30days' ? 30 : 90;
-      const cutoffMs = now - (days * 24 * 60 * 60 * 1000);
-
-      // Query backups sorted by createdAt desc
-      const q = query(backupsColl, orderBy('createdAt', 'desc'));
-      const snap = await getDocs(q);
-      for (const docSnap of snap.docs) {
-        const data = docSnap.data();
-        const createdAt = data.createdAt?.toDate?.()?.getTime() || 0;
-        if (createdAt && createdAt < cutoffMs) {
-          console.log(`[sync] Auto Backup retention: deleting backup ${docSnap.id} older than ${days} days`);
-          await deleteDoc(docSnap.ref);
-        }
-      }
-    }
   } catch (err) {
     console.error('[sync] Auto Backup failed:', err);
   }
@@ -2645,14 +2294,8 @@ function enqueueRun(reason: RunReason, mode: RunMode = 'push-only'): Promise<voi
 // ── Account deletion ────────────────────────────────────────────────────────
 
 export async function deleteCloudData(): Promise<void> {
-  const db = getFirebaseDb();
-  if (!db || !currentUser) return;
-  for (const app of ALL_APPS) {
-    try {
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'state', app));
-    } catch { /* per-doc continue */ }
-  }
-  try { localStorage.removeItem(SYNC_META_KEY); } catch { /* noop */ }
+  if (!currentUser) return;
+  await getActiveSyncProvider().deleteCloudData(ALL_APPS);
 }
 
 // ── Public flush controls ───────────────────────────────────────────────────
@@ -2716,6 +2359,13 @@ let onOnline: (() => void) | null = null;
 
 let unsubDiagSub: (() => void) | null = null;
 let setupDiagSubscription: (() => void) | null = null;
+
+let authHookInitialized = false;
+export function initAuthSyncEngineHook() {
+  if (authHookInitialized) return;
+  authHookInitialized = true;
+  // Provider-based sync handles its own subscriptions. No legacy syncEngine to start/stop.
+}
 
 export function attachSyncEngine(): void {
   if (attached) return;
@@ -2781,7 +2431,7 @@ export function attachSyncEngine(): void {
     if (appearanceChanged) {
       const now = Date.now();
       localStorage.setItem(`sync_last_local_update_appearance`, now.toString());
-      if (currentUser) {
+      if (currentUser && readFirstPullDone(currentUser.uid)) {
         pendingWritesCount++;
         notifyDiagnostics();
         const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
@@ -2814,7 +2464,7 @@ export function attachSyncEngine(): void {
     if (preferencesChanged) {
       const now = Date.now();
       localStorage.setItem(`sync_last_local_update_preferences`, now.toString());
-      if (currentUser) {
+      if (currentUser && readFirstPullDone(currentUser.uid)) {
         pendingWritesCount++;
         notifyDiagnostics();
         provider.updatePreferences({

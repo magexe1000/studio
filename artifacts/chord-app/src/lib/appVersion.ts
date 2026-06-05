@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.13'; // Rebuild Studio Cloud Sync using a real Firebase source-of-truth model
+export const APP_VERSION = '3.6.14'; // Rebuild Studio Cloud Sync using a real Firebase source-of-truth model
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,11 +35,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.13
+export const APP_VERSION_DATE = '2026-06-05'; // 3.6.14
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = '78481d8';
-export const APP_BUILD_TIMESTAMP = '6/5/2026, 3:06:06 AM UTC';
+export const APP_COMMIT_SHA = '5f30a71a';
+export const APP_BUILD_TIMESTAMP = '6/4/2026, 11:16:28 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -56,11 +56,9 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Improved",
     items: [
-      "Added Supabase Realtime Sync integration with dynamic diagnostics and switcher UI.",
-      "Integrated Firebase and Supabase database status fields in settings.",
-      "Added automatic payload sanitization and write timeout safeguards.",
+      "Bumped version to 3.6.14 to resolve signature mismatch eligibility validation error.",
     ],
   },
 ];

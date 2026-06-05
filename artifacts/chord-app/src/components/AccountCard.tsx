@@ -2948,37 +2948,82 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           fontFamily: 'Manrope',
                           ...codeBreakStyle
                         }}>
-                          <strong>Build Fingerprint:</strong> {`${APP_VERSION} · code 34 · commit ${APP_COMMIT_SHA} · built ${APP_BUILD_TIMESTAMP} · production · Firebase Hosting · sync-engine-v1`}
+                          <strong>Build Fingerprint:</strong> {`${APP_VERSION} · code ${sync.versionCode || 34} · commit ${APP_COMMIT_SHA} · built ${APP_BUILD_TIMESTAMP} · production · Firebase Hosting · ${sync.syncEngineVersion || 'sync-engine-v1'}`}
                         </div>
 
                         <button
                           onClick={() => {
                             const diagnosticsReport = {
                               appVersion: APP_VERSION,
-                              versionCode: 34,
+                              versionCode: sync.versionCode || 34,
                               commitSha: APP_COMMIT_SHA,
                               buildTimestamp: APP_BUILD_TIMESTAMP,
                               buildType: Capacitor.isNativePlatform() ? 'Native Release' : 'Web',
+                              
+                              // Firebase diagnostics
+                              firebaseAppsCount: sync.firebaseAppsCount ?? 0,
+                              firebaseAppName: sync.firebaseAppName || 'None',
                               firebaseProjectId: sync.firebaseProjectId || 'Not Configured',
                               firebaseAppId: sync.firebaseAppId || 'Not Configured',
+                              firebaseAuthDomain: sync.firebaseAuthDomain || 'Not Configured',
+                              firebaseStorageBucket: sync.firebaseStorageBucket || 'Not Configured',
+                              firebaseDbAvailable: sync.firebaseDbAvailable ? 'Yes' : 'No',
+                              firebaseAuthAvailable: sync.firebaseAuthAvailable ? 'Yes' : 'No',
+                              firebaseStorageAvailable: sync.firebaseStorageAvailable ? 'Yes' : 'No',
+                              firebaseIdTokenAvailable: sync.firebaseIdTokenAvailable || 'No',
+                              firebaseInitError: sync.firebaseInitError || 'None',
+
+                              // Supabase diagnostics
+                              supabaseUrlConfigured: sync.supabaseUrlConfigured ? 'Yes' : 'No',
+                              supabaseUrlHost: sync.supabaseUrlHost || 'N/A',
+                              supabaseAnonKeyConfigured: sync.supabaseAnonKeyConfigured ? 'Yes' : 'No',
+                              supabaseAnonKeyPrefix: sync.supabaseAnonKeyPrefix || 'N/A',
+                              supabaseAnonKeyLength: sync.supabaseAnonKeyLength ?? 0,
+                              supabaseClientReady: sync.supabaseClientReady ? 'Yes' : 'No',
+                              supabaseAuthBridgeReady: sync.supabaseAuthBridgeReady ? 'Yes' : 'No',
+                              supabaseUserId: sync.supabaseUserId || 'N/A',
+                              mappedUserId: sync.mappedUserId || 'N/A',
+                              rlsUserId: sync.rlsUserId || 'N/A',
+                              activeSyncProvider: sync.activeSyncProvider || 'N/A',
+                              databaseProvider: sync.databaseProvider || 'N/A',
+                              supabaseDbAvailable: sync.supabaseDbAvailable ? 'Yes' : 'No',
+                              supabaseStorageAvailable: sync.supabaseStorageAvailable ? 'Yes' : 'No',
+                              supabaseAuthStrategy: sync.supabaseAuthStrategy || 'N/A',
+                              lastSupabaseAuthError: sync.lastSupabaseAuthError || 'None',
+
+                              // General auth & sync state
                               authUid: user?.uid || 'Not signed in',
                               email: user?.email || 'N/A',
                               currentDeviceId: deviceId(),
                               currentPlatform: sync.currentDevicePlatform || 'web',
                               syncEngineVersion: sync.syncEngineVersion || 'sync-engine-v1',
                               devicesLogicVersion: sync.devicesLogicVersion || 'N/A',
+
+                              // Paths & Tables
+                              probeTable: sync.probeTable || 'N/A',
+                              probeRowId: sync.probeRowId || 'N/A',
+                              devicesTable: sync.devicesTable || 'N/A',
+                              deviceRowId: sync.deviceRowId || 'N/A',
+                              directWriteTable: sync.directWriteTable || 'N/A',
+                              directWriteRowId: sync.directWriteRowId || 'N/A',
+                              profileTable: sync.profileTable || 'N/A',
+                              appearanceTable: sync.appearanceTable || 'N/A',
+                              preferencesTable: sync.preferencesTable || 'N/A',
+
                               probeWritePath: sync.probeWritePath || 'N/A',
                               probeListenerPath: sync.probeListenerPath || 'N/A',
                               lastProbeWriteAttempt: sync.lastProbeWriteAttempt || 'Never',
                               lastProbeWriteSuccess: sync.lastProbeWriteSuccess || 'Never',
                               lastProbeWriteError: sync.lastProbeWriteError || 'None',
                               probeDocumentsReceived: sync.probeDocumentsReceived ?? 0,
+                              probeRowsReceived: sync.probeRowsReceived ?? 0,
                               probeDeviceIdsReceived: sync.probeDeviceIdsReceived || [],
                               probeNoncesReceived: sync.probeNoncesReceived || [],
                               androidProbeDetected: sync.androidProbeDetected ? 'Yes' : 'No',
                               webProbeDetected: sync.webProbeDetected ? 'Yes' : 'No',
                               sameUidConfirmed: sync.sameUidConfirmed ? 'Yes' : 'No',
                               sameProjectConfirmed: sync.sameProjectConfirmed ? 'Yes' : 'No',
+                              
                               devicesListenerPath: sync.listenerPath || `users/${user?.uid}/devices`,
                               devicesReceived: sync.devicesSnapshotCount ?? 0,
                               deviceIdsReceived: sync.deviceIdsReceived || [],
@@ -2987,19 +3032,9 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                               lastDeviceWriteError: sync.lastDeviceWriteError || 'None',
                               lastHeartbeatSuccess: sync.lastHeartbeatSuccess || 'Never',
                               lastHeartbeatError: sync.lastHeartbeatError || 'None',
-                              firebaseAppsCount: sync.firebaseAppsCount ?? 0,
-                              firebaseAppName: sync.firebaseAppName || 'None',
-                              authDomain: sync.firebaseAuthDomain || 'Not Configured',
-                              storageBucket: sync.firebaseStorageBucket || 'Not Configured',
-                              dbAvailable: sync.dbAvailable ? 'Yes' : 'No',
-                              authAvailable: sync.authAvailable ? 'Yes' : 'No',
-                              storageAvailable: sync.storageAvailable ? 'Yes' : 'No',
-                              firebaseInitError: sync.firebaseInitError || 'None',
+                              
                               syncEngineInitError: sync.syncEngineInitError || 'None',
-                              supabaseUrlConfigured: sync.supabaseUrlConfigured ? 'Yes' : 'No',
-                              supabaseAnonKeyConfigured: sync.supabaseAnonKeyConfigured ? 'Yes' : 'No',
-                              supabaseClientReady: sync.supabaseClientReady ? 'Yes' : 'No',
-                              firebaseAuthBridgeReady: sync.firebaseAuthBridgeReady ? 'Yes' : 'No',
+                              
                               directWritePath: sync.directWritePath || 'N/A',
                               directWriteAttempt: sync.directWriteAttempt || 'Never',
                               directWriteSuccess: sync.directWriteSuccess || 'Never',
@@ -3057,6 +3092,8 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           {lang === 'es' ? 'Copiar diagnósticos de sync' : 'Copy Sync Diagnostics'}
                         </button>
 
+                        <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
+                        <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Firebase & Account Diagnostics</div>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Auth UID:</strong> <code style={codeBreakStyle}>{user.uid}</code>
                         </p>
@@ -3079,34 +3116,71 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                           <strong>Firebase App Name:</strong> <code style={codeBreakStyle}>{sync.firebaseAppName || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Firebase Auth Available:</strong> <code style={codeBreakStyle}>{sync.authAvailable ? 'Yes' : 'No'}</code>
+                          <strong>Firebase Auth Available:</strong> <code style={codeBreakStyle}>{sync.firebaseAuthAvailable ? 'Yes' : 'No'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Firestore Db Available:</strong> <code style={codeBreakStyle}>{sync.dbAvailable ? 'Yes' : 'No'}</code>
+                          <strong>Firestore Db Available:</strong> <code style={codeBreakStyle}>{sync.firebaseDbAvailable ? 'Yes' : 'No'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Firebase Storage Available:</strong> <code style={codeBreakStyle}>{sync.storageAvailable ? 'Yes' : 'No'}</code>
+                          <strong>Firebase Storage Available:</strong> <code style={codeBreakStyle}>{sync.firebaseStorageAvailable ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Firebase ID Token Available:</strong> <code style={codeBreakStyle}>{sync.firebaseIdTokenAvailable || 'No'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Firebase Init Error:</strong> <code style={{ ...codeBreakStyle, color: sync.firebaseInitError && sync.firebaseInitError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.firebaseInitError || 'None'}</code>
                         </p>
-                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Sync Engine Init Error:</strong> <code style={{ ...codeBreakStyle, color: sync.syncEngineInitError && sync.syncEngineInitError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.syncEngineInitError || 'None'}</code>
-                        </p>
-                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Sync Engine Version:</strong> <code style={codeBreakStyle}>{sync.syncEngineVersion || 'sync-engine-v1'}</code>
-                        </p>
+                        
+                        <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
+                        <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Supabase Diagnostics</div>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Supabase URL Configured:</strong> <code style={codeBreakStyle}>{sync.supabaseUrlConfigured ? 'Yes' : 'No'}</code>
                         </p>
+                        {sync.supabaseUrlHost && (
+                          <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                            <strong>Supabase Host:</strong> <code style={codeBreakStyle}>{sync.supabaseUrlHost}</code>
+                          </p>
+                        )}
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Supabase Anon Key Configured:</strong> <code style={codeBreakStyle}>{sync.supabaseAnonKeyConfigured ? 'Yes' : 'No'}</code>
                         </p>
+                        {sync.supabaseAnonKeyPrefix && (
+                          <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                            <strong>Supabase Key Mask:</strong> <code style={codeBreakStyle}>{sync.supabaseAnonKeyPrefix}... ({sync.supabaseAnonKeyLength} chars)</code>
+                          </p>
+                        )}
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Supabase Client Ready:</strong> <code style={codeBreakStyle}>{sync.supabaseClientReady ? 'Yes' : 'No'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Firebase Auth Bridge Ready:</strong> <code style={codeBreakStyle}>{sync.firebaseAuthBridgeReady ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Supabase Db Available:</strong> <code style={codeBreakStyle}>{sync.supabaseDbAvailable ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Supabase Storage Available:</strong> <code style={codeBreakStyle}>{sync.supabaseStorageAvailable ? 'Yes' : 'No'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Supabase Auth Strategy:</strong> <code style={codeBreakStyle}>{sync.supabaseAuthStrategy || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Supabase Mapped User ID:</strong> <code style={codeBreakStyle}>{sync.mappedUserId || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Supabase RLS User ID:</strong> <code style={codeBreakStyle}>{sync.rlsUserId || 'N/A'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Last Supabase Auth Error:</strong> <code style={{ ...codeBreakStyle, color: sync.lastSupabaseAuthError && sync.lastSupabaseAuthError !== 'None' && sync.lastSupabaseAuthError !== 'N/A' ? '#ef4444' : 'inherit' }}>{sync.lastSupabaseAuthError || 'None'}</code>
+                        </p>
+
+                        <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
+                        <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Sync Engine General State</div>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Sync Engine Version:</strong> <code style={codeBreakStyle}>{sync.syncEngineVersion || 'sync-engine-v1'}</code>
+                        </p>
+                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                          <strong>Sync Engine Init Error:</strong> <code style={{ ...codeBreakStyle, color: sync.syncEngineInitError && sync.syncEngineInitError !== 'None' ? '#ef4444' : 'inherit' }}>{sync.syncEngineInitError || 'None'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Current deviceId:</strong> <code style={codeBreakStyle}>{deviceId()}</code>
@@ -3123,14 +3197,57 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Device technicalName:</strong> <code style={codeBreakStyle}>{sync.technicalName || 'N/A'}</code>
                         </p>
+
+                        {/* Separate paths vs tables depending on sync engine provider */}
+                        {sync.syncEngineVersion === 'supabase-v1' ? (
+                          <>
+                            <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
+                            <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Supabase Database Mapping</div>
+                            <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                              <strong>Devices Table:</strong> <code style={codeBreakStyle}>{sync.devicesTable || 'user_devices'}</code>
+                            </p>
+                            <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                              <strong>Device Row Key:</strong> <code style={codeBreakStyle}>{sync.deviceRowId || 'N/A'}</code>
+                            </p>
+                            <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                              <strong>Probe Table:</strong> <code style={codeBreakStyle}>{sync.probeTable || 'sync_probe'}</code>
+                            </p>
+                            <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                              <strong>Probe Row Key:</strong> <code style={codeBreakStyle}>{sync.probeRowId || 'N/A'}</code>
+                            </p>
+                            <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                              <strong>Direct Write Table:</strong> <code style={codeBreakStyle}>{sync.directWriteTable || 'debug_writes'}</code>
+                            </p>
+                            <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                              <strong>Direct Write Row Key:</strong> <code style={codeBreakStyle}>{sync.directWriteRowId || 'N/A'}</code>
+                            </p>
+                            <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                              <strong>Profiles Table:</strong> <code style={codeBreakStyle}>{sync.profileTable || 'user_profiles'}</code>
+                            </p>
+                            <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                              <strong>Appearance Table:</strong> <code style={codeBreakStyle}>{sync.appearanceTable || 'user_appearance_settings'}</code>
+                            </p>
+                            <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                              <strong>Preferences Table:</strong> <code style={codeBreakStyle}>{sync.preferencesTable || 'user_preferences'}</code>
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
+                            <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Firestore Document Paths</div>
+                            <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                              <strong>Device write path:</strong> <code style={codeBreakStyle}>{sync.deviceWritePath || 'N/A'}</code>
+                            </p>
+                            <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
+                              <strong>Device listener path:</strong> <code style={codeBreakStyle}>{sync.devicesListenerPath || 'N/A'}</code>
+                            </p>
+                          </>
+                        )}
+
+                        <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '8px 0' }} />
+                        <div style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, padding: '4px 0', opacity: 0.75, color: 'var(--c-text-primary)' }}>Sync State & Connectivity</div>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Device write path:</strong> <code style={codeBreakStyle}>{sync.deviceWritePath || 'N/A'}</code>
-                        </p>
-                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Device listener path:</strong> <code style={codeBreakStyle}>{sync.devicesListenerPath || 'N/A'}</code>
-                        </p>
-                        <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
-                          <strong>Firestore state:</strong> <code style={codeBreakStyle}>{window.navigator.onLine ? 'Online' : 'Offline'}</code>
+                          <strong>Online state:</strong> <code style={codeBreakStyle}>{window.navigator.onLine ? 'Online' : 'Offline'}</code>
                         </p>
                         <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>
                           <strong>Registration status:</strong> <code style={{ ...codeBreakStyle, textTransform: 'capitalize', color: sync.deviceRegistrationStatus === 'registered' ? '#10b981' : sync.deviceRegistrationStatus === 'failed' ? '#ef4444' : '#f59e0b' }}>{sync.deviceRegistrationStatus || 'pending'}</code>

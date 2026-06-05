@@ -255,6 +255,31 @@ export interface SyncDiagnostics {
   supabaseAnonKeyConfigured?: boolean;
   supabaseClientReady?: boolean;
   firebaseAuthBridgeReady?: boolean;
+
+  firebaseDbAvailable?: boolean;
+  firebaseAuthAvailable?: boolean;
+  firebaseStorageAvailable?: boolean;
+  supabaseDbAvailable?: boolean;
+  supabaseStorageAvailable?: boolean;
+  supabaseUrlHost?: string;
+  supabaseAnonKeyPrefix?: string;
+  supabaseAnonKeyLength?: number;
+  firebaseIdTokenAvailable?: 'Yes' | 'No';
+  supabaseAuthStrategy?: string;
+  mappedUserId?: string;
+  rlsUserId?: string;
+  lastSupabaseAuthError?: string;
+  probeTable?: string;
+  probeRowId?: string;
+  devicesTable?: string;
+  deviceRowId?: string;
+  directWriteTable?: string;
+  directWriteRowId?: string;
+  profileTable?: string;
+  appearanceTable?: string;
+  preferencesTable?: string;
+  versionCode?: number;
+  probeRowsReceived?: number;
 }
 
 export type Unsubscribe = () => void;
@@ -296,6 +321,15 @@ export interface SyncBackendProvider {
   subscribePreferences(callback: PreferencesListener): Unsubscribe;
 
   uploadProfilePhoto(file: File | Blob): Promise<string>;
+
+  unregisterDevice(): Promise<void>;
+  revokeDeviceSession(targetDeviceId: string): Promise<void>;
+  reconnectDevices(): Promise<void>;
+  checkCloudDataExists(appKey: string): Promise<boolean>;
+  createCloudBackup(label: string, data: Record<string, any>): Promise<void>;
+  deleteCloudData(appKeys: string[]): Promise<void>;
+  pullAppState(appKey: string): Promise<{ body: any; updatedAt: any; deviceId: string; schemaVersion?: number } | null>;
+  pushAppState(appKey: string, data: { kind: string; body: any; deviceId: string; schemaVersion: number }): Promise<number>;
 
   getDiagnostics(): SyncDiagnostics;
   subscribeDiagnostics(callback: DiagnosticsListener): Unsubscribe;

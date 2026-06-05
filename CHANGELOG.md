@@ -15,6 +15,11 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.6.14
+
+### Improved
+- Bumped version to 3.6.14 to resolve signature mismatch eligibility validation error.
+
 ## 3.6.13
 
 ### Added

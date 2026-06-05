@@ -15,8 +15,19 @@ export function getFirebaseIdToken() {
   return currentFirebaseToken;
 }
 
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey, {
+let supabaseUrlHost = 'N/A';
+try {
+  if (supabaseUrl) {
+    supabaseUrlHost = new URL(supabaseUrl).host;
+  }
+} catch (e) {}
+
+let supabaseInitError = 'None';
+let supabaseInstance: any = null;
+
+try {
+  if (isSupabaseConfigured) {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
@@ -28,14 +39,27 @@ export const supabase = isSupabaseConfigured
           },
         },
       },
-    })
-  : null;
+    });
+  } else {
+    supabaseInitError = 'Supabase URL/anon key missing';
+  }
+} catch (e: any) {
+  supabaseInitError = e.message || String(e);
+}
+
+export const supabase = supabaseInstance;
 
 export function getSupabaseConfigDetails() {
+  const anonKeyPrefix = supabaseAnonKey ? supabaseAnonKey.substring(0, 8) : 'N/A';
+  const anonKeyLength = supabaseAnonKey ? supabaseAnonKey.length : 0;
   return {
     supabaseUrlConfigured: Boolean(supabaseUrl),
+    supabaseUrlHost,
     supabaseAnonKeyConfigured: Boolean(supabaseAnonKey),
-    supabaseClientReady: Boolean(supabase),
+    supabaseAnonKeyPrefix: anonKeyPrefix,
+    supabaseAnonKeyLength: anonKeyLength,
+    supabaseClientReady: Boolean(supabaseInstance),
+    supabaseInitError,
     firebaseAuthBridgeReady: Boolean(currentFirebaseToken),
   };
 }
