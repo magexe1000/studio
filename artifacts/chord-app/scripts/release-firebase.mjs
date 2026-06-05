@@ -152,6 +152,76 @@ function run(cmd, args, extraEnv = {}) {
   }
 }
 
+// ── Signing preflight — fail fast before expensive builds ───────────
+if (process.env.CI) {
+  console.log('release-firebase: → Running signing preflight...');
+  const ksPath = path.join(pkgRoot, 'android', 'app', 'release.keystore');
+  const ksAlias = (process.env.ANDROID_KEY_ALIAS || '').trim();
+  const ksPwd = (process.env.ANDROID_KEYSTORE_PASSWORD || '').trim();
+  const expectedSig = (process.env.EXPECTED_SIGNATURE_SHA256 || '').replace(/:/g, '').toLowerCase().trim();
+
+  console.log(`release-firebase: ANDROID_KEYSTORE_PASSWORD present: ${ksPwd ? 'Yes' : 'No'}`);
+  console.log(`release-firebase: ANDROID_KEY_ALIAS present: ${ksAlias ? 'Yes' : 'No'}`);
+  console.log(`release-firebase: ANDROID_KEY_PASSWORD present: ${process.env.ANDROID_KEY_PASSWORD ? 'Yes' : 'No'}`);
+  console.log(`release-firebase: EXPECTED_SIGNATURE_SHA256: ${expectedSig || '(not set)'}`);
+  console.log(`release-firebase: release.keystore exists: ${existsSync(ksPath) ? 'Yes' : 'No'}`);
+
+  if (!existsSync(ksPath)) {
+    console.error('\\x1b[31mrelease-firebase: ✗ Signing preflight failed: release.keystore not found.\\x1b[0m');
+    console.error(`  Expected at: ${ksPath}`);
+    console.error('  Ensure ANDROID_KEYSTORE_BASE64 is configured and the Decode step ran before this script.');
+    process.exit(1);
+  }
+  if (!ksPwd || !ksAlias || !expectedSig) {
+    console.error('\\x1b[31mrelease-firebase: ✗ Signing preflight failed: missing signing env vars.\\x1b[0m');
+    process.exit(1);
+  }
+
+  // Extract certificate fingerprint from keystore using keytool
+  try {
+    const keytoolResult = spawnSync('keytool', [
+      '-list', '-v',
+      '-keystore', ksPath,
+      '-alias', ksAlias,
+      '-storepass', ksPwd,
+    ], { encoding: 'utf8', timeout: 15000 });
+
+    const keytoolOut = (keytoolResult.stdout || '') + (keytoolResult.stderr || '');
+    const sha256Match = keytoolOut.match(/SHA256:\s+([A-Fa-f0-9:]+)/);
+    if (!sha256Match) {
+      console.error('\\x1b[31mrelease-firebase: ✗ Signing preflight failed: could not extract SHA-256 from keytool output.\\x1b[0m');
+      // Print non-secret keytool output for debugging
+      const safeLines = keytoolOut.split('\\n').filter(l =>
+        /alias|SHA256|valid|owner|issuer|entry type|certificate/i.test(l)
+      );
+      if (safeLines.length) console.error(safeLines.join('\\n'));
+      process.exit(1);
+    }
+    const actualFingerprint = sha256Match[1].replace(/:/g, '').toLowerCase();
+    console.log(`release-firebase: Keystore alias "${ksAlias}" certificate SHA-256: ${actualFingerprint}`);
+    console.log(`release-firebase: Expected production SHA-256:                     ${expectedSig}`);
+
+    if (actualFingerprint !== expectedSig) {
+      console.error('\\x1b[31mrelease-firebase: ✗ Signing preflight FAILED: keystore certificate does not match production fingerprint.\\x1b[0m');
+      console.error(`  Keystore fingerprint: ${actualFingerprint}`);
+      console.error(`  Expected fingerprint: ${expectedSig}`);
+      console.error('');
+      console.error('  The ANDROID_KEYSTORE_BASE64 secret contains the wrong keystore,');
+      console.error('  or ANDROID_KEY_ALIAS points to the wrong alias.');
+      console.error('');
+      console.error('  Fix: update ANDROID_KEYSTORE_BASE64 in GitHub Secrets with the');
+      console.error('  production keystore that signs with the expected fingerprint.');
+      process.exit(1);
+    }
+    console.log('release-firebase: ✓ Signing preflight passed — keystore matches production certificate.');
+  } catch (err) {
+    console.error(`\\x1b[31mrelease-firebase: ✗ Signing preflight error: ${err.message}\\x1b[0m`);
+    process.exit(1);
+  }
+} else {
+  console.log('release-firebase: ⚠ Skipping signing preflight (not in CI).');
+}
+
 // ── Build PWA for Firebase ──────────────────────────────────────────
 console.log(`release-firebase: → Building Vite application for Firebase Hosting...`);
 run('pnpm', ['build'], {
