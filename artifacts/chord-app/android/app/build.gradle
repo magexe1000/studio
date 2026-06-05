@@ -38,12 +38,30 @@ android {
             keyPassword 'android'
         }
         release {
-            if (System.getenv("ANDROID_KEYSTORE_PASSWORD") != null) {
-                storeFile file('release.keystore')
-                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            // Use production keystore when signing env vars are non-empty.
+            // GitHub Actions sets missing secrets to "" (not null), so
+            // we must check for non-empty to avoid silent debug fallback.
+            def ksPwd = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            if (ksPwd != null && !ksPwd.isEmpty()) {
+                def ksFile = file('release.keystore')
+                if (!ksFile.exists()) {
+                    throw new GradleException(
+                        "ANDROID_KEYSTORE_PASSWORD is set but release.keystore " +
+                        "does not exist at ${ksFile.absolutePath}. " +
+                        "Decode it from ANDROID_KEYSTORE_BASE64 first.")
+                }
+                storeFile ksFile
+                storePassword ksPwd
                 keyAlias System.getenv("ANDROID_KEY_ALIAS")
                 keyPassword System.getenv("ANDROID_KEY_PASSWORD")
             } else {
+                // Local dev fallback — debug keystore only.
+                // CI MUST always provide production signing secrets.
+                if (System.getenv("CI") != null) {
+                    throw new GradleException(
+                        "CI environment detected but ANDROID_KEYSTORE_PASSWORD " +
+                        "is empty. Production signing secrets are required.")
+                }
                 storeFile file('debug.keystore')
                 storePassword 'android'
                 keyAlias 'androiddebugkey'

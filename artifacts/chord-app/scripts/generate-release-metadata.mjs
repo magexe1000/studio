@@ -200,7 +200,7 @@ try {
 }
 
 // Get signature
-const expectedSignature = process.env.EXPECTED_SIGNATURE_SHA256 || '90:0C:F2:59:18:5C:81:10:0C:DA:8B:B0:85:71:FA:23:55:2E:97:89:13:1C:F0:7A:8F:40:56:E4:D4:12:92:06';
+const expectedSignature = process.env.EXPECTED_SIGNATURE_SHA256 || '58:B9:BF:2D:E5:06:4C:62:AC:3C:A1:81:B5:60:8F:E1:35:C6:89:4A:83:59:FF:65:88:E1:92:18:CD:38:47:64';
 const signatures = expectedSignature.replace(/:/g, '').toLowerCase();
 
 // Get previous required version code and version name to carry forward if releaseType is 'ota'

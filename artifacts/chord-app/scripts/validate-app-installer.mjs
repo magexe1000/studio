@@ -406,7 +406,7 @@ if (fs.existsSync(paths.apkPath)) {
     }
     
     // Check signature consistency with expected production key
-    const expectedProdSignature = "900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206";
+    const expectedProdSignature = "58b9bf2de5064c62ac3ca181b5608fe135c6894a8359ff6588e19218cd384764";
     if (process.env.CI) {
       assert(currentSignature === expectedProdSignature, `Release blocked: APK is not signed with the production certificate in CI! Expected: ${expectedProdSignature}, Found: ${currentSignature}`, EXIT_CODES.RELEASE_VALIDATION);
     } else {
