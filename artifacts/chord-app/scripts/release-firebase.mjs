@@ -318,12 +318,21 @@ run('npx', ['cap', 'sync', 'android']);
 // Step 3: Build signed Android release APK
 console.log('Step 3/15: Build signed Android release APK...');
 const gradleCmd = process.platform === 'win32' ? '.\\gradlew.bat' : './gradlew';
-const gradleArgs = ['assembleRelease', '-x', 'lint', '-x', 'lintVitalRelease'];
+const gradleArgs = ['assembleRelease', '-x', 'lint', '-x', 'lintVitalRelease', '--stacktrace'];
 const gradleCwd = path.join(pkgRoot, 'android');
 const gradleEnv = { ...process.env };
 if (gradleEnv.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
   delete gradleEnv.GITHUB_TOKEN;
 }
+
+console.log(`release-firebase: Gradle command: ${gradleCmd} ${gradleArgs.join(' ')}`);
+console.log(`release-firebase: Gradle cwd: ${gradleCwd}`);
+console.log(`release-firebase: ANDROID_HOME: ${gradleEnv.ANDROID_HOME || '(not set)'}`);
+console.log(`release-firebase: JAVA_HOME: ${gradleEnv.JAVA_HOME || '(not set)'}`);
+console.log(`release-firebase: ANDROID_KEYSTORE_PASSWORD present: ${gradleEnv.ANDROID_KEYSTORE_PASSWORD ? 'Yes' : 'No'}`);
+console.log(`release-firebase: ANDROID_KEY_ALIAS present: ${gradleEnv.ANDROID_KEY_ALIAS ? 'Yes' : 'No'}`);
+console.log(`release-firebase: ANDROID_KEY_PASSWORD present: ${gradleEnv.ANDROID_KEY_PASSWORD ? 'Yes' : 'No'}`);
+
 const gradleResult = spawnSync(gradleCmd, gradleArgs, {
   cwd: gradleCwd,
   stdio: 'inherit',
@@ -331,7 +340,14 @@ const gradleResult = spawnSync(gradleCmd, gradleArgs, {
   env: gradleEnv
 });
 if (gradleResult.status !== 0) {
-  console.error('release-firebase: ✗ Gradle build failed!');
+  console.error(`release-firebase: ✗ Gradle build failed with exit code ${gradleResult.status}`);
+  if (gradleResult.error) {
+    console.error(`release-firebase: Gradle spawn error: ${gradleResult.error.message}`);
+  }
+  if (gradleResult.signal) {
+    console.error(`release-firebase: Gradle killed by signal: ${gradleResult.signal}`);
+  }
+  console.error(`release-firebase: Hint — check Gradle logs at: ${path.join(gradleCwd, 'app', 'build', 'reports')}`);
   process.exit(gradleResult.status ?? 1);
 }
 

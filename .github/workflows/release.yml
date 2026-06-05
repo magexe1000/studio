@@ -30,6 +30,10 @@ jobs:
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       VITE_SYNC_BACKEND_PROVIDER: "supabase-realtime"
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -108,15 +112,7 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         run: pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Build Web and OTA Assets
-        if: steps.gate.outputs.skip != 'true'
-        run: pnpm --filter @workspace/chord-app run release:firebase --no-bump
-
-      - name: Capacitor Sync
-        if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
-        working-directory: artifacts/chord-app
-        run: pnpm exec cap sync android
-
+      # ── Signing setup (must happen BEFORE the release script runs Gradle) ──
       - name: Assert Production Signing Secrets
         if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
         run: |
@@ -134,17 +130,10 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > artifacts/chord-app/android/app/release.keystore
 
-      - name: Build Release APK
-        if: steps.gate.outputs.skip != 'true' && (steps.gate.outputs.release_type == 'apk' || steps.gate.outputs.release_type == 'both')
-        working-directory: artifacts/chord-app/android
-        env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+      # ── Full release pipeline (web build, cap sync, Gradle APK, deploy) ──
+      - name: Run Release Pipeline
+        if: steps.gate.outputs.skip != 'true'
+        run: pnpm --filter @workspace/chord-app run release:firebase --no-bump
 
       - name: Write and Update Release Metadata
         if: steps.gate.outputs.skip != 'true'
