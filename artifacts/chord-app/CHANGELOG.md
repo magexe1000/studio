@@ -15,6 +15,13 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.6.13
+
+### Added
+- Added Supabase Realtime Sync integration with dynamic diagnostics and switcher UI.
+- Integrated Firebase and Supabase database status fields in settings.
+- Added automatic payload sanitization and write timeout safeguards.
+
 ## 3.6.12
 
 ### Added
