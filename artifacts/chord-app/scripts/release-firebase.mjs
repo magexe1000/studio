@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import fs, { cpSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync, copyFileSync } from 'node:fs';
+import fs, { cpSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync, copyFileSync, chmodSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
@@ -333,6 +333,18 @@ console.log(`release-firebase: ANDROID_KEYSTORE_PASSWORD present: ${gradleEnv.AN
 console.log(`release-firebase: ANDROID_KEY_ALIAS present: ${gradleEnv.ANDROID_KEY_ALIAS ? 'Yes' : 'No'}`);
 console.log(`release-firebase: ANDROID_KEY_PASSWORD present: ${gradleEnv.ANDROID_KEY_PASSWORD ? 'Yes' : 'No'}`);
 
+// Ensure gradlew is executable on Linux/macOS (defensive — the git
+// index already has 100755, but some checkout tools strip the bit).
+if (process.platform !== 'win32') {
+  const gradlewPath = path.join(gradleCwd, 'gradlew');
+  try {
+    chmodSync(gradlewPath, 0o755);
+    console.log(`release-firebase: chmod +x ${gradlewPath}`);
+  } catch (e) {
+    console.warn(`release-firebase: ⚠ chmod failed: ${e.message}`);
+  }
+}
+
 const gradleResult = spawnSync(gradleCmd, gradleArgs, {
   cwd: gradleCwd,
   stdio: 'inherit',
@@ -343,6 +355,11 @@ if (gradleResult.status !== 0) {
   console.error(`release-firebase: ✗ Gradle build failed with exit code ${gradleResult.status}`);
   if (gradleResult.error) {
     console.error(`release-firebase: Gradle spawn error: ${gradleResult.error.message}`);
+    if (gradleResult.error.code === 'EACCES') {
+      console.error('release-firebase: ✗ Gradle wrapper is not executable.');
+      console.error('  Fix: git update-index --chmod=+x artifacts/chord-app/android/gradlew');
+      console.error('  And ensure CI runs: chmod +x ./gradlew before Gradle.');
+    }
   }
   if (gradleResult.signal) {
     console.error(`release-firebase: Gradle killed by signal: ${gradleResult.signal}`);
