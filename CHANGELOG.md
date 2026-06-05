@@ -15,6 +15,20 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.6.15
+
+### Fixed
+- Fixed the release pipeline failing when Supabase sync was selected without required Supabase build configuration.
+- Fixed Supabase sync releases being blocked unless VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are present at build time.
+- Fixed misleading backend diagnostics by separating Firebase and Supabase configuration status.
+- Fixed release validation to prevent shipping Supabase-backed builds with an uninitialized Supabase client.
+
+### Improved
+- Added stricter Supabase build-gate validation for CI and release builds.
+- Improved release diagnostics to show Supabase URL/key presence without exposing secrets.
+- Improved release safety so production update metadata is not published without real changelog notes.
+- Improved sync release readiness checks for supabase-realtime builds.
+
 ## 3.6.14
 
 ### Improved
