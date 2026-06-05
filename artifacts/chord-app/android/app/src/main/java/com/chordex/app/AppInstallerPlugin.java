@@ -850,5 +850,5 @@ public class AppInstallerPlugin extends Plugin {
             call.reject("Failed to read installed app info: " + e.getMessage(), e);
         }
     }
-    // Trigger Android release build for signing certificate reset
+    // Trigger Android release build for signing certificate reset - attempt 2
 }
