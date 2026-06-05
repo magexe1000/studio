@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.11'; // Rebuild Studio Cloud Sync using a real Firebase source-of-truth model
+export const APP_VERSION = '3.6.12'; // Rebuild Studio Cloud Sync using a real Firebase source-of-truth model
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,11 +35,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-04'; // 3.6.11
+export const APP_VERSION_DATE = '2026-06-04'; // 3.6.12
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = 'e3ef3cc';
-export const APP_BUILD_TIMESTAMP = '6/4/2026, 11:29:06 PM UTC';
+export const APP_COMMIT_SHA = '1708bdf8';
+export const APP_BUILD_TIMESTAMP = '6/4/2026, 6:07:19 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -56,19 +56,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Improved",
+    heading: "Added",
     items: [
-      "Added clear warning cards in settings when Cloud Sync is not initialized.",
-      "Added dynamic real-time Firebase configuration metrics (Apps count, App name, services state, and init errors) to Sync Diagnostics.",
-      "Improved clipboard copy diagnostics payload to include all newly introduced Firebase state diagnostics.",
-    ],
-  },
-  {
-    heading: "Fixed",
-    items: [
-      "Fixed Cloud Sync initialization errors where Firestore or Firebase config was missing or not resolved.",
-      "Fixed Diagnostics UI panel issues to prevent nested scrolling and text overflow on mobile viewports.",
-      "Fixed manual registration button to prevent false successes when Firestore is unavailable.",
+      "Added Supabase Realtime Sync provider as an option alongside Firebase Cloud.",
+      "Added Sync Provider selector to settings to allow switching between database backends.",
+      "Added dynamic diagnostics information for the active sync provider.",
     ],
   },
 ];

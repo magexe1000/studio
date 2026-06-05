@@ -15,6 +15,13 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.6.12
+
+### Added
+- Added Supabase Realtime Sync provider as an option alongside Firebase Cloud.
+- Added Sync Provider selector to settings to allow switching between database backends.
+- Added dynamic diagnostics information for the active sync provider.
+
 ## 3.6.11
 
 ### Fixed

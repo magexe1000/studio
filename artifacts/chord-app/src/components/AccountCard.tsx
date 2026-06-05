@@ -3410,9 +3410,13 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                             onClick={async () => {
                               setBusy(true);
                               try {
-                                const { runSyncProbe } = await import('../lib/syncEngine');
-                                const nonce = await runSyncProbe();
-                                showToast(lang === 'es' ? `¡Sonda enviada! Nonce: ${nonce}` : `Probe sent! Nonce: ${nonce}`);
+                                const { getActiveSyncProvider } = await import('../lib/syncBackends');
+                                const res = await getActiveSyncProvider().sendSyncProbe();
+                                if (res.success) {
+                                  showToast(lang === 'es' ? `¡Sonda enviada! Nonce: ${res.nonce}` : `Probe sent! Nonce: ${res.nonce}`);
+                                } else {
+                                  showToast(`Error: ${res.error}`);
+                                }
                               } catch (e: any) {
                                 showToast(`Error: ${e.message || String(e)}`);
                               } finally {
@@ -3445,8 +3449,8 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                             onClick={async () => {
                               setBusy(true);
                               try {
-                                const { clearMyProbeOnly } = await import('../lib/syncEngine');
-                                await clearMyProbeOnly();
+                                const { getActiveSyncProvider } = await import('../lib/syncBackends');
+                                await getActiveSyncProvider().clearSyncProbe();
                                 showToast(lang === 'es' ? 'Sonda eliminada.' : 'Probe cleared.');
                               } catch (e: any) {
                                 showToast(`Error: ${e.message || String(e)}`);
@@ -3480,9 +3484,13 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                             onClick={async () => {
                               setBusy(true);
                               try {
-                                const { runDirectFirestoreWriteTest } = await import('../lib/syncEngine');
-                                await runDirectFirestoreWriteTest();
-                                showToast(lang === 'es' ? '¡Prueba de escritura completada!' : 'Direct write test complete!');
+                                const { getActiveSyncProvider } = await import('../lib/syncBackends');
+                                const res = await getActiveSyncProvider().directWriteTest();
+                                if (res.success) {
+                                  showToast(lang === 'es' ? '¡Prueba de escritura completada!' : 'Direct write test complete!');
+                                } else {
+                                  showToast(`Error: ${res.error}`);
+                                }
                               } catch (e: any) {
                                 showToast(`Error: ${e.message || String(e)}`);
                               } finally {
@@ -3508,23 +3516,23 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                             }}
                           >
                             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>rate_review</span>
-                            {lang === 'es' ? 'Prueba escritura directa' : 'Direct Firestore Write Test'}
+                            {lang === 'es' ? 'Prueba escritura directa' : 'Direct Write Test'}
                           </button>
 
                           <button
                             onClick={async () => {
                               if (!sync.dbAvailable) {
-                                showToast('Error: Firestore db unavailable');
+                                showToast('Error: Cloud database unavailable');
                                 return;
                               }
                               setBusy(true);
                               try {
-                                await registerCurrentDevice(user.uid, 'manual-button');
-                                const currentStatus = getSyncStatus();
-                                if (currentStatus.lastDeviceWriteError && currentStatus.lastDeviceWriteError !== 'None') {
-                                  showToast(`Error: ${currentStatus.lastDeviceWriteError}`);
-                                } else {
+                                const { getActiveSyncProvider } = await import('../lib/syncBackends');
+                                const res = await getActiveSyncProvider().registerCurrentDevice('manual-button');
+                                if (res.success) {
                                   showToast(lang === 'es' ? '¡Registro completado!' : 'Registration complete!');
+                                } else {
+                                  showToast(`Error: ${res.error}`);
                                 }
                               } catch (e: any) {
                                 showToast(`Error: ${e.message || String(e)}`);
@@ -3715,6 +3723,17 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                   </SettingRowUI>
                   <SettingRowUI label={lang === 'es' ? 'Sincronizar dispositivos' : 'Sync Across Devices'} desc={lang === 'es' ? 'Mantén tus datos sincronizados en todos tus dispositivos.' : 'Keep your Studio data synced across your devices.'}>
                     <Toggle value={settings.syncAcrossDevices} onChange={(v) => updateSettings({ syncAcrossDevices: v })} accentFrom={accent.from} accentTo={accent.to} />
+                  </SettingRowUI>
+                  <SettingRowUI label={lang === 'es' ? 'Proveedor de Sincronización' : 'Sync Provider'} desc={lang === 'es' ? 'Elige el backend en la nube para tus sincronizaciones.' : 'Choose the cloud backend for your syncs.'}>
+                    <SelectControl
+                      value={settings.syncBackendProvider || 'firebase-legacy'}
+                      options={[
+                        { value: 'firebase-legacy', label: 'Firebase Cloud (Legacy)' },
+                        { value: 'supabase-realtime', label: 'Supabase Realtime (New)' },
+                      ]}
+                      onChange={(v) => updateSettings({ syncBackendProvider: v as any })}
+                      accent={accent}
+                    />
                   </SettingRowUI>
                   <SettingRowUI label={lang === 'es' ? 'Frecuencia de copia' : 'Backup Frequency'}>
                     <SelectControl

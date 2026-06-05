@@ -26,6 +26,7 @@ import {
   getSyncEngineDiagnostics,
   SyncEngineStatus
 } from './syncEngine';
+import { getActiveSyncProvider, initSyncBackends, disposeSyncBackends } from './syncBackends';
 import { getAllTakes, saveTake, deleteTake as dbDeleteTake, type TakeRecord } from '../vocalex/takesDb';
 import { getAllSessions, saveSession, deleteSession as dbDeleteSession, type LabSession, type LabLayer } from '../vocalex/labSessionDb';
 import { useChordStore } from '../store/useChordStore';
@@ -592,7 +593,7 @@ export async function pullCloudSettingsFromCloud(): Promise<void> {
       
       if (data.avatarIcon !== undefined) {
         const { setUserAvatar } = await import('./userAvatar');
-        setUserAvatar(currentUser.uid, data.avatarIcon);
+        setUserAvatar(currentUser.uid, data.avatarIcon as any);
       }
       
       if (data.photoURL) {
@@ -2704,6 +2705,9 @@ let onAvatarChanged: (() => void) | null = null;
 let onCoverChanged: (() => void) | null = null;
 let onOnline: (() => void) | null = null;
 
+let unsubDiagSub: (() => void) | null = null;
+let setupDiagSubscription: (() => void) | null = null;
+
 export function attachSyncEngine(): void {
   if (attached) return;
   attached = true;
@@ -2711,11 +2715,17 @@ export function attachSyncEngine(): void {
   // Initialize stable device ID from storage and start AuthSyncEngine hook
   void initializeDeviceId().then(() => {
     initAuthSyncEngineHook();
+    initSyncBackends();
   });
 
-  subscribeSyncEngine((engineState: SyncEngineStatus) => {
-    setStatus(engineState);
-  });
+  setupDiagSubscription = () => {
+    unsubDiagSub?.();
+    const provider = getActiveSyncProvider();
+    unsubDiagSub = provider.subscribeDiagnostics((diag) => {
+      setStatus(diag);
+    });
+  };
+  setupDiagSubscription();
 
   onMessage = (e: MessageEvent) => {
     if (e.origin !== window.location.origin) return;
@@ -2744,6 +2754,12 @@ export function attachSyncEngine(): void {
     if (isApplyingRemoteUpdate) return;
     const settings = state.settings;
     
+    if (settings.syncBackendProvider !== lastSettings.syncBackendProvider) {
+      console.info('[sync] Provider changed dynamically, re-subscribing diagnostics');
+      if (setupDiagSubscription) setupDiagSubscription();
+      window.dispatchEvent(new CustomEvent('sync:provider-changed'));
+    }
+
     const appearanceChanged =
       settings.theme !== lastSettings.theme ||
       settings.amoledMode !== lastSettings.amoledMode ||
@@ -2751,23 +2767,22 @@ export function attachSyncEngine(): void {
       settings.customAccentHue !== lastSettings.customAccentHue ||
       settings.language !== lastSettings.language;
       
+    const provider = getActiveSyncProvider();
+
     if (appearanceChanged) {
       const now = Date.now();
       localStorage.setItem(`sync_last_local_update_appearance`, now.toString());
-      const db = getFirebaseDb();
-      if (db && currentUser) {
+      if (currentUser) {
         pendingWritesCount++;
         notifyDiagnostics();
         const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
-        setDoc(doc(db, 'users', currentUser.uid, 'settings', 'appearance'), sanitizeForFirestore({
+        provider.updateAppearanceSettings({
           theme: themeValue,
           accentColor: settings.accentColor,
           customAccentHue: settings.customAccentHue ?? 220,
           palette: 'default',
           language: settings.language,
-          updatedAt: now,
-          updatedByDevice: deviceId(),
-        }), { merge: true }).then(() => {
+        }).then(() => {
           lastAppearanceWriteSuccess = new Date().toLocaleString();
           lastAppearanceWriteError = 'None';
         }).catch((err) => {
@@ -2790,18 +2805,15 @@ export function attachSyncEngine(): void {
     if (preferencesChanged) {
       const now = Date.now();
       localStorage.setItem(`sync_last_local_update_preferences`, now.toString());
-      const db = getFirebaseDb();
-      if (db && currentUser) {
+      if (currentUser) {
         pendingWritesCount++;
         notifyDiagnostics();
-        setDoc(doc(db, 'users', currentUser.uid, 'settings', 'preferences'), sanitizeForFirestore({
-          syncEnabled: settings.syncAcrossDevices,
-          updateNotifications: settings.otaNotifications,
-          automaticChecks: settings.otaAutoCheck,
-          showWhatsNewAfterUpdate: settings.otaShowChangelog,
-          updatedAt: now,
-          updatedByDevice: deviceId(),
-        }), { merge: true }).then(() => {
+        provider.updatePreferences({
+          syncAcrossDevices: settings.syncAcrossDevices,
+          otaNotifications: settings.otaNotifications,
+          otaAutoCheck: settings.otaAutoCheck,
+          otaShowChangelog: settings.otaShowChangelog,
+        }).then(() => {
           lastPreferencesWriteSuccess = new Date().toLocaleString();
           lastPreferencesWriteError = 'None';
         }).catch((err) => {
@@ -2878,272 +2890,215 @@ export function attachSyncEngine(): void {
       startDeviceHeartbeat(u.uid);
 
       void registerCurrentDevice(u.uid, 'auth-change');
-      const db = getFirebaseDb();
-      if (db) {
-        const myId = deviceId();
-        const sessionRef = doc(db, 'users', u.uid, 'devices', myId);
-        let sessionExisted = false;
-        unsubDeviceSession = onSnapshot(sessionRef, (snap) => {
-          if (currentUser?.uid === u.uid) {
-            if (snap.exists()) {
-              const data = snap.data();
-              if (data && data.revokedAt != null) {
-                console.info('[sync] active session revoked, signing out');
-                void signOut();
-              } else {
-                sessionExisted = true;
-              }
-            } else if (sessionExisted) {
-              console.info('[sync] active session document deleted, signing out');
-              void signOut();
-            }
-          }
-        });
-
-        // 1. Subscribe to profile document
-        unsubProfileListener = onSnapshot(doc(db, 'users', u.uid, 'profile', 'main'), (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            remotePhotoURL = data.photoURL || null;
-            remoteDisplayName = data.displayName || null;
-            lastRemoteUpdateTimestamp = data.updatedAt || 0;
-            cloudDisplayName = data.displayName || 'N/A';
-            cloudPhotoURL = data.photoURL || 'N/A';
-            
-            const localLast = parseInt(localStorage.getItem(`sync_last_local_update_profile`) ?? '0', 10);
-            const remoteLast = data.updatedAt || 0;
-            const isRemoteChange = data.updatedByDevice !== deviceId();
-            
-            if (isRemoteChange) {
-              if (remoteLast > localLast && !snap.metadata.hasPendingWrites) {
-                console.info('[sync] applying remote profile update:', data);
-                if (data.displayName !== u.displayName || data.photoURL !== u.photoURL) {
-                  import('./auth').then(({ updateLocalAuthUser }) => {
-                    updateLocalAuthUser({
-                      displayName: data.displayName,
-                      photoURL: data.photoURL,
-                    });
-                    if (currentUser) {
-                      currentUser.displayName = data.displayName;
-                      currentUser.photoURL = data.photoURL;
-                    }
+      const provider = getActiveSyncProvider();
+      
+      // 1. Subscribe to profile document
+      unsubProfileListener = provider.subscribeProfile((data) => {
+        if (data) {
+          remotePhotoURL = data.photoURL || null;
+          remoteDisplayName = data.displayName || null;
+          lastRemoteUpdateTimestamp = data.updatedAt || 0;
+          cloudDisplayName = data.displayName || 'N/A';
+          cloudPhotoURL = data.photoURL || 'N/A';
+          
+          const localLast = parseInt(localStorage.getItem(`sync_last_local_update_profile`) ?? '0', 10);
+          const remoteLast = data.updatedAt || 0;
+          const isRemoteChange = data.updatedByDevice !== deviceId();
+          
+          if (isRemoteChange) {
+            if (remoteLast > localLast) {
+              console.info('[sync] applying remote profile update:', data);
+              if (data.displayName !== u.displayName || data.photoURL !== u.photoURL) {
+                import('./auth').then(({ updateLocalAuthUser }) => {
+                  updateLocalAuthUser({
+                    displayName: data.displayName,
+                    photoURL: data.photoURL,
                   });
-                }
-                if (data.avatarIcon !== undefined) {
-                  import('./userAvatar').then(({ setUserAvatar }) => {
-                    setUserAvatar(u.uid, data.avatarIcon);
-                  });
-                }
-                if (data.photoURL) {
-                  localStorage.setItem(`chordex_cp_${u.uid}`, data.photoURL);
-                  window.dispatchEvent(
-                    new CustomEvent('chordex:user-cover-changed', {
-                      detail: { uid: u.uid, cover: data.photoURL },
-                    })
-                  );
-                } else {
-                  localStorage.removeItem(`chordex_cp_${u.uid}`);
-                  window.dispatchEvent(
-                    new CustomEvent('chordex:user-cover-changed', {
-                      detail: { uid: u.uid, cover: null },
-                    })
-                  );
-                }
-                localStorage.setItem(`sync_last_local_update_profile`, remoteLast.toString());
-                lastProfileSyncMs = Date.now();
-              } else if (localLast > remoteLast) {
-                console.info('[sync] Local profile is newer, uploading...');
-                import('./userAvatar').then(({ getUserAvatar }) => {
-                  const avatarIcon = getUserAvatar(u.uid);
-                  syncWriteProfileMain(u.displayName, u.photoURL, avatarIcon).catch(console.warn);
+                  if (currentUser) {
+                    currentUser.displayName = data.displayName;
+                    currentUser.photoURL = data.photoURL;
+                  }
                 });
               }
-            } else {
+              if (data.avatarIcon !== undefined) {
+                import('./userAvatar').then(({ setUserAvatar }) => {
+                  setUserAvatar(u.uid, data.avatarIcon as any);
+                });
+              }
+              if (data.photoURL) {
+                localStorage.setItem(`chordex_cp_${u.uid}`, data.photoURL);
+                window.dispatchEvent(
+                  new CustomEvent('chordex:user-cover-changed', {
+                    detail: { uid: u.uid, cover: data.photoURL },
+                  })
+                );
+              } else {
+                localStorage.removeItem(`chordex_cp_${u.uid}`);
+                window.dispatchEvent(
+                  new CustomEvent('chordex:user-cover-changed', {
+                    detail: { uid: u.uid, cover: null },
+                  })
+                );
+              }
               localStorage.setItem(`sync_last_local_update_profile`, remoteLast.toString());
               lastProfileSyncMs = Date.now();
+            } else if (localLast > remoteLast) {
+              console.info('[sync] Local profile is newer, uploading...');
+              import('./userAvatar').then(({ getUserAvatar }) => {
+                const avatarIcon = getUserAvatar(u.uid);
+                provider.updateProfile({ displayName: u.displayName, photoURL: u.photoURL, avatarIcon }).catch(console.warn);
+              });
             }
-            notifyDiagnostics();
           } else {
-            console.info('[sync] Remote profile missing, uploading local profile as initial cloud state');
-            import('./userAvatar').then(({ getUserAvatar }) => {
-              const avatarIcon = getUserAvatar(u.uid);
-              syncWriteProfileMain(u.displayName, u.photoURL, avatarIcon).catch(console.warn);
-            });
+            localStorage.setItem(`sync_last_local_update_profile`, remoteLast.toString());
+            lastProfileSyncMs = Date.now();
           }
-        }, (err) => {
-          console.warn('[sync] profile listener error:', err);
-          lastSyncError = err.message || String(err);
           notifyDiagnostics();
-        });
+        } else {
+          console.info('[sync] Remote profile missing, uploading local profile as initial cloud state');
+          import('./userAvatar').then(({ getUserAvatar }) => {
+            const avatarIcon = getUserAvatar(u.uid);
+            provider.updateProfile({ displayName: u.displayName, photoURL: u.photoURL, avatarIcon }).catch(console.warn);
+          });
+        }
+      });
 
-        // 2. Subscribe to appearance settings document
-        unsubAppearanceListener = onSnapshot(doc(db, 'users', u.uid, 'settings', 'appearance'), (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            remoteTheme = data.theme || null;
-            remoteAccentColor = data.accentColor || null;
-            lastRemoteUpdateTimestamp = data.updatedAt || 0;
-            cloudTheme = data.theme || 'N/A';
-            cloudAccentColor = data.accentColor || 'N/A';
-            
-            const localLast = parseInt(localStorage.getItem(`sync_last_local_update_appearance`) ?? '0', 10);
-            const remoteLast = data.updatedAt || 0;
-            const isRemoteChange = data.updatedByDevice !== deviceId();
-            
-            if (isRemoteChange) {
-              if (remoteLast > localLast && !snap.metadata.hasPendingWrites) {
-                console.info('[sync] applying remote appearance update:', data);
-                isApplyingRemoteUpdate = true;
-                try {
-                  const nextTheme = data.theme === 'AMOLED' ? 'dark' : (data.theme || 'dark');
-                  const nextAmoled = data.theme === 'AMOLED';
-                  useChordStore.getState().updateSettings({
-                    theme: nextTheme as any,
-                    amoledMode: nextAmoled,
-                    accentColor: (data.accentColor || 'blue') as any,
-                    language: (data.language || 'en') as any,
-                    customAccentHue: data.customAccentHue ?? 220,
-                  });
-                } finally {
-                  isApplyingRemoteUpdate = false;
-                }
-                localStorage.setItem(`sync_last_local_update_appearance`, remoteLast.toString());
-                lastAppearanceSyncMs = Date.now();
-              } else if (localLast > remoteLast) {
-                console.info('[sync] Local appearance is newer, uploading...');
-                const settings = useChordStore.getState().settings;
-                const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
-                setDoc(doc(db, 'users', u.uid, 'settings', 'appearance'), sanitizeForFirestore({
-                  theme: themeValue,
-                  accentColor: settings.accentColor,
-                  customAccentHue: settings.customAccentHue ?? 220,
-                  palette: 'default',
-                  language: settings.language,
-                  updatedAt: localLast,
-                  updatedByDevice: deviceId(),
-                }), { merge: true }).catch(console.warn);
+      // 2. Subscribe to appearance settings document
+      unsubAppearanceListener = provider.subscribeAppearanceSettings((data) => {
+        if (data) {
+          remoteTheme = data.theme || null;
+          remoteAccentColor = data.accentColor || null;
+          lastRemoteUpdateTimestamp = data.updatedAt || 0;
+          cloudTheme = data.theme || 'N/A';
+          cloudAccentColor = data.accentColor || 'N/A';
+          
+          const localLast = parseInt(localStorage.getItem(`sync_last_local_update_appearance`) ?? '0', 10);
+          const remoteLast = data.updatedAt || 0;
+          const isRemoteChange = data.updatedByDevice !== deviceId();
+          
+          if (isRemoteChange) {
+            if (remoteLast > localLast) {
+              console.info('[sync] applying remote appearance update:', data);
+              isApplyingRemoteUpdate = true;
+              try {
+                const nextTheme = data.theme === 'AMOLED' ? 'dark' : (data.theme || 'dark');
+                const nextAmoled = data.theme === 'AMOLED';
+                useChordStore.getState().updateSettings({
+                  theme: nextTheme as any,
+                  amoledMode: nextAmoled,
+                  accentColor: (data.accentColor || 'blue') as any,
+                  language: (data.language || 'en') as any,
+                  customAccentHue: data.customAccentHue ?? 220,
+                });
+              } finally {
+                isApplyingRemoteUpdate = false;
               }
-            } else {
               localStorage.setItem(`sync_last_local_update_appearance`, remoteLast.toString());
               lastAppearanceSyncMs = Date.now();
+            } else if (localLast > remoteLast) {
+              console.info('[sync] Local appearance is newer, uploading...');
+              const settings = useChordStore.getState().settings;
+              const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
+              provider.updateAppearanceSettings({
+                theme: themeValue,
+                accentColor: settings.accentColor,
+                customAccentHue: settings.customAccentHue ?? 220,
+                palette: 'default',
+                language: settings.language,
+              }).catch(console.warn);
             }
-            notifyDiagnostics();
           } else {
-            console.info('[sync] Remote appearance missing, uploading local appearance as initial cloud state');
-            const settings = useChordStore.getState().settings;
-            const now = Date.now();
-            localStorage.setItem(`sync_last_local_update_appearance`, now.toString());
-            const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
-            setDoc(doc(db, 'users', u.uid, 'settings', 'appearance'), sanitizeForFirestore({
-              theme: themeValue,
-              accentColor: settings.accentColor,
-              customAccentHue: settings.customAccentHue ?? 220,
-              palette: 'default',
-              language: settings.language,
-              updatedAt: now,
-              updatedByDevice: deviceId(),
-            }), { merge: true }).catch(console.warn);
+            localStorage.setItem(`sync_last_local_update_appearance`, remoteLast.toString());
+            lastAppearanceSyncMs = Date.now();
           }
-        }, (err) => {
-          console.warn('[sync] appearance listener error:', err);
-          lastSyncError = err.message || String(err);
           notifyDiagnostics();
-        });
+        } else {
+          console.info('[sync] Remote appearance missing, uploading local appearance as initial cloud state');
+          const settings = useChordStore.getState().settings;
+          const themeValue = settings.amoledMode ? 'AMOLED' : settings.theme;
+          provider.updateAppearanceSettings({
+            theme: themeValue,
+            accentColor: settings.accentColor,
+            customAccentHue: settings.customAccentHue ?? 220,
+            palette: 'default',
+            language: settings.language,
+          }).catch(console.warn);
+        }
+      });
 
-        // 3. Subscribe to preferences settings document
-        unsubPreferencesListener = onSnapshot(doc(db, 'users', u.uid, 'settings', 'preferences'), (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            lastRemoteUpdateTimestamp = data.updatedAt || 0;
-            
-            const localLast = parseInt(localStorage.getItem(`sync_last_local_update_preferences`) ?? '0', 10);
-            const remoteLast = data.updatedAt || 0;
-            const isRemoteChange = data.updatedByDevice !== deviceId();
-            
-            if (isRemoteChange) {
-              if (remoteLast > localLast && !snap.metadata.hasPendingWrites) {
-                console.info('[sync] applying remote preferences update:', data);
-                isApplyingRemoteUpdate = true;
-                try {
-                  useChordStore.getState().updateSettings({
-                    syncAcrossDevices: data.syncEnabled ?? true,
-                    otaNotifications: data.updateNotifications ?? true,
-                    otaAutoCheck: data.automaticChecks ?? true,
-                    otaShowChangelog: data.showWhatsNewAfterUpdate ?? true,
-                  });
-                } finally {
-                  isApplyingRemoteUpdate = false;
-                }
-                localStorage.setItem(`sync_last_local_update_preferences`, remoteLast.toString());
-                lastPreferencesSyncMs = Date.now();
-              } else if (localLast > remoteLast) {
-                console.info('[sync] Local preferences is newer, uploading...');
-                const settings = useChordStore.getState().settings;
-                setDoc(doc(db, 'users', u.uid, 'settings', 'preferences'), sanitizeForFirestore({
-                  syncEnabled: settings.syncAcrossDevices,
-                  updateNotifications: settings.otaNotifications,
-                  automaticChecks: settings.otaAutoCheck,
-                  showWhatsNewAfterUpdate: settings.otaShowChangelog,
-                  updatedAt: localLast,
-                  updatedByDevice: deviceId(),
-                }), { merge: true }).catch(console.warn);
+      // 3. Subscribe to preferences settings document
+      unsubPreferencesListener = provider.subscribePreferences((data) => {
+        if (data) {
+          lastRemoteUpdateTimestamp = data.updatedAt || 0;
+          
+          const localLast = parseInt(localStorage.getItem(`sync_last_local_update_preferences`) ?? '0', 10);
+          const remoteLast = data.updatedAt || 0;
+          const isRemoteChange = data.updatedByDevice !== deviceId();
+          
+          if (isRemoteChange) {
+            if (remoteLast > localLast) {
+              console.info('[sync] applying remote preferences update:', data);
+              isApplyingRemoteUpdate = true;
+              try {
+                useChordStore.getState().updateSettings({
+                  syncAcrossDevices: data.studioPreferences?.syncAcrossDevices ?? data.studioPreferences?.syncEnabled ?? true,
+                  otaNotifications: data.studioPreferences?.otaNotifications ?? data.studioPreferences?.updateNotifications ?? true,
+                  otaAutoCheck: data.studioPreferences?.otaAutoCheck ?? data.studioPreferences?.automaticChecks ?? true,
+                  otaShowChangelog: data.studioPreferences?.otaShowChangelog ?? data.studioPreferences?.showWhatsNewAfterUpdate ?? true,
+                });
+              } finally {
+                isApplyingRemoteUpdate = false;
               }
-            } else {
               localStorage.setItem(`sync_last_local_update_preferences`, remoteLast.toString());
               lastPreferencesSyncMs = Date.now();
+            } else if (localLast > remoteLast) {
+              console.info('[sync] Local preferences is newer, uploading...');
+              const settings = useChordStore.getState().settings;
+              provider.updatePreferences({
+                syncAcrossDevices: settings.syncAcrossDevices,
+                otaNotifications: settings.otaNotifications,
+                otaAutoCheck: settings.otaAutoCheck,
+                otaShowChangelog: settings.otaShowChangelog,
+              }).catch(console.warn);
             }
-            notifyDiagnostics();
           } else {
-            console.info('[sync] Remote preferences missing, uploading local preferences as initial cloud state');
-            const settings = useChordStore.getState().settings;
-            const now = Date.now();
-            localStorage.setItem(`sync_last_local_update_preferences`, now.toString());
-            setDoc(doc(db, 'users', u.uid, 'settings', 'preferences'), sanitizeForFirestore({
-              syncEnabled: settings.syncAcrossDevices,
-              updateNotifications: settings.otaNotifications,
-              automaticChecks: settings.otaAutoCheck,
-              showWhatsNewAfterUpdate: settings.otaShowChangelog,
-              updatedAt: now,
-              updatedByDevice: deviceId(),
-            }), { merge: true }).catch(console.warn);
+            localStorage.setItem(`sync_last_local_update_preferences`, remoteLast.toString());
+            lastPreferencesSyncMs = Date.now();
           }
-        }, (err) => {
-          console.warn('[sync] preferences listener error:', err);
-          lastSyncError = err.message || String(err);
           notifyDiagnostics();
-        });
+        } else {
+          console.info('[sync] Remote preferences missing, uploading local preferences as initial cloud state');
+          const settings = useChordStore.getState().settings;
+          provider.updatePreferences({
+            syncAcrossDevices: settings.syncAcrossDevices,
+            otaNotifications: settings.otaNotifications,
+            otaAutoCheck: settings.otaAutoCheck,
+            otaShowChangelog: settings.otaShowChangelog,
+          }).catch(console.warn);
+        }
+      });
 
-        // 4. Subscribe to devices collection
-        const devicesRef = collection(db, 'users', u.uid, 'devices');
-        unsubDevicesListListener = onSnapshot(devicesRef, (snap) => {
-          let count = 0;
-          const ids: string[] = [];
-          snap.forEach((doc) => {
-            const data = doc.data();
-            ids.push(doc.id);
-            if (data.revokedAt == null) count++;
-          });
-          registeredDevicesCount = count;
-          devicesSnapshotIds = ids;
-          devicesSnapshotCount = snap.size;
-          lastDevicesListenerError = 'None';
-          lastDeviceSnapshotAt = new Date().toLocaleString();
-          setStatus({
-            devicesSnapshotCount: snap.size,
-            lastDevicesListenerError: 'None',
-            lastDeviceSnapshotAt,
-            deviceIdsReceived: ids,
-          });
-          notifyDiagnostics();
-        }, (err) => {
-          console.warn('[sync] devices list listener error:', err);
-          lastDevicesListenerError = err.message || String(err);
-          setStatus({
-            lastDevicesListenerError,
-          });
-          notifyDiagnostics();
+      // 4. Subscribe to devices collection
+      unsubDevicesListListener = provider.subscribeDevices((devices) => {
+        let count = 0;
+        const ids: string[] = [];
+        devices.forEach((d) => {
+          ids.push(d.deviceId);
+          if (d.syncStatus === 'active') count++;
         });
-      }
+        registeredDevicesCount = count;
+        devicesSnapshotIds = ids;
+        devicesSnapshotCount = devices.length;
+        lastDevicesListenerError = 'None';
+        lastDeviceSnapshotAt = new Date().toLocaleString();
+        setStatus({
+          devicesSnapshotCount: devices.length,
+          lastDevicesListenerError: 'None',
+          lastDeviceSnapshotAt,
+          deviceIdsReceived: ids,
+        });
+        notifyDiagnostics();
+      });
       const hasPriorSync = readFirstPullDone(u.uid);
       setStatus({
         signedIn: true,
@@ -3210,6 +3165,9 @@ export function detachSyncEngine(): void {
   if (!attached) return;
   attached = false;
   epoch += 1;
+  disposeSyncBackends();
+  unsubDiagSub?.();
+  unsubDiagSub = null;
   if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
   if (unsubAuth) { unsubAuth(); unsubAuth = null; }
   if (unsubStoreSubscription) {

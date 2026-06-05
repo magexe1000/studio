@@ -130,6 +130,7 @@ export interface AppSettings {
   lastExportDate: string;
   activityHistoryEnabled: boolean;
   developerMode: boolean;
+  syncBackendProvider: 'firebase-firestore-legacy' | 'supabase-realtime' | 'supabase-powersync';
 }
 
 interface ChordStore {
@@ -312,6 +313,7 @@ export const useChordStore = create<ChordStore>()(
         lastExportDate: 'Never exported',
         activityHistoryEnabled: true,
         developerMode: false,
+        syncBackendProvider: (import.meta.env.VITE_SYNC_BACKEND_PROVIDER as any) || 'supabase-realtime',
         perApp: {
           hub:    { theme: 'dark', accentColor: 'blue', amoledMode: false },
           chords: { theme: 'dark', accentColor: 'blue', amoledMode: false },
@@ -713,7 +715,7 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
-      version: 10,
+      version: 11,
       migrate: (stored: unknown, fromVersion: number) => {
         const s = stored as Record<string, unknown>;
         if (fromVersion < 1) {
@@ -822,6 +824,14 @@ export const useChordStore = create<ChordStore>()(
             const settings = s.settings as Record<string, unknown>;
             if (typeof settings.developerMode !== 'boolean') {
               settings.developerMode = false;
+            }
+          }
+        }
+        if (fromVersion < 11) {
+          if (s.settings && typeof s.settings === 'object') {
+            const settings = s.settings as Record<string, unknown>;
+            if (typeof settings.syncBackendProvider !== 'string') {
+              settings.syncBackendProvider = 'supabase-realtime';
             }
           }
         }
