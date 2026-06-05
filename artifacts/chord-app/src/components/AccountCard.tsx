@@ -100,6 +100,8 @@ import {
   type UserRole
 } from '../lib/permissions';
 
+const CLOUD_SYNC_FEATURE_ENABLED = false;
+
 type Props = {
   accent: { from: string; to: string; mid: string };
   cardStyle: React.CSSProperties;
@@ -418,6 +420,26 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
   // Reset photo-failed flag when the user (or photo URL) changes so a
   // fresh sign-in gets a new shot at loading the picture.
   useEffect(() => { setPhotoFailed(false); }, [user?.uid, user?.photoURL]);
+
+  const [customPhoto, setCustomPhoto] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.uid) { setCustomPhoto(null); return; }
+    try {
+      const stored = localStorage.getItem(`chordex_cp_${user.uid}`);
+      setCustomPhoto(stored || null);
+    } catch { setCustomPhoto(null); }
+
+    const onCoverChanged = (e: Event) => {
+      const detail = (e as CustomEvent<{ uid: string; cover: string | null }>).detail;
+      if (detail && detail.uid === user.uid) {
+        setCustomPhoto(detail.cover);
+      }
+    };
+    window.addEventListener('chordex:user-cover-changed', onCoverChanged);
+    return () => {
+      window.removeEventListener('chordex:user-cover-changed', onCoverChanged);
+    };
+  }, [user?.uid]);
   // Hydrate the per-uid avatar choice and listen for picker changes
   // from anywhere in the app.
   useEffect(() => {
@@ -484,6 +506,7 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
 
   // ── Signed in ──
   if (user) {
+    const effectivePhoto = customPhoto || (user.photoURL && !photoFailed ? user.photoURL : null);
     const initial = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
     // Phase-driven UI: the engine is the single source of truth for which
     // visual state we should be in. We never derive "just synced" from a
@@ -536,7 +559,7 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
             style={{
               width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
               padding: 0, border: 'none', cursor: 'pointer',
-              background: avatarIcon || !user.photoURL || photoFailed
+              background: avatarIcon || !effectivePhoto
                 ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
                 : 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -548,12 +571,12 @@ export default function AccountCard({ accent, cardStyle, rowStyle, onAccountSett
               <span className="material-symbols-outlined" style={{ fontSize: 26, color: '#fff' }}>
                 {avatarIcon}
               </span>
-            ) : user.photoURL && !photoFailed ? (
+            ) : effectivePhoto ? (
               <img
-                src={user.photoURL}
+                src={effectivePhoto}
                 alt=""
                 referrerPolicy="no-referrer"
-                onError={() => setPhotoFailed(true)}
+                onError={() => { if (effectivePhoto === user.photoURL) setPhotoFailed(true); }}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
@@ -1259,6 +1282,10 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
   } as const;
 
   useEffect(() => {
+    if (!CLOUD_SYNC_FEATURE_ENABLED) {
+      setDevices([]);
+      return;
+    }
     if (!user || sheet !== 'devices-sessions') {
       setDevices([]);
       return;
@@ -1660,37 +1687,28 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     setBusy(true);
     setErr(null);
     try {
-      showToast(lang === 'es' ? 'Optimizando imagen...' : 'Optimizing image...');
       const blob = await compressAndResizeImage(file);
       
-      showToast(lang === 'es' ? 'Subiendo foto de perfil...' : 'Uploading profile photo...');
-      const { uploadProfilePhoto, syncWriteProfileMain } = await import('../lib/sync');
-      const downloadUrl = await uploadProfilePhoto(user.uid, blob);
-      
-      const auth = getFirebaseAuth();
-      if (auth?.currentUser) {
-        await updateProfile(auth.currentUser, { photoURL: downloadUrl });
-      }
-      
-      const { updateLocalAuthUser } = await import('../lib/auth');
-      updateLocalAuthUser({ photoURL: downloadUrl });
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
       
       setUserAvatar(user.uid, null);
-      await syncWriteProfileMain(user.displayName, downloadUrl, null);
-      
-      localStorage.setItem(`chordex_cp_${user.uid}`, downloadUrl);
-      setCustomPhoto(downloadUrl);
+      localStorage.setItem(`chordex_cp_${user.uid}`, dataUrl);
+      setCustomPhoto(dataUrl);
       window.dispatchEvent(
         new CustomEvent('chordex:user-cover-changed', {
-          detail: { uid: user.uid, cover: downloadUrl },
+          detail: { uid: user.uid, cover: dataUrl },
         })
       );
       
-      showToast(lang === 'es' ? 'Foto de perfil actualizada con éxito' : 'Profile photo updated successfully');
+      showToast(lang === 'es' ? 'Foto de perfil actualizada en este dispositivo' : 'Profile photo updated on this device');
     } catch (e: any) {
-      console.error('[photo upload] failed:', e);
-      setErr(prettyErr(e, lang));
-      showToast(lang === 'es' ? 'Error al subir la foto' : 'Failed to upload photo');
+      console.error('[photo update] failed:', e);
+      showToast(lang === 'es' ? 'Error al actualizar la foto' : 'Failed to update photo');
     } finally {
       setBusy(false);
     }
@@ -1701,17 +1719,6 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     setBusy(true);
     setErr(null);
     try {
-      const auth = getFirebaseAuth();
-      if (auth?.currentUser) {
-        await updateProfile(auth.currentUser, { photoURL: null });
-      }
-      
-      const { updateLocalAuthUser } = await import('../lib/auth');
-      updateLocalAuthUser({ photoURL: null });
-      
-      const { syncWriteProfileMain } = await import('../lib/sync');
-      await syncWriteProfileMain(user.displayName, null, null);
-      
       localStorage.removeItem(`chordex_cp_${user.uid}`);
       setCustomPhoto(null);
       window.dispatchEvent(
@@ -1722,7 +1729,6 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       showToast(lang === 'es' ? 'Foto de perfil eliminada' : 'Profile photo removed');
     } catch (e: any) {
       console.error('[photo clear] failed:', e);
-      setErr(prettyErr(e, lang));
     } finally {
       setBusy(false);
     }
@@ -1914,7 +1920,12 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
           <SettingsRow icon="person" label={lang === 'es' ? 'Información personal' : 'Personal Information'} onPress={() => openSheet('personal-info')} />
           <SettingsRow icon="lock" label={lang === 'es' ? 'Seguridad y acceso' : 'Security & Login'} onPress={() => openSheet('security-login')} />
           <SettingsRow icon="workspace_premium" label={lang === 'es' ? 'Suscripción y facturación' : 'Subscription & Billing'} badge={lang === 'es' ? 'Próximamente' : 'Coming soon'} onPress={() => openSheet('subscription')} />
-          <SettingsRow icon="devices" label={lang === 'es' ? 'Dispositivos y sesiones' : 'Devices & Sessions'} onPress={() => openSheet('devices-sessions')} />
+          <SettingsRow 
+            icon="devices" 
+            label={lang === 'es' ? 'Dispositivos y sesiones' : 'Devices & Sessions'} 
+            badge={!CLOUD_SYNC_FEATURE_ENABLED ? (lang === 'es' ? 'Próximamente' : 'Coming soon') : undefined}
+            onPress={() => openSheet('devices-sessions')} 
+          />
           <SettingsRow icon="shield" label={lang === 'es' ? 'Privacidad y datos' : 'Privacy & Data'} onPress={() => openSheet('privacy-data')} last />
         </div>
 
@@ -2584,6 +2595,31 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                 <p style={{ fontFamily: 'Inter', fontSize: 13, color: 'var(--c-text-secondary)', margin: 0, textAlign: 'center', padding: '20px 0' }}>
                   {lang === 'es' ? 'Inicia sesión para gestionar tus dispositivos.' : 'Sign in to manage your devices.'}
                 </p>
+              ) : !CLOUD_SYNC_FEATURE_ENABLED ? (
+                <div style={{
+                  padding: '24px 20px',
+                  background: 'rgba(128,128,128,0.05)',
+                  borderRadius: 16,
+                  border: '1px solid rgba(128,128,128,0.12)',
+                  fontFamily: 'Inter',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  gap: 12,
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 48, color: accent.from, opacity: 0.85 }}>
+                    devices
+                  </span>
+                  <h4 style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 16, color: 'var(--c-text-primary)', margin: 0 }}>
+                    {lang === 'es' ? 'Dispositivos y sesiones próximamente' : 'Devices & Sessions is coming soon'}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--c-text-secondary)' }}>
+                    {lang === 'es'
+                      ? 'Esta función te permitirá gestionar dispositivos conectados y sesiones activas en Studio una vez que la Sincronización en la Nube esté lista.'
+                      : 'This feature will let you manage signed-in devices and active sessions once Studio Cloud Sync is ready.'}
+                  </p>
+                </div>
               ) : (
                 <>
                   {devices.length === 0 ? (
@@ -3846,133 +3882,170 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
               </div>
 
               {/* Card 2: Backup & Sync */}
-              <div style={{
-                background: 'var(--app-surface-high, rgba(128,128,128,0.05))',
-                borderRadius: 16,
-                padding: '20px 22px',
-                border: '1px solid rgba(128,128,128,0.08)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 6,
-                boxSizing: 'border-box',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-              }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <BackupSyncIconSVG color="#10b981" />
-                  {lang === 'es' ? 'Copia y Sincronización' : 'Backup & Sync'}
-                </p>
-                <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
-                  {lang === 'es' ? 'Gestiona tus copias en la nube y preferencias de sincronización.' : 'Manage cloud backups and sync preferences.'}
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
-                  <SettingRowUI label={lang === 'es' ? 'Copia automática' : 'Auto Backup'} desc={lang === 'es' ? 'Respaldar automáticamente tus datos.' : 'Automatically back up your Studio data.'}>
-                    <Toggle value={settings.autoBackup} onChange={(v) => updateSettings({ autoBackup: v })} accentFrom={accent.from} accentTo={accent.to} />
-                  </SettingRowUI>
-                  <SettingRowUI label={lang === 'es' ? 'Sincronizar dispositivos' : 'Sync Across Devices'} desc={lang === 'es' ? 'Mantén tus datos sincronizados en todos tus dispositivos.' : 'Keep your Studio data synced across your devices.'}>
-                    <Toggle value={settings.syncAcrossDevices} onChange={(v) => updateSettings({ syncAcrossDevices: v })} accentFrom={accent.from} accentTo={accent.to} />
-                  </SettingRowUI>
-                  <SettingRowUI label={lang === 'es' ? 'Proveedor de Sincronización' : 'Sync Provider'} desc={lang === 'es' ? 'Elige el backend en la nube para tus sincronizaciones.' : 'Choose the cloud backend for your syncs.'}>
-                    <SelectControl
-                      value={settings.syncBackendProvider || 'firebase-firestore-legacy'}
-                      options={[
-                        { value: 'firebase-firestore-legacy', label: 'Firebase Cloud (Legacy)' },
-                        { value: 'supabase-realtime', label: 'Supabase Realtime (New)' },
-                      ]}
-                      onChange={(v) => updateSettings({ syncBackendProvider: v as any })}
-                      accent={accent}
-                    />
-                  </SettingRowUI>
-                  <SettingRowUI label={lang === 'es' ? 'Frecuencia de copia' : 'Backup Frequency'}>
-                    <SelectControl
-                      value={settings.backupFrequency}
-                      options={[
-                        { value: 'manual', label: 'Manual' },
-                        { value: 'daily', label: lang === 'es' ? 'Diario' : 'Daily' },
-                        { value: 'weekly', label: lang === 'es' ? 'Semanal' : 'Weekly' },
-                        { value: 'monthly', label: lang === 'es' ? 'Mensual' : 'Monthly' },
-                      ]}
-                      onChange={(v) => updateSettings({ backupFrequency: v })}
-                      accent={accent}
-                    />
-                  </SettingRowUI>
-                </div>
-
-                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(128,128,128,0.08)' }}>
-                  {!sync.signedIn ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)' }}>cloud_off</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)' }}>
-                          {lang === 'es' ? 'Sincronización desactivada' : 'Sync is disabled'}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', lineHeight: 1.45, margin: 0 }}>
-                        {lang === 'es'
-                          ? 'Inicia sesión con tu cuenta para respaldar tus proyectos en la nube automáticamente.'
-                          : 'Sign in with your account to back up your projects to the cloud automatically.'}
-                      </p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        {sync.phase === 'syncing' ? (
-                          <StudioSpinner outerSize="h-[18px] w-[18px]" childSize="h-[14px] w-[14px]" colorFrom={accent.from} colorTo={accent.to} />
-                        ) : (
-                          <span
-                            className={sync.phase === 'success' ? 'sync-pop' : ''}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            {sync.phase === 'error'
-                              ? <SyncProblemIconSVG />
-                              : !settings.syncAcrossDevices
-                                ? <CloudOffIconSVG />
-                                : <CheckCircleIconSVG />
-                            }
-                          </span>
-                        )}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)' }}>
-                            {sync.phase === 'syncing'
-                              ? (lang === 'es' ? 'Sincronizando...' : 'Syncing...')
-                              : sync.phase === 'error'
-                                ? (lang === 'es' ? 'Error al sincronizar' : 'Sync Failed')
-                                : !settings.syncAcrossDevices
-                                  ? getSyncPausedLabel(lang)
-                                  : (lang === 'es' ? 'Sincronizado con la nube' : 'Cloud Sync Active')}
-                          </span>
-                          <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>
-                            {sync.phase === 'error' && sync.error
-                              ? sync.error
-                              : !settings.syncAcrossDevices
-                                ? (lang === 'es' ? 'Activa "Sincronizar entre dispositivos" para reanudar.' : 'Enable "Sync across devices" to resume.')
-                                : sync.lastSyncedMs
-                                  ? `${lang === 'es' ? 'Sincronizado' : 'Synced'} · ${formatRelative(sync.lastSyncedMs, lang)}`
-                                  : (lang === 'es' ? 'No sincronizado aún' : 'Not synced yet')}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={sync.phase === 'error' ? doRetry : doSyncNow}
-                        disabled={busy || sync.phase === 'syncing'}
-                        style={{
-                          ...pillBtn(accent, sync.phase === 'error'),
-                          width: '100%',
-                          padding: '10px 0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6,
-                          borderRadius: 10,
-                        }}
-                      >
-                        <span className={`material-symbols-outlined ${sync.phase === 'syncing' ? 'sync-spin' : ''}`} style={{ fontSize: 16 }}>
-                          sync
-                        </span>
-                        {sync.phase === 'error' ? (lang === 'es' ? 'Reintentar' : 'Retry') : (lang === 'es' ? 'Sincronizar ahora' : 'Sync Now')}
-                      </button>
-                    </div>
+              <div
+                onClick={() => {
+                  if (!CLOUD_SYNC_FEATURE_ENABLED) {
+                    window.alert(
+                      lang === 'es'
+                        ? "Copia y Sincronización próximamente.\n\nPor ahora, tus datos permanecen locales en este dispositivo a menos que esté disponible otra función de exportación."
+                        : "Backup & Sync is coming soon.\n\nFor now, your data remains local on this device unless another export feature is available."
+                    );
+                  }
+                }}
+                style={{
+                  background: 'var(--app-surface-high, rgba(128,128,128,0.05))',
+                  borderRadius: 16,
+                  padding: '20px 22px',
+                  border: '1px solid rgba(128,128,128,0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  boxSizing: 'border-box',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                  cursor: !CLOUD_SYNC_FEATURE_ENABLED ? 'pointer' : 'default',
+                  opacity: !CLOUD_SYNC_FEATURE_ENABLED ? 0.85 : 1,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <BackupSyncIconSVG color="#10b981" />
+                    {lang === 'es' ? 'Copia y Sincronización' : 'Backup & Sync'}
+                  </p>
+                  {!CLOUD_SYNC_FEATURE_ENABLED && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, fontFamily: 'Manrope',
+                      padding: '3px 7px', borderRadius: 999,
+                      background: 'rgba(128,128,128,0.12)',
+                      color: 'var(--c-text-secondary)',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}>
+                      {lang === 'es' ? 'Próximamente' : 'Coming soon'}
+                    </span>
                   )}
                 </div>
+                {!CLOUD_SYNC_FEATURE_ENABLED ? (
+                  <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
+                    {lang === 'es'
+                      ? 'La copia de seguridad en la nube y la sincronización entre dispositivos para los datos de Studio estarán disponibles en una futura actualización.'
+                      : 'Cloud backup and cross-device sync for Studio data will be available in a future update.'}
+                  </p>
+                ) : (
+                  <>
+                    <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
+                      {lang === 'es' ? 'Gestiona tus copias en la nube y preferencias de sincronización.' : 'Manage cloud backups and sync preferences.'}
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
+                      <SettingRowUI label={lang === 'es' ? 'Copia automática' : 'Auto Backup'} desc={lang === 'es' ? 'Respaldar automáticamente tus datos.' : 'Automatically back up your Studio data.'}>
+                        <Toggle value={settings.autoBackup} onChange={(v) => updateSettings({ autoBackup: v })} accentFrom={accent.from} accentTo={accent.to} />
+                      </SettingRowUI>
+                      <SettingRowUI label={lang === 'es' ? 'Sincronizar dispositivos' : 'Sync Across Devices'} desc={lang === 'es' ? 'Mantén tus datos sincronizados en todos tus dispositivos.' : 'Keep your Studio data synced across your devices.'}>
+                        <Toggle value={settings.syncAcrossDevices} onChange={(v) => updateSettings({ syncAcrossDevices: v })} accentFrom={accent.from} accentTo={accent.to} />
+                      </SettingRowUI>
+                      <SettingRowUI label={lang === 'es' ? 'Proveedor de Sincronización' : 'Sync Provider'} desc={lang === 'es' ? 'Elige el backend en la nube para tus sincronizaciones.' : 'Choose the cloud backend for your syncs.'}>
+                        <SelectControl
+                          value={settings.syncBackendProvider || 'firebase-firestore-legacy'}
+                          options={[
+                            { value: 'firebase-firestore-legacy', label: 'Firebase Cloud (Legacy)' },
+                            { value: 'supabase-realtime', label: 'Supabase Realtime (New)' },
+                          ]}
+                          onChange={(v) => updateSettings({ syncBackendProvider: v as any })}
+                          accent={accent}
+                        />
+                      </SettingRowUI>
+                      <SettingRowUI label={lang === 'es' ? 'Frecuencia de copia' : 'Backup Frequency'}>
+                        <SelectControl
+                          value={settings.backupFrequency}
+                          options={[
+                            { value: 'manual', label: 'Manual' },
+                            { value: 'daily', label: lang === 'es' ? 'Diario' : 'Daily' },
+                            { value: 'weekly', label: lang === 'es' ? 'Semanal' : 'Weekly' },
+                            { value: 'monthly', label: lang === 'es' ? 'Mensual' : 'Monthly' },
+                          ]}
+                          onChange={(v) => updateSettings({ backupFrequency: v })}
+                          accent={accent}
+                        />
+                      </SettingRowUI>
+                    </div>
+
+                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(128,128,128,0.08)' }}>
+                      {!sync.signedIn ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)' }}>cloud_off</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                              {lang === 'es' ? 'Sincronización desactivada' : 'Sync is disabled'}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', lineHeight: 1.45, margin: 0 }}>
+                            {lang === 'es'
+                              ? 'Inicia sesión con tu cuenta para respaldar tus proyectos en la nube automáticamente.'
+                              : 'Sign in with your account to back up your projects to the cloud automatically.'}
+                          </p>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            {sync.phase === 'syncing' ? (
+                              <StudioSpinner outerSize="h-[18px] w-[18px]" childSize="h-[14px] w-[14px]" colorFrom={accent.from} colorTo={accent.to} />
+                            ) : (
+                              <span
+                                className={sync.phase === 'success' ? 'sync-pop' : ''}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                {sync.phase === 'error'
+                                  ? <SyncProblemIconSVG />
+                                  : !settings.syncAcrossDevices
+                                    ? <CloudOffIconSVG />
+                                    : <CheckCircleIconSVG />
+                                }
+                              </span>
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                                {sync.phase === 'syncing'
+                                  ? (lang === 'es' ? 'Sincronizando...' : 'Syncing...')
+                                  : sync.phase === 'error'
+                                    ? (lang === 'es' ? 'Error al sincronizar' : 'Sync Failed')
+                                    : !settings.syncAcrossDevices
+                                      ? getSyncPausedLabel(lang)
+                                      : (lang === 'es' ? 'Sincronizado con la nube' : 'Cloud Sync Active')}
+                              </span>
+                              <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>
+                                {sync.phase === 'error' && sync.error
+                                  ? sync.error
+                                  : !settings.syncAcrossDevices
+                                    ? (lang === 'es' ? 'Activa "Sincronizar entre dispositivos" para reanudar.' : 'Enable "Sync across devices" to resume.')
+                                    : sync.lastSyncedMs
+                                      ? `${lang === 'es' ? 'Sincronizado' : 'Synced'} · ${formatRelative(sync.lastSyncedMs, lang)}`
+                                      : (lang === 'es' ? 'No sincronizado aún' : 'Not synced yet')}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={sync.phase === 'error' ? doRetry : doSyncNow}
+                            disabled={busy || sync.phase === 'syncing'}
+                            style={{
+                              ...pillBtn(accent, sync.phase === 'error'),
+                              width: '100%',
+                              padding: '10px 0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6,
+                              borderRadius: 10,
+                            }}
+                          >
+                            <span className={`material-symbols-outlined ${sync.phase === 'syncing' ? 'sync-spin' : ''}`} style={{ fontSize: 16 }}>
+                              sync
+                            </span>
+                            {sync.phase === 'error' ? (lang === 'es' ? 'Reintentar' : 'Retry') : (lang === 'es' ? 'Sincronizar ahora' : 'Sync Now')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Card 3: Analytics & Diagnostics */}
@@ -4114,93 +4187,130 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
               </div>
 
               {/* Card 6: Storage & Export */}
-              <div style={{
-                background: 'var(--app-surface-high, rgba(128,128,128,0.05))',
-                borderRadius: 16,
-                padding: '20px 22px',
-                border: '1px solid rgba(128,128,128,0.08)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 6,
-                boxSizing: 'border-box',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-              }}>
-                <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <StorageIconSVG color="#14b8a6" />
-                  {lang === 'es' ? 'Almacenamiento y Copia' : 'Storage & Export'}
-                </p>
-                <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
-                  {lang === 'es' ? 'Gestiona el uso de almacenamiento local y descarga copias de tus datos.' : 'Manage storage usage and download copies of your data.'}
-                </p>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
-                  <SettingRowUI label={lang === 'es' ? 'Restaurar última sesión' : 'Restore Last Session'} desc={lang === 'es' ? 'Abrir automáticamente la última app y pestaña activa.' : 'Automatically restore last active app, tab, and view on start.'}>
-                    <Toggle value={settings.restoreLastSession} onChange={(v) => updateSettings({ restoreLastSession: v })} accentFrom={accent.from} accentTo={accent.to} />
-                  </SettingRowUI>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
-                    <div>
-                      <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>
-                        {lang === 'es' ? 'Uso de almacenamiento' : 'Storage Usage'}
-                      </p>
-                      <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '2px 0 0' }}>
-                        {lang === 'es' ? 'Uso total (datos + caché de audio)' : 'Total local usage (data + audio cache)'}
-                      </p>
+              <div
+                onClick={() => {
+                  if (!CLOUD_SYNC_FEATURE_ENABLED) {
+                    window.alert(
+                      lang === 'es'
+                        ? "Almacenamiento y Exportación próximamente.\n\nLas herramientas de exportación y gestión de almacenamiento están planeadas para una futura actualización de Studio."
+                        : "Storage & Export is coming soon.\n\nExport and storage management tools are planned for a future Studio update."
+                    );
+                  }
+                }}
+                style={{
+                  background: 'var(--app-surface-high, rgba(128,128,128,0.05))',
+                  borderRadius: 16,
+                  padding: '20px 22px',
+                  border: '1px solid rgba(128,128,128,0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  boxSizing: 'border-box',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                  cursor: !CLOUD_SYNC_FEATURE_ENABLED ? 'pointer' : 'default',
+                  opacity: !CLOUD_SYNC_FEATURE_ENABLED ? 0.85 : 1,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 15, color: 'var(--c-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <StorageIconSVG color="#14b8a6" />
+                    {lang === 'es' ? 'Almacenamiento y Copia' : 'Storage & Export'}
+                  </p>
+                  {!CLOUD_SYNC_FEATURE_ENABLED && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, fontFamily: 'Manrope',
+                      padding: '3px 7px', borderRadius: 999,
+                      background: 'rgba(128,128,128,0.12)',
+                      color: 'var(--c-text-secondary)',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}>
+                      {lang === 'es' ? 'Próximamente' : 'Coming soon'}
+                    </span>
+                  )}
+                </div>
+                {!CLOUD_SYNC_FEATURE_ENABLED ? (
+                  <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
+                    {lang === 'es'
+                      ? 'Las herramientas de exportación y la gestión de almacenamiento estarán disponibles en una futura actualización.'
+                      : 'Export tools and storage management will be available in a future update.'}
+                  </p>
+                ) : (
+                  <>
+                    <p style={{ fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', margin: '4px 0 0', lineHeight: 1.5, opacity: 0.8 }}>
+                      {lang === 'es' ? 'Gestiona el uso de almacenamiento local y descarga copias de tus datos.' : 'Manage storage usage and download copies of your data.'}
+                    </p>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 10 }}>
+                      <SettingRowUI label={lang === 'es' ? 'Restaurar última sesión' : 'Restore Last Session'} desc={lang === 'es' ? 'Abrir automáticamente la última app y pestaña activa.' : 'Automatically restore last active app, tab, and view on start.'}>
+                        <Toggle value={settings.restoreLastSession} onChange={(v) => updateSettings({ restoreLastSession: v })} accentFrom={accent.from} accentTo={accent.to} />
+                      </SettingRowUI>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(128,128,128,0.07)' }}>
+                        <div>
+                          <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text-primary)', fontFamily: 'Manrope', margin: 0 }}>
+                            {lang === 'es' ? 'Uso de almacenamiento' : 'Storage Usage'}
+                          </p>
+                          <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '2px 0 0' }}>
+                            {lang === 'es' ? 'Uso total (datos + caché de audio)' : 'Total local usage (data + audio cache)'}
+                          </p>
+                        </div>
+                        <span style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Inter', color: 'var(--c-text-primary)' }}>{localUsage}</span>
+                      </div>
                     </div>
-                    <span style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Inter', color: 'var(--c-text-primary)' }}>{localUsage}</span>
-                  </div>
-                </div>
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                  <button
-                    onClick={doExportData}
-                    style={{
-                      flex: 1,
-                      padding: '10px 0',
-                      borderRadius: 12,
-                      background: `${accent.from}15`,
-                      border: `1px solid ${accent.from}30`,
-                      color: accent.from,
-                      fontFamily: 'Manrope',
-                      fontWeight: 700,
-                      fontSize: 13,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <DownloadIconSVG />
-                    {lang === 'es' ? 'Exportar datos' : 'Export Data'}
-                  </button>
-                  <button
-                    onClick={doClearCache}
-                    disabled={clearingCache}
-                    style={{
-                      flex: 1,
-                      padding: '10px 0',
-                      borderRadius: 12,
-                      background: 'rgba(255,107,107,0.08)',
-                      border: '1px solid rgba(255,107,107,0.20)',
-                      color: '#ff6b6b',
-                      fontFamily: 'Manrope',
-                      fontWeight: 700,
-                      fontSize: 13,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      cursor: clearingCache ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {clearingCache ? (
-                      <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span>
-                    ) : (
-                      <TrashIconSVG />
-                    )}
-                    {lang === 'es' ? 'Borrar caché' : 'Clear Cache'}
-                  </button>
-                </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                      <button
+                        onClick={doExportData}
+                        style={{
+                          flex: 1,
+                          padding: '10px 0',
+                          borderRadius: 12,
+                          background: `${accent.from}15`,
+                          border: `1px solid ${accent.from}30`,
+                          color: accent.from,
+                          fontFamily: 'Manrope',
+                          fontWeight: 700,
+                          fontSize: 13,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <DownloadIconSVG />
+                        {lang === 'es' ? 'Exportar datos' : 'Export Data'}
+                      </button>
+                      <button
+                        onClick={doClearCache}
+                        disabled={clearingCache}
+                        style={{
+                          flex: 1,
+                          padding: '10px 0',
+                          borderRadius: 12,
+                          background: 'rgba(255,107,107,0.08)',
+                          border: '1px solid rgba(255,107,107,0.20)',
+                          color: '#ff6b6b',
+                          fontFamily: 'Manrope',
+                          fontWeight: 700,
+                          fontSize: 13,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          cursor: clearingCache ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {clearingCache ? (
+                          <span className="material-symbols-outlined sync-spin" style={{ fontSize: 16 }}>progress_activity</span>
+                        ) : (
+                          <TrashIconSVG />
+                        )}
+                        {lang === 'es' ? 'Borrar caché' : 'Clear Cache'}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Card 7: Activity History */}

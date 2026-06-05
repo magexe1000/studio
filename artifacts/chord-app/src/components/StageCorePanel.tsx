@@ -811,9 +811,9 @@ export default function StagexPanel() {
               alignItems: 'center',
               justifyContent: 'center',
               padding: 0,
-              opacity: (isLandscapeEditor && propPanelOpen) ? 0 : 1,
-              pointerEvents: (isLandscapeEditor && propPanelOpen) ? 'none' as const : 'auto' as const,
-              visibility: (isLandscapeEditor && propPanelOpen) ? 'hidden' as const : 'visible' as const,
+              opacity: (isLandscapeEditor && propPanelOpen || fabOpen) ? 0 : 1,
+              pointerEvents: (isLandscapeEditor && propPanelOpen || fabOpen) ? 'none' as const : 'auto' as const,
+              visibility: (isLandscapeEditor && propPanelOpen || fabOpen) ? 'hidden' as const : 'visible' as const,
               transition: 'background 300ms ease, box-shadow 300ms ease, opacity 420ms cubic-bezier(0.4,0,0.2,1)',
             }}
           >

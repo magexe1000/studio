@@ -1480,6 +1480,17 @@ function HubSettings({
       const stored = localStorage.getItem(`chordex_cp_${authUser.uid}`);
       setCustomPhoto(stored || null);
     } catch { setCustomPhoto(null); }
+
+    const onCoverChanged = (e: Event) => {
+      const detail = (e as CustomEvent<{ uid: string; cover: string | null }>).detail;
+      if (detail && detail.uid === authUser.uid) {
+        setCustomPhoto(detail.cover);
+      }
+    };
+    window.addEventListener('chordex:user-cover-changed', onCoverChanged);
+    return () => {
+      window.removeEventListener('chordex:user-cover-changed', onCoverChanged);
+    };
   }, [authUser?.uid]);
 
 

@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.15'; // First release with live Supabase sync backend
+export const APP_VERSION = '3.6.16'; // Cleaned up unfinished sync sections and fixed UI issues
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,11 +35,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-05'; // 3.6.15
+export const APP_VERSION_DATE = '2026-06-05'; // 3.6.16
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = '94c13c7f';
-export const APP_BUILD_TIMESTAMP = '6/5/2026, 1:29:47 PM CST';
+export const APP_COMMIT_SHA = '23587f13';
+export const APP_BUILD_TIMESTAMP = '6/5/2026, 2:21:44 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -58,23 +58,20 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Added safer release handling for signing certificate changes.",
-      "Improved AppInstaller diagnostics for reinstall-required builds.",
-      "Preserved strict signature validation for normal future updates.",
+      "Improved account/settings clarity by hiding unfinished sync controls behind Coming Soon states.",
+      "Improved profile avatar consistency across account surfaces.",
+      "Improved Settings header layout on mobile.",
+      "Improved Stagex floating controls behavior when the Elements menu is open.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Completed the signing reset path for builds where the original production keystore is unavailable.",
-      "Added explicit reinstall-required metadata for APKs signed with the new certificate.",
-      "Improved updater messaging when Android cannot install over an app signed with a different certificate.",
-    ],
-  },
-  {
-    heading: "Changed",
-    items: [
-      "This build requires a one-time uninstall/reinstall because the original Android signing key is unavailable. After reinstalling this version, future Studio updates can continue using the new signing certificate.",
+      "Paused unfinished cloud sync surfaces by marking Devices & Sessions, Backup & Sync, and Storage & Export as Coming Soon.",
+      "Fixed profile photo updates so the new image appears consistently in Profile and Settings.",
+      "Removed the misleading uploading profile picture dialog while cloud profile photo sync is paused.",
+      "Fixed the Settings update button alignment and sizing.",
+      "Fixed the Stagex visibility button overlapping the Elements menu.",
     ],
   },
 ];

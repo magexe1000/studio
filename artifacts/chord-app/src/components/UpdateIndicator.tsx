@@ -359,11 +359,11 @@ export default function UpdateIndicator({
         }
         style={{
           position: 'fixed',
-          top: 'calc(env(safe-area-inset-top) + 14px)',
-          right: isBanner ? '50%' : '14px',
+          top: isBanner ? 'calc(env(safe-area-inset-top) + 14px)' : 'calc(env(safe-area-inset-top) + 28px)',
+          right: isBanner ? '50%' : '20px',
           zIndex: 60,
-          width: isBanner ? 'min(360px, calc(100vw - 28px))' : 44,
-          height: isBanner ? 52 : 44,
+          width: isBanner ? 'min(360px, calc(100vw - 28px))' : 36,
+          height: isBanner ? 52 : 36,
           padding: isBanner ? '0 12px 0 14px' : 0,
           borderRadius: isBanner ? 16 : 999,
           display: 'flex',
@@ -392,6 +392,7 @@ export default function UpdateIndicator({
             entered ? 'translateY(0)' : 'translateY(-16px)',
           ].join(' '),
           transition: [
+            'top 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
             'right 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
             'width 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
             'height 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
@@ -412,15 +413,15 @@ export default function UpdateIndicator({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: isBanner ? 18 : 24,
-            height: isBanner ? 18 : 24,
+            width: isBanner ? 18 : 20,
+            height: isBanner ? 18 : 20,
             flexShrink: 0,
             filter: isBanner ? undefined : 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25))',
             animation: isBanner ? undefined : 'pill-download-bounce 1.6s ease-in-out infinite',
             transition: 'width 620ms cubic-bezier(0.34, 1.12, 0.64, 1), height 620ms cubic-bezier(0.34, 1.12, 0.64, 1)',
           }}
         >
-          <DownloadIcon size={isBanner ? 18 : 24} color={isLight ? cTo : '#fff'} />
+          <DownloadIcon size={isBanner ? 18 : 20} color={isLight ? cTo : '#fff'} />
         </span>
 
         <span
