@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.24'; // Premium account benefits and sub-app back navigation fix
+export const APP_VERSION = '3.6.25'; // Web/Desktop UI improvements, Stagex back-navigation fix
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,11 +35,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-06'; // 3.6.24
+export const APP_VERSION_DATE = '2026-06-06'; // 3.6.25
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = '97c6f61';
-export const APP_BUILD_TIMESTAMP = '6/6/2026, 3:08:54 PM UTC';
+export const APP_COMMIT_SHA = 'd1f49d0f';
+export const APP_BUILD_TIMESTAMP = '6/6/2026, 9:58:03 AM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -58,14 +58,16 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Revamped the signed-out profile benefits page to feature a premium, list-based glassmorphic layout.",
-      "Enhanced the sign-in success overlay checkmark animation with expanding double ripple rings and a spring overshoot drawing path.",
+      "Web builds now show a slim, non-blocking refresh banner instead of the Android-style APK update modal.",
+      "Settings → Updates page adapts for web: shows a 'Web Build' badge, Refresh button, and hides native-only controls.",
+      "Hub and Settings layouts are now centered and constrained on desktop/laptop screens for better readability.",
+      "Desktop hover effects added for cards, buttons, and interactive settings rows.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed sub-app back-navigation so that swipe-back and back button gestures consume the action instead of exiting to the Studio Hub.",
+      "Fixed Stagex back-navigation so that swiping back or pressing back now properly closes open panels (timeline, presets, share modal, custom elements, etc.) instead of being ignored.",
     ],
   },
 ];
@@ -74,18 +76,18 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Corregido",
+    heading: "Mejorado",
     items: [
-      "Se corrigió que las fichas de marcado invisibles del menú Elementos de Stagex capturaran clics.",
-      "Se corrigió la navegación hacia atrás en las sub-aplicaciones para descartar hojas, menús y formularios abiertos antes de salir.",
-      "Se corrigió el gesto de deslizar hacia atrás para descartar superposiciones abiertas en lugar de salir inmediatamente.",
+      "Las versiones web ahora muestran una barra de actualización discreta en lugar del modal de actualización APK de Android.",
+      "La página de Actualizaciones en Ajustes se adapta para web: muestra la insignia 'Web Build', botón de recarga, y oculta controles exclusivos de Android.",
+      "Los diseños del Hub y Ajustes ahora están centrados y restringidos en pantallas de escritorio para mejor legibilidad.",
+      "Se añadieron efectos hover para tarjetas, botones y filas interactivas en escritorio.",
     ],
   },
   {
-    heading: "Mejorado",
+    heading: "Corregido",
     items: [
-      "Se mejoró el diseño de la página de actualizaciones incrustando el registro de cambios dentro de la tarjeta principal.",
-      "Se mejoró la localización del subtítulo de Ajustes y los colores de acento de Stagex para adaptarse dinámicamente al color del tema del usuario.",
+      "Se corrigió la navegación hacia atrás en Stagex para cerrar correctamente los paneles abiertos (línea de tiempo, presets, modal de compartir, etc.) en lugar de ser ignorada.",
     ],
   },
 ];
@@ -93,18 +95,18 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Behoben",
+    heading: "Verbessert",
     items: [
-      "Fehler behoben, bei dem unsichtbare Wählscheiben im Stagex-Elementemenü Klicks erfassten.",
-      "Zurück-Navigation in Unter-Apps korrigiert, um offene Blätter, Menüs und Formulare vor dem Beenden zu schließen.",
-      "Wisch-zurück-Geste korrigiert, um offene Overlays zu schließen, anstatt sofort zu beenden.",
+      "Web-Versionen zeigen jetzt ein schlankes, nicht blockierendes Aktualisierungs-Banner anstelle des Android-APK-Update-Modals.",
+      "Die Seite Einstellungen → Updates passt sich für das Web an: zeigt ein 'Web Build'-Abzeichen, eine Aktualisierungs-Schaltfläche und blendet Android-exklusive Steuerelemente aus.",
+      "Hub- und Einstellungslayouts werden auf Desktop-/Laptop-Bildschirmen zentriert und begrenzt für bessere Lesbarkeit.",
+      "Desktop-Hover-Effekte für Karten, Schaltflächen und interaktive Einstellungszeilen hinzugefügt.",
     ],
   },
   {
-    heading: "Verbessert",
+    heading: "Behoben",
     items: [
-      "Layout der Update-Seite durch Einbetten des Changelogs in die Hauptkarte verbessert.",
-      "Lokalisierung des Einstellungs-Untertitel und Stagex-Akzentfarben verbessert, um sich dynamisch an die Farbwahl des Benutzers anzupassen.",
+      "Stagex-Zurück-Navigation korrigiert, sodass Zurückwischen oder Zurückdrücken offene Panels (Zeitleiste, Presets, Teilen-Modal usw.) ordnungsgemäß schließt, anstatt ignoriert zu werden.",
     ],
   },
 ];

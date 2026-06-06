@@ -435,7 +435,7 @@ export default function StudioHub() {
 
         {/* ── HOME TAB ── */}
         {tab === 'home' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
+          <div data-hub-tab-content style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
 
             {/* Logo area */}
             <div className="spring-in" style={{
@@ -513,7 +513,7 @@ export default function StudioHub() {
             <ProfileHeaderBack onBack={() => { setTab('settings'); }} />
             <Suspense fallback={<SmartLoading fallbackSkeleton={<div style={{ padding: '0 20px 80px' }}><StudioSkeletonProfile /></div>} />}>
               {authUser ? (
-                <div style={{ padding: '0 0 100px', animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
+                <div data-hub-tab-content style={{ padding: '0 0 100px', animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
                 <AccountSettingsPage
                   accent={accent}
                   cardStyle={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(128,128,128,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}
@@ -521,7 +521,7 @@ export default function StudioHub() {
                 />
                 </div>
               ) : (
-                <div style={{ padding: '0 20px 80px', animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
+                <div data-hub-tab-content style={{ padding: '0 20px 80px', animation: 'hub-slide-in 300ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
                   <div style={{ marginBottom: 16 }}>
                     <StudioFamilyOrbit
                       items={[
@@ -1601,6 +1601,20 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
             }}>{statusConfig.icon}</span>
             {hasUpdate ? L.latestRelease : L.upToDate}
           </div>
+          {/* Build type badge for web */}
+          {!isNative() && (
+            <div className="updater-badge" style={{
+              background: 'rgba(147, 130, 220, 0.12)',
+              color: '#9382dc',
+              marginTop: -8,
+            }}>
+              <span className="material-symbols-outlined" style={{
+                fontSize: 12,
+                fontVariationSettings: "'FILL' 1",
+              }}>language</span>
+              Web Build
+            </div>
+          )}
 
           {/* Version Headline */}
           <h1 className="updater-version-headline">
@@ -1661,29 +1675,46 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
 
           {/* CTA Button */}
           {hasUpdate ? (
-            <button
-              className="updater-cta-btn"
-              onClick={() => window.dispatchEvent(new CustomEvent('studio:open-update-dialog'))}
-              style={{
-                background: isReinstall
-                  ? 'linear-gradient(135deg, #f87171, #ef4444)'
-                  : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                color: '#fff',
-                boxShadow: isReinstall
-                  ? '0 4px 20px rgba(248,113,113,0.3)'
-                  : `0 4px 20px color-mix(in srgb, ${accent.to} 30%, transparent)`,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
-                {isReinstall ? 'download' : 'system_update'}
-              </span>
-              {L.updateNow}
-            </button>
+            isNative() ? (
+              <button
+                className="updater-cta-btn"
+                onClick={() => window.dispatchEvent(new CustomEvent('studio:open-update-dialog'))}
+                style={{
+                  background: isReinstall
+                    ? 'linear-gradient(135deg, #f87171, #ef4444)'
+                    : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                  color: '#fff',
+                  boxShadow: isReinstall
+                    ? '0 4px 20px rgba(248,113,113,0.3)'
+                    : `0 4px 20px color-mix(in srgb, ${accent.to} 30%, transparent)`,
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
+                  {isReinstall ? 'download' : 'system_update'}
+                </span>
+                {L.updateNow}
+              </button>
+            ) : (
+              <button
+                className="updater-cta-btn"
+                onClick={() => window.location.reload()}
+                style={{
+                  background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                  color: '#fff',
+                  boxShadow: `0 4px 20px color-mix(in srgb, ${accent.to} 30%, transparent)`,
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>refresh</span>
+                {lang === 'es' ? 'Recargar Studio' : 'Refresh Studio'}
+              </button>
+            )
           ) : (
             <button
               className="updater-cta-btn"
               onClick={async () => {
-                window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+                if (isNative()) {
+                  window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+                }
                 await ota.checkNow();
               }}
               disabled={isChecking}
@@ -1792,26 +1823,36 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         </div>
       </div>
 
-      {/* ── CONTROLS SECTION ── */}
-      <p className="updater-section-title spring-in" style={{ animationDelay: '80ms' }}>{L.controls}</p>
-      <div className="spring-in" style={{ ...cardStyle, margin: 0, animationDelay: '100ms' }}>
-        <SettingRow label={L.notifTitle} desc={L.notifDesc}>
-          <Toggle value={settings.otaNotifications ?? true} onChange={v => updateSettings({ otaNotifications: v })} accentFrom={accent.from} accentTo={accent.to} />
-        </SettingRow>
-        <SettingRow label={L.autoTitle} desc={L.autoDesc}>
-          <Toggle value={settings.otaAutoCheck ?? true} onChange={v => updateSettings({ otaAutoCheck: v })} accentFrom={accent.from} accentTo={accent.to} />
-        </SettingRow>
-        <SettingRow label={L.changelogTitle} desc={L.changelogDesc}>
-          <Toggle value={settings.otaShowChangelog ?? true} onChange={v => updateSettings({ otaShowChangelog: v })} accentFrom={accent.from} accentTo={accent.to} />
-        </SettingRow>
-      </div>
+      {/* ── CONTROLS SECTION (native-only: notification/auto-check/changelog toggles) ── */}
+      {isNative() && (
+        <>
+          <p className="updater-section-title spring-in" style={{ animationDelay: '80ms' }}>{L.controls}</p>
+          <div className="spring-in" style={{ ...cardStyle, margin: 0, animationDelay: '100ms' }}>
+            <SettingRow label={L.notifTitle} desc={L.notifDesc}>
+              <Toggle value={settings.otaNotifications ?? true} onChange={v => updateSettings({ otaNotifications: v })} accentFrom={accent.from} accentTo={accent.to} />
+            </SettingRow>
+            <SettingRow label={L.autoTitle} desc={L.autoDesc}>
+              <Toggle value={settings.otaAutoCheck ?? true} onChange={v => updateSettings({ otaAutoCheck: v })} accentFrom={accent.from} accentTo={accent.to} />
+            </SettingRow>
+            <SettingRow label={L.changelogTitle} desc={L.changelogDesc}>
+              <Toggle value={settings.otaShowChangelog ?? true} onChange={v => updateSettings({ otaShowChangelog: v })} accentFrom={accent.from} accentTo={accent.to} />
+            </SettingRow>
+          </div>
+        </>
+      )}
 
       {/* ── TIP CARD ── */}
       <div className="updater-tip-card spring-in" style={{ animationDelay: '120ms' }}>
         <span className="material-symbols-outlined" style={{ fontSize: 16, color: accent.from, flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1", opacity: 0.8 }}>info</span>
         <div>
           <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, color: 'var(--c-text-primary)' }}>{L.howItWorks}</p>
-          <p style={{ margin: '4px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', lineHeight: 1.55 }}>{L.howItWorksBody}</p>
+          <p style={{ margin: '4px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)', lineHeight: 1.55 }}>
+            {isNative()
+              ? L.howItWorksBody
+              : (lang === 'es'
+                ? 'Studio en la web se actualiza automáticamente. Cuando hay una nueva versión, simplemente recarga la página.'
+                : 'Studio on the web updates automatically. When a new version is deployed, simply refresh the page to get it.')}
+          </p>
         </div>
       </div>
     </div>

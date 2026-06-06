@@ -1418,4 +1418,62 @@ html.has-modal-open body {
   -webkit-mask-image: none;
 }
 
+/* ===== Desktop / Wide Viewport Adaptations ==========================================
+   These rules make the mobile-first UI feel at home on laptop and desktop screens.
+   They never override existing mobile behaviour; they layer on top via min-width.
+   =================================================================================== */
+
+@media (min-width: 768px) {
+  /* ── Center-constrain the main Hub scroll area content ── */
+  /* StudioHub wraps everything inside a scrollable div; each tab's inner
+     content already sets padding: 0 20px. We bump horizontal auto-margin
+     and cap width so it doesn't stretch across ultrawide monitors. */
+  [data-hub-tab-content],
+  .hub-desktop-constrain,
+  .settings-panel-sheet {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ── Card hover lift effect (desktop only) ── */
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  /* ── Interactive row hover tint ── */
+  .setting-row-interactive:hover {
+    background: rgba(128, 128, 128, 0.06);
+  }
+
+  /* ── Updater hero card gets a subtle lift ── */
+  .updater-hero-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+
+  /* ── CTA buttons get a desktop hover glow ── */
+  .updater-cta-btn:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+    transition: filter 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+  }
+
+  /* ── Ensure buttons show pointer cursor on desktop ── */
+  button, [role="button"] {
+    cursor: pointer;
+  }
+}
+
+/* Wider desktop (1024px+): two-column settings layout seed */
+@media (min-width: 1024px) {
+  [data-hub-tab-content],
+  .hub-desktop-constrain,
+  .settings-panel-sheet {
+    max-width: 720px;
+  }
+}
 

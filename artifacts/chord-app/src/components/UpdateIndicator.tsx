@@ -206,7 +206,9 @@ export default function UpdateIndicator({
   // Auto-minimize disabled per user request so the banner remains fully visible.
 
   // Auto-OPEN the update modal whenever an update is available.
+  // NATIVE-ONLY: on web, the refresh banner handles this instead.
   useEffect(() => {
+    if (!isNative()) return; // web uses its own non-blocking refresh banner
     if (!ota.updateAvailable || !ota.remoteVersion) return;
     const laterVer = readLaterVersion();
     if (laterVer === ota.remoteVersion) return;
@@ -217,6 +219,15 @@ export default function UpdateIndicator({
     setOpen(true);
     writeAutoOpenedVersion(ota.remoteVersion);
   }, [ota.updateAvailable, ota.remoteVersion, ota.updateState]);
+
+  // WEB-ONLY: track whether the user dismissed the web refresh banner this session
+  const [webBannerDismissed, setWebBannerDismissed] = useState(() => {
+    if (isNative()) return false;
+    try {
+      const dismissed = sessionStorage.getItem('studio:web-update-dismissed');
+      return dismissed === ota.remoteVersion;
+    } catch { return false; }
+  });
 
   // CHECK-STATUS PILL ─────────────────────────────────────────────────
   // When there's NO update available we still want the user to see that
@@ -272,6 +283,8 @@ export default function UpdateIndicator({
 
   if (!ota.updateAvailable) {
     if (!open) return null;
+    // Only show the full update modal on native
+    if (!isNative()) return null;
     return (
       <UpdateModal
         fromLabel={APP_VERSION_LABEL}
@@ -288,6 +301,97 @@ export default function UpdateIndicator({
           }
         }}
       />
+    );
+  }
+
+  /* ── WEB-ONLY: slim non-blocking refresh banner ─────────────────────── */
+  if (!isNative()) {
+    if (webBannerDismissed) return null;
+    return (
+      <>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            height: 40,
+            background: `linear-gradient(135deg, var(--accent-from, ${accentFrom}), var(--accent-to, ${accentTo}))`,
+            color: '#fff',
+            fontFamily: 'Manrope, Inter, sans-serif',
+            fontSize: 13,
+            fontWeight: 600,
+            letterSpacing: '-0.01em',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
+            animation: 'web-refresh-bar-enter 400ms cubic-bezier(0.34, 1.12, 0.64, 1) both',
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 16, opacity: 0.9 }}
+          >
+            system_update
+          </span>
+          <span>
+            {ota.remoteVersion
+              ? `Studio v${ota.remoteVersion} available`
+              : 'New version available'}
+          </span>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            style={{
+              background: 'rgba(255,255,255,0.22)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 8,
+              color: '#fff',
+              fontFamily: 'inherit',
+              fontSize: 12,
+              fontWeight: 700,
+              padding: '4px 12px',
+              cursor: 'pointer',
+              letterSpacing: '0.02em',
+              backdropFilter: 'blur(6px)',
+            }}
+          >
+            Refresh
+          </button>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={() => {
+              setWebBannerDismissed(true);
+              try {
+                if (ota.remoteVersion) {
+                  sessionStorage.setItem('studio:web-update-dismissed', ota.remoteVersion);
+                }
+              } catch { /* ignore */ }
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'rgba(255,255,255,0.7)',
+              cursor: 'pointer',
+              padding: 4,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+          </button>
+        </div>
+        <style>{`
+          @keyframes web-refresh-bar-enter {
+            from { transform: translateY(-100%); opacity: 0; }
+            to   { transform: translateY(0);     opacity: 1; }
+          }
+        `}</style>
+      </>
     );
   }
 

@@ -4169,19 +4169,11 @@ window.addEventListener('message', function(e) {
     if (pill && m) { pill.style.left = m.left + 'px'; pill.style.width = m.width + 'px'; }
   });
 
-  /* ── Global back function called by the React parent via contentWindow ── */
-  var SWIPE_BACK = ['Rider', 'Setlist', 'Gear', 'Members'];
-  window.stageGoBack = function () {
-    if (SWIPE_BACK.indexOf(_curView) !== -1) {
-      window.switchView('SetupHub');
-      return true;
-    }
-    if (_curView === 'SetupHub') {
-      window.switchView('Editor');
-      return true;
-    }
-    return false;
-  };
+  /* ── Global back function ──────────────────────────────────────────────
+   * The comprehensive stageGoBack is defined in app.js (checks 17+
+   * overlay/panel types before falling through to view navigation).
+   * Do NOT redefine it here — the app.js version is authoritative.
+   * ──────────────────────────────────────────────────────────────────── */
 
   /* ── Swipe-right back gesture (touch-within-iframe fallback) ─────────── */
   var _swipeX = 0, _swipeY = 0;
