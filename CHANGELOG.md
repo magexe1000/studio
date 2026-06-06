@@ -15,6 +15,11 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.6.21
+
+### Fixed
+- Hardened release pipeline push phase with retry logic and exponential backoff to handle transient remote push conflicts.
+
 ## 3.6.20
 
 ### Fixed

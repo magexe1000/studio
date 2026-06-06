@@ -1,2 +1,2 @@
 ### Fixed
-- Fixed release pipeline race conditions by introducing concurrency group constraints and rebase-before-push logic in CI.
+- Hardened release pipeline push phase with retry logic and exponential backoff to handle transient remote push conflicts.

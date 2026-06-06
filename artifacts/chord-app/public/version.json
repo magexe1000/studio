@@ -1,9 +1,9 @@
 {
-  "version": "3.6.20",
-  "changelog": "• Fixed release pipeline race conditions by introducing concurrency group constraints and rebase-before-push logic in CI.",
+  "version": "3.6.21",
+  "changelog": "• Hardened release pipeline push phase with retry logic and exponential backoff to handle transient remote push conflicts.",
   "releaseNotes": {
     "fixed": [
-      "Fixed release pipeline race conditions by introducing concurrency group constraints and rebase-before-push logic in CI."
+      "Hardened release pipeline push phase with retry logic and exponential backoff to handle transient remote push conflicts."
     ]
   },
   "mandatory": false

@@ -251,7 +251,22 @@ jobs:
           else
             git commit -m "release v$VERSION"
           fi
-          # Fetch latest changes and rebase before pushing to prevent race conditions
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
+          
+          # Retry logic with exponential backoff to handle transient race conditions
+          MAX_RETRIES=5
+          RETRY=0
+          while [ $RETRY -lt $MAX_RETRIES ]; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo "Push succeeded"
+              exit 0
+            fi
+            RETRY=$((RETRY + 1))
+            WAIT=$((2 ** RETRY))
+            echo "Push failed, retrying in ${WAIT}s (attempt $RETRY/$MAX_RETRIES)"
+            sleep $WAIT
+          done
+          
+          echo "::error::Failed to push after $MAX_RETRIES attempts"
+          exit 1

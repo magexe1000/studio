@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.20'; // Fix CI race conditions
+export const APP_VERSION = '3.6.21'; // Harden CI push phase with retry logic
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,11 +35,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-06'; // 3.6.20
+export const APP_VERSION_DATE = '2026-06-06'; // 3.6.21
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = 'ee0ca1d5';
-export const APP_BUILD_TIMESTAMP = '6/5/2026, 10:34:27 PM CST';
+export const APP_COMMIT_SHA = '226a497e';
+export const APP_BUILD_TIMESTAMP = '6/5/2026, 10:39:45 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -58,7 +58,7 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed release pipeline race conditions by introducing concurrency group constraints and rebase-before-push logic in CI.",
+      "Hardened release pipeline push phase with retry logic and exponential backoff to handle transient remote push conflicts.",
     ],
   },
 ];
