@@ -1506,11 +1506,20 @@ export default function App() {
       }
 
       if (deltaX > vw * 0.25) {
-        // Swipe success -> exit to hub
-        if (subAppWrapperRef.current) {
-          subAppWrapperRef.current.style.transform = `translateX(${vw}px)`;
+        // Intercept with handleGlobalBack first
+        const backHandled = handleGlobalBack();
+        if (backHandled) {
+          // Swipe handled by closing menu -> snap back
+          if (subAppWrapperRef.current) {
+            subAppWrapperRef.current.style.transform = 'translateX(0)';
+          }
+        } else {
+          // Swipe success -> exit to hub
+          if (subAppWrapperRef.current) {
+            subAppWrapperRef.current.style.transform = `translateX(${vw}px)`;
+          }
+          returnToStudioHubRef.current(true);
         }
-        returnToStudioHubRef.current(true);
       } else {
         // Swipe cancelled -> snap back
         if (subAppWrapperRef.current) {

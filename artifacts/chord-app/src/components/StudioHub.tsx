@@ -1273,6 +1273,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   const lang = settings.language ?? 'en';
   const changelogSections = getChangelogSections(lang);
   const [changelogExpanded, setChangelogExpanded] = useState(false);
+  const isChangelogTooLong = changelogSections.length > 2 || changelogSections.some(s => s.items.length > 3);
 
   const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
 
@@ -1646,55 +1647,95 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
               {L.checkForUpdates}
             </button>
           )}
-        </div>
-      </div>
 
-      {/* ── CHANGELOG SECTION ── */}
-      <p className="updater-section-title spring-in" style={{ animationDelay: '40ms' }}>{L.whatsNew}</p>
-      <div className="updater-changelog-card spring-in" style={{ ...cardStyle, margin: 0, animationDelay: '60ms' }}>
-        {changelogSections.slice(0, changelogExpanded ? undefined : 2).map((section, si) => (
-          <div key={si} className="updater-changelog-section">
-            <div className="updater-changelog-heading" style={{
-              background: getCategoryStyle(section.heading).bg,
-              color: getCategoryStyle(section.heading).text,
+          {/* ── CHANGELOG SECTION (Inside Hero Card) ── */}
+          {changelogSections.length > 0 && (
+            <div style={{
+              borderTop: '1px solid rgba(128, 128, 128, 0.12)',
+              paddingTop: 16,
+              marginTop: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12
             }}>
-              {section.heading}
+              <p style={{
+                fontFamily: 'Manrope, sans-serif',
+                fontWeight: 700,
+                fontSize: 12,
+                color: 'var(--c-text-secondary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                margin: 0,
+              }}>{L.whatsNew}</p>
+
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                borderRadius: 12,
+                background: 'rgba(128, 128, 128, 0.04)',
+                border: '1px solid rgba(128, 128, 128, 0.06)',
+                overflow: 'hidden'
+              }}>
+                {(isChangelogTooLong && !changelogExpanded
+                  ? changelogSections.slice(0, 2)
+                  : changelogSections
+                ).map((section, si) => (
+                  <div key={si} className="updater-changelog-section" style={{
+                    padding: '12px 14px',
+                    borderBottom: si === (isChangelogTooLong && !changelogExpanded ? Math.min(2, changelogSections.length) : changelogSections.length) - 1
+                      ? 'none'
+                      : '1px solid rgba(128,128,128,0.06)'
+                  }}>
+                    <div className="updater-changelog-heading" style={{
+                      background: getCategoryStyle(section.heading).bg,
+                      color: getCategoryStyle(section.heading).text,
+                      marginBottom: 8,
+                    }}>
+                      {section.heading}
+                    </div>
+                    {(isChangelogTooLong && !changelogExpanded
+                      ? section.items.slice(0, 3)
+                      : section.items
+                    ).map((item, ii) => (
+                      <div key={ii} className="updater-changelog-item" style={{ padding: '2px 0' }}>
+                        <div className="updater-changelog-bullet" style={{
+                          background: getCategoryStyle(section.heading).text,
+                          opacity: 0.6,
+                        }} />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                    {isChangelogTooLong && !changelogExpanded && section.items.length > 3 && (
+                      <div style={{ paddingLeft: 15, paddingTop: 2, fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-tertiary)' }}>
+                        +{section.items.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {isChangelogTooLong && (
+                  <button
+                    type="button"
+                    onClick={() => setChangelogExpanded(!changelogExpanded)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      width: '100%', padding: '10px 14px', border: 'none', background: 'transparent',
+                      color: accent.from,
+                      fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm, 12px)',
+                      cursor: 'pointer',
+                      borderTop: '1px solid rgba(128,128,128,0.06)',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                      {changelogExpanded ? 'expand_less' : 'expand_more'}
+                    </span>
+                    {changelogExpanded ? L.hideChangelog : L.showFullChangelog}
+                  </button>
+                )}
+              </div>
             </div>
-            {section.items.slice(0, changelogExpanded ? undefined : 3).map((item, ii) => (
-              <div key={ii} className="updater-changelog-item">
-                <div className="updater-changelog-bullet" style={{
-                  background: getCategoryStyle(section.heading).text,
-                  opacity: 0.6,
-                }} />
-                <span>{item}</span>
-              </div>
-            ))}
-            {!changelogExpanded && section.items.length > 3 && (
-              <div style={{ paddingLeft: 15, paddingTop: 2, fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-tertiary)' }}>
-                +{section.items.length - 3} more
-              </div>
-            )}
-          </div>
-        ))}
-        {changelogSections.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setChangelogExpanded(!changelogExpanded)}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              width: '100%', padding: '13px 18px', border: 'none', background: 'transparent',
-              color: accent.from,
-              fontFamily: 'Manrope', fontWeight: 700, fontSize: 'var(--font-sm, 13px)',
-              cursor: 'pointer',
-              borderTop: '1px solid rgba(128,128,128,0.06)',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-              {changelogExpanded ? 'expand_less' : 'expand_more'}
-            </span>
-            {changelogExpanded ? L.hideChangelog : L.showFullChangelog}
-          </button>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ── CONTROLS SECTION ── */}

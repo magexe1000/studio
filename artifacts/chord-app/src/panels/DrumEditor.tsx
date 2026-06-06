@@ -2381,9 +2381,27 @@ export default function DrumEditor() {
 
   useEffect(() => {
     const handler = (): boolean => {
+      // 1. Confirmations and Modals
+      if (showClearConfirm) { setShowClearConfirm(false); return true; }
+      if (showExportModal) { setShowExportModal(false); return true; }
+      if (showImportDrum) { setShowImportDrum(false); return true; }
+      if (showSaveGroove) { setShowSaveGroove(false); return true; }
+
+      // 2. Forms
+      if (showCreateForm) { setShowCreateForm(false); return true; }
+      if (showSaveForm) { setShowSaveForm(false); return true; }
+
+      // 3. Sheets / Menus / Panels
+      if (showMixerSheet) { setShowMixerSheet(false); return true; }
+      if (showFXSheet) { setShowFXSheet(false); return true; }
+      if (showBpmPanel) { setShowBpmPanel(false); return true; }
+      if (showLoopPanel) { setShowLoopPanel(false); return true; }
+      if (showSoundCharacter) { setShowSoundCharacter(false); return true; }
+      if (showHamburger) { setShowHamburger(false); return true; }
+
+      // 4. Default view exit
       if (inEditor) {
         if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
-        setShowHamburger(false); setShowBpmPanel(false);
         setInEditor(false); setActiveTab('songs');
         return true;
       }
@@ -2391,7 +2409,11 @@ export default function DrumEditor() {
     };
     setBackHandler(handler);
     return () => setBackHandler(null);
-  }, [inEditor]);
+  }, [
+    inEditor, showClearConfirm, showExportModal, showImportDrum, showSaveGroove,
+    showCreateForm, showSaveForm, showMixerSheet, showFXSheet, showBpmPanel,
+    showLoopPanel, showSoundCharacter, showHamburger
+  ]);
 
   // ── Create Beat ───────────────────────────────────────────────────────────
   const handleCreateBeat = useCallback(() => {

@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.17'; // Redesigned Updates page, Settings subtitle
+export const APP_VERSION = '3.6.18'; // Focused Stagex, Menu, and Back-navigation patch
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,7 +35,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-05'; // 3.6.17
+export const APP_VERSION_DATE = '2026-06-06'; // 3.6.18
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = 'dced8e9';
@@ -60,6 +60,16 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
     items: [
       "Changed Settings subtitle to \"Studio Settings\".",
       "Renamed the Updater navigation row to \"Updates\".",
+      "Improved updates page layout by embedding the changelog inside the hero card.",
+      "Improved Settings subtitle localization and Stagex accent colors to dynamically adapt to the user theme color.",
+    ],
+  },
+  {
+    heading: "Fixed",
+    items: [
+      "Fixed Stagex Elements menu invisible dial chips capturing clicks.",
+      "Fixed back-navigation in sub-apps to dismiss open sheets, menus, and forms before exiting.",
+      "Fixed swipe-back gesture to dismiss open overlays instead of exiting immediately.",
     ],
   },
 ];
@@ -68,17 +78,18 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Nuevo",
+    heading: "Corregido",
     items: [
-      "Se rediseñó la página de Actualizaciones con una tarjeta principal, historial estructurado y diseño inspirado en Stitch.",
-      "Se agregó sección de versiones recientes con historiales expandibles.",
+      "Se corrigió que las fichas de marcado invisibles del menú Elementos de Stagex capturaran clics.",
+      "Se corrigió la navegación hacia atrás en las sub-aplicaciones para descartar hojas, menús y formularios abiertos antes de salir.",
+      "Se corrigió el gesto de deslizar hacia atrás para descartar superposiciones abiertas en lugar de salir inmediatamente.",
     ],
   },
   {
     heading: "Mejorado",
     items: [
-      "Se cambió el subtítulo de Configuración a 'Studio Settings'.",
-      "Se renombró la fila de navegación del Actualizador a 'Updates'.",
+      "Se mejoró el diseño de la página de actualizaciones incrustando el registro de cambios dentro de la tarjeta principal.",
+      "Se mejoró la localización del subtítulo de Ajustes y los colores de acento de Stagex para adaptarse dinámicamente al color del tema del usuario.",
     ],
   },
 ];
@@ -86,17 +97,18 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Neu",
+    heading: "Behoben",
     items: [
-      "Updates-Seite mit Hero-Karte, strukturiertem Changelog und Stitch-inspiriertem Layout neu gestaltet.",
-      "Abschnitt für aktuelle Versionen mit erweiterbaren Changelogs hinzugefügt.",
+      "Fehler behoben, bei dem unsichtbare Wählscheiben im Stagex-Elementemenü Klicks erfassten.",
+      "Zurück-Navigation in Unter-Apps korrigiert, um offene Blätter, Menüs und Formulare vor dem Beenden zu schließen.",
+      "Wisch-zurück-Geste korrigiert, um offene Overlays zu schließen, anstatt sofort zu beenden.",
     ],
   },
   {
     heading: "Verbessert",
     items: [
-      "Untertitel der Einstellungen zu 'Studio Settings' geändert.",
-      "Navigationszeile des Updaters in 'Updates' umbenannt.",
+      "Layout der Update-Seite durch Einbetten des Changelogs in die Hauptkarte verbessert.",
+      "Lokalisierung des Einstellungs-Untertitel und Stagex-Akzentfarben verbessert, um sich dynamisch an die Farbwahl des Benutzers anzupassen.",
     ],
   },
 ];

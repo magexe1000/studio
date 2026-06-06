@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
-import { setBackHandler } from '../lib/backStack';
+import { setBackHandler, useBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import translations from '../lib/i18n';
 import { useT } from '../lib/useT';
@@ -473,6 +473,14 @@ export default function StagexPanel() {
       iframe.contentWindow?.postMessage({ type: 'sc-landscape', landscape: isLandscape }, window.location.origin);
     } catch {}
   }, [isLandscape]);
+
+  useBackHandler('sheet', () => {
+    if (pdfSheetOpen) {
+      setPdfSheetOpen(false);
+      return true;
+    }
+    return false;
+  }, [pdfSheetOpen]);
 
   useEffect(() => {
     const handler = (): boolean => {

@@ -1,12 +1,8 @@
 ### Fixed
-- Paused unfinished cloud sync surfaces by marking Devices & Sessions, Backup & Sync, and Storage & Export as Coming Soon.
-- Fixed profile photo updates so the new image appears consistently in Profile and Settings.
-- Removed the misleading uploading profile picture dialog while cloud profile photo sync is paused.
-- Fixed the Settings update button alignment and sizing.
-- Fixed the Stagex visibility button overlapping the Elements menu.
+- Fixed Stagex Elements menu invisible dial chips capturing clicks.
+- Fixed back-navigation in sub-apps to dismiss open sheets, menus, and forms before exiting.
+- Fixed swipe-back gesture to dismiss open overlays instead of exiting immediately.
 
 ### Improved
-- Improved account/settings clarity by hiding unfinished sync controls behind Coming Soon states.
-- Improved profile avatar consistency across account surfaces.
-- Improved Settings header layout on mobile.
-- Improved Stagex floating controls behavior when the Elements menu is open.
+- Improved updates page layout by embedding the changelog inside the hero card.
+- Improved Settings subtitle localization and Stagex accent colors to dynamically adapt to the user theme color.

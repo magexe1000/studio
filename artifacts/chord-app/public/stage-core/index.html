@@ -1634,7 +1634,7 @@ html[data-theme="light"] #stage-empty-state  { color: #bbb !important; }
   -webkit-backdrop-filter: blur(16px);
   white-space: nowrap;
   box-shadow: 0 4px 20px rgba(0,0,0,0.45);
-  pointer-events: all;
+  pointer-events: none;
 }
 .sc-dial-chip:active { transform: scale(0.93) !important; opacity: 0.75 !important; }
 .sc-dial-chip-icon { font-size: 15px; display: block; }
@@ -1643,6 +1643,7 @@ html[data-theme="light"] #stage-empty-state  { color: #bbb !important; }
 #sc-fab-wrap.sc-dial-open .sc-dial-chip {
   transform: translateY(0) scale(1);
   opacity: 1;
+  pointer-events: all;
 }
 
 /* Tap-outside backdrop */

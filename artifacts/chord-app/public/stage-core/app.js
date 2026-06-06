@@ -3150,15 +3150,14 @@ function applyTheme(name) {
 }
 
 function _syncLangButtons() {
-  const t = THEMES[state.theme] || THEMES.electric;
   const enBtn = document.getElementById('settings-lang-en');
   const esBtn = document.getElementById('settings-lang-es');
   if (!enBtn || !esBtn) return;
   const isEn = state.lang === 'en';
-  enBtn.style.background  = isEn  ? t.accent : '#262626';
-  enBtn.style.color        = isEn  ? t.dark   : '#767575';
-  esBtn.style.background  = !isEn ? t.accent : '#262626';
-  esBtn.style.color        = !isEn ? t.dark   : '#767575';
+  enBtn.style.background  = isEn  ? 'var(--accent)' : '#262626';
+  enBtn.style.color        = isEn  ? 'var(--accent-dark, #fff)' : '#767575';
+  esBtn.style.background  = !isEn ? 'var(--accent)' : '#262626';
+  esBtn.style.color        = !isEn ? 'var(--accent-dark, #fff)' : '#767575';
 }
 function _saveThemePref() {
   try {
@@ -5207,16 +5206,15 @@ function renderScenesBar() {
     return;
   }
   bar.style.display = 'flex';
-  const accent = (THEMES[state.theme] || THEMES.electric).accent;
   const tabsHtml = state.scenes.map((s, i) => {
     const active = (i === state.currentSceneIdx);
     return `
       <button onclick="switchScene(${i})" title="${s.name}"
         oncontextmenu="event.preventDefault();renameScenePrompt(${i});return false;"
         style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;
-               border-radius:5px;border:1px solid ${active ? accent : 'rgba(255,255,255,0.10)'};
-               background:${active ? accent + '22' : 'rgba(255,255,255,0.04)'};
-               color:${active ? accent : '#a0a0a0'};
+               border-radius:5px;border:1px solid ${active ? 'var(--accent)' : 'rgba(255,255,255,0.10)'};
+               background:${active ? 'var(--accent-12)' : 'rgba(255,255,255,0.04)'};
+               color:${active ? 'var(--accent)' : '#a0a0a0'};
                font-family:'Manrope',sans-serif;font-size:8.5px;font-weight:800;
                text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;
                transition:background 0.15s,color 0.15s,border-color 0.15s;">
@@ -5230,9 +5228,9 @@ function renderScenesBar() {
     ? `<button onclick="addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}"
          style="display:inline-flex;align-items:center;justify-content:center;
                 width:20px;height:20px;border-radius:5px;
-                border:1px dashed ${accent};background:transparent;color:${accent};
+                border:1px dashed var(--accent);background:transparent;color:var(--accent);
                 cursor:pointer;transition:background 0.15s;"
-         onmouseover="this.style.background='${accent}22'"
+         onmouseover="this.style.background='var(--accent-12)'"
          onmouseout="this.style.background='transparent'">
          <span class="material-symbols-outlined" style="font-size:13px;line-height:1;">add</span>
        </button>`
@@ -6690,6 +6688,107 @@ function leaveExport() {
 
 // Exposed for the React wrapper and Android back button
 window.stageGoBack = function() {
+  // 1. Context menus
+  const ccm = document.getElementById('cable-context-menu');
+  if (ccm && ccm.classList.contains('visible')) {
+    _closeCableMenu();
+    return true;
+  }
+  // 2. Gear modal
+  const gm = document.getElementById('gear-modal');
+  if (gm && gm.style.display !== 'none') {
+    closeGearModal();
+    return true;
+  }
+  // 3. Sections modal
+  const sectM = document.getElementById('sections-modal');
+  if (sectM && sectM.style.display !== 'none') {
+    closeSectionsModal();
+    return true;
+  }
+  // 4. Batch import modal
+  const bim = document.getElementById('batch-import-modal');
+  if (bim && bim.style.display !== 'none') {
+    closeBatchImport();
+    return true;
+  }
+  // 5. Segment modal
+  const segmM = document.getElementById('segment-modal');
+  if (segmM && segmM.style.display !== 'none') {
+    closeSegmentModal();
+    return true;
+  }
+  // 6. Smart sort modal
+  const ssm = document.getElementById('smart-sort-modal');
+  if (ssm && ssm.style.display !== 'none') {
+    closeSmartSortModal();
+    return true;
+  }
+  // 7. Autosave modal
+  const asm = document.getElementById('autosave-modal');
+  if (asm && asm.style.display !== 'none') {
+    asm.style.display = 'none';
+    return true;
+  }
+  // 8. Share modal
+  const shm = document.getElementById('share-modal');
+  if (shm && shm.style.display !== 'none') {
+    closeShareModal();
+    return true;
+  }
+  // 9. Timeline item modal
+  const tim = document.getElementById('tl-item-modal');
+  if (tim && tim.style.display !== 'none') {
+    closeTlItemModal();
+    return true;
+  }
+  // 10. Custom element modal
+  const cem = document.getElementById('custom-el-modal');
+  if (cem && cem.style.display !== 'none') {
+    closeCustomElementModal();
+    return true;
+  }
+  // 11. Song modal
+  const sm = document.getElementById('song-modal');
+  if (sm && sm.style.display !== 'none') {
+    closeSongModal();
+    return true;
+  }
+  // 12. Confirm modal
+  const cm = document.getElementById('confirm-modal');
+  if (cm && cm.style.display !== 'none') {
+    doConfirm(false);
+    return true;
+  }
+  // 13. Layouts/presets panel
+  const pm = document.getElementById('presets-panel');
+  if (pm && pm.style.display !== 'none') {
+    closePresetsPanel();
+    return true;
+  }
+  // 14. Timeline panel
+  const tl = document.getElementById('timeline-panel');
+  if (tl && tl.style.display !== 'none') {
+    closeTimeline();
+    return true;
+  }
+  // 15. Item sheet
+  const sheet = document.getElementById('sc-item-sheet');
+  if (sheet && sheet.classList.contains('sc-sheet-open')) {
+    closeItemSheet();
+    return true;
+  }
+  // 16. Elements dial
+  if (typeof _dialOpen !== 'undefined' && _dialOpen) {
+    closeSCDial();
+    return true;
+  }
+  // 17. Active element selection
+  if (state.selectedId) {
+    deselectAll();
+    return true;
+  }
+
   if (state.currentView === 'Export') { leaveExport(); return true; }
   if (state.currentView === 'Rider' || state.currentView === 'Setlist' ||
       state.currentView === 'Gear' || state.currentView === 'Members') {
