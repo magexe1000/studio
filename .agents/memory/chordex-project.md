@@ -17,7 +17,6 @@ description: Key rules, file locations, and constraints for the Chordex monorepo
 ## Hard Rules
 - Never edit `lib/api-spec/` without explicit user approval
 - Never modify `tsconfig.base.json` without explicit instruction
-- Never `git push` directly — git push is blocked; always use GitHub Git Data API via `code_execution`
 - Always use `pnpm` (never npm or yarn)
 - Discuss major architectural changes or new dependencies before implementing
 
@@ -35,9 +34,9 @@ description: Key rules, file locations, and constraints for the Chordex monorepo
 - Web PWA: service worker reload; Android: @capgo/capacitor-updater
 - `scripts/sync-version.mjs` regenerates `public/version.json` on predev/prebuild
 
-## GitHub Push Pattern (REQUIRED — git push is blocked)
-Use GitHub Git Data API via `code_execution`. Owner: `MAGEXE1000`, Repo: `Chordex`, branch: `main`.
-Get token from GitHub integration (listConnections). Always push `package.json` + `pnpm-lock.yaml` together when deps change.
+## GitHub Push Pattern
+Use standard git workflows to push commits to main.
+Always push `package.json` + `pnpm-lock.yaml` together when deps change.
 
 ## Audio / Stems (Groovex)
 - Stems are .ogg on Cloudflare R2 (`pub-b6a593f7d45247389f1accd1a54fec5c.r2.dev`)
@@ -50,7 +49,7 @@ SPA switching between: chords, drums, stage, groovex, vocalex — via BottomNav.
 ## Current Version
 3.0.76 (Beta), date 2026-05-12
 
-## Workflows (Replit)
+## Workflows
 - chord-app web: `pnpm --filter @workspace/chord-app run dev`
 - API Server: `pnpm --filter @workspace/api-server run dev`
 Restart after code/package changes.

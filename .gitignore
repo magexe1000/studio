@@ -48,7 +48,7 @@ yarn-error.log
 testem.log
 /typings/
 
-# ── Replit internals ──────────────────────────────────────────────────────────
+# ── IDE / Local cache internals ───────────────────────────────────────────────
 .cache/
 .local/
 .cursor/
