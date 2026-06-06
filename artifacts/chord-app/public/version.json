@@ -1,13 +1,9 @@
 {
-  "version": "3.6.22",
-  "changelog": "• Fixed swipe-back touch gesture inside sub-apps to never exit to the Studio Hub, only navigating back to the previous screen.\n• Removed duplicate Changelog row from the Settings UI.\n• Made applications launch instantly upon clicking, delaying zoom scaling animations slightly to ensure a lag-free visual transition.",
+  "version": "3.6.23",
+  "changelog": "• Hardened release pipeline push phase with automatic cleanup of unstaged build files before rebasing.",
   "releaseNotes": {
     "improved": [
-      "Made applications launch instantly upon clicking, delaying zoom scaling animations slightly to ensure a lag-free visual transition."
-    ],
-    "fixed": [
-      "Fixed swipe-back touch gesture inside sub-apps to never exit to the Studio Hub, only navigating back to the previous screen.",
-      "Removed duplicate Changelog row from the Settings UI."
+      "Hardened release pipeline push phase with automatic cleanup of unstaged build files before rebasing."
     ]
   },
   "mandatory": false

@@ -252,6 +252,10 @@ jobs:
             git commit -m "release v$VERSION"
           fi
           
+          # Ensure clean working directory before rebase
+          git add -A
+          git reset --hard HEAD
+          
           # Retry logic with exponential backoff to handle transient race conditions
           MAX_RETRIES=5
           RETRY=0

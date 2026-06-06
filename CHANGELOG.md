@@ -15,6 +15,11 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.6.23
+
+### Improved
+- Hardened release pipeline push phase with automatic cleanup of unstaged build files before rebasing.
+
 ## 3.6.22
 
 ### Fixed
