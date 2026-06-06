@@ -843,8 +843,8 @@ export default function App() {
       if (!handled) {
         const isSubApp = useChordStore.getState().settings.appMode !== 'hub';
         if (isSubApp) {
-          // If we are in a sub-app and back gesture is not internally handled, return to Hub
-          returnToStudioHubRef.current();
+          // If we are in a sub-app and back gesture is not internally handled, consume and do nothing (do not return to Hub)
+          console.log('[Navigation] Back pressed inside sub-app (root state) - ignored exit.');
         } else {
           // Double press to exit when already on the Studio Hub
           const now = Date.now();

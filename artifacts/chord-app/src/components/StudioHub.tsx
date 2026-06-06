@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
+import { motion } from 'motion/react';
 import { useBackHandler } from '../lib/backStack';
 import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
 import { subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices } from '../lib/sync';
@@ -539,157 +540,162 @@ export default function StudioHub() {
                   />
 
                   {/* Polished Benefits Section */}
-                  <div style={{ marginTop: 24, padding: '0 4px 20px', textAlign: 'center' }}>
-                    <h3 style={{
-                      fontSize: 18,
-                      fontWeight: 800,
-                      fontFamily: 'Manrope, sans-serif',
-                      color: 'var(--c-text-primary)',
-                      margin: '0 0 6px',
-                      letterSpacing: '-0.02em',
-                    }}>
-                      Your Studio workspace, everywhere
-                    </h3>
-                    <p style={{
-                      fontSize: 12.5,
-                      fontFamily: 'Inter, sans-serif',
-                      color: 'var(--c-text-secondary)',
-                      opacity: 0.75,
-                      lineHeight: 1.45,
-                      margin: '0 auto 22px',
-                      maxWidth: 340,
-                    }}>
-                      Create an account to keep your projects, presets, settings, and progress connected across devices.
-                    </p>
+                  {(() => {
+                    const benefitsList = [
+                      {
+                        icon: 'sync',
+                        title: lang === 'es' ? 'Sincronización en la Nube' : 'Cloud Sync',
+                        desc: lang === 'es' ? 'Sincroniza tus proyectos, canciones, setlists y configuraciones entre todos tus dispositivos de forma segura.' : 'Sync your workspace, projects, and transpositions across all devices securely.',
+                      },
+                      {
+                        icon: 'devices',
+                        title: lang === 'es' ? 'Acceso Multi-Dispositivo' : 'Multi-Device Access',
+                        desc: lang === 'es' ? 'Mantén tu progreso en tiempo real al cambiar entre tu teléfono, tablet o computadora.' : 'Keep your progress synced in real-time when switching between mobile, tablet, or web.',
+                      },
+                      {
+                        icon: 'backup',
+                        title: lang === 'es' ? 'Respaldo Seguro' : 'Secure Cloud Backup',
+                        desc: lang === 'es' ? 'Nunca pierdas tu trabajo. Tus datos locales se respaldan automáticamente en la nube.' : 'Never lose your progress. Your local creations are backed up automatically in the cloud.',
+                      },
+                      {
+                        icon: 'palette',
+                        title: lang === 'es' ? 'Espacio Personalizado' : 'Personalized Workspace',
+                        desc: lang === 'es' ? 'Guarda tus preferencias de color de acento, temas visuales y ajustes personalizados de cada sub-app.' : 'Save your custom accent colors, visual themes, and per-app settings to your profile.',
+                      },
+                      {
+                        icon: 'settings_backup_restore',
+                        title: lang === 'es' ? 'Recuperación Sencilla' : 'Instant Recovery',
+                        desc: lang === 'es' ? 'Restaura todo tu ecosistema de Studio al instante en caso de cambiar o reinstalar el dispositivo.' : 'Restore your entire Studio setup instantly when setting up a new device or browser.',
+                      },
+                      {
+                        icon: 'rocket_launch',
+                        title: lang === 'es' ? 'Herramientas Colaborativas' : 'Upcoming Collaborations',
+                        desc: lang === 'es' ? 'Prepárate para compartir setlists, colaborar en tiempo real y usar las nuevas herramientas en la nube.' : 'Prepare your account for real-time setlist sharing, jam tools, and cloud collaboration.',
+                        comingSoon: true
+                      }
+                    ];
 
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                      gap: 12,
-                      textAlign: 'left',
-                    }}>
-                      {/* Cloud Sync */}
-                      <div style={{
-                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
-                        border: '1px solid rgba(128, 128, 128, 0.08)',
-                        borderRadius: 16,
-                        padding: '14px 16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 6,
-                        backdropFilter: 'blur(8px)',
-                        WebkitBackdropFilter: 'blur(8px)',
-                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                      }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>sync</span>
-                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Cloud Sync</h4>
-                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Sync your workspace across devices securely.</p>
-                      </div>
+                    return (
+                      <div style={{ marginTop: 28, padding: '0 4px 20px', textAlign: 'center' }}>
+                        <h3 style={{
+                          fontSize: 20,
+                          fontWeight: 800,
+                          fontFamily: 'Manrope, sans-serif',
+                          color: 'var(--c-text-primary)',
+                          margin: '0 0 6px',
+                          letterSpacing: '-0.02em',
+                        }}>
+                          {lang === 'es' ? 'Tu espacio de trabajo de Studio, en todas partes' : 'Unlock the Full Power of Studio'}
+                        </h3>
+                        <p style={{
+                          fontSize: 12.5,
+                          fontFamily: 'Inter, sans-serif',
+                          color: 'var(--c-text-secondary)',
+                          opacity: 0.75,
+                          lineHeight: 1.45,
+                          margin: '0 auto 24px',
+                          maxWidth: 340,
+                        }}>
+                          {lang === 'es'
+                            ? 'Crea una cuenta gratuita para conectar tus dispositivos, habilitar respaldos y acceder a funciones premium.'
+                            : 'Create a free account to back up your projects, enable seamless syncing, and unlock upcoming collaborative tools.'}
+                        </p>
 
-                      {/* Multi-device Access */}
-                      <div style={{
-                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
-                        border: '1px solid rgba(128, 128, 128, 0.08)',
-                        borderRadius: 16,
-                        padding: '14px 16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 6,
-                        backdropFilter: 'blur(8px)',
-                        WebkitBackdropFilter: 'blur(8px)',
-                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                      }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>devices</span>
-                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Multi-Device</h4>
-                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Keep your workspace connected across mobile and desktop.</p>
-                      </div>
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                          textAlign: 'left',
+                          width: '100%',
+                          maxWidth: 380,
+                          margin: '0 auto',
+                        }}>
+                          {benefitsList.map((item, idx) => (
+                            <motion.div
+                              key={idx}
+                              whileHover={{ y: -2, scale: 1.01 }}
+                              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                              style={{
+                                background: isHubLight ? 'rgba(255, 255, 255, 0.6)' : 'rgba(20, 20, 24, 0.45)',
+                                border: isHubLight ? '1px solid rgba(0, 0, 0, 0.06)' : '1px solid rgba(255, 255, 255, 0.05)',
+                                borderRadius: 18,
+                                padding: '14px 16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 14,
+                                backdropFilter: 'blur(16px)',
+                                WebkitBackdropFilter: 'blur(16px)',
+                                boxShadow: isHubLight ? '0 4px 16px rgba(0,0,0,0.03)' : '0 4px 20px rgba(0, 0, 0, 0.15)',
+                                position: 'relative',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              {/* Left Glowing Icon Circle */}
+                              <div style={{
+                                width: 42,
+                                height: 42,
+                                borderRadius: 14,
+                                background: `color-mix(in srgb, ${accent.from} 12%, transparent)`,
+                                border: `1px solid color-mix(in srgb, ${accent.from} 20%, transparent)`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}>
+                                <span className="material-symbols-outlined" style={{
+                                  fontSize: 20,
+                                  color: accent.from,
+                                  fontVariationSettings: "'FILL' 1"
+                                }}>
+                                  {item.icon}
+                                </span>
+                              </div>
 
-                      {/* Cloud Backup */}
-                      <div style={{
-                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
-                        border: '1px solid rgba(128, 128, 128, 0.08)',
-                        borderRadius: 16,
-                        padding: '14px 16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 6,
-                        backdropFilter: 'blur(8px)',
-                        WebkitBackdropFilter: 'blur(8px)',
-                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                      }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>backup</span>
-                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Cloud Backup</h4>
-                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Back up your projects, presets, and settings automatically.</p>
-                      </div>
-
-                      {/* Personalized Studio */}
-                      <div style={{
-                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
-                        border: '1px solid rgba(128, 128, 128, 0.08)',
-                        borderRadius: 16,
-                        padding: '14px 16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 6,
-                        backdropFilter: 'blur(8px)',
-                        WebkitBackdropFilter: 'blur(8px)',
-                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                      }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>palette</span>
-                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Personalized</h4>
-                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Save your custom themes, layouts, and app settings.</p>
-                      </div>
-
-                      {/* Faster Recovery */}
-                      <div style={{
-                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
-                        border: '1px solid rgba(128, 128, 128, 0.08)',
-                        borderRadius: 16,
-                        padding: '14px 16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 6,
-                        backdropFilter: 'blur(8px)',
-                        WebkitBackdropFilter: 'blur(8px)',
-                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                      }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>settings_backup_restore</span>
-                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Easy Recovery</h4>
-                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Restore your Studio setup anytime on any device.</p>
-                      </div>
-
-                      {/* Future Features */}
-                      <div style={{
-                        background: 'var(--app-surface, rgba(20, 20, 24, 0.45))',
-                        border: '1px solid rgba(128, 128, 128, 0.08)',
-                        borderRadius: 16,
-                        padding: '14px 16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 6,
-                        backdropFilter: 'blur(8px)',
-                        WebkitBackdropFilter: 'blur(8px)',
-                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 20, color: accent.from, display: 'inline-block' }}>star</span>
-                          <span style={{
-                            fontSize: 8.5,
-                            fontWeight: 800,
-                            color: accent.from,
-                            background: `color-mix(in srgb, ${accent.from} 14%, transparent)`,
-                            padding: '1.5px 5.5px',
-                            borderRadius: 99,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.03em',
-                            fontFamily: 'Manrope, sans-serif',
-                          }}>Coming soon</span>
+                              {/* Right Content */}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                  <h4 style={{
+                                    fontSize: 13.5,
+                                    fontWeight: 700,
+                                    fontFamily: 'Manrope, sans-serif',
+                                    color: 'var(--c-text-primary)',
+                                    margin: 0,
+                                  }}>
+                                    {item.title}
+                                  </h4>
+                                  {item.comingSoon && (
+                                    <span style={{
+                                      fontSize: 8,
+                                      fontWeight: 800,
+                                      color: accent.from,
+                                      background: `color-mix(in srgb, ${accent.from} 14%, transparent)`,
+                                      padding: '1px 5px',
+                                      borderRadius: 99,
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.03em',
+                                      fontFamily: 'Manrope, sans-serif',
+                                    }}>
+                                      {lang === 'es' ? 'Próximamente' : 'Coming soon'}
+                                    </span>
+                                  )}
+                                </div>
+                                <p style={{
+                                  fontSize: 11,
+                                  fontFamily: 'Inter, sans-serif',
+                                  color: 'var(--c-text-secondary)',
+                                  opacity: 0.8,
+                                  lineHeight: 1.4,
+                                  margin: '3px 0 0',
+                                }}>
+                                  {item.desc}
+                                </p>
+                              </div>
+                            </motion.div>
+                          ))}
                         </div>
-                        <h4 style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-primary)', margin: 0 }}>Upcoming Tools</h4>
-                        <p style={{ fontSize: 11.5, fontFamily: 'Inter, sans-serif', color: 'var(--c-text-secondary)', opacity: 0.8, lineHeight: 1.4, margin: 0 }}>Prepare your account for collaboration and cloud tools.</p>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
                 </div>
               )}
             </Suspense>
@@ -723,7 +729,7 @@ export default function StudioHub() {
                     to { opacity: 0; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); transform: scale(0.95); filter: blur(8px); }
                   }
                   @keyframes success-pop {
-                    0% { transform: scale(0.85) translateY(12px); opacity: 0; }
+                    0% { transform: scale(0.85) translateY(16px); opacity: 0; }
                     100% { transform: scale(1) translateY(0); opacity: 1; }
                   }
                   @keyframes draw-circle {
@@ -734,22 +740,35 @@ export default function StudioHub() {
                     0% { stroke-dashoffset: 48; }
                     100% { stroke-dashoffset: 0; }
                   }
+                  @keyframes draw-ripple {
+                    0% { transform: scale(1); opacity: 0.6; stroke-width: 4px; }
+                    100% { transform: scale(1.4); opacity: 0; stroke-width: 0.5px; }
+                  }
+                  @keyframes fade-circle-fill {
+                    from { fill: rgba(16, 185, 129, 0); }
+                    to { fill: rgba(16, 185, 129, 0.06); }
+                  }
+                  @keyframes fade-in-up-stagger {
+                    from { opacity: 0; transform: translateY(8px); }
+                    to { opacity: 1; transform: translateY(0); }
+                  }
                   .success-card {
-                    padding: 36px 28px;
-                    border-radius: 28px;
+                    padding: 40px 32px;
+                    border-radius: 32px;
                     background: var(--app-surface, rgba(20, 20, 24, 0.8));
                     border: 1px solid rgba(255, 255, 255, 0.08);
-                    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+                    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
                     text-align: center;
                     max-width: 320px;
                     width: calc(100% - 40px);
-                    animation: success-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+                    animation: success-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
                   }
                   .success-svg {
-                    width: 72px;
-                    height: 72px;
+                    width: 76px;
+                    height: 76px;
                     display: block;
-                    margin: 0 auto 20px;
+                    margin: 0 auto 24px;
+                    overflow: visible;
                   }
                   .success-circle {
                     stroke-dasharray: 166;
@@ -758,22 +777,57 @@ export default function StudioHub() {
                     animation: draw-circle 0.65s cubic-bezier(0.65, 0, 0.45, 1) forwards;
                     animation-delay: 0.05s;
                   }
+                  .success-circle-fill {
+                    animation: fade-circle-fill 0.4s ease forwards;
+                    animation-delay: 0.6s;
+                  }
                   .success-check {
                     stroke-dasharray: 48;
                     stroke-dashoffset: 48;
-                    animation: draw-check 0.4s cubic-bezier(0.65, 0, 0.45, 1) forwards;
-                    animation-delay: 0.68s;
+                    animation: draw-check 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                    animation-delay: 0.55s;
+                  }
+                  .success-ripple {
+                    transform-origin: center;
+                    animation: draw-ripple 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                  }
+                  .success-ripple-1 {
+                    animation-delay: 0.4s;
+                  }
+                  .success-ripple-2 {
+                    animation-delay: 0.62s;
+                  }
+                  .success-title {
+                    margin: 0 0 8px;
+                    font-family: 'Manrope', sans-serif;
+                    font-weight: 800;
+                    font-size: 20px;
+                    color: var(--c-text-primary);
+                    animation: fade-in-up-stagger 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+                    animation-delay: 0.78s;
+                  }
+                  .success-text {
+                    margin: 0;
+                    font-family: 'Inter', sans-serif;
+                    font-size: 12.5px;
+                    color: var(--c-text-secondary);
+                    line-height: 1.4;
+                    word-break: break-all;
+                    animation: fade-in-up-stagger 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+                    animation-delay: 0.9s;
                   }
                 `}</style>
                 <div className="success-card">
                   <svg className="success-svg" viewBox="0 0 52 52" fill="none">
-                    <circle className="success-circle" cx="26" cy="26" r="25" stroke="#10b981" strokeWidth="4" />
+                    <circle className="success-circle success-circle-fill" cx="26" cy="26" r="25" stroke="#10b981" strokeWidth="4" />
+                    <circle className="success-ripple success-ripple-1" cx="26" cy="26" r="25" stroke="#10b981" strokeWidth="4" fill="none" />
+                    <circle className="success-ripple success-ripple-2" cx="26" cy="26" r="25" stroke="#10b981" strokeWidth="4" fill="none" />
                     <path className="success-check" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
                   </svg>
-                  <h3 style={{ margin: '0 0 8px', fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)' }}>
+                  <h3 className="success-title">
                     {t.hub.accountSection.signedIn}
                   </h3>
-                  <p style={{ margin: 0, fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.4, wordBreak: 'break-all' }}>
+                  <p className="success-text">
                     {successName}
                   </p>
                 </div>
