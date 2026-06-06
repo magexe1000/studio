@@ -345,10 +345,10 @@ export default function StudioHub() {
   }, [tab]);
 
   const launchApp = useCallback((appMode: 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex') => {
-    setZooming(true);
+    updateSettings({ appMode });
     setTimeout(() => {
-      updateSettings({ appMode });
-    }, 380);
+      setZooming(true);
+    }, 100);
   // updateSettings is stable (Zustand action), setZooming is React setState
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -3605,7 +3605,6 @@ function HubSettings({
       <SettingsSectionLabel delay={200}>{(t.hub as { studioSettings?: { systemAbout?: string } }).studioSettings?.systemAbout ?? 'System & About'}</SettingsSectionLabel>
       <div style={cardStyle}>
         <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'App updates and installation'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={210} />
-        <SettingsNavRow icon="history" iconColor={accent.from} title={(t.hub as { studioSettings?: { changelog?: string } }).studioSettings?.changelog ?? 'Changelog'} desc={(t.hub as { studioSettings?: { changelogDesc?: string } }).studioSettings?.changelogDesc ?? "What's new in this version"} onPress={() => setChangelogOpen(true)} delay={220} />
 
         <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last={!settings.developerMode} delay={230} />
         {settings.developerMode && (

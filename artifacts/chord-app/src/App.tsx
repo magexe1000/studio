@@ -1507,24 +1507,11 @@ export default function App() {
 
       if (deltaX > vw * 0.25) {
         // Intercept with handleGlobalBack first
-        const backHandled = handleGlobalBack();
-        if (backHandled) {
-          // Swipe handled by closing menu -> snap back
-          if (subAppWrapperRef.current) {
-            subAppWrapperRef.current.style.transform = 'translateX(0)';
-          }
-        } else {
-          // Swipe success -> exit to hub
-          if (subAppWrapperRef.current) {
-            subAppWrapperRef.current.style.transform = `translateX(${vw}px)`;
-          }
-          returnToStudioHubRef.current(true);
-        }
-      } else {
-        // Swipe cancelled -> snap back
-        if (subAppWrapperRef.current) {
-          subAppWrapperRef.current.style.transform = 'translateX(0)';
-        }
+        handleGlobalBack();
+      }
+      // Always snap back to normal position — swipe gesture should never exit the sub-app to the Hub
+      if (subAppWrapperRef.current) {
+        subAppWrapperRef.current.style.transform = 'translateX(0)';
       }
     };
 
@@ -1575,6 +1562,7 @@ export default function App() {
               transition={{
                 duration: exitingToHub ? 0 : 0.28,
                 ease: 'easeInOut',
+                delay: exitingToHub ? 0 : 0.12,
               }}
               style={{
                 position: 'absolute',
@@ -1582,7 +1570,9 @@ export default function App() {
                 zIndex: 2,
                 background: 'var(--app-bg)',
                 willChange: 'opacity, transform',
-                transition: 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1), opacity 370ms ease-in-out',
+                transition: exitingToHub
+                  ? 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1), opacity 370ms ease-in-out'
+                  : 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1) 120ms, opacity 370ms ease-in-out 120ms',
                 transform: exitingToHub ? 'translateX(100%)' : 'translateX(0)',
                 opacity: exitingToHub ? 0 : 1,
                 pointerEvents: (activeAppToRender === null || exitingToHub) ? 'none' : 'auto',
