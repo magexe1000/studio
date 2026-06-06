@@ -15,6 +15,11 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.6.20
+
+### Fixed
+- Fixed release pipeline race conditions by introducing concurrency group constraints and rebase-before-push logic in CI.
+
 ## 3.6.19
 
 ### Fixed

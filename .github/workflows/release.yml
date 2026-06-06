@@ -23,6 +23,10 @@ permissions:
   contents: write
   actions: read
 
+concurrency:
+  group: release-pipeline
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -247,4 +251,7 @@ jobs:
           else
             git commit -m "release v$VERSION"
           fi
+          # Fetch latest changes and rebase before pushing to prevent race conditions
+          git fetch origin main
+          git rebase origin/main
           git push origin HEAD:main

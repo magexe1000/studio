@@ -1,15 +1,9 @@
 {
-  "version": "3.6.19",
-  "changelog": "• Prevented accidental GitHub Pages deployment paths from being treated as active Studio update infrastructure.\n• Removed unused Replit-specific project files and references from the Studio repository.\n• Cleaned deployment documentation so Firebase Hosting is clearly the active hosting target.\n• Removed stale GitHub Pages references from release/update documentation and configuration.\n• Added validation to prevent updater metadata from pointing to GitHub Pages.",
+  "version": "3.6.20",
+  "changelog": "• Fixed release pipeline race conditions by introducing concurrency group constraints and rebase-before-push logic in CI.",
   "releaseNotes": {
-    "improved": [
-      "Removed unused Replit-specific project files and references from the Studio repository.",
-      "Cleaned deployment documentation so Firebase Hosting is clearly the active hosting target.",
-      "Removed stale GitHub Pages references from release/update documentation and configuration.",
-      "Added validation to prevent updater metadata from pointing to GitHub Pages."
-    ],
     "fixed": [
-      "Prevented accidental GitHub Pages deployment paths from being treated as active Studio update infrastructure."
+      "Fixed release pipeline race conditions by introducing concurrency group constraints and rebase-before-push logic in CI."
     ]
   },
   "mandatory": false
