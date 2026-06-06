@@ -19,7 +19,7 @@
  *     foreground, atomically swaps the WebView root, and reloads the
  *     app onto the new bundle.
  *
- * On web (PWA / dev preview / Replit iframe) all of these are no-ops —
+ * On web (PWA / dev preview / preview iframe) all of these are no-ops —
  * the existing `window.location.reload()` flow handles the swap via
  * the service worker's cache.
  */

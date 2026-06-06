@@ -40,13 +40,9 @@ public class OtaCheckWorker extends Worker {
 
     private static final String TAG = "OtaCheckWorker";
 
-    /** URLs of the self-hosted version manifest, in priority order.
-     *
-     *  raw.githubusercontent.com is the FAST PATH — it serves the file
-     *  within seconds of a `git push`, while GitHub Pages (Fastly CDN)
-     *  can take 2–3 minutes to flush. We try raw first; if it fails
-     *  (private repo, network blocked, branch rename), we fall back to
-     *  the Pages URL. Whichever returns a higher semver wins. */
+    /** URLs of the self-hosted version manifest on Firebase Hosting, in priority order.
+     *  The app checks app-release.json and version.json from Firebase Hosting to check
+     *  for new OTA bundles or APK releases. */
     private static final String[] VERSION_URLS = new String[] {
         "https://studio-30f44.web.app/app-release.json",
         "https://studio-30f44.web.app/version.json",

@@ -106,7 +106,7 @@ function init() {
   //
   //  1. experimentalAutoDetectLongPolling — Firestore's default
   //     transport is WebChannel over fetch streams, which gets
-  //     mangled by many proxies (Replit's preview iframe, corporate
+  //     mangled by many proxies (preview webviews/iframes, corporate
   //     HTTPS-inspecting proxies, some mobile carriers, Capacitor's
   //     WebView on certain Android builds). When the WebChannel
   //     handshake stalls, every getDoc / setDoc throws "client is

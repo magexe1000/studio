@@ -10,7 +10,6 @@ Allow: /groovex/
 Disallow: /bundles/
 Disallow: /version.json
 Disallow: /audio-manifest.json
-Disallow: /.replit
-Disallow: /replit.md
+Disallow: /README.md
 
 Sitemap: https://studio-30f44.web.app/sitemap.xml

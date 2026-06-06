@@ -290,6 +290,23 @@ if (prevVersionCode && prevData && prevData.version !== version && versionCode <
   process.exit(1);
 }
 
+// Validate against GitHub Pages URLs in metadata
+const urlRegex = /https?:\/\/[^\s"]+/g;
+const jsonStr = JSON.stringify(metadata);
+const matches = jsonStr.match(urlRegex) || [];
+for (const url of matches) {
+  const cleanUrl = url.replace(/[",}]/g, '').trim();
+  if (cleanUrl.includes('github.io') || cleanUrl.includes('gh-pages')) {
+    console.error(`\x1b[31mgenerate-release-metadata: ✗ GitHub Pages URL detected in release metadata: ${cleanUrl}\x1b[0m`);
+    process.exit(1);
+  }
+  if (cleanUrl.includes('github.com') && !cleanUrl.startsWith('https://github.com/MAGEXE1000/Studio/releases/download/')) {
+    console.error(`\x1b[31mgenerate-release-metadata: ✗ Invalid GitHub URL detected in release metadata (only official releases/download/ paths are allowed): ${cleanUrl}\x1b[0m`);
+    process.exit(1);
+  }
+}
+console.log('generate-release-metadata: ✓ Metadata URLs successfully validated (no GitHub Pages URLs detected)');
+
 try {
   fs.writeFileSync(appReleaseJsonPath, JSON.stringify(metadata, null, 2) + '\n', 'utf8');
   // Also write to dist/public in case we rebuild

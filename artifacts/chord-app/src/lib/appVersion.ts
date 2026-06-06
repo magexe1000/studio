@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.18'; // Focused Stagex, Menu, and Back-navigation patch
+export const APP_VERSION = '3.6.19'; // Repository cleanup and security enhancements
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,11 +35,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-06'; // 3.6.18
+export const APP_VERSION_DATE = '2026-06-06'; // 3.6.19
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = 'dced8e9';
-export const APP_BUILD_TIMESTAMP = '6/5/2026, 9:05:47 PM UTC';
+export const APP_COMMIT_SHA = 'd452c2d8';
+export const APP_BUILD_TIMESTAMP = '6/5/2026, 10:31:06 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -58,18 +58,16 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Changed Settings subtitle to \"Studio Settings\".",
-      "Renamed the Updater navigation row to \"Updates\".",
-      "Improved updates page layout by embedding the changelog inside the hero card.",
-      "Improved Settings subtitle localization and Stagex accent colors to dynamically adapt to the user theme color.",
+      "Removed unused Replit-specific project files and references from the Studio repository.",
+      "Cleaned deployment documentation so Firebase Hosting is clearly the active hosting target.",
+      "Removed stale GitHub Pages references from release/update documentation and configuration.",
+      "Added validation to prevent updater metadata from pointing to GitHub Pages.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed Stagex Elements menu invisible dial chips capturing clicks.",
-      "Fixed back-navigation in sub-apps to dismiss open sheets, menus, and forms before exiting.",
-      "Fixed swipe-back gesture to dismiss open overlays instead of exiting immediately.",
+      "Prevented accidental GitHub Pages deployment paths from being treated as active Studio update infrastructure.",
     ],
   },
 ];

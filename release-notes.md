@@ -1,8 +1,8 @@
 ### Fixed
-- Fixed Stagex Elements menu invisible dial chips capturing clicks.
-- Fixed back-navigation in sub-apps to dismiss open sheets, menus, and forms before exiting.
-- Fixed swipe-back gesture to dismiss open overlays instead of exiting immediately.
+- Prevented accidental GitHub Pages deployment paths from being treated as active Studio update infrastructure.
 
 ### Improved
-- Improved updates page layout by embedding the changelog inside the hero card.
-- Improved Settings subtitle localization and Stagex accent colors to dynamically adapt to the user theme color.
+- Removed unused Replit-specific project files and references from the Studio repository.
+- Cleaned deployment documentation so Firebase Hosting is clearly the active hosting target.
+- Removed stale GitHub Pages references from release/update documentation and configuration.
+- Added validation to prevent updater metadata from pointing to GitHub Pages.
