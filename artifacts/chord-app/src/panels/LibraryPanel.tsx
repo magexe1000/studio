@@ -596,26 +596,7 @@ export default function LibraryPanel() {
         </header>
       )}
 
-      {isWebDesktop && mainTab === 'explore' && showType && (
-        <div style={{ position: 'fixed', left: 16, top: 16, zIndex: 100 }}>
-          <button
-            onClick={goBack}
-            data-testid="back-button"
-            className="btn-smooth"
-            style={{
-              width: '36px', height: '36px', borderRadius: '50%',
-              background: 'var(--app-surface-high)',
-              border: '1px solid rgba(128,128,128,0.15)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
-              cursor: 'pointer',
-            }}
-            aria-label="Back"
-          >
-            <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
-          </button>
-        </div>
-      )}
+
 
       {/* ── Tab bar: Explore | Discover ── */}
       {(mainTab === 'explore' ? showDefault || showSearch : true) && (
@@ -668,6 +649,24 @@ export default function LibraryPanel() {
 
       {mainTab === 'explore' && showType && activeCat && (
         <div className="flex-none pb-5 pt-1" style={{ paddingLeft: 20, paddingRight: 24, paddingTop: isWebDesktop ? '20px' : '4px' }}>
+          {isWebDesktop && (
+            <button
+              onClick={goBack}
+              data-testid="back-button"
+              className="btn-smooth mb-3"
+              style={{
+                width: '36px', height: '36px', borderRadius: '50%',
+                background: 'var(--app-surface-high)',
+                border: '1px solid rgba(128,128,128,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
+                cursor: 'pointer',
+              }}
+              aria-label="Back"
+            >
+              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
+            </button>
+          )}
           <h2 className="font-extrabold tracking-tighter leading-none" style={{ fontSize: '2rem', color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
             {activeCat.label}
           </h2>

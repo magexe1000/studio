@@ -12,10 +12,14 @@ import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChordexLogo, DrumexLogo, StudioLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 
 type AppValue = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
 
 export function AppModeMenuLogo({ color, size = 14 }: { color?: string; size?: number }) {
+  const isWebDesktop = useIsWebDesktop();
+  if (isWebDesktop) return null;
+
   const { settings, updateSettings } = useChordStore();
   const [open, setOpen]         = useState(false);
   const [anchorY, setAnchorY]   = useState<number>(0);

@@ -34,6 +34,7 @@ import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern } from '../lib/drumLibrary';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
+import WebAppSectionNav from '../components/WebAppSectionNav';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
 const LABEL_W  = 72;
@@ -1588,6 +1589,18 @@ const VISIBLE_BATCH = 20;
 export default function DrumEditor() {
   const { settings, updateSettings } = useChordStore();
   const isWebDesktop = useIsWebDesktop();
+  const [isLargeDesktop, setIsLargeDesktop] = useState(() => {
+    return typeof window !== 'undefined' && window.innerWidth >= 1024;
+  });
+
+  useEffect(() => {
+    if (!isWebDesktop) return;
+    const handleResize = () => {
+      setIsLargeDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isWebDesktop]);
   const {
     patterns, activePatternId,
     soundMap, volumeMap, masterVolume,
@@ -2831,7 +2844,24 @@ export default function DrumEditor() {
       )}
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
-      <div key={activeTab} className={tabAnim} style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexDirection: (isWebDesktop && isLargeDesktop) ? 'row' : 'column', 
+          flex: 1, 
+          width: '100%', 
+          height: '100%', 
+          overflow: 'hidden' 
+        }}
+      >
+        {isWebDesktop && (
+          <WebAppSectionNav 
+            app="drums" 
+            activeSection={activeTab} 
+            onChangeSection={handleSetTab} 
+          />
+        )}
+        <div key={activeTab} className={tabAnim} style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
         {/* ═══ SONGS LIST (Songs tab, not in editor) ═══════════════════════ */}
         {activeTab === 'songs' && !inEditor && (
@@ -3501,10 +3531,11 @@ export default function DrumEditor() {
         {/* ── Prefs tab ─────────────────────────────────────────────────── */}
         {activeTab === 'prefs' && <DrumPrefsPanel />}
 
+        </div>
       </div>
 
       {/* ── Bottom nav ───────────────────────────────────────────────────── */}
-      <DrumNav activeTab={activeTab} setTab={handleSetTab} accent={accent} isLight={isLight} isAmoled={isAmoled} hidden={isLandscape && inEditor} />
+      <DrumNav activeTab={activeTab} setTab={handleSetTab} accent={accent} isLight={isLight} isAmoled={isAmoled} hidden={isWebDesktop || (isLandscape && inEditor)} />
 
       {/* ── Floating buttons (songs list only): import above + add ──────── */}
       {!inEditor && activeTab === 'songs' && (
