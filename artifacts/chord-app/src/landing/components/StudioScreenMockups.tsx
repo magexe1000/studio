@@ -16,85 +16,116 @@ function RealAppLayoutWrapper({
   activeTabIdx = 0,
   children
 }: RealAppLayoutWrapperProps) {
-  return (
-    <div className="w-full h-full bg-[#050505] text-[#f2f1ef] flex font-sans select-none overflow-hidden text-[9px] border border-zinc-800/10 rounded-xl">
-      {/* Mock Sidebar */}
-      <div className="w-[75px] md:w-[90px] bg-[#0c0c0c] border-r border-zinc-900/60 flex flex-col justify-between py-2 px-1.5 flex-shrink-0">
-        <div>
-          {/* Brand Logo */}
-          <div className="flex items-center gap-1.5 mb-3 px-1">
-            <div className="text-white flex-shrink-0">
-              <svg className="w-3.5 h-3.5" viewBox="0 0 512 512" fill="none">
-                <path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256" stroke="currentColor" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              </svg>
-            </div>
-            <span className="font-extrabold text-[8px] md:text-[9px] tracking-tight text-white uppercase select-none">Studio</span>
-          </div>
-          
-          {/* Menu items */}
-          <div className="space-y-0.5">
-            {[
-              { id: 'hub', label: 'Hub', icon: 'home' },
-              { id: 'chords', label: 'Chordex', icon: 'music_note' },
-              { id: 'drums', label: 'Drumex', icon: 'drum' },
-              { id: 'stage', label: 'Stagex', icon: 'layers' },
-              { id: 'groovex', label: 'Groovex', icon: 'volume_2' },
-              { id: 'vocalex', label: 'Vocalex', icon: 'mic' }
-            ].map(item => {
-              const isActive = activeApp === item.id;
-              return (
-                <div 
-                  key={item.id}
-                  className={`flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors ${
-                    isActive ? 'bg-zinc-800/60 text-white font-bold' : 'text-zinc-600'
-                  }`}
-                >
-                  <span className="w-1 h-1 rounded-full flex-shrink-0 bg-current" style={{ opacity: isActive ? 1 : 0.4 }} />
-                  <span className="truncate text-[7px] uppercase tracking-wider">{item.label}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        
-        {/* Footer */}
-        <div className="px-1 space-y-0.5 border-t border-zinc-900 pt-2 text-[6.5px] text-zinc-600 font-bold">
-          <div className="truncate text-zinc-500 font-medium">Guest User</div>
-          <div>Web v4.0.0</div>
-        </div>
-      </div>
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [dims, setDims] = React.useState({ scaleX: 1, scaleY: 1 });
 
-      {/* Mock Main Panel */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#050505]">
-        {/* Panel Header */}
-        <div className="h-9 border-b border-zinc-900 px-3 flex items-center justify-between bg-[#080808]/40 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-[8.5px] uppercase text-white tracking-wide">{appTitle}</span>
-          </div>
-          
-          {/* Panel Tabs */}
-          {tabs.length > 0 && (
-            <div className="flex gap-1 p-0.5 bg-zinc-950 border border-zinc-900 rounded-md">
-              {tabs.map((tab, idx) => {
-                const isActive = activeTabIdx === idx;
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const { width, height } = entry.contentRect;
+        setDims({
+          scaleX: width / 480,
+          scaleY: height / 300
+        });
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-[#050505]">
+      <div 
+        style={{
+          width: '480px',
+          height: '300px',
+          transform: `scale(${dims.scaleX}, ${dims.scaleY})`,
+          transformOrigin: 'top left',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+        }}
+        className="text-[#f2f1ef] flex font-sans select-none overflow-hidden text-[9px] border border-zinc-800/10 rounded-xl"
+      >
+        {/* Mock Sidebar */}
+        <div className="w-[85px] bg-[#0c0c0c] border-r border-zinc-900/60 flex flex-col justify-between py-2 px-1.5 flex-shrink-0">
+          <div>
+            {/* Brand Logo */}
+            <div className="flex items-center gap-1.5 mb-3 px-1">
+              <div className="text-white flex-shrink-0">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 512 512" fill="none">
+                  <path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256" stroke="currentColor" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                </svg>
+              </div>
+              <span className="font-extrabold text-[8px] tracking-tight text-white uppercase select-none">Studio</span>
+            </div>
+            
+            {/* Menu items */}
+            <div className="space-y-0.5">
+              {[
+                { id: 'hub', label: 'Hub', icon: 'home' },
+                { id: 'chords', label: 'Chordex', icon: 'music_note' },
+                { id: 'drums', label: 'Drumex', icon: 'drum' },
+                { id: 'stage', label: 'Stagex', icon: 'layers' },
+                { id: 'groovex', label: 'Groovex', icon: 'volume_2' },
+                { id: 'vocalex', label: 'Vocalex', icon: 'mic' }
+              ].map(item => {
+                const isActive = activeApp === item.id;
                 return (
-                  <span 
-                    key={tab} 
-                    className={`px-1.5 py-0.5 rounded text-[6.5px] uppercase font-bold tracking-wider ${
-                      isActive ? 'bg-zinc-800 text-white' : 'text-zinc-500'
+                  <div 
+                    key={item.id}
+                    className={`flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors ${
+                      isActive ? 'bg-zinc-800/60 text-white font-bold' : 'text-zinc-600'
                     }`}
                   >
-                    {tab}
-                  </span>
+                    <span className="w-1 h-1 rounded-full flex-shrink-0 bg-current" style={{ opacity: isActive ? 1 : 0.4 }} />
+                    <span className="truncate text-[7px] uppercase tracking-wider">{item.label}</span>
+                  </div>
                 );
               })}
             </div>
-          )}
+          </div>
+          
+          {/* Footer */}
+          <div className="px-1 space-y-0.5 border-t border-zinc-900 pt-2 text-[6.5px] text-zinc-600 font-bold">
+            <div className="truncate text-zinc-500 font-medium">Guest User</div>
+            <div>Web v4.0.0</div>
+          </div>
         </div>
-        
-        {/* Panel Content */}
-        <div className="flex-1 overflow-hidden relative">
-          {children}
+
+        {/* Mock Main Panel */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-[#050505]">
+          {/* Panel Header */}
+          <div className="h-9 border-b border-zinc-900 px-3 flex items-center justify-between bg-[#080808]/40 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-[8.5px] uppercase text-white tracking-wide">{appTitle}</span>
+            </div>
+            
+            {/* Panel Tabs */}
+            {tabs.length > 0 && (
+              <div className="flex gap-1 p-0.5 bg-zinc-950 border border-zinc-900 rounded-md">
+                {tabs.map((tab, idx) => {
+                  const isActive = activeTabIdx === idx;
+                  return (
+                    <span 
+                      key={tab} 
+                      className={`px-1.5 py-0.5 rounded text-[6.5px] uppercase font-bold tracking-wider ${
+                        isActive ? 'bg-zinc-800 text-white' : 'text-zinc-500'
+                      }`}
+                    >
+                      {tab}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          {/* Panel Content */}
+          <div className="flex-1 overflow-hidden relative">
+            {children}
+          </div>
         </div>
       </div>
     </div>
@@ -456,7 +487,7 @@ export function VocalexMockup() {
 // ── 9. Preferences Mockup ──────────────────────────────────────────────────
 export function PreferencesMockup() {
   const rows = [
-    { label: 'Cloud Sync Engine', desc: 'Sync settings & workspace', val: 'Active' },
+    { label: 'High Refresh Rate', desc: 'Maintains 90Hz/120Hz scrolling', val: 'Active' },
     { label: 'Appearance Theme', desc: 'Dark / Light / AMOLED selector', val: 'AMOLED' },
     { label: 'Reduce Interface Motion', desc: 'Disables scrolling transitions', val: 'Off' }
   ];

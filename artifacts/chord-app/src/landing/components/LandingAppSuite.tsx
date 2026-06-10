@@ -56,10 +56,10 @@ export default function LandingAppSuite() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white uppercase mb-4 landing-font-heading">
-            Integrated Music Suite
+            Built around real music workflows
           </h2>
           <p className="text-zinc-400 text-xs md:text-sm leading-relaxed landing-font-body">
-            Stop juggling separate browser tabs and software tools. Studio aggregates five core workflows into a single cross-platform platform.
+            Move from songs and chords to stage planning, rhythm practice, and vocal tools without leaving your workspace.
           </p>
         </div>
 

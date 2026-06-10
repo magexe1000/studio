@@ -123,6 +123,20 @@ export default function App() {
     } else {
       document.documentElement.classList.add('app-route');
       document.documentElement.classList.remove('landing-route');
+      
+      if (typeof document !== 'undefined') {
+        const intro = document.getElementById('intro');
+        if (intro && (window as any).__introReturnedEarly) {
+          intro.style.transition = 'opacity 500ms ease-out';
+          intro.style.opacity = '0';
+          setTimeout(() => {
+            intro.classList.add('dismissed');
+            if (intro.parentNode) intro.parentNode.removeChild(intro);
+          }, 550);
+          (window as any).__introDone = true;
+          window.dispatchEvent(new Event('studio-intro-done'));
+        }
+      }
     }
   }, [route]);
   const isWebDesktop = useIsWebDesktop();
