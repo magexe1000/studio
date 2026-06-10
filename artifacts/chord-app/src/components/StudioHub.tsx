@@ -2648,18 +2648,16 @@ function HubSettings({
 
         {isWebDesktop && (
           <>
-            <SettingsSectionLabel delay={140}>Web Sidebar</SettingsSectionLabel>
+            <SettingsSectionLabel delay={140}>Interface</SettingsSectionLabel>
             <div style={cardStyle}>
               <SettingRow 
-                label="Auto-hide sidebar in apps" 
-                desc="Automatically hide the sidebar when inside app workspaces to maximize your screen space."
+                label="Hide sidebar while using apps" 
+                desc="When enabled, Studio hides the sidebar inside Chordex, Drumex, Stagex, Groovex, and Vocalex to give the workspace more room."
               >
                 <Toggle 
-                  value={localStorage.getItem('studio:autoHideSidebar') !== 'false'} 
+                  value={settings.autoHideSidebarInApps} 
                   onChange={v => {
-                    localStorage.setItem('studio:autoHideSidebar', String(v));
-                    window.dispatchEvent(new CustomEvent('studio:auto-hide-sidebar-changed', { detail: v }));
-                    setPageKey(k => k + 1);
+                    updateSettings({ autoHideSidebarInApps: v });
                   }} 
                   accentFrom={accent.from} 
                   accentTo={accent.to} 
