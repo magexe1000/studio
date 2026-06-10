@@ -968,10 +968,74 @@ export default function LibraryPanel() {
           </div>
         </div>
 
-        {/* Right Column: Chord Detail or Empty State */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', position: 'relative' }}>
+        {/* Right Column: Chord Detail, Category Grid, or Empty State */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', position: 'relative', background: '#050505' }}>
           {chord ? (
             renderChordDetail()
+          ) : showSearch && searchResults.length > 0 ? (
+            <div className="flex-1 overflow-y-auto no-scrollbar p-6">
+              <div className="mb-6">
+                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider" style={{ fontFamily: 'Manrope' }}>
+                  Search Results Catalog
+                </h3>
+                <p className="text-xs text-zinc-500 mt-1" style={{ fontFamily: 'Inter' }}>
+                  Matches for "{query}"
+                </p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {searchResults.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleChordClick(c.id)}
+                    className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 hover:border-zinc-800 transition-all text-left cursor-pointer flex flex-col justify-between h-[120px]"
+                  >
+                    <div>
+                      <span className="font-bold text-white text-xs block" style={{ fontFamily: 'Manrope' }}>
+                        {c.name}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 block mt-1" style={{ fontFamily: 'Inter' }}>
+                        {c.notes.join(' · ')}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-600">
+                      {c.type}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : activeType && activeType !== 'all' && filteredByType.length > 0 ? (
+            <div className="flex-1 overflow-y-auto no-scrollbar p-6">
+              <div className="mb-6">
+                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider" style={{ fontFamily: 'Manrope' }}>
+                  {activeCat?.label || 'Chords'} Catalog
+                </h3>
+                <p className="text-xs text-zinc-500 mt-1" style={{ fontFamily: 'Inter' }}>
+                  Select a chord to view fretboard diagrams and harmonic details.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {filteredByType.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleChordClick(c.id)}
+                    className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 hover:border-zinc-800 transition-all text-left cursor-pointer flex flex-col justify-between h-[120px]"
+                  >
+                    <div>
+                      <span className="font-bold text-white text-xs block" style={{ fontFamily: 'Manrope' }}>
+                        {c.name}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 block mt-1" style={{ fontFamily: 'Inter' }}>
+                        {c.notes.join(' · ')}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-600">
+                      {c.type}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : (
             <WebEmptyState message="Select a chord to view details" icon="music_note" />
           )}

@@ -457,39 +457,7 @@ export default function StudioHub() {
         {tab === 'home' && (
           <div data-hub-tab-content style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
 
-            {typeof window !== 'undefined' && sessionStorage.getItem('studio:entered_from_landing') === 'true' && (
-              <button
-                onClick={() => {
-                  window.history.pushState({}, '', '/');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
-                }}
-                className="btn-smooth"
-                style={{
-                  alignSelf: 'flex-start',
-                  marginTop: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  color: 'var(--c-text-secondary)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--c-text-primary)'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--c-text-secondary)'; }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                  arrow_back
-                </span>
-                {lang === 'es' ? 'Volver al Sitio Web' : 'Back to Website'}
-              </button>
-            )}
+
 
             {/* Logo area */}
             <div className="spring-in" style={{

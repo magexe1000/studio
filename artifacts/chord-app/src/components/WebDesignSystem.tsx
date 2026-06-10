@@ -237,3 +237,133 @@ export function WebPreferenceRow({
     </div>
   );
 }
+
+// 11. WebAppFrame
+export function WebAppFrame({ 
+  children,
+  className = '',
+  style
+}: { 
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div 
+      className={`w-full h-full bg-black text-[#f4f4f5] flex flex-col overflow-hidden border border-zinc-900 rounded-xl ${className}`}
+      style={style}
+    >
+      {children}
+    </div>
+  );
+}
+
+// 12. WebList
+export function WebList({ 
+  children,
+  className = '',
+  style
+}: { 
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div 
+      className={`flex flex-col gap-0.5 p-1 overflow-y-auto no-scrollbar ${className}`}
+      style={style}
+    >
+      {children}
+    </div>
+  );
+}
+
+// 13. WebToolbar
+export function WebToolbar({ 
+  children,
+  className = '',
+  style
+}: { 
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div 
+      className={`h-12 border-b border-zinc-900/80 px-4 flex items-center justify-between bg-zinc-950/20 flex-shrink-0 ${className}`}
+      style={style}
+    >
+      {children}
+    </div>
+  );
+}
+
+// 14. WebButton
+export function WebButton({ 
+  children,
+  onClick,
+  variant = 'secondary',
+  className = '',
+  style,
+  disabled
+}: { 
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: 'primary' | 'secondary' | 'danger';
+  className?: string;
+  style?: React.CSSProperties;
+  disabled?: boolean;
+}) {
+  const baseClass = "px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all border outline-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed";
+  const variantClass = variant === 'primary' 
+    ? "bg-zinc-100 text-black border-transparent hover:bg-zinc-200" 
+    : variant === 'danger'
+      ? "bg-red-950/20 text-red-400 border-red-900/40 hover:bg-red-950/40 hover:border-red-900"
+      : "bg-transparent text-zinc-300 border-zinc-900 hover:border-zinc-800 hover:text-white";
+  return (
+    <button
+      onClick={onClick}
+      className={`${baseClass} ${variantClass} ${className}`}
+      style={style}
+      disabled={disabled}
+    >
+      {children}
+    </button>
+  );
+}
+
+// 15. WebIconButton
+export function WebIconButton({ 
+  icon,
+  onClick,
+  active = false,
+  className = '',
+  style,
+  title,
+  disabled
+}: { 
+  icon: string;
+  onClick?: () => void;
+  active?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+  title?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer border outline-none disabled:opacity-40 disabled:cursor-not-allowed ${
+        active 
+          ? 'bg-zinc-800 text-white border-zinc-700' 
+          : 'bg-transparent text-zinc-400 border-transparent hover:text-zinc-200 hover:border-zinc-900'
+      } ${className}`}
+      style={style}
+      disabled={disabled}
+    >
+      <span className="material-symbols-outlined text-[17px]">{icon}</span>
+    </button>
+  );
+}
+

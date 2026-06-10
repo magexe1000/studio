@@ -3487,9 +3487,9 @@ export default function SongsPanel() {
     return (
       <div className="flex w-full h-full overflow-hidden bg-[#050505]" style={{ position: 'relative' }}>
         {/* Left Column: Setlist song list */}
-        <div style={{ width: '280px', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255, 255, 255, 0.08)', height: '100%', overflow: 'hidden' }}>
+        <div className="border-r border-zinc-900/60" style={{ width: '280px', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           {/* Header */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div className="border-b border-zinc-900/60" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
             <span style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-secondary)' }}>SETLIST</span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 

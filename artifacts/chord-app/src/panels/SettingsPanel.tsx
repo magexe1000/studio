@@ -6,6 +6,7 @@ import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
 import { IconSongs, IconLibrary, IconChords, IconSettings } from '../components/BottomNav';
+import { WebSettingsSection, WebPreferenceRow } from '../components/WebDesignSystem';
 
 export default function SettingsPanel() {
   const { settings, updateSettings } = useChordStore();
@@ -33,6 +34,123 @@ export default function SettingsPanel() {
   ];
 
   const isWebDesktop = useIsWebDesktop();
+
+  if (isWebDesktop) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden bg-[#050505] p-6">
+        {/* Page title */}
+        <div className="mb-6">
+          <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: 'white', fontFamily: 'Manrope' }}>
+            {t.settings.title}
+          </h2>
+          <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '11px', marginTop: '2px' }}>
+            {t.settings.subtitle}
+          </p>
+        </div>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar space-y-6">
+          {/* ── TUNING ── */}
+          <WebSettingsSection title={t.settings.sections.tuning}>
+            <WebPreferenceRow label="Instrument Tuning" desc="Change the guitar/bass fretboard tuning system">
+              <select
+                value={settings.tuning}
+                onChange={e => updateSettings({ tuning: e.target.value })}
+                className="bg-zinc-900 text-zinc-200 border border-zinc-800 rounded px-2 py-1 text-xs outline-none cursor-pointer hover:border-zinc-700 transition-colors"
+                style={{ fontFamily: 'Inter' }}
+              >
+                {tunings.map(tun => (
+                  <option key={tun.value} value={tun.value}>{tun.label}</option>
+                ))}
+              </select>
+            </WebPreferenceRow>
+          </WebSettingsSection>
+
+          {/* ── CHORD DIAGRAM ── */}
+          <WebSettingsSection title={t.settings.sections.chordDiagram}>
+            <WebPreferenceRow label={t.settings.rows.leftHanded} desc={t.settings.rows.leftHandedDesc}>
+              <Toggle value={settings.leftHanded} onChange={v => updateSettings({ leftHanded: v })} accentFrom={acc.from} accentTo={acc.to} />
+            </WebPreferenceRow>
+            <WebPreferenceRow label={t.settings.rows.fretNumbers} desc={t.settings.rows.fretNumbersDesc}>
+              <Toggle value={settings.showFretNumbers} onChange={v => updateSettings({ showFretNumbers: v })} accentFrom={acc.from} accentTo={acc.to} />
+            </WebPreferenceRow>
+            <WebPreferenceRow label={t.settings.rows.fingerNumbers} desc={t.settings.rows.fingerNumbersDesc}>
+              <Toggle value={settings.showFingerNumbers} onChange={v => updateSettings({ showFingerNumbers: v })} accentFrom={acc.from} accentTo={acc.to} />
+            </WebPreferenceRow>
+            <WebPreferenceRow label={t.settings.rows.noteNames} desc={t.settings.rows.noteNamesDesc}>
+              <Toggle value={settings.showNoteNames} onChange={v => updateSettings({ showNoteNames: v })} accentFrom={acc.from} accentTo={acc.to} />
+            </WebPreferenceRow>
+            <WebPreferenceRow label={t.settings.rows.intervalLabels} desc={t.settings.rows.intervalLabelsDesc}>
+              <Toggle value={settings.showIntervals} onChange={v => updateSettings({ showIntervals: v })} accentFrom={acc.from} accentTo={acc.to} />
+            </WebPreferenceRow>
+            <WebPreferenceRow label={t.settings.rows.openStringMarkers} desc={t.settings.rows.openStringMarkersDesc}>
+              <Toggle value={settings.showOpenStrings} onChange={v => updateSettings({ showOpenStrings: v })} accentFrom={acc.from} accentTo={acc.to} />
+            </WebPreferenceRow>
+          </WebSettingsSection>
+
+          {/* ── DISPLAY ── */}
+          <WebSettingsSection title={t.settings.sections.display}>
+            <WebPreferenceRow label={t.settings.rows.chordColors} desc={t.settings.rows.chordColorsDesc}>
+              <Toggle value={settings.showChordQualityColors} onChange={v => updateSettings({ showChordQualityColors: v })} accentFrom={acc.from} accentTo={acc.to} />
+            </WebPreferenceRow>
+            <WebPreferenceRow label={t.settings.rows.defaultTab} desc={t.settings.rows.defaultTabDesc}>
+              {(() => {
+                const cur = settings.defaultTab ?? 'library';
+                const tabs: { value: ActivePanel; Icon: React.FC<{ active: boolean }> }[] = [
+                  { value: 'songs',    Icon: IconSongs    },
+                  { value: 'library',  Icon: IconLibrary  },
+                  { value: 'chord',    Icon: IconChords   },
+                  { value: 'settings', Icon: IconSettings },
+                ];
+                return (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {tabs.map(({ value, Icon }) => {
+                      const active = cur === value;
+                      return (
+                        <button
+                          key={value}
+                          onClick={() => updateSettings({ defaultTab: value })}
+                          className={`w-9 h-9 flex items-center justify-center rounded-lg border cursor-pointer transition-all ${
+                            active 
+                              ? 'bg-zinc-800 text-white border-zinc-700' 
+                              : 'bg-transparent text-zinc-500 border-zinc-900 hover:text-zinc-300'
+                          }`}
+                        >
+                          <Icon active={active} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </WebPreferenceRow>
+          </WebSettingsSection>
+
+          {/* ── INTELLIGENCE ── */}
+          <WebSettingsSection title={t.settings.sections.intelligence}>
+            <WebPreferenceRow label={t.settings.rows.chordAssistant} desc={t.settings.rows.chordAssistantDesc}>
+              <Toggle value={settings.chordAssistant} onChange={v => updateSettings({ chordAssistant: v })} accentFrom={acc.from} accentTo={acc.to} />
+            </WebPreferenceRow>
+            {settings.chordAssistant && (
+              <>
+                <WebPreferenceRow label={t.settings.rows.smartSuggestions} desc={t.settings.rows.smartSuggestionsDesc}>
+                  <Toggle value={settings.assistantSmartSuggestions} onChange={v => updateSettings({ assistantSmartSuggestions: v })} accentFrom={acc.from} accentTo={acc.to} />
+                </WebPreferenceRow>
+                <WebPreferenceRow label={t.settings.rows.progressionTips} desc={t.settings.rows.progressionTipsDesc}>
+                  <Toggle value={settings.assistantProgressionTips} onChange={v => updateSettings({ assistantProgressionTips: v })} accentFrom={acc.from} accentTo={acc.to} />
+                </WebPreferenceRow>
+                <WebPreferenceRow label={t.settings.rows.conflictDetection} desc={t.settings.rows.conflictDetectionDesc}>
+                  <Toggle value={settings.assistantConflictDetection} onChange={v => updateSettings({ assistantConflictDetection: v })} accentFrom={acc.from} accentTo={acc.to} />
+                </WebPreferenceRow>
+                <WebPreferenceRow label={t.settings.rows.learningMode} desc={t.settings.rows.learningModeDesc}>
+                  <Toggle value={settings.assistantLearning} onChange={v => updateSettings({ assistantLearning: v })} accentFrom={acc.from} accentTo={acc.to} />
+                </WebPreferenceRow>
+              </>
+            )}
+          </WebSettingsSection>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden app-bg">
@@ -184,3 +302,4 @@ export default function SettingsPanel() {
     </div>
   );
 }
+

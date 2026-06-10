@@ -1,11 +1,84 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowRight, Download, Monitor } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useStudioPreferences } from '../../hooks/useStudioPreferences';
 
 interface LandingHeroProps {
   navigateTo: (path: string) => void;
   apkUrl?: string;
+}
+
+function FlipWords({
+  words,
+  duration = 3000,
+  className,
+  isReduced = false,
+}: {
+  words: string[];
+  duration?: number;
+  className?: string;
+  isReduced?: boolean;
+}) {
+  const [currentWord, setCurrentWord] = useState(words[0]);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const startAnimation = useCallback(() => {
+    const word = words[words.indexOf(currentWord) + 1] || words[0];
+    setCurrentWord(word);
+    setIsAnimating(true);
+  }, [currentWord, words]);
+
+  useEffect(() => {
+    if (isReduced || isAnimating) {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      startAnimation();
+    }, duration);
+    return () => clearTimeout(timer);
+  }, [isAnimating, duration, startAnimation, isReduced]);
+
+  if (isReduced) {
+    return <span className={className}>{currentWord}</span>;
+  }
+
+  return (
+    <span className="inline-block relative">
+      <AnimatePresence
+        onExitComplete={() => {
+          setIsAnimating(false);
+        }}
+      >
+        <motion.span
+          initial={{
+            opacity: 0,
+            y: 10,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          exit={{
+            opacity: 0,
+            y: -10,
+            position: "absolute",
+            left: 0,
+            right: 0,
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 100,
+            damping: 15,
+          }}
+          className={className}
+          style={{ display: 'inline-block' }}
+          key={currentWord}
+        >
+          {currentWord}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
 }
 
 export default function LandingHero({ navigateTo, apkUrl }: LandingHeroProps) {
@@ -43,7 +116,7 @@ export default function LandingHero({ navigateTo, apkUrl }: LandingHeroProps) {
       
       {/* Subtle Minimal Glow */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-zinc-100/[0.015] blur-[100px] pointer-events-none" />
-
+ 
       <motion.div 
         variants={containerVariants}
         initial="hidden"
@@ -58,14 +131,16 @@ export default function LandingHero({ navigateTo, apkUrl }: LandingHeroProps) {
           <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
           Studio Platform Suite v4.0
         </motion.div>
-
+ 
         {/* Headline */}
         <motion.h1 
           variants={itemVariants}
           className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.08] uppercase landing-font-heading"
         >
           Your music workflow, <br />
-          <span className="text-zinc-500">in one focused workspace.</span>
+          <span className="text-zinc-500">
+            in one focused <FlipWords words={['workspace', 'suite', 'stage', 'setup', 'system']} isReduced={isReduced} className="text-white" />.
+          </span>
         </motion.h1>
 
         {/* Subtitle */}
