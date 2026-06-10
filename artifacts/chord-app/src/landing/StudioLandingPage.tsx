@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import LandingNavbar from './components/LandingNavbar';
 import LandingHero from './components/LandingHero';
 import LandingAppSuite from './components/LandingAppSuite';
@@ -8,6 +9,8 @@ import LandingMacbookScroll from './components/LandingMacbookScroll';
 import Landing3DMarquee from './components/Landing3DMarquee';
 import LandingDownloads from './components/LandingDownloads';
 import LandingFooter from './components/LandingFooter';
+import { StudioLogo } from '../components/ChordexLogo';
+import { useStudioPreferences } from '../hooks/useStudioPreferences';
 
 interface StudioLandingPageProps {
   navigateTo: (path: string) => void;
@@ -22,6 +25,60 @@ interface ReleaseInfo {
 export default function StudioLandingPage({ navigateTo }: StudioLandingPageProps) {
   const [release, setRelease] = useState<ReleaseInfo | null>(null);
   const [loadingRelease, setLoadingRelease] = useState(true);
+
+  const { preferences } = useStudioPreferences();
+  const isReduced = preferences.reduceMotion;
+
+  const [showIntro, setShowIntro] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !sessionStorage.getItem('studio:landingIntroSeen');
+  });
+
+  const [introStep, setIntroStep] = useState<'logo-in' | 'logo-hold' | 'logo-out' | 'done'>(() => {
+    if (typeof window === 'undefined') return 'done';
+    if (sessionStorage.getItem('studio:landingIntroSeen')) return 'done';
+    return 'logo-in';
+  });
+
+  useEffect(() => {
+    if (introStep === 'done') {
+      setShowIntro(false);
+      return;
+    }
+
+    if (isReduced) {
+      sessionStorage.setItem('studio:landingIntroSeen', 'true');
+      setShowIntro(false);
+      setIntroStep('done');
+      return;
+    }
+
+    let t1: ReturnType<typeof setTimeout>;
+    let t2: ReturnType<typeof setTimeout>;
+    let t3: ReturnType<typeof setTimeout>;
+
+    if (introStep === 'logo-in') {
+      t1 = setTimeout(() => {
+        setIntroStep('logo-hold');
+      }, 550);
+    } else if (introStep === 'logo-hold') {
+      t2 = setTimeout(() => {
+        setIntroStep('logo-out');
+      }, 800);
+    } else if (introStep === 'logo-out') {
+      t3 = setTimeout(() => {
+        sessionStorage.setItem('studio:landingIntroSeen', 'true');
+        setIntroStep('done');
+        setShowIntro(false);
+      }, 650);
+    }
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [introStep, isReduced]);
 
   useEffect(() => {
     fetch('/app-release.json')
@@ -49,7 +106,47 @@ export default function StudioLandingPage({ navigateTo }: StudioLandingPageProps
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#030303] text-[#f2f1ef] font-sans selection:bg-zinc-800/40 overflow-x-hidden">
+    <>
+      <AnimatePresence>
+        {showIntro && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center select-none"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, filter: 'blur(4px)' }}
+              animate={
+                introStep === 'logo-in'
+                  ? { opacity: 1, scale: 1, filter: 'blur(0px)' }
+                  : introStep === 'logo-hold'
+                  ? { opacity: 1, scale: 1, filter: 'blur(0px)' }
+                  : { opacity: 0, scale: 0.96, filter: 'blur(2px)' }
+              }
+              transition={{ duration: introStep === 'logo-out' ? 0.5 : 0.55, ease: 'easeInOut' }}
+              className="text-white flex flex-col items-center gap-4"
+            >
+              <StudioLogo size={80} />
+              <motion.span
+                initial={{ opacity: 0, y: 4 }}
+                animate={introStep !== 'logo-out' ? { opacity: 0.6, y: 0 } : { opacity: 0, y: -2 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+                className="text-xs uppercase tracking-[0.2em] font-bold text-zinc-400 select-none landing-font-heading"
+              >
+                Studio
+              </motion.span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        initial={showIntro ? { opacity: 0 } : { opacity: 1 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        className="min-h-screen bg-[#030303] text-[#f2f1ef] font-sans selection:bg-zinc-800/40 overflow-x-hidden"
+      >
       {/* Navbar */}
       <LandingNavbar navigateTo={navigateTo} />
 
@@ -97,6 +194,7 @@ export default function StudioLandingPage({ navigateTo }: StudioLandingPageProps
         apkUrl={release?.apkUrl} 
         apkVersion={release?.version} 
       />
-    </div>
+      </motion.div>
+    </>
   );
 }

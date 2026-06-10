@@ -115,6 +115,16 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  useEffect(() => {
+    if (route === '/') {
+      document.documentElement.classList.add('landing-route');
+      document.documentElement.classList.remove('app-route');
+    } else {
+      document.documentElement.classList.add('app-route');
+      document.documentElement.classList.remove('landing-route');
+    }
+  }, [route]);
   const isWebDesktop = useIsWebDesktop();
   const { preferences } = useStudioPreferences();
   const [isLargeDesktop, setIsLargeDesktop] = useState(() => {

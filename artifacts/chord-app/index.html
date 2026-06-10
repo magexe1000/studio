@@ -44,6 +44,16 @@
     <script>
       (function() {
         try {
+          // Route detection to avoid loading planet/orb animation on landing page
+          var path = window.location.pathname;
+          if (path === '/app' || path.startsWith('/app/')) {
+            document.documentElement.classList.add('app-route');
+            document.documentElement.classList.remove('landing-route');
+          } else {
+            document.documentElement.classList.add('landing-route');
+            document.documentElement.classList.remove('app-route');
+          }
+
           var raw = localStorage.getItem('chord-explorer-storage-v3');
           if (raw) {
             var parsed = JSON.parse(raw);
@@ -105,6 +115,11 @@
       }
 
       html, body { background: var(--intro-bg); margin: 0; padding: 0; }
+
+      /* Hide orbit intro completely on landing page route */
+      html.landing-route #intro {
+        display: none !important;
+      }
 
       /* ── Professional startup intro v9 ─────────────────────────────────
          • Adaptive light/dark theme supporting smooth, lag-free scaling
@@ -301,7 +316,7 @@
       (function () {
         var intro    = document.getElementById('intro');
         var center   = document.getElementById('intro-center');
-        if (!intro || !center) return;
+        if (!intro || !center || window.getComputedStyle(intro).display === 'none') return;
 
         // Trigger fade out of the cover overlay on load
         var cover = document.getElementById('intro-cover');

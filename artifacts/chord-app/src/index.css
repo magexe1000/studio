@@ -1522,5 +1522,22 @@ html.compact-desktop {
                     linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 
+/* ── Landing Page Scrolling & Typography overrides ── */
+html.landing-route,
+html.landing-route body,
+html.landing-route #root {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: auto !important;
+  overflow-x: hidden !important;
+}
 
+.landing-font-heading {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.04em;
+}
 
+.landing-font-body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.01em;
+}

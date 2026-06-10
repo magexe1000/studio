@@ -41,10 +41,10 @@ export default function LandingContainerScroll({
       <div className="w-full max-w-5xl mx-auto flex flex-col items-center">
         {/* Title Block */}
         <div className="mb-14 text-center max-w-2xl">
-          <h2 className="text-3xl md:text-5xl font-extrabold uppercase tracking-tight text-white mb-4">
+          <h2 className="text-3xl md:text-5xl font-extrabold uppercase tracking-tight text-white mb-4 landing-font-heading">
             {titleText}
           </h2>
-          <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">
+          <p className="text-zinc-400 text-xs md:text-sm leading-relaxed landing-font-body">
             {descriptionText}
           </p>
         </div>
