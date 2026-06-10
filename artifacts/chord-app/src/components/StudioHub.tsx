@@ -209,6 +209,10 @@ export default function StudioHub() {
   const [tab, setTab]       = useState<HubTab>('home');
 
   useEffect(() => {
+    window.dispatchEvent(new CustomEvent('studio:hub-tab-active', { detail: tab }));
+  }, [tab]);
+
+  useEffect(() => {
     const handleSetTab = (e: Event) => {
       const customEvent = e as CustomEvent<HubTab>;
       if (customEvent.detail) {
@@ -1263,28 +1267,31 @@ function SettingsSectionLabel({ children, delay = 0 }: { children: React.ReactNo
 
 function SettingsSubHeader({ title, onBack }: { title: string; onBack: () => void }) {
   const [pressed, setPressed] = useState(false);
+  const isWebDesktop = useIsWebDesktop();
   return (
     <div className="spring-in" style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 32, paddingBottom: 16 }}>
-      <button
-        onClick={onBack}
-        onPointerDown={() => setPressed(true)}
-        onPointerUp={() => setPressed(false)}
-        onPointerLeave={() => setPressed(false)}
-        onPointerCancel={() => setPressed(false)}
-        style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: 'rgba(128,128,128,0.10)',
-          border: 'none',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer',
-          color: 'var(--c-text-primary)',
-          flexShrink: 0,
-          transform: pressed ? 'scale(0.91)' : 'scale(1)',
-          transition: 'transform 130ms cubic-bezier(0.34,1.15,0.64,1)',
-        }}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-      </button>
+      {!isWebDesktop && (
+        <button
+          onClick={onBack}
+          onPointerDown={() => setPressed(true)}
+          onPointerUp={() => setPressed(false)}
+          onPointerLeave={() => setPressed(false)}
+          onPointerCancel={() => setPressed(false)}
+          style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'rgba(128,128,128,0.10)',
+            border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+            color: 'var(--c-text-primary)',
+            flexShrink: 0,
+            transform: pressed ? 'scale(0.91)' : 'scale(1)',
+            transition: 'transform 130ms cubic-bezier(0.34,1.15,0.64,1)',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
+        </button>
+      )}
       <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>{title}</p>
     </div>
   );
@@ -1292,6 +1299,8 @@ function SettingsSubHeader({ title, onBack }: { title: string; onBack: () => voi
 
 function ProfileHeaderBack({ onBack }: { onBack: () => void }) {
   const [pressed, setPressed] = useState(false);
+  const isWebDesktop = useIsWebDesktop();
+  if (isWebDesktop) return null;
   return (
     <div className="spring-in" style={{ display: 'flex', alignItems: 'center', padding: '0 20px', paddingTop: 32, paddingBottom: 16 }}>
       <button
@@ -2007,6 +2016,10 @@ function HubSettings({
     return () => {
       window.removeEventListener('studio:update-settings-page', handleUpdatePage as EventListener);
     };
+  }, [page]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('studio:settings-page-active', { detail: page }));
   }, [page]);
 
   const hubVis: PerAppVisuals = settings.perApp?.hub ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };

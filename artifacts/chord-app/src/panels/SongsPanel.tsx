@@ -14,6 +14,7 @@ import { useScrollHide, setNavHidden } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { setBackHandler } from '../lib/backStack';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
 import { logActivity } from '../lib/activityLogger';
 
@@ -2481,6 +2482,7 @@ const ITEM_H = 76;
 
 export default function SongsPanel() {
   const t = useT();
+  const isWebDesktop = useIsWebDesktop();
   const {
     presets, activePresetId, activePanel, settings, transpositions, customChords,
     setActivePreset, createPreset, updatePreset, deletePreset,
@@ -3472,14 +3474,16 @@ export default function SongsPanel() {
     <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative' }}>
       {showForm && <PresetForm accent={accent} initial={editingFormData} onSave={handleFormSave} onCancel={() => { setShowForm(false); setEditingId(null); }} />}
 
-      <header className="flex-none px-6 pt-6 pb-1 app-bg">
-        <h1 style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '15px', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
-          <AppModeMenuLogo />
-        </h1>
-      </header>
+      {!isWebDesktop && (
+        <header className="flex-none px-6 pt-6 pb-1 app-bg">
+          <h1 style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '15px', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <AppModeMenuLogo />
+          </h1>
+        </header>
+      )}
 
       {/* Scrollable list (nav auto-hides here) */}
-      <div ref={listScrollRef} className="flex-1 overflow-y-auto no-scrollbar px-5 pb-32">
+      <div ref={listScrollRef} className="flex-1 overflow-y-auto no-scrollbar px-5 pb-32" style={{ paddingTop: isWebDesktop ? '20px' : '0px' }}>
         <AnimatedAppHeader
           title={t.songs.title}
           subtitle={t.songs.subtitle}

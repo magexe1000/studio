@@ -9,7 +9,7 @@ import { APP_VERSION_LABEL } from '../lib/appVersion';
 import { SHORTCUT_REGISTRY, ShortcutRegistryItem } from '../lib/studioShortcutRegistry';
 import { useStudioShortcuts } from '../hooks/useStudioShortcuts';
 
-export default function WebSidebarLayout() {
+export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSidebar: boolean }) {
   const { settings, updateSettings, activePanel, setActivePanel } = useChordStore();
   const { open, toggleSidebar } = useSidebar();
   const t = useT();
@@ -28,6 +28,38 @@ export default function WebSidebarLayout() {
   const [customPhoto, setCustomPhoto] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const addMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const [activeHubTab, setActiveHubTab] = useState<'home' | 'settings' | 'profile'>('home');
+  const [activeSettingsPage, setActiveSettingsPage] = useState<string>('main');
+
+  // Listen for Hub tab active state and settings page active state
+  useEffect(() => {
+    const onHubTabActive = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail;
+      if (detail) {
+        setActiveHubTab(detail as any);
+      }
+    };
+    const onSettingsPageActive = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail;
+      if (detail) {
+        setActiveSettingsPage(detail);
+      }
+    };
+    window.addEventListener('studio:hub-tab-active', onHubTabActive);
+    window.addEventListener('studio:settings-page-active', onSettingsPageActive);
+    
+    // Also read initial routing/page if set in session
+    const savedPage = sessionStorage.getItem('studio:routeToSettingsPage');
+    if (savedPage) {
+      setActiveSettingsPage(savedPage);
+    }
+    
+    return () => {
+      window.removeEventListener('studio:hub-tab-active', onHubTabActive);
+      window.removeEventListener('studio:settings-page-active', onSettingsPageActive);
+    };
+  }, []);
 
   // Subscribe to Authentication state
   useEffect(() => {
@@ -136,7 +168,10 @@ export default function WebSidebarLayout() {
       return settings.appMode === 'chords' && activePanel === target.payload;
     }
     if (target.type === 'hub') {
-      return settings.appMode === 'hub';
+      return settings.appMode === 'hub' && activeHubTab === target.payload;
+    }
+    if (target.type === 'settings') {
+      return settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === target.payload;
     }
     return false;
   };
@@ -183,7 +218,7 @@ export default function WebSidebarLayout() {
   });
 
   return (
-    <Sidebar style={accentVars}>
+    <Sidebar shouldHideSidebar={shouldHideSidebar} style={accentVars}>
       {/* Header */}
       <SidebarHeader>
         {open ? (
@@ -426,7 +461,11 @@ export default function WebSidebarLayout() {
           <SidebarGroupLabel>Settings</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleGoToSettingsPage('appearance')} tooltip="Theme & Accent">
+              <SidebarMenuButton
+                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'appearance'}
+                onClick={() => handleGoToSettingsPage('appearance')}
+                tooltip="Theme & Accent"
+              >
                 <div className="flex-shrink-0">
                   <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>palette</span>
                 </div>
@@ -435,7 +474,11 @@ export default function WebSidebarLayout() {
             </SidebarMenuItem>
 
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleGoToSettingsPage('language')} tooltip="Language">
+              <SidebarMenuButton
+                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'language'}
+                onClick={() => handleGoToSettingsPage('language')}
+                tooltip="Language"
+              >
                 <div className="flex-shrink-0">
                   <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>language</span>
                 </div>
@@ -444,7 +487,11 @@ export default function WebSidebarLayout() {
             </SidebarMenuItem>
 
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleGoToSettingsPage('updater')} tooltip="Updater Settings">
+              <SidebarMenuButton
+                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'updater'}
+                onClick={() => handleGoToSettingsPage('updater')}
+                tooltip="Updater Settings"
+              >
                 <div className="flex-shrink-0 relative">
                   <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>download</span>
                   {ota.updateAvailable && (
@@ -464,7 +511,11 @@ export default function WebSidebarLayout() {
 
             {settings.developerMode && (
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => handleGoToSettingsPage('developer')} tooltip="Developer Panel">
+                <SidebarMenuButton
+                  active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'developer'}
+                  onClick={() => handleGoToSettingsPage('developer')}
+                  tooltip="Developer Panel"
+                >
                   <div className="flex-shrink-0">
                     <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>terminal</span>
                   </div>
@@ -474,7 +525,11 @@ export default function WebSidebarLayout() {
             )}
 
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleGoToSettingsPage('help')} tooltip="FAQ & Support">
+              <SidebarMenuButton
+                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'help'}
+                onClick={() => handleGoToSettingsPage('help')}
+                tooltip="FAQ & Support"
+              >
                 <div className="flex-shrink-0">
                   <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>help</span>
                 </div>

@@ -8,6 +8,7 @@ import { useScrollHide } from '../lib/navScroll';
 import ChordDiagram from '../components/ChordDiagram';
 import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { setBackHandler } from '../lib/backStack';
 import { playChord, stopChordPlayback } from '../lib/guitarAudio';
 import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
@@ -394,6 +395,7 @@ function ChordCard({
 
 // ── Main panel ────────────────────────────────────────────────
 export default function LibraryPanel() {
+  const isWebDesktop = useIsWebDesktop();
   const { selectedChordId, recentChords, favorites, selectChord, settings, activePanel } = useChordStore();
   const { ref: recentScrollRef, fadeClass: recentFadeClass } = useScrollFade();
   const { ref: favoritesScrollRef, fadeClass: favoritesFadeClass } = useScrollFade();
@@ -557,45 +559,67 @@ export default function LibraryPanel() {
         </span>
       </button>
 
-      {/* ── Fixed header ── */}
-      <header className="flex-none px-5 pt-6 pb-3 app-bg"
-        style={{
-          display: 'flex', alignItems: 'center', gap: '0',
-          transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
-        }}>
-        {/* Back button — slides in/out to animate the logo position */}
-        <div style={{
-          overflow: 'hidden',
-          flexShrink: 0,
-          width: (mainTab === 'explore' && showType) ? '46px' : '0px',
-          opacity: (mainTab === 'explore' && showType) ? 1 : 0,
-          transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
-        }}>
-          <button onClick={goBack} data-testid="back-button" className="btn-smooth"
+      {!isWebDesktop && (
+        <header className="flex-none px-5 pt-6 pb-3 app-bg"
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0',
+            transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+          }}>
+          {/* Back button — slides in/out to animate the logo position */}
+          <div style={{
+            overflow: 'hidden',
+            flexShrink: 0,
+            width: (mainTab === 'explore' && showType) ? '46px' : '0px',
+            opacity: (mainTab === 'explore' && showType) ? 1 : 0,
+            transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
+          }}>
+            <button onClick={goBack} data-testid="back-button" className="btn-smooth"
+              style={{
+                width: '36px', height: '36px', borderRadius: '50%',
+                background: 'var(--app-surface-high)',
+                border: '1px solid rgba(128,128,128,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
+              }} aria-label="Back">
+              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
+            </button>
+          </div>
+          <h1
+            style={{
+              fontSize: '14px', fontWeight: 700,
+              color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em',
+              display: 'flex', alignItems: 'center', gap: '7px',
+              margin: 0,
+            }}>
+            <AppModeMenuLogo />
+          </h1>
+        </header>
+      )}
+
+      {isWebDesktop && mainTab === 'explore' && showType && (
+        <div style={{ position: 'fixed', left: 16, top: 16, zIndex: 100 }}>
+          <button
+            onClick={goBack}
+            data-testid="back-button"
+            className="btn-smooth"
             style={{
               width: '36px', height: '36px', borderRadius: '50%',
               background: 'var(--app-surface-high)',
               border: '1px solid rgba(128,128,128,0.15)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
-            }} aria-label="Back">
+              cursor: 'pointer',
+            }}
+            aria-label="Back"
+          >
             <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
           </button>
         </div>
-        <h1
-          style={{
-            fontSize: '14px', fontWeight: 700,
-            color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em',
-            display: 'flex', alignItems: 'center', gap: '7px',
-            margin: 0,
-          }}>
-          <AppModeMenuLogo />
-        </h1>
-      </header>
+      )}
 
       {/* ── Tab bar: Explore | Discover ── */}
       {(mainTab === 'explore' ? showDefault || showSearch : true) && (
-        <div className="flex-none px-5 pb-3">
+        <div className="flex-none px-5 pb-3" style={{ paddingTop: isWebDesktop ? '20px' : '0' }}>
           {/* Title */}
           <AnimatedAppHeader
             title={mainTab === 'explore' ? t.library.title : t.library.tabDiscover}
@@ -642,9 +666,8 @@ export default function LibraryPanel() {
         </div>
       )}
 
-      {/* ── Category header (inside a chord type) ── */}
       {mainTab === 'explore' && showType && activeCat && (
-        <div className="flex-none pb-5 pt-1" style={{ paddingLeft: 20, paddingRight: 24 }}>
+        <div className="flex-none pb-5 pt-1" style={{ paddingLeft: 20, paddingRight: 24, paddingTop: isWebDesktop ? '20px' : '4px' }}>
           <h2 className="font-extrabold tracking-tighter leading-none" style={{ fontSize: '2rem', color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
             {activeCat.label}
           </h2>

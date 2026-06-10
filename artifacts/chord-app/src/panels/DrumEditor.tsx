@@ -33,6 +33,7 @@ import { setBackHandler } from '../lib/backStack';
 import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern } from '../lib/drumLibrary';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
 const LABEL_W  = 72;
@@ -1586,6 +1587,7 @@ const VISIBLE_BATCH = 20;
 // ── DrumEditor ─────────────────────────────────────────────────────────────
 export default function DrumEditor() {
   const { settings, updateSettings } = useChordStore();
+  const isWebDesktop = useIsWebDesktop();
   const {
     patterns, activePatternId,
     soundMap, volumeMap, masterVolume,
@@ -2538,7 +2540,7 @@ export default function DrumEditor() {
       )}
 
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
-      <div style={{ flexShrink: 0, height: inEditor ? (isLandscape ? 40 : 52) : undefined, display: 'flex', alignItems: 'center', padding: isLandscape && inEditor ? '0 10px' : inEditor ? '0 20px' : '24px 24px 4px', gap: isLandscape && inEditor ? 6 : 8, background: 'var(--app-bg)', borderBottom: isLandscape && inEditor ? '1px solid rgba(128,128,128,0.06)' : 'none' }}>
+      <div style={{ flexShrink: 0, height: inEditor ? (isLandscape ? 40 : 52) : (isWebDesktop ? 0 : undefined), display: (isWebDesktop && !inEditor) ? 'none' : 'flex', alignItems: 'center', padding: isLandscape && inEditor ? '0 10px' : inEditor ? '0 20px' : (isWebDesktop ? '0' : '24px 24px 4px'), gap: isLandscape && inEditor ? 6 : 8, background: 'var(--app-bg)', borderBottom: isLandscape && inEditor ? '1px solid rgba(128,128,128,0.06)' : 'none' }}>
         {inEditor ? (
           <>
             <button onClick={handleBack} className="btn-smooth" aria-label="Back" style={{ width: isLandscape ? 30 : 36, height: isLandscape ? 30 : 36, borderRadius: '50%', background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.10)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

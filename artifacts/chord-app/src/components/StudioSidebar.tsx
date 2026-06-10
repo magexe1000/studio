@@ -77,19 +77,25 @@ export function Sidebar({
   children,
   className = '',
   style = {},
+  shouldHideSidebar = false,
   ...props
 }: {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
+  shouldHideSidebar?: boolean;
 }) {
   const { open } = useSidebar();
+
+  const targetWidth = shouldHideSidebar ? '0px' : (open ? '240px' : '68px');
+  const targetOpacity = shouldHideSidebar ? 0 : 1;
 
   return (
     <motion.aside
       className={`h-screen flex flex-col border-r border-[rgba(128,128,128,0.08)] select-none flex-shrink-0 relative ${className}`}
       animate={{
-        width: open ? '240px' : '68px',
+        width: targetWidth,
+        opacity: targetOpacity,
       }}
       transition={{
         duration: 0.26,
@@ -101,13 +107,15 @@ export function Sidebar({
         WebkitBackdropFilter: 'blur(20px)',
         boxSizing: 'border-box',
         overflow: 'hidden',
-        willChange: 'width',
+        willChange: 'width, opacity',
         zIndex: 40,
         ...style,
       }}
       {...props}
     >
-      {children}
+      <div style={{ width: open ? '240px' : '68px', height: '100%', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        {children}
+      </div>
     </motion.aside>
   );
 }
