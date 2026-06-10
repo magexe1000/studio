@@ -8,6 +8,8 @@ import {
   VocalexLogo 
 } from '../../components/ChordexLogo';
 import { Check } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useStudioPreferences } from '../../hooks/useStudioPreferences';
 
 // Render logo according to key
 function renderLogoByKey(key: string) {
@@ -22,22 +24,56 @@ function renderLogoByKey(key: string) {
 }
 
 export default function LandingAppSuite() {
+  const { preferences } = useStudioPreferences();
+  const isReduced = preferences.reduceMotion;
+
+  const containerVariants = {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: isReduced ? 0 : 0.08,
+      },
+    },
+  };
+
+  const cardVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: isReduced ? 0 : 24 
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: isReduced ? 0 : 0.55,
+        ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+      },
+    },
+  };
+
   return (
-    <section id="suite" className="py-24 border-t border-zinc-900 bg-[#050508]/40 relative">
+    <section id="suite" className="py-24 border-t border-zinc-900 bg-[#050508]/40 relative select-none">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white uppercase mb-4">
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white uppercase mb-4 landing-font-heading">
             Integrated Music Suite
           </h2>
-          <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">
+          <p className="text-zinc-400 text-xs md:text-sm leading-relaxed landing-font-body">
             Stop juggling separate browser tabs and software tools. Studio aggregates five core workflows into a single cross-platform platform.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           {APPS_DATA.map((app) => (
-            <div 
+            <motion.div 
               key={app.key}
+              variants={cardVariants}
               className="group relative p-6 rounded-xl bg-zinc-950 border border-zinc-900 transition-all duration-300 hover:border-zinc-700 hover:-translate-y-1 shadow-2xl flex flex-col justify-between"
             >
               <div>
@@ -45,19 +81,19 @@ export default function LandingAppSuite() {
                   <div className="p-3 bg-zinc-900 text-zinc-100 rounded-lg border border-zinc-800/80">
                     {renderLogoByKey(app.key)}
                   </div>
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full">
+                  <span className="text-[9px] uppercase font-bold tracking-widest text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full landing-font-heading">
                     {app.badge}
                   </span>
                 </div>
 
-                <h3 className="text-lg font-bold text-white mb-2 uppercase tracking-wide">
+                <h3 className="text-lg font-bold text-white mb-2 uppercase tracking-wide landing-font-heading">
                   {app.name}
                 </h3>
-                <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+                <p className="text-xs text-zinc-400 mb-6 leading-relaxed landing-font-body">
                   {app.desc}
                 </p>
 
-                <ul className="space-y-2.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
+                <ul className="space-y-2.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-wider landing-font-heading">
                   {app.bullets.map((bullet, idx) => (
                     <li key={idx} className="flex items-center gap-2">
                       <Check className="w-3 h-3 text-zinc-400 flex-shrink-0" />
@@ -66,9 +102,9 @@ export default function LandingAppSuite() {
                   ))}
                 </ul>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

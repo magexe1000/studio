@@ -1,5 +1,7 @@
 import React from 'react';
 import { ArrowRight, Download, Monitor } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useStudioPreferences } from '../../hooks/useStudioPreferences';
 
 interface LandingHeroProps {
   navigateTo: (path: string) => void;
@@ -7,34 +9,78 @@ interface LandingHeroProps {
 }
 
 export default function LandingHero({ navigateTo, apkUrl }: LandingHeroProps) {
+  const { preferences } = useStudioPreferences();
+  const isReduced = preferences.reduceMotion;
+
+  const containerVariants = {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: isReduced ? 0 : 0.08,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: isReduced ? 0 : 20 
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: isReduced ? 0 : 0.65,
+        ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+      },
+    },
+  };
+
   return (
-    <section className="relative pt-24 pb-20 px-6 overflow-hidden bg-[#030303]">
+    <section className="relative pt-24 pb-20 px-6 overflow-hidden bg-[#030303] select-none">
       {/* Premium Minimal Grid Overlay */}
       <div className="absolute inset-0 bg-grid-pattern opacity-[0.02] pointer-events-none" />
       
       {/* Subtle Minimal Glow */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-zinc-100/[0.015] blur-[100px] pointer-events-none" />
 
-      <div className="max-w-4xl mx-auto text-center relative z-10">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-4xl mx-auto text-center relative z-10"
+      >
         {/* Upper Brand tag */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/40 text-[10px] uppercase tracking-widest font-bold text-zinc-400 mb-8 select-none">
+        <motion.div 
+          variants={itemVariants}
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/40 text-[10px] uppercase tracking-widest font-bold text-zinc-400 mb-8 select-none landing-font-heading"
+        >
           <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
           Studio Platform Suite v4.0
-        </div>
+        </motion.div>
 
         {/* Headline */}
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.08] uppercase">
+        <motion.h1 
+          variants={itemVariants}
+          className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.08] uppercase landing-font-heading"
+        >
           Your music workflow, <br />
           <span className="text-zinc-500">in one focused workspace.</span>
-        </h1>
+        </motion.h1>
 
         {/* Subtitle */}
-        <p className="max-w-xl mx-auto text-sm md:text-base text-zinc-400 leading-relaxed mb-10">
+        <motion.p 
+          variants={itemVariants}
+          className="max-w-xl mx-auto text-sm md:text-base text-zinc-400 leading-relaxed mb-10 landing-font-body"
+        >
           Studio brings songs, chords, stage planning, groove practice, and vocal tools into a single cross-platform workspace. Built for instant performance.
-        </p>
+        </motion.p>
 
         {/* Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+        <motion.div 
+          variants={itemVariants}
+          className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto landing-font-heading"
+        >
           <button
             onClick={() => {
               sessionStorage.setItem('studio:entered_from_landing', 'true');
@@ -70,8 +116,8 @@ export default function LandingHero({ navigateTo, apkUrl }: LandingHeroProps) {
             <Monitor className="w-3.5 h-3.5 text-zinc-700" />
             Windows App
           </button>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </section>
   );
 }
