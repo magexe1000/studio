@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.27'; // Separate Web and Android update metadata architecture
+export const APP_VERSION = '3.6.28'; // Legacy Web clients update escape path
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,11 +35,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-10'; // 3.6.27
+export const APP_VERSION_DATE = '2026-06-10'; // 3.6.28
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = '3eed6a84';
-export const APP_BUILD_TIMESTAMP = '6/10/2026, 6:00:42 AM UTC';
+export const APP_BUILD_TIMESTAMP = '6/10/2026, 12:26:10 AM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -58,16 +58,16 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Improved",
     items: [
-      "Added clearer platform separation for update metadata and updater actions.",
-      "Preserved shared Studio version and What’s New across Web and Android.",
+      "Improved Web cache and service-worker cleanup during update refresh.",
+      "Preserved Android APK/AppInstaller updater behavior.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed Studio Web incorrectly showing Android manual APK update states.",
-      "Separated Web/PWA update metadata from Android APK release metadata.",
-      "Ensured Web uses refresh-based update behavior while Android keeps APK/AppInstaller updates.",
+      "Fixed Web update actions falling back to Android manual APK update states.",
+      "Fixed legacy Web clients getting stuck in stale cache/service-worker update flows.",
+      "Ensured Web update actions refresh Studio instead of opening Android install UI.",
     ],
   },
 ];

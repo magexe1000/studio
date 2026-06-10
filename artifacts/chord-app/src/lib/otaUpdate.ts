@@ -1196,8 +1196,23 @@ export function downloadUpdate(trigger?: string): Promise<void> {
   }
 
   if (!isNative()) {
-    // Web: fallback to manual update page
-    updateGlobalState({ updateState: 'manual_apk_required', progress: 1.0 });
+    // Web: clear service workers, caches, and reload page
+    void (async () => {
+      try {
+        if (typeof caches !== 'undefined') {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+      } catch (e) {
+        console.warn('Failed to clear cache/sw before reload:', e);
+      } finally {
+        window.location.reload();
+      }
+    })();
     return Promise.resolve();
   }
 
@@ -1304,10 +1319,20 @@ export function applyUpdate(trigger?: string): Promise<void> {
   activeApplyPromise = (async () => {
     if (!isNative()) {
       otaDebugLogs.finalPathExecuted = 'N/A';
-      updateGlobalState({ 
-        updateState: 'manual_apk_required', 
-        error: 'Manual update required.' 
-      });
+      try {
+        if (typeof caches !== 'undefined') {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+      } catch (e) {
+        console.warn('Failed to clear cache/sw before reload:', e);
+      } finally {
+        window.location.reload();
+      }
       return;
     }
 
