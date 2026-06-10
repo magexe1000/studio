@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.26'; // Fix web updates, caching headers, self-destruct sw-push.js
+export const APP_VERSION = '3.6.27'; // Separate Web and Android update metadata architecture
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,11 +35,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-10'; // 3.6.26
+export const APP_VERSION_DATE = '2026-06-10'; // 3.6.27
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = '4e9f1696';
-export const APP_BUILD_TIMESTAMP = '6/10/2026, 4:51:25 AM UTC';
+export const APP_COMMIT_SHA = 'fdcd1fea';
+export const APP_BUILD_TIMESTAMP = '6/9/2026, 11:47:47 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -56,11 +56,18 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
+    heading: "Improved",
+    items: [
+      "Added clearer platform separation for update metadata and updater actions.",
+      "Preserved shared Studio version and What’s New across Web and Android.",
+    ],
+  },
+  {
     heading: "Fixed",
     items: [
-      "Fixed issue where the web application would get stuck on old versions and fail to load updates.",
-      "Implemented auto-cleanup of legacy push service worker instances to clear stale browser caches.",
-      "Optimized Firebase Hosting caching configuration to prevent caching of index.html and service workers.",
+      "Fixed Studio Web incorrectly showing Android manual APK update states.",
+      "Separated Web/PWA update metadata from Android APK release metadata.",
+      "Ensured Web uses refresh-based update behavior while Android keeps APK/AppInstaller updates.",
     ],
   },
 ];
@@ -71,9 +78,16 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
-      "Se corrigió el problema por el cual la aplicación web se quedaba atascada en versiones antiguas y no cargaba las actualizaciones.",
-      "Se implementó la limpieza automática de instancias heredadas del service worker de notificaciones para borrar cachés obsoletas del navegador.",
-      "Se optimizó la configuración de almacenamiento en caché de Firebase Hosting para evitar que se almacenen en caché index.html y los service workers.",
+      "Se corrigió que Studio Web mostrara incorrectamente los estados de actualización manual de APK de Android.",
+      "Se separaron los metadatos de actualización de Web/PWA de los metadatos de lanzamiento de APK de Android.",
+      "Se aseguró que Web use el comportamiento de actualización basado en recarga mientras que Android mantiene las actualizaciones de APK/AppInstaller.",
+    ],
+  },
+  {
+    heading: "Mejorado",
+    items: [
+      "Se agregó una separación de plataformas más clara para los metadatos y las acciones de actualización.",
+      "Se preservó la versión de Studio compartida y la sección de novedades en Web y Android.",
     ],
   },
 ];
@@ -83,9 +97,16 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
     heading: "Behoben",
     items: [
-      "Problem behoben, bei dem die Webanwendung auf alten Versionen hängen blieb und Updates nicht geladen werden konnten.",
-      "Automatische Bereinigung von alten Push-Service-Worker-Instanzen implementiert, um veraltete Browser-Caches zu löschen.",
-      "Caching-Konfiguration von Firebase Hosting optimiert, um das Caching von index.html und Service Workern zu verhindern.",
+      "Problem behoben, bei dem Studio Web fälschlicherweise den manuellen APK-Update-Status für Android anzeigte.",
+      "Trennung der Web/PWA-Update-Metadaten von den Android-APK-Release-Metadaten.",
+      "Sichergestellt, dass Web das aktualisierungsbasierte Verhalten verwendet, während Android die APK/AppInstaller-Updates beibehält.",
+    ],
+  },
+  {
+    heading: "Verbessert",
+    items: [
+      "Klarere Plattformtrennung für Update-Metadaten und Updater-Aktionen hinzugefügt.",
+      "Gemeinsame Studio-Version und Neuigkeiten für Web und Android beibehalten.",
     ],
   },
 ];

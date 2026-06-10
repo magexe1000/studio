@@ -194,8 +194,14 @@ fs.writeFileSync(sourcePath, finalSrc, 'utf8');
 console.log(`sync-version: ✓ updated APP_COMMIT_SHA and APP_BUILD_TIMESTAMP in ${path.relative(root, sourcePath)}`);
 
 const payload = {
+  platform: 'web',
   version,
+  commit: gitCommitSha,
+  releasedAt: buildTimestamp,
+  buildTimestamp,
+  updateMode: 'refresh',
   changelog,
+  whatsNew: changelog,
   releaseNotes,
   mandatory: false,
 };
