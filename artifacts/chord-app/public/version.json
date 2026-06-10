@@ -1,11 +1,21 @@
 {
-  "version": "3.6.26",
-  "changelog": "• Fixed issue where the web application would get stuck on old versions and fail to load updates.\n• Implemented auto-cleanup of legacy push service worker instances to clear stale browser caches.\n• Optimized Firebase Hosting caching configuration to prevent caching of index.html and service workers.",
+  "platform": "web",
+  "version": "3.6.28",
+  "commit": "96508ca3",
+  "releasedAt": "6/10/2026, 1:22:16 AM CST",
+  "buildTimestamp": "6/10/2026, 1:22:16 AM CST",
+  "updateMode": "refresh",
+  "changelog": "• Fixed Web update actions falling back to Android manual APK update states.\n• Fixed legacy Web clients getting stuck in stale cache/service-worker update flows.\n• Ensured Web update actions refresh Studio instead of opening Android install UI.\n• Improved Web cache and service-worker cleanup during update refresh.\n• Preserved Android APK/AppInstaller updater behavior.",
+  "whatsNew": "• Fixed Web update actions falling back to Android manual APK update states.\n• Fixed legacy Web clients getting stuck in stale cache/service-worker update flows.\n• Ensured Web update actions refresh Studio instead of opening Android install UI.\n• Improved Web cache and service-worker cleanup during update refresh.\n• Preserved Android APK/AppInstaller updater behavior.",
   "releaseNotes": {
+    "improved": [
+      "Improved Web cache and service-worker cleanup during update refresh.",
+      "Preserved Android APK/AppInstaller updater behavior."
+    ],
     "fixed": [
-      "Fixed issue where the web application would get stuck on old versions and fail to load updates.",
-      "Implemented auto-cleanup of legacy push service worker instances to clear stale browser caches.",
-      "Optimized Firebase Hosting caching configuration to prevent caching of index.html and service workers."
+      "Fixed Web update actions falling back to Android manual APK update states.",
+      "Fixed legacy Web clients getting stuck in stale cache/service-worker update flows.",
+      "Ensured Web update actions refresh Studio instead of opening Android install UI."
     ]
   },
   "mandatory": false

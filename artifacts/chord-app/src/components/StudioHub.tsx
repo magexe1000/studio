@@ -1697,7 +1697,9 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
             ) : (
               <button
                 className="updater-cta-btn"
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  void ota.applyUpdate('StudioHub: UpdaterPage');
+                }}
                 style={{
                   background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
                   color: '#fff',

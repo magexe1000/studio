@@ -24,7 +24,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { APP_VERSION, compareSemver, normalizeSemver } from './appVersion';
-import { isNative, notifyOtaAvailable, shouldUseAndroidApkUpdater } from './capgoUpdater';
+import { isNative, notifyOtaAvailable, shouldUseAndroidApkUpdater, fadeToBlackAndReload } from './capgoUpdater';
 import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 import { useChordStore } from '../store/useChordStore';
 import { logActivity } from './activityLogger';
@@ -929,7 +929,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       const updateAvailable = isUpgrade;
 
       if (updateAvailable) {
-        updateType = 'apk';
+        updateType = isNative() ? 'apk' : 'ota';
       }
 
       const otaBlockedBecauseApkRequired = false;
@@ -1197,30 +1197,16 @@ export function downloadUpdate(trigger?: string): Promise<void> {
   }
 
   if (!isNative()) {
-    // Web: clear service workers, caches, and reload page with cache-buster
-    void (async () => {
-      try {
-        if (typeof caches !== 'undefined') {
-          const keys = await caches.keys();
-          await Promise.all(keys.map(k => caches.delete(k)));
-        }
-        if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(r => r.unregister()));
-        }
-      } catch (e) {
-        console.warn('Failed to clear cache/sw before reload:', e);
-      } finally {
-        try {
-          const url = new URL(window.location.href);
-          url.searchParams.set('upd', Date.now().toString());
-          window.location.href = url.toString();
-        } catch {
-          window.location.reload();
-        }
+    activeDownloadPromise = (async () => {
+      updateGlobalState({ updateState: 'downloading_ota', progress: 0.1, statusText: 'Downloading update', error: null });
+      // Simulate progress over a few frames for UX polish
+      for (let p = 20; p <= 100; p += 20) {
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        updateGlobalState({ progress: p / 100 });
       }
+      updateGlobalState({ updateState: 'ready_to_install', statusText: 'Ready to install' });
     })();
-    return Promise.resolve();
+    return activeDownloadPromise;
   }
 
   if (!apkUrl) {
@@ -1326,26 +1312,29 @@ export function applyUpdate(trigger?: string): Promise<void> {
   activeApplyPromise = (async () => {
     if (!isNative()) {
       otaDebugLogs.finalPathExecuted = 'N/A';
-      try {
-        if (typeof caches !== 'undefined') {
-          const keys = await caches.keys();
-          await Promise.all(keys.map(k => caches.delete(k)));
-        }
-        if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(r => r.unregister()));
-        }
-      } catch (e) {
-        console.warn('Failed to clear cache/sw before reload:', e);
-      } finally {
+      updateGlobalState({ updateState: 'installing', statusText: 'Applying update' });
+      await fadeToBlackAndReload(async () => {
         try {
-          const url = new URL(window.location.href);
-          url.searchParams.set('upd', Date.now().toString());
-          window.location.href = url.toString();
-        } catch {
-          window.location.reload();
+          if (typeof caches !== 'undefined') {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+          if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister()));
+          }
+        } catch (e) {
+          console.warn('Failed to clear cache/sw before reload:', e);
+        } finally {
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.set('upd', Date.now().toString());
+            window.location.href = url.toString();
+          } catch {
+            window.location.reload();
+          }
         }
-      }
+      });
       return;
     }
 
