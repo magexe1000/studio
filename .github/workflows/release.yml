@@ -141,6 +141,7 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TYPE: ${{ steps.gate.outputs.release_type }}
         run: |
           pnpm --filter @workspace/chord-app run release:firebase --no-bump > build.log 2>&1 || {
             status=$?
