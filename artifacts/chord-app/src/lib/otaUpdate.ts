@@ -24,7 +24,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { APP_VERSION, compareSemver, normalizeSemver } from './appVersion';
-import { isNative, notifyOtaAvailable } from './capgoUpdater';
+import { isNative, notifyOtaAvailable, shouldUseAndroidApkUpdater } from './capgoUpdater';
 import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 import { useChordStore } from '../store/useChordStore';
 import { logActivity } from './activityLogger';
@@ -404,13 +404,12 @@ function versionJsonUrls(): string[] {
   const remoteBase = (import.meta.env.VITE_OTA_BASE_URL as string | undefined)?.replace(/\/$/, '') || 'https://studio-30f44.web.app';
   const urls: string[] = [];
 
-  urls.push(`${remoteBase}/app-release.json?t=${t}`);
-  urls.push(`${remoteBase}/version.json?t=${t}`);
-
-  // Web / PWA / dev preview / iframe — same-origin always works.
-  if (!isNative()) {
+  if (shouldUseAndroidApkUpdater()) {
+    urls.push(`${remoteBase}/app-release.json?t=${t}`);
+  } else {
+    urls.push(`${remoteBase}/version.json?t=${t}`);
+    // Web / PWA / dev preview / iframe — same-origin always works.
     const localBase = import.meta.env.BASE_URL || '/';
-    urls.push(`${localBase}app-release.json?t=${t}`);
     urls.push(`${localBase}version.json?t=${t}`);
   }
 

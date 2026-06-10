@@ -252,7 +252,8 @@ try {
   console.warn('generate-release-metadata: ⚠ Could not fetch previous required version code, defaulting to current version.', err);
 }
 
-const metadata = {
+const androidMetadata = {
+  platform: 'android',
   version: version,
   versionName: version,
   version_code: versionCode,
@@ -280,9 +281,30 @@ const metadata = {
 };
 
 if (reinstallRequired) {
-  metadata.previousSignatureSha256 = '58b9bf2de5064c62ac3ca181b5608fe135c6894a8359ff6588e19218cd384764';
-  metadata.newSignatureSha256 = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
+  androidMetadata.previousSignatureSha256 = '58b9bf2de5064c62ac3ca181b5608fe135c6894a8359ff6588e19218cd384764';
+  androidMetadata.newSignatureSha256 = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
 }
+
+// Get commit SHA and build timestamp from appVersion.ts if present
+const commitMatch = src.match(/export\s+const\s+APP_COMMIT_SHA\s*=\s*['"]([^'"]+)['"]/);
+const gitCommitSha = commitMatch ? commitMatch[1] : 'unknown';
+
+const timestampMatch = src.match(/export\s+const\s+APP_BUILD_TIMESTAMP\s*=\s*['"]([^'"]+)['"]/);
+const buildTimestamp = timestampMatch ? timestampMatch[1] : new Date().toLocaleString('en-US', { timeZoneName: 'short' });
+
+const webMetadata = {
+  platform: 'web',
+  version: version,
+  commit: gitCommitSha,
+  releasedAt: buildTimestamp,
+  buildTimestamp: buildTimestamp,
+  updateMode: 'refresh',
+  description: description,
+  whatsNew: description,
+  changelog: description,
+  releaseNotes: releaseNotes,
+  mandatory: false
+};
 
 // Validate the constructed metadata before writing
 if (prevVersionCode && prevData && prevData.version !== version && versionCode <= prevVersionCode) {
@@ -290,9 +312,9 @@ if (prevVersionCode && prevData && prevData.version !== version && versionCode <
   process.exit(1);
 }
 
-// Validate against GitHub Pages URLs in metadata
+// Validate against GitHub Pages URLs in Android metadata
 const urlRegex = /https?:\/\/[^\s"]+/g;
-const jsonStr = JSON.stringify(metadata);
+const jsonStr = JSON.stringify(androidMetadata);
 const matches = jsonStr.match(urlRegex) || [];
 for (const url of matches) {
   const cleanUrl = url.replace(/[",}]/g, '').trim();
@@ -308,15 +330,15 @@ for (const url of matches) {
 console.log('generate-release-metadata: ✓ Metadata URLs successfully validated (no GitHub Pages URLs detected)');
 
 try {
-  fs.writeFileSync(appReleaseJsonPath, JSON.stringify(metadata, null, 2) + '\n', 'utf8');
+  fs.writeFileSync(appReleaseJsonPath, JSON.stringify(androidMetadata, null, 2) + '\n', 'utf8');
   // Also write to dist/public in case we rebuild
   const publicReleasePath = path.join(appRoot, 'dist/public/app-release.json');
   fs.mkdirSync(path.dirname(publicReleasePath), { recursive: true });
-  fs.writeFileSync(publicReleasePath, JSON.stringify(metadata, null, 2) + '\n', 'utf8');
+  fs.writeFileSync(publicReleasePath, JSON.stringify(androidMetadata, null, 2) + '\n', 'utf8');
 
   console.log(`generate-release-metadata: ✓ Wrote firebase-public/app-release.json and dist/public/app-release.json`);
 
-  // Synchronize version.json files with APK metadata
+  // Synchronize version.json files with Web metadata
   const syncVersionJson = (filePath) => {
     // Check if parent directory exists or if we should create it
     const dir = path.dirname(filePath);
@@ -324,9 +346,8 @@ try {
       fs.mkdirSync(dir, { recursive: true });
     }
     try {
-      const data = { ...metadata };
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
-      console.log(`generate-release-metadata: ✓ Synchronized ${path.basename(filePath)} with APK metadata`);
+      fs.writeFileSync(filePath, JSON.stringify(webMetadata, null, 2) + '\n', 'utf8');
+      console.log(`generate-release-metadata: ✓ Synchronized ${path.basename(filePath)} with Web-safe metadata`);
     } catch (err) {
       console.warn(`generate-release-metadata: ⚠ Could not update ${filePath}:`, err);
     }

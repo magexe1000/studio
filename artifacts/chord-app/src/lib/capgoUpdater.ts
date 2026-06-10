@@ -28,13 +28,36 @@ import { Capacitor } from '@capacitor/core';
 import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 import { APP_VERSION, compareSemver } from './appVersion';
 
+export type RuntimePlatform = 'web' | 'android-native';
+
+export function getRuntimePlatform(): RuntimePlatform {
+  try {
+    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+      return 'android-native';
+    }
+  } catch {}
+  return 'web';
+}
+
+export function isWebRuntime(): boolean {
+  return getRuntimePlatform() === 'web';
+}
+
+export function isAndroidNativeRuntime(): boolean {
+  return getRuntimePlatform() === 'android-native';
+}
+
+export function shouldUseWebUpdater(): boolean {
+  return isWebRuntime();
+}
+
+export function shouldUseAndroidApkUpdater(): boolean {
+  return isAndroidNativeRuntime();
+}
+
 /** True only inside a Capacitor-wrapped native shell (Android APK). */
 export function isNative(): boolean {
-  try {
-    return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
-  } catch {
-    return false;
-  }
+  return isAndroidNativeRuntime();
 }
 
 /**
