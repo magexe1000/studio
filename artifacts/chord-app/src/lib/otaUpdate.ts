@@ -409,6 +409,7 @@ function versionJsonUrls(): string[] {
   } else {
     // Web / PWA / dev preview / iframe — same-origin only.
     // Querying the Firebase production domain causes updates to be falsely detected on staging / Netlify hosts.
+    // Web / PWA same-origin cache-busting check
     const localBase = import.meta.env.BASE_URL || '/';
     urls.push(`${localBase}version.json?t=${t}`);
   }
