@@ -4,6 +4,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Studio by Mag — Organization, Rehearsal & Practice Tools</title>
     <meta name="description" content="StudioXX is the premium integrated toolkit for musicians, band managers, and live sound engineers. Manage chords, build drum sheets, create stage plots, practice vocals, and play multitracks." />
     <meta name="keywords" content="musician tools, band management tools, studioxx, studio xx, studio by mag, mag studio, rehearsal tools, chord library app, stage plot app" />
@@ -561,6 +564,60 @@
         }
         // Hard safety
         setTimeout(doFade, 10000);
+      })();
+    </script>
+    <script>
+      // ── Web Auto-Updater ────────────────────────────────────────────────
+      // On web (non-Capacitor), silently reload if the server has a newer
+      // version than what this HTML was built with. This fixes browsers
+      // that aggressively cache index.html and serve a stale bundle.
+      // The script runs once per page load, is a no-op on native, and
+      // uses sessionStorage to prevent infinite reload loops.
+      (function() {
+        try {
+          // Skip on native (Capacitor)
+          if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) return;
+
+          // Prevent infinite reload loops — only attempt once per session
+          var RELOAD_KEY = 'studio:web-auto-reload-done';
+          if (sessionStorage.getItem(RELOAD_KEY)) return;
+
+          fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(data) {
+              if (!data || !data.version) return;
+
+              // Compare with a script tag attribute that Vite will NOT hash-bust.
+              // We use the inline APP_VERSION from the app's JS module. If the
+              // app hasn't loaded yet, we can't compare — but that's fine because
+              // the module will load the correct version. The issue is when the
+              // HTML itself is cached, causing Vite to reference OLD hashed
+              // filenames that may return 404. In that case the <script> module
+              // tag below will fail, and this fetch succeeds, so we can reload.
+              //
+              // Simpler approach: just check if the assets this HTML references
+              // are actually available on the server. If this HTML is stale, the
+              // hashed JS bundles it references won't exist anymore.
+              var scripts = document.querySelectorAll('script[src*="/assets/"]');
+              if (scripts.length === 0) return; // dev mode, nothing to check
+
+              // Check if the main entry JS asset exists
+              var mainScript = scripts[scripts.length - 1];
+              var src = mainScript.getAttribute('src');
+              if (!src) return;
+
+              fetch(src, { method: 'HEAD', cache: 'no-store' })
+                .then(function(r) {
+                  if (r.ok) return; // assets exist, HTML is current
+                  // Assets are missing — this HTML is stale. Reload.
+                  console.log('[Studio Web Updater] Stale HTML detected, reloading for v' + data.version);
+                  sessionStorage.setItem(RELOAD_KEY, '1');
+                  window.location.reload();
+                })
+                .catch(function() { /* network error, don't reload */ });
+            })
+            .catch(function() { /* swallow */ });
+        } catch(e) { /* never block app startup */ }
       })();
     </script>
     <script type="module" src="/src/main.tsx"></script>

@@ -15,6 +15,13 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.6.26
+
+### Fixed
+- Fixed issue where the web application would get stuck on old versions and fail to load updates.
+- Implemented auto-cleanup of legacy push service worker instances to clear stale browser caches.
+- Optimized Firebase Hosting caching configuration to prevent caching of index.html and service workers.
+
 ## 3.6.25
 
 ### Improved

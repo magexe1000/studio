@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.25'; // Web/Desktop UI improvements, Stagex back-navigation fix
+export const APP_VERSION = '3.6.26'; // Fix web updates, caching headers, self-destruct sw-push.js
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -35,11 +35,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-06'; // 3.6.25
+export const APP_VERSION_DATE = '2026-06-10'; // 3.6.26
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = 'b7e1a378';
-export const APP_BUILD_TIMESTAMP = '6/6/2026, 4:01:26 PM UTC';
+export const APP_BUILD_TIMESTAMP = '6/9/2026, 10:46:49 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -56,18 +56,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Improved",
-    items: [
-      "Web builds now show a slim, non-blocking refresh banner instead of the Android-style APK update modal.",
-      "Settings → Updates page adapts for web: shows a 'Web Build' badge, Refresh button, and hides native-only controls.",
-      "Hub and Settings layouts are now centered and constrained on desktop/laptop screens for better readability.",
-      "Desktop hover effects added for cards, buttons, and interactive settings rows.",
-    ],
-  },
-  {
     heading: "Fixed",
     items: [
-      "Fixed Stagex back-navigation so that swiping back or pressing back now properly closes open panels (timeline, presets, share modal, custom elements, etc.) instead of being ignored.",
+      "Fixed issue where the web application would get stuck on old versions and fail to load updates.",
+      "Implemented auto-cleanup of legacy push service worker instances to clear stale browser caches.",
+      "Optimized Firebase Hosting caching configuration to prevent caching of index.html and service workers.",
     ],
   },
 ];
@@ -76,18 +69,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Mejorado",
-    items: [
-      "Las versiones web ahora muestran una barra de actualización discreta en lugar del modal de actualización APK de Android.",
-      "La página de Actualizaciones en Ajustes se adapta para web: muestra la insignia 'Web Build', botón de recarga, y oculta controles exclusivos de Android.",
-      "Los diseños del Hub y Ajustes ahora están centrados y restringidos en pantallas de escritorio para mejor legibilidad.",
-      "Se añadieron efectos hover para tarjetas, botones y filas interactivas en escritorio.",
-    ],
-  },
-  {
     heading: "Corregido",
     items: [
-      "Se corrigió la navegación hacia atrás en Stagex para cerrar correctamente los paneles abiertos (línea de tiempo, presets, modal de compartir, etc.) en lugar de ser ignorada.",
+      "Se corrigió el problema por el cual la aplicación web se quedaba atascada en versiones antiguas y no cargaba las actualizaciones.",
+      "Se implementó la limpieza automática de instancias heredadas del service worker de notificaciones para borrar cachés obsoletas del navegador.",
+      "Se optimizó la configuración de almacenamiento en caché de Firebase Hosting para evitar que se almacenen en caché index.html y los service workers.",
     ],
   },
 ];
@@ -95,18 +81,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Verbessert",
-    items: [
-      "Web-Versionen zeigen jetzt ein schlankes, nicht blockierendes Aktualisierungs-Banner anstelle des Android-APK-Update-Modals.",
-      "Die Seite Einstellungen → Updates passt sich für das Web an: zeigt ein 'Web Build'-Abzeichen, eine Aktualisierungs-Schaltfläche und blendet Android-exklusive Steuerelemente aus.",
-      "Hub- und Einstellungslayouts werden auf Desktop-/Laptop-Bildschirmen zentriert und begrenzt für bessere Lesbarkeit.",
-      "Desktop-Hover-Effekte für Karten, Schaltflächen und interaktive Einstellungszeilen hinzugefügt.",
-    ],
-  },
-  {
     heading: "Behoben",
     items: [
-      "Stagex-Zurück-Navigation korrigiert, sodass Zurückwischen oder Zurückdrücken offene Panels (Zeitleiste, Presets, Teilen-Modal usw.) ordnungsgemäß schließt, anstatt ignoriert zu werden.",
+      "Problem behoben, bei dem die Webanwendung auf alten Versionen hängen blieb und Updates nicht geladen werden konnten.",
+      "Automatische Bereinigung von alten Push-Service-Worker-Instanzen implementiert, um veraltete Browser-Caches zu löschen.",
+      "Caching-Konfiguration von Firebase Hosting optimiert, um das Caching von index.html und Service Workern zu verhindern.",
     ],
   },
 ];
