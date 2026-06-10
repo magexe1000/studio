@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowRight, Download, Monitor } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStudioPreferences } from '../../hooks/useStudioPreferences';
+import LandingLinkPreview from './LandingLinkPreview';
 
 interface LandingHeroProps {
   navigateTo: (path: string) => void;
@@ -154,23 +155,25 @@ export default function LandingHero({ navigateTo, apkUrl }: LandingHeroProps) {
         {/* Buttons */}
         <motion.div 
           variants={itemVariants}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto landing-font-heading"
+          className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-2xl mx-auto landing-font-heading"
         >
-          <button
-            onClick={() => {
-              sessionStorage.setItem('studio:entered_from_landing', 'true');
-              navigateTo('/app');
-            }}
-            className="w-full sm:w-auto px-6 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-950 text-xs uppercase tracking-wider font-bold rounded-lg flex items-center justify-center gap-2 transition-all duration-300 active:scale-[0.98]"
-          >
-            Use Studio Web
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <LandingLinkPreview src="/desktop_hub.png" isReduced={isReduced} className="w-full sm:w-auto">
+            <button
+              onClick={() => {
+                sessionStorage.setItem('studio:entered_from_landing', 'true');
+                navigateTo('/app');
+              }}
+              className="w-full sm:w-[180px] h-12 bg-zinc-100 hover:bg-zinc-200 text-zinc-950 text-xs uppercase tracking-wider font-bold rounded-lg border border-transparent flex items-center justify-center gap-2 transition-all duration-300 active:scale-[0.98]"
+            >
+              Use Studio Web
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </LandingLinkPreview>
           
           {apkUrl ? (
             <a
               href={apkUrl}
-              className="w-full sm:w-auto px-6 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs uppercase tracking-wider font-bold rounded-lg border border-zinc-800 hover:border-zinc-700 flex items-center justify-center gap-2 transition-all duration-300"
+              className="w-full sm:w-[180px] h-12 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs uppercase tracking-wider font-bold rounded-lg border border-zinc-800 hover:border-zinc-700 flex items-center justify-center gap-2 transition-all duration-300"
             >
               <Download className="w-3.5 h-3.5 text-zinc-400" />
               Download APK
@@ -178,7 +181,7 @@ export default function LandingHero({ navigateTo, apkUrl }: LandingHeroProps) {
           ) : (
             <button
               disabled
-              className="w-full sm:w-auto px-6 py-3 bg-zinc-950 text-zinc-600 text-xs uppercase tracking-wider font-bold rounded-lg border border-zinc-900 cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full sm:w-[180px] h-12 bg-zinc-950 text-zinc-600 text-xs uppercase tracking-wider font-bold rounded-lg border border-zinc-900 cursor-not-allowed flex items-center justify-center gap-2"
             >
               APK Unavailable
             </button>
@@ -186,7 +189,7 @@ export default function LandingHero({ navigateTo, apkUrl }: LandingHeroProps) {
 
           <button
             disabled
-            className="w-full sm:w-auto px-6 py-3 bg-zinc-950 text-zinc-600 text-xs uppercase tracking-wider font-bold rounded-lg border border-zinc-900 cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full sm:w-[180px] h-12 bg-zinc-950 text-zinc-600 text-xs uppercase tracking-wider font-bold rounded-lg border border-zinc-900 cursor-not-allowed flex items-center justify-center gap-2"
           >
             <Monitor className="w-3.5 h-3.5 text-zinc-700" />
             Windows App
