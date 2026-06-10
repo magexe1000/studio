@@ -2937,9 +2937,10 @@ export default function SongsPanel() {
     : undefined;
 
   /* ═══════ VIEW: PRESET EDITOR ═══════ */
-  if (activePreset && !showForm) {
+  const renderEditor = () => {
+    if (!activePreset) return null;
     return (
-      <div className="flex flex-col h-full overflow-hidden app-bg slide-from-right" style={{ position: 'relative' }}>
+      <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative' }}>
         {showLive && <LiveMode preset={activePreset} onClose={() => setShowLive(false)} transposeOffset={transposeOffset} />}
         {showPicker && <ChordPicker accent={accent} onAdd={id => {
           if (pickerSectionId) addChordToSection(activePreset.id, pickerSectionId, id);
@@ -2973,12 +2974,14 @@ export default function SongsPanel() {
           {/* ── Title row ── */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
             {/* Back button */}
-            <button onClick={() => setActivePreset(null)} data-testid="preset-back" className="btn-smooth"
-              style={{ flexShrink: 0, width: '36px', height: '36px', borderRadius: '50%', background: 'var(--app-surface-high)', border: '1px solid rgba(128,128,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'spring-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both', transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)' }}>
-              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
-            </button>
+            {!isWebDesktop && (
+              <button onClick={() => setActivePreset(null)} data-testid="preset-back" className="btn-smooth"
+                style={{ flexShrink: 0, width: '36px', height: '36px', borderRadius: '50%', background: 'var(--app-surface-high)', border: '1px solid rgba(128,128,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'spring-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both', transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
+              </button>
+            )}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 900, fontSize: '22px', letterSpacing: '-0.02em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePreset.name}</h2>
+              <h2 style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 950, fontSize: isWebDesktop ? '18px' : '22px', letterSpacing: '-0.02em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePreset.name}</h2>
               {activePreset.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '12px', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePreset.artist}</p>}
             </div>
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
@@ -3008,6 +3011,12 @@ export default function SongsPanel() {
                 style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'var(--app-surface-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: '17px' }}>edit</span>
               </button>
+              {isWebDesktop && (
+                <button onClick={() => setShowDeleteId(activePreset.id)} className="btn-smooth"
+                  style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(238,125,119,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#ee7d77', fontSize: '17px' }}>delete</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -3467,9 +3476,147 @@ export default function SongsPanel() {
         {jsonExportPreset && <JsonExportSheet preset={jsonExportPreset} accent={accent} onClose={() => setJsonExportPreset(null)} />}
       </div>
     );
+  };
+
+  if (!isWebDesktop && activePreset && !showForm) {
+    return renderEditor();
   }
 
   /* ═══════ VIEW: PRESET LIST ═══════ */
+  if (isWebDesktop) {
+    return (
+      <div className="flex w-full h-full overflow-hidden bg-[#050505]" style={{ position: 'relative' }}>
+        {/* Left Column: Setlist song list */}
+        <div style={{ width: '280px', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255, 255, 255, 0.08)', height: '100%', overflow: 'hidden' }}>
+          {/* Header */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+            <span style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-secondary)' }}>SETLIST</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                onClick={() => { setEditingId(null); setShowForm(true); }}
+                style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                title={t.songs.newSong}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+              </button>
+              <button 
+                onClick={() => setShowImport(true)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--c-text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                title="Import"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>upload_file</span>
+              </button>
+            </div>
+          </div>
+          {/* List of songs */}
+          <div className="flex-1 overflow-y-auto no-scrollbar" style={{ padding: '8px' }}>
+            {presets.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--c-text-muted)', fontSize: '12px' }}>
+                No Songs
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {presets.map(p => {
+                  const isActive = p.id === activePresetId;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setActivePreset(p.id)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        textAlign: 'left',
+                        background: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px',
+                        transition: 'background 150ms ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <span style={{ fontSize: '12.5px', fontWeight: isActive ? '700' : '500', color: isActive ? '#fff' : 'var(--c-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.name}
+                        </span>
+                        {p.key && (
+                          <span style={{ fontSize: '10px', color: 'var(--c-text-secondary)', opacity: 0.8 }}>
+                            {p.key}
+                          </span>
+                        )}
+                      </div>
+                      {p.artist && (
+                        <span style={{ fontSize: '11px', color: 'var(--c-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.artist}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Preset Editor or Empty State */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', position: 'relative' }}>
+          {activePreset ? (
+            renderEditor()
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-muted)' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '32px', marginBottom: '8px', opacity: 0.4 }}>queue_music</span>
+              <span style={{ fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 'bold' }}>Select a song from the setlist</span>
+            </div>
+          )}
+        </div>
+
+        {/* Form and Modals */}
+        {showForm && <PresetForm accent={accent} initial={editingFormData} onSave={handleFormSave} onCancel={() => { setShowForm(false); setEditingId(null); }} />}
+        
+        {showDeleteId && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 150, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div onClick={() => setShowDeleteId(null)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
+            <div style={{ position: 'relative', width: '360px', background: 'var(--app-surface-low)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '20px' }}>
+              <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '16px', marginBottom: '16px' }}>{t.songs.confirmDelete}</p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => setShowDeleteId(null)} style={{ flex: 1, padding: '10px', borderRadius: '6px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}>{t.songs.cancel}</button>
+                <button onClick={() => { deletePreset(showDeleteId); setShowDeleteId(null); }} style={{ flex: 1, padding: '10px', borderRadius: '6px', background: 'rgba(238,125,119,0.15)', color: '#ee7d77', border: '1px solid rgba(238,125,119,0.3)', cursor: 'pointer', fontWeight: 800, fontSize: '13px' }}>{t.songs.delete}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {exportModalPreset && (
+          <ExportModal
+            preset={exportModalPreset}
+            accent={accent}
+            onClose={() => setExportModal(null)}
+            transposeOffset={transposeOffset}
+            storedCustomChords={customChords}
+          />
+        )}
+
+        {jsonExportPreset && <JsonExportSheet preset={jsonExportPreset} accent={accent} onClose={() => setJsonExportPreset(null)} />}
+
+        {showImport && (
+          <ImportSongModal
+            accent={accent}
+            existingPresets={presets}
+            onImport={handleImport}
+            onClose={() => setShowImport(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative' }}>
       {showForm && <PresetForm accent={accent} initial={editingFormData} onSave={handleFormSave} onCancel={() => { setShowForm(false); setEditingId(null); }} />}

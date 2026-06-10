@@ -1055,6 +1055,58 @@ function AppRow({
 }) {
   const [pressed, setPressed] = useState(false);
 
+  const isWebDesktop = useIsWebDesktop();
+
+  if (isWebDesktop) {
+    return (
+      <button
+        onClick={onClick}
+        onPointerDown={() => setPressed(true)}
+        onPointerUp={() => setPressed(false)}
+        onPointerLeave={() => setPressed(false)}
+        onPointerCancel={() => setPressed(false)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          width: '100%',
+          padding: '10px 14px',
+          background: pressed ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.01)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderRadius: '10px',
+          cursor: 'pointer',
+          textAlign: 'left',
+          transform: pressed ? 'scale(0.99)' : 'scale(1)',
+          transition: 'all 150ms ease',
+          marginBottom: '8px',
+          boxSizing: 'border-box',
+          outline: 'none',
+        }}
+      >
+        <div style={{
+          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+          background: 'rgba(255, 255, 255, 0.04)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#ffffff',
+        }}>
+          <Logo size={18} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', margin: 0, letterSpacing: '-0.01em' }}>
+            {name}
+          </p>
+          <p style={{ fontSize: 10, color: '#a1a1aa', margin: '2px 0 0', fontWeight: 500 }}>
+            {desc}
+          </p>
+        </div>
+        <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#71717a', flexShrink: 0 }}>
+          chevron_right
+        </span>
+      </button>
+    );
+  }
+
   return (
     <button
       onClick={onClick}
@@ -2461,7 +2513,12 @@ function HubSettings({
 
 
 
-  const cardStyle: React.CSSProperties = {
+  const cardStyle: React.CSSProperties = isWebDesktop ? {
+    background: 'rgba(9, 9, 11, 0.4)',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+  } : {
     background: 'var(--app-surface)',
     borderRadius: '1.25rem',
     overflow: 'hidden',

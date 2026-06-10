@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { getAllChords, searchChords, getChordById, type ChordType } from '../data/chords';
+import { getAllChords, searchChords, getChordById, getRelatedChords, type ChordType } from '../data/chords';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
 import { SONGS, GENRE_META, type Genre } from '../data/progressions';
@@ -13,6 +13,47 @@ import { setBackHandler } from '../lib/backStack';
 import { playChord, stopChordPlayback } from '../lib/guitarAudio';
 import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
 import { useScrollFade } from '../components/ScrollFade';
+import GuitarDiagram from '../components/GuitarDiagram';
+import PianoDiagram from '../components/PianoDiagram';
+import FourStringDiagram from '../components/FourStringDiagram';
+import { WebEmptyState } from '../components/WebDesignSystem';
+import type { GuitarChordData } from '../data/chords';
+
+function RelatedPlayBtn({ guitar, accent }: {
+  guitar: GuitarChordData;
+  accent: { from: string; to: string; mid: string };
+}) {
+  const [playing, setPlaying] = useState(false);
+  const handlePlay = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (playing) { stopChordPlayback(); setPlaying(false); return; }
+    setPlaying(true);
+    playChord(guitar);
+    setTimeout(() => setPlaying(false), 2800);
+  }, [guitar, playing]);
+
+  return (
+    <button
+      aria-label="Play chord"
+      onClick={handlePlay}
+      style={{
+        width: 24, height: 24, borderRadius: '50%',
+        background: playing ? `${accent.from}30` : 'rgba(255,255,255,0.07)',
+        border: 'none', cursor: 'pointer', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', padding: 0,
+        transition: 'background 200ms ease',
+      }}
+    >
+      <span className="material-symbols-outlined" style={{
+        fontSize: '13px',
+        color: playing ? accent.from : 'var(--c-text-secondary)',
+        fontVariationSettings: "'FILL' 1",
+        transition: 'color 200ms ease',
+      }}>{playing ? 'stop' : 'play_arrow'}</span>
+    </button>
+  );
+}
 
 // ── Category definitions ──────────────────────────────────────
 const CATEGORIES: {
@@ -396,7 +437,19 @@ function ChordCard({
 // ── Main panel ────────────────────────────────────────────────
 export default function LibraryPanel() {
   const isWebDesktop = useIsWebDesktop();
-  const { selectedChordId, recentChords, favorites, selectChord, settings, activePanel } = useChordStore();
+  const { selectedChordId, recentChords, favorites, selectChord, settings, activePanel, toggleFavorite, addToProgression } = useChordStore();
+  const [chordPlaying, setChordPlaying] = useState(false);
+
+  const handleChordClick = (chordId: string) => {
+    if (isWebDesktop) {
+      useChordStore.setState((state) => {
+        const recent = [chordId, ...state.recentChords.filter(id => id !== chordId)].slice(0, 10);
+        return { selectedChordId: chordId, recentChords: recent };
+      });
+    } else {
+      selectChord(chordId);
+    }
+  };
   const { ref: recentScrollRef, fadeClass: recentFadeClass } = useScrollFade();
   const { ref: favoritesScrollRef, fadeClass: favoritesFadeClass } = useScrollFade();
   const { ref: genreScrollRef, fadeClass: genreFadeClass } = useScrollFade();
@@ -444,6 +497,13 @@ export default function LibraryPanel() {
   }, [activePanel]);
 
   const allChords = getAllChords();
+  const chord = useMemo(() => selectedChordId ? getChordById(selectedChordId) : null, [selectedChordId]);
+
+  const relatedChords = useMemo(
+    () => (chord && settings.chordAssistant && settings.assistantSmartSuggestions)
+      ? getRelatedChords(chord).slice(0, 4) : [],
+    [chord, settings.chordAssistant, settings.assistantSmartSuggestions]
+  );
 
   const sampleChords = useMemo(() => {
     const all = getAllChords();
@@ -524,6 +584,401 @@ export default function LibraryPanel() {
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
+
+  const renderChordDetail = () => {
+    if (!chord) return null;
+
+    const favorite = favorites.includes(chord.id);
+    const notesStr = chord.notes.join(' - ');
+    const typeStr = chord.type.charAt(0).toUpperCase() + chord.type.slice(1) + ' Chord';
+
+    const handlePlayChord = () => {
+      if (chordPlaying) {
+        stopChordPlayback();
+        setChordPlaying(false);
+        return;
+      }
+      setChordPlaying(true);
+      playChord(chord.guitar);
+      setTimeout(() => setChordPlaying(false), 2800);
+    };
+
+    const handleAddToProgression = () => {
+      addToProgression(chord.id);
+    };
+
+    const renderDetailDiagram = () => {
+      const props = {
+        chordName: chord.name,
+        notes: chord.notes,
+        intervals: chord.intervals,
+        showNoteNames: settings.showNoteNames,
+        showIntervals: settings.showIntervals,
+        size: 'lg' as const,
+      };
+      if (settings.instrument === 'guitar') {
+        return <GuitarDiagram chordData={chord.guitar} {...props} leftHanded={settings.leftHanded} />;
+      } else if (settings.instrument === 'bass') {
+        return <FourStringDiagram chordData={chord.guitar} {...props} instrument={settings.instrument} fiveString={settings.bassFiveString} />;
+      } else {
+        return <PianoDiagram chordData={chord.piano} {...props} />;
+      }
+    };
+
+    return (
+      <div className="flex-1 overflow-y-auto no-scrollbar p-6" style={{ background: '#050505' }}>
+        <div className="max-w-xl mx-auto space-y-6">
+          {/* Header & Title */}
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-1" style={{ fontFamily: 'Manrope' }}>
+                {t.chord.instruments[settings.instrument]}
+              </p>
+              <h2 className="text-3xl font-extrabold tracking-tighter text-white" style={{ fontFamily: 'Manrope' }}>
+                {chord.name.replace(/\s/g, '')}
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1" style={{ fontFamily: 'Inter' }}>
+                {notesStr} ({typeStr})
+              </p>
+            </div>
+            {/* Actions */}
+            <div className="flex gap-2">
+              <button
+                onClick={handlePlayChord}
+                className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-white"
+                title="Play chord"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: chordPlaying ? "'FILL' 1" : "'FILL' 0" }}>
+                  {chordPlaying ? 'stop' : 'play_arrow'}
+                </span>
+              </button>
+              <button
+                onClick={() => toggleFavorite(chord.id)}
+                className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 ${favorite ? 'text-rose-500' : 'text-zinc-400'}`}
+                title="Toggle favorite"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: favorite ? "'FILL' 1" : "'FILL' 0" }}>
+                  favorite
+                </span>
+              </button>
+              <button
+                onClick={handleAddToProgression}
+                className="h-10 px-4 rounded-full flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-xs font-bold text-white uppercase tracking-wider"
+                style={{ fontFamily: 'Manrope' }}
+              >
+                <span className="material-symbols-outlined text-sm">add</span>
+                Add
+              </button>
+            </div>
+          </div>
+
+          {/* Diagram Container */}
+          <div className="border border-zinc-900 bg-zinc-950/20 rounded-2xl p-6 flex justify-center items-center">
+            {renderDetailDiagram()}
+          </div>
+
+          {/* Voicings & Variations */}
+          {settings.chordAssistant && settings.assistantSmartSuggestions && relatedChords.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-[9.5px] font-extrabold uppercase tracking-widest text-zinc-500" style={{ fontFamily: 'Inter' }}>
+                {t.chord.voicings}
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {relatedChords.slice(0, 2).map(related => (
+                  <button
+                    key={related.id}
+                    onClick={() => handleChordClick(related.id)}
+                    className="block text-left p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 hover:border-zinc-800 transition-all cursor-pointer w-full relative"
+                  >
+                    <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
+                      <RelatedPlayBtn guitar={related.guitar} accent={accent} />
+                    </div>
+                    <span className="font-bold text-white text-xs block mb-2" style={{ fontFamily: 'Manrope' }}>
+                      {related.name}
+                    </span>
+                    <div className="bg-black/40 rounded-lg p-3">
+                      <ChordDiagram data={related.guitar} accentFrom={accent.from} />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Harmonic Context */}
+          <div className="space-y-3">
+            <h3 className="text-[9.5px] font-extrabold uppercase tracking-widest text-zinc-500" style={{ fontFamily: 'Inter' }}>
+              {t.chord.harmonicContext}
+            </h3>
+            <div className="border border-zinc-900 bg-zinc-950/20 rounded-xl divide-y divide-zinc-900/60">
+              <div className="flex justify-between items-center p-3 text-xs">
+                <span className="text-zinc-400 font-medium">Interval Spacing</span>
+                <span className="text-white font-bold">{chord.intervals.join(' - ')}</span>
+              </div>
+              {settings.instrument === 'guitar' && (
+                <div className="flex justify-between items-center p-3 text-xs">
+                  <span className="text-zinc-400 font-medium">Fingering</span>
+                  <span className="text-white font-bold">{chord.guitar.frets.map(f => f === -1 ? 'x' : f === 0 ? 'O' : f).join(' - ')}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (isWebDesktop) {
+    return (
+      <div className="flex w-full h-full overflow-hidden bg-[#050505]" style={{ position: 'relative' }}>
+        {/* Left Column: Categories / Search / Discover list */}
+        <div style={{ width: '300px', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255, 255, 255, 0.08)', height: '100%', overflow: 'hidden' }}>
+          
+          {/* Tabs header: Explore / Discover */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', flexShrink: 0 }}>
+            <div className="flex p-0.5 rounded-lg gap-1 bg-zinc-950/80 border border-zinc-900">
+              {(['explore', 'discover'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => { setMainTab(tab); setQuery(''); setActiveType(null); }}
+                  className={`flex-1 py-1.5 text-[10.5px] uppercase font-bold tracking-wider rounded-md border-none outline-none cursor-pointer transition-all ${
+                    mainTab === tab 
+                      ? 'bg-white text-black font-extrabold' 
+                      : 'text-zinc-500 hover:text-zinc-300 bg-transparent'
+                  }`}
+                  style={{ fontFamily: 'Manrope' }}
+                >
+                  {tab === 'explore' ? t.library.tabExplore : t.library.tabDiscover}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* List Scrollable Body */}
+          <div className="flex-1 overflow-y-auto no-scrollbar" style={{ padding: '8px' }}>
+            {mainTab === 'explore' ? (
+              // EXPLORE TAB
+              <div className="space-y-4">
+                {/* Search */}
+                <div style={{ padding: '0 4px 4px' }}>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" style={{ fontSize: '15px' }}>search</span>
+                    <input
+                      type="search"
+                      value={query}
+                      onChange={e => setQuery(e.target.value)}
+                      placeholder={t.library.searchPlaceholder}
+                      className="w-full py-1.5 pl-8 pr-3 text-xs outline-none bg-zinc-950/60 border border-zinc-900 rounded-lg text-white"
+                      style={{ fontFamily: 'Inter' }}
+                    />
+                  </div>
+                </div>
+
+                {showSearch ? (
+                  // Search results list
+                  <div className="space-y-1">
+                    <div style={{ padding: '2px 8px', fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--c-text-secondary)' }}>
+                      {t.library.results(searchResults.length)}
+                    </div>
+                    {searchResults.length === 0 ? (
+                      <div style={{ padding: '16px 8px', color: 'var(--c-text-muted)', fontSize: '11px' }}>
+                        {t.library.noResults(query)}
+                      </div>
+                    ) : (
+                      searchResults.map(chord => {
+                        const isActive = selectedChordId === chord.id;
+                        return (
+                          <button
+                            key={chord.id}
+                            onClick={() => handleChordClick(chord.id)}
+                            className={`w-full px-3 py-2 rounded-lg text-left text-xs font-semibold truncate transition-all outline-none border-none cursor-pointer flex justify-between items-center ${
+                              isActive 
+                                ? 'bg-zinc-100 text-[#030303] font-bold' 
+                                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30'
+                            }`}
+                            style={{ fontFamily: 'Manrope' }}
+                          >
+                            <span>{chord.name}</span>
+                            <span className="text-[9px] opacity-65 font-bold uppercase">{chord.type}</span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                ) : showType && activeCat ? (
+                  // Category chord list
+                  <div className="space-y-1">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '2px 4px 6px' }}>
+                      <button
+                        onClick={goBack}
+                        className="w-6 h-6 rounded-full flex items-center justify-center border border-zinc-800 bg-zinc-950/40 text-white cursor-pointer hover:border-zinc-700"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
+                      </button>
+                      <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'white' }}>
+                        {activeCat.label} ({filteredByType.length})
+                      </span>
+                    </div>
+                    {filteredByType.map(chord => {
+                      const isActive = selectedChordId === chord.id;
+                      return (
+                        <button
+                          key={chord.id}
+                          onClick={() => handleChordClick(chord.id)}
+                          className={`w-full px-3 py-2 rounded-lg text-left text-xs font-semibold truncate transition-all outline-none border-none cursor-pointer flex justify-between items-center ${
+                            isActive 
+                              ? 'bg-zinc-100 text-[#030303] font-bold' 
+                              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30'
+                          }`}
+                          style={{ fontFamily: 'Manrope' }}
+                        >
+                          <span>{chord.name}</span>
+                          <span className="text-[9px] opacity-65 font-bold uppercase">{chord.notes.join(' · ')}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  // Categories list (Explore Default)
+                  <div className="space-y-3">
+                    <div style={{ padding: '0 4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      {CATEGORIES.map(cat => {
+                        const labelText = (t.library.cats as Record<string, { label: string; desc: string }>)[cat.type]?.label ?? cat.label;
+                        return (
+                          <button
+                            key={cat.type}
+                            onClick={() => setActiveType(cat.type)}
+                            className="w-full px-3 py-2 rounded-lg text-left text-xs font-semibold transition-all outline-none border border-zinc-900 bg-zinc-950/40 hover:border-zinc-800 cursor-pointer flex justify-between items-center"
+                            style={{ fontFamily: 'Manrope' }}
+                          >
+                            <span className="text-zinc-300 font-bold">{labelText}</span>
+                            <span className="material-symbols-outlined text-zinc-600" style={{ fontSize: '14px' }}>chevron_right</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // DISCOVER TAB
+              <div className="space-y-4">
+                {/* Search */}
+                <div style={{ padding: '0 4px 4px' }}>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" style={{ fontSize: '15px' }}>search</span>
+                    <input
+                      type="text"
+                      value={discoverQuery}
+                      onChange={e => setDiscoverQuery(e.target.value)}
+                      placeholder="Search songs..."
+                      className="w-full py-1.5 pl-8 pr-3 text-xs outline-none bg-zinc-950/60 border border-zinc-900 rounded-lg text-white"
+                      style={{ fontFamily: 'Inter' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Genre chips row */}
+                <div style={{ padding: '0 4px' }} className="flex flex-wrap gap-1">
+                  <button
+                    onClick={() => setActiveGenre(null)}
+                    className={`px-2 py-1 rounded-full font-bold text-[9px] uppercase tracking-wider transition-all border-none outline-none cursor-pointer ${
+                      !activeGenre 
+                        ? 'bg-white text-black' 
+                        : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200'
+                    }`}
+                    style={{ fontFamily: 'Manrope' }}
+                  >
+                    All
+                  </button>
+                  {Object.entries(GENRE_META).map(([key, meta]) => {
+                    const isActive = activeGenre === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setActiveGenre(isActive ? null : key as Genre)}
+                        className={`px-2 py-1 rounded-full font-bold text-[9px] uppercase tracking-wider transition-all border outline-none cursor-pointer ${
+                          isActive 
+                            ? 'bg-zinc-800 text-white border-zinc-700' 
+                            : 'bg-transparent text-zinc-500 border-zinc-900 hover:text-zinc-400'
+                        }`}
+                        style={{ fontFamily: 'Manrope' }}
+                      >
+                        {localizedGenre(key as Genre, meta.label)}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Discover songs list */}
+                <div style={{ padding: '0 4px' }} className="space-y-2">
+                  {discoverSongs.length === 0 ? (
+                    <div style={{ padding: '24px 8px', color: 'var(--c-text-muted)', fontSize: '11px', textAlign: 'center' }}>
+                      No songs found
+                    </div>
+                  ) : (
+                    discoverSongs.map(song => {
+                      const meta = GENRE_META[song.genre];
+                      return (
+                        <div
+                          key={song.id}
+                          className="p-3 rounded-lg border border-zinc-900 bg-zinc-950/40 space-y-2"
+                        >
+                          <div>
+                            <div className="flex justify-between items-start gap-1">
+                              <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'white', fontFamily: 'Manrope' }} className="truncate">
+                                {song.title}
+                              </span>
+                              <span style={{ fontSize: '8px', color: meta.color, background: `${meta.color}15`, border: `1px solid ${meta.color}30`, padding: '1px 4px', borderRadius: '4px', textTransform: 'uppercase', fontWeight: 800 }}>
+                                {localizedGenre(song.genre, meta.label)}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>
+                              {song.artist}
+                            </div>
+                          </div>
+                          {/* Chord progression pills clickable */}
+                          <div className="flex flex-wrap gap-1">
+                            {song.progression.map((chordName, i) => {
+                              const displayId = allChords.find(c => c.name.toLowerCase().replace(/\s/g,'') === chordName.toLowerCase().replace(/\s/g,''))?.id;
+                              return (
+                                <button
+                                  key={i}
+                                  onClick={() => displayId && handleChordClick(displayId)}
+                                  disabled={!displayId}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold border-none outline-none ${
+                                    displayId 
+                                      ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-100 hover:text-black cursor-pointer' 
+                                      : 'bg-zinc-900/40 text-zinc-600 cursor-not-allowed'
+                                  }`}
+                                  style={{ fontFamily: 'Manrope' }}
+                                >
+                                  {chordName}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Chord Detail or Empty State */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', position: 'relative' }}>
+          {chord ? (
+            renderChordDetail()
+          ) : (
+            <WebEmptyState message="Select a chord to view details" icon="music_note" />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden app-bg" style={{ position: 'relative' }}>
@@ -693,7 +1148,7 @@ export default function LibraryPanel() {
                 {searchResults.map(chord => (
                   <ChordCard key={chord.id} chord={chord}
                     isSelected={selectedChordId === chord.id}
-                    onClick={() => selectChord(chord.id)} accent={accent} />
+                    onClick={() => handleChordClick(chord.id)} accent={accent} />
                 ))}
               </div>
             )}
@@ -707,7 +1162,7 @@ export default function LibraryPanel() {
               {filteredByType.map(chord => (
                 <ChordCard key={chord.id} chord={chord}
                   isSelected={selectedChordId === chord.id}
-                  onClick={() => selectChord(chord.id)} accent={accent} />
+                  onClick={() => handleChordClick(chord.id)} accent={accent} />
               ))}
             </div>
           </div>
@@ -767,7 +1222,7 @@ export default function LibraryPanel() {
                     <div className="scroll-fade-container">
                       <div className={`scroll-fade-content flex gap-2 overflow-x-auto no-scrollbar pb-1 ${recentFadeClass}`} ref={recentScrollRef}>
                         {recentList.map(chord => (
-                        <button key={chord.id} onClick={() => selectChord(chord.id)}
+                        <button key={chord.id} onClick={() => handleChordClick(chord.id)}
                           className="btn-smooth flex-none"
                           style={{
                             width: '76px',
@@ -796,7 +1251,7 @@ export default function LibraryPanel() {
                     <div className="scroll-fade-container">
                       <div className={`scroll-fade-content flex gap-2 overflow-x-auto no-scrollbar pb-1 ${favoritesFadeClass}`} ref={favoritesScrollRef}>
                         {favoritesList.map(chord => (
-                        <button key={chord.id} onClick={() => selectChord(chord.id)}
+                        <button key={chord.id} onClick={() => handleChordClick(chord.id)}
                           className="btn-smooth flex-none"
                           style={{
                             width: '76px',

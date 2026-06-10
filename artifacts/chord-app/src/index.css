@@ -1547,3 +1547,45 @@ html.landing-route #root {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: -0.01em;
 }
+
+/* ── Web Desktop Minimal Redesign overrides ── */
+.web-desktop {
+  --app-bg: #050505 !important;
+  --app-surface-lowest: #000000 !important;
+  --app-surface-low: #09090b !important;
+  --app-surface: #0e0e11 !important;
+  --app-surface-high: #18181b !important;
+  --app-surface-highest: #27272a !important;
+  --c-text-primary: #f4f4f5 !important;
+  --c-text-secondary: #a1a1aa !important;
+  --c-text-muted: #52525b !important;
+}
+
+.web-desktop .gb-wrap {
+  background: transparent !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+.web-desktop .gb-inner {
+  border-radius: inherit !important;
+  background: var(--app-surface-low) !important;
+}
+
+.web-desktop .card-hover {
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  background: rgba(9, 9, 11, 0.4) !important;
+}
+
+.web-desktop .card-hover:hover {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(14, 14, 17, 0.6) !important;
+}
+
+.web-desktop .app-sub-app-container {
+  background: #050505 !important;
+}

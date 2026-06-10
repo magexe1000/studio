@@ -323,7 +323,7 @@ export default function StagexPanel() {
     }
     return false;
   })();
-  const isAmoled  = stageVis.amoledMode;
+  const isAmoled  = isWebDesktop ? true : stageVis.amoledMode;
 
   const iframeSrc = useRef(
     `/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)},${isAmoled ? '1' : '0'}`

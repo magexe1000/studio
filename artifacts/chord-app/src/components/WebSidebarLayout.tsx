@@ -566,15 +566,15 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
-                  background: photo ? 'transparent' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                  background: photo ? 'transparent' : 'rgba(255, 255, 255, 0.08)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '14px',
                   fontWeight: 800,
-                  color: '#fff',
+                  color: '#ffffff',
                   overflow: 'hidden',
-                  boxShadow: `0 0 0 2px ${accent.from}22`,
+                  boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.12)',
                 }}
               >
                 {photo ? (
