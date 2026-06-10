@@ -187,9 +187,7 @@ export default function App() {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
-    hoverTimerRef.current = setTimeout(() => {
-      setHoverShowSidebar(true);
-    }, 150); // 150ms open delay to prevent accidental trigger
+    setHoverShowSidebar(true);
   };
 
   useEffect(() => {
@@ -1722,6 +1720,40 @@ export default function App() {
                 background: 'transparent',
               }}
             />
+          )}
+
+          {/* Left-side sidebar reveal viñeta */}
+          {isWebDesktop && !hoverShowSidebar && (
+            <div
+              onMouseEnter={handleLeftEdgeMouseEnter}
+              onMouseLeave={handleSidebarMouseLeave}
+              style={{
+                position: 'fixed',
+                left: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '14px',
+                height: '64px',
+                backgroundColor: '#09090b',
+                border: '1px solid rgba(128, 128, 128, 0.18)',
+                borderLeft: 'none',
+                borderRadius: '0 10px 10px 0',
+                zIndex: 10000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '4px 0 16px rgba(0,0,0,0.6)',
+                transition: 'all 200ms ease',
+              }}
+            >
+              {/* Dots indicator */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
+                <div style={{ width: '2px', height: '2px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.45)' }} />
+                <div style={{ width: '2px', height: '2px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.45)' }} />
+                <div style={{ width: '2px', height: '2px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.45)' }} />
+              </div>
+            </div>
           )}
           {/* Layer 1: Studio Hub (Base) */}
           <div

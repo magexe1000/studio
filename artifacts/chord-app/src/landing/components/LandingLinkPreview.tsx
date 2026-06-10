@@ -9,100 +9,95 @@ interface LandingLinkPreviewProps {
   isReduced?: boolean;
 }
 
+interface PreviewAppRowProps {
+  Logo: React.FC<{ size: number }>;
+  name: string;
+  desc: string;
+}
+
+function PreviewAppRow({ Logo, name, desc }: PreviewAppRowProps) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      width: '100%',
+      padding: '7px 10px',
+      background: 'rgba(255, 255, 255, 0.01)',
+      border: '1px solid rgba(255, 255, 255, 0.05)',
+      borderRadius: '8px',
+      marginBottom: '6px',
+      boxSizing: 'border-box',
+    }}>
+      <div style={{
+        width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+        background: 'rgba(255, 255, 255, 0.04)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#ffffff',
+      }}>
+        <Logo size={14} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 10.5, fontWeight: 700, color: '#ffffff', margin: 0, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          {name}
+        </p>
+        <p style={{ fontSize: 8, color: '#a1a1aa', margin: '1px 0 0', fontWeight: 500, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {desc}
+        </p>
+      </div>
+      <span className="material-symbols-outlined" style={{ fontSize: 13, color: '#52525b', flexShrink: 0 }}>
+        chevron_right
+      </span>
+    </div>
+  );
+}
+
 function StudioHubPreviewCard() {
   return (
-    <div className="w-full h-full bg-[#050505] text-[#ffffff] font-sans flex flex-col p-2.5 relative overflow-hidden select-none border border-zinc-900 rounded-lg">
-      {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-zinc-900/60 pb-1.5 mb-2.5">
-        <div className="flex items-center gap-1.5">
-          <StudioLogo size={14} />
-          <span className="font-extrabold text-[10px] tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>Studio Hub</span>
+    <div className="w-full h-full bg-[#050505] text-[#ffffff] font-sans flex flex-col p-3 relative overflow-hidden select-none border border-zinc-900 rounded-lg">
+      {/* Centered logo area */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 16px' }}>
+        <div style={{ color: 'white', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <StudioLogo size={32} />
         </div>
-        <div className="flex items-center gap-1">
-          <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[7px] text-zinc-500 font-bold uppercase tracking-wider">Ready</span>
-        </div>
+        <p style={{ fontSize: 15, fontWeight: 800, margin: '6px 0 0', letterSpacing: '-0.03em', lineHeight: 1, color: '#ffffff', fontFamily: 'Manrope, sans-serif' }}>
+          Studio
+        </p>
       </div>
 
-      {/* Grid of Apps */}
-      <div className="grid grid-cols-3 gap-2 flex-grow px-0.5">
-        {/* Chordex */}
-        <div className="p-1.5 bg-zinc-950 border border-zinc-900 rounded-md flex flex-col justify-between">
-          <div className="flex-shrink-0 text-white">
-            <ChordexLogo size={12} />
-          </div>
-          <div>
-            <div className="text-[8px] font-bold">Chordex</div>
-            <div className="text-[5px] text-zinc-500">Chord Theory</div>
-          </div>
+      {/* Combined welcome + apps card */}
+      <div style={{
+        width: '100%',
+        background: '#09090b',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '14px',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        {/* Welcome header */}
+        <div style={{ padding: '12px 14px 10px' }}>
+          <p style={{ fontSize: 13, fontWeight: 800, color: '#ffffff', margin: 0, letterSpacing: '-0.02em', fontFamily: 'Manrope, sans-serif' }}>
+            Welcome back.
+          </p>
+          <p style={{ fontSize: 9.5, color: '#a1a1aa', margin: '3px 0 0', fontWeight: 500 }}>
+            Ready to lay something down?
+          </p>
         </div>
 
-        {/* Drumex */}
-        <div className="p-1.5 bg-zinc-950 border border-zinc-900 rounded-md flex flex-col justify-between">
-          <div className="flex-shrink-0 text-white">
-            <DrumexLogo size={12} />
-          </div>
-          <div>
-            <div className="text-[8px] font-bold">Drumex</div>
-            <div className="text-[5px] text-zinc-500">Drum Machine</div>
-          </div>
-        </div>
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.08)', margin: '0 10px' }} />
 
-        {/* Stagex */}
-        <div className="p-1.5 bg-zinc-950 border border-zinc-900 rounded-md flex flex-col justify-between">
-          <div className="flex-shrink-0 text-white">
-            <StagexLogoIcon size={12} />
-          </div>
-          <div>
-            <div className="text-[8px] font-bold">Stagex</div>
-            <div className="text-[5px] text-zinc-500">Stage Plots</div>
-          </div>
+        {/* App rows */}
+        <div style={{ padding: '8px', boxSizing: 'border-box' }}>
+          <PreviewAppRow Logo={ChordexLogo} name="Chordex" desc="Chord theory & editor" />
+          <PreviewAppRow Logo={DrumexLogo} name="Drumex" desc="Realtime drum machine" />
+          <PreviewAppRow Logo={StagexLogoIcon} name="Stagex" desc="Live stage plot manager" />
+          <PreviewAppRow Logo={GroovexLogo} name="Groovex" desc="Multitrack practice mixer" />
+          <PreviewAppRow Logo={VocalexLogo} name="Vocalex" desc="Vocal trainer & tuner" />
         </div>
-
-        {/* Groovex */}
-        <div className="p-1.5 bg-zinc-950 border border-zinc-900 rounded-md flex flex-col justify-between">
-          <div className="flex-shrink-0 text-white">
-            <GroovexLogo size={12} />
-          </div>
-          <div>
-            <div className="text-[8px] font-bold">Groovex</div>
-            <div className="text-[5px] text-zinc-500">Practice Mixer</div>
-          </div>
-        </div>
-
-        {/* Vocalex */}
-        <div className="p-1.5 bg-zinc-950 border border-zinc-900 rounded-md flex flex-col justify-between">
-          <div className="flex-shrink-0 text-white">
-            <VocalexLogo size={12} />
-          </div>
-          <div>
-            <div className="text-[8px] font-bold">Vocalex</div>
-            <div className="text-[5px] text-zinc-500">Vocal Trainer</div>
-          </div>
-        </div>
-
-        {/* Settings */}
-        <div className="p-1.5 bg-zinc-950 border border-zinc-900 rounded-md flex flex-col justify-between">
-          <div className="flex-shrink-0 text-zinc-400 flex items-center">
-            <span className="material-symbols-outlined" style={{ fontSize: 12, display: 'block' }}>settings</span>
-          </div>
-          <div>
-            <div className="text-[8px] font-bold">Settings</div>
-            <div className="text-[5px] text-zinc-500">Preferences</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Floating Bottom Dock */}
-      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-zinc-950/90 border border-zinc-900 rounded-full py-0.5 px-2 flex items-center gap-2 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-        <div className="w-3.5 h-3.5 rounded-full bg-white flex items-center justify-center text-black flex-shrink-0">
-          <StudioLogo size={8} />
-        </div>
-        <div className="text-zinc-500"><ChordexLogo size={8} /></div>
-        <div className="text-zinc-500"><DrumexLogo size={8} /></div>
-        <div className="text-zinc-500"><StagexLogoIcon size={8} /></div>
-        <div className="text-zinc-500"><GroovexLogo size={8} /></div>
-        <div className="text-zinc-500"><VocalexLogo size={8} /></div>
       </div>
     </div>
   );
@@ -173,7 +168,7 @@ export default function LandingLinkPreview({
               pointerEvents: 'none',
             }}
           >
-            <div className="w-[300px] h-[190px] p-1.5 bg-zinc-950/90 backdrop-blur-md border border-zinc-900 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.85)] overflow-hidden">
+            <div className="w-[300px] h-[350px] p-1.5 bg-zinc-950/90 backdrop-blur-md border border-zinc-900 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.85)] overflow-hidden">
               <StudioHubPreviewCard />
             </div>
           </motion.div>
