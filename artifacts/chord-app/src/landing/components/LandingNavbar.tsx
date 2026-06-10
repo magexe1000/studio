@@ -1,4 +1,5 @@
 import React from 'react';
+import { StudioLogo } from '../../components/ChordexLogo';
 
 interface LandingNavbarProps {
   navigateTo: (path: string) => void;
@@ -16,11 +17,14 @@ export default function LandingNavbar({ navigateTo }: LandingNavbarProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-900 bg-[#030303]/80 backdrop-blur-md transition-all duration-300 landing-font-heading">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center text-sm font-extrabold text-[#030303] shadow-md shadow-white/5">
-            S
+        <div className="flex items-center gap-2">
+          <div className="text-white flex-shrink-0">
+            <StudioLogo size={28} />
           </div>
-          <span className="font-extrabold text-base tracking-tight text-white uppercase">
+          <span 
+            className="font-extrabold text-base tracking-tight text-white"
+            style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em' }}
+          >
             Studio
           </span>
         </div>

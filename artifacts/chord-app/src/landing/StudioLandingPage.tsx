@@ -160,7 +160,7 @@ export default function StudioLandingPage({ navigateTo }: StudioLandingPageProps
             A Live Music Suite in Your Hands
           </h2>
         </div>
-        <LandingMacbookScroll mockupName="hub" />
+        <LandingMacbookScroll mockupName="chordLib" />
       </section>
 
       {/* App Bento Suite */}

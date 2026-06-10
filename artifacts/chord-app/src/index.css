@@ -1523,13 +1523,19 @@ html.compact-desktop {
 }
 
 /* ── Landing Page Scrolling & Typography overrides ── */
-html.landing-route,
+html.landing-route {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
 html.landing-route body,
 html.landing-route #root {
   height: auto !important;
   min-height: 100% !important;
-  overflow: auto !important;
-  overflow-x: hidden !important;
+  overflow: visible !important;
 }
 
 .landing-font-heading {
