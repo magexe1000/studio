@@ -1904,6 +1904,7 @@ function HubSettings({
   const lang = settings.language ?? 'en';
   const ota = useOtaUpdate();
   const [copiedLogs, setCopiedLogs] = useState(false);
+  const isWebDesktop = useIsWebDesktop();
 
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
     signedIn: false,
@@ -2631,6 +2632,30 @@ function HubSettings({
             <Toggle value={settings.performanceMode} onChange={v => updateSettings({ performanceMode: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
         </div>
+
+        {isWebDesktop && (
+          <>
+            <SettingsSectionLabel delay={140}>Web Sidebar</SettingsSectionLabel>
+            <div style={cardStyle}>
+              <SettingRow 
+                label="Auto-hide sidebar in apps" 
+                desc="Automatically hide the sidebar when inside app workspaces to maximize your screen space."
+              >
+                <Toggle 
+                  value={localStorage.getItem('studio:autoHideSidebar') !== 'false'} 
+                  onChange={v => {
+                    localStorage.setItem('studio:autoHideSidebar', String(v));
+                    window.dispatchEvent(new CustomEvent('studio:auto-hide-sidebar-changed', { detail: v }));
+                    setPageKey(k => k + 1);
+                  }} 
+                  accentFrom={accent.from} 
+                  accentTo={accent.to} 
+                />
+              </SettingRow>
+            </div>
+            <GlobalHint />
+          </>
+        )}
         </div>
 
       </div>
