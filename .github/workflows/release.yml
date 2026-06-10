@@ -79,7 +79,7 @@ jobs:
 
           # Check if changes contain web/config files
           HAS_WEB=false
-          if echo "$CHANGED" | grep -qE '^artifacts/chord-app/(src|public|scripts|index\.html|package\.json|vite\.config)'; then
+          if echo "$CHANGED" | grep -qE '^artifacts/chord-app/(src|public|index\.html|package\.json|vite\.config)'; then
             HAS_WEB=true
           fi
 
@@ -141,7 +141,6 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TYPE: ${{ steps.gate.outputs.release_type }}
         run: |
           pnpm --filter @workspace/chord-app run release:firebase --no-bump > build.log 2>&1 || {
             status=$?

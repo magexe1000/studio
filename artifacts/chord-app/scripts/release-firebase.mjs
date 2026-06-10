@@ -297,8 +297,7 @@ function run(cmd, args, extraEnv = {}) {
 }
 
 // ── Signing preflight — fail fast before expensive builds ───────────
-const releaseType = process.env.RELEASE_TYPE || 'both';
-if (process.env.CI && releaseType !== 'ota') {
+if (process.env.CI) {
   console.log('release-firebase: → Running signing preflight...');
   const ksPath = path.join(pkgRoot, 'android', 'app', 'release.keystore');
   const ksAlias = (process.env.ANDROID_KEY_ALIAS || '').trim();
@@ -426,253 +425,202 @@ console.log('Step 1/15: Build Frontend ... [DONE]');
 
 // Step 2: Sync Capacitor
 console.log('Step 2/15: Sync Capacitor...');
-if (releaseType !== 'ota') {
-  run('npx', ['cap', 'sync', 'android']);
-} else {
-  console.log('Step 2/15: Sync Capacitor ... [SKIPPED - OTA mode]');
-}
+run('npx', ['cap', 'sync', 'android']);
 
 // Step 3: Build signed Android release APK
 console.log('Step 3/15: Build signed Android release APK...');
-if (releaseType !== 'ota') {
-  const gradleCmd = process.platform === 'win32' ? '.\\gradlew.bat' : './gradlew';
-  const gradleArgs = ['assembleRelease', '-x', 'lint', '-x', 'lintVitalRelease', '--stacktrace'];
-  const gradleEnv = { ...process.env };
-  if (gradleEnv.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
-    delete gradleEnv.GITHUB_TOKEN;
-  }
 
-  console.log(`release-firebase: Gradle command: ${gradleCmd} ${gradleArgs.join(' ')}`);
-  console.log(`release-firebase: Gradle cwd: ${gradleCwd}`);
-  console.log(`release-firebase: ANDROID_HOME: ${gradleEnv.ANDROID_HOME || '(not set)'}`);
-  console.log(`release-firebase: JAVA_HOME: ${gradleEnv.JAVA_HOME || '(not set)'}`);
-  console.log(`release-firebase: ANDROID_KEYSTORE_PASSWORD present: ${gradleEnv.ANDROID_KEYSTORE_PASSWORD ? 'Yes' : 'No'}`);
-  console.log(`release-firebase: ANDROID_KEY_ALIAS present: ${gradleEnv.ANDROID_KEY_ALIAS ? 'Yes' : 'No'}`);
-  console.log(`release-firebase: ANDROID_KEY_PASSWORD present: ${gradleEnv.ANDROID_KEY_PASSWORD ? 'Yes' : 'No'}`);
+const gradleCmd = process.platform === 'win32' ? '.\\gradlew.bat' : './gradlew';
+const gradleArgs = ['assembleRelease', '-x', 'lint', '-x', 'lintVitalRelease', '--stacktrace'];
+const gradleEnv = { ...process.env };
+if (gradleEnv.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
+  delete gradleEnv.GITHUB_TOKEN;
+}
 
-  const gradleResult = spawnSync(gradleCmd, gradleArgs, {
-    cwd: gradleCwd,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-    env: gradleEnv
-  });
-  if (gradleResult.status !== 0) {
-    console.error(`release-firebase: ✗ Gradle build failed with exit code ${gradleResult.status}`);
-    if (gradleResult.error) {
-      console.error(`release-firebase: Gradle spawn error: ${gradleResult.error.message}`);
-      if (gradleResult.error.code === 'EACCES') {
-        console.error('release-firebase: ✗ Gradle wrapper is not executable.');
-        console.error('  Fix: git update-index --chmod=+x artifacts/chord-app/android/gradlew');
-        console.error('  And ensure CI runs: chmod +x ./gradlew before Gradle.');
-      }
+console.log(`release-firebase: Gradle command: ${gradleCmd} ${gradleArgs.join(' ')}`);
+console.log(`release-firebase: Gradle cwd: ${gradleCwd}`);
+console.log(`release-firebase: ANDROID_HOME: ${gradleEnv.ANDROID_HOME || '(not set)'}`);
+console.log(`release-firebase: JAVA_HOME: ${gradleEnv.JAVA_HOME || '(not set)'}`);
+console.log(`release-firebase: ANDROID_KEYSTORE_PASSWORD present: ${gradleEnv.ANDROID_KEYSTORE_PASSWORD ? 'Yes' : 'No'}`);
+console.log(`release-firebase: ANDROID_KEY_ALIAS present: ${gradleEnv.ANDROID_KEY_ALIAS ? 'Yes' : 'No'}`);
+console.log(`release-firebase: ANDROID_KEY_PASSWORD present: ${gradleEnv.ANDROID_KEY_PASSWORD ? 'Yes' : 'No'}`);
+
+const gradleResult = spawnSync(gradleCmd, gradleArgs, {
+  cwd: gradleCwd,
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+  env: gradleEnv
+});
+if (gradleResult.status !== 0) {
+  console.error(`release-firebase: ✗ Gradle build failed with exit code ${gradleResult.status}`);
+  if (gradleResult.error) {
+    console.error(`release-firebase: Gradle spawn error: ${gradleResult.error.message}`);
+    if (gradleResult.error.code === 'EACCES') {
+      console.error('release-firebase: ✗ Gradle wrapper is not executable.');
+      console.error('  Fix: git update-index --chmod=+x artifacts/chord-app/android/gradlew');
+      console.error('  And ensure CI runs: chmod +x ./gradlew before Gradle.');
     }
-    if (gradleResult.signal) {
-      console.error(`release-firebase: Gradle killed by signal: ${gradleResult.signal}`);
-    }
-    console.error(`release-firebase: Hint — check Gradle logs at: ${path.join(gradleCwd, 'app', 'build', 'reports')}`);
-    process.exit(gradleResult.status ?? 1);
   }
-} else {
-  console.log('Step 3/15: Build signed Android release APK ... [SKIPPED - OTA mode]');
+  if (gradleResult.signal) {
+    console.error(`release-firebase: Gradle killed by signal: ${gradleResult.signal}`);
+  }
+  console.error(`release-firebase: Hint — check Gradle logs at: ${path.join(gradleCwd, 'app', 'build', 'reports')}`);
+  process.exit(gradleResult.status ?? 1);
 }
 
 // Step 4: Validate AppInstaller native plugin
 console.log('Step 4/15: Validate AppInstaller native plugin...');
-if (releaseType !== 'ota') {
-  const appInstallerValidateResult = spawnSync('node', ['scripts/validate-app-installer.mjs'], {
-    cwd: pkgRoot,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  });
-  if (appInstallerValidateResult.status !== 0) {
-    console.error('release-firebase: ✗ AppInstaller contract validation failed!');
-    process.exit(appInstallerValidateResult.status ?? 1);
-  }
-} else {
-  console.log('Step 4/15: Validate AppInstaller native plugin ... [SKIPPED - OTA mode]');
+const appInstallerValidateResult = spawnSync('node', ['scripts/validate-app-installer.mjs'], {
+  cwd: pkgRoot,
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+});
+if (appInstallerValidateResult.status !== 0) {
+  console.error('release-firebase: ✗ AppInstaller contract validation failed!');
+  process.exit(appInstallerValidateResult.status ?? 1);
 }
 
 // Step 5: Validate APK metadata
 console.log('Step 5/15: Validate APK metadata...');
-if (releaseType !== 'ota') {
-  gradleVersionName = '';
-  let gradleVersionCode = 0;
-  if (existsSync(gradlePath)) {
-    const gradleSrc = readFileSync(gradlePath, 'utf8');
-    const nameMatch = gradleSrc.match(/versionName\s+['"]([^'"]+)['"]/);
-    const codeMatch = gradleSrc.match(/versionCode\s+(\d+)/);
-    if (nameMatch) gradleVersionName = nameMatch[1];
-    if (codeMatch) gradleVersionCode = parseInt(codeMatch[1], 10);
-  }
-  console.log(`release-firebase: build.gradle versionName = ${gradleVersionName}, versionCode = ${gradleVersionCode}`);
-  if (gradleVersionName !== version) {
-    console.error(`release-firebase: ✗ versionName mismatch! build.gradle: ${gradleVersionName}, package.json: ${version}`);
-    process.exit(1);
-  }
-} else {
-  console.log('Step 5/15: Validate APK metadata ... [SKIPPED - OTA mode]');
+gradleVersionName = '';
+let gradleVersionCode = 0;
+if (existsSync(gradlePath)) {
+  const gradleSrc = readFileSync(gradlePath, 'utf8');
+  const nameMatch = gradleSrc.match(/versionName\s+['"]([^'"]+)['"]/);
+  const codeMatch = gradleSrc.match(/versionCode\s+(\d+)/);
+  if (nameMatch) gradleVersionName = nameMatch[1];
+  if (codeMatch) gradleVersionCode = parseInt(codeMatch[1], 10);
+}
+console.log(`release-firebase: build.gradle versionName = ${gradleVersionName}, versionCode = ${gradleVersionCode}`);
+if (gradleVersionName !== version) {
+  console.error(`release-firebase: ✗ versionName mismatch! build.gradle: ${gradleVersionName}, package.json: ${version}`);
+  process.exit(1);
 }
 
 // Step 6: Generate local APK SHA-256
 console.log('Step 6/15: Generate local APK SHA-256...');
-let localApkSha = '';
-if (releaseType !== 'ota') {
-  const localApkPath = path.join(pkgRoot, 'android/app/build/outputs/apk/release/app-release.apk');
-  if (!existsSync(localApkPath)) {
-    console.error(`release-firebase: ✗ APK not found at ${localApkPath}`);
-    process.exit(1);
-  }
-  localApkSha = computeSha256(localApkPath);
-  console.log(`release-firebase: Local APK SHA-256 = ${localApkSha}`);
-} else {
-  console.log('Step 6/15: Generate local APK SHA-256 ... [SKIPPED - OTA mode]');
+const localApkPath = path.join(pkgRoot, 'android/app/build/outputs/apk/release/app-release.apk');
+if (!existsSync(localApkPath)) {
+  console.error(`release-firebase: ✗ APK not found at ${localApkPath}`);
+  process.exit(1);
 }
+const localApkSha = computeSha256(localApkPath);
+console.log(`release-firebase: Local APK SHA-256 = ${localApkSha}`);
 
 // Step 7: Create GitHub Release tag if missing
 console.log('Step 7/15: Create GitHub Release tag if missing...');
-if (releaseType !== 'ota') {
-  const tag = `v${version}`;
-  const titleText = `Studio v${version}`;
-  const releaseNotesFile = path.join(repoRoot, 'release-notes.md');
+const tag = `v${version}`;
+const titleText = `Studio v${version}`;
+const releaseNotesFile = path.join(repoRoot, 'release-notes.md');
 
-  const runGh = (args) => {
-    const env = { ...process.env };
-    if (env.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
-      delete env.GITHUB_TOKEN;
-    }
-    return spawnSync('gh', args, {
-      cwd: repoRoot,
-      stdio: 'pipe',
-      shell: process.platform === 'win32',
-      env
-    });
-  };
+const runGh = (args) => {
+  const env = { ...process.env };
+  if (env.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
+    delete env.GITHUB_TOKEN;
+  }
+  return spawnSync('gh', args, {
+    cwd: repoRoot,
+    stdio: 'pipe',
+    shell: process.platform === 'win32',
+    env
+  });
+};
 
-  const viewRes = runGh(['release', 'view', tag, '--repo', 'MAGEXE1000/Studio']);
-  if (viewRes.status !== 0) {
-    console.log(`release-firebase: Release ${tag} not found. Creating it...`);
-    const createRes = runGh(['release', 'create', tag, '--title', titleText, '--notes-file', releaseNotesFile, '--repo', 'MAGEXE1000/Studio']);
-    if (createRes.status !== 0) {
-      console.error(`release-firebase: ✗ Failed to create GitHub Release: ${createRes.stderr.toString()}`);
-      process.exit(1);
-    }
-  } else {
-    console.log(`release-firebase: Release ${tag} already exists. Updating notes...`);
-    runGh(['release', 'edit', tag, '--notes-file', releaseNotesFile, '--repo', 'MAGEXE1000/Studio']);
+const viewRes = runGh(['release', 'view', tag, '--repo', 'MAGEXE1000/Studio']);
+if (viewRes.status !== 0) {
+  console.log(`release-firebase: Release ${tag} not found. Creating it...`);
+  const createRes = runGh(['release', 'create', tag, '--title', titleText, '--notes-file', releaseNotesFile, '--repo', 'MAGEXE1000/Studio']);
+  if (createRes.status !== 0) {
+    console.error(`release-firebase: ✗ Failed to create GitHub Release: ${createRes.stderr.toString()}`);
+    process.exit(1);
   }
 } else {
-  console.log('Step 7/15: Create GitHub Release tag if missing ... [SKIPPED - OTA mode]');
+  console.log(`release-firebase: Release ${tag} already exists. Updating notes...`);
+  runGh(['release', 'edit', tag, '--notes-file', releaseNotesFile, '--repo', 'MAGEXE1000/Studio']);
 }
 
 // Step 8: Upload APK asset with exact expected name
 console.log('Step 8/15: Upload APK asset with exact expected name...');
-if (releaseType !== 'ota') {
-  const tag = `v${version}`;
-  const uploadApkName = `studio-${version}.apk`;
-  const uploadShaName = `studio-${version}.sha256`;
-  const localUploadApkPath = path.join(repoRoot, uploadApkName);
-  const localUploadShaPath = path.join(repoRoot, uploadShaName);
+const uploadApkName = `studio-${version}.apk`;
+const uploadShaName = `studio-${version}.sha256`;
+const localUploadApkPath = path.join(repoRoot, uploadApkName);
+const localUploadShaPath = path.join(repoRoot, uploadShaName);
 
-  const runGh = (args) => {
-    const env = { ...process.env };
-    if (env.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
-      delete env.GITHUB_TOKEN;
-    }
-    return spawnSync('gh', args, {
-      cwd: repoRoot,
-      stdio: 'pipe',
-      shell: process.platform === 'win32',
-      env
-    });
-  };
+copyFileSync(localApkPath, localUploadApkPath);
+writeFileSync(localUploadShaPath, `${localApkSha}  ${uploadApkName}\n`, 'utf8');
 
-  copyFileSync(localApkPath, localUploadApkPath);
-  writeFileSync(localUploadShaPath, `${localApkSha}  ${uploadApkName}\n`, 'utf8');
-
-  const uploadRes = runGh(['release', 'upload', tag, localUploadApkPath, localUploadShaPath, '--clobber', '--repo', 'MAGEXE1000/Studio']);
-  if (uploadRes.status !== 0) {
-    console.error(`release-firebase: ✗ Failed to upload APK asset to GitHub: ${uploadRes.stderr.toString()}`);
-    process.exit(1);
-  }
-  console.log(`release-firebase: ✓ Uploaded assets ${uploadApkName} and ${uploadShaName}`);
-
-  try {
-    rmSync(localUploadApkPath);
-    rmSync(localUploadShaPath);
-  } catch (_) {}
-} else {
-  console.log('Step 8/15: Upload APK asset with exact expected name ... [SKIPPED - OTA mode]');
+const uploadRes = runGh(['release', 'upload', tag, localUploadApkPath, localUploadShaPath, '--clobber', '--repo', 'MAGEXE1000/Studio']);
+if (uploadRes.status !== 0) {
+  console.error(`release-firebase: ✗ Failed to upload APK asset to GitHub: ${uploadRes.stderr.toString()}`);
+  process.exit(1);
 }
+console.log(`release-firebase: ✓ Uploaded assets ${uploadApkName} and ${uploadShaName}`);
+
+try {
+  rmSync(localUploadApkPath);
+  rmSync(localUploadShaPath);
+} catch (_) {}
 
 // Step 9: Verify GitHub Release asset URL returns HTTP 200
 console.log('Step 9/15: Verify GitHub Release asset URL returns HTTP 200...');
-if (releaseType !== 'ota') {
-  const githubApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
+const githubApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
 
-  const checkUrl = async (url) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-    try {
-      const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
-      clearTimeout(timeoutId);
-      return res.status;
-    } catch (err) {
-      clearTimeout(timeoutId);
-      console.warn(`release-firebase: ⚠ Fetch error for ${url}:`, err.message);
-      return 0;
-    }
-  };
-
-  let status = await checkUrl(githubApkUrl);
-  console.log(`release-firebase: URL status for ${githubApkUrl} = ${status}`);
-  if (status !== 200) {
-    console.error(`release-firebase: ✗ APK URL returned non-200 status code: ${status}`);
-    process.exit(1);
+const checkUrl = async (url) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
+    clearTimeout(timeoutId);
+    return res.status;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.warn(`release-firebase: ⚠ Fetch error for ${url}:`, err.message);
+    return 0;
   }
-} else {
-  console.log('Step 9/15: Verify GitHub Release asset URL returns HTTP 200 ... [SKIPPED - OTA mode]');
+};
+
+let status = await checkUrl(githubApkUrl);
+console.log(`release-firebase: URL status for ${githubApkUrl} = ${status}`);
+if (status !== 200) {
+  console.error(`release-firebase: ✗ APK URL returned non-200 status code: ${status}`);
+  process.exit(1);
 }
 
 // Step 10: Verify downloaded APK SHA-256 matches expected
 console.log('Step 10/15: Verify downloaded APK SHA-256 matches expected...');
-if (releaseType !== 'ota') {
-  const githubApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${version}/studio-${version}.apk`;
-  const downloadPath = path.join(pkgRoot, `.release-temp-verify-${version}.apk`);
-  const downloadFile = async (url, dest) => {
-    let attempts = 5;
-    for (let i = 1; i <= attempts; i++) {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-        const buffer = await res.arrayBuffer();
-        writeFileSync(dest, Buffer.from(buffer));
-        return;
-      } catch (err) {
-        if (i === attempts) throw err;
-        console.warn(`release-firebase: ⚠ Download attempt ${i} failed. Retrying in ${i * 2}s... Error: ${err.message || err}`);
-        await new Promise(r => setTimeout(r, i * 2000));
-      }
+const downloadPath = path.join(pkgRoot, `.release-temp-verify-${version}.apk`);
+const downloadFile = async (url, dest) => {
+  let attempts = 5;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const buffer = await res.arrayBuffer();
+      writeFileSync(dest, Buffer.from(buffer));
+      return;
+    } catch (err) {
+      if (i === attempts) throw err;
+      console.warn(`release-firebase: ⚠ Download attempt ${i} failed. Retrying in ${i * 2}s... Error: ${err.message || err}`);
+      await new Promise(r => setTimeout(r, i * 2000));
     }
-  };
+  }
+};
 
-  try {
-    console.log(`release-firebase: Downloading APK from ${githubApkUrl} to verify SHA...`);
-    await downloadFile(githubApkUrl, downloadPath);
-    const downloadedSha = computeSha256(downloadPath);
-    rmSync(downloadPath);
-    console.log(`release-firebase: Downloaded APK SHA-256 = ${downloadedSha}`);
-    if (downloadedSha !== localApkSha) {
-      console.error(`release-firebase: ✗ SHA-256 mismatch! Expected ${localApkSha}, got ${downloadedSha}`);
-      process.exit(1);
-    }
-    console.log('release-firebase: ✓ Downloaded APK SHA matches local APK SHA exactly!');
-  } catch (err) {
-    console.error('release-firebase: ✗ Download or verification failed:', err);
-    if (existsSync(downloadPath)) rmSync(downloadPath);
+try {
+  console.log(`release-firebase: Downloading APK from ${githubApkUrl} to verify SHA...`);
+  await downloadFile(githubApkUrl, downloadPath);
+  const downloadedSha = computeSha256(downloadPath);
+  rmSync(downloadPath);
+  console.log(`release-firebase: Downloaded APK SHA-256 = ${downloadedSha}`);
+  if (downloadedSha !== localApkSha) {
+    console.error(`release-firebase: ✗ SHA-256 mismatch! Expected ${localApkSha}, got ${downloadedSha}`);
     process.exit(1);
   }
-} else {
-  console.log('Step 10/15: Verify downloaded APK SHA-256 matches expected ... [SKIPPED - OTA mode]');
+  console.log('release-firebase: ✓ Downloaded APK SHA matches local APK SHA exactly!');
+} catch (err) {
+  console.error('release-firebase: ✗ Download or verification failed:', err);
+  if (existsSync(downloadPath)) rmSync(downloadPath);
+  process.exit(1);
 }
 
 // Step 11: Generate version.json and app-release.json using verified URL/SHA
@@ -681,7 +629,6 @@ const generateResult = spawnSync('node', ['scripts/generate-release-metadata.mjs
   cwd: pkgRoot,
   stdio: 'inherit',
   shell: process.platform === 'win32',
-  env: { ...process.env, RELEASE_TYPE: releaseType },
 });
 if (generateResult.status !== 0) {
   console.error('release-firebase: ✗ Metadata generation script failed!');

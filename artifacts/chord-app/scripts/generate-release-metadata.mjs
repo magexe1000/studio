@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(__dirname, '../../..');
 
-const releaseType = process.env.RELEASE_TYPE || 'apk';
+const releaseType = 'apk';
 
 console.log('generate-release-metadata: → Running AppInstaller contract validation...');
 const args = ['scripts/validate-app-installer.mjs'];
