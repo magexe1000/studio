@@ -204,6 +204,10 @@ html, body { background: var(--app-bg); }
   --content-bottom-pad: calc(var(--nav-safe-bottom) + var(--nav-h) + 16px);
 }
 
+.web-desktop {
+  --content-bottom-pad: 20px;
+}
+
 /* ============================================================
    Vocalex theme tokens — used by PracticePanel / PitchPanel /
    LabPanel / TakesPanel. Defined here (not inline) so the white

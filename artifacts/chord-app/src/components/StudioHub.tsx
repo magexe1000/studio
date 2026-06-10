@@ -23,6 +23,7 @@ import { EncryptedText } from './ui/encrypted-text';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import ProfileDropdown from './kokonutui/profile-dropdown';
 import SmartLoading from './SmartLoading';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { StudioSkeletonProfile, StudioSkeletonList } from './StudioSkeleton';
 
 // AccountCard pulls Firebase (auth + firestore). Lazy-load it so Firebase
@@ -194,6 +195,7 @@ let _sessionIntroFinished = false;
 
 export default function StudioHub() {
   const { settings, updateSettings } = useChordStore();
+  const isWebDesktop = useIsWebDesktop();
   const t = useT();
   const lang = settings.language ?? 'en';
   const hubAccentKey = settings.perApp?.hub?.accentColor ?? settings.accentColor ?? 'blue';
@@ -205,6 +207,19 @@ export default function StudioHub() {
   const isHubLight = (settings.perApp?.hub?.theme ?? settings.theme ?? 'dark') === 'light';
 
   const [tab, setTab]       = useState<HubTab>('home');
+
+  useEffect(() => {
+    const handleSetTab = (e: Event) => {
+      const customEvent = e as CustomEvent<HubTab>;
+      if (customEvent.detail) {
+        setTab(customEvent.detail);
+      }
+    };
+    window.addEventListener('studio:set-hub-tab', handleSetTab as EventListener);
+    return () => {
+      window.removeEventListener('studio:set-hub-tab', handleSetTab as EventListener);
+    };
+  }, []);
   const [zooming, setZooming] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [successAnimationState, setSuccessAnimationState] = useState<'entering' | 'exiting' | 'hidden'>('hidden');
@@ -854,7 +869,7 @@ export default function StudioHub() {
       </div>
 
       {/* ── Bottom nav ── */}
-      <HubNav tab={tab} setTab={setTab} accent={accent} />
+      {!isWebDesktop && <HubNav tab={tab} setTab={setTab} accent={accent} />}
 
       {/* UpdateIndicator is now hoisted to AppShell so it appears on
           every screen, not just the Hub. */}
@@ -1913,6 +1928,11 @@ function HubSettings({
     if (typeof window !== 'undefined' && sessionStorage.getItem('studio:routeToPrivacy') === '1') {
       sessionStorage.removeItem('studio:routeToPrivacy');
       return 'privacy';
+    }
+    const target = typeof window !== 'undefined' ? sessionStorage.getItem('studio:routeToSettingsPage') : null;
+    if (target) {
+      sessionStorage.removeItem('studio:routeToSettingsPage');
+      return target as SettingsPageId;
     }
     return 'main';
   });

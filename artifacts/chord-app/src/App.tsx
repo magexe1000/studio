@@ -20,6 +20,10 @@ import { handleGlobalBack } from './lib/backStack';
 import { useStatusBar } from './lib/useStatusBar';
 import { AppEntryTransition } from './components/AppAnimationSystem';
 import { logActivity } from './lib/activityLogger';
+import { useIsWebDesktop } from './hooks/useIsWebDesktop';
+import { SidebarProvider, SidebarInset } from './components/StudioSidebar';
+import WebSidebarLayout from './components/WebSidebarLayout';
+
 // Lazy-load StudioHub — it's 1400+ lines and pulls in SettingControls,
 // ApplyToSheet, ChangelogSheet, and all logo variants. Keeping it out of
 // the main bundle saves significant parse+eval time on cold launch.
@@ -82,6 +86,15 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
+  const isWebDesktop = useIsWebDesktop();
+
+  useEffect(() => {
+    if (isWebDesktop) {
+      document.documentElement.classList.add('web-desktop');
+    } else {
+      document.documentElement.classList.remove('web-desktop');
+    }
+  }, [isWebDesktop]);
 
   const subAppWrapperRef = useRef<HTMLDivElement | null>(null);
   const hubWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -1529,26 +1542,28 @@ export default function App() {
   }, [updateSettings]);
 
   return (
-    <>
-      <div style={{ position: 'relative', width: '100vw', height: '100dvh', overflow: 'hidden', background: '#000000' }}>
+    <SidebarProvider>
+      <div style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: '#000000' }}>
+        {isWebDesktop && <WebSidebarLayout />}
         
-        {/* Layer 1: Studio Hub (Base) */}
-        <div
-          ref={hubWrapperRef}
-          className="app-main-layout"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 1,
-            height: '100dvh',
-            overflow: 'hidden',
-            pointerEvents: isSubAppActive ? 'none' : 'auto',
-          }}
-        >
-          <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioHubSkeleton />} />}>
-            <StudioHub />
-          </Suspense>
-        </div>
+        <SidebarInset>
+          {/* Layer 1: Studio Hub (Base) */}
+          <div
+            ref={hubWrapperRef}
+            className="app-main-layout"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 1,
+              height: '100dvh',
+              overflow: 'hidden',
+              pointerEvents: isSubAppActive ? 'none' : 'auto',
+            }}
+          >
+            <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioHubSkeleton />} />}>
+              <StudioHub />
+            </Suspense>
+          </div>
 
         {/* Layer 2: Sub-App Stack (presents on top of the Hub) */}
         <AnimatePresence mode="popLayout">
@@ -1745,8 +1760,9 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        </SidebarInset>
       </div>
       {exitToast && renderExitToast()}
-    </>
+    </SidebarProvider>
   );
 }

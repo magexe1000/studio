@@ -3,6 +3,7 @@ import { useChordStore, ACCENT_COLORS, type ActivePanel, type AppKey } from '../
 import { useNavHidden, useNavCollapsed } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 
 /* ── Crisp inline SVG icons ──────────────────────────────────── */
 export function IconSongs({ active }: { active: boolean }) {
@@ -113,6 +114,10 @@ export function IconSettings({ active }: { active: boolean }) {
 const NAV_ORDER: ActivePanel[] = ['songs', 'library', 'chord', 'settings'];
 
 export default function BottomNav() {
+  const isWebDesktop = useIsWebDesktop();
+
+  if (isWebDesktop) return null;
+
   // Granular selectors — BottomNav only rerenders when these specific
   // slices change, not on every unrelated store mutation (selectedChordId,
   // recentChords, multiSelectChords, etc.).
