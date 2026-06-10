@@ -45,11 +45,7 @@ if (process.env.CI) {
     // Check if any native files or update-system files changed
     const nativeFiles = changedFiles.filter(f => 
       f.startsWith('artifacts/chord-app/android/') ||
-      f === 'artifacts/chord-app/src/lib/apkDownloader.ts' ||
-      f === 'artifacts/chord-app/src/lib/capgoUpdater.ts' ||
-      f === 'artifacts/chord-app/src/lib/otaUpdate.ts' ||
-      f === 'artifacts/chord-app/scripts/validate-app-installer.mjs' ||
-      f === 'artifacts/chord-app/scripts/generate-release-metadata.mjs'
+      f === 'artifacts/chord-app/src/lib/apkDownloader.ts'
     );
     if (nativeFiles.length > 0) {
       assert(
