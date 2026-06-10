@@ -7,7 +7,7 @@ import { resetNav, setNavCollapsed, useNavHidden, useNavCollapsed } from '../lib
 import { subscribeVocalexBack } from './headerBack';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
-import WebAppSectionNav from '../components/WebAppSectionNav';
+import WebAppSectionDock from '../components/WebAppSectionDock';
 
 const PracticePanelLazy = lazy(() => import('./PracticePanel'));
 const PitchPanelLazy = lazy(() => import('./PitchPanel'));
@@ -348,13 +348,13 @@ export default function VocalexApp() {
         }}
       >
         {isWebDesktop && (
-          <WebAppSectionNav 
+          <WebAppSectionDock 
             app="vocalex" 
             activeSection={activeTab} 
             onChangeSection={setActiveTab} 
           />
         )}
-        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', paddingBottom: isWebDesktop ? '96px' : '0px', display: 'flex', flexDirection: 'column' }}>
         {NAV_ORDER.map(panel => {
           const isVisible = visibleTab === panel;
           const isExiting = exitingTab === panel;

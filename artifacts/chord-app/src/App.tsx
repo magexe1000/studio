@@ -23,7 +23,8 @@ import { logActivity } from './lib/activityLogger';
 import { useIsWebDesktop } from './hooks/useIsWebDesktop';
 import { SidebarProvider, SidebarInset } from './components/StudioSidebar';
 import WebSidebarLayout from './components/WebSidebarLayout';
-import WebAppSectionNav from './components/WebAppSectionNav';
+import WebAppSectionDock from './components/WebAppSectionDock';
+import { useStudioPreferences } from './hooks/useStudioPreferences';
 
 
 // Lazy-load StudioHub — it's 1400+ lines and pulls in SettingControls,
@@ -89,6 +90,7 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
   const isWebDesktop = useIsWebDesktop();
+  const { preferences } = useStudioPreferences();
   const [isLargeDesktop, setIsLargeDesktop] = useState(() => {
     return typeof window !== 'undefined' && window.innerWidth >= 1024;
   });
@@ -104,7 +106,24 @@ export default function App() {
 
 
   const [tempShowSidebar, setTempShowSidebar] = useState(false);
-  const [triggerHovered, setTriggerHovered] = useState(false);
+  const [hoverShowSidebar, setHoverShowSidebar] = useState(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSidebarMouseEnter = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  };
+
+  const handleSidebarMouseLeave = () => {
+    if (hoverShowSidebar && preferences.autoCloseHoverSidebar) {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = setTimeout(() => {
+        setHoverShowSidebar(false);
+      }, 400);
+    }
+  };
 
   useEffect(() => {
     if (isWebDesktop) {
@@ -117,6 +136,7 @@ export default function App() {
   useEffect(() => {
     const handleHideTemp = () => {
       setTempShowSidebar(false);
+      setHoverShowSidebar(false);
     };
     window.addEventListener('studio:hide-sidebar-temp', handleHideTemp);
 
@@ -127,57 +147,28 @@ export default function App() {
 
   useEffect(() => {
     setTempShowSidebar(false);
+    setHoverShowSidebar(false);
   }, [settings.appMode]);
 
   const isInsideApp = settings.appMode !== 'hub';
-  const shouldHideSidebar = isWebDesktop && settings.autoHideSidebarInApps && isInsideApp && !tempShowSidebar;
+  const shouldHideSidebar = isWebDesktop && preferences.autoHideSidebarInApps && isInsideApp && !tempShowSidebar && !hoverShowSidebar;
 
-  // Pointer event listeners on window gated to isWebDesktop && shouldHideSidebar
-  // Start drag detection when clientX <= 16px. If user drags rightward by > 30px, trigger setTempShowSidebar(true)
+  // Clean up hover timer on unmount
   useEffect(() => {
-    if (!isWebDesktop || !shouldHideSidebar) return;
-
-    let startX = 0;
-    let isDragging = false;
-
-    const handlePointerDown = (e: PointerEvent) => {
-      if (e.clientX <= 16) {
-        startX = e.clientX;
-        isDragging = true;
-        try {
-          (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        } catch {}
-      }
-    };
-
-    const handlePointerMove = (e: PointerEvent) => {
-      if (!isDragging) return;
-      const deltaX = e.clientX - startX;
-      if (deltaX > 30) {
-        setTempShowSidebar(true);
-        isDragging = false;
-      }
-    };
-
-    const handlePointerUp = (e: PointerEvent) => {
-      isDragging = false;
-      try {
-        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch {}
-    };
-
-    window.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
-
     return () => {
-      window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
     };
-  }, [isWebDesktop, shouldHideSidebar]);
+  }, []);
+
+  // Global settings for compact desktop spacing
+  useEffect(() => {
+    const root = document.documentElement;
+    if (preferences.compactDesktopSpacing) {
+      root.classList.add('compact-desktop');
+    } else {
+      root.classList.remove('compact-desktop');
+    }
+  }, [preferences.compactDesktopSpacing]);
 
   const subAppWrapperRef = useRef<HTMLDivElement | null>(null);
   const hubWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -649,8 +640,11 @@ export default function App() {
     } else {
       prevAppMode.current = 'chords';
       updateSettings({ appMode: 'chords' });
-      const tab = settings.defaultTab ?? 'library';
-      if (tab !== 'library') setActivePanel(tab);
+      const rememberLast = localStorage.getItem('studio:pref:rememberLastAppSection') !== 'false';
+      if (!rememberLast) {
+        const tab = settings.defaultTab ?? 'library';
+        if (tab !== 'library') setActivePanel(tab);
+      }
     }
 
     // Always preload all four Chordex tab panels + Stagex so navigating
@@ -880,20 +874,22 @@ export default function App() {
     const timer = setTimeout(() => {
       updateSettings({ appMode: 'hub' });
       
-      // Reset nested views to defaults
-      const storeState = useChordStore.getState();
-      storeState.setActivePanel(storeState.settings.defaultTab ?? 'library');
-      storeState.setLastSession({
-        vocalexTab: 'practice',
-        drumexTab: storeState.settings.defaultDrumTab ?? 'songs',
-        stagexView: storeState.settings.defaultStageView ?? 'Editor',
-      });
+      // Reset nested views to defaults if rememberLastAppSection is disabled
+      if (!preferences.rememberLastAppSection) {
+        const storeState = useChordStore.getState();
+        storeState.setActivePanel(storeState.settings.defaultTab ?? 'library');
+        storeState.setLastSession({
+          vocalexTab: 'practice',
+          drumexTab: storeState.settings.defaultDrumTab ?? 'songs',
+          stagexView: storeState.settings.defaultStageView ?? 'Editor',
+        });
 
-      import('./groovex/useGroovexStore')
-        .then(({ useGroovexStore }) => {
-          useGroovexStore.getState().setView('library');
-        })
-        .catch(() => {});
+        import('./groovex/useGroovexStore')
+          .then(({ useGroovexStore }) => {
+            useGroovexStore.getState().setView('library');
+          })
+          .catch(() => {});
+      }
 
       if (subAppWrapperRef.current) {
         subAppWrapperRef.current.style.transform = '';
@@ -1359,10 +1355,11 @@ export default function App() {
   // Keep the native Android status bar in sync with the active theme
   useStatusBar(activeVis.theme, activeVis.amoledMode);
 
-  // Animation speed → root data-attribute
+  // Animation speed → root data-attribute, respecting reduceMotion preference
   useEffect(() => {
-    document.documentElement.setAttribute('data-anim', settings.animationSpeed);
-  }, [settings.animationSpeed]);
+    const isReduced = preferences.reduceMotion || settings.animationSpeed === 'reduced';
+    document.documentElement.setAttribute('data-anim', isReduced ? 'reduced' : settings.animationSpeed);
+  }, [settings.animationSpeed, preferences.reduceMotion]);
 
   // Performance mode → root attribute (used by CSS to disable blur, heavy
   // shadows, non-essential animations across all apps).
@@ -1627,46 +1624,77 @@ export default function App() {
   return (
     <SidebarProvider>
       <div style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: '#000000' }}>
-        {isWebDesktop && <WebSidebarLayout shouldHideSidebar={shouldHideSidebar} />}
+        {isWebDesktop && (
+          <div
+            onMouseEnter={handleSidebarMouseEnter}
+            onMouseLeave={handleSidebarMouseLeave}
+            style={{ display: 'flex', height: '100%' }}
+          >
+            <WebSidebarLayout shouldHideSidebar={shouldHideSidebar} />
+          </div>
+        )}
         
         <SidebarInset>
+          {/* Transparent left-edge hover zone */}
+          {isWebDesktop && preferences.autoHideSidebarInApps && isInsideApp && !tempShowSidebar && !hoverShowSidebar && preferences.hoverRevealSidebar && (
+            <div
+              onMouseEnter={() => {
+                if (hoverTimerRef.current) {
+                  clearTimeout(hoverTimerRef.current);
+                  hoverTimerRef.current = null;
+                }
+                setHoverShowSidebar(true);
+              }}
+              style={{
+                position: 'fixed',
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: '12px',
+                zIndex: 9999,
+                background: 'transparent',
+              }}
+            />
+          )}
+
+          {/* Premium floating hamburger menu button */}
           {shouldHideSidebar && (
             <button
               onClick={() => setTempShowSidebar(true)}
-              onMouseEnter={() => setTriggerHovered(true)}
-              onMouseLeave={() => setTriggerHovered(false)}
               className="btn-smooth"
               title="Open Sidebar"
               style={{
                 position: 'fixed',
-                left: 0,
-                top: '50%',
-                transform: 'translateY(-50%)',
+                left: '16px',
+                top: '16px',
                 zIndex: 100,
-                width: triggerHovered ? 28 : 16,
-                height: 80,
-                borderTopRightRadius: 10,
-                borderBottomRightRadius: 10,
-                borderTopLeftRadius: 0,
-                borderBottomLeftRadius: 0,
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
                 border: '1px solid rgba(128,128,128,0.15)',
-                borderLeft: 'none',
                 background: 'var(--app-surface)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
-                color: triggerHovered ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
+                color: 'var(--c-text-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                boxShadow: '2px 4px 12px rgba(0,0,0,0.15)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                 outline: 'none',
-                padding: 0,
-                transition: 'width 200ms cubic-bezier(0.4, 0, 0.2, 1), color 200ms ease, background-color 200ms ease',
+                transition: 'all 200ms ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--app-surface-high)';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'var(--app-surface)';
+                e.currentTarget.style.transform = 'scale(1)';
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 18, marginLeft: triggerHovered ? 0 : -2 }}>
-                {triggerHovered ? 'menu_open' : 'chevron_right'}
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                menu
               </span>
             </button>
           )}
@@ -1709,12 +1737,13 @@ export default function App() {
                 background: 'var(--app-bg)',
                 willChange: 'opacity, transform',
                 transition: exitingToHub
-                  ? 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1), opacity 370ms ease-in-out'
-                  : 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1) 120ms, opacity 370ms ease-in-out 120ms',
+                  ? 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1), opacity 370ms ease-in-out, padding-left 260ms cubic-bezier(0.16, 1, 0.3, 1)'
+                  : 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1) 120ms, opacity 370ms ease-in-out 120ms, padding-left 260ms cubic-bezier(0.16, 1, 0.3, 1)',
                 transform: exitingToHub ? 'translateX(100%)' : 'translateX(0)',
                 opacity: exitingToHub ? 0 : 1,
                 pointerEvents: (activeAppToRender === null || exitingToHub) ? 'none' : 'auto',
                 display: activeAppToRender === null ? 'none' : 'block',
+                paddingLeft: shouldHideSidebar ? '60px' : '0px',
               }}
             >
               {activeAppToRender === 'groovex' && (
@@ -1840,13 +1869,13 @@ export default function App() {
                       }}
                     >
                       {isWebDesktop && (
-                        <WebAppSectionNav 
+                        <WebAppSectionDock 
                           app="chords" 
                           activeSection={activePanel} 
                           onChangeSection={setActivePanel} 
                         />
                       )}
-                      <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
+                      <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict', paddingBottom: isWebDesktop ? '96px' : '0px' }}>
                         {ALL_PANELS.map(panel => {
                           const isVisible = activePanel === panel;
                           if (!isVisible) return null;

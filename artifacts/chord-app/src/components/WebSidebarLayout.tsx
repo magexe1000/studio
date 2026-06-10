@@ -462,8 +462,8 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'main'}
-                onClick={() => handleGoToHub('settings')}
+                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'general'}
+                onClick={() => handleGoToSettingsPage('general')}
                 tooltip="General Preferences"
               >
                 <div className="flex-shrink-0">

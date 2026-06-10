@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
-import WebAppSectionNav from './WebAppSectionNav';
+import WebAppSectionDock from './WebAppSectionDock';
 import { setBackHandler, useBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import translations from '../lib/i18n';
@@ -618,7 +618,7 @@ export default function StagexPanel() {
         }}
       >
         {isWebDesktop && (
-          <WebAppSectionNav 
+          <WebAppSectionDock 
             app="stage" 
             activeSection={isTabActive('Editor') ? 'Editor' : isTabActive('Setup') ? 'Setup' : 'Preferences'} 
             onChangeSection={handleNavTap} 

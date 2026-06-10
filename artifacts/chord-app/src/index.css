@@ -1481,3 +1481,11 @@ html.has-modal-open body {
   }
 }
 
+html.compact-desktop {
+  --density-pad: 8px !important;
+  --density-row-pad: 6px 14px !important;
+  --density-gap: 6px !important;
+  --density-card-gap: 4px !important;
+}
+
+

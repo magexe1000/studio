@@ -7,7 +7,7 @@ import { useBackHandler } from '../lib/backStack';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { useNavCollapsed, useNavHidden } from '../lib/navScroll';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
-import WebAppSectionNav from '../components/WebAppSectionNav';
+import WebAppSectionDock from '../components/WebAppSectionDock';
 
 const GroovexLibrary = lazy(() => import('./GroovexLibrary'));
 const GroovexPlayer = lazy(() => import('./GroovexPlayer'));
@@ -136,13 +136,13 @@ export default function GroovexApp() {
         }}
       >
         {isWebDesktop && view !== 'player' && (
-          <WebAppSectionNav 
+          <WebAppSectionDock 
             app="groovex" 
             activeSection={view} 
             onChangeSection={navigate} 
           />
         )}
-        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', paddingBottom: isWebDesktop ? '96px' : '0px', display: 'flex', flexDirection: 'column' }}>
           <Suspense fallback={null}>
             <div key={view} className={viewAnim} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {view === 'library' && <GroovexLibrary />}

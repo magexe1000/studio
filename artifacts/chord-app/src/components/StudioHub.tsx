@@ -24,6 +24,7 @@ import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import ProfileDropdown from './kokonutui/profile-dropdown';
 import SmartLoading from './SmartLoading';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
+import { useStudioPreferences } from '../hooks/useStudioPreferences';
 import { StudioSkeletonProfile, StudioSkeletonList } from './StudioSkeleton';
 
 // AccountCard pulls Firebase (auth + firestore). Lazy-load it so Firebase
@@ -1069,7 +1070,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'help' | 'debug' | 'developer';
+type SettingsPageId = 'main' | 'general' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'help' | 'debug' | 'developer';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -1909,6 +1910,7 @@ function HubSettings({
   renderDevToast?: () => React.ReactNode;
 }) {
   const { settings, updateSettings, updatePerApp } = useChordStore();
+  const { preferences, setPreference } = useStudioPreferences();
   const t = useT();
   const lang = settings.language ?? 'en';
   const ota = useOtaUpdate();
@@ -2449,6 +2451,132 @@ function HubSettings({
         <SettingsSubHeader title="Help & FAQ" onBack={goBack} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
           <HelpAccordion accent={accent} lang={lang} />
+        </div>
+      </div>
+    );
+  }
+
+  /* ── GENERAL PREFERENCES ────────────────────────────────────────── */
+  if (page === 'general') {
+    const isHideActive = preferences.autoHideSidebarInApps;
+    const isHoverActive = isHideActive && preferences.hoverRevealSidebar;
+
+    return (
+      <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+        <style>{HUB_SETTINGS_CSS}</style>
+        <SettingsSubHeader title="General Preferences" onBack={goBack} />
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 520, margin: '0 auto', paddingBottom: 24 }}>
+          {/* Sidebar behavior card */}
+          <SettingsSectionLabel>Sidebar Behavior</SettingsSectionLabel>
+          <div style={cardStyle}>
+            <SettingRow 
+              label="Hide sidebar while using apps" 
+              desc="Hides the global Studio sidebar inside apps to maximize workspace size"
+            >
+              <Toggle 
+                value={preferences.autoHideSidebarInApps} 
+                onChange={v => setPreference('autoHideSidebarInApps', v)} 
+                accentFrom={accent.from} 
+                accentTo={accent.to} 
+              />
+            </SettingRow>
+
+            <div style={{ opacity: isHideActive ? 1 : 0.5, pointerEvents: isHideActive ? 'auto' : 'none', transition: 'opacity 200ms ease' }}>
+              <SettingRow 
+                label="Reveal sidebar on left-edge hover" 
+                desc="Hovering the far-left edge of the screen reveals the hidden sidebar"
+              >
+                <Toggle 
+                  value={isHideActive && preferences.hoverRevealSidebar} 
+                  onChange={v => setPreference('hoverRevealSidebar', v)} 
+                  accentFrom={accent.from} 
+                  accentTo={accent.to}
+                />
+              </SettingRow>
+            </div>
+
+            <div style={{ opacity: isHoverActive ? 1 : 0.5, pointerEvents: isHoverActive ? 'auto' : 'none', transition: 'opacity 200ms ease' }}>
+              <SettingRow 
+                label="Auto-close hover-opened sidebar" 
+                desc="Automatically hides the sidebar when your pointer leaves it"
+              >
+                <Toggle 
+                  value={isHoverActive && preferences.autoCloseHoverSidebar} 
+                  onChange={v => setPreference('autoCloseHoverSidebar', v)} 
+                  accentFrom={accent.from} 
+                  accentTo={accent.to} 
+                />
+              </SettingRow>
+            </div>
+          </div>
+
+          {/* App Workspace behavior card */}
+          <SettingsSectionLabel>App Workspace</SettingsSectionLabel>
+          <div style={cardStyle}>
+            <SettingRow 
+              label="Show app navigation dock" 
+              desc="Shows a macOS-style floating bottom dock inside apps for section navigation"
+            >
+              <Toggle 
+                value={preferences.showWebAppDock} 
+                onChange={v => {
+                  if (!v && isWebDesktop) {
+                    alert("Cannot disable the app navigation dock on desktop/tablet as it is the only way to navigate sections inside apps.");
+                    return;
+                  }
+                  setPreference('showWebAppDock', v);
+                }} 
+                accentFrom={accent.from} 
+                accentTo={accent.to} 
+              />
+            </SettingRow>
+            <div style={{ padding: '0px 20px 14px', marginTop: '-10px', borderBottom: '1px solid rgba(72,72,72,0.07)' }}>
+              <p style={{ fontSize: '11px', color: 'var(--c-text-muted)', fontFamily: 'Inter', margin: 0 }}>
+                Always enabled on Web desktop/tablet as it's the only way to navigate sub-app sections.
+              </p>
+            </div>
+
+            <SettingRow 
+              label="Remember last Chordex section" 
+              desc="Reopening Chordex returns to your last used section instead of resetting"
+            >
+              <Toggle 
+                value={preferences.rememberLastAppSection} 
+                onChange={v => setPreference('rememberLastAppSection', v)} 
+                accentFrom={accent.from} 
+                accentTo={accent.to} 
+              />
+            </SettingRow>
+          </div>
+
+          {/* Motion & Interface behavior card */}
+          <SettingsSectionLabel>Motion & Spacing</SettingsSectionLabel>
+          <div style={cardStyle}>
+            <SettingRow 
+              label="Reduce interface animations" 
+              desc="Minimizes transitions and movement across the workspace"
+            >
+              <Toggle 
+                value={preferences.reduceMotion} 
+                onChange={v => setPreference('reduceMotion', v)} 
+                accentFrom={accent.from} 
+                accentTo={accent.to} 
+              />
+            </SettingRow>
+
+            <SettingRow 
+              label="Compact desktop spacing" 
+              desc="Reduces spacing and padding for more information on laptop screens"
+            >
+              <Toggle 
+                value={preferences.compactDesktopSpacing} 
+                onChange={v => setPreference('compactDesktopSpacing', v)} 
+                accentFrom={accent.from} 
+                accentTo={accent.to} 
+              />
+            </SettingRow>
+          </div>
         </div>
       </div>
     );
@@ -3733,6 +3861,7 @@ function HubSettings({
       {/* Interface */}
       <SettingsSectionLabel delay={70}>{(t.hub as { studioSettings?: { interface?: string } }).studioSettings?.interface ?? 'Interface'}</SettingsSectionLabel>
       <div style={cardStyle}>
+        <SettingsNavRow icon="settings" iconColor={accent.from} title="General Preferences" desc="Configure workspace layout and app behaviors" onPress={() => navigate('general')} delay={75} />
         <SettingsNavRow icon="palette" iconColor={accent.from} title={t.settings.sections.appearance} desc={(t.hub as { studioSettings?: { appearanceDesc?: string } }).studioSettings?.appearanceDesc ?? 'Theme, colors, display & performance'} onPress={() => navigate('appearance')} last delay={80} />
       </div>
 

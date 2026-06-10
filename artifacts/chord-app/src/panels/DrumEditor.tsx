@@ -34,7 +34,7 @@ import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern } from '../lib/drumLibrary';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
-import WebAppSectionNav from '../components/WebAppSectionNav';
+import WebAppSectionDock from '../components/WebAppSectionDock';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
 const LABEL_W  = 72;
@@ -2855,13 +2855,13 @@ export default function DrumEditor() {
         }}
       >
         {isWebDesktop && (
-          <WebAppSectionNav 
+          <WebAppSectionDock 
             app="drums" 
             activeSection={activeTab} 
             onChangeSection={handleSetTab} 
           />
         )}
-        <div key={activeTab} className={tabAnim} style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div key={activeTab} className={tabAnim} style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingBottom: isWebDesktop ? '96px' : '0px' }}>
 
         {/* ═══ SONGS LIST (Songs tab, not in editor) ═══════════════════════ */}
         {activeTab === 'songs' && !inEditor && (
