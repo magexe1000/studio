@@ -115,6 +115,7 @@ export interface AppSettings {
   otaAutoCheck: boolean;
   /** Show the "What's new" changelog sheet on the first launch after an update. */
   otaShowChangelog: boolean;
+  autoHideSidebarInApps: boolean;
   perApp: Record<AppKey, PerAppVisuals>;
   customAccentHue: number;
   dynamicLightStart: number;
@@ -299,6 +300,7 @@ export const useChordStore = create<ChordStore>()(
         otaNotifications: true,
         otaAutoCheck: true,
         otaShowChangelog: true,
+        autoHideSidebarInApps: true,
         customAccentHue: 220,
         dynamicLightStart: 7,
         dynamicLightEnd: 20,
@@ -715,7 +717,7 @@ export const useChordStore = create<ChordStore>()(
     }),
     {
       name: 'chord-explorer-storage-v3',
-      version: 12,
+      version: 13,
       migrate: (stored: unknown, fromVersion: number) => {
         const s = stored as Record<string, unknown>;
         if (fromVersion < 1) {
@@ -839,6 +841,14 @@ export const useChordStore = create<ChordStore>()(
           if (s.settings && typeof s.settings === 'object') {
             const settings = s.settings as Record<string, unknown>;
             settings.syncBackendProvider = 'supabase-realtime';
+          }
+        }
+        if (fromVersion < 13) {
+          if (s.settings && typeof s.settings === 'object') {
+            const settings = s.settings as Record<string, unknown>;
+            if (typeof settings.autoHideSidebarInApps !== 'boolean') {
+              settings.autoHideSidebarInApps = true;
+            }
           }
         }
         return s;

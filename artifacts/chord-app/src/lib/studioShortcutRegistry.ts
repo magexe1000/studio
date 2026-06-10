@@ -18,9 +18,9 @@ export const SHORTCUT_REGISTRY: ShortcutRegistryItem[] = [
   { id: 'chordex_library', label: 'Library', icon: 'folder_open', type: 'chordex-panel', payload: 'library' },
   { id: 'chordex_chords', label: 'Chords', icon: 'grid_view', type: 'chordex-panel', payload: 'chord' },
 
-  { id: 'settings_appearance', label: 'Theme & Appearance', icon: 'palette', type: 'settings', payload: 'appearance' },
+  { id: 'settings_appearance', label: 'Appearance', icon: 'palette', type: 'settings', payload: 'appearance' },
   { id: 'settings_language', label: 'Language', icon: 'language', type: 'settings', payload: 'language' },
-  { id: 'settings_updater', label: 'App Updater', icon: 'download', type: 'settings', payload: 'updater' },
+  { id: 'settings_updater', label: 'App Updates', icon: 'download', type: 'settings', payload: 'updater' },
   { id: 'settings_developer', label: 'Developer Options', icon: 'terminal', type: 'settings', payload: 'developer' },
   { id: 'settings_help', label: 'Help & FAQ', icon: 'help', type: 'settings', payload: 'help' },
 ];

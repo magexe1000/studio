@@ -88,11 +88,6 @@ export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
   const isWebDesktop = useIsWebDesktop();
 
-  const [autoHideEnabled, setAutoHideEnabled] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return localStorage.getItem('studio:autoHideSidebar') !== 'false';
-  });
-
   const [tempShowSidebar, setTempShowSidebar] = useState(false);
   const [triggerHovered, setTriggerHovered] = useState(false);
 
@@ -105,19 +100,12 @@ export default function App() {
   }, [isWebDesktop]);
 
   useEffect(() => {
-    const handleToggleChanged = (e: Event) => {
-      const customEvent = e as CustomEvent<boolean>;
-      setAutoHideEnabled(customEvent.detail);
-    };
-    window.addEventListener('studio:auto-hide-sidebar-changed', handleToggleChanged as EventListener);
-    
     const handleHideTemp = () => {
       setTempShowSidebar(false);
     };
     window.addEventListener('studio:hide-sidebar-temp', handleHideTemp);
 
     return () => {
-      window.removeEventListener('studio:auto-hide-sidebar-changed', handleToggleChanged as EventListener);
       window.removeEventListener('studio:hide-sidebar-temp', handleHideTemp);
     };
   }, []);
@@ -127,7 +115,7 @@ export default function App() {
   }, [settings.appMode]);
 
   const isInsideApp = settings.appMode !== 'hub';
-  const shouldHideSidebar = isWebDesktop && autoHideEnabled && isInsideApp && !tempShowSidebar;
+  const shouldHideSidebar = isWebDesktop && settings.autoHideSidebarInApps && isInsideApp && !tempShowSidebar;
 
   // Pointer event listeners on window gated to isWebDesktop && shouldHideSidebar
   // Start drag detection when clientX <= 16px. If user drags rightward by > 30px, trigger setTempShowSidebar(true)

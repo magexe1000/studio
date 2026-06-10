@@ -17,7 +17,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
   const { shortcuts, addShortcut, removeShortcut } = useStudioShortcuts();
 
   const handleToggleSidebar = () => {
-    if (settings.appMode !== 'hub' && localStorage.getItem('studio:autoHideSidebar') !== 'false') {
+    if (settings.appMode !== 'hub' && settings.autoHideSidebarInApps) {
       window.dispatchEvent(new CustomEvent('studio:hide-sidebar-temp'));
     } else {
       toggleSidebar();
@@ -456,20 +456,33 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Settings Group */}
+        {/* Preferences Group */}
         <SidebarGroup>
-          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarGroupLabel>Preferences</SidebarGroupLabel>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'main'}
+                onClick={() => handleGoToHub('settings')}
+                tooltip="General Preferences"
+              >
+                <div className="flex-shrink-0">
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>settings</span>
+                </div>
+                {open && <span className="truncate">General Preferences</span>}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
             <SidebarMenuItem>
               <SidebarMenuButton
                 active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'appearance'}
                 onClick={() => handleGoToSettingsPage('appearance')}
-                tooltip="Theme & Accent"
+                tooltip="Appearance"
               >
                 <div className="flex-shrink-0">
                   <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>palette</span>
                 </div>
-                {open && <span className="truncate">Theme & Appearance</span>}
+                {open && <span className="truncate">Appearance</span>}
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -490,7 +503,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
               <SidebarMenuButton
                 active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'updater'}
                 onClick={() => handleGoToSettingsPage('updater')}
-                tooltip="Updater Settings"
+                tooltip="App Updates"
               >
                 <div className="flex-shrink-0 relative">
                   <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>download</span>
@@ -500,7 +513,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                 </div>
                 {open && (
                   <span className="truncate flex items-center gap-2">
-                    App Updater
+                    App Updates
                     {ota.updateAvailable && (
                       <span className="bg-rose-500/20 text-rose-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">New</span>
                     )}
@@ -514,7 +527,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                 <SidebarMenuButton
                   active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'developer'}
                   onClick={() => handleGoToSettingsPage('developer')}
-                  tooltip="Developer Panel"
+                  tooltip="Developer Options"
                 >
                   <div className="flex-shrink-0">
                     <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>terminal</span>
@@ -528,7 +541,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
               <SidebarMenuButton
                 active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'help'}
                 onClick={() => handleGoToSettingsPage('help')}
-                tooltip="FAQ & Support"
+                tooltip="Help & FAQ"
               >
                 <div className="flex-shrink-0">
                   <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>help</span>
