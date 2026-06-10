@@ -31,7 +31,7 @@ import { APP_VERSION, compareSemver } from './appVersion';
 /** True only inside a Capacitor-wrapped native shell (Android APK). */
 export function isNative(): boolean {
   try {
-    return Capacitor.isNativePlatform();
+    return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
   } catch {
     return false;
   }

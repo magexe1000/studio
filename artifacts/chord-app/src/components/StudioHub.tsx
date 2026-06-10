@@ -1392,7 +1392,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   // Determine status state
   const isChecking = ota.loading;
   const hasUpdate = ota.updateAvailable;
-  const isReinstall = ota.reinstallRequired;
+  const isReinstall = isNative() && ota.reinstallRequired;
 
   // Status indicator config
   const statusConfig = isChecking
