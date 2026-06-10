@@ -1488,4 +1488,39 @@ html.compact-desktop {
   --density-card-gap: 4px !important;
 }
 
+/* ── Landing Page Animations & 3D Marquee ────────────────────── */
+@keyframes marquee-scroll {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee-scroll {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 45s linear infinite;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-2000 {
+  perspective: 2000px;
+}
+
+.glow-blue {
+  box-shadow: 0 0 30px rgba(0, 122, 255, 0.12);
+}
+
+.glow-blue-hover:hover {
+  box-shadow: 0 0 40px rgba(0, 122, 255, 0.25);
+}
+
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+
 

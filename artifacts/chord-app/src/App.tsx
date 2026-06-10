@@ -25,6 +25,7 @@ import { SidebarProvider, SidebarInset } from './components/StudioSidebar';
 import WebSidebarLayout from './components/WebSidebarLayout';
 import WebAppSectionDock from './components/WebAppSectionDock';
 import { useStudioPreferences } from './hooks/useStudioPreferences';
+import StudioLandingPage from './landing/StudioLandingPage';
 
 
 // Lazy-load StudioHub — it's 1400+ lines and pulls in SettingControls,
@@ -89,6 +90,31 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
+
+  const [route, setRoute] = useState(() => {
+    if (typeof window === 'undefined') return '/';
+    const path = window.location.pathname;
+    if (path === '/app' || path.startsWith('/app/')) return '/app';
+    return '/';
+  });
+
+  const navigateTo = (path: string) => {
+    window.history.pushState({}, '', path);
+    setRoute(path);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/app' || path.startsWith('/app/')) {
+        setRoute('/app');
+      } else {
+        setRoute('/');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const isWebDesktop = useIsWebDesktop();
   const { preferences } = useStudioPreferences();
   const [isLargeDesktop, setIsLargeDesktop] = useState(() => {
@@ -1620,6 +1646,10 @@ export default function App() {
       window.removeEventListener('touchcancel', handleTouchEnd);
     };
   }, [updateSettings]);
+
+  if (route === '/') {
+    return <StudioLandingPage navigateTo={navigateTo} />;
+  }
 
   return (
     <SidebarProvider>
