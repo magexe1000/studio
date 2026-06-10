@@ -407,8 +407,8 @@ function versionJsonUrls(): string[] {
   if (shouldUseAndroidApkUpdater()) {
     urls.push(`${remoteBase}/app-release.json?t=${t}`);
   } else {
-    urls.push(`${remoteBase}/version.json?t=${t}`);
-    // Web / PWA / dev preview / iframe — same-origin always works.
+    // Web / PWA / dev preview / iframe — same-origin only.
+    // Querying the Firebase production domain causes updates to be falsely detected on staging / Netlify hosts.
     const localBase = import.meta.env.BASE_URL || '/';
     urls.push(`${localBase}version.json?t=${t}`);
   }
@@ -1196,7 +1196,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
   }
 
   if (!isNative()) {
-    // Web: clear service workers, caches, and reload page
+    // Web: clear service workers, caches, and reload page with cache-buster
     void (async () => {
       try {
         if (typeof caches !== 'undefined') {
@@ -1210,7 +1210,13 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       } catch (e) {
         console.warn('Failed to clear cache/sw before reload:', e);
       } finally {
-        window.location.reload();
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set('upd', Date.now().toString());
+          window.location.href = url.toString();
+        } catch {
+          window.location.reload();
+        }
       }
     })();
     return Promise.resolve();
@@ -1331,7 +1337,13 @@ export function applyUpdate(trigger?: string): Promise<void> {
       } catch (e) {
         console.warn('Failed to clear cache/sw before reload:', e);
       } finally {
-        window.location.reload();
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set('upd', Date.now().toString());
+          window.location.href = url.toString();
+        } catch {
+          window.location.reload();
+        }
       }
       return;
     }
