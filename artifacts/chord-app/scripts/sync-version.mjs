@@ -60,10 +60,10 @@ const buildTimestamp = new Date().toLocaleString('en-US', { timeZoneName: 'short
 src = src.replace(/export\s+const\s+APP_COMMIT_SHA\s*=\s*['"]([^'"]+)['"]/, `export const APP_COMMIT_SHA = '${gitCommitSha}'`);
 src = src.replace(/export\s+const\s+APP_BUILD_TIMESTAMP\s*=\s*['"]([^'"]+)['"]/, `export const APP_BUILD_TIMESTAMP = '${buildTimestamp}'`);
 
-const versionMatch = src.match(/export\s+const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+const versionMatch = src.match(/export\s+const\s+WEB_VERSION\s*=\s*['"]([^'"]+)['"]/);
 if (!versionMatch) {
-  console.error(`sync-version: ✗ could not find APP_VERSION in ${sourcePath}`);
-  console.error("  Expected:  export const APP_VERSION = 'X.Y.Z';");
+  console.error(`sync-version: ✗ could not find WEB_VERSION in ${sourcePath}`);
+  console.error("  Expected:  export const WEB_VERSION = 'X.Y.Z';");
   process.exit(1);
 }
 const version = versionMatch[1];
@@ -240,18 +240,18 @@ if (fs.existsSync(pkgPath)) {
   }
 }
 
-// Sync android/app/build.gradle versionName
-const gradlePath = path.join(root, 'android/app/build.gradle');
-if (fs.existsSync(gradlePath)) {
-  try {
-    let gradleSrc = fs.readFileSync(gradlePath, 'utf8');
-    const gradlePat = /versionName\s+["']([^"']+)["']/;
-    if (gradlePat.test(gradleSrc)) {
-      gradleSrc = gradleSrc.replace(gradlePat, `versionName "${version}"`);
-      fs.writeFileSync(gradlePath, gradleSrc, 'utf8');
-      console.log(`sync-version: ✓ updated android/app/build.gradle versionName to ${version}`);
-    }
-  } catch (err) {
-    console.error('sync-version: ✗ failed to sync android/app/build.gradle:', err);
-  }
-}
+// Sync android/app/build.gradle versionName (Disabled for Web-only 4.0.0 release)
+// const gradlePath = path.join(root, 'android/app/build.gradle');
+// if (fs.existsSync(gradlePath)) {
+//   try {
+//     let gradleSrc = fs.readFileSync(gradlePath, 'utf8');
+//     const gradlePat = /versionName\s+["']([^"']+)["']/;
+//     if (gradlePat.test(gradleSrc)) {
+//       gradleSrc = gradleSrc.replace(gradlePat, `versionName "${version}"`);
+//       fs.writeFileSync(gradlePath, gradleSrc, 'utf8');
+//       console.log(`sync-version: ✓ updated android/app/build.gradle versionName to ${version}`);
+//     }
+//   } catch (err) {
+//     console.error('sync-version: ✗ failed to sync android/app/build.gradle:', err);
+//   }
+// }
