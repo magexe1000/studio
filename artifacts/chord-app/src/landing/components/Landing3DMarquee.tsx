@@ -1,11 +1,13 @@
 import React from 'react';
 import { useStudioPreferences } from '../../hooks/useStudioPreferences';
 import { 
-  StudioHubMockup, 
-  ChordexLibraryMockup, 
-  StagexMockup, 
-  GroovexMockup, 
-  VocalexMockup, 
+  ChordexSongsMockup,
+  ChordexLibraryMockup,
+  ChordexChordsMockup,
+  DrumexMockup,
+  StagexMockup,
+  GroovexMockup,
+  VocalexMockup,
   PreferencesMockup 
 } from './StudioScreenMockups';
 
@@ -14,12 +16,14 @@ export default function Landing3DMarquee() {
   const isReduced = preferences.reduceMotion;
 
   const mockups = [
-    { name: 'Studio Hub', comp: StudioHubMockup },
+    { name: 'Chordex Songs', comp: ChordexSongsMockup },
     { name: 'Chordex Library', comp: ChordexLibraryMockup },
-    { name: 'Stagex Planner', comp: StagexMockup },
+    { name: 'Chordex Chords', comp: ChordexChordsMockup },
+    { name: 'Drumex Sequencer', comp: DrumexMockup },
+    { name: 'Stagex Stage Plot', comp: StagexMockup },
     { name: 'Groovex Mixer', comp: GroovexMockup },
-    { name: 'Vocalex Trainer', comp: VocalexMockup },
-    { name: 'Studio Settings', comp: PreferencesMockup }
+    { name: 'Vocalex Tuner', comp: VocalexMockup },
+    { name: 'Preferences', comp: PreferencesMockup }
   ];
 
   // Duplicate for seamless loop
