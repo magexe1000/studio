@@ -9,6 +9,7 @@ import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
 import SmartLoading from './SmartLoading';
 import { StagexPanelSkeleton } from './StudioSkeleton';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 
 type StageWin = Window & {
   stageGoBack?: () => boolean;
@@ -189,6 +190,7 @@ const HIDE_IFRAME_UI = `
 `;
 
 export default function StagexPanel() {
+  const isWebDesktop = useIsWebDesktop();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const iframeReady = useRef(false);
   const { settings } = useChordStore();
@@ -491,10 +493,8 @@ export default function StagexPanel() {
     return () => setBackHandler(null);
   }, []);
 
-  // In the Export (PDF) view: keep the top header visible (back, app icon,
-  // sections toggle, PDF button) but remove the bottom nav so the preview
-  // owns the full lower area.
-  const collapseHeader = (isLandscape && curView === 'Editor') || liveMode;
+  const hasWebHeader = !isWebDesktop || (curView === 'Editor' || curView === 'Export' || showBack);
+  const collapseHeader = (isLandscape && curView === 'Editor') || liveMode || !hasWebHeader;
   const hideBottomNav  = curView === 'Export';
   const isLandscapeEditor = isLandscape && curView === 'Editor';
 
@@ -659,7 +659,9 @@ export default function StagexPanel() {
           </button>
         </div>
 
-        <AppModeMenuLogo color={isLight ? 'rgba(0,0,0,0.80)' : 'rgba(255,255,255,0.90)'} size={13} />
+        {!isWebDesktop && (
+          <AppModeMenuLogo color={isLight ? 'rgba(0,0,0,0.80)' : 'rgba(255,255,255,0.90)'} size={13} />
+        )}
 
         <div style={{ flex: 1 }} />
 

@@ -6,6 +6,7 @@ import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { useBackHandler } from '../lib/backStack';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { useNavCollapsed, useNavHidden } from '../lib/navScroll';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 
 const GroovexLibrary = lazy(() => import('./GroovexLibrary'));
 const GroovexPlayer = lazy(() => import('./GroovexPlayer'));
@@ -14,6 +15,7 @@ const GroovexPreferences = lazy(() => import('./GroovexPreferences'));
 const VIEW_ORDER: GroovexView[] = ['library', 'player', 'preferences'];
 
 export default function GroovexApp() {
+  const isWebDesktop = useIsWebDesktop();
   const { view, setView, activeSongId } = useGroovexStore();
   const [viewAnim, setViewAnim] = useState<'panel-enter-right' | 'panel-enter-left'>('panel-enter-right');
 
@@ -53,18 +55,41 @@ export default function GroovexApp() {
       overflow: 'hidden',
     }}>
 
-      <header style={{
-        display: 'flex', alignItems: 'center',
-        padding: '24px 24px 4px', flexShrink: 0,
-        background: 'var(--gx-bg)',
-      }}>
-        <div style={{
-          overflow: 'hidden',
-          flexShrink: 0,
-          width: view === 'player' ? '40px' : '0px',
-          opacity: view === 'player' ? 1 : 0,
-          transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
+      {!isWebDesktop && (
+        <header style={{
+          display: 'flex', alignItems: 'center',
+          padding: '24px 24px 4px', flexShrink: 0,
+          background: 'var(--gx-bg)',
         }}>
+          <div style={{
+            overflow: 'hidden',
+            flexShrink: 0,
+            width: view === 'player' ? '40px' : '0px',
+            opacity: view === 'player' ? 1 : 0,
+            transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
+          }}>
+            <button
+              onClick={handleBack}
+              className="btn-smooth"
+              aria-label="Back"
+              style={{
+                width: '32px', height: '32px', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--gx-surface-high)',
+                border: '1px solid rgba(128,128,128,0.15)',
+                cursor: 'pointer', padding: 0,
+                transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 18 }}>arrow_back</span>
+            </button>
+          </div>
+          <AppModeMenuLogo />
+        </header>
+      )}
+
+      {isWebDesktop && view === 'player' && (
+        <div style={{ position: 'fixed', left: 16, top: 16, zIndex: 100 }}>
           <button
             onClick={handleBack}
             className="btn-smooth"
@@ -81,10 +106,9 @@ export default function GroovexApp() {
             <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 18 }}>arrow_back</span>
           </button>
         </div>
-        <AppModeMenuLogo />
-      </header>
+      )}
 
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px' }}>
         <Suspense fallback={null}>
           <div key={view} className={viewAnim} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {view === 'library' && <GroovexLibrary />}

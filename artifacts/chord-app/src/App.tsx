@@ -94,6 +94,7 @@ export default function App() {
   });
 
   const [tempShowSidebar, setTempShowSidebar] = useState(false);
+  const [triggerHovered, setTriggerHovered] = useState(false);
 
   useEffect(() => {
     if (isWebDesktop) {
@@ -127,6 +128,53 @@ export default function App() {
 
   const isInsideApp = settings.appMode !== 'hub';
   const shouldHideSidebar = isWebDesktop && autoHideEnabled && isInsideApp && !tempShowSidebar;
+
+  // Pointer event listeners on window gated to isWebDesktop && shouldHideSidebar
+  // Start drag detection when clientX <= 16px. If user drags rightward by > 30px, trigger setTempShowSidebar(true)
+  useEffect(() => {
+    if (!isWebDesktop || !shouldHideSidebar) return;
+
+    let startX = 0;
+    let isDragging = false;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.clientX <= 16) {
+        startX = e.clientX;
+        isDragging = true;
+        try {
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        } catch {}
+      }
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - startX;
+      if (deltaX > 30) {
+        setTempShowSidebar(true);
+        isDragging = false;
+      }
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      isDragging = false;
+      try {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {}
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+    };
+  }, [isWebDesktop, shouldHideSidebar]);
 
   const subAppWrapperRef = useRef<HTMLDivElement | null>(null);
   const hubWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -1576,37 +1624,46 @@ export default function App() {
   return (
     <SidebarProvider>
       <div style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: '#000000' }}>
-        {isWebDesktop && !shouldHideSidebar && <WebSidebarLayout />}
+        {isWebDesktop && <WebSidebarLayout shouldHideSidebar={shouldHideSidebar} />}
         
         <SidebarInset>
           {shouldHideSidebar && (
             <button
               onClick={() => setTempShowSidebar(true)}
+              onMouseEnter={() => setTriggerHovered(true)}
+              onMouseLeave={() => setTriggerHovered(false)}
               className="btn-smooth"
               title="Open Sidebar"
               style={{
                 position: 'fixed',
-                left: 12,
-                top: 12,
+                left: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
                 zIndex: 100,
-                width: 36,
-                height: 36,
-                borderRadius: 10,
+                width: triggerHovered ? 28 : 16,
+                height: 80,
+                borderTopRightRadius: 10,
+                borderBottomRightRadius: 10,
+                borderTopLeftRadius: 0,
+                borderBottomLeftRadius: 0,
                 border: '1px solid rgba(128,128,128,0.15)',
+                borderLeft: 'none',
                 background: 'var(--app-surface)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
-                color: 'var(--c-text-primary)',
+                color: triggerHovered ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                boxShadow: '2px 4px 12px rgba(0,0,0,0.15)',
                 outline: 'none',
+                padding: 0,
+                transition: 'width 200ms cubic-bezier(0.4, 0, 0.2, 1), color 200ms ease, background-color 200ms ease',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                menu
+              <span className="material-symbols-outlined" style={{ fontSize: 18, marginLeft: triggerHovered ? 0 : -2 }}>
+                {triggerHovered ? 'menu_open' : 'chevron_right'}
               </span>
             </button>
           )}

@@ -3,6 +3,7 @@ import { useChordStore, ACCENT_COLORS, type ActivePanel } from '../store/useChor
 import { useScrollHide } from '../lib/navScroll';
 import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
 import { IconSongs, IconLibrary, IconChords, IconSettings } from '../components/BottomNav';
 
@@ -31,15 +32,19 @@ export default function SettingsPanel() {
     { label: 'DADGAD',                    value: 'DADGAD' },
   ];
 
+  const isWebDesktop = useIsWebDesktop();
+
   return (
     <div className="flex flex-col h-full overflow-hidden app-bg">
-      <header className="flex-none px-6 pt-6 pb-1 app-bg spring-in">
-        <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
-          <AppModeMenuLogo />
-        </h1>
-      </header>
+      {!isWebDesktop && (
+        <header className="flex-none px-6 pt-6 pb-1 app-bg spring-in">
+          <h1 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <AppModeMenuLogo />
+          </h1>
+        </header>
+      )}
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar px-5" style={{ paddingBottom: 'var(--content-bottom-pad)' }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar px-5" style={{ paddingBottom: 'var(--content-bottom-pad)', paddingTop: isWebDesktop ? '20px' : '0' }}>
         {/* Page title */}
         <div className="mt-3 mb-6 spring-in">
           <h2 style={{ fontSize: 'var(--font-hero)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>

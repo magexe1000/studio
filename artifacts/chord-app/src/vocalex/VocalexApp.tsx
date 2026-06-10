@@ -6,6 +6,7 @@ import { useT } from '../lib/useT';
 import { resetNav, setNavCollapsed, useNavHidden, useNavCollapsed } from '../lib/navScroll';
 import { subscribeVocalexBack } from './headerBack';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 
 const PracticePanelLazy = lazy(() => import('./PracticePanel'));
 const PitchPanelLazy = lazy(() => import('./PitchPanel'));
@@ -65,6 +66,7 @@ function IconTakes({ active }: { active: boolean }) {
 
 
 export default function VocalexApp() {
+  const isWebDesktop = useIsWebDesktop();
   const { settings } = useChordStore();
   const t = useT();
   // Restore last-visited Vocalex tab so a refresh / app-switch lands the
@@ -262,18 +264,49 @@ export default function VocalexApp() {
       '--panel-dur':      `${durMs}ms`,
       '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
     } as React.CSSProperties}>
-      <header className="flex-none px-6 pt-6 pb-1 spring-in" style={{ display: 'flex', alignItems: 'center' }}>
-        <div style={{
-          overflow: 'hidden',
-          flexShrink: 0,
-          width: headerBack ? '40px' : '0px',
-          opacity: headerBack ? 1 : 0,
-          transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
-        }}>
+      
+      {!isWebDesktop && (
+        <header className="flex-none px-6 pt-6 pb-1 spring-in" style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{
+            overflow: 'hidden',
+            flexShrink: 0,
+            width: headerBack ? '40px' : '0px',
+            opacity: headerBack ? 1 : 0,
+            transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
+          }}>
+            <button
+              onClick={() => {
+                headerBack?.();
+              }}
+              data-testid="vocalex-back-button"
+              aria-label="Back"
+              style={{
+                width: '32px', height: '32px', borderRadius: '50%',
+                background: 'var(--app-surface-high)',
+                border: '1px solid rgba(128,128,128,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', padding: 0,
+                transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
+            </button>
+          </div>
+          <h1 style={{
+            fontSize: '14px', fontWeight: 700,
+            color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em',
+            display: 'flex', alignItems: 'center', gap: '7px',
+            margin: 0,
+          }}>
+            <AppModeMenuLogo />
+          </h1>
+        </header>
+      )}
+
+      {isWebDesktop && headerBack && (
+        <div style={{ position: 'fixed', left: 16, top: 16, zIndex: 100 }}>
           <button
-            onClick={() => {
-              headerBack?.();
-            }}
+            onClick={() => headerBack?.()}
             data-testid="vocalex-back-button"
             aria-label="Back"
             style={{
@@ -288,17 +321,9 @@ export default function VocalexApp() {
             <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
           </button>
         </div>
-        <h1 style={{
-          fontSize: '14px', fontWeight: 700,
-          color: 'var(--c-text-secondary)', fontFamily: 'Manrope', letterSpacing: '-0.02em',
-          display: 'flex', alignItems: 'center', gap: '7px',
-          margin: 0,
-        }}>
-          <AppModeMenuLogo />
-        </h1>
-      </header>
+      )}
 
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px' }}>
         {NAV_ORDER.map(panel => {
           const isVisible = visibleTab === panel;
           const isExiting = exitingTab === panel;
