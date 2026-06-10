@@ -44,7 +44,7 @@
     <script>
       (function() {
         try {
-          // Route detection to avoid loading planet/orb animation on landing page
+          // Route detection to avoid loading planet/orb animation on landing page route
           var path = window.location.pathname;
           if (path === '/app' || path.startsWith('/app/')) {
             document.documentElement.classList.add('app-route');
@@ -52,6 +52,7 @@
           } else {
             document.documentElement.classList.add('landing-route');
             document.documentElement.classList.remove('app-route');
+            window.__introReturnedEarly = true;
           }
 
           var raw = localStorage.getItem('chord-explorer-storage-v3');
@@ -316,7 +317,10 @@
       (function () {
         var intro    = document.getElementById('intro');
         var center   = document.getElementById('intro-center');
-        if (!intro || !center || window.getComputedStyle(intro).display === 'none') return;
+        if (window.__introReturnedEarly || !intro || !center || window.getComputedStyle(intro).display === 'none') {
+          window.__introReturnedEarly = true;
+          return;
+        }
 
         // Trigger fade out of the cover overlay on load
         var cover = document.getElementById('intro-cover');

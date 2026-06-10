@@ -1,4 +1,5 @@
 import React from 'react';
+import { StudioLogo } from '../../components/ChordexLogo';
 
 interface LandingFooterProps {
   navigateTo: (path: string) => void;
@@ -20,11 +21,14 @@ export default function LandingFooter({ navigateTo, apkUrl, apkVersion = '3.6.28
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start mb-16">
           <div className="md:col-span-5 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-lg bg-zinc-100 flex items-center justify-center text-xs font-extrabold text-[#030303]">
-                S
+            <div className="flex items-center gap-2">
+              <div className="text-white flex-shrink-0">
+                <StudioLogo size={28} />
               </div>
-              <span className="font-extrabold text-base tracking-tight text-white uppercase landing-font-heading">
+              <span 
+                className="font-extrabold text-base tracking-tight text-white"
+                style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em' }}
+              >
                 Studio
               </span>
             </div>
@@ -65,8 +69,19 @@ export default function LandingFooter({ navigateTo, apkUrl, apkVersion = '3.6.28
           </div>
         </div>
 
+        <div className="border-t border-zinc-900 pt-8 pb-8 text-[11px] text-zinc-500 leading-relaxed landing-font-body space-y-2">
+          <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-3 landing-font-heading">Licenses & Rights</h5>
+          <p>
+            Studio is distributed as a web application and Android APK for personal and project use. All Studio interface design, product names, app modules, and original assets are part of the Studio project unless otherwise noted.
+          </p>
+          <p>Third-party libraries remain under their respective licenses.</p>
+          <p>Music titles, artist names, and example song references shown in mockups are used only as interface examples.</p>
+          <p>Studio does not include or distribute copyrighted songs, lyrics, or audio recordings.</p>
+          <p>License details will be published with the public release.</p>
+        </div>
+
         <div className="border-t border-zinc-900 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] uppercase font-bold tracking-wider text-zinc-600 landing-font-heading">
-          <p>Mag Studio © 2026. All rights reserved.</p>
+          <p>© 2026 Studio. All rights reserved.</p>
           <div className="flex gap-6">
             <span>Web v4.0.0</span>
             <span>Android v{apkVersion}</span>
