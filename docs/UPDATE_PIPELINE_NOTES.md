@@ -36,3 +36,11 @@ To cleanly remove these service workers and clear browser caches:
 To ensure clients running an older bundle can recover if their browser cached the page before these rules were implemented:
 - `index.html` checks for updates and reloads if critical assets return `404` or mismatch.
 - However, with `no-store` headers configured on `**`, this script is redundant and can be removed to reduce client-side code complexity.
+
+---
+
+## 4. Hosting & Deployment Note
+
+* **Hosting Platform:** Studio web is hosted exclusively on **Firebase Hosting**.
+* **Netlify (Deprecated/Removed):** Netlify configuration has been deprecated and removed. Studio does not use Netlify for production builds or preview deployments. Any Netlify PR checks are inactive and should be ignored.
+
