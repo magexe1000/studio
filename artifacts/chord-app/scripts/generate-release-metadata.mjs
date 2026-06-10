@@ -67,17 +67,35 @@ if (fs.existsSync(tempNotesPath)) {
   } catch (err) {
     console.warn('generate-release-metadata: ⚠ Could not parse .release-temp-notes.json', err);
   }
-} else if (fs.existsSync(versionJsonPath)) {
-  try {
-    const versionJson = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8'));
-    if (versionJson.changelog) {
-      description = versionJson.changelog;
+} else {
+  const localPath = path.join(appRoot, 'public/version.json');
+  let loaded = false;
+  if (fs.existsSync(localPath)) {
+    try {
+      const localJson = JSON.parse(fs.readFileSync(localPath, 'utf8'));
+      if (localJson.version === version && localJson.changelog) {
+        description = localJson.changelog;
+        releaseNotes = localJson.releaseNotes;
+        loaded = true;
+        console.log('generate-release-metadata: ✓ Loaded release notes from local public/version.json');
+      }
+    } catch (err) {
+      console.warn('generate-release-metadata: ⚠ Could not parse local public/version.json', err);
     }
-    if (versionJson.releaseNotes) {
-      releaseNotes = versionJson.releaseNotes;
+  }
+  
+  if (!loaded && fs.existsSync(versionJsonPath)) {
+    try {
+      const versionJson = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8'));
+      if (versionJson.changelog) {
+        description = versionJson.changelog;
+        releaseNotes = versionJson.releaseNotes;
+        loaded = true;
+        console.log('generate-release-metadata: ✓ Loaded release notes from firebase-public/version.json');
+      }
+    } catch (err) {
+      console.warn('generate-release-metadata: ⚠ Could not parse version.json', err);
     }
-  } catch (err) {
-    console.warn('generate-release-metadata: ⚠ Could not parse version.json', err);
   }
 }
 

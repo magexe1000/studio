@@ -15,6 +15,17 @@ Conventions:
   and CI tweaks do not need a bullet.
 - Newest version goes on top.
 
+## 3.6.27
+
+### Fixed
+- Fixed Studio Web incorrectly showing Android manual APK update states.
+- Separated Web/PWA update metadata from Android APK release metadata.
+- Ensured Web uses refresh-based update behavior while Android keeps APK/AppInstaller updates.
+
+### Improved
+- Added clearer platform separation for update metadata and updater actions.
+- Preserved shared Studio version and What’s New across Web and Android.
+
 ## 3.6.26
 
 ### Fixed
