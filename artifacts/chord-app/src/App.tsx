@@ -23,7 +23,7 @@ import { logActivity } from './lib/activityLogger';
 import { useIsWebDesktop } from './hooks/useIsWebDesktop';
 import { SidebarProvider, SidebarInset } from './components/StudioSidebar';
 import WebSidebarLayout from './components/WebSidebarLayout';
-import WebAppSectionNav from './components/WebAppSectionNav';
+import WebAppSectionDock from './components/WebAppSectionDock';
 import { useStudioPreferences } from './hooks/useStudioPreferences';
 
 
@@ -1869,13 +1869,13 @@ export default function App() {
                       }}
                     >
                       {isWebDesktop && (
-                        <WebAppSectionNav 
+                        <WebAppSectionDock 
                           app="chords" 
                           activeSection={activePanel} 
                           onChangeSection={setActivePanel} 
                         />
                       )}
-                      <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
+                      <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict', paddingBottom: isWebDesktop ? '96px' : '0px' }}>
                         {ALL_PANELS.map(panel => {
                           const isVisible = activePanel === panel;
                           if (!isVisible) return null;

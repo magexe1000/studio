@@ -4,7 +4,7 @@ export interface StudioPreferences {
   autoHideSidebarInApps: boolean;
   hoverRevealSidebar: boolean;
   autoCloseHoverSidebar: boolean;
-  showWebAppToolbar: boolean;
+  showWebAppDock: boolean;
   rememberLastAppSection: boolean;
   reduceMotion: boolean;
   compactDesktopSpacing: boolean;
@@ -14,7 +14,7 @@ const PREF_DEFAULTS: StudioPreferences = {
   autoHideSidebarInApps: true,
   hoverRevealSidebar: true,
   autoCloseHoverSidebar: true,
-  showWebAppToolbar: true,
+  showWebAppDock: true,
   rememberLastAppSection: true,
   reduceMotion: false,
   compactDesktopSpacing: false,
@@ -24,7 +24,7 @@ const PREF_KEYS: Record<keyof StudioPreferences, string> = {
   autoHideSidebarInApps: 'studio:pref:autoHideSidebarInApps',
   hoverRevealSidebar: 'studio:pref:hoverRevealSidebar',
   autoCloseHoverSidebar: 'studio:pref:autoCloseHoverSidebar',
-  showWebAppToolbar: 'studio:pref:showWebAppToolbar',
+  showWebAppDock: 'studio:pref:showWebAppDock',
   rememberLastAppSection: 'studio:pref:rememberLastAppSection',
   reduceMotion: 'studio:pref:reduceMotion',
   compactDesktopSpacing: 'studio:pref:compactDesktopSpacing',

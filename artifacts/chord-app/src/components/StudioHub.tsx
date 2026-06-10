@@ -2515,12 +2515,18 @@ function HubSettings({
           <SettingsSectionLabel>App Workspace</SettingsSectionLabel>
           <div style={cardStyle}>
             <SettingRow 
-              label="Show Web app section toolbar" 
-              desc="Shows a compact centered floating bottom bar inside apps for section navigation"
+              label="Show app navigation dock" 
+              desc="Shows a macOS-style floating bottom dock inside apps for section navigation"
             >
               <Toggle 
-                value={preferences.showWebAppToolbar} 
-                onChange={v => setPreference('showWebAppToolbar', v)} 
+                value={preferences.showWebAppDock} 
+                onChange={v => {
+                  if (!v && isWebDesktop) {
+                    alert("Cannot disable the app navigation dock on desktop/tablet as it is the only way to navigate sections inside apps.");
+                    return;
+                  }
+                  setPreference('showWebAppDock', v);
+                }} 
                 accentFrom={accent.from} 
                 accentTo={accent.to} 
               />
