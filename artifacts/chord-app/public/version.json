@@ -1,11 +1,24 @@
 {
-  "version": "3.6.26",
-  "changelog": "• Fixed issue where the web application would get stuck on old versions and fail to load updates.\n• Implemented auto-cleanup of legacy push service worker instances to clear stale browser caches.\n• Optimized Firebase Hosting caching configuration to prevent caching of index.html and service workers.",
+  "platform": "web",
+  "version": "4.0.0",
+  "commit": "be572413",
+  "releasedAt": "6/10/2026, 2:55:55 PM CST",
+  "buildTimestamp": "6/10/2026, 2:55:55 PM CST",
+  "updateMode": "refresh",
+  "changelog": "• Added adaptive Web navigation rails for laptop/desktop screen widths.\n• Added Web-specific internal app navigation tabs for tablet/iPad screen widths.\n• Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.\n• Improved Web shortcuts and deep shortcuts to target sub-sections.\n• Repositioned back buttons inline to prevent overlap in Web layouts.\n• Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts.",
+  "whatsNew": "• Added adaptive Web navigation rails for laptop/desktop screen widths.\n• Added Web-specific internal app navigation tabs for tablet/iPad screen widths.\n• Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.\n• Improved Web shortcuts and deep shortcuts to target sub-sections.\n• Repositioned back buttons inline to prevent overlap in Web layouts.\n• Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts.",
   "releaseNotes": {
+    "added": [
+      "Added adaptive Web navigation rails for laptop/desktop screen widths.",
+      "Added Web-specific internal app navigation tabs for tablet/iPad screen widths.",
+      "Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex."
+    ],
+    "improved": [
+      "Improved Web shortcuts and deep shortcuts to target sub-sections.",
+      "Repositioned back buttons inline to prevent overlap in Web layouts."
+    ],
     "fixed": [
-      "Fixed issue where the web application would get stuck on old versions and fail to load updates.",
-      "Implemented auto-cleanup of legacy push service worker instances to clear stale browser caches.",
-      "Optimized Firebase Hosting caching configuration to prevent caching of index.html and service workers."
+      "Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts."
     ]
   },
   "mandatory": false

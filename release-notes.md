@@ -1,4 +1,11 @@
+### Added
+- Added adaptive Web navigation rails for laptop/desktop screen widths.
+- Added Web-specific internal app navigation tabs for tablet/iPad screen widths.
+- Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.
+
+### Improved
+- Improved Web shortcuts and deep shortcuts to target sub-sections.
+- Repositioned back buttons inline to prevent overlap in Web layouts.
+
 ### Fixed
-- Fixed issue where the web application would get stuck on old versions and fail to load updates.
-- Implemented auto-cleanup of legacy push service worker instances to clear stale browser caches.
-- Optimized Firebase Hosting caching configuration to prevent caching of index.html and service workers.
+- Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts.

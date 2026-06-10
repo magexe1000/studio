@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
 import { useT } from '../lib/useT';
 import { APP_SECTIONS } from '../lib/studioAppNavigationRegistry';
+import { useStudioPreferences } from '../hooks/useStudioPreferences';
 
 export default function WebAppSectionNav({
   app,
@@ -12,20 +13,13 @@ export default function WebAppSectionNav({
   activeSection: string;
   onChangeSection: (sectionId: any) => void;
 }) {
-  const [isLargeDesktop, setIsLargeDesktop] = useState(() => {
-    return typeof window !== 'undefined' && window.innerWidth >= 1024;
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsLargeDesktop(window.innerWidth >= 1024);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const { settings } = useChordStore();
+  const { preferences } = useStudioPreferences();
   const t = useT();
+
+  const sections = APP_SECTIONS[app];
+  if (!sections || sections.length === 0) return null;
 
   const appKey = app === 'stage' ? 'stage' : app;
   const activeVis = settings.perApp?.[appKey as AppKey] ?? {
@@ -34,9 +28,6 @@ export default function WebAppSectionNav({
     amoledMode: settings.amoledMode ?? false,
   };
   const accent = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
-
-  const sections = APP_SECTIONS[app];
-  if (!sections || sections.length === 0) return null;
 
   const getSectionLabel = (labelKey: string) => {
     switch (labelKey) {
@@ -79,166 +70,83 @@ export default function WebAppSectionNav({
   })();
 
   const amoledBg = activeVis.amoledMode
-    ? 'rgba(4,4,4,0.92)'
+    ? 'rgba(4, 4, 4, 0.75)'
     : isLight
-      ? 'rgba(255, 255, 255, 0.40)'
-      : 'rgba(26,26,30,0.72)';
+      ? 'rgba(255, 255, 255, 0.50)'
+      : 'rgba(20, 20, 25, 0.65)';
 
-  if (isLargeDesktop) {
-    // Render left subnav rail
-    return (
-      <div 
-        style={{
-          width: '72px',
-          height: '100%',
-          flexShrink: 0,
-          background: amoledBg,
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderRight: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          padding: '24px 0',
-          gap: '12px',
-          zIndex: 40,
-          boxShadow: isLight
-            ? '2px 0 8px rgba(0,0,0,0.02)'
-            : '2px 0 16px rgba(0,0,0,0.2)',
-          transition: 'background 300ms ease, border-color 300ms ease',
-        }}
-      >
-        {sections.map(section => {
-          const isActive = activeSection === section.id;
-          return (
-            <button
-              key={section.id}
-              onClick={() => onChangeSection(section.id)}
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '16px',
-                border: 'none',
-                background: isActive 
-                  ? (isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.07)')
+  const reduceTransitions = preferences.reduceMotion;
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        bottom: '24px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '6px',
+        gap: '4px',
+        borderRadius: '9999px',
+        background: amoledBg,
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+        boxShadow: isLight
+          ? '0 8px 32px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.02)'
+          : '0 8px 32px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2)',
+        transition: reduceTransitions ? 'none' : 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+    >
+      {sections.map(section => {
+        const isActive = activeSection === section.id;
+        const isHovered = hoveredId === section.id;
+        return (
+          <button
+            key={section.id}
+            onClick={() => onChangeSection(section.id)}
+            onMouseEnter={() => setHoveredId(section.id)}
+            onMouseLeave={() => setHoveredId(null)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '36px',
+              padding: '0 16px',
+              borderRadius: '9999px',
+              border: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              background: isActive 
+                ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
+                : isHovered 
+                  ? (isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.06)')
                   : 'transparent',
-                color: isActive ? accent.from : 'var(--c-text-secondary)',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                transition: 'all 200ms ease',
-                padding: '4px',
-                outline: 'none',
-                position: 'relative',
-              }}
-              onMouseEnter={e => {
-                if (!isActive) e.currentTarget.style.background = isLight ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.03)';
-              }}
-              onMouseLeave={e => {
-                if (!isActive) e.currentTarget.style.background = 'transparent';
-              }}
-            >
-              {isActive && (
-                <div 
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    width: '3px',
-                    height: '24px',
-                    borderRadius: '0 4px 4px 0',
-                    background: `linear-gradient(to bottom, ${accent.from}, ${accent.to})`,
-                  }}
-                />
-              )}
-              <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
-                {section.icon}
-              </span>
-              <span 
-                style={{ 
-                  fontSize: '8px', 
-                  textTransform: 'uppercase', 
-                  fontWeight: 700, 
-                  letterSpacing: '0.04em',
-                  fontFamily: 'Manrope, sans-serif',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  width: '100%',
-                  textAlign: 'center',
-                }}
-              >
-                {getSectionLabel(section.labelKey)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    );
-  } else {
-    // Render top horizontal tabs (tablet/iPad view)
-    return (
-      <div 
-        style={{
-          width: '100%',
-          padding: '12px 24px 8px',
-          display: 'flex',
-          justifyContent: 'center',
-          background: 'transparent',
-          zIndex: 40,
-        }}
-      >
-        <div 
-          style={{
-            display: 'flex',
-            background: isLight ? 'rgba(0,0,0,0.03)' : 'var(--app-surface)',
-            borderRadius: '12px',
-            padding: '3px',
-            gap: '4px',
-            width: '100%',
-            maxWidth: '480px',
-            border: `1px solid ${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}`,
-            transition: 'background-color 300ms ease',
-          }}
-        >
-          {sections.map(section => {
-            const isActive = activeSection === section.id;
-            return (
-              <button
-                key={section.id}
-                onClick={() => onChangeSection(section.id)}
-                style={{
-                  flex: 1,
-                  height: '34px',
-                  borderRadius: '9px',
-                  border: 'none',
-                  background: isActive ? accent.from : 'transparent',
-                  color: isActive 
-                    ? '#0d0e0f' 
-                    : (isLight ? 'rgba(0,0,0,0.55)' : '#acabaa'),
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  fontFamily: 'Manrope, sans-serif',
-                  transition: 'all 200ms ease',
-                  outline: 'none',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                  {section.icon}
-                </span>
-                <span>{getSectionLabel(section.labelKey)}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
+              color: isActive
+                ? '#ffffff'
+                : (isLight ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)'),
+              transform: (!reduceTransitions && isHovered) ? 'translateY(-2px)' : 'translateY(0)',
+              boxShadow: (isActive && !reduceTransitions) 
+                ? `0 4px 12px ${accent.from}44` 
+                : 'none',
+              transition: reduceTransitions ? 'none' : 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+              fontFamily: 'Manrope, sans-serif',
+              fontWeight: isActive ? 800 : 600,
+              fontSize: '13px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
+              {section.icon}
+            </span>
+            <span>
+              {getSectionLabel(section.labelKey)}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
 }
