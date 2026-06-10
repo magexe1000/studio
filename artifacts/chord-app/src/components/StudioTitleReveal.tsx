@@ -112,7 +112,7 @@ export default function StudioTitleReveal({
     // ── Default mode: wait for studio-intro-done signal ───────────────────────
 
     // Already fired before mount.
-    if (_introDone) {
+    if (_introDone || (typeof window !== 'undefined' && (window as any).__introDone)) {
       play();
       return () => { split.revert(); };
     }

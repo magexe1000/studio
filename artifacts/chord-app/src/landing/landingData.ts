@@ -1,13 +1,9 @@
 import { 
-  Music, 
-  Layers, 
-  Sliders, 
-  Activity, 
-  Mic, 
-  CloudLightning, 
   ShieldCheck, 
   Zap, 
-  Monitor 
+  Layout,
+  Smartphone,
+  Sliders
 } from 'lucide-react';
 import React from 'react';
 
@@ -24,24 +20,24 @@ export interface AppInfo {
 export const APPS_DATA: AppInfo[] = [
   {
     key: 'chords',
-    name: 'Chordex Library',
-    badge: 'Chords & Songs',
-    desc: 'Organize song chord sheets, transpose keys on the fly, and search custom guitar fingering diagrams.',
+    name: 'Chordex',
+    badge: 'Songs & Chords',
+    desc: 'Manage song databases, organize chord sheets, transpose keys instantly, and reference chord fingering diagrams.',
     bullets: [
-      'Interactive guitar chord library & diagrams',
+      'Interactive chord library & diagrams',
       'Key transpositions & setlist manager',
-      'Custom fingering templates support'
+      'Custom song chord sheet configurations'
     ],
     colorClass: 'border-white/10 group-hover:border-zinc-200/40',
     hoverColor: 'rgba(255, 255, 255, 0.04)'
   },
   {
     key: 'stage',
-    name: 'Stagex Layout',
+    name: 'Stagex',
     badge: 'Stage Plots',
-    desc: 'Design stage gear arrangements. Build input grids and share layout rider sheets directly with sound crews.',
+    desc: 'Map out stage plots and gear placements, construct input grids, and export technical riders for sound engineers.',
     bullets: [
-      'Drag-and-drop gear, amp, and monitor nodes',
+      'Drag-and-drop gear, monitor, and amp nodes',
       'Technical rider exports & input charts',
       'Band setup template configurations'
     ],
@@ -50,9 +46,9 @@ export const APPS_DATA: AppInfo[] = [
   },
   {
     key: 'groovex',
-    name: 'Groovex Mixer',
-    badge: 'Stems Player',
-    desc: 'Rehearse with multitracks. Adjust levels, mute backing channels, speed-train tempos, and loop sections.',
+    name: 'Groovex',
+    badge: 'Practice Mixer',
+    desc: 'Rehearse with multitrack stem files. Control volume levels, mute channels, loop segments, and speed-train tempo.',
     bullets: [
       'Low-latency multitrack fader mixing',
       'Flexible A-B segment loops & scale trainer',
@@ -63,9 +59,9 @@ export const APPS_DATA: AppInfo[] = [
   },
   {
     key: 'drums',
-    name: 'Drumex Sheets',
-    badge: 'Drum Sheets & Click',
-    desc: 'Arrange snare sheets, practice rudiments, and synchronize timing with visual metronome indicators.',
+    name: 'Drumex',
+    badge: 'Rhythm & Click',
+    desc: 'Write snare sheets, practice complex rhythms, and synchronize tempo using visual click and metronome indicators.',
     bullets: [
       'Snare drum chart rudiment editor',
       'Dynamic speed tempo click system',
@@ -76,9 +72,9 @@ export const APPS_DATA: AppInfo[] = [
   },
   {
     key: 'vocalex',
-    name: 'Vocalex Training',
-    badge: 'Voice Pitch',
-    desc: 'Train vocal control. Track pitch accuracy in real-time, trace notes, and record multiple vocal takes.',
+    name: 'Vocalex',
+    badge: 'Vocal Tools',
+    desc: 'Evaluate vocal pitch in real-time, trace accuracy, and record multiple audio takes to local device storage.',
     bullets: [
       'Real-time vocal pitch visual tracing',
       'Safe local audio take recorder & logger',
@@ -97,23 +93,23 @@ export interface FeatureInfo {
 
 export const FEATURES_DATA: FeatureInfo[] = [
   {
-    icon: CloudLightning,
-    title: 'Instant Cloud Sync',
-    desc: 'Sync favorites, setlists, and stage layouts across your devices automatically using your secure account.'
+    icon: Layout,
+    title: 'Adaptive Layout',
+    desc: 'Web 4.0.0 responsive dashboard fits perfectly on high-res monitors, staging tablets, and mobile phones.'
+  },
+  {
+    icon: Smartphone,
+    title: 'Android APK',
+    desc: 'Download and install the native Android package for lightweight, dedicated performance on the move.'
+  },
+  {
+    icon: Sliders,
+    title: 'Local Preferences',
+    desc: 'Retain custom settings, appearance options, and tool states directly within your browser cache.'
   },
   {
     icon: ShieldCheck,
-    title: 'Offline-First Engine',
-    desc: 'Rehearse in deep basement studios or perform on stage. Local storage keeps you responsive without internet.'
-  },
-  {
-    icon: Zap,
-    title: 'Optimized Framework',
-    desc: 'Built cleanly without heavy layout shifts. Conserves battery life on older stage tablets and mobile phones.'
-  },
-  {
-    icon: Monitor,
-    title: 'Web Audio Core',
-    desc: 'Integrates real-time, low-latency pitch detection and multitrack stem audio directly in standard web engines.'
+    title: 'No Setup Required',
+    desc: 'Access your full music workspace instantly over secure HTTPS without running any installers.'
   }
 ];

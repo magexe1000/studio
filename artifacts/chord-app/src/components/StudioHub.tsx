@@ -375,7 +375,7 @@ export default function StudioHub() {
   }, []);
 
   const [introFinished, setIntroFinished] = useState(() => {
-    if (_sessionIntroFinished) return true;
+    if (_sessionIntroFinished || (typeof window !== 'undefined' && (window as any).__introDone)) return true;
     if (typeof document !== 'undefined' && !document.getElementById('intro') && !document.querySelector('[data-solar-intro]')) {
       _sessionIntroFinished = true;
       return true;
