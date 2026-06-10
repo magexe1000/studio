@@ -14,9 +14,9 @@ export const SHORTCUT_REGISTRY: ShortcutRegistryItem[] = [
   { id: 'groovex', label: 'Groovex', icon: 'groovex', type: 'app', payload: 'groovex' },
   { id: 'vocalex', label: 'Vocalex', icon: 'vocalex', type: 'app', payload: 'vocalex' },
   
-  { id: 'chordex_songs', label: 'Songs', icon: 'music_note', type: 'chordex-panel', payload: 'songs' },
-  { id: 'chordex_library', label: 'Library', icon: 'folder_open', type: 'chordex-panel', payload: 'library' },
-  { id: 'chordex_chords', label: 'Chords', icon: 'grid_view', type: 'chordex-panel', payload: 'chord' },
+  { id: 'chordex_songs', label: 'Chordex Songs', icon: 'music_note', type: 'chordex-panel', payload: 'songs' },
+  { id: 'chordex_library', label: 'Chordex Library', icon: 'folder_open', type: 'chordex-panel', payload: 'library' },
+  { id: 'chordex_chords', label: 'Chordex Chords', icon: 'grid_view', type: 'chordex-panel', payload: 'chord' },
 
   { id: 'settings_appearance', label: 'Appearance', icon: 'palette', type: 'settings', payload: 'appearance' },
   { id: 'settings_language', label: 'Language', icon: 'language', type: 'settings', payload: 'language' },

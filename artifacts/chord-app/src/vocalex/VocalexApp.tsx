@@ -7,6 +7,7 @@ import { resetNav, setNavCollapsed, useNavHidden, useNavCollapsed } from '../lib
 import { subscribeVocalexBack } from './headerBack';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
+import WebAppSectionNav from '../components/WebAppSectionNav';
 
 const PracticePanelLazy = lazy(() => import('./PracticePanel'));
 const PitchPanelLazy = lazy(() => import('./PitchPanel'));
@@ -67,6 +68,18 @@ function IconTakes({ active }: { active: boolean }) {
 
 export default function VocalexApp() {
   const isWebDesktop = useIsWebDesktop();
+  const [isLargeDesktop, setIsLargeDesktop] = useState(() => {
+    return typeof window !== 'undefined' && window.innerWidth >= 1024;
+  });
+
+  useEffect(() => {
+    if (!isWebDesktop) return;
+    const handleResize = () => {
+      setIsLargeDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isWebDesktop]);
   const { settings } = useChordStore();
   const t = useT();
   // Restore last-visited Vocalex tab so a refresh / app-switch lands the
@@ -304,11 +317,12 @@ export default function VocalexApp() {
       )}
 
       {isWebDesktop && headerBack && (
-        <div style={{ position: 'fixed', left: 16, top: 16, zIndex: 100 }}>
+        <header className="flex-none px-6 pt-5 pb-1" style={{ display: 'flex', alignItems: 'center' }}>
           <button
             onClick={() => headerBack?.()}
             data-testid="vocalex-back-button"
             aria-label="Back"
+            className="btn-smooth"
             style={{
               width: '32px', height: '32px', borderRadius: '50%',
               background: 'var(--app-surface-high)',
@@ -320,10 +334,27 @@ export default function VocalexApp() {
           >
             <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: '18px' }}>arrow_back</span>
           </button>
-        </div>
+        </header>
       )}
 
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px' }}>
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexDirection: (isWebDesktop && isLargeDesktop) ? 'row' : 'column', 
+          flex: 1, 
+          width: '100%', 
+          height: '100%', 
+          overflow: 'hidden' 
+        }}
+      >
+        {isWebDesktop && (
+          <WebAppSectionNav 
+            app="vocalex" 
+            activeSection={activeTab} 
+            onChangeSection={setActiveTab} 
+          />
+        )}
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', display: 'flex', flexDirection: 'column' }}>
         {NAV_ORDER.map(panel => {
           const isVisible = visibleTab === panel;
           const isExiting = exitingTab === panel;
@@ -356,6 +387,7 @@ export default function VocalexApp() {
             </div>
           );
         })}
+        </div>
       </div>
 
       <nav
@@ -365,6 +397,7 @@ export default function VocalexApp() {
         // @ts-expect-error – `inert` is valid HTML but missing from React types in this version
         inert={(navHidden || navCollapsed) ? '' : undefined}
         style={{
+          display: isWebDesktop ? 'none' : undefined,
           position: 'fixed',
           bottom: 'var(--nav-safe-bottom)',
           left: '50%',

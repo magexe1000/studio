@@ -7,6 +7,7 @@ import { useBackHandler } from '../lib/backStack';
 import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import { useNavCollapsed, useNavHidden } from '../lib/navScroll';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
+import WebAppSectionNav from '../components/WebAppSectionNav';
 
 const GroovexLibrary = lazy(() => import('./GroovexLibrary'));
 const GroovexPlayer = lazy(() => import('./GroovexPlayer'));
@@ -18,6 +19,18 @@ export default function GroovexApp() {
   const isWebDesktop = useIsWebDesktop();
   const { view, setView, activeSongId } = useGroovexStore();
   const [viewAnim, setViewAnim] = useState<'panel-enter-right' | 'panel-enter-left'>('panel-enter-right');
+  const [isLargeDesktop, setIsLargeDesktop] = useState(() => {
+    return typeof window !== 'undefined' && window.innerWidth >= 1024;
+  });
+
+  useEffect(() => {
+    if (!isWebDesktop) return;
+    const handleResize = () => {
+      setIsLargeDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isWebDesktop]);
 
   function navigate(next: GroovexView) {
     const oldIdx = VIEW_ORDER.indexOf(view);
@@ -89,7 +102,11 @@ export default function GroovexApp() {
       )}
 
       {isWebDesktop && view === 'player' && (
-        <div style={{ position: 'fixed', left: 16, top: 16, zIndex: 100 }}>
+        <header style={{
+          display: 'flex', alignItems: 'center',
+          padding: '20px 24px 4px', flexShrink: 0,
+          background: 'var(--gx-bg)',
+        }}>
           <button
             onClick={handleBack}
             className="btn-smooth"
@@ -105,20 +122,38 @@ export default function GroovexApp() {
           >
             <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 18 }}>arrow_back</span>
           </button>
-        </div>
+        </header>
       )}
 
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px' }}>
-        <Suspense fallback={null}>
-          <div key={view} className={viewAnim} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {view === 'library' && <GroovexLibrary />}
-            {view === 'player' && <GroovexPlayer />}
-            {view === 'preferences' && <GroovexPreferences />}
-          </div>
-        </Suspense>
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexDirection: (isWebDesktop && isLargeDesktop) ? 'row' : 'column', 
+          flex: 1, 
+          width: '100%', 
+          height: '100%', 
+          overflow: 'hidden' 
+        }}
+      >
+        {isWebDesktop && view !== 'player' && (
+          <WebAppSectionNav 
+            app="groovex" 
+            activeSection={view} 
+            onChangeSection={navigate} 
+          />
+        )}
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', display: 'flex', flexDirection: 'column' }}>
+          <Suspense fallback={null}>
+            <div key={view} className={viewAnim} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              {view === 'library' && <GroovexLibrary />}
+              {view === 'player' && <GroovexPlayer />}
+              {view === 'preferences' && <GroovexPreferences />}
+            </div>
+          </Suspense>
+        </div>
       </div>
 
-      {view !== 'player' && (
+      {view !== 'player' && !isWebDesktop && (
         <GroovexNav view={view} setView={navigate} hasActiveSong={!!activeSongId} />
       )}
     </div>

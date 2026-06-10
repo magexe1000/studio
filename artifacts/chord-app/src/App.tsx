@@ -23,6 +23,8 @@ import { logActivity } from './lib/activityLogger';
 import { useIsWebDesktop } from './hooks/useIsWebDesktop';
 import { SidebarProvider, SidebarInset } from './components/StudioSidebar';
 import WebSidebarLayout from './components/WebSidebarLayout';
+import WebAppSectionNav from './components/WebAppSectionNav';
+
 
 // Lazy-load StudioHub — it's 1400+ lines and pulls in SettingControls,
 // ApplyToSheet, ChangelogSheet, and all logo variants. Keeping it out of
@@ -87,6 +89,19 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
   const isWebDesktop = useIsWebDesktop();
+  const [isLargeDesktop, setIsLargeDesktop] = useState(() => {
+    return typeof window !== 'undefined' && window.innerWidth >= 1024;
+  });
+
+  useEffect(() => {
+    if (!isWebDesktop) return;
+    const handleResize = () => {
+      setIsLargeDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isWebDesktop]);
+
 
   const [tempShowSidebar, setTempShowSidebar] = useState(false);
   const [triggerHovered, setTriggerHovered] = useState(false);
@@ -1814,30 +1829,48 @@ export default function App() {
                       '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
                     } as React.CSSProperties}
                   >
-                    <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
-                      {ALL_PANELS.map(panel => {
-                        const isVisible = activePanel === panel;
-                        if (!isVisible) return null;
+                    <div 
+                      style={{ 
+                        display: 'flex', 
+                        flexDirection: (isWebDesktop && isLargeDesktop) ? 'row' : 'column', 
+                        flex: 1, 
+                        width: '100%', 
+                        height: '100%', 
+                        overflow: 'hidden' 
+                      }}
+                    >
+                      {isWebDesktop && (
+                        <WebAppSectionNav 
+                          app="chords" 
+                          activeSection={activePanel} 
+                          onChangeSection={setActivePanel} 
+                        />
+                      )}
+                      <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
+                        {ALL_PANELS.map(panel => {
+                          const isVisible = activePanel === panel;
+                          if (!isVisible) return null;
 
-                        return (
-                          <div
-                            key={panel}
-                            style={{
-                              position: 'absolute',
-                              inset: 0,
-                              pointerEvents: 'auto',
-                              contain: 'layout style paint',
-                            }}
-                          >
-                            <Suspense fallback={<SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} />}>
-                              {panel === 'library'  && <LibraryPanel />}
-                              {panel === 'chord'    && <ChordPanel />}
-                              {panel === 'songs'    && <SongsPanel />}
-                              {panel === 'settings' && <SettingsPanel />}
-                            </Suspense>
-                          </div>
-                        );
-                      })}
+                          return (
+                            <div
+                              key={panel}
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                pointerEvents: 'auto',
+                                contain: 'layout style paint',
+                              }}
+                            >
+                              <Suspense fallback={<SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} />}>
+                                {panel === 'library'  && <LibraryPanel />}
+                                {panel === 'chord'    && <ChordPanel />}
+                                {panel === 'songs'    && <SongsPanel />}
+                                {panel === 'settings' && <SettingsPanel />}
+                              </Suspense>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <BottomNav />

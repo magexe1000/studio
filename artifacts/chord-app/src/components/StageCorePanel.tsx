@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
+import WebAppSectionNav from './WebAppSectionNav';
 import { setBackHandler, useBackHandler } from '../lib/backStack';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import translations from '../lib/i18n';
@@ -191,6 +192,18 @@ const HIDE_IFRAME_UI = `
 
 export default function StagexPanel() {
   const isWebDesktop = useIsWebDesktop();
+  const [isLargeDesktop, setIsLargeDesktop] = useState(() => {
+    return typeof window !== 'undefined' && window.innerWidth >= 1024;
+  });
+
+  useEffect(() => {
+    if (!isWebDesktop) return;
+    const handleResize = () => {
+      setIsLargeDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isWebDesktop]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const iframeReady = useRef(false);
   const { settings } = useChordStore();
@@ -594,6 +607,24 @@ export default function StagexPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100dvh', background: stageBg, transition: 'background 180ms ease' }}>
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexDirection: (isWebDesktop && isLargeDesktop) ? 'row' : 'column', 
+          flex: 1, 
+          width: '100%', 
+          height: '100%', 
+          overflow: 'hidden' 
+        }}
+      >
+        {isWebDesktop && (
+          <WebAppSectionNav 
+            app="stage" 
+            activeSection={isTabActive('Editor') ? 'Editor' : isTabActive('Setup') ? 'Setup' : 'Preferences'} 
+            onChangeSection={handleNavTap} 
+          />
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden', position: 'relative' }}>
 
       <div style={{
         flexShrink: 0,
@@ -900,7 +931,7 @@ export default function StagexPanel() {
           </button>
         )}
 
-        {isLandscapeEditor && !landscapeNavHidden && (
+        {isLandscapeEditor && !landscapeNavHidden && !isWebDesktop && (
           <button
             onClick={() => setLandscapeNavHidden(true)}
             aria-label={tr.stagex.hideNav}
@@ -936,6 +967,7 @@ export default function StagexPanel() {
           ref={stageNavRef}
           className="glass-nav"
           style={{
+            display: isWebDesktop ? 'none' : undefined,
             position: 'absolute',
             bottom: 'max(10px, env(safe-area-inset-bottom))',
             left: '50%',
@@ -1254,6 +1286,8 @@ export default function StagexPanel() {
           `}</style>
         </>
       )}
+        </div>
+      </div>
     </div>
   );
 }

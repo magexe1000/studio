@@ -25,7 +25,9 @@
 import { useMemo } from 'react';
 
 /** Canonical semver string used by the OTA comparator. */
-export const APP_VERSION = '3.6.28'; // Legacy Web clients update escape path
+export const NATIVE_VERSION = '3.6.28';
+export const WEB_VERSION = '4.0.0';
+export const APP_VERSION = (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.()) ? NATIVE_VERSION : WEB_VERSION;
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -56,18 +58,24 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
+    heading: "Added",
+    items: [
+      "Added adaptive Web navigation rails for laptop/desktop screen widths.",
+      "Added Web-specific internal app navigation tabs for tablet/iPad screen widths.",
+      "Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.",
+    ],
+  },
+  {
     heading: "Improved",
     items: [
-      "Improved Web cache and service-worker cleanup during update refresh.",
-      "Preserved Android APK/AppInstaller updater behavior.",
+      "Improved Web shortcuts and deep shortcuts to target sub-sections.",
+      "Repositioned back buttons inline to prevent overlap in Web layouts.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed Web update actions falling back to Android manual APK update states.",
-      "Fixed legacy Web clients getting stuck in stale cache/service-worker update flows.",
-      "Ensured Web update actions refresh Studio instead of opening Android install UI.",
+      "Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts.",
     ],
   },
 ];
