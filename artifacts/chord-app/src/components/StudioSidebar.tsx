@@ -122,9 +122,10 @@ export function SidebarHeader({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const { open } = useSidebar();
   return (
     <div
-      className={`px-4 py-3 flex-shrink-0 flex items-center justify-between border-b border-[rgba(128,128,128,0.06)] ${className}`}
+      className={`py-3 flex-shrink-0 flex items-center ${open ? 'justify-between px-4' : 'justify-center px-0'} border-b border-[rgba(128,128,128,0.06)] ${className}`}
       style={{ height: '64px', boxSizing: 'border-box', ...style }}
       {...props}
     >
@@ -256,7 +257,7 @@ export function SidebarMenuButton({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-150 relative ${className}`}
+      className={`w-full flex items-center ${open ? 'justify-start gap-3 px-3' : 'justify-center px-0'} py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-150 relative group ${className}`}
       title={!open ? tooltip || undefined : undefined}
       style={{
         background: active ? 'rgba(255, 255, 255, 0.07)' : 'transparent',
@@ -296,9 +297,10 @@ export function SidebarFooter({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const { open } = useSidebar();
   return (
     <div
-      className={`p-3 border-t border-[rgba(128,128,128,0.06)] flex-shrink-0 ${className}`}
+      className={`${open ? 'p-3' : 'px-0 py-3 flex justify-center'} border-t border-[rgba(128,128,128,0.06)] flex-shrink-0 ${className}`}
       style={style}
       {...props}
     >

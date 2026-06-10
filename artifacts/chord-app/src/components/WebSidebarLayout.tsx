@@ -1,35 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSidebar, Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarRail } from './StudioSidebar';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
-import { IconSongs, IconLibrary, IconChords } from './BottomNav';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { useT } from '../lib/useT';
 import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
-import { subscribeSyncStatus, type SyncStatus } from '../lib/sync';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
+import { SHORTCUT_REGISTRY, ShortcutRegistryItem } from '../lib/studioShortcutRegistry';
+import { useStudioShortcuts } from '../hooks/useStudioShortcuts';
 
 export default function WebSidebarLayout() {
   const { settings, updateSettings, activePanel, setActivePanel } = useChordStore();
   const { open, toggleSidebar } = useSidebar();
   const t = useT();
   const ota = useOtaUpdate();
+  const { shortcuts, addShortcut, removeShortcut } = useStudioShortcuts();
+
+  const handleToggleSidebar = () => {
+    if (settings.appMode !== 'hub' && localStorage.getItem('studio:autoHideSidebar') !== 'false') {
+      window.dispatchEvent(new CustomEvent('studio:hide-sidebar-temp'));
+    } else {
+      toggleSidebar();
+    }
+  };
 
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [customPhoto, setCustomPhoto] = useState<string | null>(null);
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const addMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Subscribe to Authentication state
   useEffect(() => {
     return subscribeAuth((user) => {
       setAuthUser(user);
-    });
-  }, []);
-
-  // Subscribe to Sync state
-  useEffect(() => {
-    return subscribeSyncStatus((s) => {
-      setSyncStatus(s);
     });
   }, []);
 
@@ -57,6 +60,20 @@ export default function WebSidebarLayout() {
       window.removeEventListener('chordex:user-cover-changed', onCoverChanged);
     };
   }, [authUser?.uid]);
+
+  // Click outside to close shortcut add menu
+  useEffect(() => {
+    if (!showAddMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
+        setShowAddMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAddMenu]);
 
   // Determine active accent color
   const activeVis = settings.perApp?.[settings.appMode ?? 'hub'] ?? {
@@ -94,6 +111,58 @@ export default function WebSidebarLayout() {
     setActivePanel(panel);
   };
 
+  const handleExecuteShortcut = (target: ShortcutRegistryItem) => {
+    switch (target.type) {
+      case 'hub':
+        handleGoToHub(target.payload as 'home' | 'settings' | 'profile');
+        break;
+      case 'app':
+        handleLaunchApp(target.payload as 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex');
+        break;
+      case 'settings':
+        handleGoToSettingsPage(target.payload);
+        break;
+      case 'chordex-panel':
+        handleSetChordexPanel(target.payload as 'songs' | 'library' | 'chord');
+        break;
+    }
+  };
+
+  const isShortcutActive = (target: ShortcutRegistryItem) => {
+    if (target.type === 'app') {
+      return settings.appMode === target.payload;
+    }
+    if (target.type === 'chordex-panel') {
+      return settings.appMode === 'chords' && activePanel === target.payload;
+    }
+    if (target.type === 'hub') {
+      return settings.appMode === 'hub';
+    }
+    return false;
+  };
+
+  // Render icons (SVG custom or fallback Material symbol)
+  const renderShortcutIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'chordex':
+        return <ChordexLogo size={20} />;
+      case 'drumex':
+        return <DrumexLogo size={20} />;
+      case 'stagex':
+        return <StagexLogoIcon size={20} />;
+      case 'groovex':
+        return <GroovexLogo size={20} />;
+      case 'vocalex':
+        return <VocalexLogo size={20} />;
+      default:
+        return (
+          <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>
+            {iconName}
+          </span>
+        );
+    }
+  };
+
   // User details
   const name = authUser?.displayName || authUser?.email || '';
   const email = authUser?.email || '';
@@ -106,31 +175,49 @@ export default function WebSidebarLayout() {
     '--studio-accent-to': accent.to,
   } as React.CSSProperties;
 
+  // Filter available targets for add menu (exclude current, filter developer settings)
+  const availableTargets = SHORTCUT_REGISTRY.filter(target => {
+    if (shortcuts.includes(target.id)) return false;
+    if (target.id === 'settings_developer' && !settings.developerMode) return false;
+    return true;
+  });
+
   return (
     <Sidebar style={accentVars}>
       {/* Header */}
       <SidebarHeader>
-        <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => handleGoToHub('home')}>
-          <div className="flex-shrink-0">
-            <StudioLogo size={28} />
-          </div>
-          {open && (
-            <span
-              className="font-extrabold text-base tracking-tight text-[var(--c-text-primary)]"
-              style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em' }}
+        {open ? (
+          <>
+            <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => handleGoToHub('home')}>
+              <div className="flex-shrink-0">
+                <StudioLogo size={28} />
+              </div>
+              <span
+                className="font-extrabold text-base tracking-tight text-[var(--c-text-primary)]"
+                style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em' }}
+              >
+                Studio
+              </span>
+            </div>
+            <button
+              onClick={handleToggleSidebar}
+              className="p-1.5 rounded-lg bg-transparent text-[var(--c-text-secondary)] hover:text-[var(--c-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border-none cursor-pointer flex items-center justify-center outline-none"
             >
-              Studio
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                menu_open
+              </span>
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={handleToggleSidebar}
+            className="p-2 rounded-xl bg-transparent text-[var(--c-text-secondary)] hover:text-[var(--c-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border-none cursor-pointer flex items-center justify-center outline-none"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+              menu
             </span>
-          )}
-        </div>
-        <button
-          onClick={toggleSidebar}
-          className="p-1.5 rounded-lg bg-transparent text-[var(--c-text-secondary)] hover:text-[var(--c-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border-none cursor-pointer flex items-center justify-center outline-none"
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-            {open ? 'menu_open' : 'menu'}
-          </span>
-        </button>
+          </button>
+        )}
       </SidebarHeader>
 
       {/* Main content scroll */}
@@ -219,47 +306,117 @@ export default function WebSidebarLayout() {
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Chordex Panels (Workspace) Group - Only visible/expanded if open or active */}
+        {/* Shortcuts Group */}
         <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+          <SidebarGroupLabel>Shortcuts</SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                active={settings.appMode === 'chords' && activePanel === 'songs'}
-                onClick={() => handleSetChordexPanel('songs')}
-                tooltip="Songs"
-              >
-                <div className="flex-shrink-0" style={{ color: settings.appMode === 'chords' && activePanel === 'songs' ? 'inherit' : 'var(--c-text-secondary)' }}>
-                  <IconSongs active={settings.appMode === 'chords' && activePanel === 'songs'} />
-                </div>
-                {open && <span className="truncate">{t.nav.songs}</span>}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {/* Active shortcuts */}
+            {shortcuts.map(id => {
+              const target = SHORTCUT_REGISTRY.find(item => item.id === id);
+              if (!target) return null;
+              const isActive = isShortcutActive(target);
 
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                active={settings.appMode === 'chords' && activePanel === 'library'}
-                onClick={() => handleSetChordexPanel('library')}
-                tooltip="Library"
-              >
-                <div className="flex-shrink-0" style={{ color: settings.appMode === 'chords' && activePanel === 'library' ? 'inherit' : 'var(--c-text-secondary)' }}>
-                  <IconLibrary active={settings.appMode === 'chords' && activePanel === 'library'} />
-                </div>
-                {open && <span className="truncate">{t.nav.library}</span>}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+              return (
+                <SidebarMenuItem key={target.id} className="relative group">
+                  <SidebarMenuButton
+                    active={isActive}
+                    onClick={() => handleExecuteShortcut(target)}
+                    tooltip={target.label}
+                  >
+                    <div className="flex-shrink-0">
+                      {renderShortcutIcon(target.icon)}
+                    </div>
+                    {open && <span className="truncate pr-6">{target.label}</span>}
+                  </SidebarMenuButton>
+                  {open && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        removeShortcut(target.id);
+                      }}
+                      title="Remove Shortcut"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md bg-transparent border-none text-[var(--c-text-secondary)] hover:text-rose-500 hover:bg-[rgba(255,255,255,0.06)] cursor-pointer flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity outline-none z-10"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                        close
+                      </span>
+                    </button>
+                  )}
+                </SidebarMenuItem>
+              );
+            })}
 
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                active={settings.appMode === 'chords' && activePanel === 'chord'}
-                onClick={() => handleSetChordexPanel('chord')}
-                tooltip="Chords"
+            {/* Empty State */}
+            {!shortcuts.length && open && (
+              <div
+                className="px-3 py-2.5 text-xs text-[var(--c-text-muted)] italic leading-snug"
+                style={{ fontFamily: 'Manrope, sans-serif' }}
               >
-                <div className="flex-shrink-0" style={{ color: settings.appMode === 'chords' && activePanel === 'chord' ? 'inherit' : 'var(--c-text-secondary)' }}>
-                  <IconChords active={settings.appMode === 'chords' && activePanel === 'chord'} />
-                </div>
-                {open && <span className="truncate">{t.nav.chords}</span>}
-              </SidebarMenuButton>
+                No shortcuts yet. Add shortcuts to jump into Studio faster.
+              </div>
+            )}
+
+            {/* Add shortcut action */}
+            <SidebarMenuItem className="relative">
+              <div ref={addMenuRef}>
+                <SidebarMenuButton
+                  onClick={() => setShowAddMenu(!showAddMenu)}
+                  tooltip="Add Shortcut"
+                >
+                  <div className="flex-shrink-0" style={{ color: 'var(--c-text-secondary)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>add_circle</span>
+                  </div>
+                  {open && <span className="truncate text-[var(--c-text-secondary)]">Add Shortcut...</span>}
+                </SidebarMenuButton>
+
+                {/* Popover list */}
+                {showAddMenu && (
+                  <div
+                    className="absolute left-full top-0 ml-2 w-56 rounded-xl border border-[rgba(128,128,128,0.15)] shadow-2xl p-2 z-[60]"
+                    style={{
+                      background: 'var(--app-surface)',
+                      backdropFilter: 'blur(30px)',
+                      WebkitBackdropFilter: 'blur(30px)',
+                    }}
+                  >
+                    <div
+                      className="text-[10px] font-extrabold tracking-wider uppercase opacity-45 px-2.5 py-1.5 border-b border-[rgba(128,128,128,0.06)] mb-1"
+                      style={{ letterSpacing: '0.12em', fontFamily: 'Manrope, sans-serif' }}
+                    >
+                      Choose Target
+                    </div>
+                    <div className="max-h-60 overflow-y-auto no-scrollbar space-y-0.5">
+                      {availableTargets.length === 0 ? (
+                        <div className="text-xs text-[var(--c-text-muted)] text-center py-3">
+                          All shortcuts added
+                        </div>
+                      ) : (
+                        availableTargets.map(target => (
+                          <button
+                            key={target.id}
+                            onClick={() => {
+                              addShortcut(target.id);
+                              setShowAddMenu(false);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg border-none text-left cursor-pointer hover:bg-[rgba(255,255,255,0.06)] text-[var(--c-text-primary)] bg-transparent outline-none transition-colors"
+                          >
+                            <div className="flex-shrink-0" style={{ color: 'var(--c-text-secondary)' }}>
+                              {renderShortcutIcon(target.icon)}
+                            </div>
+                            <span
+                              className="text-xs font-semibold truncate"
+                              style={{ fontFamily: 'Manrope, sans-serif' }}
+                            >
+                              {target.label}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
@@ -333,7 +490,7 @@ export default function WebSidebarLayout() {
         <SidebarMenu>
           {/* User Profile */}
           <SidebarMenuItem>
-            <div className="flex items-center gap-2.5 p-1.5 overflow-hidden">
+            <div className={`flex items-center ${open ? 'gap-2.5 p-1.5' : 'justify-center p-0'} overflow-hidden`}>
               <div
                 onClick={() => handleGoToHub('profile')}
                 className="flex-shrink-0 cursor-pointer"
@@ -388,27 +545,14 @@ export default function WebSidebarLayout() {
             </div>
           </SidebarMenuItem>
 
-          {/* Sync Status / Version Info */}
+          {/* Version Info */}
           {open && (
             <SidebarMenuItem>
-              <div className="px-1.5 py-1 text-[10px] text-[var(--c-text-muted)] font-bold flex flex-col gap-0.5" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      syncStatus?.syncing ? 'bg-amber-500 animate-pulse' : syncStatus?.signedIn ? 'bg-emerald-500' : 'bg-zinc-600'
-                    }`}
-                  />
-                  <span>
-                    {syncStatus?.syncing
-                      ? 'Syncing changes...'
-                      : syncStatus?.signedIn
-                      ? 'Cloud Sync active'
-                      : 'Sync offline'}
-                  </span>
-                </div>
-                <div className="text-[9px] opacity-75 mt-0.5">
-                  {APP_VERSION_LABEL}
-                </div>
+              <div
+                className="px-1.5 py-1 text-[9px] text-[var(--c-text-muted)] font-bold opacity-75"
+                style={{ fontFamily: 'Manrope, sans-serif' }}
+              >
+                {APP_VERSION_LABEL}
               </div>
             </SidebarMenuItem>
           )}
