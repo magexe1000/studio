@@ -221,37 +221,18 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
     <Sidebar shouldHideSidebar={shouldHideSidebar} style={accentVars}>
       {/* Header */}
       <SidebarHeader>
-        {open ? (
-          <>
-            <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => handleGoToHub('home')}>
-              <div className="flex-shrink-0">
-                <StudioLogo size={28} />
-              </div>
-              <span
-                className="font-extrabold text-base tracking-tight text-[var(--c-text-primary)]"
-                style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em' }}
-              >
-                Studio
-              </span>
+        {open && (
+          <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => handleGoToHub('home')}>
+            <div className="flex-shrink-0">
+              <StudioLogo size={28} />
             </div>
-            <button
-              onClick={handleToggleSidebar}
-              className="p-1.5 rounded-lg bg-transparent text-[var(--c-text-secondary)] hover:text-[var(--c-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border-none cursor-pointer flex items-center justify-center outline-none"
+            <span
+              className="font-extrabold text-base tracking-tight text-[var(--c-text-primary)]"
+              style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em' }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                menu_open
-              </span>
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={handleToggleSidebar}
-            className="p-2 rounded-xl bg-transparent text-[var(--c-text-secondary)] hover:text-[var(--c-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border-none cursor-pointer flex items-center justify-center outline-none"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-              menu
+              Studio
             </span>
-          </button>
+          </div>
         )}
       </SidebarHeader>
 
@@ -626,7 +607,6 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
           )}
         </SidebarMenu>
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   );
 }

@@ -53,7 +53,7 @@ export function SidebarProvider({
   };
 
   const state = open ? 'expanded' : 'collapsed';
-  const width = open ? '240px' : '68px';
+  const width = open ? '240px' : '0px';
 
   return (
     <SidebarContext.Provider value={{ state, open, setOpen, isMobile, toggleSidebar }}>
@@ -61,7 +61,7 @@ export function SidebarProvider({
         className={`flex w-full h-full min-h-screen overflow-hidden ${className}`}
         style={{
           '--sidebar-width': '240px',
-          '--sidebar-width-icon': '68px',
+          '--sidebar-width-icon': '0px',
           '--sidebar-current-width': width,
           ...style,
         } as React.CSSProperties}
@@ -87,8 +87,8 @@ export function Sidebar({
 }) {
   const { open } = useSidebar();
 
-  const targetWidth = shouldHideSidebar ? '0px' : (open ? '240px' : '68px');
-  const targetOpacity = shouldHideSidebar ? 0 : 1;
+  const targetWidth = open ? '240px' : '0px';
+  const targetOpacity = open ? 1 : 0;
 
   return (
     <motion.aside
@@ -113,7 +113,7 @@ export function Sidebar({
       }}
       {...props}
     >
-      <div style={{ width: open ? '240px' : '68px', height: '100%', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+      <div style={{ width: '240px', height: '100%', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         {children}
       </div>
     </motion.aside>

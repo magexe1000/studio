@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
+import { motion } from 'motion/react';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
 import WebAppSectionDock from './WebAppSectionDock';
@@ -720,16 +721,21 @@ export default function StagexPanel() {
             </div>
             
             {curView === 'Editor' && (
-              <div style={{
-                width: '240px',
-                borderLeft: '1px solid rgba(255,255,255,0.06)',
-                background: '#080809',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                padding: '16px',
-                flexShrink: 0,
-              }}>
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                style={{
+                  width: '220px',
+                  borderLeft: '1px solid rgba(255,255,255,0.06)',
+                  background: '#080809',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  flexShrink: 0,
+                }}
+              >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   <div>
                     <h4 style={{ fontSize: '8.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.3)', marginBottom: '8px' }}>
@@ -775,7 +781,7 @@ export default function StagexPanel() {
                 <div style={{ fontSize: '8px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.15)' }}>
                   Stagex Module v4.0.0
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
           

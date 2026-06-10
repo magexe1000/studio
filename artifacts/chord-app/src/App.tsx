@@ -21,7 +21,7 @@ import { useStatusBar } from './lib/useStatusBar';
 import { AppEntryTransition } from './components/AppAnimationSystem';
 import { logActivity } from './lib/activityLogger';
 import { useIsWebDesktop } from './hooks/useIsWebDesktop';
-import { SidebarProvider, SidebarInset } from './components/StudioSidebar';
+import { SidebarProvider, SidebarInset, useSidebar } from './components/StudioSidebar';
 import WebSidebarLayout from './components/WebSidebarLayout';
 import WebAppSectionDock from './components/WebAppSectionDock';
 import { useStudioPreferences } from './hooks/useStudioPreferences';
@@ -32,6 +32,14 @@ import StudioLandingPage from './landing/StudioLandingPage';
 // ApplyToSheet, ChangelogSheet, and all logo variants. Keeping it out of
 // the main bundle saves significant parse+eval time on cold launch.
 const StudioHub = lazy(() => import('./components/StudioHub'));
+
+function SidebarHoverSync({ hoverShowSidebar }: { hoverShowSidebar: boolean }) {
+  const { setOpen } = useSidebar();
+  useEffect(() => {
+    setOpen(hoverShowSidebar);
+  }, [hoverShowSidebar, setOpen]);
+  return null;
+}
 
 // Account state is intentionally typed inline so we don't pull
 // `lib/accountStatus` (and its Firebase dependencies) into the main
@@ -164,15 +172,24 @@ export default function App() {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
+    setHoverShowSidebar(true);
   };
 
   const handleSidebarMouseLeave = () => {
-    if (hoverShowSidebar && preferences.autoCloseHoverSidebar) {
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = setTimeout(() => {
-        setHoverShowSidebar(false);
-      }, 400);
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      setHoverShowSidebar(false);
+    }, 250); // 250ms debounce delay to avoid flicker
+  };
+
+  const handleLeftEdgeMouseEnter = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
     }
+    hoverTimerRef.current = setTimeout(() => {
+      setHoverShowSidebar(true);
+    }, 150); // 150ms open delay to prevent accidental trigger
   };
 
   useEffect(() => {
@@ -201,7 +218,7 @@ export default function App() {
   }, [settings.appMode]);
 
   const isInsideApp = settings.appMode !== 'hub';
-  const shouldHideSidebar = isWebDesktop && preferences.autoHideSidebarInApps && isInsideApp && !tempShowSidebar && !hoverShowSidebar;
+  const shouldHideSidebar = isWebDesktop && !hoverShowSidebar;
 
   // Clean up hover timer on unmount
   useEffect(() => {
@@ -1677,6 +1694,7 @@ export default function App() {
 
   return (
     <SidebarProvider>
+      <SidebarHoverSync hoverShowSidebar={hoverShowSidebar} />
       <div style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: '#000000' }}>
         {isWebDesktop && (
           <div
@@ -1690,15 +1708,10 @@ export default function App() {
         
         <SidebarInset>
           {/* Transparent left-edge hover zone */}
-          {isWebDesktop && preferences.autoHideSidebarInApps && isInsideApp && !tempShowSidebar && !hoverShowSidebar && preferences.hoverRevealSidebar && (
+          {isWebDesktop && !hoverShowSidebar && (
             <div
-              onMouseEnter={() => {
-                if (hoverTimerRef.current) {
-                  clearTimeout(hoverTimerRef.current);
-                  hoverTimerRef.current = null;
-                }
-                setHoverShowSidebar(true);
-              }}
+              onMouseEnter={handleLeftEdgeMouseEnter}
+              onMouseLeave={handleSidebarMouseLeave}
               style={{
                 position: 'fixed',
                 left: 0,
@@ -1709,48 +1722,6 @@ export default function App() {
                 background: 'transparent',
               }}
             />
-          )}
-
-          {/* Premium floating hamburger menu button */}
-          {shouldHideSidebar && (
-            <button
-              onClick={() => setTempShowSidebar(true)}
-              className="btn-smooth"
-              title="Open Sidebar"
-              style={{
-                position: 'fixed',
-                left: '16px',
-                top: '16px',
-                zIndex: 100,
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                border: '1px solid rgba(128,128,128,0.15)',
-                background: 'var(--app-surface)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                color: 'var(--c-text-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                outline: 'none',
-                transition: 'all 200ms ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--app-surface-high)';
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'var(--app-surface)';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                menu
-              </span>
-            </button>
           )}
           {/* Layer 1: Studio Hub (Base) */}
           <div
@@ -1791,13 +1762,12 @@ export default function App() {
                 background: 'var(--app-bg)',
                 willChange: 'opacity, transform',
                 transition: exitingToHub
-                  ? 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1), opacity 370ms ease-in-out, padding-left 260ms cubic-bezier(0.16, 1, 0.3, 1)'
-                  : 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1) 120ms, opacity 370ms ease-in-out 120ms, padding-left 260ms cubic-bezier(0.16, 1, 0.3, 1)',
+                  ? 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1), opacity 370ms ease-in-out'
+                  : 'transform 370ms cubic-bezier(0.16, 1, 0.3, 1) 120ms, opacity 370ms ease-in-out 120ms',
                 transform: exitingToHub ? 'translateX(100%)' : 'translateX(0)',
                 opacity: exitingToHub ? 0 : 1,
                 pointerEvents: (activeAppToRender === null || exitingToHub) ? 'none' : 'auto',
                 display: activeAppToRender === null ? 'none' : 'block',
-                paddingLeft: shouldHideSidebar ? '60px' : '0px',
               }}
             >
               {activeAppToRender === 'groovex' && (
