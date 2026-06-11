@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import { UserProfile } from '../lib/permissions';
 import { AuthUser } from '../lib/auth';
 import { Circle, Layers3, BadgeCheck, ShieldCheck, CheckCircle, Info, HelpCircle } from 'lucide-react';
@@ -98,7 +97,7 @@ interface Props {
   onShowToast?: (msg: string) => void;
 }
 
-export default function StudioPricingSection({ accent, lang = 'en', profile, user, onShowToast }: Props) {
+function StudioPricingSection({ accent, lang = 'en', profile, user, onShowToast }: Props) {
   const isEs = lang === 'es';
 
   const getPlanStatus = (planId: string): 'active' | 'admin_bypass' | 'included' | 'downgraded' | 'available' => {
@@ -137,6 +136,24 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
 
   return (
     <div style={{ width: '100%', fontFamily: 'Inter, sans-serif' }}>
+      <style>{`
+        .pricing-card {
+          transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 300ms ease, border-color 300ms ease;
+          will-change: transform;
+        }
+        .pricing-card:hover {
+          transform: translateY(-4px) scale(1.01);
+          box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3) !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .pricing-card {
+            transition: none !important;
+          }
+          .pricing-card:hover {
+            transform: none !important;
+          }
+        }
+      `}</style>
       {/* ── Section Header ── */}
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <h3
@@ -183,10 +200,9 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
           const planFeatures = isEs ? plan.featuresEs : plan.features;
 
           return (
-            <motion.div
+            <div
               key={plan.id}
-              whileHover={{ y: -4, scale: 1.015 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+              className="pricing-card"
               style={{
                 background: plan.isRecommended
                   ? 'var(--app-surface-highest, rgba(128,128,128,0.12))'
@@ -200,9 +216,8 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
                 flexDirection: 'column',
                 position: 'relative',
                 boxShadow: plan.isRecommended
-                  ? `0 10px 30px color-mix(in srgb, ${accent.from} 15%, transparent)`
+                  ? '0 10px 24px rgba(0, 0, 0, 0.25)'
                   : '0 4px 12px rgba(0,0,0,0.1)',
-                transition: 'background-color 700ms cubic-bezier(0.4, 0, 0.2, 1), border-color 700ms cubic-bezier(0.4, 0, 0.2, 1)',
                 boxSizing: 'border-box',
                 height: '100%',
               }}
@@ -457,10 +472,24 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
                   </button>
                 );
               })()}
-            </motion.div>
+            </div>
           );
         })}
       </div>
     </div>
   );
 }
+
+const MemoizedStudioPricingSection = React.memo(StudioPricingSection, (prevProps, nextProps) => {
+  return (
+    prevProps.lang === nextProps.lang &&
+    prevProps.profile?.role === nextProps.profile?.role &&
+    prevProps.profile?.subscriptionStatus === nextProps.profile?.subscriptionStatus &&
+    prevProps.user?.uid === nextProps.user?.uid &&
+    prevProps.accent.from === nextProps.accent.from &&
+    prevProps.accent.to === nextProps.accent.to &&
+    prevProps.accent.mid === nextProps.accent.mid
+  );
+});
+
+export default MemoizedStudioPricingSection;

@@ -4433,7 +4433,9 @@ User Agent: [Automatically Generated]
 
         <SettingsSectionLabel delay={240}>{(t.hub as { studioSettings?: { systemAbout?: string } }).studioSettings?.systemAbout ?? 'System & About'}</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'App updates and installation'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={250} />
+          {isNative() && (
+            <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'App updates and installation'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={250} />
+          )}
 
           <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last={!settings.developerMode} delay={260} />
           {settings.developerMode && (
@@ -4468,7 +4470,6 @@ User Agent: [Automatically Generated]
       label: lang === 'es' ? 'Aplicación' : 'Application',
       items: [
         { id: 'release-notes' as const, icon: 'article', label: lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes' },
-        { id: 'updater' as const, icon: 'download', label: lang === 'es' ? 'Actualizaciones de App' : 'App Updates' },
         { id: 'about' as const, icon: 'info', label: lang === 'es' ? 'Acerca de Studio' : 'About & Version' },
         ...(settings.developerMode ? [{ id: 'developer' as const, icon: 'terminal', label: lang === 'es' ? 'Opciones de Desarrollador' : 'Developer Options' }] : []),
       ]
