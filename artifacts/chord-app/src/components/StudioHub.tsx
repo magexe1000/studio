@@ -4447,29 +4447,6 @@ User Agent: [Automatically Generated]
       ]
     },
     {
-      label: lang === 'es' ? 'Soporte' : 'Support',
-      items: [
-        { id: 'help-center' as const, icon: 'help', label: lang === 'es' ? 'Centro de Ayuda' : 'Help Center' },
-        { id: 'faq' as const, icon: 'contact_support', label: lang === 'es' ? 'Preguntas Frecuentes' : 'FAQ & Support' },
-        { id: 'release-notes' as const, icon: 'article', label: lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes' },
-        { id: 'download-apps' as const, icon: 'install_desktop', label: lang === 'es' ? 'Descargar Aplicaciones' : 'Download Apps' },
-        { id: 'keyboard-shortcuts' as const, icon: 'keyboard', label: lang === 'es' ? 'Atajos de Teclado' : 'Keyboard Shortcuts' },
-      ]
-    },
-    {
-      label: lang === 'es' ? 'Legal' : 'Legal',
-      items: [
-        { id: 'terms' as const, icon: 'gavel', label: lang === 'es' ? 'Condiciones de Servicio' : 'Terms of Service' },
-        { id: 'privacy-policy' as const, icon: 'policy', label: lang === 'es' ? 'Política de Privacidad' : 'Privacy Policy' },
-      ]
-    },
-    {
-      label: lang === 'es' ? 'Comentarios' : 'Feedback',
-      items: [
-        { id: 'bug-report' as const, icon: 'bug_report', label: lang === 'es' ? 'Informar de un Error' : 'Report a Bug' },
-      ]
-    },
-    {
       label: lang === 'es' ? 'Sistema' : 'System',
       items: [
         { id: 'updater' as const, icon: 'download', label: lang === 'es' ? 'Actualizaciones de App' : 'App Updates' },

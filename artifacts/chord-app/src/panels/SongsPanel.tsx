@@ -1926,6 +1926,7 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
   onClose: () => void;
 }) {
   const t = useT();
+  const isWebDesktop = useIsWebDesktop();
   const [stage, setStage]       = useState<ImportStage>('idle');
   const [parsed, setParsed]     = useState<ParsedImport | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -2050,22 +2051,31 @@ function ImportSongModal({ accent, existingPresets, onImport, onClose }: {
   );
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: isWebDesktop ? 'center' : 'flex-end', justifyContent: isWebDesktop ? 'center' : 'flex-start' }}>
+      <style>{`
+        @keyframes modal-scale-in {
+          from { transform: scale(0.95); opacity: 0; }
+          to   { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
       {/* Backdrop */}
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }} />
 
       {/* Sheet */}
       <div style={{
-        position: 'relative', width: '100%', background: 'var(--app-bg)',
-        borderRadius: '1.5rem 1.5rem 0 0',
-        animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
-        maxHeight: '92dvh', display: 'flex', flexDirection: 'column',
-        paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+        position: 'relative', width: isWebDesktop ? '460px' : '100%', background: 'var(--app-bg)',
+        borderRadius: isWebDesktop ? '16px' : '1.5rem 1.5rem 0 0',
+        animation: isWebDesktop ? 'modal-scale-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both' : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        maxHeight: isWebDesktop ? '85dvh' : '92dvh', display: 'flex', flexDirection: 'column',
+        paddingBottom: isWebDesktop ? '16px' : 'max(16px, env(safe-area-inset-bottom))',
+        boxShadow: isWebDesktop ? '0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3)' : undefined,
       }}>
         {/* Drag handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 2px' }}>
-          <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'rgba(128,128,128,0.25)' }} />
-        </div>
+        {!isWebDesktop && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 2px' }}>
+            <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'rgba(128,128,128,0.25)' }} />
+          </div>
+        )}
 
         {/* ── IDLE: file picker ── */}
         {stage === 'idle' && (
@@ -2266,6 +2276,7 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
   customChords: CustomChord[];
 }) {
   const t = useT();
+  const isWebDesktop = useIsWebDesktop();
   const getCatLabel = (type: string) => {
     if (type === 'all') return t.songs.allChords;
     const cats = t.library.cats as Record<string, { label: string }>;
@@ -2307,13 +2318,27 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 150 }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 150, display: 'flex', alignItems: isWebDesktop ? 'center' : 'flex-end', justifyContent: isWebDesktop ? 'center' : 'flex-start' }}>
+      <style>{`
+        @keyframes modal-scale-in {
+          from { transform: scale(0.95); opacity: 0; }
+          to   { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', maxHeight: '80dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
-          <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'rgba(72,72,72,0.3)' }} />
-        </div>
-        <div style={{ padding: '4px 16px 10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{
+        position: 'relative', width: isWebDesktop ? '500px' : '100%', background: 'var(--app-surface)',
+        borderRadius: isWebDesktop ? '16px' : '1.5rem 1.5rem 0 0',
+        maxHeight: isWebDesktop ? '85dvh' : '80dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        animation: isWebDesktop ? 'modal-scale-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both' : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        boxShadow: isWebDesktop ? '0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3)' : undefined,
+      }}>
+        {!isWebDesktop && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+            <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'rgba(72,72,72,0.3)' }} />
+          </div>
+        )}
+        <div style={{ padding: isWebDesktop ? '16px 16px 10px' : '4px 16px 10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '18px', flex: 1 }}>
             {selected.length > 0 ? t.songs.selectedCount(selected.length) : t.songs.addChord}
           </p>
@@ -2422,10 +2447,10 @@ function ChordPicker({ onAdd, onClose, accent, onCreateCustom, customChords }: {
         {selected.length > 0 && (
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
-            padding: '12px 16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+            padding: '12px 16px', paddingBottom: isWebDesktop ? '16px' : 'max(16px, env(safe-area-inset-bottom))',
             background: 'var(--app-surface)',
             borderTop: '1px solid rgba(72,72,72,0.1)',
-            animation: 'sheet-up 300ms cubic-bezier(0.16, 1, 0.3, 1) both',
+            animation: isWebDesktop ? 'modal-scale-in 200ms ease both' : 'sheet-up 300ms cubic-bezier(0.16, 1, 0.3, 1) both',
           }}>
             <button onClick={confirm} className="btn-smooth"
               style={{ width: '100%', padding: '15px', borderRadius: '9999px', background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px', boxShadow: `0 4px 20px ${accent.to}50` }}>
@@ -2444,18 +2469,32 @@ const KEYS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B', '
 
 function PresetForm({ initial, onSave, onCancel, accent }: { initial?: FormData; onSave: (d: FormData) => void; onCancel: () => void; accent: { from: string; to: string; mid: string } }) {
   const t = useT();
+  const isWebDesktop = useIsWebDesktop();
   const [form, setForm] = useState<FormData>(initial || { name: '', artist: '', bpm: '120', key: 'C', notes: '' });
   const inputStyle: React.CSSProperties = { width: '100%', background: 'var(--app-surface-high)', border: '1px solid rgba(72,72,72,0.12)', borderRadius: '0.625rem', padding: '11px 14px', color: 'var(--c-text-primary)', fontFamily: 'Inter', fontSize: '14px', outline: 'none' };
   const labelStyle: React.CSSProperties = { color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: '6px' };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 150 }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 150, display: 'flex', alignItems: isWebDesktop ? 'center' : 'flex-end', justifyContent: isWebDesktop ? 'center' : 'flex-start' }}>
+      <style>{`
+        @keyframes modal-scale-in {
+          from { transform: scale(0.95); opacity: 0; }
+          to   { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
       <div onClick={onCancel} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
-          <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'rgba(72,72,72,0.3)' }} />
-        </div>
-        <div style={{ padding: '4px 20px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{
+        position: 'relative', width: isWebDesktop ? '460px' : '100%', background: 'var(--app-surface)',
+        borderRadius: isWebDesktop ? '16px' : '1.5rem 1.5rem 0 0',
+        animation: isWebDesktop ? 'modal-scale-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both' : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        boxShadow: isWebDesktop ? '0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3)' : undefined,
+      }}>
+        {!isWebDesktop && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+            <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'rgba(72,72,72,0.3)' }} />
+          </div>
+        )}
+        <div style={{ padding: isWebDesktop ? '24px' : '4px 20px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '20px' }}>{initial ? t.songs.editSong : t.songs.newSong}</p>
           <div><label style={labelStyle}>{t.songs.songTitle}</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Blackbird" style={inputStyle} /></div>
           <div><label style={labelStyle}>{t.songs.artist}</label><input value={form.artist} onChange={e => setForm(f => ({ ...f, artist: e.target.value }))} placeholder="e.g. The Beatles" style={inputStyle} /></div>
@@ -2464,7 +2503,7 @@ function PresetForm({ initial, onSave, onCancel, accent }: { initial?: FormData;
             <div><label style={labelStyle}>{t.songs.key}</label><select value={form.key} onChange={e => setForm(f => ({ ...f, key: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>{KEYS.map(k => <option key={k} value={k}>{k}</option>)}</select></div>
           </div>
           <div><label style={labelStyle}>{t.songs.notes}</label><textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} placeholder={t.songs.notesPlaceholder} style={{ ...inputStyle, resize: 'none' }} /></div>
-          <div style={{ display: 'flex', gap: '10px', paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
+          <div style={{ display: 'flex', gap: '10px', paddingBottom: isWebDesktop ? '0px' : 'max(8px, env(safe-area-inset-bottom))' }}>
             <button onClick={onCancel} className="btn-smooth" style={{ flex: 1, padding: '14px', borderRadius: '9999px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700 }}>{t.songs.cancel}</button>
             <button onClick={() => { if (form.name.trim()) onSave(form); }} className="btn-smooth"
               style={{ flex: 2, padding: '14px', borderRadius: '9999px', background: form.name.trim() ? `linear-gradient(135deg, ${accent.from}, ${accent.to})` : 'rgba(72,72,72,0.2)', color: form.name.trim() ? '#fff' : '#acabaa', fontFamily: 'Manrope', fontWeight: 800, boxShadow: form.name.trim() ? `0 4px 20px ${accent.to}40` : 'none' }}>
@@ -3372,10 +3411,23 @@ export default function SongsPanel() {
 
         {/* Section picker sheet */}
         {showSectionPicker && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+          <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: isWebDesktop ? 'center' : 'flex-end', justifyContent: isWebDesktop ? 'center' : 'flex-start' }}
             onClick={e => { if (e.target === e.currentTarget) setShowSectionPicker(false); }}>
-            <div style={{ background: 'var(--app-surface)', borderRadius: '20px 20px 0 0', padding: '20px 16px', paddingBottom: 'max(24px, env(safe-area-inset-bottom))', boxShadow: '0 -8px 40px rgba(0,0,0,0.3)' }}>
-              <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(128,128,128,0.3)', margin: '0 auto 16px' }} />
+            <style>{`
+              @keyframes modal-scale-in {
+                from { transform: scale(0.95); opacity: 0; }
+                to   { transform: scale(1); opacity: 1; }
+              }
+            `}</style>
+            <div style={{
+              position: 'relative', width: isWebDesktop ? '400px' : '100%', background: 'var(--app-surface)',
+              borderRadius: isWebDesktop ? '16px' : '20px 20px 0 0',
+              padding: isWebDesktop ? '24px' : '20px 16px',
+              paddingBottom: isWebDesktop ? '24px' : 'max(24px, env(safe-area-inset-bottom))',
+              boxShadow: isWebDesktop ? '0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3)' : '0 -8px 40px rgba(0,0,0,0.3)',
+              animation: isWebDesktop ? 'modal-scale-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both' : undefined,
+            }}>
+              {!isWebDesktop && <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(128,128,128,0.3)', margin: '0 auto 16px' }} />}
               <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '16px', color: 'var(--c-text-primary)', marginBottom: '14px' }}>{t.songs.addSection}</p>
               {/* Preset section names */}
               {!customSectionMode && (
@@ -3434,10 +3486,23 @@ export default function SongsPanel() {
 
         {/* Section selector — pick where to add chord */}
         {showSectionSelector && activePreset.sections && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+          <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: isWebDesktop ? 'center' : 'flex-end', justifyContent: isWebDesktop ? 'center' : 'flex-start' }}
             onClick={e => { if (e.target === e.currentTarget) setShowSectionSelector(false); }}>
-            <div style={{ background: 'var(--app-surface)', borderRadius: '20px 20px 0 0', padding: '20px 16px', paddingBottom: 'max(24px, env(safe-area-inset-bottom))', boxShadow: '0 -8px 40px rgba(0,0,0,0.3)' }}>
-              <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(128,128,128,0.3)', margin: '0 auto 16px' }} />
+            <style>{`
+              @keyframes modal-scale-in {
+                from { transform: scale(0.95); opacity: 0; }
+                to   { transform: scale(1); opacity: 1; }
+              }
+            `}</style>
+            <div style={{
+              position: 'relative', width: isWebDesktop ? '400px' : '100%', background: 'var(--app-surface)',
+              borderRadius: isWebDesktop ? '16px' : '20px 20px 0 0',
+              padding: isWebDesktop ? '24px' : '20px 16px',
+              paddingBottom: isWebDesktop ? '24px' : 'max(24px, env(safe-area-inset-bottom))',
+              boxShadow: isWebDesktop ? '0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3)' : '0 -8px 40px rgba(0,0,0,0.3)',
+              animation: isWebDesktop ? 'modal-scale-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both' : undefined,
+            }}>
+              {!isWebDesktop && <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(128,128,128,0.3)', margin: '0 auto 16px' }} />}
               <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: '15px', color: 'var(--c-text-primary)', marginBottom: '12px' }}>Add chord to…</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {activePreset.sections.map(section => (
@@ -3582,8 +3647,18 @@ export default function SongsPanel() {
         
         {showDeleteId && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 150, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <style>{`
+              @keyframes modal-scale-in {
+                from { transform: scale(0.95); opacity: 0; }
+                to   { transform: scale(1); opacity: 1; }
+              }
+            `}</style>
             <div onClick={() => setShowDeleteId(null)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
-            <div style={{ position: 'relative', width: '360px', background: 'var(--app-surface-low)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '20px' }}>
+            <div style={{
+              position: 'relative', width: '360px', background: 'var(--app-surface-low)',
+              border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '20px',
+              animation: 'modal-scale-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both',
+            }}>
               <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '16px', marginBottom: '16px' }}>{t.songs.confirmDelete}</p>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button onClick={() => setShowDeleteId(null)} style={{ flex: 1, padding: '10px', borderRadius: '6px', background: 'var(--app-surface-high)', color: 'var(--c-text-secondary)', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}>{t.songs.cancel}</button>

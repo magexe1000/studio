@@ -31,6 +31,7 @@ import {
   type AvatarIcon,
 } from '../lib/userAvatar';
 import { useBackHandler } from '../lib/backStack';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { logActivity, getActivityEmoji } from '../lib/activityLogger';
 import StudioPricingSection from './StudioPricingSection';
 import { getFirebaseAuth } from '../lib/firebase';
@@ -706,6 +707,7 @@ type DangerZoneProps = {
 type DangerSheet = 'none' | 'signout' | 'delete';
 
 export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
+  const isWebDesktop = useIsWebDesktop();
   const tRoot = useT();
   const t = tRoot.hub.accountSection;
   const lang = useChordStore((s) => s.settings.language) ?? 'en';
@@ -763,16 +765,23 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
   }
 
   const sheetAnim = closing
-    ? 'sheet-down 300ms cubic-bezier(0.16, 1, 0.3, 1) both'
-    : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both';
+    ? isWebDesktop
+      ? 'modal-scale-out 250ms ease both'
+      : 'sheet-down 300ms cubic-bezier(0.16, 1, 0.3, 1) both'
+    : isWebDesktop
+      ? 'modal-scale-in 250ms ease both'
+      : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both';
 
   const overlayAnim = closing
     ? 'fade-out 280ms ease both'
     : 'sync-fade-in 200ms ease both';
 
   const overlayStyle: React.CSSProperties = {
-    position: 'fixed', inset: 0, zIndex: 9999,
+    position: 'fixed', inset: 0, zIndex: 100005,
     animation: overlayAnim,
+    display: isWebDesktop ? 'flex' : 'block',
+    alignItems: isWebDesktop ? 'center' : 'stretch',
+    justifyContent: isWebDesktop ? 'center' : 'stretch',
   };
 
   const backdropStyle: React.CSSProperties = {
@@ -782,7 +791,20 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
     WebkitBackdropFilter: 'blur(6px)',
   };
 
-  const sheetStyle: React.CSSProperties = {
+  const sheetStyle: React.CSSProperties = isWebDesktop ? {
+    position: 'relative',
+    background: 'var(--app-surface)',
+    borderRadius: '16px',
+    boxShadow: '0 24px 60px rgba(0, 0, 0, 0.65)',
+    border: '1px solid rgba(128, 128, 128, 0.15)',
+    width: '460px',
+    maxWidth: '90vw',
+    maxHeight: '85vh',
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    animation: sheetAnim,
+  } : {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     background: 'var(--app-surface)',
     borderRadius: '1.5rem 1.5rem 0 0',
@@ -790,11 +812,11 @@ export function AccountDangerZone({ accent, cardStyle }: DangerZoneProps) {
     animation: sheetAnim,
   };
 
-  const dragPill = (
+  const dragPill = !isWebDesktop ? (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
       <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.3)' }} />
     </div>
-  );
+  ) : null;
 
   return (
     <>
@@ -1097,13 +1119,21 @@ type AvatarPickerSheetProps = {
 };
 
 function AvatarPickerSheet({ accent, currentIcon, hasGooglePhoto, closing, t, onPick, onClose }: AvatarPickerSheetProps) {
+  const isWebDesktop = useIsWebDesktop();
   const sheetAnim = closing
-    ? 'sheet-down 300ms cubic-bezier(0.16, 1, 0.3, 1) both'
-    : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both';
+    ? isWebDesktop
+      ? 'modal-scale-out 250ms ease both'
+      : 'sheet-down 300ms cubic-bezier(0.16, 1, 0.3, 1) both'
+    : isWebDesktop
+      ? 'modal-scale-in 250ms ease both'
+      : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both';
   const overlayAnim = closing ? 'fade-out 280ms ease both' : 'sync-fade-in 200ms ease both';
 
   const overlayStyle: React.CSSProperties = {
-    position: 'fixed', inset: 0, zIndex: 9999, animation: overlayAnim,
+    position: 'fixed', inset: 0, zIndex: 100005, animation: overlayAnim,
+    display: isWebDesktop ? 'flex' : 'block',
+    alignItems: isWebDesktop ? 'center' : 'stretch',
+    justifyContent: isWebDesktop ? 'center' : 'stretch',
   };
   const backdropStyle: React.CSSProperties = {
     position: 'absolute', inset: 0,
@@ -1111,7 +1141,20 @@ function AvatarPickerSheet({ accent, currentIcon, hasGooglePhoto, closing, t, on
     backdropFilter: 'blur(6px)',
     WebkitBackdropFilter: 'blur(6px)',
   };
-  const sheetStyle: React.CSSProperties = {
+  const sheetStyle: React.CSSProperties = isWebDesktop ? {
+    position: 'relative',
+    background: 'var(--app-surface)',
+    borderRadius: '16px',
+    boxShadow: '0 24px 60px rgba(0, 0, 0, 0.65)',
+    border: '1px solid rgba(128, 128, 128, 0.15)',
+    width: '460px',
+    maxWidth: '90vw',
+    maxHeight: '85vh',
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    animation: sheetAnim,
+  } : {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     background: 'var(--app-surface)',
     borderRadius: '1.5rem 1.5rem 0 0',
@@ -1124,9 +1167,11 @@ function AvatarPickerSheet({ accent, currentIcon, hasGooglePhoto, closing, t, on
       <SheetAnimations />
       <div style={backdropStyle} onClick={onClose} />
       <div className="profile-panel-sheet" style={sheetStyle}>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.3)' }} />
-        </div>
+        {!isWebDesktop && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+            <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.3)' }} />
+          </div>
+        )}
         <div style={{ padding: '6px 22px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <p style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)', margin: 0 }}>
             {t.avatarPickerTitle}
@@ -1296,6 +1341,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
   }, [user, sheet]);
 
   const settings = useChordStore((s) => s.settings);
+  const isWebDesktop = useIsWebDesktop();
   const activityLog = useChordStore((s) => s.activityLog ?? []);
   const updateSettings = useChordStore((s) => s.updateSettings);
   const [localUsage, setLocalUsage] = useState<string>('0 KB');
@@ -1740,27 +1786,49 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     && emailInput.trim().toLowerCase() === emailToConfirm;
 
   const sheetAnim = sheetClosing
-    ? 'sheet-down 300ms cubic-bezier(0.16, 1, 0.3, 1) both'
-    : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both';
+    ? isWebDesktop
+      ? 'modal-scale-out 250ms ease both'
+      : 'sheet-down 300ms cubic-bezier(0.16, 1, 0.3, 1) both'
+    : isWebDesktop
+      ? 'modal-scale-in 250ms ease both'
+      : 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both';
   const overlayAnim = sheetClosing ? 'fade-out 280ms ease both' : 'sync-fade-in 200ms ease both';
-  const overlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 9999, animation: overlayAnim };
+  const overlayStyle: React.CSSProperties = {
+    position: 'fixed', inset: 0, zIndex: 100005, animation: overlayAnim,
+    display: isWebDesktop ? 'flex' : 'block',
+    alignItems: isWebDesktop ? 'center' : 'stretch',
+    justifyContent: isWebDesktop ? 'center' : 'stretch',
+  };
   const backdropStyle: React.CSSProperties = {
     position: 'absolute', inset: 0,
     background: 'rgba(0,0,0,0.55)',
     backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
   };
-  const sheetStyle: React.CSSProperties = {
+  const sheetStyle: React.CSSProperties = isWebDesktop ? {
+    position: 'relative',
+    background: 'var(--app-surface)',
+    borderRadius: '16px',
+    boxShadow: '0 24px 60px rgba(0, 0, 0, 0.65)',
+    border: '1px solid rgba(128, 128, 128, 0.15)',
+    width: '460px',
+    maxWidth: '90vw',
+    maxHeight: '85vh',
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    animation: sheetAnim,
+  } : {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     background: 'var(--app-surface)',
     borderRadius: '1.5rem 1.5rem 0 0',
     padding: '0 0 max(28px, env(safe-area-inset-bottom)) 0',
     animation: sheetAnim,
   };
-  const dragPill = (
+  const dragPill = !isWebDesktop ? (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
       <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.3)' }} />
     </div>
-  );
+  ) : null;
 
   function SettingsRow({ icon, label, badge, onPress, last = false }: {
     icon: string; label: string; badge?: string; onPress: () => void; last?: boolean;
@@ -4636,6 +4704,14 @@ function SheetAnimations() {
       @keyframes fade-out {
         from { opacity: 1; }
         to   { opacity: 0; }
+      }
+      @keyframes modal-scale-in {
+        from { transform: scale(0.95); opacity: 0; }
+        to   { transform: scale(1); opacity: 1; }
+      }
+      @keyframes modal-scale-out {
+        from { transform: scale(1); opacity: 1; }
+        to   { transform: scale(0.95); opacity: 0; }
       }
     `}</style>
   );

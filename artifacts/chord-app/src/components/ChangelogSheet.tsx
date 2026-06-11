@@ -36,6 +36,7 @@ import {
 } from '../lib/appVersion';
 import { useT } from '../lib/useT';
 import { useBackHandler } from '../lib/backStack';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 
 type Props = {
   open: boolean;
@@ -58,6 +59,7 @@ export default function ChangelogSheet({
   date = APP_VERSION_DATE,
   sections,
 }: Props) {
+  const isWebDesktop = useIsWebDesktop();
   const t = useT();
   const { settings } = useChordStore();
   const accentKey = settings.perApp?.hub?.accentColor ?? settings.accentColor ?? 'blue';
@@ -143,15 +145,21 @@ export default function ChangelogSheet({
 
   const overlayOpacity = closing ? 0 : Math.max(0, 1 - drag / 380);
 
-  const sheetTransform = closing
-    ? 'translateY(100%)'
-    : drag > 0
-      ? `translateY(${drag}px)`
-      : 'translateY(0)';
+  const sheetTransform = isWebDesktop
+    ? closing
+      ? 'scale(0.95)'
+      : 'scale(1)'
+    : closing
+      ? 'translateY(100%)'
+      : drag > 0
+        ? `translateY(${drag}px)`
+        : 'translateY(0)';
 
-  const sheetTransition = drag > 0
-    ? 'none'
-    : 'transform 400ms cubic-bezier(0.16, 1, 0.3, 1)';
+  const sheetTransition = isWebDesktop
+    ? 'transform 250ms ease, opacity 250ms ease'
+    : drag > 0
+      ? 'none'
+      : 'transform 400ms cubic-bezier(0.16, 1, 0.3, 1)';
 
   return createPortal(
     <div
@@ -159,8 +167,8 @@ export default function ChangelogSheet({
       aria-modal="true"
       aria-label={t.hub.changelogTitle ?? 'Changelog'}
       style={{
-        position: 'fixed', inset: 0, zIndex: 9700,
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        position: 'fixed', inset: 0, zIndex: 100005,
+        display: 'flex', alignItems: isWebDesktop ? 'center' : 'flex-end', justifyContent: 'center',
       }}
     >
       <div
@@ -178,22 +186,22 @@ export default function ChangelogSheet({
       <div
         ref={sheetRef}
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={(e) => beginDrag(e.touches[0].clientY)}
-        onTouchMove={(e) => moveDrag(e.touches[0].clientY)}
-        onTouchEnd={endDrag}
-        onTouchCancel={endDrag}
-        onMouseDown={(e) => { if (e.button === 0) beginDrag(e.clientY); }}
-        onMouseMove={(e) => { if (dragStartY.current !== null) moveDrag(e.clientY); }}
-        onMouseUp={endDrag}
-        onMouseLeave={endDrag}
+        onTouchStart={(e) => { if (!isWebDesktop) beginDrag(e.touches[0].clientY); }}
+        onTouchMove={(e) => { if (!isWebDesktop) moveDrag(e.touches[0].clientY); }}
+        onTouchEnd={!isWebDesktop ? endDrag : undefined}
+        onTouchCancel={!isWebDesktop ? endDrag : undefined}
+        onMouseDown={(e) => { if (!isWebDesktop && e.button === 0) beginDrag(e.clientY); }}
+        onMouseMove={(e) => { if (!isWebDesktop && dragStartY.current !== null) moveDrag(e.clientY); }}
+        onMouseUp={!isWebDesktop ? endDrag : undefined}
+        onMouseLeave={!isWebDesktop ? endDrag : undefined}
         style={{
           position: 'relative',
           width: '100%',
           maxWidth: 520,
-          maxHeight: '86vh',
+          maxHeight: isWebDesktop ? '80vh' : '86vh',
           background: 'var(--app-surface)',
-          borderRadius: '22px 22px 0 0',
-          boxShadow: '0 -16px 48px rgba(0,0,0,0.45)',
+          borderRadius: isWebDesktop ? '16px' : '22px 22px 0 0',
+          boxShadow: isWebDesktop ? '0 24px 60px rgba(0, 0, 0, 0.65)' : '0 -16px 48px rgba(0,0,0,0.45)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -201,18 +209,20 @@ export default function ChangelogSheet({
           transition: sheetTransition,
           animation: closing
             ? undefined
-            : drag > 0 ? undefined : 'cl-sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
-          paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
-          touchAction: 'pan-y',
+            : drag > 0 ? undefined : isWebDesktop ? 'cl-modal-scale-in 250ms ease both' : 'cl-sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
+          paddingBottom: isWebDesktop ? '20px' : 'max(20px, env(safe-area-inset-bottom))',
+          touchAction: isWebDesktop ? 'none' : 'pan-y',
         }}
       >
         {/* Drag handle — smaller and quieter than the Metrolist one. */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 6px', flexShrink: 0 }}>
-          <div style={{
-            width: 36, height: 3.5, borderRadius: 999,
-            background: 'rgba(160,160,160,0.35)',
-          }} />
-        </div>
+        {!isWebDesktop && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 6px', flexShrink: 0 }}>
+            <div style={{
+              width: 36, height: 3.5, borderRadius: 999,
+              background: 'rgba(160,160,160,0.35)',
+            }} />
+          </div>
+        )}
 
         {/* Header — one tight line. Version pill anchored left, date
             anchored right. No squiggle, no big title block. */}
@@ -302,12 +312,16 @@ export default function ChangelogSheet({
       </div>
 
       {/* Gradient border ring — 1 px animated conic border on the sheet */}
-      <div className="gb-border-ring" aria-hidden="true" style={{ borderRadius: '22px 22px 0 0' }} />
+      <div className="gb-border-ring" aria-hidden="true" style={{ borderRadius: isWebDesktop ? '16px' : '22px 22px 0 0' }} />
 
       <style>{`
         @keyframes cl-sheet-up {
           from { transform: translateY(100%); }
           to   { transform: translateY(0); }
+        }
+        @keyframes cl-modal-scale-in {
+          from { transform: scale(0.95); opacity: 0; }
+          to   { transform: scale(1); opacity: 1; }
         }
       `}</style>
     </div>,
