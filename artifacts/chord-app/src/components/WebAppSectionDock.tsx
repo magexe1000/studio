@@ -113,17 +113,17 @@ function DockItem({
           cursor: 'pointer',
           outline: 'none',
           background: isActive
-            ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
+            ? '#ffffff'
             : isLight
               ? 'rgba(0, 0, 0, 0.05)'
               : 'rgba(255, 255, 255, 0.06)',
           color: isActive
-            ? '#ffffff'
+            ? '#09090b'
             : isLight
               ? 'rgba(0, 0, 0, 0.7)'
               : 'rgba(255, 255, 255, 0.7)',
           boxShadow: (isActive && !reduceMotion)
-            ? `0 6px 20px ${accent.from}55, inset 0 1.5px 0 rgba(255,255,255,0.3)`
+            ? '0 4px 12px rgba(255, 255, 255, 0.15)'
             : 'none',
           transformOrigin: 'bottom center',
           transition: reduceMotion

@@ -227,8 +227,8 @@ export default function ChordPanel() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar pb-32 spring-in" style={{ paddingTop: isWebDesktop ? '20px' : '0' }}>
         {/* Hero chord card */}
         <div
-          className="mx-4 mt-4 rounded-3xl p-6 relative overflow-hidden"
-          style={{ background: 'var(--app-surface)', transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)' }}
+          className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6 relative overflow-hidden" : "mx-4 mt-4 rounded-3xl p-6 relative overflow-hidden"}
+          style={isWebDesktop ? { position: 'relative' } : { background: 'var(--app-surface)', transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)' }}
         >
           <div className="absolute top-5 right-6">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
@@ -312,7 +312,7 @@ export default function ChordPanel() {
         </div>
 
         {/* Find Chord section */}
-        <div className="mx-4 mt-4 rounded-3xl p-5 app-surface">
+        <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-5" : "mx-4 mt-4 rounded-3xl p-5 app-surface"}>
           <button
             onClick={() => setShowFinder(true)}
             className="btn-smooth flex items-center gap-3 w-full"
@@ -335,7 +335,7 @@ export default function ChordPanel() {
 
         {/* Voicings & Variations — gated on Smart Suggestions */}
         {settings.chordAssistant && settings.assistantSmartSuggestions && (
-        <div className="mx-4 mt-4 rounded-3xl p-6 app-surface">
+        <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6" : "mx-4 mt-4 rounded-3xl p-6 app-surface"}>
           <h3 className="text-[10px] font-bold uppercase tracking-widest mb-5" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>
             {t.chord.voicings}
           </h3>
@@ -369,7 +369,7 @@ export default function ChordPanel() {
         )}
 
         {/* Harmonic Context */}
-        <div className="mx-4 mt-4 rounded-3xl p-6 app-surface">
+        <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6" : "mx-4 mt-4 rounded-3xl p-6 app-surface"}>
           <h3 className="text-[10px] font-bold uppercase tracking-widest mb-5" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>
             {t.chord.harmonicContext}
           </h3>
@@ -394,7 +394,7 @@ export default function ChordPanel() {
 
         {/* Current Progression */}
         {progressionChords.length > 0 && (
-          <div className="mx-4 mt-4 rounded-3xl p-6 app-surface">
+          <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6" : "mx-4 mt-4 rounded-3xl p-6 app-surface"}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>{t.chord.currentProgression}</h3>
               <div className="flex items-center gap-3">
@@ -478,7 +478,7 @@ export default function ChordPanel() {
 
         {/* Recent Chords */}
         {recentList.length > 0 && (
-          <div className="mx-4 mt-4 rounded-3xl p-6 app-surface">
+          <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6" : "mx-4 mt-4 rounded-3xl p-6 app-surface"}>
             <h3 className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>{t.chord.recentChords}</h3>
             <div className="scroll-fade-container">
               <div className={`scroll-fade-content flex gap-2 overflow-x-auto no-scrollbar pb-1 ${recentFadeClass}`} ref={recentScrollRef}>
@@ -534,12 +534,13 @@ export default function ChordPanel() {
 }
 
 function SavedProgressions({ accent }: { accent: { from: string; to: string; mid: string } }) {
+  const isWebDesktop = useIsWebDesktop();
   const { progressions, loadProgression, deleteProgression } = useChordStore();
   const t = useT();
   if (progressions.length === 0) return null;
 
   return (
-    <div className="mx-4 mt-4 rounded-3xl p-6 app-surface">
+    <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6" : "mx-4 mt-4 rounded-3xl p-6 app-surface"}>
       <h3 className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>{t.chord.savedProgressions}</h3>
       <div className="space-y-3">
         {progressions.map(prog => {

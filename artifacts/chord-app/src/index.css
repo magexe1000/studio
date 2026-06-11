@@ -134,6 +134,9 @@
 
   --add-bar-border: 1px dashed rgba(255,255,255,0.14);
 
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
+  --sidebar-active-bg: rgba(255, 255, 255, 0.07);
+
   /* Animate the variables themselves — every consumer transitions for free */
   transition:
     --app-bg              300ms cubic-bezier(0.4, 0, 0.2, 1),
@@ -181,6 +184,9 @@
   --c-text-muted:     #b2b1b0;
 
   --add-bar-border: 1px dashed rgba(0,0,0,0.18);
+
+  --sidebar-hover-bg: rgba(0, 0, 0, 0.03);
+  --sidebar-active-bg: rgba(0, 0, 0, 0.05);
 }
 
 /* Body background always tracks the active theme so the status bar area blends in */
@@ -468,6 +474,9 @@ html.light [style*="border:1px solid #161717"] {
     --c-text-muted:     #b2b1b0;
 
     --add-bar-border: 1px dashed rgba(0,0,0,0.18);
+
+    --sidebar-hover-bg: rgba(0, 0, 0, 0.03);
+    --sidebar-active-bg: rgba(0, 0, 0, 0.05);
   }
 }
 
@@ -1546,4 +1555,154 @@ html.landing-route #root {
 .landing-font-body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: -0.01em;
+}
+
+/* ── Web Desktop Minimal Redesign overrides ── */
+/* Default (Dark Theme) */
+html.web-desktop {
+  --app-bg: #050505 !important;
+  --app-surface-lowest: #000000 !important;
+  --app-surface-low: #09090b !important;
+  --app-surface: #0e0e11 !important;
+  --app-surface-high: #18181b !important;
+  --app-surface-highest: #27272a !important;
+  --c-text-primary: #f4f4f5 !important;
+  --c-text-secondary: #a1a1aa !important;
+  --c-text-muted: #52525b !important;
+}
+
+/* AMOLED Theme */
+html.web-desktop.amoled {
+  --app-bg: #000000 !important;
+  --app-surface-lowest: #000000 !important;
+  --app-surface-low: #030303 !important;
+  --app-surface: #080808 !important;
+  --app-surface-high: #121212 !important;
+  --app-surface-highest: #1a1a1a !important;
+  --c-text-primary: #f4f4f5 !important;
+  --c-text-secondary: #a1a1aa !important;
+  --c-text-muted: #52525b !important;
+}
+
+/* Light Theme */
+html.web-desktop.light {
+  --app-bg: #f5f5f7 !important;
+  --app-surface-lowest: #e5e5ea !important;
+  --app-surface-low: #f2f2f7 !important;
+  --app-surface: #ffffff !important;
+  --app-surface-high: #fafafa !important;
+  --app-surface-highest: #ffffff !important;
+  --c-text-primary: #1d1d1f !important;
+  --c-text-secondary: #86868b !important;
+  --c-text-muted: #c7c7cc !important;
+}
+
+/* Light AMOLED (Pure White) Theme */
+html.web-desktop.light.amoled {
+  --app-bg: #ffffff !important;
+  --app-surface-lowest: #f0f0f0 !important;
+  --app-surface-low: #f4f4f4 !important;
+  --app-surface: #ffffff !important;
+  --app-surface-high: #fafafa !important;
+  --app-surface-highest: #ffffff !important;
+  --c-text-primary: #000000 !important;
+  --c-text-secondary: #555555 !important;
+  --c-text-muted: #999999 !important;
+}
+
+/* System Light Theme Override */
+@media (prefers-color-scheme: light) {
+  html.web-desktop.theme-system {
+    --app-bg: #f5f5f7 !important;
+    --app-surface-lowest: #e5e5ea !important;
+    --app-surface-low: #f2f2f7 !important;
+    --app-surface: #ffffff !important;
+    --app-surface-high: #fafafa !important;
+    --app-surface-highest: #ffffff !important;
+    --c-text-primary: #1d1d1f !important;
+    --c-text-secondary: #86868b !important;
+    --c-text-muted: #c7c7cc !important;
+  }
+}
+
+html.web-desktop .gb-wrap {
+  background: transparent !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+html.web-desktop.light .gb-wrap {
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  html.web-desktop.theme-system .gb-wrap {
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+}
+
+html.web-desktop .gb-inner {
+  border-radius: inherit !important;
+  background: var(--app-surface-low) !important;
+}
+
+html.web-desktop .card-hover {
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  background: rgba(9, 9, 11, 0.4) !important;
+}
+
+html.web-desktop.light .card-hover {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  html.web-desktop.theme-system .card-hover {
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    background: rgba(255, 255, 255, 0.6) !important;
+  }
+}
+
+html.web-desktop .card-hover:hover {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(14, 14, 17, 0.6) !important;
+}
+
+html.web-desktop.light .card-hover:hover {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  html.web-desktop.theme-system .card-hover:hover {
+    border-color: rgba(0, 0, 0, 0.12) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+}
+
+html.web-desktop .app-sub-app-container {
+  background: #050505 !important;
+  transition: background 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+html.web-desktop.amoled .app-sub-app-container {
+  background: #000000 !important;
+}
+
+html.web-desktop.light .app-sub-app-container {
+  background: #f5f5f7 !important;
+}
+
+html.web-desktop.light.amoled .app-sub-app-container {
+  background: #ffffff !important;
+}
+
+@media (prefers-color-scheme: light) {
+  html.web-desktop.theme-system .app-sub-app-container {
+    background: #f5f5f7 !important;
+  }
 }

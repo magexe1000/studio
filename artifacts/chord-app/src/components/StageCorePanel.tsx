@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
+import { motion } from 'motion/react';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
 import WebAppSectionDock from './WebAppSectionDock';
@@ -11,6 +12,7 @@ import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
 import SmartLoading from './SmartLoading';
 import { StagexPanelSkeleton } from './StudioSkeleton';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
+import { WebToolbar, WebButton } from './WebDesignSystem';
 
 type StageWin = Window & {
   stageGoBack?: () => boolean;
@@ -323,7 +325,7 @@ export default function StagexPanel() {
     }
     return false;
   })();
-  const isAmoled  = stageVis.amoledMode;
+  const isAmoled  = isWebDesktop ? true : stageVis.amoledMode;
 
   const iframeSrc = useRef(
     `/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)},${isAmoled ? '1' : '0'}`
@@ -604,6 +606,374 @@ export default function StagexPanel() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curView]);
+
+  if (isWebDesktop) {
+    return (
+      <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden', background: '#050505', position: 'relative' }}>
+        <WebAppSectionDock 
+          app="stage" 
+          activeSection={isTabActive('Editor') ? 'Editor' : isTabActive('Setup') ? 'Setup' : 'Preferences'} 
+          onChangeSection={handleNavTap} 
+        />
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden', background: '#050505', position: 'relative' }}>
+          
+          {/* Top header/toolbar */}
+          <WebToolbar className="border-b border-zinc-900 bg-[#080808] h-12 flex-shrink-0 select-none">
+            <div className="flex items-center gap-3">
+              <span className="font-extrabold text-[10px] uppercase text-white tracking-widest" style={{ letterSpacing: '0.08em' }}>
+                Stagex
+              </span>
+              <div className="h-4 w-[1px] bg-zinc-800" />
+              <span className="text-[8.5px] text-zinc-500 font-extrabold uppercase tracking-widest">
+                {curView === 'Editor' ? 'Stage Plot Editor' : curView === 'Export' ? 'Rider Export' : 'Setup & Options'}
+              </span>
+            </div>
+            
+            {curView === 'Editor' && (
+              <div className="flex gap-1.5">
+                {[
+                  { label: tr.stagex.toolMeasure, icon: 'straighten', fn: () => callIframe('scActivateMeasure') },
+                  { label: tr.stagex.toolZones, icon: 'grid_4x4', fn: () => callIframe('scToggleZones') },
+                  { label: tr.stagex.toolHistory, icon: 'history', fn: () => callIframe('openTimelinePanel') },
+                ].map(({ label, icon, fn }) => (
+                  <WebButton
+                    key={label}
+                    onClick={fn}
+                    variant="secondary"
+                    className="h-8 !px-2.5"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">{icon}</span>
+                    {label}
+                  </WebButton>
+                ))}
+                <WebButton
+                  onClick={() => callIframe('openPresetsPanel')}
+                  variant="secondary"
+                  className="h-8 !px-2.5"
+                >
+                  <span className="material-symbols-outlined text-[15px]">save</span>
+                  Save Preset
+                </WebButton>
+                <WebButton
+                  onClick={() => { setCurView('Export'); callIframe('switchView', 'Export'); }}
+                  variant="secondary"
+                  className="h-8 !px-2.5"
+                >
+                  <span className="material-symbols-outlined text-[15px]">picture_as_pdf</span>
+                  Export Rider
+                </WebButton>
+              </div>
+            )}
+            
+            {curView === 'Export' && (
+              <div className="flex gap-1.5">
+                <WebButton
+                  onClick={() => { setCurView('Editor'); callIframe('switchView', 'Editor'); }}
+                  variant="secondary"
+                  className="h-8 !px-2.5"
+                >
+                  <span className="material-symbols-outlined text-[15px]">arrow_back</span>
+                  Editor
+                </WebButton>
+                <WebButton
+                  onClick={() => callIframe('toggleExportOptions')}
+                  variant="secondary"
+                  className="h-8 !px-2.5"
+                >
+                  <span className="material-symbols-outlined text-[15px]">tune</span>
+                  Sections
+                </WebButton>
+                <WebButton
+                  onClick={openPdfSheet}
+                  variant="primary"
+                  className="h-8 !px-2.5"
+                >
+                  <span className="material-symbols-outlined text-[15px]">download</span>
+                  Get PDF
+                </WebButton>
+              </div>
+            )}
+          </WebToolbar>
+          
+          {/* Main workspace area */}
+          <div style={{ display: 'flex', flex: 1, overflow: 'hidden', paddingBottom: '96px' }}>
+            <div style={{
+              flex: 1,
+              margin: '12px',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              position: 'relative',
+              background: '#020202',
+            }}>
+              <iframe
+                ref={iframeRef}
+                src={iframeSrc}
+                title="Stagex Canvas"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', display: 'block', backgroundColor: 'transparent' }}
+                allow="clipboard-write"
+              />
+              {iframeLoading && (
+                <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: '#050505' }}>
+                  <SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />
+                </div>
+              )}
+            </div>
+            
+            {curView === 'Editor' && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                style={{
+                  width: '220px',
+                  borderLeft: '1px solid rgba(255,255,255,0.06)',
+                  background: '#080809',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '8.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.3)', marginBottom: '8px' }}>
+                      Stage Elements
+                    </h4>
+                    <button
+                      onClick={handleFabTap}
+                      className="btn-smooth bg-zinc-900 hover:bg-zinc-850 text-white border border-zinc-800 hover:border-zinc-700 w-full animate-none"
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em',
+                        padding: '10px 14px', borderRadius: '8px', cursor: 'pointer',
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                      Add Element
+                    </button>
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '8.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.3)', marginBottom: '8px' }}>
+                      View Mode
+                    </h4>
+                    <button
+                      onClick={() => callIframe('toggleGigMode')}
+                      className={`btn-smooth border w-full ${
+                        liveMode 
+                          ? 'bg-zinc-100 text-zinc-950 border-transparent font-extrabold' 
+                          : 'bg-transparent text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700'
+                      }`}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em',
+                        padding: '10px 14px', borderRadius: '8px', cursor: 'pointer',
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                        {liveMode ? 'visibility' : 'visibility_off'}
+                      </span>
+                      {liveMode ? 'Live Mode Active' : 'Enter Live Mode'}
+                    </button>
+                  </div>
+                </div>
+                <div style={{ fontSize: '8px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.15)' }}>
+                  Stagex Module v4.0.0
+                </div>
+              </motion.div>
+            )}
+          </div>
+          
+        </div>
+        {pdfSheetOpen && (
+          <>
+            <div
+              onClick={() => !pdfBusy && setPdfSheetOpen(false)}
+              style={{
+                position: 'absolute', inset: 0, zIndex: 9998,
+                background: 'rgba(0,0,0,0.55)',
+                animation: 'pdfSheetFade 180ms ease-out',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 9999,
+                background: '#0c0c0d',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 16,
+                padding: '24px',
+                width: '400px',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+              }}
+            >
+              <div style={{
+                fontFamily: 'Manrope, sans-serif',
+                fontSize: 12, fontWeight: 800,
+                textTransform: 'uppercase', letterSpacing: '0.14em',
+                color: 'white', marginBottom: 18,
+              }}>
+                {tr.stagex.pdfSheetTitle}
+              </div>
+
+              <label style={{
+                display: 'block',
+                fontFamily: 'Manrope, sans-serif',
+                fontSize: 10, fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.1em',
+                color: 'rgba(180,185,200,0.65)',
+                marginBottom: 6,
+              }}>
+                {tr.stagex.pdfSheetName}
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18 }}>
+                <input
+                  type="text"
+                  value={pdfFileName}
+                  onChange={(e) => setPdfFileName(e.target.value)}
+                  disabled={pdfBusy}
+                  maxLength={64}
+                  style={{
+                    flex: 1,
+                    padding: '11px 12px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    borderRadius: 10,
+                    color: '#fff',
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: 14,
+                    outline: 'none',
+                  }}
+                />
+                <span style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: 12, fontWeight: 600,
+                  color: 'rgba(180,185,200,0.55)',
+                  paddingRight: 4,
+                }}>.pdf</span>
+              </div>
+
+              {pdfSceneInfo.count > 1 && (
+                <>
+                  <label style={{
+                    display: 'block',
+                    fontFamily: 'Manrope, sans-serif',
+                    fontSize: 10, fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.1em',
+                    color: 'rgba(180,185,200,0.65)',
+                    marginBottom: 6,
+                  }}>
+                    {tr.stagex.pdfSheetScene}
+                  </label>
+                  <div style={{
+                    display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18,
+                  }}>
+                    {([
+                      { key: 'current' as const, label: tr.stagex.pdfSheetSceneCurrent },
+                      ...pdfSceneInfo.names.slice(0, pdfSceneInfo.count).map((n, i) => ({ key: i, label: n })),
+                      { key: 'all' as const, label: tr.stagex.pdfSheetSceneAll },
+                    ]).map(({ key, label }) => {
+                      const active = pdfSceneChoice === key;
+                      return (
+                        <button
+                          key={String(key)}
+                          onClick={() => setPdfSceneChoice(key)}
+                          disabled={pdfBusy}
+                          style={{
+                            padding: '7px 12px',
+                            background: active
+                              ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
+                              : 'rgba(255,255,255,0.05)',
+                            color: '#fff',
+                            border: `1px solid ${active ? 'transparent' : 'rgba(255,255,255,0.10)'}`,
+                            borderRadius: 8,
+                            fontFamily: 'Manrope, sans-serif', fontSize: 11, fontWeight: 700,
+                            textTransform: 'uppercase', letterSpacing: '0.06em',
+                            cursor: pdfBusy ? 'wait' : 'pointer',
+                            transition: 'background 150ms, color 150ms, border-color 150ms',
+                          }}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <AnimatedActionButton
+                  onClick={() => runPdfExport('save')}
+                  disabled={pdfBusy || !pdfFileName.trim()}
+                  borderRadius={12}
+                  trailColor={accent.to}
+                  wrapStyle={{ width: '100%' }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    width: '100%', height: 48,
+                    background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                    color: '#fff', border: 'none',
+                    fontFamily: 'Manrope, sans-serif', fontSize: 13, fontWeight: 800,
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    cursor: pdfBusy ? 'wait' : 'pointer',
+                    opacity: pdfBusy || !pdfFileName.trim() ? 0.55 : 1,
+                    boxShadow: `0 4px 18px ${accent.from}44`,
+                    transition: 'opacity 150ms',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, lineHeight: 1 }}>download</span>
+                  {tr.stagex.pdfSheetSave}
+                </AnimatedActionButton>
+
+                {canShareFiles && (
+                  <button
+                    onClick={() => runPdfExport('share')}
+                    disabled={pdfBusy || !pdfFileName.trim()}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      width: '100%', height: 48,
+                      background: 'rgba(255,255,255,0.06)',
+                      color: '#fff',
+                      border: '1px solid rgba(255,255,255,0.10)',
+                      borderRadius: 12,
+                      fontFamily: 'Manrope, sans-serif', fontSize: 13, fontWeight: 800,
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
+                      cursor: pdfBusy ? 'wait' : 'pointer',
+                      opacity: pdfBusy || !pdfFileName.trim() ? 0.55 : 1,
+                      transition: 'opacity 150ms',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18, lineHeight: 1 }}>ios_share</span>
+                    {tr.stagex.pdfSheetShare}
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setPdfSheetOpen(false)}
+                  disabled={pdfBusy}
+                  style={{
+                    width: '100%', height: 44,
+                    background: 'transparent',
+                    color: 'rgba(180,185,200,0.7)',
+                    border: 'none',
+                    fontFamily: 'Manrope, sans-serif', fontSize: 12, fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.1em',
+                    cursor: 'pointer',
+                    opacity: pdfBusy ? 0.4 : 1,
+                  }}
+                >
+                  {tr.stagex.pdfSheetCancel}
+                </button>
+              </div>
+            </div>
+            <style>{`
+              @keyframes pdfSheetFade { from { opacity: 0; } to { opacity: 1; } }
+            `}</style>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100dvh', background: stageBg, transition: 'background 180ms ease' }}>

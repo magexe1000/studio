@@ -59,16 +59,6 @@ export default function LandingNavbar({ navigateTo }: LandingNavbarProps) {
             Downloads
           </a>
         </nav>
-
-        <button 
-          onClick={() => {
-            sessionStorage.setItem('studio:entered_from_landing', 'true');
-            navigateTo('/app');
-          }}
-          className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-[#030303] bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-all duration-200"
-        >
-          Use Studio Web
-        </button>
       </div>
     </header>
   );

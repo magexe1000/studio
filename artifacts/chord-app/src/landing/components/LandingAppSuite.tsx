@@ -1,27 +1,11 @@
 import React from 'react';
-import { APPS_DATA } from '../landingData';
-import { 
-  ChordexLogo, 
-  StagexLogoIcon, 
-  GroovexLogo, 
-  DrumexLogo, 
-  VocalexLogo 
-} from '../../components/ChordexLogo';
-import { Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useStudioPreferences } from '../../hooks/useStudioPreferences';
-
-// Render logo according to key
-function renderLogoByKey(key: string) {
-  switch (key) {
-    case 'chords': return <ChordexLogo size={24} />;
-    case 'stage': return <StagexLogoIcon size={24} />;
-    case 'groovex': return <GroovexLogo size={24} />;
-    case 'drums': return <DrumexLogo size={24} />;
-    case 'vocalex': return <VocalexLogo size={24} />;
-    default: return null;
-  }
-}
+import { 
+  ChordexFeatureSkeleton, 
+  StagexFeatureSkeleton, 
+  GroovexFeatureSkeleton 
+} from './StudioFeatureSkeletons';
 
 export default function LandingAppSuite() {
   const { preferences } = useStudioPreferences();
@@ -31,7 +15,7 @@ export default function LandingAppSuite() {
     hidden: {},
     visible: {
       transition: {
-        staggerChildren: isReduced ? 0 : 0.08,
+        staggerChildren: isReduced ? 0 : 0.1,
       },
     },
   };
@@ -39,68 +23,83 @@ export default function LandingAppSuite() {
   const cardVariants = {
     hidden: { 
       opacity: 0, 
-      y: isReduced ? 0 : 24 
+      y: isReduced ? 0 : 28 
     },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: isReduced ? 0 : 0.55,
+        duration: isReduced ? 0 : 0.65,
         ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
       },
     },
   };
 
+  const features = [
+    {
+      app: 'chordex',
+      title: 'Organize songs, chords, and setlists.',
+      desc: 'Build song presets, browse chord shapes, manage progressions, and keep your set material ready.',
+      Skeleton: ChordexFeatureSkeleton,
+    },
+    {
+      app: 'stagex',
+      title: 'Plan the stage before the gig.',
+      desc: 'Map stage layouts, organize gear placement, and prepare cleaner setup information for live shows.',
+      Skeleton: StagexFeatureSkeleton,
+    },
+    {
+      app: 'groovex',
+      title: 'Practice with a focused groove workspace.',
+      desc: 'Use mixer-style controls and practice views to stay locked into rhythm and arrangement ideas.',
+      Skeleton: GroovexFeatureSkeleton,
+    },
+  ];
+
   return (
     <section id="suite" className="py-24 border-t border-zinc-900 bg-[#050508]/40 relative select-none">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white uppercase mb-4 landing-font-heading">
-            Built around real music workflows
+      {/* Decorative background grid effect */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] pointer-events-none" />
+      
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        {/* Header Block */}
+        <div className="text-center max-w-3xl mx-auto mb-20">
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white uppercase mb-5 leading-tight landing-font-heading">
+            Built for focused music workflows.
           </h2>
-          <p className="text-zinc-400 text-xs md:text-sm leading-relaxed landing-font-body">
-            Move from songs and chords to stage planning, rhythm practice, and vocal tools without leaving your workspace.
+          <p className="text-zinc-400 text-xs md:text-sm leading-relaxed max-w-2xl mx-auto landing-font-body">
+            Studio connects the core parts of a modern music workflow: organizing songs and chords, preparing stage layouts, and practicing with groove-focused tools.
           </p>
         </div>
 
+        {/* Features Grid */}
         <motion.div 
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: '-100px' }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          viewport={{ once: true, margin: '-80px' }}
+          className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
-          {APPS_DATA.map((app) => (
-            <motion.div 
-              key={app.key}
+          {features.map(({ app, title, desc, Skeleton }) => (
+            <motion.div
+              key={app}
               variants={cardVariants}
-              className="group relative p-6 rounded-xl bg-zinc-950 border border-zinc-900 transition-all duration-300 hover:border-zinc-700 hover:-translate-y-1 shadow-2xl flex flex-col justify-between"
+              className="group relative flex flex-col rounded-2xl bg-zinc-950/40 border border-zinc-900 overflow-hidden transition-all duration-300 hover:border-zinc-800 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.8)]"
             >
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <div className="p-3 bg-zinc-900 text-zinc-100 rounded-lg border border-zinc-800/80">
-                    {renderLogoByKey(app.key)}
-                  </div>
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full landing-font-heading">
-                    {app.badge}
-                  </span>
-                </div>
+              {/* Skeleton Area */}
+              <div className="h-[210px] w-full border-b border-zinc-900 bg-[#020202] relative overflow-hidden shadow-[inset_0_4px_24px_rgba(0,0,0,0.6)]">
+                <div className="absolute inset-0 bg-grid-pattern opacity-[0.015] pointer-events-none" />
+                <Skeleton />
+              </div>
 
-                <h3 className="text-lg font-bold text-white mb-2 uppercase tracking-wide landing-font-heading">
-                  {app.name}
+              {/* Text Description Area */}
+              <div className="p-6 flex flex-col flex-1 gap-2">
+                <h3 className="text-sm md:text-base font-bold text-white uppercase tracking-wider leading-snug landing-font-heading">
+                  {title}
                 </h3>
-                <p className="text-xs text-zinc-400 mb-6 leading-relaxed landing-font-body">
-                  {app.desc}
+                <p className="text-xs text-zinc-400 leading-relaxed landing-font-body">
+                  {desc}
                 </p>
-
-                <ul className="space-y-2.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-wider landing-font-heading">
-                  {app.bullets.map((bullet, idx) => (
-                    <li key={idx} className="flex items-center gap-2">
-                      <Check className="w-3 h-3 text-zinc-400 flex-shrink-0" />
-                      {bullet}
-                    </li>
-                  ))}
-                </ul>
               </div>
             </motion.div>
           ))}

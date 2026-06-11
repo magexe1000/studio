@@ -4,6 +4,8 @@ import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
 import { useT } from '../lib/useT';
 import { useScrollHide } from '../lib/navScroll';
+import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
+import { WebSettingsSection, WebPreferenceRow } from '../components/WebDesignSystem';
 
 function IconDrumSongs({ active }: { active: boolean }) {
   const sw = active ? 2 : 1.6; const ao = active ? 0.13 : 0;
@@ -61,7 +63,21 @@ export default function DrumPrefsPanel() {
     overflow: 'hidden',
   };
 
+  const isWebDesktop = useIsWebDesktop();
+
   function row(key: keyof typeof drumPrefs, label: string, desc: string) {
+    if (isWebDesktop) {
+      return (
+        <WebPreferenceRow label={label} desc={desc}>
+          <Toggle
+            value={drumPrefs[key] as boolean}
+            onChange={v => updateDrumPrefs({ [key]: v })}
+            accentFrom={acc.from}
+            accentTo={acc.to}
+          />
+        </WebPreferenceRow>
+      );
+    }
     return (
       <SettingRow label={label} desc={desc}>
         <Toggle
@@ -71,6 +87,80 @@ export default function DrumPrefsPanel() {
           accentTo={acc.to}
         />
       </SettingRow>
+    );
+  }
+
+  if (isWebDesktop) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden bg-[#050505] p-6">
+        <div className="mb-6">
+          <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: 'white', fontFamily: 'Manrope' }}>
+            {dp.title}
+          </h2>
+          <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '11px', marginTop: '2px' }}>
+            {dp.subtitle}
+          </p>
+        </div>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar space-y-6" style={{ paddingBottom: '96px' }}>
+          <WebSettingsSection title={dp.editorBehavior}>
+            {row('noteVariationsCycle', dp.noteVariations, dp.noteVariationsDesc)}
+            {row('autoExpandPattern', dp.autoExpand, dp.autoExpandDesc)}
+            {row('snapToGrid', dp.snapToGrid, dp.snapToGridDesc)}
+            {row('dragToFill', dp.dragToFill, dp.dragToFillDesc)}
+          </WebSettingsSection>
+
+          <WebSettingsSection title={dp.playback}>
+            {row('autoPlayOnEdit', dp.autoPlay, dp.autoPlayDesc)}
+            {row('loopPlayback', dp.loopPlayback, dp.loopPlaybackDesc)}
+            {row('metronome', dp.metronome, dp.metronomeDesc)}
+            {row('countIn', dp.countIn, dp.countInDesc)}
+            {row('humanizeVelocity', dp.humanizeVelocity, dp.humanizeVelocityDesc)}
+          </WebSettingsSection>
+
+          <WebSettingsSection title={dp.interaction}>
+            {row('showNoteVariations', dp.showVariations, dp.showVariationsDesc)}
+            {row('highlightActiveInst', dp.highlightActive, dp.highlightActiveDesc)}
+          </WebSettingsSection>
+
+          <WebSettingsSection title={dp.visual}>
+            {row('gridLinesEmphasis', dp.gridEmphasis, dp.gridEmphasisDesc)}
+          </WebSettingsSection>
+
+          <WebSettingsSection title={dp.startOn}>
+            <WebPreferenceRow label={dp.startOn} desc={dp.startOnDesc}>
+              {(() => {
+                const cur = settings.defaultDrumTab ?? 'songs';
+                const tabs: { value: 'songs' | 'patterns' | 'prefs'; Icon: React.FC<{ active: boolean }> }[] = [
+                  { value: 'songs',    Icon: IconDrumSongs },
+                  { value: 'patterns', Icon: IconPatterns  },
+                  { value: 'prefs',    Icon: IconPrefs     },
+                ];
+                return (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {tabs.map(({ value, Icon }) => {
+                      const active = cur === value;
+                      return (
+                        <button
+                          key={value}
+                          onClick={() => updateSettings({ defaultDrumTab: value })}
+                          className={`w-9 h-9 flex items-center justify-center rounded-lg border cursor-pointer transition-all ${
+                            active 
+                              ? 'bg-zinc-800 text-white border-zinc-700' 
+                              : 'bg-transparent text-zinc-500 border-zinc-900 hover:text-zinc-300'
+                          }`}
+                        >
+                          <Icon active={active} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </WebPreferenceRow>
+          </WebSettingsSection>
+        </div>
+      </div>
     );
   }
 

@@ -53,7 +53,7 @@ export function SidebarProvider({
   };
 
   const state = open ? 'expanded' : 'collapsed';
-  const width = open ? '240px' : '68px';
+  const width = open ? '240px' : '0px';
 
   return (
     <SidebarContext.Provider value={{ state, open, setOpen, isMobile, toggleSidebar }}>
@@ -61,7 +61,7 @@ export function SidebarProvider({
         className={`flex w-full h-full min-h-screen overflow-hidden ${className}`}
         style={{
           '--sidebar-width': '240px',
-          '--sidebar-width-icon': '68px',
+          '--sidebar-width-icon': '0px',
           '--sidebar-current-width': width,
           ...style,
         } as React.CSSProperties}
@@ -87,35 +87,66 @@ export function Sidebar({
 }) {
   const { open } = useSidebar();
 
-  const targetWidth = shouldHideSidebar ? '0px' : (open ? '240px' : '68px');
-  const targetOpacity = shouldHideSidebar ? 0 : 1;
+  const targetWidth = open ? '240px' : '0px';
+  const targetMargin = open ? '12px' : '0px';
+  const targetBorderColor = open ? 'rgba(128,128,128,0.15)' : 'rgba(128,128,128,0)';
 
   return (
     <motion.aside
-      className={`h-screen flex flex-col border-r border-[rgba(128,128,128,0.08)] select-none flex-shrink-0 relative ${className}`}
+      className={`flex flex-col select-none flex-shrink-0 relative ${className}`}
       animate={{
         width: targetWidth,
-        opacity: targetOpacity,
+        margin: targetMargin,
+        borderColor: targetBorderColor,
       }}
       transition={{
-        duration: 0.26,
-        ease: [0.16, 1, 0.3, 1], // easeOutExpo
+        width: {
+          duration: 0.22,
+          ease: [0.22, 1, 0.36, 1],
+        },
+        margin: {
+          duration: 0.22,
+          ease: [0.22, 1, 0.36, 1],
+        },
+        borderColor: {
+          duration: 0.22,
+          ease: 'linear',
+        }
       }}
       style={{
-        background: 'var(--app-surface)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
+        height: open ? 'calc(100vh - 24px)' : '100vh',
+        borderRadius: open ? '16px' : '0px',
+        border: '1px solid',
+        background: 'rgba(15, 15, 15, 0.70)',
+        backdropFilter: 'blur(30px)',
+        WebkitBackdropFilter: 'blur(30px)',
+        boxShadow: open ? '0 10px 30px rgba(0,0,0,0.5)' : 'none',
         boxSizing: 'border-box',
         overflow: 'hidden',
-        willChange: 'width, opacity',
+        willChange: 'width, margin, border-color',
         zIndex: 40,
         ...style,
       }}
       {...props}
     >
-      <div style={{ width: open ? '240px' : '68px', height: '100%', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+      <motion.div
+        animate={{
+          opacity: open ? 1 : 0,
+        }}
+        transition={{
+          duration: open ? 0.18 : 0.08,
+          ease: 'easeInOut',
+        }}
+        style={{
+          width: '240px',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          flexShrink: 0,
+        }}
+      >
         {children}
-      </div>
+      </motion.div>
     </motion.aside>
   );
 }
@@ -265,10 +296,10 @@ export function SidebarMenuButton({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center ${open ? 'justify-start gap-3 px-3' : 'justify-center px-0'} py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-150 relative group ${className}`}
+      className={`w-full flex items-center ${open ? 'justify-start gap-3 px-3' : 'justify-center px-0'} py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-150 relative group hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))] ${className}`}
       title={!open ? tooltip || undefined : undefined}
       style={{
-        background: active ? 'rgba(255, 255, 255, 0.07)' : 'transparent',
+        background: active ? 'var(--sidebar-active-bg, rgba(255, 255, 255, 0.07))' : 'transparent',
         color: active ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
         fontFamily: 'Manrope, sans-serif',
         fontWeight: active ? 700 : 500,
