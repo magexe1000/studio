@@ -4294,6 +4294,8 @@ User Agent: [Automatically Generated]
         return renderDebugContent();
       case 'profile':
         return renderProfile();
+      case 'release-notes':
+        return renderReleaseNotesContent();
       default:
         return renderGeneralContent();
     }
@@ -4301,6 +4303,16 @@ User Agent: [Automatically Generated]
 
   /* ── MOBILE DRILL DOWN LAYOUTS ──────────────────────────────────── */
   if (!isWebDesktop) {
+    if (page === 'release-notes') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Release Notes" onBack={goBack} />
+          {renderReleaseNotesContent()}
+        </div>
+      );
+    }
+
     if (page === 'privacy') {
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
@@ -4438,17 +4450,24 @@ User Agent: [Automatically Generated]
 
   const sections = [
     {
-      label: lang === 'es' ? 'Preferencias' : 'Preferences',
+      label: lang === 'es' ? 'Usuario' : 'User',
       items: [
-        { id: 'general' as const, icon: 'settings', label: lang === 'es' ? 'Preferencias Generales' : 'General Settings' },
-        { id: 'appearance' as const, icon: 'palette', label: lang === 'es' ? 'Apariencia' : 'Appearance' },
-        { id: 'language' as const, icon: 'language', label: lang === 'es' ? 'Idioma' : 'Language' },
         { id: 'profile' as const, icon: 'account_circle', label: lang === 'es' ? 'Perfil y Cuenta' : 'Profile & Account' },
       ]
     },
     {
-      label: lang === 'es' ? 'Sistema' : 'System',
+      label: lang === 'es' ? 'Preferencias' : 'Preferences',
       items: [
+        { id: 'general' as const, icon: 'settings', label: lang === 'es' ? 'Ajustes' : 'Settings' },
+        { id: 'appearance' as const, icon: 'palette', label: lang === 'es' ? 'Apariencia' : 'Appearance' },
+        { id: 'language' as const, icon: 'language', label: lang === 'es' ? 'Idioma' : 'Language' },
+        { id: 'privacy' as const, icon: 'security', label: lang === 'es' ? 'Privacidad y Seguridad' : 'Privacy & Security' },
+      ]
+    },
+    {
+      label: lang === 'es' ? 'Aplicación' : 'Application',
+      items: [
+        { id: 'release-notes' as const, icon: 'article', label: lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes' },
         { id: 'updater' as const, icon: 'download', label: lang === 'es' ? 'Actualizaciones de App' : 'App Updates' },
         { id: 'about' as const, icon: 'info', label: lang === 'es' ? 'Acerca de Studio' : 'About & Version' },
         ...(settings.developerMode ? [{ id: 'developer' as const, icon: 'terminal', label: lang === 'es' ? 'Opciones de Desarrollador' : 'Developer Options' }] : []),
@@ -4489,6 +4508,13 @@ User Agent: [Automatically Generated]
           from { opacity: 0; }
           to { opacity: 1; }
         }
+        @keyframes settings-content-fade-in {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .settings-content-animate {
+          animation: settings-content-fade-in 150ms ease both;
+        }
         .settings-desktop-layout .flex.items-center.justify-between.gap-4 {
           padding-left: 0px !important;
           padding-right: 0px !important;
@@ -4507,7 +4533,6 @@ User Agent: [Automatically Generated]
         }
       `}</style>
       <div 
-        key={pageKey} 
         style={{ 
           display: 'flex', 
           width: '880px', 
@@ -4615,7 +4640,7 @@ User Agent: [Automatically Generated]
           flexDirection: 'column',
           height: '100%',
         }}>
-          <div style={{ maxWidth: '640px', width: '100%', margin: '0 auto' }}>
+          <div key={activePageId} className="settings-content-animate" style={{ maxWidth: '640px', width: '100%', margin: '0 auto' }}>
             <div style={{ marginBottom: 28, borderBottom: '1px solid rgba(128, 128, 128, 0.08)', paddingBottom: 16 }}>
               <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>
                 {getPageTitle(activePageId)}
@@ -5695,6 +5720,13 @@ User Agent: [Automatically Generated]
           from { opacity: 0; }
           to { opacity: 1; }
         }
+        @keyframes settings-content-fade-in {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .settings-content-animate {
+          animation: settings-content-fade-in 150ms ease both;
+        }
         .settings-desktop-layout .flex.items-center.justify-between.gap-4 {
           padding-left: 0px !important;
           padding-right: 0px !important;
@@ -5713,7 +5745,6 @@ User Agent: [Automatically Generated]
         }
       `}</style>
       <div 
-        key={pageKey} 
         style={{ 
           display: 'flex', 
           width: '880px', 
@@ -5820,7 +5851,7 @@ User Agent: [Automatically Generated]
           flexDirection: 'column',
           height: '100%',
         }} ref={scrollRef}>
-          <div style={{ maxWidth: '640px', width: '100%', margin: '0 auto' }}>
+          <div key={activePageId} className="settings-content-animate" style={{ maxWidth: '640px', width: '100%', margin: '0 auto' }}>
             <div style={{ marginBottom: 28, borderBottom: '1px solid rgba(128, 128, 128, 0.08)', paddingBottom: 16 }}>
               <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>
                 {getPageTitle(activePageId)}

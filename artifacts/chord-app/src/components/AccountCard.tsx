@@ -2588,7 +2588,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
       {sheet === 'subscription' && createPortal(
         <div style={overlayStyle}>
           <div style={backdropStyle} onClick={closeSheet} />
-          <div className="profile-panel-sheet" style={sheetStyle}>
+          <div className="profile-panel-sheet" style={{ ...sheetStyle, width: isWebDesktop ? '850px' : '100%', maxWidth: '95vw' }}>
             {dragPill}
             <SheetHeader title={lang === 'es' ? 'Suscripción y facturación' : 'Subscription & Billing'} onClose={closeSheet} />
             <div
