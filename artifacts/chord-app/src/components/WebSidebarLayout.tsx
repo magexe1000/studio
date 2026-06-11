@@ -32,10 +32,42 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
 
   const [activeHubTab, setActiveHubTab] = useState<'home' | 'settings' | 'profile'>('home');
   const [activeSettingsPage, setActiveSettingsPage] = useState<string>('main');
-  const [prefGroupOpen, setPrefGroupOpen] = useState(true);
-  const [devGroupOpen, setDevGroupOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const [showHelpSubmenu, setShowHelpSubmenu] = useState(false);
+  const helpSubmenuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleHelpMouseEnter = () => {
+    if (helpSubmenuTimeoutRef.current) {
+      clearTimeout(helpSubmenuTimeoutRef.current);
+      helpSubmenuTimeoutRef.current = null;
+    }
+    setShowHelpSubmenu(true);
+  };
+
+  const handleHelpMouseLeave = () => {
+    helpSubmenuTimeoutRef.current = setTimeout(() => {
+      setShowHelpSubmenu(false);
+    }, 150);
+  };
+
+  const handleSubmenuMouseEnter = () => {
+    if (helpSubmenuTimeoutRef.current) {
+      clearTimeout(helpSubmenuTimeoutRef.current);
+      helpSubmenuTimeoutRef.current = null;
+    }
+  };
+
+  const handleSubmenuMouseLeave = () => {
+    setShowHelpSubmenu(false);
+  };
+
+  useEffect(() => {
+    if (!showProfileMenu) {
+      setShowHelpSubmenu(false);
+    }
+  }, [showProfileMenu]);
 
   const profileMenuBtnStyle = {
     width: '100%',
@@ -476,170 +508,24 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Preferences Group */}
-        <SidebarGroup>
-          {open ? (
-            <button
-              onClick={() => setPrefGroupOpen(!prefGroupOpen)}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-extrabold tracking-wider uppercase text-[var(--c-text-primary)] border-none bg-transparent cursor-pointer outline-none"
-              style={{ letterSpacing: '0.12em', fontFamily: 'Manrope, sans-serif', opacity: 0.5, margin: '14px 0 4px 0' }}
-            >
-              <span>Preferences</span>
-              <span className="material-symbols-outlined" style={{ fontSize: 13, transform: prefGroupOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 150ms ease', color: 'var(--c-text-primary)' }}>
-                chevron_right
-              </span>
-            </button>
-          ) : (
-            <SidebarGroupLabel>Preferences</SidebarGroupLabel>
-          )}
-
-          <AnimatePresence initial={false}>
-            {(!open || prefGroupOpen) && (
-              <motion.div
-                initial={open ? { height: 0, opacity: 0 } : false}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.18, ease: 'easeInOut' }}
-                style={{ overflow: 'hidden' }}
-              >
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'general'}
-                      onClick={() => handleGoToSettingsPage('general')}
-                      tooltip="General Settings"
-                    >
-                      <div className="flex-shrink-0">
-                        <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>settings</span>
-                      </div>
-                      {open && <span className="truncate">General Settings</span>}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'appearance'}
-                      onClick={() => handleGoToSettingsPage('appearance')}
-                      tooltip="Appearance"
-                    >
-                      <div className="flex-shrink-0">
-                        <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>palette</span>
-                      </div>
-                      {open && <span className="truncate">Appearance</span>}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'language'}
-                      onClick={() => handleGoToSettingsPage('language')}
-                      tooltip="Language"
-                    >
-                      <div className="flex-shrink-0">
-                        <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>language</span>
-                      </div>
-                      {open && <span className="truncate">Language</span>}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'updater'}
-                      onClick={() => handleGoToSettingsPage('updater')}
-                      tooltip="App Updates"
-                    >
-                      <div className="flex-shrink-0 relative">
-                        <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>download</span>
-                        {ota.updateAvailable && (
-                          <span className="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full border border-black" />
-                        )}
-                      </div>
-                      {open && (
-                        <span className="truncate flex items-center gap-2">
-                          App Updates
-                          {ota.updateAvailable && (
-                            <span className="bg-rose-500/20 text-rose-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">New</span>
-                          )}
-                        </span>
-                      )}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'help'}
-                      onClick={() => handleGoToSettingsPage('help')}
-                      tooltip="Help & FAQ"
-                    >
-                      <div className="flex-shrink-0">
-                        <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>help</span>
-                      </div>
-                      {open && <span className="truncate">Help & FAQ</span>}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </SidebarGroup>
-
         {/* Developer Group */}
         {settings.developerMode && (
           <SidebarGroup>
-            {open ? (
-              <button
-                onClick={() => setDevGroupOpen(!devGroupOpen)}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-extrabold tracking-wider uppercase text-[var(--c-text-primary)] border-none bg-transparent cursor-pointer outline-none"
-                style={{ letterSpacing: '0.12em', fontFamily: 'Manrope, sans-serif', opacity: 0.5, margin: '14px 0 4px 0' }}
-              >
-                <span>Developer</span>
-                <span className="material-symbols-outlined" style={{ fontSize: 13, transform: devGroupOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 150ms ease', color: 'var(--c-text-primary)' }}>
-                  chevron_right
-                </span>
-              </button>
-            ) : (
-              <SidebarGroupLabel>Developer</SidebarGroupLabel>
-            )}
-
-            <AnimatePresence initial={false}>
-              {(!open || devGroupOpen) && (
-                <motion.div
-                  initial={open ? { height: 0, opacity: 0 } : false}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.18, ease: 'easeInOut' }}
-                  style={{ overflow: 'hidden' }}
+            <SidebarGroupLabel>Developer</SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'developer'}
+                  onClick={() => handleGoToSettingsPage('developer')}
+                  tooltip="Developer Options"
                 >
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'developer'}
-                        onClick={() => handleGoToSettingsPage('developer')}
-                        tooltip="Developer Options"
-                      >
-                        <div className="flex-shrink-0">
-                          <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>terminal</span>
-                        </div>
-                        {open && <span className="truncate">Developer Options</span>}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'about'}
-                        onClick={() => handleGoToSettingsPage('about')}
-                        tooltip="About & Version"
-                      >
-                        <div className="flex-shrink-0">
-                          <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>info</span>
-                        </div>
-                        {open && <span className="truncate">About & Version</span>}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <div className="flex-shrink-0">
+                    <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>terminal</span>
+                  </div>
+                  {open && <span className="truncate">Developer Options</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
           </SidebarGroup>
         )}
       </SidebarContent>
@@ -718,7 +604,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                       transform: open ? 'none' : 'translateX(-50%)',
                       marginBottom: '8px',
                       width: '216px',
-                      background: 'var(--app-surface)',
+                      background: 'rgba(18, 18, 18, 0.75)',
                       backdropFilter: 'blur(30px)',
                       WebkitBackdropFilter: 'blur(30px)',
                       border: '1px solid rgba(128, 128, 128, 0.15)',
@@ -740,6 +626,10 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
 
                     {/* Menu items */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {/* Account Group */}
+                      <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', color: 'var(--c-text-secondary)', opacity: 0.5, padding: '2px 10px', letterSpacing: '0.08em', fontFamily: 'Manrope' }}>
+                        Account
+                      </div>
                       <button
                         onClick={() => { handleGoToSettingsPage('profile'); setShowProfileMenu(false); }}
                         style={profileMenuBtnStyle}
@@ -755,7 +645,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                         className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 16 }}>settings</span>
-                        <span>General Settings</span>
+                        <span>Settings</span>
                       </button>
 
                       <button
@@ -776,6 +666,12 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                         <span>Language</span>
                       </button>
 
+                      <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '4px 0' }} />
+
+                      {/* Studio Group */}
+                      <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', color: 'var(--c-text-secondary)', opacity: 0.5, padding: '2px 10px', letterSpacing: '0.08em', fontFamily: 'Manrope' }}>
+                        Studio
+                      </div>
                       <button
                         onClick={() => { handleGoToSettingsPage('updater'); setShowProfileMenu(false); }}
                         style={profileMenuBtnStyle}
@@ -791,53 +687,202 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                       </button>
 
                       <button
-                        onClick={() => { handleGoToSettingsPage('help'); setShowProfileMenu(false); }}
+                        onClick={() => { handleGoToSettingsPage('download-apps'); setShowProfileMenu(false); }}
+                        style={profileMenuBtnStyle}
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>install_desktop</span>
+                        <span>Download Apps</span>
+                      </button>
+
+                      <button
+                        onClick={() => { handleGoToSettingsPage('release-notes'); setShowProfileMenu(false); }}
+                        style={profileMenuBtnStyle}
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>article</span>
+                        <span>Release Notes</span>
+                      </button>
+
+                      <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '4px 0' }} />
+
+                      {/* Help Group */}
+                      <button
+                        onMouseEnter={handleHelpMouseEnter}
+                        onMouseLeave={handleHelpMouseLeave}
                         style={profileMenuBtnStyle}
                         className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 16 }}>help</span>
-                        <span>Help & FAQ</span>
+                        <span style={{ display: 'flex', alignItems: 'center', width: '100%', flex: 1 }}>
+                          Help
+                          <span className="material-symbols-outlined" style={{ fontSize: 16, marginLeft: 'auto', opacity: 0.6 }}>chevron_right</span>
+                        </span>
                       </button>
 
                       {settings.developerMode && (
-                        <button
-                          onClick={() => { handleGoToSettingsPage('developer'); setShowProfileMenu(false); }}
-                          style={profileMenuBtnStyle}
-                          className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>terminal</span>
-                          <span>Developer Options</span>
-                        </button>
+                        <>
+                          <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '4px 0' }} />
+                          <button
+                            onClick={() => { handleGoToSettingsPage('developer'); setShowProfileMenu(false); }}
+                            style={profileMenuBtnStyle}
+                            className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>terminal</span>
+                            <span>Developer Options</span>
+                          </button>
+                        </>
                       )}
 
                       {authUser && (
-                        <button
-                          onClick={() => { signOut(); setShowProfileMenu(false); }}
-                          style={{ ...profileMenuBtnStyle, color: '#ef4444' }}
-                          className="btn-smooth hover:bg-[rgba(239,68,68,0.08)]"
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#ef4444' }}>logout</span>
-                          <span>Log out</span>
-                        </button>
+                        <>
+                          <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '4px 0' }} />
+                          <button
+                            onClick={() => { signOut(); setShowProfileMenu(false); }}
+                            style={{ ...profileMenuBtnStyle, color: '#ef4444' }}
+                            className="btn-smooth hover:bg-[rgba(239,68,68,0.08)]"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#ef4444' }}>logout</span>
+                            <span>Log out</span>
+                          </button>
+                        </>
                       )}
                     </div>
+
+                    {/* Help Hover Submenu Panel */}
+                    <AnimatePresence>
+                      {showHelpSubmenu && (
+                        <motion.div
+                          initial={{ opacity: 0, x: 5, scale: 0.98 }}
+                          animate={{ opacity: 1, x: 0, scale: 1 }}
+                          exit={{ opacity: 0, x: 5, scale: 0.98 }}
+                          transition={{ duration: 0.12, ease: 'easeOut' }}
+                          onMouseEnter={handleSubmenuMouseEnter}
+                          onMouseLeave={handleSubmenuMouseLeave}
+                          style={{
+                            position: 'absolute',
+                            left: '100%',
+                            bottom: '0px',
+                            marginLeft: '8px',
+                            width: '216px',
+                            background: 'rgba(18, 18, 18, 0.85)',
+                            backdropFilter: 'blur(30px)',
+                            WebkitBackdropFilter: 'blur(30px)',
+                            border: '1px solid rgba(128, 128, 128, 0.15)',
+                            borderRadius: '16px',
+                            padding: '8px',
+                            zIndex: 101,
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                            maxHeight: '340px',
+                            overflowY: 'auto',
+                          }}
+                          className="no-scrollbar"
+                        >
+                          {/* Support section */}
+                          <div>
+                            <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', color: 'var(--c-text-secondary)', opacity: 0.5, padding: '2px 10px', letterSpacing: '0.08em', fontFamily: 'Manrope' }}>
+                              Support
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
+                              <button
+                                onClick={() => { handleGoToSettingsPage('help-center'); setShowProfileMenu(false); }}
+                                style={profileMenuBtnStyle}
+                                className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>help</span>
+                                <span>Help Center</span>
+                              </button>
+                              <button
+                                onClick={() => { handleGoToSettingsPage('faq'); setShowProfileMenu(false); }}
+                                style={profileMenuBtnStyle}
+                                className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>contact_support</span>
+                                <span>FAQ</span>
+                              </button>
+                              <button
+                                onClick={() => { handleGoToSettingsPage('release-notes'); setShowProfileMenu(false); }}
+                                style={profileMenuBtnStyle}
+                                className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>article</span>
+                                <span>Release Notes</span>
+                              </button>
+                              <button
+                                onClick={() => { handleGoToSettingsPage('download-apps'); setShowProfileMenu(false); }}
+                                style={profileMenuBtnStyle}
+                                className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>install_desktop</span>
+                                <span>Download Apps</span>
+                              </button>
+                              <button
+                                onClick={() => { handleGoToSettingsPage('keyboard-shortcuts'); setShowProfileMenu(false); }}
+                                style={profileMenuBtnStyle}
+                                className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>keyboard</span>
+                                <span>Keyboard Shortcuts</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div style={{ height: 1, background: 'rgba(128,128,128,0.08)' }} />
+
+                          {/* Legal section */}
+                          <div>
+                            <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', color: 'var(--c-text-secondary)', opacity: 0.5, padding: '2px 10px', letterSpacing: '0.08em', fontFamily: 'Manrope' }}>
+                              Legal
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
+                              <button
+                                onClick={() => { handleGoToSettingsPage('terms'); setShowProfileMenu(false); }}
+                                style={profileMenuBtnStyle}
+                                className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>gavel</span>
+                                <span>Terms of Service</span>
+                              </button>
+                              <button
+                                onClick={() => { handleGoToSettingsPage('privacy-policy'); setShowProfileMenu(false); }}
+                                style={profileMenuBtnStyle}
+                                className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>policy</span>
+                                <span>Privacy Policy</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div style={{ height: 1, background: 'rgba(128,128,128,0.08)' }} />
+
+                          {/* Feedback section */}
+                          <div>
+                            <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', color: 'var(--c-text-secondary)', opacity: 0.5, padding: '2px 10px', letterSpacing: '0.08em', fontFamily: 'Manrope' }}>
+                              Feedback
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
+                              <button
+                                onClick={() => { handleGoToSettingsPage('bug-report'); setShowProfileMenu(false); }}
+                                style={profileMenuBtnStyle}
+                                className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>bug_report</span>
+                                <span>Report a Bug</span>
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
           </SidebarMenuItem>
-
-          {/* Version Info */}
-          {open && (
-            <SidebarMenuItem>
-              <div
-                className="px-1.5 py-1 text-[9px] text-[var(--c-text-muted)] font-bold opacity-75"
-                style={{ fontFamily: 'Manrope, sans-serif' }}
-              >
-                {APP_VERSION_LABEL}
-              </div>
-            </SidebarMenuItem>
-          )}
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>

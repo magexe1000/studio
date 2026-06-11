@@ -88,17 +88,23 @@ export function Sidebar({
   const { open } = useSidebar();
 
   const targetWidth = open ? '240px' : '0px';
-  const targetBorderColor = open ? 'rgba(128,128,128,0.08)' : 'rgba(128,128,128,0)';
+  const targetMargin = open ? '12px' : '0px';
+  const targetBorderColor = open ? 'rgba(128,128,128,0.15)' : 'rgba(128,128,128,0)';
 
   return (
     <motion.aside
-      className={`h-screen flex flex-col select-none flex-shrink-0 relative ${className}`}
+      className={`flex flex-col select-none flex-shrink-0 relative ${className}`}
       animate={{
         width: targetWidth,
+        margin: targetMargin,
         borderColor: targetBorderColor,
       }}
       transition={{
         width: {
+          duration: 0.22,
+          ease: [0.22, 1, 0.36, 1],
+        },
+        margin: {
           duration: 0.22,
           ease: [0.22, 1, 0.36, 1],
         },
@@ -108,13 +114,16 @@ export function Sidebar({
         }
       }}
       style={{
-        background: 'var(--app-surface)',
-        borderRight: '1px solid',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
+        height: open ? 'calc(100vh - 24px)' : '100vh',
+        borderRadius: open ? '16px' : '0px',
+        border: '1px solid',
+        background: 'rgba(15, 15, 15, 0.70)',
+        backdropFilter: 'blur(30px)',
+        WebkitBackdropFilter: 'blur(30px)',
+        boxShadow: open ? '0 10px 30px rgba(0,0,0,0.5)' : 'none',
         boxSizing: 'border-box',
         overflow: 'hidden',
-        willChange: 'width, border-color',
+        willChange: 'width, margin, border-color',
         zIndex: 40,
         ...style,
       }}

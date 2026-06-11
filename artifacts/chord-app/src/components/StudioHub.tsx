@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { useBackHandler } from '../lib/backStack';
 import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
@@ -1124,7 +1125,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'general' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'help' | 'debug' | 'developer' | 'profile';
+type SettingsPageId = 'main' | 'general' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'help' | 'debug' | 'developer' | 'profile' | 'help-center' | 'faq' | 'release-notes' | 'download-apps' | 'keyboard-shortcuts' | 'terms' | 'privacy-policy' | 'bug-report';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -1970,6 +1971,7 @@ function HubSettings({
   const lang = settings.language ?? 'en';
   const ota = useOtaUpdate();
   const [copiedLogs, setCopiedLogs] = useState(false);
+  const [copiedBugTemplate, setCopiedBugTemplate] = useState(false);
   const isWebDesktop = useIsWebDesktop();
 
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
@@ -2144,7 +2146,7 @@ function HubSettings({
   const [apkEligibility, setApkEligibility] = useState<any>(null);
 
   useEffect(() => {
-    if (page !== 'developer' && page !== 'debug') return;
+    if (page !== 'developer' && page !== 'debug' && page !== 'download-apps' && page !== 'release-notes') return;
     
     const loadInfo = async () => {
       try {
@@ -2511,6 +2513,507 @@ function HubSettings({
     );
   }
 
+  function renderHelpCenterContent() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 24 }}>
+        {/* Search Bar Visual */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '12px 16px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(128, 128, 128, 0.08)',
+          borderRadius: 12,
+        }}>
+          <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 20 }}>
+            search
+          </span>
+          <input 
+            type="text" 
+            placeholder="Search help articles..." 
+            disabled
+            style={{
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: 'var(--c-text-primary)',
+              fontSize: 14,
+              width: '100%',
+              cursor: 'not-allowed',
+            }}
+          />
+        </div>
+
+        {/* Quick Help Topics */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-secondary)', opacity: 0.6, margin: '0 0 4px 0' }}>
+            Help Categories
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+            {[
+              { icon: 'play_circle', title: 'Getting Started', desc: 'Learn the basics of Studio, including app structures and navigation.' },
+              { icon: 'save', title: 'Projects & Exporting', desc: 'How to save your projects locally or export them as MIDI or Audio.' },
+              { icon: 'volume_up', title: 'Audio & MIDI Configurations', desc: 'Configure output devices, MIDI inputs, and latencies.' },
+              { icon: 'build', title: 'Troubleshooting & Diagnosis', desc: 'Run tests to check your system audio, cloud database, and cache.' },
+            ].map((topic, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                gap: 16,
+                padding: '16px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(128, 128, 128, 0.06)',
+                borderRadius: 12,
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 24, color: accent.from }}>
+                  {topic.icon}
+                </span>
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                    {topic.title}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
+                    {topic.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Contact/Support Links */}
+        <div style={{
+          padding: 18,
+          background: 'rgba(255, 255, 255, 0.01)',
+          border: '1px solid rgba(128, 128, 128, 0.06)',
+          borderRadius: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+        }}>
+          <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)' }}>
+            Need direct assistance?
+          </h4>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
+            For help with your account, project recovery, or complex issues, feel free to visit our official github repository or reach out directly.
+          </p>
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            <a 
+              href="https://github.com/MAGEXE1000/Studio" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{
+                textDecoration: 'none',
+                padding: '8px 16px',
+                background: 'rgba(255,255,255,0.06)',
+                color: 'var(--c-text-primary)',
+                fontSize: 12,
+                fontWeight: 700,
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>open_in_new</span>
+              GitHub Repository
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderFaqContent() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <HelpAccordion accent={accent} lang={lang} />
+      </div>
+    );
+  }
+
+  function renderReleaseNotesContent() {
+    const changelogSections = getChangelogSections(lang) || [];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, paddingBottom: 12, borderBottom: '1px solid rgba(128, 128, 128, 0.08)' }}>
+          <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--c-text-primary)' }}>
+            v{APP_VERSION}
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--c-text-secondary)' }}>
+            Released on {APP_VERSION_DATE}
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {changelogSections.map((sec, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-secondary)', opacity: 0.6, margin: 0 }}>
+                {sec.heading}
+              </h3>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {sec.items.map((item, j) => (
+                  <li key={j} style={{ display: 'flex', gap: 10, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
+                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: accent.from, marginTop: 7, flexShrink: 0 }} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function renderDownloadAppsContent() {
+    let apkVersion = '3.6.28';
+    let apkSize = '13.47 MB';
+    let apkUrl = 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.28/studio-3.6.28.apk';
+    
+    try {
+      if (firebaseAppReleaseJson && !firebaseAppReleaseJson.startsWith('Error') && firebaseAppReleaseJson !== 'Loading...') {
+        const parsed = JSON.parse(firebaseAppReleaseJson);
+        if (parsed.version) apkVersion = parsed.version;
+        if (parsed.apkSizeBytes) apkSize = `${(parsed.apkSizeBytes / (1024 * 1024)).toFixed(2)} MB`;
+        if (parsed.apkUrl) apkUrl = parsed.apkUrl;
+      }
+    } catch (e) {
+      console.warn('Failed to parse firebaseAppReleaseJson:', e);
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 24 }}>
+        {/* Android Card */}
+        <div style={{
+          padding: 20,
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(128, 128, 128, 0.08)',
+          borderRadius: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 32, color: accent.from }}>
+                adb
+              </span>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)' }}>
+                  Android App (APK)
+                </h3>
+                <span style={{ fontSize: 12, color: 'var(--c-text-secondary)' }}>
+                  v{apkVersion} • {apkSize}
+                </span>
+              </div>
+            </div>
+            <a 
+              href={apkUrl}
+              style={{
+                textDecoration: 'none',
+                padding: '8px 16px',
+                background: accent.from,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
+              Download APK
+            </a>
+          </div>
+          <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)' }} />
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
+            To install: download and run the APK on your device. You may need to enable "Install from Unknown Sources" in your system security settings.
+          </p>
+        </div>
+
+        {/* Web App / PWA Card */}
+        <div style={{
+          padding: 20,
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(128, 128, 128, 0.08)',
+          borderRadius: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 32, color: accent.from }}>
+                language
+              </span>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)' }}>
+                  Web Version (PWA)
+                </h3>
+                <span style={{ fontSize: 12, color: 'var(--c-text-secondary)' }}>
+                  v4.0.0 (Web)
+                </span>
+              </div>
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: accent.from, background: `${accent.from}22`, padding: '6px 12px', borderRadius: 8 }}>
+              Running Now
+            </div>
+          </div>
+          <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)' }} />
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
+            Enjoy the full experience on any desktop or mobile device. Install as a Progressive Web App (PWA) directly via your browser's install menu for offline support and standalone window display.
+          </p>
+        </div>
+
+        {/* iOS & Desktop Cards - Coming Soon */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {[
+            { platform: 'iOS App', icon: 'phone_iphone' },
+            { platform: 'Desktop (macOS / Windows)', icon: 'desktop_windows' }
+          ].map((item, i) => (
+            <div key={i} style={{
+              padding: 16,
+              background: 'rgba(255, 255, 255, 0.01)',
+              border: '1px solid rgba(128, 128, 128, 0.06)',
+              borderRadius: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              opacity: 0.7,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-secondary)' }}>
+                  {item.icon}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                  {item.platform}
+                </span>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: accent.from, opacity: 0.8 }}>
+                Coming soon
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function renderKeyboardShortcutsContent() {
+    const categories = [
+      {
+        title: 'Stage Mode (Stagex)',
+        shortcuts: [
+          { keys: ['Space', '→', '↓'], desc: 'Advance to next scene (Forward)' },
+          { keys: ['←', '↑'], desc: 'Go back to previous scene (Backward)' },
+          { keys: ['Esc'], desc: 'Close Stage Mode / Exit fullscreen' }
+        ]
+      },
+      {
+        title: 'Sequencer & Editing (Drumex)',
+        shortcuts: [
+          { keys: ['Ctrl', 'Z'], desc: 'Undo last editing step' },
+          { keys: ['Ctrl', 'Y'], desc: 'Redo last undone step' },
+          { keys: ['Ctrl', 'Shift', 'Z'], desc: 'Redo last undone step (Alternative)' }
+        ]
+      }
+    ];
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 24 }}>
+        {categories.map((cat, i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-secondary)', opacity: 0.6, margin: 0 }}>
+              {cat.title}
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {cat.shortcuts.map((sh, j) => (
+                <div key={j} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 12px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(128, 128, 128, 0.06)',
+                  borderRadius: 8,
+                }}>
+                  <span style={{ fontSize: 13, color: 'var(--c-text-secondary)' }}>
+                    {sh.desc}
+                  </span>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {sh.keys.map((k, kIdx) => (
+                      <React.Fragment key={kIdx}>
+                        {kIdx > 0 && <span style={{ color: 'var(--c-text-muted)', fontSize: 12, alignSelf: 'center' }}>+</span>}
+                        <kbd style={{
+                          padding: '3px 6px',
+                          border: '1px solid rgba(128, 128, 128, 0.2)',
+                          background: 'rgba(255, 255, 255, 0.06)',
+                          borderRadius: 4,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: 'var(--c-text-primary)',
+                          fontFamily: 'monospace',
+                        }}>
+                          {k}
+                        </kbd>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function renderTermsContent() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.6, paddingBottom: 24 }}>
+        <p style={{ margin: 0 }}>
+          Welcome to Studio. By accessing or using our application, you agree to comply with and be bound by the following Terms of Service. Please read them carefully.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>1. Ownership of Content</h4>
+        <p style={{ margin: 0 }}>
+          All musical patterns, drum sequences, settings, and other project data created by you using Studio's tools (Chordex, Drumex, Stagex, Groovex, Vocalex) remain entirely your property. We lay no claim of copyright, trademark, or ownership over your creative output.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>2. Use of Service</h4>
+        <p style={{ margin: 0 }}>
+          Studio is provided on a local-first basis. Data sync features are provided for your personal backup convenience. You agree not to abuse or attempt to overload the sync servers.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>3. Disclaimer of Warranties</h4>
+        <p style={{ margin: 0 }}>
+          Studio is provided "as is" and "as available" without any warranties of any kind. While we aim to protect project data using reliable local storage and cloud sync mechanisms, we cannot guarantee data will not be lost. We recommend periodic manual backups.
+        </p>
+      </div>
+    );
+  }
+
+  function renderPrivacyPolicyContent() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.6, paddingBottom: 24 }}>
+        <p style={{ margin: 0 }}>
+          Your privacy is extremely important to us. This Privacy Policy details how Studio collects, uses, and safeguards your data.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>1. Local-First Storage</h4>
+        <p style={{ margin: 0 }}>
+          By default, all your project settings, drum sequences, and songs are stored locally on your device using IndexedDB and localStorage. None of this creative work leaves your device unless you explicitly enable Cloud Sync.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>2. Cloud Backup & Authentication</h4>
+        <p style={{ margin: 0 }}>
+          If you create a Studio Account, we use Firebase to manage your login credentials. Your project backups are stored securely in Firestore databases. We only use this data to perform cross-device syncing at your request.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>3. No Third-Party Tracking</h4>
+        <p style={{ margin: 0 }}>
+          Studio does not use telemetry, advertising trackers, or external behavioral analytics. Your interaction with the app remains entirely private.
+        </p>
+      </div>
+    );
+  }
+
+  function renderBugReportContent() {
+    const handleCopyTemplate = () => {
+      const template = `[STUDIO BUG REPORT]
+------------------------------------
+App Version: v${APP_VERSION} (Web)
+User Agent: ${navigator.userAgent}
+Date: ${new Date().toISOString()}
+
+[Description of Bug]
+- 
+
+[Steps to Reproduce]
+1. 
+2. 
+3. 
+
+[Expected Behavior]
+- 
+
+[Actual Behavior]
+- `;
+      navigator.clipboard.writeText(template);
+      setCopiedBugTemplate(true);
+      setTimeout(() => setCopiedBugTemplate(false), 2000);
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
+          If you encounter an issue or unexpected behavior in Studio, please report it! Copy the template below and submit it on our GitHub repository.
+        </p>
+
+        <button 
+          onClick={handleCopyTemplate}
+          style={{
+            alignSelf: 'flex-start',
+            padding: '10px 16px',
+            background: accent.from,
+            color: '#fff',
+            fontSize: 13,
+            fontWeight: 700,
+            border: 'none',
+            borderRadius: 8,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            {copiedBugTemplate ? 'check' : 'content_copy'}
+          </span>
+          {copiedBugTemplate ? 'Copied to Clipboard!' : 'Copy Bug Template'}
+        </button>
+
+        <div style={{
+          padding: 14,
+          background: 'rgba(255,255,255,0.01)',
+          border: '1px solid rgba(128,128,128,0.08)',
+          borderRadius: 8,
+          fontFamily: 'monospace',
+          fontSize: 12,
+          color: 'var(--c-text-secondary)',
+          whiteSpace: 'pre-wrap',
+          lineHeight: 1.5,
+        }}>
+          {`[STUDIO BUG REPORT]
+App Version: v${APP_VERSION} (Web)
+User Agent: [Automatically Generated]
+...`}
+        </div>
+
+        <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)', margin: '8px 0' }} />
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <a 
+            href="https://github.com/MAGEXE1000/Studio/issues/new" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{
+              textDecoration: 'none',
+              padding: '10px 16px',
+              background: 'rgba(255,255,255,0.04)',
+              color: 'var(--c-text-primary)',
+              fontSize: 13,
+              fontWeight: 700,
+              borderRadius: 8,
+              border: '1px solid rgba(128, 128, 128, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
+            Open GitHub Issues
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   function renderGeneralContent() {
     const isHideActive = preferences.autoHideSidebarInApps;
     const isHoverActive = isHideActive && preferences.hoverRevealSidebar;
@@ -2598,7 +3101,7 @@ function HubSettings({
           </SettingRow>
         </div>
 
-        <SettingsSectionLabel>Motion & Spacing</SettingsSectionLabel>
+        <SettingsSectionLabel>Performance</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingRow 
             label="Reduce interface animations" 
@@ -2622,6 +3125,19 @@ function HubSettings({
               accentFrom={accent.from} 
               accentTo={accent.to} 
             />
+          </SettingRow>
+
+          <SettingRow label={t.settings.rows.haptic} desc={t.settings.rows.hapticDesc}>
+            <Toggle value={settings.hapticFeedback} onChange={v => updateSettings({ hapticFeedback: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+          <SettingRow label={(t.hub as { studioSettings?: { highRefresh?: string } }).studioSettings?.highRefresh ?? 'High refresh rate'} desc={(t.hub as { studioSettings?: { highRefreshDesc?: string } }).studioSettings?.highRefreshDesc ?? "Keeps animations at your display's max rate (90/120Hz). May increase battery use."}>
+            <Toggle value={settings.highRefreshRate} onChange={v => updateSettings({ highRefreshRate: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+          <SettingRow label={(t.hub as { studioSettings?: { lowLatency?: string } }).studioSettings?.lowLatency ?? 'Low latency mode'} desc={(t.hub as { studioSettings?: { lowLatencyDesc?: string } }).studioSettings?.lowLatencyDesc ?? 'Faster audio response across all apps.'}>
+            <Toggle value={settings.lowLatencyMode} onChange={v => updateSettings({ lowLatencyMode: v })} accentFrom={accent.from} accentTo={accent.to} />
+          </SettingRow>
+          <SettingRow label={(t.hub as { studioSettings?: { performanceMode?: string } }).studioSettings?.performanceMode ?? 'Performance mode'} desc={(t.hub as { studioSettings?: { performanceModeDesc?: string } }).studioSettings?.performanceModeDesc ?? 'Disables blur and heavy animations for older devices.'}>
+            <Toggle value={settings.performanceMode} onChange={v => updateSettings({ performanceMode: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
         </div>
       </div>
@@ -2746,13 +3262,6 @@ function HubSettings({
           </div>
         </div>
 
-        <SettingsSectionLabel>Animations & Motion</SettingsSectionLabel>
-        <div style={cardStyle}>
-          <SettingRow label={t.settings.rows.animSpeed} desc={t.settings.rows.animSpeedDesc}>
-            <SegmentedControl<AnimationSpeed> value={settings.animationSpeed} options={[{ value: 'fast', label: t.settings.rows.fast }, { value: 'normal', label: t.settings.rows.normal }, { value: 'reduced', label: t.settings.rows.off }]} onChange={v => updateSettings({ animationSpeed: v })} accentFrom={accent.from} accentTo={accent.to} />
-          </SettingRow>
-        </div>
-
         <SettingsSectionLabel>Display</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingRow label={t.settings.rows.density} desc={t.settings.rows.densityDesc}>
@@ -2760,22 +3269,6 @@ function HubSettings({
           </SettingRow>
           <SettingRow label={t.settings.rows.fontSize} desc={t.settings.rows.fontSizeDesc}>
             <SegmentedControl<'small' | 'medium' | 'large'> value={settings.fontSize} options={[{ value: 'small', label: 'S' }, { value: 'medium', label: 'M' }, { value: 'large', label: 'L' }]} onChange={v => updateSettings({ fontSize: v })} accentFrom={accent.from} accentTo={accent.to} />
-          </SettingRow>
-        </div>
-
-        <SettingsSectionLabel>Feedback & Performance</SettingsSectionLabel>
-        <div style={cardStyle}>
-          <SettingRow label={t.settings.rows.haptic} desc={t.settings.rows.hapticDesc}>
-            <Toggle value={settings.hapticFeedback} onChange={v => updateSettings({ hapticFeedback: v })} accentFrom={accent.from} accentTo={accent.to} />
-          </SettingRow>
-          <SettingRow label={(t.hub as { studioSettings?: { highRefresh?: string } }).studioSettings?.highRefresh ?? 'High refresh rate'} desc={(t.hub as { studioSettings?: { highRefreshDesc?: string } }).studioSettings?.highRefreshDesc ?? "Keeps animations at your display's max rate (90/120Hz). May increase battery use."}>
-            <Toggle value={settings.highRefreshRate} onChange={v => updateSettings({ highRefreshRate: v })} accentFrom={accent.from} accentTo={accent.to} />
-          </SettingRow>
-          <SettingRow label={(t.hub as { studioSettings?: { lowLatency?: string } }).studioSettings?.lowLatency ?? 'Low latency mode'} desc={(t.hub as { studioSettings?: { lowLatencyDesc?: string } }).studioSettings?.lowLatencyDesc ?? 'Faster audio response across all apps.'}>
-            <Toggle value={settings.lowLatencyMode} onChange={v => updateSettings({ lowLatencyMode: v })} accentFrom={accent.from} accentTo={accent.to} />
-          </SettingRow>
-          <SettingRow label={(t.hub as { studioSettings?: { performanceMode?: string } }).studioSettings?.performanceMode ?? 'Performance mode'} desc={(t.hub as { studioSettings?: { performanceModeDesc?: string } }).studioSettings?.performanceModeDesc ?? 'Disables blur and heavy animations for older devices.'}>
-            <Toggle value={settings.performanceMode} onChange={v => updateSettings({ performanceMode: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
         </div>
       </div>
@@ -3779,11 +4272,26 @@ function HubSettings({
       case 'language':
         return renderLanguageContent();
       case 'privacy':
-        return renderPrivacyContent();
+      case 'privacy-policy':
+        return renderPrivacyPolicyContent();
       case 'updater':
         return renderUpdaterContent();
       case 'help':
         return renderHelpContent();
+      case 'help-center':
+        return renderHelpCenterContent();
+      case 'faq':
+        return renderFaqContent();
+      case 'release-notes':
+        return renderReleaseNotesContent();
+      case 'download-apps':
+        return renderDownloadAppsContent();
+      case 'keyboard-shortcuts':
+        return renderKeyboardShortcutsContent();
+      case 'terms':
+        return renderTermsContent();
+      case 'bug-report':
+        return renderBugReportContent();
       case 'developer':
         return renderDeveloperContent();
       case 'about':
@@ -3805,6 +4313,86 @@ function HubSettings({
           <style>{HUB_SETTINGS_CSS}</style>
           <SettingsSubHeader title="Help & FAQ" onBack={goBack} />
           {renderHelpContent()}
+        </div>
+      );
+    }
+
+    if (page === 'help-center') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Help Center" onBack={goBack} />
+          {renderHelpCenterContent()}
+        </div>
+      );
+    }
+
+    if (page === 'faq') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="FAQ & Support" onBack={goBack} />
+          {renderFaqContent()}
+        </div>
+      );
+    }
+
+    if (page === 'release-notes') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Release Notes" onBack={goBack} />
+          {renderReleaseNotesContent()}
+        </div>
+      );
+    }
+
+    if (page === 'download-apps') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Download Apps" onBack={goBack} />
+          {renderDownloadAppsContent()}
+        </div>
+      );
+    }
+
+    if (page === 'keyboard-shortcuts') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Keyboard Shortcuts" onBack={goBack} />
+          {renderKeyboardShortcutsContent()}
+        </div>
+      );
+    }
+
+    if (page === 'terms') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Terms of Service" onBack={goBack} />
+          {renderTermsContent()}
+        </div>
+      );
+    }
+
+    if (page === 'privacy' || page === 'privacy-policy') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Privacy Policy" onBack={goBack} />
+          {renderPrivacyPolicyContent()}
+        </div>
+      );
+    }
+
+    if (page === 'bug-report') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Report a Bug" onBack={goBack} />
+          {renderBugReportContent()}
         </div>
       );
     }
@@ -3835,16 +4423,6 @@ function HubSettings({
           <style>{HUB_SETTINGS_CSS}</style>
           <SettingsSubHeader title={t.settings.sections.language} onBack={goBack} />
           {renderLanguageContent()}
-        </div>
-      );
-    }
-
-    if (page === 'privacy') {
-      return (
-        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title={(t.hub as { studioSettings?: { privacySecurity?: string } }).studioSettings?.privacySecurity ?? 'Privacy & Security'} onBack={goBack} />
-          {renderPrivacyContent()}
         </div>
       );
     }
@@ -3899,29 +4477,41 @@ function HubSettings({
 
         {renderMobileProfileCard()}
 
-        <SettingsSectionLabel delay={70}>{(t.hub as { studioSettings?: { interface?: string } }).studioSettings?.interface ?? 'Interface'}</SettingsSectionLabel>
+        <SettingsSectionLabel delay={70}>Preferences</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingsNavRow icon="settings" iconColor={accent.from} title="General Preferences" desc="Configure workspace layout and app behaviors" onPress={() => navigate('general')} delay={75} />
-          <SettingsNavRow icon="palette" iconColor={accent.from} title={t.settings.sections.appearance} desc={(t.hub as { studioSettings?: { appearanceDesc?: string } }).studioSettings?.appearanceDesc ?? 'Theme, colors, display & performance'} onPress={() => navigate('appearance')} last delay={80} />
+          <SettingsNavRow icon="palette" iconColor={accent.from} title={t.settings.sections.appearance} desc={(t.hub as { studioSettings?: { appearanceDesc?: string } }).studioSettings?.appearanceDesc ?? 'Theme, colors, display & performance'} onPress={() => navigate('appearance')} delay={80} />
+          <SettingsNavRow icon="language" iconColor={accent.from} title={t.settings.sections.language} desc={(t.hub as { studioSettings?: { languageDesc?: string } }).studioSettings?.languageDesc ?? 'App display language'} onPress={() => navigate('language')} delay={85} />
+          <SettingsNavRow icon="account_circle" iconColor={accent.from} title={lang === 'es' ? 'Perfil y Cuenta' : 'Profile & Account'} desc="Manage user settings and backup" onPress={() => navigate('profile')} last delay={90} />
         </div>
 
-        <SettingsSectionLabel delay={100}>{t.settings.sections.language}</SettingsSectionLabel>
+        <SettingsSectionLabel delay={100}>Help & Support</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingsNavRow icon="language" iconColor={accent.from} title={t.settings.sections.language} desc={(t.hub as { studioSettings?: { languageDesc?: string } }).studioSettings?.languageDesc ?? 'App display language'} onPress={() => navigate('language')} last delay={110} />
+          <SettingsNavRow icon="help" iconColor={accent.from} title="Help Center" desc="Documentation and guides" onPress={() => navigate('help-center')} delay={110} />
+          <SettingsNavRow icon="contact_support" iconColor={accent.from} title="FAQ & Support" desc="Frequently asked questions" onPress={() => navigate('faq')} delay={120} />
+          <SettingsNavRow icon="article" iconColor={accent.from} title="Release Notes" desc="View version history" onPress={() => navigate('release-notes')} delay={130} />
+          <SettingsNavRow icon="install_desktop" iconColor={accent.from} title="Download Apps" desc="Get native mobile and desktop clients" onPress={() => navigate('download-apps')} delay={140} />
+          <SettingsNavRow icon="keyboard" iconColor={accent.from} title="Keyboard Shortcuts" desc="View quick key bindings" onPress={() => navigate('keyboard-shortcuts')} last delay={150} />
         </div>
 
-        <SettingsSectionLabel delay={150}>Help & Support</SettingsSectionLabel>
+        <SettingsSectionLabel delay={170}>Legal</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingsNavRow icon="help" iconColor={accent.from} title="Help & FAQ" desc="Frequently asked questions and solutions" onPress={() => navigate('help')} last delay={160} />
+          <SettingsNavRow icon="gavel" iconColor={accent.from} title="Terms of Service" desc="Read terms and conditions" onPress={() => navigate('terms')} delay={180} />
+          <SettingsNavRow icon="policy" iconColor={accent.from} title="Privacy Policy" desc="Read privacy guidelines" onPress={() => navigate('privacy-policy')} last delay={190} />
         </div>
 
-        <SettingsSectionLabel delay={200}>{(t.hub as { studioSettings?: { systemAbout?: string } }).studioSettings?.systemAbout ?? 'System & About'}</SettingsSectionLabel>
+        <SettingsSectionLabel delay={210}>Feedback</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'App updates and installation'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={210} />
+          <SettingsNavRow icon="bug_report" iconColor={accent.from} title="Report a Bug" desc="Send us feedback or bug reports" onPress={() => navigate('bug-report')} last delay={220} />
+        </div>
 
-          <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last={!settings.developerMode} delay={230} />
+        <SettingsSectionLabel delay={240}>{(t.hub as { studioSettings?: { systemAbout?: string } }).studioSettings?.systemAbout ?? 'System & About'}</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <SettingsNavRow icon="download" iconColor={accent.from} title={(t.hub as { studioSettings?: { updater?: string } }).studioSettings?.updater ?? 'Updater'} desc={(t.hub as { studioSettings?: { updaterDesc?: string } }).studioSettings?.updaterDesc ?? 'App updates and installation'} badge={(t.hub as { studioSettings?: { autoBadge?: string } }).studioSettings?.autoBadge ?? 'Auto'} onPress={() => navigate('updater')} delay={250} />
+
+          <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last={!settings.developerMode} delay={260} />
           {settings.developerMode && (
-            <SettingsNavRow icon="terminal" iconColor={accent.from} title="Developer Options" desc="Update simulation, logs, and controls" onPress={() => navigate('developer')} last delay={240} />
+            <SettingsNavRow icon="terminal" iconColor={accent.from} title="Developer Options" desc="Update simulation, logs, and controls" onPress={() => navigate('developer')} last delay={270} />
           )}
         </div>
 
@@ -3932,21 +4522,55 @@ function HubSettings({
 
   const activePageId = page === 'main' ? 'general' : page;
 
-  const navItems = [
-    { id: 'general' as const, icon: 'settings', label: lang === 'es' ? 'Preferencias Generales' : 'General Settings' },
-    { id: 'appearance' as const, icon: 'palette', label: lang === 'es' ? 'Apariencia' : 'Appearance' },
-    { id: 'language' as const, icon: 'language', label: lang === 'es' ? 'Idioma' : 'Language' },
-    { id: 'updater' as const, icon: 'download', label: lang === 'es' ? 'Actualizaciones' : 'App Updates' },
-    { id: 'help' as const, icon: 'help', label: 'Help & FAQ' },
-    { id: 'privacy' as const, icon: 'security', label: lang === 'es' ? 'Privacidad y Seguridad' : 'Privacy & Security' },
-    { id: 'profile' as const, icon: 'account_circle', label: lang === 'es' ? 'Perfil y Cuenta' : 'Profile & Account' },
-    ...(settings.developerMode ? [{ id: 'developer' as const, icon: 'terminal', label: lang === 'es' ? 'Opciones de Desarrollador' : 'Developer Options' }] : []),
-    { id: 'about' as const, icon: 'info', label: lang === 'es' ? 'Acerca de' : 'About & Version' },
+  const sections = [
+    {
+      label: lang === 'es' ? 'Preferencias' : 'Preferences',
+      items: [
+        { id: 'general' as const, icon: 'settings', label: lang === 'es' ? 'Preferencias Generales' : 'General Settings' },
+        { id: 'appearance' as const, icon: 'palette', label: lang === 'es' ? 'Apariencia' : 'Appearance' },
+        { id: 'language' as const, icon: 'language', label: lang === 'es' ? 'Idioma' : 'Language' },
+        { id: 'profile' as const, icon: 'account_circle', label: lang === 'es' ? 'Perfil y Cuenta' : 'Profile & Account' },
+      ]
+    },
+    {
+      label: lang === 'es' ? 'Soporte' : 'Support',
+      items: [
+        { id: 'help-center' as const, icon: 'help', label: lang === 'es' ? 'Centro de Ayuda' : 'Help Center' },
+        { id: 'faq' as const, icon: 'contact_support', label: lang === 'es' ? 'Preguntas Frecuentes' : 'FAQ & Support' },
+        { id: 'release-notes' as const, icon: 'article', label: lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes' },
+        { id: 'download-apps' as const, icon: 'install_desktop', label: lang === 'es' ? 'Descargar Aplicaciones' : 'Download Apps' },
+        { id: 'keyboard-shortcuts' as const, icon: 'keyboard', label: lang === 'es' ? 'Atajos de Teclado' : 'Keyboard Shortcuts' },
+      ]
+    },
+    {
+      label: lang === 'es' ? 'Legal' : 'Legal',
+      items: [
+        { id: 'terms' as const, icon: 'gavel', label: lang === 'es' ? 'Condiciones de Servicio' : 'Terms of Service' },
+        { id: 'privacy-policy' as const, icon: 'policy', label: lang === 'es' ? 'Política de Privacidad' : 'Privacy Policy' },
+      ]
+    },
+    {
+      label: lang === 'es' ? 'Comentarios' : 'Feedback',
+      items: [
+        { id: 'bug-report' as const, icon: 'bug_report', label: lang === 'es' ? 'Informar de un Error' : 'Report a Bug' },
+      ]
+    },
+    {
+      label: lang === 'es' ? 'Sistema' : 'System',
+      items: [
+        { id: 'updater' as const, icon: 'download', label: lang === 'es' ? 'Actualizaciones de App' : 'App Updates' },
+        { id: 'about' as const, icon: 'info', label: lang === 'es' ? 'Acerca de Studio' : 'About & Version' },
+        ...(settings.developerMode ? [{ id: 'developer' as const, icon: 'terminal', label: lang === 'es' ? 'Opciones de Desarrollador' : 'Developer Options' }] : []),
+      ]
+    }
   ];
 
   const getPageTitle = (id: SettingsPageId | 'profile') => {
-    const item = navItems.find(n => n.id === id);
-    return item ? item.label : 'Settings';
+    for (const section of sections) {
+      const item = section.items.find(n => n.id === id);
+      if (item) return item.label;
+    }
+    return 'Settings';
   };
 
   return (
@@ -3980,44 +4604,54 @@ function HubSettings({
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
+        maxHeight: 'calc(100vh - 120px)',
+        overflowY: 'auto',
       }}>
         <div style={{ padding: '0 8px 16px 8px', borderBottom: '1px solid rgba(128, 128, 128, 0.08)', marginBottom: 12 }}>
           <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em', fontFamily: 'Manrope' }}>
             {lang === 'es' ? 'Ajustes de Studio' : 'Studio Settings'}
           </h2>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {navItems.map((item) => {
-            const isActive = activePageId === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => navigate(item.id)}
-                className={`btn-smooth ${isActive ? 'active-settings-nav' : ''}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  background: isActive ? 'var(--sidebar-hover-bg, rgba(255, 255, 255, 0.08))' : 'transparent',
-                  color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
-                  fontWeight: isActive ? 700 : 500,
-                  fontSize: 14,
-                  fontFamily: 'Manrope, sans-serif',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 18, color: isActive ? accent.from : 'inherit' }}>
-                  {item.icon}
-                </span>
-                <span className="truncate">{item.label}</span>
-              </button>
-            );
-          })}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {sections.map((section, secIdx) => (
+            <div key={section.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {secIdx > 0 && <div style={{ height: 1, borderTop: '1px solid rgba(128,128,128,0.08)', margin: '4px 0 10px 0' }} />}
+              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-secondary)', opacity: 0.6, padding: '0 12px 4px 12px' }}>
+                {section.label}
+              </span>
+              {section.items.map((item) => {
+                const isActive = activePageId === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => navigate(item.id)}
+                    className={`btn-smooth ${isActive ? 'active-settings-nav' : ''}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      background: isActive ? 'var(--sidebar-hover-bg, rgba(255, 255, 255, 0.08))' : 'transparent',
+                      color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
+                      fontWeight: isActive ? 700 : 500,
+                      fontSize: 13,
+                      fontFamily: 'Manrope, sans-serif',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16, color: isActive ? accent.from : 'inherit' }}>
+                      {item.icon}
+                    </span>
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -4294,7 +4928,7 @@ const FAQ_ITEMS: Record<string, FAQItem[]> = {
       answer: "Yes! Studio is fully responsive and runs on mobile browsers. We also provide a high-performance native Android application for production on the go."
     },
     {
-      question: "How do I use the Web app?",
+      question: "How do I use the Web version?",
       answer: "Simply open Studio Web in your browser, select any tool from the Hub (like Chordex or Drumex), and start creating. Your projects are auto-saved to your browser's local database."
     },
     {
@@ -4303,47 +4937,15 @@ const FAQ_ITEMS: Record<string, FAQItem[]> = {
     },
     {
       question: "Why is Windows marked Coming Soon?",
-      answer: "We are actively developing a desktop-optimized native Windows client to support low-latency ASIO audio drivers and third-party VST plugins. Meanwhile, you can use the Web app on Windows."
+      answer: "We are actively developing a desktop-optimized native Windows client to support low-latency ASIO audio drivers and VST plugins. Meanwhile, you can use the Web version on Windows."
     },
     {
       question: "Where are my preferences stored?",
-      answer: "Your preferences, presets, and compositions are securely stored in your local browser database (localStorage and IndexedDB). Sychronizing with your account backs them up safely to our secure Firestore cloud."
+      answer: "Your preferences, presets, and compositions are securely stored in your local browser database (localStorage and IndexedDB). Synchronizing with your account backs them up safely to our secure cloud."
     },
     {
-      question: "How do OTA updates work?",
-      answer: "Studio automatically checks for updates in the background on launch. When an update is detected, a banner drops down at the top of the Hub with an option to install immediately or remind you later."
-    },
-    {
-      question: "What is Performance Mode?",
-      answer: "Performance Mode disables expensive real-time visual effects, such as blur filters and heavy GPU animations, to prioritize battery life and maximize responsiveness on older devices. You can toggle this in the Appearance preferences."
-    },
-    {
-      question: "How do I backup my songs and kits?",
-      answer: "All your songs in Chordex and custom kits in Drumex are automatically synced and backed up to your account securely. Simply sign in from the Account page to sync data across all your devices."
-    },
-    {
-      question: "How do I connect external MIDI devices?",
-      answer: "Studio supports standard MIDI-over-USB and Bluetooth MIDI devices. Connect your controller, and it will be auto-detected in Drumex and Stagex for real-time play."
-    },
-    {
-      question: "Why is there no sound? (Sound Engine Repair)",
-      answer: "This can happen if the browser's Web Audio API is suspended or blocked. Click below to restart the sound engine, unlock silent mode, and run a hardware speaker diagnostic."
-    },
-    {
-      question: "My library is out of sync or missing items! (Force Cloud Resync)",
-      answer: "If your local library is out of sync or did not load correctly, click below to clear local pull markers and force a complete pull-then-push connection with the Firestore secure servers to restore your files."
-    },
-    {
-      question: "The app feels slow or laggy. Can I clean up the cache?",
-      answer: "Auxiliary interface records, old OTA updater chunks, and representation caches can accumulate. Click below to safely flush the temporary asset cache, wipe Lottie animation storage, and optimize system speed."
-    },
-    {
-      question: "How is my personal data secured in the app?",
-      answer: "Every single piece of user data (favorites, custom drum kits, preferences) is securely encrypted locally. Your key is dynamically derived using 80 iterations of FNV-1a stretching combined with your unique hardware device ID. Click below to run a security audit and verify key integrity."
-    },
-    {
-      question: "How do I perform a deep repair or soft reset?",
-      answer: "If the interface ever gets stuck or behaves unexpectedly due to hot-updates, click below to perform a safe memory reload, re-registering Capgo update hooks and flushing state garbage."
+      question: "Does Studio include cloud sync?",
+      answer: "Firestore backup functionality is operational but in active development and is not currently advertised as a public-facing feature. We recommend relying on local storage and local exports for reliable project management."
     }
   ],
   es: [
@@ -4364,7 +4966,7 @@ const FAQ_ITEMS: Record<string, FAQItem[]> = {
       answer: "¡Sí! Studio es totalmente responsivo y funciona en navegadores móviles. También ofrecemos una aplicación nativa de Android de alto rendimiento para producir música en cualquier lugar."
     },
     {
-      question: "¿Cómo uso la aplicación web?",
+      question: "¿Cómo uso la versión Web?",
       answer: "Simplemente abre Studio Web en tu navegador, elige cualquier herramienta desde el Hub (como Chordex o Drumex) y comienza a crear. Tus proyectos se guardan automáticamente localmente."
     },
     {
@@ -4373,85 +4975,53 @@ const FAQ_ITEMS: Record<string, FAQItem[]> = {
     },
     {
       question: "¿Por qué Windows está marcado como \"Próximamente\"?",
-      answer: "Estamos desarrollando un cliente nativo optimizado para Windows para soportar controladores de audio ASIO de baja latencia y plugins VST. Mientras tanto, puedes usar la aplicación Web en Windows."
+      answer: "Estamos desarrollando un cliente nativo optimizado para Windows para soportar controladores de audio ASIO de baja latencia y plugins VST. Mientras tanto, puedes usar la versión Web en Windows."
     },
     {
       question: "¿Dónde se almacenan mis preferencias?",
-      answer: "Tus preferencias, preajustes y composiciones se guardan de forma segura en la base de datos local de tu navegador (localStorage e IndexedDB). Sincronizar tu cuenta los respalda de forma segura en la nube de Firestore."
+      answer: "Tus preferencias, preajustes y composiciones se guardan de forma segura en la base de datos local de tu navegador (localStorage e IndexedDB). Sincronizar tu cuenta los respalda en la nube de Firestore."
     },
     {
-      question: "¿Cómo funcionan las actualizaciones OTA?",
-      answer: "Studio busca actualizaciones automáticamente en segundo plano al iniciar. Cuando se detecta una actualización, aparece un banner en la parte superior con la opción de instalarla inmediatamente o recordarlo más tarde."
-    },
-    {
-      question: "¿Qué es el Modo de Rendimiento?",
-      answer: "El Modo de Rendimiento desactiva efectos visuales pesados en tiempo real (como desenfoques y animaciones pesadas de GPU) para ahorrar batería y maximizar la fluidez en dispositivos antiguos. Puedes activarlo en preferencias de Apariencia."
-    },
-    {
-      question: "¿Cómo guardo mis canciones y kits?",
-      answer: "Todas tus canciones de Chordex y kits personalizados de Drumex se respaldan automáticamente de forma segura. Inicia sesión en la sección Cuenta para sincronizar tus datos en todos tus dispositivos."
-    },
-    {
-      question: "¿Cómo conecto dispositivos MIDI externos?",
-      answer: "Studio admite controladores MIDI por USB y Bluetooth estándar. Conecta tu controlador y se detectará automáticamente en Drumex y Stagex para tocar en tiempo real."
-    },
-    {
-      question: "¿Por qué no hay sonido? (Reparar motor de sonido)",
-      answer: "Esto puede suceder si el motor Web Audio del navegador está suspendido o bloqueado. Presiona abajo para reiniciar el motor de sonido, desactivar el modo silencioso y realizar una prueba de altavoces."
-    },
-    {
-      question: "¡Mi biblioteca está desincronizada o faltan elementos! (Forzar sincronización)",
-      answer: "Si tu biblioteca local está desincronizada o no se cargó correctamente, presiona abajo para borrar los marcadores locales y forzar una conexión completa con los servidores seguros de Firestore para restaurar tus archivos."
-    },
-    {
-      question: "¿La app va lenta? ¿Puedo limpiar la caché?",
-      answer: "Los registros temporales de la interfaz, restos de actualizaciones OTA y cachés de animación pueden acumularse. Presiona abajo para vaciar de forma segura la caché de archivos temporales y optimizar el rendimiento."
-    },
-    {
-      question: "¿Cómo se protegen mis datos en la aplicación?",
-      answer: "Todos tus datos de usuario (favoritos, kits de batería, preferencias) están encriptados localmente. Tu clave se deriva mediante 80 iteraciones de estiramiento FNV-1a combinadas con el ID de tu dispositivo. Presiona abajo para auditar la seguridad."
-    },
-    {
-      question: "¿Cómo realizo un restablecimiento completo o reparación profunda?",
-      answer: "Si la interfaz se queda congelada o se comporta de manera inusual debido a actualizaciones, presiona abajo para realizar una recarga limpia de memoria y reconfigurar los hooks del sistema."
+      question: "¿Incluye Studio sincronización en la nube?",
+      answer: "La funcionalidad de respaldo de Firestore está operativa pero en desarrollo activo y actualmente no se promociona como una función pública. Recomendamos usar el almacenamiento local y las exportaciones manuales."
     }
   ],
   de: [
     {
-      question: "Wie funktionieren OTA-Updates?",
-      answer: "Studio sucht beim Start automatisch im Hintergrund nach Updates. Wenn ein Update verfügbar ist, erscheint oben ein Banner mit der Option, es sofort zu installieren oder später erinnert zu werden."
+      question: "Was ist Studio?",
+      answer: "Studio ist eine All-in-One-Musikproduktionssuite, mit der Sie Tracks direkt in Ihrem Browser oder über unsere nativen Anwendungen komponieren, synthetisieren, mischen und aufnehmen können."
     },
     {
-      question: "Was ist der Leistungsmodus?",
-      answer: "Der Leistungsmodus deaktiviert rechenintensive visuelle Effekte (wie Weichzeichner und GPU-Animationen), um die Akkulaufzeit zu verlängern und die Reaktionsgeschwindigkeit auf älteren Geräten zu maximieren."
+      question: "Was ist Chordex?",
+      answer: "Chordex ist ein professioneller Begleiter für Akkordfolgen in Studio. Es hilft Ihnen, Songs zu komponieren, komplexe Tonleitern zu erkunden und Akkordfolgen in Ihre DAW zu exportieren."
     },
     {
-      question: "Wie sichere ich meine Songs und Kits?",
-      answer: "Alle Ihre Songs in Chordex und benutzerdefinierten Kits in Drumex werden automatisch sicher in Ihrem Konto gesichert. Melden Sie sich einfach auf der Kontoseite an, um die Daten auf all Ihren Geräten zu synchronisieren."
+      question: "Was ist Stagex?",
+      answer: "Stagex ist die Live-Performance- und virtuelle Bühnenkomponente von Studio. Sie können virtuelle Bühnenlayouts organisieren, Audio-Routing verwalten und Backing-Tracks dynamisch abspielen."
     },
     {
-      question: "Wie verbinde ich externe MIDI-Geräte?",
-      answer: "Studio unterstützt Standard-MIDI-über-USB und Bluetooth-MIDI-Geräte. Schließen Sie Ihren Controller an, und er wird in Drumex und Stagex automatisch erkannt."
+      question: "Funktioniert Studio auf Mobilgeräten?",
+      answer: "Ja! Studio ist vollständig responsive und läuft in mobilen Browsern. Wir bieten auch eine leistungsstarke native Android-App für die Musikproduktion unterwegs."
     },
     {
-      question: "Warum gibt es keinen Ton? (Sound-Engine reparieren)",
-      answer: "Dies kann passieren, wenn die Web Audio-API des Browsers blockiert oder im Ruhezustand ist. Klicken Sie unten, um die Sound-Engine neu zu starten, den Stummmodus aufzuheben und einen Lautsprechertest durchzuführen."
+      question: "Wie benutze ich die Web-Version?",
+      answer: "Öffnen Sie einfach Studio Web in Ihrem Browser, wählen Sie ein Tool aus dem Hub (wie Chordex oder Drumex) und beginnen Sie mit der Erstellung. Ihre Projekte werden lokal gespeichert."
     },
     {
-      question: "Meine Bibliothek ist nicht synchronisiert oder leer! (Erzwungene Synchronisierung)",
-      answer: "Wenn Ihre lokale Bibliothek asynchron ist, klicken Sie unten, um lokale Sync-Markierungen zu löschen und eine vollständige Synchronisierung mit den sicheren Firestore-Servern zu erzwingen."
+      question: "Wie funktionieren Android APK-Updates?",
+      answer: "Die native Android-App sucht automatisch auf unseren Servern nach Updates. Wenn eine neue APK verfügbar ist, lädt die App sie direkt herunter und ermöglicht eine sofortige Installation."
     },
     {
-      question: "Die App läuft langsam. Kann ich den Cache leeren?",
-      answer: "Temporäre Interface-Daten, alte OTA-Update-Dateien und Animations-Caches können sich ansammeln. Klicken Sie unten, um den temporären Asset-Cache sicher zu leeren und die Geschwindigkeit zu maximieren."
+      question: "Warum ist Windows als \"Demnächst verfügbar\" markiert?",
+      answer: "Wir entwickeln einen optimierten nativen Windows-Client, um ASIO-Treiber mit geringer Latenz und VST-Plugins zu unterstützen. In der Zwischenzeit können Sie die Web-Version nutzen."
     },
     {
-      question: "Wie sind meine persönlichen Daten in der App gesichert?",
-      answer: "Jede einzelne Datei (Favoriten, Drum-Kits, Einstellungen) wird lokal verschlüsselt gespeichert. Ihr Schlüssel wird durch 80 FNV-1a-Stretching-Iterationen in Kombination mit Ihrer Geräte-ID generiert. Klicken Sie unten, um die Verschlüsselung zu prüfen."
+      question: "Wo werden meine Einstellungen gespeichert?",
+      answer: "Ihre Einstellungen, Presets und Songs werden sicher in der lokalen Datenbank Ihres Browsers gespeichert (localStorage und IndexedDB). Die Sychronisierung sichert sie in unserer Firestore-Cloud."
     },
     {
-      question: "Wie führe eine Tiefenreparatur oder einen Soft-Reset durch?",
-      answer: "Wenn die Benutzeroberfläche einfriert oder sich unerwartet verhält, klicken Sie unten, um einen sicheren Arbeitsspeicher-Reload durchzuführen und die System-Hooks zurückzusetzen."
+      question: "Enthält Studio Cloud-Synchronisierung?",
+      answer: "Die Firestore-Backup-Funktion ist betriebsbereit, befindet sich jedoch in der aktiven Entwicklung und wird derzeit nicht als öffentliches Feature beworben. Bitte nutzen Sie den lokalen Export."
     }
   ]
 };
