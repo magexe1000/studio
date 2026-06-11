@@ -99,11 +99,11 @@ export function Sidebar({
       }}
       transition={{
         width: {
-          duration: 0.3,
-          ease: open ? [0.16, 1, 0.3, 1] : [0.25, 0.8, 0.25, 1],
+          duration: 0.22,
+          ease: [0.22, 1, 0.36, 1],
         },
         borderColor: {
-          duration: open ? 0.15 : 0.3,
+          duration: 0.22,
           ease: 'linear',
         }
       }}
@@ -125,7 +125,7 @@ export function Sidebar({
           opacity: open ? 1 : 0,
         }}
         transition={{
-          duration: open ? 0.25 : 0.12,
+          duration: open ? 0.18 : 0.08,
           ease: 'easeInOut',
         }}
         style={{
