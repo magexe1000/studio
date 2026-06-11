@@ -352,7 +352,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                         removeShortcut(target.id);
                       }}
                       title="Remove Shortcut"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md bg-transparent border-none text-[var(--c-text-secondary)] hover:text-rose-500 hover:bg-[rgba(255,255,255,0.06)] cursor-pointer flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity outline-none z-10"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md bg-transparent border-none text-[var(--c-text-secondary)] hover:text-rose-500 hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))] cursor-pointer flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity outline-none z-10"
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
                         close
@@ -415,7 +415,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                               addShortcut(target.id);
                               setShowAddMenu(false);
                             }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg border-none text-left cursor-pointer hover:bg-[rgba(255,255,255,0.06)] text-[var(--c-text-primary)] bg-transparent outline-none transition-colors"
+                            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg border-none text-left cursor-pointer hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))] text-[var(--c-text-primary)] bg-transparent outline-none transition-colors"
                           >
                             <div className="flex-shrink-0" style={{ color: 'var(--c-text-secondary)' }}>
                               {renderShortcutIcon(target.icon)}

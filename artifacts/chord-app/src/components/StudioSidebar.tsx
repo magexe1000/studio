@@ -88,34 +88,56 @@ export function Sidebar({
   const { open } = useSidebar();
 
   const targetWidth = open ? '240px' : '0px';
-  const targetOpacity = open ? 1 : 0;
+  const targetBorderColor = open ? 'rgba(128,128,128,0.08)' : 'rgba(128,128,128,0)';
 
   return (
     <motion.aside
-      className={`h-screen flex flex-col border-r border-[rgba(128,128,128,0.08)] select-none flex-shrink-0 relative ${className}`}
+      className={`h-screen flex flex-col select-none flex-shrink-0 relative ${className}`}
       animate={{
         width: targetWidth,
-        opacity: targetOpacity,
+        borderColor: targetBorderColor,
       }}
       transition={{
-        duration: 0.26,
-        ease: [0.16, 1, 0.3, 1], // easeOutExpo
+        width: {
+          duration: 0.3,
+          ease: open ? [0.16, 1, 0.3, 1] : [0.25, 0.8, 0.25, 1],
+        },
+        borderColor: {
+          duration: open ? 0.15 : 0.3,
+          ease: 'linear',
+        }
       }}
       style={{
         background: 'var(--app-surface)',
+        borderRight: '1px solid',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         boxSizing: 'border-box',
         overflow: 'hidden',
-        willChange: 'width, opacity',
+        willChange: 'width, border-color',
         zIndex: 40,
         ...style,
       }}
       {...props}
     >
-      <div style={{ width: '240px', height: '100%', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+      <motion.div
+        animate={{
+          opacity: open ? 1 : 0,
+        }}
+        transition={{
+          duration: open ? 0.25 : 0.12,
+          ease: 'easeInOut',
+        }}
+        style={{
+          width: '240px',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          flexShrink: 0,
+        }}
+      >
         {children}
-      </div>
+      </motion.div>
     </motion.aside>
   );
 }
@@ -265,10 +287,10 @@ export function SidebarMenuButton({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center ${open ? 'justify-start gap-3 px-3' : 'justify-center px-0'} py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-150 relative group ${className}`}
+      className={`w-full flex items-center ${open ? 'justify-start gap-3 px-3' : 'justify-center px-0'} py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-150 relative group hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))] ${className}`}
       title={!open ? tooltip || undefined : undefined}
       style={{
-        background: active ? 'rgba(255, 255, 255, 0.07)' : 'transparent',
+        background: active ? 'var(--sidebar-active-bg, rgba(255, 255, 255, 0.07))' : 'transparent',
         color: active ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
         fontFamily: 'Manrope, sans-serif',
         fontWeight: active ? 700 : 500,

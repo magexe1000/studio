@@ -1734,7 +1734,7 @@ export default function App() {
                 transform: 'translateY(-50%)',
                 width: '14px',
                 height: '64px',
-                backgroundColor: '#09090b',
+                backgroundColor: 'var(--app-surface-low, #09090b)',
                 border: '1px solid rgba(128, 128, 128, 0.18)',
                 borderLeft: 'none',
                 borderRadius: '0 10px 10px 0',
@@ -1749,9 +1749,9 @@ export default function App() {
             >
               {/* Dots indicator */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
-                <div style={{ width: '2px', height: '2px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.45)' }} />
-                <div style={{ width: '2px', height: '2px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.45)' }} />
-                <div style={{ width: '2px', height: '2px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.45)' }} />
+                <div style={{ width: '2px', height: '2px', borderRadius: '50%', backgroundColor: 'var(--c-text-secondary, rgba(255,255,255,0.45))', opacity: 0.8 }} />
+                <div style={{ width: '2px', height: '2px', borderRadius: '50%', backgroundColor: 'var(--c-text-secondary, rgba(255,255,255,0.45))', opacity: 0.8 }} />
+                <div style={{ width: '2px', height: '2px', borderRadius: '50%', backgroundColor: 'var(--c-text-secondary, rgba(255,255,255,0.45))', opacity: 0.8 }} />
               </div>
             </div>
           )}
