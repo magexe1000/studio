@@ -38,7 +38,8 @@ const AccountSettingsPage = lazy(() =>
   import('./AccountCard').then(m => ({ default: m.AccountSettingsPage }))
 );
 
-type HubTab = 'home' | 'settings' | 'profile';
+type HubTab = 'home' | 'settings' | 'profile' | 'help';
+type HelpPageId = 'help-center' | 'faq' | 'release-notes' | 'download-apps' | 'keyboard-shortcuts' | 'terms' | 'privacy-policy' | 'bug-report';
 type TargetApp = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
@@ -874,6 +875,16 @@ export default function StudioHub() {
             renderDevToast={renderDevToast}
           />
         )}
+
+        {/* ── HELP TAB ── */}
+        {tab === 'help' && (
+          <HubHelp
+            accent={accent}
+            authUser={authUser}
+            tab={tab}
+            setTab={setTab}
+          />
+        )}
       </div>
 
       {/* ── Bottom nav ── */}
@@ -1125,7 +1136,7 @@ function AppRow({
 
 // ── Hub settings ──────────────────────────────────────────────────────────────
 
-type SettingsPageId = 'main' | 'general' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'help' | 'debug' | 'developer' | 'profile' | 'help-center' | 'faq' | 'release-notes' | 'download-apps' | 'keyboard-shortcuts' | 'terms' | 'privacy-policy' | 'bug-report';
+type SettingsPageId = 'main' | 'general' | 'appearance' | 'language' | 'privacy' | 'about' | 'updater' | 'debug' | 'developer' | 'profile' | 'help-center' | 'faq' | 'release-notes' | 'download-apps' | 'keyboard-shortcuts' | 'terms' | 'privacy-policy' | 'bug-report';
 
 function formatHour(h: number): string {
   if (h === 0) return '12 am';
@@ -4272,26 +4283,9 @@ User Agent: [Automatically Generated]
       case 'language':
         return renderLanguageContent();
       case 'privacy':
-      case 'privacy-policy':
-        return renderPrivacyPolicyContent();
+        return renderPrivacyContent();
       case 'updater':
         return renderUpdaterContent();
-      case 'help':
-        return renderHelpContent();
-      case 'help-center':
-        return renderHelpCenterContent();
-      case 'faq':
-        return renderFaqContent();
-      case 'release-notes':
-        return renderReleaseNotesContent();
-      case 'download-apps':
-        return renderDownloadAppsContent();
-      case 'keyboard-shortcuts':
-        return renderKeyboardShortcutsContent();
-      case 'terms':
-        return renderTermsContent();
-      case 'bug-report':
-        return renderBugReportContent();
       case 'developer':
         return renderDeveloperContent();
       case 'about':
@@ -4307,92 +4301,12 @@ User Agent: [Automatically Generated]
 
   /* ── MOBILE DRILL DOWN LAYOUTS ──────────────────────────────────── */
   if (!isWebDesktop) {
-    if (page === 'help') {
+    if (page === 'privacy') {
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
           <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Help & FAQ" onBack={goBack} />
-          {renderHelpContent()}
-        </div>
-      );
-    }
-
-    if (page === 'help-center') {
-      return (
-        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Help Center" onBack={goBack} />
-          {renderHelpCenterContent()}
-        </div>
-      );
-    }
-
-    if (page === 'faq') {
-      return (
-        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="FAQ & Support" onBack={goBack} />
-          {renderFaqContent()}
-        </div>
-      );
-    }
-
-    if (page === 'release-notes') {
-      return (
-        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Release Notes" onBack={goBack} />
-          {renderReleaseNotesContent()}
-        </div>
-      );
-    }
-
-    if (page === 'download-apps') {
-      return (
-        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Download Apps" onBack={goBack} />
-          {renderDownloadAppsContent()}
-        </div>
-      );
-    }
-
-    if (page === 'keyboard-shortcuts') {
-      return (
-        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Keyboard Shortcuts" onBack={goBack} />
-          {renderKeyboardShortcutsContent()}
-        </div>
-      );
-    }
-
-    if (page === 'terms') {
-      return (
-        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Terms of Service" onBack={goBack} />
-          {renderTermsContent()}
-        </div>
-      );
-    }
-
-    if (page === 'privacy' || page === 'privacy-policy') {
-      return (
-        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Privacy Policy" onBack={goBack} />
-          {renderPrivacyPolicyContent()}
-        </div>
-      );
-    }
-
-    if (page === 'bug-report') {
-      return (
-        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Report a Bug" onBack={goBack} />
-          {renderBugReportContent()}
+          <SettingsSubHeader title="Privacy Preferences" onBack={goBack} />
+          {renderPrivacyContent()}
         </div>
       );
     }
@@ -4963,6 +4877,987 @@ function HubNav({ tab, setTab, accent }: {
       })}
       </div>
     </nav>
+  );
+}
+
+type HelpPageActiveId = 'main' | HelpPageId;
+
+function HubHelp({
+  accent,
+  authUser,
+  tab,
+  setTab,
+}: {
+  accent: { from: string; to: string; mid: string };
+  authUser?: AuthUser | null;
+  tab: HubTab;
+  setTab: React.Dispatch<React.SetStateAction<HubTab>>;
+}) {
+  const { settings } = useChordStore();
+  const lang = settings.language ?? 'en';
+  const isWebDesktop = useIsWebDesktop();
+
+  const [page, setPage] = useState<HelpPageActiveId>(() => {
+    const target = typeof window !== 'undefined' ? sessionStorage.getItem('studio:routeToHelpPage') : null;
+    if (target) {
+      sessionStorage.removeItem('studio:routeToHelpPage');
+      return target as HelpPageActiveId;
+    }
+    return 'main';
+  });
+  const [pageKey, setPageKey] = useState(0);
+  const [slideDir, setSlideDir] = useState<'forward' | 'back'>('forward');
+  const [copiedBugTemplate, setCopiedBugTemplate] = useState(false);
+  const [firebaseAppReleaseJson, setFirebaseAppReleaseJson] = useState<string>('Loading...');
+
+  const pageScrollPositions = useRef<Record<string, number>>({});
+  const pendingRestoreRef = useRef<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      pageScrollPositions.current[page] = el.scrollTop;
+    };
+    el.addEventListener('scroll', handleScroll);
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [page]);
+
+  useEffect(() => {
+    const target = pendingRestoreRef.current;
+    if (target === null) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = pageScrollPositions.current[target] ?? 0;
+    pendingRestoreRef.current = null;
+  }, [page, pageKey]);
+
+  function navigate(to: HelpPageActiveId) {
+    if (scrollRef.current) pageScrollPositions.current[page] = scrollRef.current.scrollTop;
+    pendingRestoreRef.current = to;
+    setSlideDir('forward');
+    setPage(to);
+    setPageKey(k => k + 1);
+  }
+
+  function goBack() {
+    if (scrollRef.current) pageScrollPositions.current[page] = scrollRef.current.scrollTop;
+    pendingRestoreRef.current = 'main';
+    setSlideDir('back');
+    setPage('main');
+    setPageKey(k => k + 1);
+  }
+
+  useEffect(() => {
+    const handleRoute = () => {
+      sessionStorage.removeItem('studio:routeToHelpPage');
+      navigate('faq');
+    };
+    window.addEventListener('studio:route-to-faq', handleRoute);
+    return () => {
+      window.removeEventListener('studio:route-to-faq', handleRoute);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleUpdateHelpPage = (e: Event) => {
+      const customEvent = e as CustomEvent<HelpPageActiveId>;
+      if (customEvent.detail) {
+        navigate(customEvent.detail);
+      }
+    };
+    window.addEventListener('studio:update-help-page', handleUpdateHelpPage as EventListener);
+    return () => {
+      window.removeEventListener('studio:update-help-page', handleUpdateHelpPage as EventListener);
+    };
+  }, [page]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('studio:help-page-active', { detail: page }));
+  }, [page]);
+
+  useEffect(() => {
+    if (page !== 'download-apps') return;
+    const loadManifest = async () => {
+      const t = Date.now();
+      const baseUrl = 'https://studio-30f44.web.app';
+      try {
+        const r2 = await fetch(`${baseUrl}/app-release.json?t=${t}`);
+        if (r2.ok) {
+          const text = await r2.text();
+          setFirebaseAppReleaseJson(text);
+        } else {
+          setFirebaseAppReleaseJson(`Error: HTTP ${r2.status}`);
+        }
+      } catch (e: any) {
+        setFirebaseAppReleaseJson(`Error: ${e.message || String(e)}`);
+      }
+    };
+    loadManifest();
+  }, [page]);
+
+  function renderHelpCenterContent() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 24 }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '12px 16px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(128, 128, 128, 0.08)',
+          borderRadius: 12,
+        }}>
+          <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 20 }}>
+            search
+          </span>
+          <input 
+            type="text" 
+            placeholder="Search help articles..." 
+            disabled
+            style={{
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: 'var(--c-text-primary)',
+              fontSize: 14,
+              width: '100%',
+              cursor: 'not-allowed',
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-secondary)', opacity: 0.6, margin: '0 0 4px 0' }}>
+            Help Categories
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+            {[
+              { icon: 'play_circle', title: 'Getting Started', desc: 'Learn the basics of Studio, including app structures and navigation.' },
+              { icon: 'save', title: 'Projects & Exporting', desc: 'How to save your projects locally or export them as MIDI or Audio.' },
+              { icon: 'volume_up', title: 'Audio & MIDI Configurations', desc: 'Configure output devices, MIDI inputs, and latencies.' },
+              { icon: 'build', title: 'Troubleshooting & Diagnosis', desc: 'Run tests to check your system audio, cloud database, and cache.' },
+            ].map((topic, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                gap: 16,
+                padding: '16px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(128, 128, 128, 0.06)',
+                borderRadius: 12,
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 24, color: accent.from }}>
+                  {topic.icon}
+                </span>
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                    {topic.title}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
+                    {topic.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{
+          padding: 18,
+          background: 'rgba(255, 255, 255, 0.01)',
+          border: '1px solid rgba(128, 128, 128, 0.06)',
+          borderRadius: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+        }}>
+          <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)' }}>
+            Need direct assistance?
+          </h4>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
+            For help with your account, project recovery, or complex issues, feel free to visit our official github repository or reach out directly.
+          </p>
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            <a 
+              href="https://github.com/MAGEXE1000/Studio" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{
+                textDecoration: 'none',
+                padding: '8px 16px',
+                background: 'rgba(255,255,255,0.06)',
+                color: 'var(--c-text-primary)',
+                fontSize: 12,
+                fontWeight: 700,
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>open_in_new</span>
+              GitHub Repository
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderFaqContent() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <HelpAccordion accent={accent} lang={lang} />
+      </div>
+    );
+  }
+
+  function renderReleaseNotesContent() {
+    const changelogSections = getChangelogSections(lang) || [];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, paddingBottom: 12, borderBottom: '1px solid rgba(128, 128, 128, 0.08)' }}>
+          <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--c-text-primary)' }}>
+            v{APP_VERSION}
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--c-text-secondary)' }}>
+            Released on {APP_VERSION_DATE}
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {changelogSections.map((sec, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-secondary)', opacity: 0.6, margin: 0 }}>
+                {sec.heading}
+              </h3>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {sec.items.map((item, j) => (
+                  <li key={j} style={{ display: 'flex', gap: 10, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
+                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: accent.from, marginTop: 7, flexShrink: 0 }} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function renderDownloadAppsContent() {
+    let apkVersion = '3.6.28';
+    let apkSize = '13.47 MB';
+    let apkUrl = 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.28/studio-3.6.28.apk';
+    
+    try {
+      if (firebaseAppReleaseJson && !firebaseAppReleaseJson.startsWith('Error') && firebaseAppReleaseJson !== 'Loading...') {
+        const parsed = JSON.parse(firebaseAppReleaseJson);
+        if (parsed.version) apkVersion = parsed.version;
+        if (parsed.apkSizeBytes) apkSize = `${(parsed.apkSizeBytes / (1024 * 1024)).toFixed(2)} MB`;
+        if (parsed.apkUrl) apkUrl = parsed.apkUrl;
+      }
+    } catch (e) {
+      console.warn('Failed to parse firebaseAppReleaseJson:', e);
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 24 }}>
+        <div style={{
+          padding: 20,
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(128, 128, 128, 0.08)',
+          borderRadius: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 32, color: accent.from }}>
+                adb
+              </span>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)' }}>
+                  Android App (APK)
+                </h3>
+                <span style={{ fontSize: 12, color: 'var(--c-text-secondary)' }}>
+                  v{apkVersion} • {apkSize}
+                </span>
+              </div>
+            </div>
+            <a 
+              href={apkUrl}
+              style={{
+                textDecoration: 'none',
+                padding: '8px 16px',
+                background: accent.from,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
+              Download APK
+            </a>
+          </div>
+          <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)' }} />
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
+            To install: download and run the APK on your device. You may need to enable "Install from Unknown Sources" in your system security settings.
+          </p>
+        </div>
+
+        <div style={{
+          padding: 20,
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(128, 128, 128, 0.08)',
+          borderRadius: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 32, color: accent.from }}>
+                language
+              </span>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)' }}>
+                  Web Version (PWA)
+                </h3>
+                <span style={{ fontSize: 12, color: 'var(--c-text-secondary)' }}>
+                  v4.0.0 (Web)
+                </span>
+              </div>
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: accent.from, background: `${accent.from}22`, padding: '6px 12px', borderRadius: 8 }}>
+              Running Now
+            </div>
+          </div>
+          <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)' }} />
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
+            Enjoy the full experience on any desktop or mobile device. Install as a Progressive Web App (PWA) directly via your browser's install menu for offline support and standalone window display.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {[
+            { platform: 'iOS App', icon: 'phone_iphone' },
+            { platform: 'Desktop (macOS / Windows)', icon: 'desktop_windows' }
+          ].map((item, i) => (
+            <div key={i} style={{
+              padding: 16,
+              background: 'rgba(255, 255, 255, 0.01)',
+              border: '1px solid rgba(128, 128, 128, 0.06)',
+              borderRadius: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              opacity: 0.7,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--c-text-secondary)' }}>
+                  {item.icon}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                  {item.platform}
+                </span>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: accent.from, opacity: 0.8 }}>
+                Coming soon
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function renderKeyboardShortcutsContent() {
+    const categories = [
+      {
+        title: 'Stage Mode (Stagex)',
+        shortcuts: [
+          { keys: ['Space', '→', '↓'], desc: 'Advance to next scene (Forward)' },
+          { keys: ['←', '↑'], desc: 'Go back to previous scene (Backward)' },
+          { keys: ['Esc'], desc: 'Close Stage Mode / Exit fullscreen' }
+        ]
+      },
+      {
+        title: 'Sequencer & Editing (Drumex)',
+        shortcuts: [
+          { keys: ['Ctrl', 'Z'], desc: 'Undo last editing step' },
+          { keys: ['Ctrl', 'Y'], desc: 'Redo last undone step' },
+          { keys: ['Ctrl', 'Shift', 'Z'], desc: 'Redo last undone step (Alternative)' }
+        ]
+      }
+    ];
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 24 }}>
+        {categories.map((cat, i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-secondary)', opacity: 0.6, margin: 0 }}>
+              {cat.title}
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {cat.shortcuts.map((sh, j) => (
+                <div key={j} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 12px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(128, 128, 128, 0.06)',
+                  borderRadius: 8,
+                }}>
+                  <span style={{ fontSize: 13, color: 'var(--c-text-secondary)' }}>
+                    {sh.desc}
+                  </span>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {sh.keys.map((k, kIdx) => (
+                      <React.Fragment key={kIdx}>
+                        {kIdx > 0 && <span style={{ color: 'var(--c-text-muted)', fontSize: 12, alignSelf: 'center' }}>+</span>}
+                        <kbd style={{
+                          padding: '3px 6px',
+                          border: '1px solid rgba(128, 128, 128, 0.2)',
+                          background: 'rgba(255, 255, 255, 0.06)',
+                          borderRadius: 4,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: 'var(--c-text-primary)',
+                          fontFamily: 'monospace',
+                        }}>
+                          {k}
+                        </kbd>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function renderTermsContent() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.6, paddingBottom: 24 }}>
+        <p style={{ margin: 0 }}>
+          Welcome to Studio. By accessing or using our application, you agree to comply with and be bound by the following Terms of Service. Please read them carefully.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>1. Ownership of Content</h4>
+        <p style={{ margin: 0 }}>
+          All musical patterns, drum sequences, settings, and other project data created by you using Studio's tools (Chordex, Drumex, Stagex, Groovex, Vocalex) remain entirely your property. We lay no claim of copyright, trademark, or ownership over your creative output.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>2. Use of Service</h4>
+        <p style={{ margin: 0 }}>
+          Studio is provided on a local-first basis. Data sync features are provided for your personal backup convenience. You agree not to abuse or attempt to overload the sync servers.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>3. Disclaimer of Warranties</h4>
+        <p style={{ margin: 0 }}>
+          Studio is provided "as is" and "as available" without any warranties of any kind. While we aim to protect project data using reliable local storage and cloud sync mechanisms, we cannot guarantee data will not be lost. We recommend periodic manual backups.
+        </p>
+      </div>
+    );
+  }
+
+  function renderPrivacyPolicyContent() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.6, paddingBottom: 24 }}>
+        <p style={{ margin: 0 }}>
+          Your privacy is extremely important to us. This Privacy Policy details how Studio collects, uses, and safeguards your data.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>1. Local-First Storage</h4>
+        <p style={{ margin: 0 }}>
+          By default, all your project settings, drum sequences, and songs are stored locally on your device using IndexedDB and localStorage. None of this creative work leaves your device unless you explicitly enable Cloud Sync.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>2. Cloud Backup & Authentication</h4>
+        <p style={{ margin: 0 }}>
+          If you create a Studio Account, we use Firebase to manage your login credentials. Your project backups are stored securely in Firestore databases. We only use this data to perform cross-device syncing at your request.
+        </p>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>3. No Third-Party Tracking</h4>
+        <p style={{ margin: 0 }}>
+          Studio does not use telemetry, advertising trackers, or external behavioral analytics. Your interaction with the app remains entirely private.
+        </p>
+      </div>
+    );
+  }
+
+  function renderBugReportContent() {
+    const handleCopyTemplate = () => {
+      const template = `[STUDIO BUG REPORT]
+------------------------------------
+App Version: v${APP_VERSION} (Web)
+User Agent: ${navigator.userAgent}
+Date: ${new Date().toISOString()}
+
+[Description of Bug]
+- 
+
+[Steps to Reproduce]
+1. 
+2. 
+3. 
+
+[Expected Behavior]
+- 
+
+[Actual Behavior]
+- `;
+      navigator.clipboard.writeText(template);
+      setCopiedBugTemplate(true);
+      setTimeout(() => setCopiedBugTemplate(false), 2000);
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
+          If you encounter an issue or unexpected behavior in Studio, please report it! Copy the template below and submit it on our GitHub repository.
+        </p>
+
+        <button 
+          onClick={handleCopyTemplate}
+          style={{
+            alignSelf: 'flex-start',
+            padding: '10px 16px',
+            background: accent.from,
+            color: '#fff',
+            fontSize: 13,
+            fontWeight: 700,
+            border: 'none',
+            borderRadius: 8,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            {copiedBugTemplate ? 'check' : 'content_copy'}
+          </span>
+          {copiedBugTemplate ? 'Copied to Clipboard!' : 'Copy Bug Template'}
+        </button>
+
+        <div style={{
+          padding: 14,
+          background: 'rgba(255,255,255,0.01)',
+          border: '1px solid rgba(128,128,128,0.08)',
+          borderRadius: 8,
+          fontFamily: 'monospace',
+          fontSize: 12,
+          color: 'var(--c-text-secondary)',
+          whiteSpace: 'pre-wrap',
+          lineHeight: 1.5,
+        }}>
+          {`[STUDIO BUG REPORT]
+App Version: v${APP_VERSION} (Web)
+User Agent: [Automatically Generated]
+...`}
+        </div>
+
+        <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)', margin: '8px 0' }} />
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <a 
+            href="https://github.com/MAGEXE1000/Studio/issues/new" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{
+              textDecoration: 'none',
+              padding: '10px 16px',
+              background: 'rgba(255,255,255,0.04)',
+              color: 'var(--c-text-primary)',
+              fontSize: 13,
+              fontWeight: 700,
+              borderRadius: 8,
+              border: '1px solid rgba(128, 128, 128, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
+            Open GitHub Issues
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  function renderActivePageContent(activePageId: HelpPageId) {
+    switch (activePageId) {
+      case 'help-center':
+        return renderHelpCenterContent();
+      case 'faq':
+        return renderFaqContent();
+      case 'release-notes':
+        return renderReleaseNotesContent();
+      case 'download-apps':
+        return renderDownloadAppsContent();
+      case 'keyboard-shortcuts':
+        return renderKeyboardShortcutsContent();
+      case 'terms':
+        return renderTermsContent();
+      case 'privacy-policy':
+        return renderPrivacyPolicyContent();
+      case 'bug-report':
+        return renderBugReportContent();
+      default:
+        return renderHelpCenterContent();
+    }
+  }
+
+  const sections = [
+    {
+      label: lang === 'es' ? 'Soporte' : 'Support',
+      items: [
+        { id: 'help-center' as const, icon: 'help', label: lang === 'es' ? 'Centro de Ayuda' : 'Help Center' },
+        { id: 'faq' as const, icon: 'contact_support', label: lang === 'es' ? 'Preguntas Frecuentes' : 'FAQ & Support' },
+        { id: 'release-notes' as const, icon: 'article', label: lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes' },
+        { id: 'download-apps' as const, icon: 'install_desktop', label: lang === 'es' ? 'Descargar Aplicaciones' : 'Download Apps' },
+        { id: 'keyboard-shortcuts' as const, icon: 'keyboard', label: lang === 'es' ? 'Atajos de Teclado' : 'Keyboard Shortcuts' },
+      ]
+    },
+    {
+      label: lang === 'es' ? 'Legal' : 'Legal',
+      items: [
+        { id: 'terms' as const, icon: 'gavel', label: lang === 'es' ? 'Condiciones de Servicio' : 'Terms of Service' },
+        { id: 'privacy-policy' as const, icon: 'policy', label: lang === 'es' ? 'Política de Privacidad' : 'Privacy Policy' },
+      ]
+    },
+    {
+      label: lang === 'es' ? 'Comentarios' : 'Feedback',
+      items: [
+        { id: 'bug-report' as const, icon: 'bug_report', label: lang === 'es' ? 'Informar de un Error' : 'Report a Bug' },
+      ]
+    }
+  ];
+
+  const getPageTitle = (id: HelpPageId) => {
+    for (const section of sections) {
+      const item = section.items.find(n => n.id === id);
+      if (item) return item.label;
+    }
+    return 'Help & Support';
+  };
+
+  const activePageId = page === 'main' ? 'help-center' : page;
+
+  const cardStyle = {
+    background: 'rgba(255,255,255,0.02)',
+    border: '1px solid rgba(128,128,128,0.08)',
+    borderRadius: '12px',
+    marginBottom: '20px',
+    overflow: 'hidden',
+  };
+
+  const subStyle = {
+    animation: `slide-forward 250ms ease both`,
+  };
+
+  /* ── MOBILE DRILL DOWN LAYOUTS ──────────────────────────────────── */
+  if (!isWebDesktop) {
+    if (page === 'help-center') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Help Center" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderHelpCenterContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (page === 'faq') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="FAQ & Support" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderFaqContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (page === 'release-notes') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Release Notes" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderReleaseNotesContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (page === 'download-apps') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Download Apps" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderDownloadAppsContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (page === 'keyboard-shortcuts') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Keyboard Shortcuts" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderKeyboardShortcutsContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (page === 'terms') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Terms of Service" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderTermsContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (page === 'privacy-policy') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Privacy Policy" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderPrivacyPolicyContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (page === 'bug-report') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Report a Bug" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderBugReportContent()}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={pageKey} style={{ padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
+        <style>{HUB_SETTINGS_CSS}</style>
+
+        <div className="spring-in" style={{ paddingTop: 32, paddingBottom: 8 }}>
+          <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>Help & Support</p>
+          <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>Find documentation, FAQ, apps, and legal policies</p>
+        </div>
+
+        <SettingsSectionLabel delay={70}>Support</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <SettingsNavRow icon="help" iconColor={accent.from} title="Help Center" desc="Documentation and guides" onPress={() => navigate('help-center')} delay={75} />
+          <SettingsNavRow icon="contact_support" iconColor={accent.from} title="FAQ & Support" desc="Frequently asked questions" onPress={() => navigate('faq')} delay={80} />
+          <SettingsNavRow icon="article" iconColor={accent.from} title="Release Notes" desc="View version history" onPress={() => navigate('release-notes')} delay={85} />
+          <SettingsNavRow icon="install_desktop" iconColor={accent.from} title="Download Apps" desc="Get native mobile and desktop clients" onPress={() => navigate('download-apps')} delay={90} />
+          <SettingsNavRow icon="keyboard" iconColor={accent.from} title="Keyboard Shortcuts" desc="View quick key bindings" onPress={() => navigate('keyboard-shortcuts')} last delay={95} />
+        </div>
+
+        <SettingsSectionLabel delay={110}>Legal</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <SettingsNavRow icon="gavel" iconColor={accent.from} title="Terms of Service" desc="Read terms and conditions" onPress={() => navigate('terms')} delay={115} />
+          <SettingsNavRow icon="policy" iconColor={accent.from} title="Privacy Policy" desc="Read privacy guidelines" onPress={() => navigate('privacy-policy')} last delay={120} />
+        </div>
+
+        <SettingsSectionLabel delay={140}>Feedback</SettingsSectionLabel>
+        <div style={cardStyle}>
+          <SettingsNavRow icon="bug_report" iconColor={accent.from} title="Report a Bug" desc="Send us feedback or bug reports" onPress={() => navigate('bug-report')} last delay={145} />
+        </div>
+      </div>
+    );
+  }
+
+  /* ── DESKTOP LAYOUT ────────────────────────────────────────────── */
+  return createPortal(
+    <div 
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.65)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setTab('home');
+        }
+      }}
+    >
+      <style>{HUB_SETTINGS_CSS}</style>
+      <style>{`
+        @keyframes hub-modal-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .settings-desktop-layout .flex.items-center.justify-between.gap-4 {
+          padding-left: 0px !important;
+          padding-right: 0px !important;
+        }
+        .settings-desktop-layout .flex.items-center.justify-between.gap-4[style*="padding-left: 28px"],
+        .settings-desktop-layout .flex.items-center.justify-between.gap-4[style*="paddingLeft: 28px"],
+        .settings-desktop-layout .flex.items-center.justify-between.gap-4[style*="28px"] {
+          padding-left: 12px !important;
+        }
+        .settings-desktop-layout div[style*="border-bottom"],
+        .settings-desktop-layout div[style*="borderBottom"] {
+          border-bottom: 1px solid rgba(128, 128, 128, 0.08) !important;
+        }
+        .settings-desktop-layout button.btn-smooth:not(.active-settings-nav):hover {
+          background: var(--sidebar-hover-bg, rgba(255, 255, 255, 0.04)) !important;
+        }
+      `}</style>
+      <div 
+        key={pageKey} 
+        style={{ 
+          display: 'flex', 
+          width: '880px', 
+          height: '640px', 
+          maxWidth: '95vw',
+          maxHeight: '90vh',
+          background: 'var(--app-surface, rgba(18, 18, 18, 0.95))',
+          border: '1px solid rgba(128, 128, 128, 0.15)',
+          borderRadius: '16px',
+          boxShadow: '0 24px 60px rgba(0, 0, 0, 0.65)',
+          overflow: 'hidden',
+          backdropFilter: 'blur(30px)',
+          WebkitBackdropFilter: 'blur(30px)',
+          animation: 'hub-modal-fade-in 250ms ease both',
+        }} 
+        className="settings-desktop-layout"
+      >
+        {/* Left Pane: Sub-navigation */}
+        <div style={{
+          width: '260px',
+          flexShrink: 0,
+          borderRight: '1px solid rgba(128, 128, 128, 0.08)',
+          padding: '24px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          height: '100%',
+          overflowY: 'auto',
+        }}>
+          <button 
+            onClick={() => setTab('home')}
+            className="btn-smooth"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(128, 128, 128, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--c-text-primary)',
+              marginBottom: 16,
+              flexShrink: 0,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+          </button>
+
+          <div style={{ padding: '0 8px 16px 8px', borderBottom: '1px solid rgba(128, 128, 128, 0.08)', marginBottom: 12 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em', fontFamily: 'Manrope' }}>
+              {lang === 'es' ? 'Ayuda de Studio' : 'Studio Help'}
+            </h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {sections.map((section, secIdx) => (
+              <div key={section.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {secIdx > 0 && <div style={{ height: 1, borderTop: '1px solid rgba(128,128,128,0.08)', margin: '4px 0 10px 0' }} />}
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-secondary)', opacity: 0.6, padding: '0 12px 4px 12px' }}>
+                  {section.label}
+                </span>
+                {section.items.map(item => {
+                  const isActive = activePageId === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => navigate(item.id)}
+                      className={`btn-smooth ${isActive ? 'active-settings-nav' : ''}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        border: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        background: isActive ? 'var(--sidebar-hover-bg, rgba(255, 255, 255, 0.08))' : 'transparent',
+                        color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
+                        fontWeight: isActive ? 700 : 500,
+                        fontSize: 13,
+                        fontFamily: 'Manrope, sans-serif',
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16, color: isActive ? accent.from : 'inherit' }}>
+                        {item.icon}
+                      </span>
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Pane: Content */}
+        <div style={{
+          flex: 1,
+          padding: '32px 48px',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+        }} ref={scrollRef}>
+          <div style={{ maxWidth: '640px', width: '100%', margin: '0 auto' }}>
+            <div style={{ marginBottom: 28, borderBottom: '1px solid rgba(128, 128, 128, 0.08)', paddingBottom: 16 }}>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>
+                {getPageTitle(activePageId)}
+              </h1>
+            </div>
+            
+            <Suspense fallback={<div style={{ color: 'var(--c-text-secondary)', fontSize: 14 }}>Loading help...</div>}>
+              {renderActivePageContent(activePageId)}
+            </Suspense>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }
 
