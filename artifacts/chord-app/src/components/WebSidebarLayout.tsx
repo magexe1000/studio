@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useSidebar, Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarRail } from './StudioSidebar';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
@@ -31,6 +32,30 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
 
   const [activeHubTab, setActiveHubTab] = useState<'home' | 'settings' | 'profile'>('home');
   const [activeSettingsPage, setActiveSettingsPage] = useState<string>('main');
+  const [prefGroupOpen, setPrefGroupOpen] = useState(true);
+  const [devGroupOpen, setDevGroupOpen] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const profileMenuBtnStyle = {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '8px 10px',
+    borderRadius: '8px',
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--c-text-primary)',
+    fontSize: '12.5px',
+    fontWeight: 600,
+    fontFamily: 'Manrope, sans-serif',
+    cursor: 'pointer',
+    textAlign: 'left',
+    outline: 'none',
+    boxSizing: 'border-box',
+    transition: 'background-color 150ms ease',
+  } as React.CSSProperties;
 
   // Listen for Hub tab active state and settings page active state
   useEffect(() => {
@@ -106,6 +131,20 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showAddMenu]);
+
+  // Click outside to close profile popover menu
+  useEffect(() => {
+    if (!showProfileMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileMenu]);
 
   // Determine active accent color
   const activeVis = settings.perApp?.[settings.appMode ?? 'hub'] ?? {
@@ -439,158 +478,352 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
 
         {/* Preferences Group */}
         <SidebarGroup>
-          <SidebarGroupLabel>Preferences</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'general'}
-                onClick={() => handleGoToSettingsPage('general')}
-                tooltip="General Preferences"
-              >
-                <div className="flex-shrink-0">
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>settings</span>
-                </div>
-                {open && <span className="truncate">General Preferences</span>}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+          {open ? (
+            <button
+              onClick={() => setPrefGroupOpen(!prefGroupOpen)}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-extrabold tracking-wider uppercase text-[var(--c-text-primary)] border-none bg-transparent cursor-pointer outline-none"
+              style={{ letterSpacing: '0.12em', fontFamily: 'Manrope, sans-serif', opacity: 0.5, margin: '14px 0 4px 0' }}
+            >
+              <span>Preferences</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 13, transform: prefGroupOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 150ms ease', color: 'var(--c-text-primary)' }}>
+                chevron_right
+              </span>
+            </button>
+          ) : (
+            <SidebarGroupLabel>Preferences</SidebarGroupLabel>
+          )}
 
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'appearance'}
-                onClick={() => handleGoToSettingsPage('appearance')}
-                tooltip="Appearance"
+          <AnimatePresence initial={false}>
+            {(!open || prefGroupOpen) && (
+              <motion.div
+                initial={open ? { height: 0, opacity: 0 } : false}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18, ease: 'easeInOut' }}
+                style={{ overflow: 'hidden' }}
               >
-                <div className="flex-shrink-0">
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>palette</span>
-                </div>
-                {open && <span className="truncate">Appearance</span>}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'general'}
+                      onClick={() => handleGoToSettingsPage('general')}
+                      tooltip="General Settings"
+                    >
+                      <div className="flex-shrink-0">
+                        <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>settings</span>
+                      </div>
+                      {open && <span className="truncate">General Settings</span>}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
 
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'language'}
-                onClick={() => handleGoToSettingsPage('language')}
-                tooltip="Language"
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'appearance'}
+                      onClick={() => handleGoToSettingsPage('appearance')}
+                      tooltip="Appearance"
+                    >
+                      <div className="flex-shrink-0">
+                        <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>palette</span>
+                      </div>
+                      {open && <span className="truncate">Appearance</span>}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'language'}
+                      onClick={() => handleGoToSettingsPage('language')}
+                      tooltip="Language"
+                    >
+                      <div className="flex-shrink-0">
+                        <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>language</span>
+                      </div>
+                      {open && <span className="truncate">Language</span>}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'updater'}
+                      onClick={() => handleGoToSettingsPage('updater')}
+                      tooltip="App Updates"
+                    >
+                      <div className="flex-shrink-0 relative">
+                        <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>download</span>
+                        {ota.updateAvailable && (
+                          <span className="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full border border-black" />
+                        )}
+                      </div>
+                      {open && (
+                        <span className="truncate flex items-center gap-2">
+                          App Updates
+                          {ota.updateAvailable && (
+                            <span className="bg-rose-500/20 text-rose-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">New</span>
+                          )}
+                        </span>
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'help'}
+                      onClick={() => handleGoToSettingsPage('help')}
+                      tooltip="Help & FAQ"
+                    >
+                      <div className="flex-shrink-0">
+                        <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>help</span>
+                      </div>
+                      {open && <span className="truncate">Help & FAQ</span>}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </SidebarGroup>
+
+        {/* Developer Group */}
+        {settings.developerMode && (
+          <SidebarGroup>
+            {open ? (
+              <button
+                onClick={() => setDevGroupOpen(!devGroupOpen)}
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-extrabold tracking-wider uppercase text-[var(--c-text-primary)] border-none bg-transparent cursor-pointer outline-none"
+                style={{ letterSpacing: '0.12em', fontFamily: 'Manrope, sans-serif', opacity: 0.5, margin: '14px 0 4px 0' }}
               >
-                <div className="flex-shrink-0">
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>language</span>
-                </div>
-                {open && <span className="truncate">Language</span>}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'updater'}
-                onClick={() => handleGoToSettingsPage('updater')}
-                tooltip="App Updates"
-              >
-                <div className="flex-shrink-0 relative">
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>download</span>
-                  {ota.updateAvailable && (
-                    <span className="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full border border-black" />
-                  )}
-                </div>
-                {open && (
-                  <span className="truncate flex items-center gap-2">
-                    App Updates
-                    {ota.updateAvailable && (
-                      <span className="bg-rose-500/20 text-rose-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">New</span>
-                    )}
-                  </span>
-                )}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            {settings.developerMode && (
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'developer'}
-                  onClick={() => handleGoToSettingsPage('developer')}
-                  tooltip="Developer Options"
-                >
-                  <div className="flex-shrink-0">
-                    <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>terminal</span>
-                  </div>
-                  {open && <span className="truncate">Developer Options</span>}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                <span>Developer</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 13, transform: devGroupOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 150ms ease', color: 'var(--c-text-primary)' }}>
+                  chevron_right
+                </span>
+              </button>
+            ) : (
+              <SidebarGroupLabel>Developer</SidebarGroupLabel>
             )}
 
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'help'}
-                onClick={() => handleGoToSettingsPage('help')}
-                tooltip="Help & FAQ"
-              >
-                <div className="flex-shrink-0">
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>help</span>
-                </div>
-                {open && <span className="truncate">Help & FAQ</span>}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
+            <AnimatePresence initial={false}>
+              {(!open || devGroupOpen) && (
+                <motion.div
+                  initial={open ? { height: 0, opacity: 0 } : false}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeInOut' }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'developer'}
+                        onClick={() => handleGoToSettingsPage('developer')}
+                        tooltip="Developer Options"
+                      >
+                        <div className="flex-shrink-0">
+                          <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>terminal</span>
+                        </div>
+                        {open && <span className="truncate">Developer Options</span>}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        active={settings.appMode === 'hub' && activeHubTab === 'settings' && activeSettingsPage === 'about'}
+                        onClick={() => handleGoToSettingsPage('about')}
+                        tooltip="About & Version"
+                      >
+                        <div className="flex-shrink-0">
+                          <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>info</span>
+                        </div>
+                        {open && <span className="truncate">About & Version</span>}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       {/* Footer */}
       <SidebarFooter>
-        <SidebarMenu>
+        <SidebarMenu style={{ position: 'relative' }}>
           {/* User Profile */}
-          <SidebarMenuItem>
-            <div className={`flex items-center ${open ? 'gap-2.5 p-1.5' : 'justify-center p-0'} overflow-hidden`}>
-              <div
-                onClick={() => handleGoToHub('profile')}
-                className="flex-shrink-0 cursor-pointer"
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  background: photo ? 'transparent' : 'rgba(255, 255, 255, 0.08)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  overflow: 'hidden',
-                  boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.12)',
-                }}
+          <SidebarMenuItem className="relative">
+            <div ref={profileMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className={`w-full flex items-center ${open ? 'gap-2.5 p-1.5' : 'justify-center p-0'} overflow-hidden rounded-xl border-none text-left cursor-pointer transition-colors bg-transparent hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))] outline-none`}
+                style={{ outline: 'none' }}
               >
-                {photo ? (
-                  <img src={photo} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : authUser ? (
-                  <span>{initial}</span>
-                ) : (
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#fff' }}>account_circle</span>
-                )}
-              </div>
-
-              {open && (
-                <div className="flex-1 min-w-0" style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span
-                    onClick={() => handleGoToHub('profile')}
-                    className="truncate font-bold text-xs text-[var(--c-text-primary)] cursor-pointer hover:underline"
-                    style={{ fontFamily: 'Manrope, sans-serif' }}
-                  >
-                    {authUser ? (authUser.displayName || 'Studio User') : 'Guest User'}
-                  </span>
-                  <span className="truncate text-[10px] text-[var(--c-text-secondary)] font-medium">
-                    {authUser ? email : 'Not signed in'}
-                  </span>
-                </div>
-              )}
-
-              {authUser && open && (
-                <button
-                  onClick={() => signOut()}
-                  title="Sign Out"
-                  className="p-1 rounded-lg bg-transparent text-[var(--c-text-secondary)] hover:text-rose-500 border-none cursor-pointer flex items-center justify-center outline-none ml-auto"
+                <div
+                  className="flex-shrink-0"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: photo ? 'transparent' : 'rgba(255, 255, 255, 0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: '#ffffff',
+                    overflow: 'hidden',
+                    boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.12)',
+                  }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span>
-                </button>
-              )}
+                  {photo ? (
+                    <img src={photo} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : authUser ? (
+                    <span>{initial}</span>
+                  ) : (
+                    <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#fff' }}>account_circle</span>
+                  )}
+                </div>
+
+                {open && (
+                  <div className="flex-1 min-w-0" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span
+                      className="truncate font-bold text-xs text-[var(--c-text-primary)]"
+                      style={{ fontFamily: 'Manrope, sans-serif' }}
+                    >
+                      {authUser ? (authUser.displayName || 'Studio User') : 'Guest User'}
+                    </span>
+                    <span className="truncate text-[10px] text-[var(--c-text-secondary)] font-medium">
+                      {authUser ? email : 'Not signed in'}
+                    </span>
+                  </div>
+                )}
+
+                {open && (
+                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-secondary)', marginLeft: 'auto', opacity: 0.7 }}>
+                    more_vert
+                  </span>
+                )}
+              </button>
+
+              {/* Profile Popover Menu */}
+              <AnimatePresence>
+                {showProfileMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    style={{
+                      position: 'absolute',
+                      bottom: '100%',
+                      left: open ? '0px' : '50%',
+                      transform: open ? 'none' : 'translateX(-50%)',
+                      marginBottom: '8px',
+                      width: '216px',
+                      background: 'var(--app-surface)',
+                      backdropFilter: 'blur(30px)',
+                      WebkitBackdropFilter: 'blur(30px)',
+                      border: '1px solid rgba(128, 128, 128, 0.15)',
+                      borderRadius: '16px',
+                      padding: '8px',
+                      zIndex: 100,
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                    }}
+                  >
+                    {/* User info header */}
+                    <div style={{ padding: '8px 10px 10px', borderBottom: '1px solid rgba(128,128,128,0.08)', marginBottom: '6px' }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope' }} className="truncate">
+                        {authUser ? (authUser.displayName || 'Studio User') : 'Guest User'}
+                      </p>
+                      <p style={{ margin: '2px 0 0', fontSize: 10.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter' }} className="truncate">
+                        {authUser ? email : 'Not signed in'}
+                      </p>
+                    </div>
+
+                    {/* Menu items */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <button
+                        onClick={() => { handleGoToSettingsPage('profile'); setShowProfileMenu(false); }}
+                        style={profileMenuBtnStyle}
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person</span>
+                        <span>Profile</span>
+                      </button>
+
+                      <button
+                        onClick={() => { handleGoToSettingsPage('general'); setShowProfileMenu(false); }}
+                        style={profileMenuBtnStyle}
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>settings</span>
+                        <span>General Settings</span>
+                      </button>
+
+                      <button
+                        onClick={() => { handleGoToSettingsPage('appearance'); setShowProfileMenu(false); }}
+                        style={profileMenuBtnStyle}
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>palette</span>
+                        <span>Appearance</span>
+                      </button>
+
+                      <button
+                        onClick={() => { handleGoToSettingsPage('language'); setShowProfileMenu(false); }}
+                        style={profileMenuBtnStyle}
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>language</span>
+                        <span>Language</span>
+                      </button>
+
+                      <button
+                        onClick={() => { handleGoToSettingsPage('updater'); setShowProfileMenu(false); }}
+                        style={profileMenuBtnStyle}
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                          App Updates
+                          {ota.updateAvailable && (
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
+                          )}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => { handleGoToSettingsPage('help'); setShowProfileMenu(false); }}
+                        style={profileMenuBtnStyle}
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>help</span>
+                        <span>Help & FAQ</span>
+                      </button>
+
+                      {settings.developerMode && (
+                        <button
+                          onClick={() => { handleGoToSettingsPage('developer'); setShowProfileMenu(false); }}
+                          style={profileMenuBtnStyle}
+                          className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>terminal</span>
+                          <span>Developer Options</span>
+                        </button>
+                      )}
+
+                      {authUser && (
+                        <button
+                          onClick={() => { signOut(); setShowProfileMenu(false); }}
+                          style={{ ...profileMenuBtnStyle, color: '#ef4444' }}
+                          className="btn-smooth hover:bg-[rgba(239,68,68,0.08)]"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#ef4444' }}>logout</span>
+                          <span>Log out</span>
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </SidebarMenuItem>
 
