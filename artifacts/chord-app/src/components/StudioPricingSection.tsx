@@ -24,8 +24,8 @@ const PLANS: PricingPlan[] = [
     nameEs: 'Gratis',
     description: 'Perfect for getting started with standard musical creation.',
     descriptionEs: 'Perfecto para comenzar con la creación musical estándar.',
-    price: 'Coming soon',
-    priceEs: 'Próximamente',
+    price: '$0',
+    priceEs: '$0',
     features: [
       'Basic access to all sub-apps',
       'Local projects and history',
@@ -46,8 +46,8 @@ const PLANS: PricingPlan[] = [
     nameEs: 'Core',
     description: 'Unlock advanced features and priority processing for your setlist.',
     descriptionEs: 'Desbloquea funciones avanzadas y procesamiento prioritario para tu setlist.',
-    price: 'Coming soon',
-    priceEs: 'Próximamente',
+    price: '$9',
+    priceEs: '$9',
     features: [
       'Expanded project cloud storage',
       'Advanced chord and progression tools',
@@ -68,8 +68,8 @@ const PLANS: PricingPlan[] = [
     nameEs: 'Pro',
     description: 'The ultimate production suite for professional artists.',
     descriptionEs: 'La suite de producción definitiva para artistas profesionales.',
-    price: 'Coming soon',
-    priceEs: 'Próximamente',
+    price: '$19',
+    priceEs: '$19',
     features: [
       'Full Studio production toolkit',
       'Advanced multi-track audio exports',
@@ -168,8 +168,10 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
 
       {/* ── Pricing Tiers Grid ── */}
       <div
-        className="grid grid-cols-1 md:grid-cols-3 gap-5"
         style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '20px',
           width: '100%',
           boxSizing: 'border-box',
         }}
@@ -202,6 +204,7 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
                   : '0 4px 12px rgba(0,0,0,0.1)',
                 transition: 'background-color 700ms cubic-bezier(0.4, 0, 0.2, 1), border-color 700ms cubic-bezier(0.4, 0, 0.2, 1)',
                 boxSizing: 'border-box',
+                height: '100%',
               }}
             >
               {/* ── Recommended Floating Badge ── */}
@@ -270,12 +273,12 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
               />
 
               {/* ── Pricing / Cost ── */}
-              <div style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
                 <span
                   style={{
                     fontFamily: 'Manrope',
                     fontWeight: 900,
-                    fontSize: '1.6rem',
+                    fontSize: '1.75rem',
                     color: plan.isRecommended ? accent.from : 'var(--c-text-primary)',
                     letterSpacing: '-0.02em',
                   }}
@@ -286,11 +289,29 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
                   style={{
                     fontSize: '11px',
                     color: 'var(--c-text-secondary)',
-                    marginLeft: 4,
                   }}
                 >
                   {isEs ? '/ mes' : '/ month'}
                 </span>
+
+                {plan.id !== 'free' && (
+                  <span
+                    style={{
+                      marginLeft: 'auto',
+                      fontSize: '9px',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      padding: '2.5px 7px',
+                      borderRadius: 6,
+                      background: plan.isRecommended ? `${accent.from}15` : 'rgba(128,128,128,0.12)',
+                      border: plan.isRecommended ? `1px solid ${accent.from}25` : '1px solid rgba(128,128,128,0.08)',
+                      color: plan.isRecommended ? accent.from : 'var(--c-text-secondary)',
+                    }}
+                  >
+                    {isEs ? 'PRÓXIMAMENTE' : 'COMING SOON'}
+                  </span>
+                )}
               </div>
 
               {/* ── Feature Checklist ── */}
@@ -387,6 +408,20 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
                     cursor: 'default',
                     opacity: 0.8,
                   };
+                } else if (plan.id !== 'free') {
+                  // Paid plan not owned: disabled Coming Soon CTA
+                  btnText = isEs ? 'Próximamente' : 'Coming Soon';
+                  if (plan.id === 'core') IconComp = Layers3;
+                  else if (plan.id === 'pro') IconComp = BadgeCheck;
+                  
+                  btnStyle = {
+                    ...btnStyle,
+                    border: '1px solid rgba(128,128,128,0.12)',
+                    background: 'var(--app-surface-lowest, rgba(128,128,128,0.03))',
+                    color: 'var(--c-text-muted)',
+                    cursor: 'not-allowed',
+                    opacity: 0.65,
+                  };
                 } else if (status === 'downgraded') {
                   btnText = isEs ? 'Bajar de Plan' : 'Downgrade';
                   IconComp = Info;
@@ -397,26 +432,18 @@ export default function StudioPricingSection({ accent, lang = 'en', profile, use
                     color: 'var(--c-text-secondary)',
                   };
                 } else {
-                  // available / upgrade
-                  btnText = isEs ? 'Suscribirse' : 'Subscribe';
-                  if (plan.id === 'core') IconComp = Layers3;
-                  else if (plan.id === 'pro') IconComp = BadgeCheck;
-                  else IconComp = Circle;
-                  
+                  // available / upgrade for Free plan
+                  btnText = isEs ? 'Elegir Plan' : 'Select Plan';
+                  IconComp = Circle;
                   btnStyle = {
                     ...btnStyle,
-                    border: plan.isRecommended ? 'none' : '1px solid rgba(128,128,128,0.18)',
-                    background: plan.isRecommended
-                      ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
-                      : 'var(--app-surface-lowest, rgba(128,128,128,0.04))',
-                    color: plan.isRecommended ? 'white' : 'var(--c-text-primary)',
-                    boxShadow: plan.isRecommended
-                      ? `0 4px 14px color-mix(in srgb, ${accent.to} 20%, transparent)`
-                      : 'none',
+                    border: '1px solid rgba(128,128,128,0.18)',
+                    background: 'var(--app-surface-lowest, rgba(128,128,128,0.04))',
+                    color: 'var(--c-text-primary)',
                   };
                 }
 
-                const isInteractive = status === 'available' || status === 'downgraded';
+                const isInteractive = (status === 'available' || status === 'downgraded') && (plan.id === 'free');
 
                 return (
                   <button
