@@ -4573,10 +4573,31 @@ User Agent: [Automatically Generated]
     return 'Settings';
   };
 
-  return (
-    <div key={pageKey} style={{ display: 'flex', width: '100%', minHeight: 'calc(100vh - 120px)', gap: 0 }} className="settings-desktop-layout">
+  return createPortal(
+    <div 
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.65)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setTab('home');
+        }
+      }}
+    >
       <style>{HUB_SETTINGS_CSS}</style>
       <style>{`
+        @keyframes hub-modal-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
         .settings-desktop-layout .flex.items-center.justify-between.gap-4 {
           padding-left: 0px !important;
           padding-right: 0px !important;
@@ -4594,90 +4615,132 @@ User Agent: [Automatically Generated]
           background: var(--sidebar-hover-bg, rgba(255, 255, 255, 0.04)) !important;
         }
       `}</style>
+      <div 
+        key={pageKey} 
+        style={{ 
+          display: 'flex', 
+          width: '880px', 
+          height: '640px', 
+          maxWidth: '95vw',
+          maxHeight: '90vh',
+          background: 'var(--app-surface, rgba(18, 18, 18, 0.95))',
+          border: '1px solid rgba(128, 128, 128, 0.15)',
+          borderRadius: '16px',
+          boxShadow: '0 24px 60px rgba(0, 0, 0, 0.65)',
+          overflow: 'hidden',
+          backdropFilter: 'blur(30px)',
+          WebkitBackdropFilter: 'blur(30px)',
+          animation: 'hub-modal-fade-in 250ms ease both',
+        }} 
+        className="settings-desktop-layout"
+      >
+        {/* Left Pane: Sub-navigation */}
+        <div style={{
+          width: '260px',
+          flexShrink: 0,
+          borderRight: '1px solid rgba(128, 128, 128, 0.08)',
+          padding: '24px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          height: '100%',
+          overflowY: 'auto',
+        }}>
+          <button 
+            onClick={() => setTab('home')}
+            className="btn-smooth"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(128, 128, 128, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--c-text-primary)',
+              marginBottom: 16,
+              flexShrink: 0,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+          </button>
 
-      {/* Left Pane: Sub-navigation */}
-      <div style={{
-        width: '260px',
-        flexShrink: 0,
-        borderRight: '1px solid rgba(128, 128, 128, 0.08)',
-        padding: '24px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        maxHeight: 'calc(100vh - 120px)',
-        overflowY: 'auto',
-      }}>
-        <div style={{ padding: '0 8px 16px 8px', borderBottom: '1px solid rgba(128, 128, 128, 0.08)', marginBottom: 12 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em', fontFamily: 'Manrope' }}>
-            {lang === 'es' ? 'Ajustes de Studio' : 'Studio Settings'}
-          </h2>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {sections.map((section, secIdx) => (
-            <div key={section.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {secIdx > 0 && <div style={{ height: 1, borderTop: '1px solid rgba(128,128,128,0.08)', margin: '4px 0 10px 0' }} />}
-              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-secondary)', opacity: 0.6, padding: '0 12px 4px 12px' }}>
-                {section.label}
-              </span>
-              {section.items.map((item) => {
-                const isActive = activePageId === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => navigate(item.id)}
-                    className={`btn-smooth ${isActive ? 'active-settings-nav' : ''}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      background: isActive ? 'var(--sidebar-hover-bg, rgba(255, 255, 255, 0.08))' : 'transparent',
-                      color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
-                      fontWeight: isActive ? 700 : 500,
-                      fontSize: 13,
-                      fontFamily: 'Manrope, sans-serif',
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16, color: isActive ? accent.from : 'inherit' }}>
-                      {item.icon}
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Right Pane: Content */}
-      <div style={{
-        flex: 1,
-        padding: '32px 48px',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
-        <div style={{ maxWidth: '640px', width: '100%', margin: '0 auto' }}>
-          <div style={{ marginBottom: 28, borderBottom: '1px solid rgba(128, 128, 128, 0.08)', paddingBottom: 16 }}>
-            <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>
-              {getPageTitle(activePageId)}
-            </h1>
+          <div style={{ padding: '0 8px 16px 8px', borderBottom: '1px solid rgba(128, 128, 128, 0.08)', marginBottom: 12 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.02em', fontFamily: 'Manrope' }}>
+              {lang === 'es' ? 'Ajustes de Studio' : 'Studio Settings'}
+            </h2>
           </div>
-          
-          <Suspense fallback={<div style={{ color: 'var(--c-text-secondary)', fontSize: 14 }}>Loading settings...</div>}>
-            {renderActivePageContent(activePageId)}
-          </Suspense>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {sections.map((section, secIdx) => (
+              <div key={section.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {secIdx > 0 && <div style={{ height: 1, borderTop: '1px solid rgba(128,128,128,0.08)', margin: '4px 0 10px 0' }} />}
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-secondary)', opacity: 0.6, padding: '0 12px 4px 12px' }}>
+                  {section.label}
+                </span>
+                {section.items.map((item) => {
+                  const isActive = activePageId === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => navigate(item.id)}
+                      className={`btn-smooth ${isActive ? 'active-settings-nav' : ''}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        background: isActive ? 'var(--sidebar-hover-bg, rgba(255, 255, 255, 0.08))' : 'transparent',
+                        color: isActive ? 'var(--c-text-primary)' : 'var(--c-text-secondary)',
+                        fontWeight: isActive ? 700 : 500,
+                        fontSize: 13,
+                        fontFamily: 'Manrope, sans-serif',
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16, color: isActive ? accent.from : 'inherit' }}>
+                        {item.icon}
+                      </span>
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
-    </div>
+        {/* Right Pane: Content */}
+        <div style={{
+          flex: 1,
+          padding: '32px 48px',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+        }}>
+          <div style={{ maxWidth: '640px', width: '100%', margin: '0 auto' }}>
+            <div style={{ marginBottom: 28, borderBottom: '1px solid rgba(128, 128, 128, 0.08)', paddingBottom: 16 }}>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.03em', fontFamily: 'Manrope' }}>
+                {getPageTitle(activePageId)}
+              </h1>
+            </div>
+            
+            <Suspense fallback={<div style={{ color: 'var(--c-text-secondary)', fontSize: 14 }}>Loading settings...</div>}>
+              {renderActivePageContent(activePageId)}
+            </Suspense>
+          </div>
+        </div>
+
+        <ChangelogSheet open={changelogOpen} onClose={() => setChangelogOpen(false)} />
+      </div>
+    </div>,
+    document.body
   );
 }
 
