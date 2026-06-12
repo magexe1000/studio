@@ -23,6 +23,21 @@ function FlipWords({
   const [currentWord, setCurrentWord] = useState(words[0]);
   const [isAnimating, setIsAnimating] = useState(false);
 
+  const longestWord = React.useMemo(() => {
+    const getWeight = (word: string) => {
+      return word.split('').reduce((sum, char) => {
+        const c = char.toLowerCase();
+        if (c === 'w' || c === 'm') return sum + 1.4;
+        if (c === 'o' || c === 'd' || c === 'g' || c === 'p' || c === 'q' || c === 'b' || c === 'u') return sum + 1.1;
+        if (c === 'i' || c === 'l' || c === 't' || c === 'f' || c === 'j') return sum + 0.5;
+        return sum + 0.9;
+      }, 0);
+    };
+    return words.reduce((best, current) => {
+      return getWeight(current) > getWeight(best) ? current : best;
+    }, words[0]);
+  }, [words]);
+
   const startAnimation = useCallback(() => {
     const word = words[words.indexOf(currentWord) + 1] || words[0];
     setCurrentWord(word);
@@ -44,40 +59,47 @@ function FlipWords({
   }
 
   return (
-    <span className="inline-block relative">
-      <AnimatePresence
-        onExitComplete={() => {
-          setIsAnimating(false);
-        }}
+    <span className="inline-block relative text-center">
+      <span
+        className={`${className} invisible select-none pointer-events-none`}
+        style={{ display: 'inline-block' }}
       >
-        <motion.span
-          initial={{
-            opacity: 0,
-            y: 10,
+        {longestWord}
+      </span>
+      <span className="absolute inset-0 flex items-center justify-center">
+        <AnimatePresence
+          onExitComplete={() => {
+            setIsAnimating(false);
           }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          exit={{
-            opacity: 0,
-            y: -10,
-            position: "absolute",
-            left: 0,
-            right: 0,
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 100,
-            damping: 15,
-          }}
-          className={className}
-          style={{ display: 'inline-block' }}
-          key={currentWord}
         >
-          {currentWord}
-        </motion.span>
-      </AnimatePresence>
+          <motion.span
+            initial={{
+              opacity: 0,
+              y: 10,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            exit={{
+              opacity: 0,
+              y: -10,
+              position: "absolute",
+              left: 0,
+              right: 0,
+            }}
+            transition={{
+              duration: 0.4,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+            className={className}
+            style={{ display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' }}
+            key={currentWord}
+          >
+            {currentWord}
+          </motion.span>
+        </AnimatePresence>
+      </span>
     </span>
   );
 }
@@ -140,7 +162,7 @@ export default function LandingHero({ navigateTo, apkUrl }: LandingHeroProps) {
         >
           Your music workflow, <br />
           <span className="text-zinc-500">
-            in one focused <FlipWords words={['workspace', 'suite', 'stage', 'setup', 'system']} isReduced={isReduced} className="text-white" />.
+            in one <FlipWords words={['focused', 'unified', 'creative', 'seamless', 'powerful', 'polished', 'flexible', 'complete', 'elevated', 'modern']} isReduced={isReduced} className="text-white" /> workspace.
           </span>
         </motion.h1>
 

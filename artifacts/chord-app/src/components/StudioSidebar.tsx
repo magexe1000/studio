@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useStudioPreferences } from '../hooks/useStudioPreferences';
 
 interface SidebarContextType {
   state: 'expanded' | 'collapsed';
@@ -86,10 +87,15 @@ export function Sidebar({
   shouldHideSidebar?: boolean;
 }) {
   const { open } = useSidebar();
+  const { preferences } = useStudioPreferences();
+  const isReduced = preferences.reduceMotion;
 
   const targetWidth = open ? '240px' : '0px';
   const targetMargin = open ? '12px' : '0px';
   const targetBorderColor = open ? 'rgba(128,128,128,0.15)' : 'rgba(128,128,128,0)';
+  const targetBorderWidth = open ? '1px' : '0px';
+
+  const duration = isReduced ? 0 : 0.22;
 
   return (
     <motion.aside
@@ -98,32 +104,37 @@ export function Sidebar({
         width: targetWidth,
         margin: targetMargin,
         borderColor: targetBorderColor,
+        borderWidth: targetBorderWidth,
       }}
       transition={{
         width: {
-          duration: 0.22,
+          duration,
           ease: [0.22, 1, 0.36, 1],
         },
         margin: {
-          duration: 0.22,
+          duration,
           ease: [0.22, 1, 0.36, 1],
         },
         borderColor: {
-          duration: 0.22,
+          duration,
+          ease: 'linear',
+        },
+        borderWidth: {
+          duration,
           ease: 'linear',
         }
       }}
       style={{
         height: open ? 'calc(100dvh - 24px)' : '100dvh',
         borderRadius: open ? '16px' : '0px',
-        border: '1px solid',
+        borderStyle: 'solid',
         background: 'rgba(15, 15, 15, 0.70)',
         backdropFilter: 'blur(30px)',
         WebkitBackdropFilter: 'blur(30px)',
         boxShadow: open ? '0 10px 30px rgba(0,0,0,0.5)' : 'none',
         boxSizing: 'border-box',
         overflow: 'hidden',
-        willChange: 'width, margin, border-color',
+        willChange: 'width, margin, border-color, border-width',
         zIndex: 40,
         ...style,
       }}
@@ -134,7 +145,7 @@ export function Sidebar({
           opacity: open ? 1 : 0,
         }}
         transition={{
-          duration: open ? 0.18 : 0.08,
+          duration: isReduced ? 0 : (open ? 0.18 : 0.08),
           ease: 'easeInOut',
         }}
         style={{
@@ -161,10 +172,9 @@ export function SidebarHeader({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const { open } = useSidebar();
   return (
     <div
-      className={`py-3 flex-shrink-0 flex items-center ${open ? 'justify-between px-4' : 'justify-center px-0'} border-b border-[rgba(128,128,128,0.06)] ${className}`}
+      className={`py-3 flex-shrink-0 flex items-center justify-start px-4 border-b border-[rgba(128,128,128,0.06)] ${className}`}
       style={{ height: '64px', boxSizing: 'border-box', ...style }}
       {...props}
     >
@@ -296,7 +306,7 @@ export function SidebarMenuButton({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center ${open ? 'justify-start gap-3 px-3' : 'justify-center px-0'} py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-150 relative group hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))] ${className}`}
+      className={`w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-150 relative group hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))] ${className}`}
       title={!open ? tooltip || undefined : undefined}
       style={{
         background: active ? 'var(--sidebar-active-bg, rgba(255, 255, 255, 0.07))' : 'transparent',
@@ -336,10 +346,9 @@ export function SidebarFooter({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const { open } = useSidebar();
   return (
     <div
-      className={`${open ? 'p-3' : 'px-0 py-3 flex justify-center'} border-t border-[rgba(128,128,128,0.06)] flex-shrink-0 ${className}`}
+      className={`p-3 border-t border-[rgba(128,128,128,0.06)] flex-shrink-0 ${className}`}
       style={style}
       {...props}
     >
