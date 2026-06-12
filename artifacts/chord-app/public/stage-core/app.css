@@ -28,7 +28,7 @@
 }
 @media (min-width: 768px) {
   :root {
-    --dock-safe-gap: 170px;
+    --dock-safe-gap: 146px;
   }
 }
 /* ── Stage canvas: GPU-composited layer, instant zoom (no transition lag) ── */
@@ -822,7 +822,7 @@ select option { background: #0e0e0e; color: #fff; }
   #lib-flyout { display: none !important; }
 
   /* Canvas fills full width, sits directly below header — category bar floats over it */
-  #canvas-container { left: 0 !important; top: 64px !important; }
+  #canvas-container { left: 0 !important; top: 0 !important; bottom: 0 !important; }
 
   /* Toolbar: canvas is always flex-centered in the full-width container,
      so position:absolute + left:50% always matches the canvas center exactly */

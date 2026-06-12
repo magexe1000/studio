@@ -5393,29 +5393,7 @@ function renderScenesBar() {
   requestAnimationFrame(positionScenesBar);
 }
 
-function positionScenesBar() {
-  const bar = document.getElementById('sc-scenes-bar');
-  const canvas = document.getElementById('stage-canvas');
-  const container = document.getElementById('canvas-container');
-  if (!bar || !canvas || !container || bar.style.display === 'none') return;
-  if (state.gigMode) return;
-  const cRect = canvas.getBoundingClientRect();
-  const kRect = container.getBoundingClientRect();
-  const barH = bar.offsetHeight || 36;
-  const top = cRect.top - kRect.top - barH - 6;
-  bar.style.maxWidth = cRect.width + 'px';
-  const left = cRect.left - kRect.left + (cRect.width - bar.offsetWidth) / 2;
-  bar.style.top = Math.max(4, top) + 'px';
-  bar.style.left = left + 'px';
-}
-
-// Reposition scenes bar whenever the stage canvas resizes (orientation change, panel open/close)
-(function _initScenesBarResizeObserver() {
-  if (typeof ResizeObserver === 'undefined') return;
-  const canvas = document.getElementById('stage-canvas');
-  if (!canvas) return;
-  new ResizeObserver(() => positionScenesBar()).observe(canvas);
-})();
+function positionScenesBar() {}
 
 function renameScenePrompt(idx) {
   _ensureScenes();
