@@ -59,14 +59,14 @@ function FlipWords({
   }
 
   return (
-    <span className="inline-block relative text-left">
+    <span className="inline-block relative text-center">
       <span
         className={`${className} invisible select-none pointer-events-none`}
         style={{ display: 'inline-block' }}
       >
         {longestWord}
       </span>
-      <span className="absolute inset-0 flex items-center justify-start">
+      <span className="absolute inset-0 flex items-center justify-center">
         <AnimatePresence
           onExitComplete={() => {
             setIsAnimating(false);
@@ -86,13 +86,14 @@ function FlipWords({
               y: -10,
               position: "absolute",
               left: 0,
+              right: 0,
             }}
             transition={{
               duration: 0.4,
               ease: [0.16, 1, 0.3, 1],
             }}
             className={className}
-            style={{ display: 'inline-block', whiteSpace: 'nowrap' }}
+            style={{ display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' }}
             key={currentWord}
           >
             {currentWord}
