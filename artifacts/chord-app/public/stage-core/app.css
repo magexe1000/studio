@@ -69,12 +69,8 @@ html[data-amoled="1"] {
 }
 
 .stage-grid {
-  background-image:
-    linear-gradient(rgba(72, 72, 71, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(72, 72, 71, 0.12) 1px, transparent 1px),
-    linear-gradient(rgba(72, 72, 71, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(72, 72, 71, 0.04) 1px, transparent 1px);
-  background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px);
+  background-size: 40px 40px;
 }
 .stage-grid.grid-off { background-image: none; }
 

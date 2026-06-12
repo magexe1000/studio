@@ -3315,6 +3315,29 @@ function cycleColor(id) {
   saveProject();
 }
 
+function renderAvatarGroup() {
+  const container = document.getElementById('members-avatar-group');
+  if (!container) return;
+  if (state.members.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'flex';
+  const maxAvatars = 5;
+  const visibleMembers = state.members.slice(0, maxAvatars);
+  const overflow = state.members.length - maxAvatars;
+
+  let html = visibleMembers.map((m, idx) => {
+    const letter = m.name ? m.name.charAt(0).toUpperCase() : '?';
+    return `<div class="sc-avatar" style="background:${m.color};color:#fff;z-index:${visibleMembers.length - idx};" title="${m.name}">${letter}</div>`;
+  }).join('');
+
+  if (overflow > 0) {
+    html += `<div class="sc-avatar sc-avatar-more" style="background:#27272a;color:#a1a1aa;z-index:0;">+${overflow}</div>`;
+  }
+  container.innerHTML = DOMPurify.sanitize(html);
+}
+
 function renderMembersView() {
   const grid = document.getElementById('members-grid');
   const empty = document.getElementById('members-empty');
@@ -3338,6 +3361,8 @@ function renderMembersView() {
   if (maxWarn) maxWarn.style.display = state.members.length >= 8 ? 'block' : 'none';
   if (addBtn) { addBtn.disabled = state.members.length >= 8; addBtn.style.opacity = state.members.length >= 8 ? '0.35' : '1'; addBtn.style.cursor = state.members.length >= 8 ? 'not-allowed' : 'pointer'; }
 
+  renderAvatarGroup();
+
   if (state.members.length === 0) {
     grid.style.display = 'none';
     if (empty) empty.style.display = 'flex';
@@ -3348,8 +3373,18 @@ function renderMembersView() {
 
   grid.innerHTML = DOMPurify.sanitize(state.members.map(m => {
     const assigned = state.elements.filter(el => el.memberId === m.id);
-    const colorIdx = MEMBER_COLORS.indexOf(m.color);
-    const nextColor = MEMBER_COLORS[(colorIdx + 1) % MEMBER_COLORS.length];
+    
+    let role = state.lang === 'es' ? 'Artista' : 'Performer';
+    if (assigned.length > 0) {
+      const names = assigned.map(el => (el.name || '').toLowerCase());
+      if (names.some(n => n.includes('drum'))) role = state.lang === 'es' ? 'Baterista' : 'Drummer';
+      else if (names.some(n => n.includes('guitar'))) role = state.lang === 'es' ? 'Guitarrista' : 'Guitarist';
+      else if (names.some(n => n.includes('bass'))) role = state.lang === 'es' ? 'Bajista' : 'Bassist';
+      else if (names.some(n => n.includes('vocal') || n.includes('mic'))) role = state.lang === 'es' ? 'Vocalista' : 'Vocalist';
+      else if (names.some(n => n.includes('key') || n.includes('piano'))) role = state.lang === 'es' ? 'Tecladista' : 'Keyboardist';
+      else role = assigned[0].name || (state.lang === 'es' ? 'Artista' : 'Performer');
+    }
+
     const itemsHtml = assigned.length > 0
       ? assigned.map(el => `
           <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.04);">
@@ -3359,25 +3394,29 @@ function renderMembersView() {
           </div>`).join('')
       : `<div style="padding:16px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#5a5a59;text-align:center;">${T('noStageAssign')}</div>`;
 
+    const avatarLetter = m.name ? m.name.charAt(0).toUpperCase() : '?';
+
     return `
-    <div style="background:#080808;border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:border-color 0.2s;">
-      <!-- Card header -->
-      <div style="display:flex;align-items:center;gap:10px;padding:16px 14px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
-        <button onclick="cycleColor('${m.id}')" title="Change color (current: ${m.color})"
-          style="width:14px;height:14px;border-radius:50%;background:${m.color};border:1px solid rgba(255,255,255,0.12);cursor:pointer;flex-shrink:0;transition:transform 0.15s;outline:none;"
-          onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)'"></button>
-        <span style="flex:1;font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;color:#f3f4f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name}</span>
-        ${assigned.length > 0 ? `<span style="font-size:9px;font-weight:700;font-family:'Manrope',sans-serif;color:#ffffff;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:4px;padding:2px 6px;">${assigned.length}&nbsp;elem</span>` : ''}
-        <button onclick="removeMember('${m.id}')" title="Remove ${m.name}"
-          style="color:#737373;background:none;border:none;cursor:pointer;font-size:18px;padding:0 2px;line-height:1;flex-shrink:0;transition:color 0.15s;"
-          onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#737373'">×</button>
+    <div class="sc-member-card">
+      <div class="sc-member-card-hdr">
+        <div class="sc-member-avatar" style="background:${m.color};" onclick="cycleColor('${m.id}')" title="${state.lang === 'es' ? 'Haz clic para cambiar color' : 'Click to cycle color'}">
+          ${avatarLetter}
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+          <span class="sc-member-name" title="${m.name}">${m.name}</span>
+          <span class="sc-member-role">${role}</span>
+        </div>
+        <button onclick="removeMember('${m.id}')" title="${state.lang === 'es' ? 'Eliminar ' + m.name : 'Remove ' + m.name}" class="sc-member-del-btn">
+          <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+        </button>
       </div>
-      <!-- Assignment list -->
-      <div style="flex:1;">
-        <div style="padding:10px 14px 4px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#5a5a59;">
+      <div class="sc-member-assignments">
+        <div class="sc-member-assignments-lbl">
           ${assigned.length > 0 ? T('assignedElems') : T('assignments')}
         </div>
-        ${itemsHtml}
+        <div class="sc-member-assignments-list">
+          ${itemsHtml}
+        </div>
       </div>
     </div>`;
   }).join(''));
@@ -4609,22 +4648,58 @@ async function applySmartSort() {
 //  CUSTOM CONFIRM (replaces browser confirm() blocked in iframes)
 // ══════════════════════════════════════════════════════════
 let _confirmCb = null;
-function showConfirm(message, onOk) {
+function showConfirm(message, onOk, options = {}) {
   _confirmCb = onOk;
-  document.getElementById('confirm-msg').textContent = message;
+  const title = options.title || (state.lang === 'es' ? 'Confirmar' : 'Confirm');
+  const okText = options.okText || (state.lang === 'es' ? 'Confirmar' : 'Confirm');
+  const cancelText = options.cancelText || (state.lang === 'es' ? 'Cancelar' : 'Cancel');
+  const isDestructive = options.isDestructive || false;
+
+  const titleEl = document.getElementById('confirm-title');
+  if (titleEl) titleEl.textContent = title;
+  
+  const msgEl = document.getElementById('confirm-msg');
+  if (msgEl) msgEl.textContent = message;
+  
+  const okBtn = document.getElementById('confirm-ok-btn');
+  if (okBtn) {
+    okBtn.textContent = okText;
+    if (isDestructive) {
+      okBtn.style.background = 'var(--hot)';
+    } else {
+      okBtn.style.background = 'var(--accent)';
+    }
+  }
+  
+  const cancelBtn = document.getElementById('confirm-cancel-btn');
+  if (cancelBtn) {
+    cancelBtn.textContent = cancelText;
+    cancelBtn.focus();
+  }
+
   const el = document.getElementById('confirm-modal');
-  el.style.display = 'flex';
-  lcIcons();
+  if (el) el.style.display = 'flex';
+  if (typeof lcIcons === 'function') lcIcons();
 }
+
 function doConfirm(ok) {
-  document.getElementById('confirm-modal').style.display = 'none';
+  const el = document.getElementById('confirm-modal');
+  if (el) el.style.display = 'none';
   if (ok && typeof _confirmCb === 'function') _confirmCb();
   _confirmCb = null;
 }
 
-// ══════════════════════════════════════════════════════════
-//  PRESETS
-// ══════════════════════════════════════════════════════════
+// Close confirm modal on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const el = document.getElementById('confirm-modal');
+    if (el && el.style.display !== 'none') {
+      doConfirm(false);
+    }
+  }
+});
+
+
 const PRESETS_KEY = 'stagecorePresets_v1';
 
 function getPresets() {
@@ -5252,15 +5327,18 @@ function removeScene(idx) {
   if (state.scenes.length <= 1) return; // keep at least one
   if (idx < 0 || idx >= state.scenes.length) return;
   const sceneName = state.scenes[idx].name;
-  const msg = state.lang === 'es'
-    ? '¿Eliminar "' + sceneName + '"? Esta acción no se puede deshacer.'
-    : 'Delete "' + sceneName + '"? This cannot be undone.';
-  showConfirm(msg, () => {
-    // If removing the active scene, switch to a neighbour first
+  
+  const title = state.lang === 'es' ? '¿Eliminar escena?' : 'Delete scene?';
+  const body = state.lang === 'es' 
+    ? 'Esto eliminará esta escena de tu plano de escenario. Esta acción no se puede deshacer.'
+    : 'This will remove this scene from your stage plot. This action cannot be undone.';
+  const deleteBtnText = state.lang === 'es' ? 'Eliminar' : 'Delete';
+  const cancelBtnText = state.lang === 'es' ? 'Cancelar' : 'Cancel';
+  
+  showConfirm(body, () => {
     const wasActive = (idx === state.currentSceneIdx);
     if (!wasActive) _persistCurrentScene();
     state.scenes.splice(idx, 1);
-    // Renumber default names if they look like "Scene N"
     state.scenes.forEach((s, i) => {
       if (/^Scene\s+\d+$/.test(s.name)) s.name = 'Scene ' + (i + 1);
     });
@@ -5268,18 +5346,17 @@ function removeScene(idx) {
     if (wasActive) target = Math.max(0, idx - 1);
     else if (idx < state.currentSceneIdx) target = state.currentSceneIdx - 1;
     state.currentSceneIdx = -1; // force load
-    _loadScene(target);
+    switchScene(target);
     renderAll();
     renderScenesBar();
     saveProject();
-  });
+  }, { title: title, okText: deleteBtnText, cancelText: cancelBtnText, isDestructive: true });
 }
 
 function renderScenesBar() {
   const bar = document.getElementById('sc-scenes-bar');
   if (!bar) return;
   _ensureScenes();
-  // Only show on Editor view
   if (state.currentView !== 'Editor') {
     bar.style.display = 'none';
     return;
@@ -5290,34 +5367,20 @@ function renderScenesBar() {
     return `
       <button onclick="switchScene(${i})" title="${s.name}"
         oncontextmenu="event.preventDefault();renameScenePrompt(${i});return false;"
-        style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;
-               border-radius:5px;border:1px solid ${active ? 'var(--accent)' : 'rgba(255,255,255,0.10)'};
-               background:${active ? 'var(--accent-12)' : 'rgba(255,255,255,0.04)'};
-               color:${active ? 'var(--accent)' : '#a0a0a0'};
-               font-family:'Manrope',sans-serif;font-size:8.5px;font-weight:800;
-               text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;
-               transition:background 0.15s,color 0.15s,border-color 0.15s;">
+        class="sc-scene-btn ${active ? 'active' : ''}">
         <span>${s.name}</span>
-        ${state.scenes.length > 1 ? `<span onclick="event.stopPropagation();removeScene(${i})"
-           style="opacity:0.5;font-size:11px;line-height:1;cursor:pointer;margin-left:1px;"
-           onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">×</span>` : ''}
+        ${state.scenes.length > 1 ? `<span onclick="event.stopPropagation();removeScene(${i})" class="sc-scene-close">×</span>` : ''}
       </button>`;
   }).join('');
+  
   const addHtml = state.scenes.length < SCENES_MAX
-    ? `<button onclick="addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}"
-         style="display:inline-flex;align-items:center;justify-content:center;
-                width:20px;height:20px;border-radius:5px;
-                border:1px dashed var(--accent);background:transparent;color:var(--accent);
-                cursor:pointer;transition:background 0.15s;"
-         onmouseover="this.style.background='var(--accent-12)'"
-         onmouseout="this.style.background='transparent'">
-         <span class="material-symbols-outlined" style="font-size:13px;line-height:1;">add</span>
+    ? `<button onclick="addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}" class="sc-scene-add-btn">
+         <span class="material-symbols-outlined" style="font-size:14px;line-height:1;">add</span>
        </button>`
     : '';
+
   bar.innerHTML = DOMPurify.sanitize(
-    `<span style="font-family:'Manrope',sans-serif;font-size:7px;font-weight:800;
-                  text-transform:uppercase;letter-spacing:0.18em;color:#5a5a5a;
-                  margin-right:4px;">${state.lang === 'es' ? 'Escenas' : 'Scenes'}</span>` +
+    `<span class="sc-scene-label">${state.lang === 'es' ? 'Escenas' : 'Scenes'}</span>` +
     tabsHtml + addHtml
   );
   requestAnimationFrame(positionScenesBar);
@@ -5337,6 +5400,13 @@ function positionScenesBar() {
   bar.style.top = Math.max(4, top) + 'px';
   bar.style.left = left + 'px';
 }
+
+(function _initScenesBarResizeObserver() {
+  if (typeof ResizeObserver === 'undefined') return;
+  const canvas = document.getElementById('stage-canvas');
+  if (!canvas) return;
+  new ResizeObserver(() => positionScenesBar()).observe(canvas);
+})();
 
 // Reposition scenes bar whenever the stage canvas resizes (orientation change, panel open/close)
 (function _initScenesBarResizeObserver() {

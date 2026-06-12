@@ -1947,68 +1947,82 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
       <p data-i18n="setupSubtitle" style="font-family:'Manrope',sans-serif;font-size:13px;color:#a1a1aa;margin:0;font-weight:500;">Your show documents &amp; band info</p>
     </div>
 
-    <!-- Cards -->
+<!-- Cards -->
     <div class="sc-hub-grid">
 
       <button class="sc-hub-card" onclick="switchView('Rider')">
-        <div class="sc-hub-icon">
-          <span class="material-symbols-outlined" style="font-size:23px;color:#e7e5e4;">cable</span>
-        </div>
-        <div class="sc-hub-text">
-          <p class="sc-hub-title" data-i18n="navRider">Rider</p>
-          <p class="sc-hub-sub" data-i18n="setupRiderSub">Channel list, mic inputs &amp; tech requirements</p>
-        </div>
-        <div class="sc-hub-badge-wrap">
-          <span class="sc-hub-badge" id="hub-counter-rider">0 Channels</span>
+        <div class="sc-hub-card-top">
+          <div class="sc-hub-icon">
+            <span class="material-symbols-outlined" style="font-size:20px;">cable</span>
+          </div>
           <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        </div>
+        <div class="sc-hub-card-bottom">
+          <div>
+            <p class="sc-hub-title" data-i18n="navRider">Rider</p>
+            <p class="sc-hub-sub" data-i18n="setupRiderSub">Channel list, mic inputs &amp; tech requirements</p>
+          </div>
+          <div class="sc-hub-badge-wrap">
+            <span class="sc-hub-badge" id="hub-counter-rider">0 Channels</span>
+          </div>
         </div>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Setlist')">
-        <div class="sc-hub-icon">
-          <span class="material-symbols-outlined" style="font-size:23px;color:#e7e5e4;">format_list_numbered</span>
-        </div>
-        <div class="sc-hub-text">
-          <p class="sc-hub-title" data-i18n="navSetlist">Setlist</p>
-          <p class="sc-hub-sub" data-i18n="setupSetlistSub">Song order, timing &amp; performance flow</p>
-        </div>
-        <div class="sc-hub-badge-wrap">
-          <span class="sc-hub-badge" id="hub-counter-setlist">0 Songs</span>
+        <div class="sc-hub-card-top">
+          <div class="sc-hub-icon">
+            <span class="material-symbols-outlined" style="font-size:20px;">format_list_numbered</span>
+          </div>
           <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        </div>
+        <div class="sc-hub-card-bottom">
+          <div>
+            <p class="sc-hub-title" data-i18n="navSetlist">Setlist</p>
+            <p class="sc-hub-sub" data-i18n="setupSetlistSub">Song order, timing &amp; performance flow</p>
+          </div>
+          <div class="sc-hub-badge-wrap">
+            <span class="sc-hub-badge" id="hub-counter-setlist">0 Songs</span>
+          </div>
         </div>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Gear')">
-        <div class="sc-hub-icon">
-          <span class="material-symbols-outlined" style="font-size:23px;color:#e7e5e4;">checklist</span>
-        </div>
-        <div class="sc-hub-text">
-          <p class="sc-hub-title" data-i18n="navGear">Gear</p>
-          <p class="sc-hub-sub" data-i18n="setupGearSub">Instruments, amps &amp; load-in checklist</p>
-        </div>
-        <div class="sc-hub-badge-wrap">
-          <span class="sc-hub-badge" id="hub-counter-gear">0 Items</span>
+        <div class="sc-hub-card-top">
+          <div class="sc-hub-icon">
+            <span class="material-symbols-outlined" style="font-size:20px;">checklist</span>
+          </div>
           <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        </div>
+        <div class="sc-hub-card-bottom">
+          <div>
+            <p class="sc-hub-title" data-i18n="navGear">Gear</p>
+            <p class="sc-hub-sub" data-i18n="setupGearSub">Instruments, amps &amp; load-in checklist</p>
+          </div>
+          <div class="sc-hub-badge-wrap">
+            <span class="sc-hub-badge" id="hub-counter-gear">0 Items</span>
+          </div>
         </div>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Members')">
-        <div class="sc-hub-icon">
-          <span class="material-symbols-outlined" style="font-size:23px;color:#e7e5e4;">badge</span>
-        </div>
-        <div class="sc-hub-text">
-          <p class="sc-hub-title" data-i18n="navMembers">Members</p>
-          <p class="sc-hub-sub" data-i18n="setupMembersSub">Band roster, roles &amp; contact info</p>
-        </div>
-        <div class="sc-hub-badge-wrap">
-          <span class="sc-hub-badge" id="hub-counter-members">0 Members</span>
+        <div class="sc-hub-card-top">
+          <div class="sc-hub-icon">
+            <span class="material-symbols-outlined" style="font-size:20px;">badge</span>
+          </div>
           <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        </div>
+        <div class="sc-hub-card-bottom">
+          <div>
+            <p class="sc-hub-title" data-i18n="navMembers">Members</p>
+            <p class="sc-hub-sub" data-i18n="setupMembersSub">Band roster, roles &amp; contact info</p>
+          </div>
+          <div class="sc-hub-badge-wrap">
+            <span class="sc-hub-badge" id="hub-counter-members">0 Members</span>
+          </div>
         </div>
       </button>
 
     </div>
-  </div>
-</div>
 
 <!-- Mobile category pill bar removed — all categories accessed via FAB speed dial -->
 
@@ -2044,53 +2058,620 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 <!-- ═══════════════ CUSTOM CONFIRM MODAL ═══════════════ -->
 <!-- Modern confirm modal — themed via CSS vars below -->
 <style>
+
+  /* ── Modern confirm modal & scenes-bar & avatar-group & desktop layout styles ── */
   #confirm-modal {
-    --sc-cf-bg:           #1a1a1c;
-    --sc-cf-border:       rgba(255,255,255,0.07);
-    --sc-cf-title:        #f5f4f2;
-    --sc-cf-msg:          #a8a6a5;
-    --sc-cf-cancel-bg:    rgba(255,255,255,0.05);
-    --sc-cf-cancel-bg-h:  rgba(255,255,255,0.09);
-    --sc-cf-cancel-fg:    #e7e5e4;
+    --sc-cf-bg:           #09090b;
+    --sc-cf-border:       #27272a;
+    --sc-cf-title:        #fafafa;
+    --sc-cf-msg:          #a1a1aa;
+    --sc-cf-cancel-bg:    rgba(255,255,255,0.03);
+    --sc-cf-cancel-bg-h:  rgba(255,255,255,0.06);
+    --sc-cf-cancel-fg:    #e4e4e7;
     --sc-cf-cancel-bd:    rgba(255,255,255,0.08);
-    --sc-cf-icon-tint:    rgba(239,68,68,0.13);
-    --sc-cf-overlay:      rgba(8,8,10,0.55);
-    --sc-cf-shadow:       0 30px 80px rgba(0,0,0,0.55), 0 8px 24px rgba(0,0,0,0.32);
+    --sc-cf-shadow:       0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.5);
   }
   [data-theme="light"] #confirm-modal {
     --sc-cf-bg:           #ffffff;
-    --sc-cf-border:       rgba(0,0,0,0.06);
-    --sc-cf-title:        #1a1a1a;
-    --sc-cf-msg:          #6e6d6b;
-    --sc-cf-cancel-bg:    rgba(0,0,0,0.04);
-    --sc-cf-cancel-bg-h:  rgba(0,0,0,0.08);
-    --sc-cf-cancel-fg:    #1a1a1a;
+    --sc-cf-border:       #e4e4e7;
+    --sc-cf-title:        #18181b;
+    --sc-cf-msg:          #71717a;
+    --sc-cf-cancel-bg:    rgba(0,0,0,0.03);
+    --sc-cf-cancel-bg-h:  rgba(0,0,0,0.06);
+    --sc-cf-cancel-fg:    #27272a;
     --sc-cf-cancel-bd:    rgba(0,0,0,0.08);
-    --sc-cf-icon-tint:    rgba(239,68,68,0.10);
-    --sc-cf-overlay:      rgba(20,20,24,0.32);
-    --sc-cf-shadow:       0 24px 60px rgba(0,0,0,0.18), 0 6px 18px rgba(0,0,0,0.08);
+    --sc-cf-shadow:       0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
   }
   @keyframes sc-cf-fade {
     from { opacity: 0; }
     to   { opacity: 1; }
   }
   @keyframes sc-cf-pop {
-    from { opacity: 0; transform: scale(0.92) translateY(8px); }
+    from { opacity: 0; transform: scale(0.96) translateY(4px); }
     to   { opacity: 1; transform: scale(1)    translateY(0);    }
   }
+
+  /* Scenes Bar styling overrides */
+  .sc-scene-label {
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--scenes-fg-inactive);
+    margin-right: 6px;
+    margin-left: 4px;
+  }
+
+  .sc-scene-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 12px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: transparent;
+    color: var(--scenes-fg-inactive);
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+
+  html[data-theme="light"] .sc-scene-btn {
+    border-color: rgba(0,0,0,0.08);
+  }
+
+  .sc-scene-btn:hover {
+    background: rgba(255,255,255,0.04);
+    color: #ffffff;
+    border-color: rgba(255,255,255,0.16);
+  }
+
+  html[data-theme="light"] .sc-scene-btn:hover {
+    background: rgba(0,0,0,0.03);
+    color: #18181b;
+    border-color: rgba(0,0,0,0.16);
+  }
+
+  .sc-scene-btn.active {
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #09090b;
+  }
+
+  html[data-theme="light"] .sc-scene-btn.active {
+    background: #18181b;
+    border-color: #18181b;
+    color: #ffffff;
+  }
+
+  .sc-scene-close {
+    opacity: 0.5;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    transition: color 120ms ease, opacity 120ms ease;
+  }
+
+  .sc-scene-close:hover {
+    opacity: 1;
+    color: var(--hot) !important;
+  }
+
+  .sc-scene-add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 9999px;
+    border: 1px dashed rgba(255,255,255,0.2);
+    background: transparent;
+    color: var(--scenes-fg-inactive);
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+
+  html[data-theme="light"] .sc-scene-add-btn {
+    border-color: rgba(0,0,0,0.2);
+  }
+
+  .sc-scene-add-btn:hover {
+    border-style: solid;
+    border-color: var(--accent);
+    background: rgba(255,255,255,0.04);
+    color: var(--accent);
+  }
+
+  html[data-theme="light"] .sc-scene-add-btn:hover {
+    border-style: solid;
+    border-color: var(--accent);
+    background: rgba(0,0,0,0.03);
+    color: var(--accent);
+  }
+
+  /* Avatar Group */
+  .sc-avatar-group {
+    display: flex;
+    align-items: center;
+  }
+
+  .sc-avatar-group .sc-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #050505;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    margin-left: -8px;
+    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), margin 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    position: relative;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+
+  .sc-avatar-group .sc-avatar:first-child {
+    margin-left: 0;
+  }
+
+  html[data-theme="light"] .sc-avatar-group .sc-avatar {
+    border-color: #ffffff;
+  }
+
+  .sc-avatar-group .sc-avatar:hover {
+    transform: translateY(-4px) scale(1.1);
+    z-index: 10;
+  }
+
+  .sc-avatar-group .sc-avatar.sc-avatar-more {
+    background: #27272a;
+    color: #a1a1aa;
+  }
+
+  html[data-theme="light"] .sc-avatar-group .sc-avatar.sc-avatar-more {
+    background: #f4f4f5;
+    color: #71717a;
+  }
+
+  /* Bento grid styling overrides */
+  .sc-hub-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 640px) {
+    .sc-hub-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1024px) {
+    .sc-hub-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+  }
+
+  .sc-hub-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    min-height: 185px;
+    padding: 24px;
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  html[data-theme="light"] .sc-hub-card {
+    background: #ffffff;
+    border-color: #e4e4e7;
+  }
+
+  .sc-hub-card:hover {
+    background: #18181b;
+    border-color: rgba(255,255,255,0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  }
+
+  html[data-theme="light"] .sc-hub-card:hover {
+    background: #f4f4f5;
+    border-color: rgba(0,0,0,0.15);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+  }
+
+  .sc-hub-card-top {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .sc-hub-card-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .sc-hub-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fafafa;
+    transition: all 200ms ease;
+  }
+
+  html[data-theme="light"] .sc-hub-icon {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.08);
+    color: #18181b;
+  }
+
+  .sc-hub-card:hover .sc-hub-icon {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+  }
+
+  .sc-hub-chevron {
+    color: #71717a;
+    transition: all 200ms ease;
+  }
+
+  .sc-hub-card:hover .sc-hub-chevron {
+    color: #fafafa;
+    transform: translateX(2px);
+  }
+
+  html[data-theme="light"] .sc-hub-card:hover .sc-hub-chevron {
+    color: #18181b;
+  }
+
+  .sc-hub-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fafafa;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  html[data-theme="light"] .sc-hub-title {
+    color: #18181b;
+  }
+
+  .sc-hub-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #a1a1aa;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  html[data-theme="light"] .sc-hub-sub {
+    color: #71717a;
+  }
+
+  .sc-hub-badge-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .sc-hub-badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #a1a1aa;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  html[data-theme="light"] .sc-hub-badge {
+    background: rgba(0, 0, 0, 0.03);
+    color: #71717a;
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+
+  /* Sub-sections Roster / Roster card redesign */
+  .sc-member-card {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 200ms ease;
+  }
+  
+  html[data-theme="light"] .sc-member-card {
+    background: #ffffff;
+    border-color: #e4e4e7;
+  }
+  
+  .sc-member-card:hover {
+    border-color: rgba(255,255,255,0.16);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  
+  html[data-theme="light"] .sc-member-card:hover {
+    border-color: rgba(0,0,0,0.12);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  
+  .sc-member-card-hdr {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  
+  html[data-theme="light"] .sc-member-card-hdr {
+    border-bottom-color: rgba(0,0,0,0.06);
+  }
+  
+  .sc-member-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 150ms ease;
+    flex-shrink: 0;
+  }
+  
+  .sc-member-avatar:hover {
+    transform: scale(1.1);
+  }
+  
+  .sc-member-name {
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fafafa;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  html[data-theme="light"] .sc-member-name {
+    color: #18181b;
+  }
+  
+  .sc-member-role {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: #71717a;
+    text-transform: capitalize;
+  }
+  
+  .sc-member-del-btn {
+    color: #71717a;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 150ms ease;
+    flex-shrink: 0;
+  }
+  
+  .sc-member-del-btn:hover {
+    background: rgba(239,68,68,0.1);
+    color: #ef4444;
+  }
+  
+  .sc-member-assignments {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px 16px;
+  }
+  
+  .sc-member-assignments-lbl {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #71717a;
+    margin-bottom: 8px;
+  }
+  
+  .sc-member-assignments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* Desktop sub-sections wrapper styling override */
+  .view-page.scrollable-view {
+    background: #050505 !important;
+  }
+  html[data-theme="light"] .view-page.scrollable-view {
+    background: #fafafa !important;
+  }
+  html[data-amoled="1"] .view-page.scrollable-view {
+    background: #000000 !important;
+  }
+
+  .sc-section-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .sc-section-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #fafafa;
+    letter-spacing: -0.03em;
+    margin: 0 0 4px;
+  }
+
+  html[data-theme="light"] .sc-section-title {
+    color: #18181b;
+  }
+
+  .rd-input-table {
+    border-collapse: collapse;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    width: 100%;
+  }
+
+  .rd-input-table thead tr {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  html[data-theme="light"] .rd-input-table thead tr {
+    background: rgba(0, 0, 0, 0.02) !important;
+    border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .rd-input-table th {
+    padding: 12px 16px !important;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #71717a !important;
+  }
+
+  .rd-input-table td {
+    padding: 12px 16px !important;
+    color: #e4e4e7 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  }
+
+  html[data-theme="light"] .rd-input-table td {
+    color: #18181b !important;
+    border-bottom-color: rgba(0, 0, 0, 0.04) !important;
+  }
+
+  .rd-card, .sc-card {
+    background: #09090b !important;
+    border: 1px solid #27272a !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    padding: 20px !important;
+    margin-top: 0 !important;
+    margin-bottom: 16px !important;
+  }
+
+  html[data-theme="light"] .rd-card, html[data-theme="light"] .sc-card {
+    background: #ffffff !important;
+    border-color: #e4e4e7 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+  }
+
+  .sl-song-row {
+    background: #09090b !important;
+    border: 1px solid #27272a !important;
+    border-radius: 8px !important;
+    margin-bottom: 8px !important;
+    padding: 12px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    transition: all 150ms ease !important;
+  }
+
+  html[data-theme="light"] .sl-song-row {
+    background: #ffffff !important;
+    border-color: #e4e4e7 !important;
+  }
+
+  .sl-song-row:hover {
+    border-color: rgba(255,255,255,0.16) !important;
+    background: #18181b !important;
+  }
+
+  html[data-theme="light"] .sl-song-row:hover {
+    border-color: rgba(0,0,0,0.12) !important;
+    background: #f4f4f5 !important;
+  }
+
+  .gear-item-row {
+    background: #09090b !important;
+    border: 1px solid #27272a !important;
+    border-radius: 8px !important;
+    margin-bottom: 6px !important;
+    padding: 12px 16px !important;
+    transition: all 150ms ease !important;
+  }
+
+  html[data-theme="light"] .gear-item-row {
+    background: #ffffff !important;
+    border-color: #e4e4e7 !important;
+  }
+
+  .gear-item-row:hover {
+    border-color: rgba(255,255,255,0.16) !important;
+    background: #18181b !important;
+  }
+
+  html[data-theme="light"] .gear-item-row:hover {
+    border-color: rgba(0,0,0,0.12) !important;
+    background: #f4f4f5 !important;
+  }
+
 </style>
-<div id="confirm-modal" style="display:none;position:absolute;inset:0;z-index:9999;align-items:center;justify-content:center;background:var(--sc-cf-overlay);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);padding:20px;animation:sc-cf-fade 180ms ease-out;">
-  <div style="width:100%;max-width:360px;background:var(--sc-cf-bg);border:1px solid var(--sc-cf-border);border-radius:20px;box-shadow:var(--sc-cf-shadow);overflow:hidden;animation:sc-cf-pop 240ms cubic-bezier(0.34,1.4,0.5,1);">
-    <div style="padding:28px 24px 6px;display:flex;flex-direction:column;align-items:center;text-align:center;">
-      <div style="width:52px;height:52px;border-radius:50%;background:var(--sc-cf-icon-tint);display:flex;align-items:center;justify-content:center;margin-bottom:18px;">
-        <i data-lucide="alert-triangle" style="width:24px;height:24px;color:var(--hot);"></i>
-      </div>
-      <h3 style="font-family:'Manrope',sans-serif;font-size:17px;font-weight:700;color:var(--sc-cf-title);margin:0 0 8px;letter-spacing:-0.01em;">Confirm</h3>
-      <p id="confirm-msg" style="font-family:'Inter',sans-serif;font-size:14px;color:var(--sc-cf-msg);line-height:1.55;margin:0;max-width:300px;"></p>
+<div id="confirm-modal" onclick="if(event.target===this)doConfirm(false)" style="display:none;position:absolute;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);padding:20px;animation:sc-cf-fade 150ms ease-out;">
+  <div style="width:100%;max-width:320px;background:var(--sc-cf-bg);border:1px solid var(--sc-cf-border);border-radius:12px;box-shadow:var(--sc-cf-shadow);overflow:hidden;animation:sc-cf-pop 180ms cubic-bezier(0.16,1,0.3,1);padding:20px;display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;flex-direction:column;gap:6px;text-align:left;">
+      <h3 id="confirm-title" style="font-family:'Manrope',sans-serif;font-size:16px;font-weight:700;color:var(--sc-cf-title);margin:0;letter-spacing:-0.01em;">Confirm</h3>
+      <p id="confirm-msg" style="font-family:'Inter',sans-serif;font-size:13px;color:var(--sc-cf-msg);line-height:1.5;margin:0;"></p>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:22px 22px 22px;">
-      <button onclick="doConfirm(false)" style="padding:13px 16px;font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;background:var(--sc-cf-cancel-bg);color:var(--sc-cf-cancel-fg);border:1px solid var(--sc-cf-cancel-bd);border-radius:12px;cursor:pointer;transition:background 160ms ease;" onmouseover="this.style.background='var(--sc-cf-cancel-bg-h)'" onmouseout="this.style.background='var(--sc-cf-cancel-bg)'">Cancel</button>
-      <button onclick="doConfirm(true)" style="padding:13px 16px;font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;background:var(--hot);color:#fff;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 14px rgba(239,68,68,0.30);transition:box-shadow 160ms ease, transform 120ms ease;" onmouseover="this.style.boxShadow='0 6px 20px rgba(239,68,68,0.45)';this.style.transform='translateY(-1px)'" onmouseout="this.style.boxShadow='0 4px 14px rgba(239,68,68,0.30)';this.style.transform='translateY(0)'">Confirm</button>
+    <div style="display:flex;justify-content:end;gap:8px;margin-top:4px;">
+      <button id="confirm-cancel-btn" onclick="doConfirm(false)" style="padding:8px 14px;font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;background:var(--sc-cf-cancel-bg);color:var(--sc-cf-cancel-fg);border:1px solid var(--sc-cf-cancel-bd);border-radius:6px;cursor:pointer;transition:all 120ms ease;">Cancel</button>
+      <button id="confirm-ok-btn" onclick="doConfirm(true)" style="padding:8px 14px;font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;transition:all 120ms ease;">Confirm</button>
     </div>
   </div>
 </div>
@@ -2384,7 +2965,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     </div>
 
     <!-- Stage Viewport -->
-    <div id="stage-viewport" class="w-full h-full flex items-start justify-center" style="padding:20px 16px;"
+    <div id="stage-viewport" class="w-full h-full flex items-start justify-center" style="padding:10px 16px 20px 16px;"
          ondragover="event.preventDefault()" ondrop="handleDrop(event)">
       <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - 40px) * 16 / 9));aspect-ratio:16/9;border:2px solid rgba(72,72,71,0.12);overflow:visible;">
 
@@ -3228,8 +3809,13 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
   <div class="sc-section-wrap">
 
     <!-- Header -->
-    <div style="margin-bottom:12px;">
-      <h1 class="sc-section-title" data-i18n="membersTitle">Members</h1>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:18px;">
+      <div>
+        <h1 class="sc-section-title" data-i18n="membersTitle" style="margin:0;">Members</h1>
+        <p style="font-family:'Manrope',sans-serif;font-size:12px;color:#a1a1aa;margin:4px 0 0;">Band roster, roles &amp; contact info</p>
+      </div>
+      <!-- Avatar Group Preview -->
+      <div id="members-avatar-group" class="sc-avatar-group"></div>
     </div>
 
     <div class="sc-desktop-split">

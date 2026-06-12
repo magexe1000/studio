@@ -358,6 +358,7 @@ const HIDE_IFRAME_UI = `
 
 export default function StagexPanel() {
   const isWebDesktop = useIsWebDesktop();
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
   const [isLargeDesktop, setIsLargeDesktop] = useState(() => {
     return typeof window !== 'undefined' && window.innerWidth >= 1024;
   });
@@ -1055,7 +1056,7 @@ export default function StagexPanel() {
           </WebToolbar>
           
           {/* Main workspace area */}
-          <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
             <div style={{
               flex: 1,
               margin: '12px',
@@ -1078,21 +1079,63 @@ export default function StagexPanel() {
                 </div>
               )}
             </div>
+
+            {curView === 'Editor' && (
+              <button
+                onClick={() => setIsRightPanelCollapsed(v => !v)}
+                title={isRightPanelCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                aria-label={isRightPanelCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  right: isRightPanelCollapsed ? 0 : 260,
+                  transform: 'translateY(-50%)',
+                  zIndex: 99,
+                  width: 18,
+                  height: 64,
+                  background: isLight ? 'rgba(240, 240, 242, 0.95)' : 'rgba(20, 20, 24, 0.95)',
+                  border: isLight ? '1px solid rgba(0, 0, 0, 0.15)' : '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRight: 'none',
+                  borderRadius: '8px 0 0 8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: isLight ? '#27272a' : '#a1a1aa',
+                  transition: 'right 250ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 200ms, color 200ms',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  boxShadow: isLight ? '-2px 0 8px rgba(0,0,0,0.06)' : '-2px 0 8px rgba(0,0,0,0.3)',
+                }}
+                onPointerOver={e => e.currentTarget.style.color = '#3b82f6'}
+                onPointerOut={e => e.currentTarget.style.color = isLight ? '#27272a' : '#a1a1aa'}
+              >
+                {isRightPanelCollapsed ? (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                ) : (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                )}
+              </button>
+            )}
             
             {curView === 'Editor' && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                animate={{ 
+                  opacity: isRightPanelCollapsed ? 0 : 1, 
+                  x: isRightPanelCollapsed ? 20 : 0,
+                  width: isRightPanelCollapsed ? 0 : 260 
+                }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 style={{
-                  width: '260px',
-                  borderLeft: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.06)',
+                  borderLeft: isRightPanelCollapsed ? 'none' : (isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.06)'),
                   background: isLight ? 'var(--app-surface-low)' : '#080809',
                   display: 'flex',
                   flexDirection: 'column',
                   height: '100%',
                   flexShrink: 0,
                   boxSizing: 'border-box',
+                  overflow: 'hidden',
                 }}
               >
                 {/* Scrollable Elements Area */}
