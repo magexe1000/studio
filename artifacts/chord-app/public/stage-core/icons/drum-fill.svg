@@ -1,35 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <defs>
-    <linearGradient id="cab" x1="0.1" y1="0" x2="0.9" y2="1">
-      <stop offset="0%"   stop-color="#3A3830"/>
-      <stop offset="100%" stop-color="#0E0C0A"/>
-    </linearGradient>
-    <radialGradient id="cone" cx="42%" cy="38%" r="58%">
-      <stop offset="0%"   stop-color="#5A5248"/>
-      <stop offset="60%"  stop-color="#2C2820"/>
-      <stop offset="100%" stop-color="#141210"/>
-    </radialGradient>
-  </defs>
-  <ellipse cx="100" cy="194" rx="72" ry="6" fill="#00000030"/>
-  <!-- Small side-facing fill cab (compact cube) -->
-  <rect x="32" y="54" width="136" height="136" rx="8" fill="url(#cab)"/>
-  <!-- Corner protectors -->
-  <rect x="32"  y="54"  width="12" height="12" rx="2" fill="#555" opacity="0.7"/>
-  <rect x="156" y="54"  width="12" height="12" rx="2" fill="#555" opacity="0.7"/>
-  <rect x="32"  y="178" width="12" height="12" rx="2" fill="#555" opacity="0.7"/>
-  <rect x="156" y="178" width="12" height="12" rx="2" fill="#555" opacity="0.7"/>
-  <!-- Handle top center -->
-  <path d="M 80 54 Q 80 45 100 45 Q 120 45 120 54" fill="none" stroke="#555" stroke-width="5" stroke-linecap="round"/>
-  <!-- Grille area -->
-  <rect x="38" y="60" width="124" height="124" rx="4" fill="#1A1810"/>
-  <!-- Single 15" speaker -->
-  <circle cx="100" cy="122" r="56" fill="url(#cone)"/>
-  <circle cx="100" cy="122" r="44" fill="none" stroke="#201C18" stroke-width="2.5" opacity="0.5"/>
-  <circle cx="100" cy="122" r="32" fill="none" stroke="#201C18" stroke-width="2.5" opacity="0.5"/>
-  <circle cx="100" cy="122" r="20" fill="none" stroke="#201C18" stroke-width="2.5" opacity="0.5"/>
-  <circle cx="100" cy="122" r="16" fill="#252018"/>
-  <circle cx="96"  cy="118" r="5"  fill="#888" opacity="0.2"/>
-  <!-- Horn tweeter top of cab face -->
-  <path d="M 62 68 L 138 68 L 130 84 L 70 84 Z" fill="#252018"/>
-  <path d="M 72 72 L 128 72 L 122 82 L 78 82 Z" fill="#111" opacity="0.7"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect x="20" y="15" width="60" height="70" rx="4" fill="#1e293b" stroke="#cbd5e1" stroke-width="2"/>
+    <circle cx="50" cy="38" r="12" fill="none" stroke="#cbd5e1" stroke-width="1.5"/>
+    <circle cx="50" cy="65" r="15" fill="none" stroke="#cbd5e1" stroke-width="2"/>
+  </svg>

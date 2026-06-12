@@ -263,7 +263,7 @@ export interface DrumSong {
 function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 export function emptyMeasure(): DrumMeasure { return { id: `m-${uid()}`, hits: {} }; }
 function defaultPattern(): DrumPattern {
-  return { id: `p-${uid()}`, name: 'Pattern 1', bpm: 120, timeSignature: [4, 4], subdivision: 16, measures: [emptyMeasure()], swing: 0 };
+  return { id: `p-${uid()}`, name: 'Pattern 1', bpm: 120, timeSignature: [4, 4], subdivision: 16, measures: [emptyMeasure(), emptyMeasure()], swing: 0 };
 }
 
 export function stepsPerMeasure(p: DrumPattern): number {
@@ -480,7 +480,7 @@ export const useDrumStore = create<DrumStore>()(
           bpm: src?.bpm ?? 120,
           timeSignature: src?.timeSignature ?? [4, 4],
           subdivision: src?.subdivision ?? 16,
-          measures: [emptyMeasure()],
+          measures: [emptyMeasure(), emptyMeasure()],
           swing: src?.swing ?? 0,
         };
         set(st => ({ patterns: [...st.patterns, p], activePatternId: p.id }));

@@ -1,57 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <defs>
-    <linearGradient id="body" x1="0.1" y1="0" x2="0.9" y2="1">
-      <stop offset="0%"   stop-color="#3A3A3A"/>
-      <stop offset="40%"  stop-color="#1E1E1E"/>
-      <stop offset="100%" stop-color="#0E0E0E"/>
-    </linearGradient>
-    <linearGradient id="ear" x1="0.1" y1="0" x2="0.9" y2="1">
-      <stop offset="0%"   stop-color="#C0C0C0"/>
-      <stop offset="50%"  stop-color="#888"/>
-      <stop offset="100%" stop-color="#444"/>
-    </linearGradient>
-    <radialGradient id="tip" cx="40%" cy="35%" r="60%">
-      <stop offset="0%"   stop-color="#E0E0E0"/>
-      <stop offset="100%" stop-color="#888"/>
-    </radialGradient>
-  </defs>
-  <ellipse cx="100" cy="192" rx="60" ry="8" fill="#00000028"/>
-  <!-- Belt pack body -->
-  <rect x="58" y="90" width="84" height="96" rx="10" fill="url(#body)"/>
-  <!-- Clip on back edge hint -->
-  <rect x="152" y="98" width="8" height="70" rx="4" fill="#333"/>
-  <rect x="154" y="100" width="4" height="66" rx="2" fill="#555"/>
-  <!-- Display screen -->
-  <rect x="66" y="98" width="68" height="28" rx="4" fill="#111"/>
-  <rect x="68" y="100" width="64" height="24" rx="3" fill="#0A1A2A"/>
-  <text x="100" y="115" text-anchor="middle" font-family="Courier, monospace" font-size="9" fill="#44AAFF" opacity="0.9">CH 02  -12</text>
-  <!-- Button row -->
-  <rect x="68" y="132" width="18" height="12" rx="3" fill="#333"/>
-  <rect x="70" y="134" width="14" height="8"  rx="2" fill="#555"/>
-  <rect x="91" y="132" width="18" height="12" rx="3" fill="#333"/>
-  <rect x="93" y="134" width="14" height="8"  rx="2" fill="#555"/>
-  <rect x="114" y="132" width="18" height="12" rx="3" fill="#333"/>
-  <rect x="116" y="134" width="14" height="8"  rx="2" fill="#555"/>
-  <!-- Volume wheel -->
-  <circle cx="100" cy="160" r="14" fill="#222"/>
-  <circle cx="100" cy="160" r="11" fill="#333"/>
-  <line x1="100" y1="150" x2="100" y2="155" stroke="#888" stroke-width="2" stroke-linecap="round"/>
-  <!-- Antenna -->
-  <rect x="96" y="74" width="8" height="20" rx="4" fill="#444"/>
-  <rect x="97" y="75" width="6" height="18" rx="3" fill="#666"/>
-  <!-- Earbuds on cable -->
-  <!-- Left cable -->
-  <path d="M 70 90 Q 50 76 38 56 Q 30 44 34 36" stroke="#222" stroke-width="4" fill="none" stroke-linecap="round"/>
-  <path d="M 70 90 Q 50 76 38 56 Q 30 44 34 36" stroke="#555" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
-  <!-- Left earbud -->
-  <circle cx="36" cy="32" r="12" fill="url(#ear)"/>
-  <circle cx="36" cy="32" r="8"  fill="#666"/>
-  <circle cx="36" cy="32" r="5"  fill="url(#tip)"/>
-  <!-- Right cable -->
-  <path d="M 130 90 Q 150 76 162 56 Q 170 44 166 36" stroke="#222" stroke-width="4" fill="none" stroke-linecap="round"/>
-  <path d="M 130 90 Q 150 76 162 56 Q 170 44 166 36" stroke="#555" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
-  <!-- Right earbud -->
-  <circle cx="164" cy="32" r="12" fill="url(#ear)"/>
-  <circle cx="164" cy="32" r="8"  fill="#666"/>
-  <circle cx="164" cy="32" r="5"  fill="url(#tip)"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect x="30" y="20" width="40" height="60" rx="4" fill="#1e293b" stroke="#cbd5e1" stroke-width="2"/>
+    <line x1="50" y1="20" x2="50" y2="5" stroke="#cbd5e1" stroke-width="3"/>
+    <circle cx="42" cy="35" r="3" fill="#22c55e"/>
+    <rect x="38" y="50" width="24" height="15" rx="1" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+  </svg>

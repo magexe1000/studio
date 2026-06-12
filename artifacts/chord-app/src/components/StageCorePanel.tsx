@@ -377,7 +377,7 @@ export default function StagexPanel() {
   const [searchQuery, setSearchQuery] = useState('');
   const [customElements, setCustomElements] = useState<any[]>([]);
   const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({
-    mics: true,
+    mics: false,
     drums: false,
     inst: false,
     amps: false,
@@ -991,7 +991,6 @@ export default function StagexPanel() {
               <div className="flex gap-1.5">
                 {[
                   { label: tr.stagex.toolMeasure, icon: 'straighten', fn: () => callIframe('scActivateMeasure') },
-                  { label: tr.stagex.toolZones, icon: 'grid_4x4', fn: () => callIframe('scToggleZones') },
                   { label: tr.stagex.toolHistory, icon: 'history', fn: () => callIframe('openTimelinePanel') },
                 ].map(({ label, icon, fn }) => (
                   <WebButton
@@ -1637,7 +1636,6 @@ export default function StagexPanel() {
                 // moved out of the top toolbar to a floating button
                 // anchored above the blue + (FAB) below.
                 { label: tr.stagex.toolMeasure, icon: 'straighten',    fn: () => callIframe('scActivateMeasure')   },
-                { label: tr.stagex.toolZones,   icon: 'grid_4x4',      fn: () => callIframe('scToggleZones')       },
                 { label: tr.stagex.toolHistory, icon: 'history',       fn: () => callIframe('openTimelinePanel')   },
               ] as { label: string; icon: string; fn: () => void; testid?: string }[]
             ).map(({ label, icon, fn, testid }) => (

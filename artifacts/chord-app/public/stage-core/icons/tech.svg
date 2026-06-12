@@ -1,89 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <defs>
-    <radialGradient id="skin" cx="40%" cy="35%" r="60%">
-      <stop offset="0%"   stop-color="#E8B888"/>
-      <stop offset="100%" stop-color="#C08848"/>
-    </radialGradient>
-    <linearGradient id="shirt" x1="0.1" y1="0" x2="0.9" y2="1">
-      <stop offset="0%"   stop-color="#37474F"/>
-      <stop offset="50%"  stop-color="#263238"/>
-      <stop offset="100%" stop-color="#1A237E"/>
-    </linearGradient>
-    <linearGradient id="pants" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#212121"/>
-      <stop offset="100%" stop-color="#000000"/>
-    </linearGradient>
-  </defs>
-  <ellipse cx="100" cy="194" rx="34" ry="6" fill="#00000030"/>
-  <!-- Legs -->
-  <rect x="76" y="150" width="20" height="44" rx="8" fill="url(#pants)"/>
-  <rect x="104" y="150" width="20" height="44" rx="8" fill="url(#pants)"/>
-  <!-- Shoes -->
-  <ellipse cx="86"  cy="192" rx="14" ry="6" fill="#1A1A1A"/>
-  <ellipse cx="114" cy="192" rx="14" ry="6" fill="#1A1A1A"/>
-  <!-- Torso / shirt -->
-  <path d="M 60 106 Q 58 88 65 80 L 80 96 L 100 100 L 120 96 L 135 80 Q 142 88 140 106 L 140 158 Q 130 164 100 164 Q 70 164 60 158 Z" fill="url(#shirt)"/>
-  <!-- Shirt highlight -->
-  <path d="M 66 90 Q 68 100 68 116" stroke="#546E7A" stroke-width="3" fill="none" opacity="0.3" stroke-linecap="round"/>
-  
-  <!-- Left arm (holding clipboard) -->
-  <path d="M 62 108 Q 50 118 64 136 L 82 134 L 72 120 Q 70 114 74 114 Z" fill="url(#shirt)"/>
-  <!-- Right arm (holding clipboard) -->
-  <path d="M 138 108 Q 148 118 134 136 L 118 134 L 126 120 Q 130 114 126 114 Z" fill="url(#shirt)"/>
-  
-  <!-- Hands -->
-  <ellipse cx="78"  cy="134" rx="7" ry="8" fill="url(#skin)"/>
-  <ellipse cx="122" cy="134" rx="7" ry="8" fill="url(#skin)"/>
-  <!-- Neck -->
-  <rect x="90" y="72" width="20" height="28" rx="8" fill="url(#skin)"/>
-  <!-- Head -->
-  <ellipse cx="100" cy="60" rx="34" ry="38" fill="url(#skin)"/>
-  <!-- Dark cap -->
-  <path d="M 66 50 C 68 20 132 20 134 50 Z" fill="#212121"/>
-  <!-- Cap brim -->
-  <path d="M 66 48 C 66 48, 100 36, 134 48 L 142 54 L 58 54 Z" fill="#111111"/>
-  
-  <!-- Eyes -->
-  <ellipse cx="88"  cy="58" rx="5" ry="6" fill="#FFF"/>
-  <ellipse cx="112" cy="58" rx="5" ry="6" fill="#FFF"/>
-  <ellipse cx="88"  cy="60" rx="3" ry="4" fill="#3E2723"/>
-  <ellipse cx="112" cy="60" rx="3" ry="4" fill="#3E2723"/>
-  <circle  cx="88"  cy="60" r="2"  fill="#111"/>
-  <circle  cx="112" cy="60" r="2"  fill="#111"/>
-  <!-- Mouth -->
-  <path d="M 92 74 Q 100 78 108 74" stroke="#A06840" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <!-- Eyebrows -->
-  <path d="M 83 51 Q 88 48 93 51" stroke="#2A1808" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <path d="M 107 51 Q 112 48 117 51" stroke="#2A1808" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <!-- Ears -->
-  <ellipse cx="66"  cy="62" rx="7" ry="9" fill="url(#skin)"/>
-  <ellipse cx="134" cy="62" rx="7" ry="9" fill="url(#skin)"/>
-  <!-- Belt -->
-  <rect x="60" y="154" width="80" height="8" rx="4" fill="#212121"/>
-  <rect x="95" y="154" width="10" height="8" rx="2" fill="#555"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    
+  <ellipse cx="50" cy="50" rx="35" ry="16" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+  <circle cx="50" cy="50" r="14" fill="#334155" stroke="#94a3b8" stroke-width="2"/>
+  <path d="M 50 64 L 47 68 L 53 68 Z" fill="#94a3b8"/>
 
-  <!-- Headset -->
-  <!-- Band over head -->
-  <path d="M 68 56 Q 100 28 132 56" fill="none" stroke="#263238" stroke-width="3" stroke-linecap="round"/>
-  <!-- Ear cups -->
-  <rect x="62" y="52" width="8" height="16" rx="3" fill="#111"/>
-  <rect x="130" y="52" width="8" height="16" rx="3" fill="#111"/>
-  <!-- Boom mic -->
-  <path d="M 68 64 Q 82 72 90 70" fill="none" stroke="#111" stroke-width="1.8" stroke-linecap="round"/>
-
-  <!-- Clipboard -->
-  <g transform="translate(75, 115)">
-    <!-- Board -->
-    <rect x="0" y="0" width="50" height="60" rx="3" fill="#8D6E63" stroke="#5D4037" stroke-width="2"/>
-    <!-- Paper -->
-    <rect x="5" y="8" width="40" height="46" rx="1" fill="#ECEFF1"/>
-    <!-- Metal Clip -->
-    <rect x="15" y="-3" width="20" height="10" rx="1.5" fill="#78909C" stroke="#455A64" stroke-width="1"/>
-    <circle cx="25" cy="2" r="1.5" fill="#37474F"/>
-    <!-- Text lines on paper -->
-    <line x1="10" y1="18" x2="40" y2="18" stroke="#CFD8DC" stroke-width="2"/>
-    <line x1="10" y1="26" x2="35" y2="26" stroke="#CFD8DC" stroke-width="2"/>
-    <line x1="10" y1="34" x2="40" y2="34" stroke="#CFD8DC" stroke-width="2"/>
-    <line x1="10" y1="42" x2="30" y2="42" stroke="#CFD8DC" stroke-width="2"/>
-  </g>
-</svg>
+    <path d="M 33 50 A 17 17 0 0 1 67 50" fill="none" stroke="#22c55e" stroke-width="2.5"/>
+    <rect x="32" y="46" width="4" height="8" rx="1" fill="#22c55e"/>
+    <rect x="64" y="46" width="4" height="8" rx="1" fill="#22c55e"/>
+    <rect x="42" y="70" width="16" height="12" rx="1.5" fill="#475569" stroke="#cbd5e1" stroke-width="1"/>
+  </svg>

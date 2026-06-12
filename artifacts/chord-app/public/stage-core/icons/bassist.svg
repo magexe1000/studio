@@ -1,91 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <defs>
-    <radialGradient id="skin" cx="40%" cy="35%" r="60%">
-      <stop offset="0%"   stop-color="#E8B888"/>
-      <stop offset="100%" stop-color="#C08848"/>
-    </radialGradient>
-    <linearGradient id="shirt" x1="0.1" y1="0" x2="0.9" y2="1">
-      <stop offset="0%"   stop-color="#4A6898"/>
-      <stop offset="50%"  stop-color="#2A4878"/>
-      <stop offset="100%" stop-color="#1A3060"/>
-    </linearGradient>
-    <linearGradient id="pants" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#2A3040"/>
-      <stop offset="100%" stop-color="#0E1420"/>
-    </linearGradient>
-  </defs>
-  <ellipse cx="100" cy="194" rx="34" ry="6" fill="#00000030"/>
-  <!-- Legs -->
-  <rect x="76" y="150" width="20" height="44" rx="8" fill="url(#pants)"/>
-  <rect x="104" y="150" width="20" height="44" rx="8" fill="url(#pants)"/>
-  <!-- Shoes -->
-  <ellipse cx="86"  cy="192" rx="14" ry="6" fill="#1A1A1A"/>
-  <ellipse cx="114" cy="192" rx="14" ry="6" fill="#1A1A1A"/>
-  <!-- Torso / shirt -->
-  <path d="M 60 106 Q 58 88 65 80 L 80 96 L 100 100 L 120 96 L 135 80 Q 142 88 140 106 L 140 158 Q 130 164 100 164 Q 70 164 60 158 Z" fill="url(#shirt)"/>
-  <!-- Shirt highlight -->
-  <path d="M 66 90 Q 68 100 68 116" stroke="#7090C0" stroke-width="3" fill="none" opacity="0.3" stroke-linecap="round"/>
-  
-  <!-- Left arm (fretting) -->
-  <path d="M 62 108 Q 40 102 48 118 L 72 122 L 68 112 Q 58 110 62 108 Z" fill="url(#shirt)"/>
-  <!-- Right arm (plucking/playing) -->
-  <path d="M 138 108 Q 146 122 130 142 L 115 138 L 124 124 Q 130 122 126 120 Z" fill="url(#shirt)"/>
-  
-  <!-- Hands -->
-  <ellipse cx="72"  cy="122" rx="7" ry="8" fill="url(#skin)"/>
-  <ellipse cx="115" cy="138" rx="8" ry="7" fill="url(#skin)"/>
-  <!-- Neck -->
-  <rect x="90" y="72" width="20" height="28" rx="8" fill="url(#skin)"/>
-  <!-- Head -->
-  <ellipse cx="100" cy="60" rx="34" ry="38" fill="url(#skin)"/>
-  <!-- Hair -->
-  <path d="M 66 54 Q 68 22 100 18 Q 132 22 134 54 Q 126 38 100 36 Q 74 38 66 54 Z" fill="#2A1808"/>
-  <!-- Eyes -->
-  <ellipse cx="88"  cy="58" rx="5" ry="6" fill="#FFF"/>
-  <ellipse cx="112" cy="58" rx="5" ry="6" fill="#FFF"/>
-  <ellipse cx="88"  cy="60" rx="3" ry="4" fill="#5A3010"/>
-  <ellipse cx="112" cy="60" rx="3" ry="4" fill="#5A3010"/>
-  <circle  cx="88"  cy="60" r="2"  fill="#111"/>
-  <circle  cx="112" cy="60" r="2"  fill="#111"/>
-  <circle  cx="89"  cy="59" r="0.8" fill="#FFF"/>
-  <circle  cx="113" cy="59" r="0.8" fill="#FFF"/>
-  <!-- Mouth -->
-  <path d="M 92 74 Q 100 80 108 74" stroke="#A06840" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <!-- Eyebrows -->
-  <path d="M 83 51 Q 88 48 93 51" stroke="#2A1808" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <path d="M 107 51 Q 112 48 117 51" stroke="#2A1808" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <!-- Ears -->
-  <ellipse cx="66"  cy="62" rx="7" ry="9" fill="url(#skin)"/>
-  <ellipse cx="134" cy="62" rx="7" ry="9" fill="url(#skin)"/>
-  <!-- Belt -->
-  <rect x="60" y="154" width="80" height="8" rx="4" fill="#3A3020"/>
-  <rect x="95" y="154" width="10" height="8" rx="2" fill="#888060"/>
-
-  <!-- Bass Strap -->
-  <path d="M 64 104 C 75 105, 115 130, 134 146" stroke="#212121" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.95"/>
-
-  <!-- Electric Bass Guitar -->
-  <g transform="translate(100, 130) rotate(-22) translate(-50, -12)">
-    <!-- Extra Long Neck & Headstock -->
-    <rect x="-42" y="7" width="102" height="6" fill="#D7CCC8" stroke="#3E2723" stroke-width="1"/>
-    <!-- Headstock with 4 pegs in a line -->
-    <rect x="-56" y="5" width="15" height="10" rx="2" fill="#8D6E63" stroke="#3E2723" stroke-width="1"/>
-    <!-- 4 tuning pegs -->
-    <circle cx="-53" cy="3" r="1.5" fill="#B0BEC5"/>
-    <circle cx="-49" cy="3" r="1.5" fill="#B0BEC5"/>
-    <circle cx="-45" cy="3" r="1.5" fill="#B0BEC5"/>
-    <circle cx="-41" cy="3" r="1.5" fill="#B0BEC5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
     
-    <!-- Bass Body -->
-    <path d="M 40 0 C 40 -12, 68 -15, 82 -9 C 96 -3, 102 17, 85 29 C 73 37, 48 33, 40 24 C 30 16, 28 8, 40 0" fill="#0D47A1" stroke="#0A2472" stroke-width="2.5"/>
-    <path d="M 35 -4 L 48 2" stroke="#ECEFF1" stroke-width="1.5" stroke-linecap="round"/>
-    <path d="M 37 28 L 47 21" stroke="#ECEFF1" stroke-width="1.5" stroke-linecap="round"/>
-    <!-- Pickups -->
-    <rect x="54" y="5" width="5" height="4" fill="#111"/>
-    <rect x="54" y="10" width="5" height="4" fill="#111"/>
-    <rect x="64" y="5" width="5" height="4" fill="#111"/>
-    <rect x="64" y="10" width="5" height="4" fill="#111"/>
-    <!-- Bridge -->
-    <rect x="78" y="5" width="8" height="10" fill="#B0BEC5" stroke="#78909C" stroke-width="0.8"/>
-  </g>
-</svg>
+  <ellipse cx="50" cy="50" rx="35" ry="16" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+  <circle cx="50" cy="50" r="14" fill="#334155" stroke="#94a3b8" stroke-width="2"/>
+  <path d="M 50 64 L 47 68 L 53 68 Z" fill="#94a3b8"/>
+
+    <line x1="42" y1="52" x2="10" y2="22" stroke="#e2e8f0" stroke-width="2.5"/>
+    <path d="M 44 54 C 40 56, 44 70, 56 70 C 66 70, 68 58, 58 54 Z" fill="#6366f1" stroke="#e2e8f0" stroke-width="1.5"/>
+  </svg>

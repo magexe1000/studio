@@ -1888,7 +1888,7 @@ export default function DrumEditor() {
   const rawMpr         = Math.max(1, Math.floor(availableW / (spm * MIN_STEP)));
   const measuresPerRow = isLandscape ? pattern.measures.length : 1;
   const MEASURE_W      = isLandscape
-    ? Math.max(340, availableW / 2.5)
+    ? (pattern.measures.length <= 2 ? availableW / 2 : Math.max(340, availableW / 2.5))
     : availableW;
   const STEP_W         = MEASURE_W / spm;
   const SYSTEM_H       = RULER_H + visibleInsts.length * ROW_H + (visibleInsts.length > 0 ? (visibleInsts.length - 1) * rowGap : 0);
@@ -2117,6 +2117,19 @@ export default function DrumEditor() {
     restorePatterns(next.patterns, next.activePatternId);
     setHistoryCount(undoStack.current.length);
   }, [restorePatterns]);
+
+  const handleAddBar = useCallback(() => {
+    pushUndo();
+    addMeasure(pattern.id);
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({
+          left: scrollRef.current.scrollWidth,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
+  }, [pattern.id, addMeasure, pushUndo]);
 
   // ── Keyboard shortcuts (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z) ──────────────────
   useEffect(() => {
@@ -2687,16 +2700,6 @@ export default function DrumEditor() {
                   style={{ height: 30, width: 30, borderRadius: 8, background: redoStack.current.length > 0 ? 'rgba(128,128,128,0.08)' : 'transparent', border: `1px solid ${redoStack.current.length > 0 ? 'rgba(128,128,128,0.18)' : 'transparent'}`, cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35, flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 17, lineHeight: 1 }}>redo</span>
                 </button>
-                {/* EQ / quick-mixer button */}
-                <button onClick={() => setShowMixerSheet(s => !s)} title="Mixer" aria-label="Mixer"
-                  style={{ height: 30, width: 30, borderRadius: 8, background: showMixerSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showMixerSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showMixerSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-                </button>
-                {/* Per-instrument FX button */}
-                <button onClick={() => { if (!showFXSheet) setFxInst(activeInstruments[0] ?? 'kick'); setShowFXSheet(s => !s); }} title="Instrument FX" aria-label="Instrument FX"
-                  style={{ height: 30, width: 36, borderRadius: 8, background: showFXSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showFXSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showFXSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, fontFamily: 'Manrope,sans-serif', letterSpacing: '0.04em' }}>FX</span>
-                </button>
                 <button onClick={() => {
                   if (showHamburger) {
                     setHamburgerClosing(true);
@@ -2720,8 +2723,8 @@ export default function DrumEditor() {
         inEditor && (
           <div style={{
             height: 56,
-            background: 'rgba(10, 10, 12, 0.45)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            background: isLight ? '#ffffff' : '#080808',
+            borderBottom: isLight ? '1px solid rgba(0, 0, 0, 0.06)' : '1px solid rgba(255, 255, 255, 0.06)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             display: 'flex',
@@ -2754,13 +2757,13 @@ export default function DrumEditor() {
             </div>
 
             {/* Transport Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '4px 12px', height: 40 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '4px 12px', height: 40 }}>
               {/* Play/Stop */}
               <button onClick={handlePlay} className="btn-smooth" title={playing ? "Stop Playback" : "Start Playback"} aria-label={playing ? "Stop" : "Play"} style={{
                 width: 28, height: 28, borderRadius: '50%', border: 'none',
-                background: playing ? 'rgba(255,255,255,0.1)' : `linear-gradient(135deg,${accent.from},${accent.to})`,
+                background: playing ? '#ef4444' : (isLight ? '#18181b' : '#ffffff'),
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: playing ? 'var(--c-text-primary)' : '#fff', transition: 'all 150ms', flexShrink: 0
+                color: playing ? '#ffffff' : (isLight ? '#ffffff' : '#18181b'), transition: 'all 150ms', flexShrink: 0
               }}>
                 {playing ? '⏹' : '▶'}
               </button>
@@ -2843,31 +2846,16 @@ export default function DrumEditor() {
 
               <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)', margin: '0 2px' }} />
 
-              {/* Mixer / FX toggles (set side panel tab) */}
-              <button onClick={() => setSideTab('mixer')} title="Open Mixer Sidebar" aria-label="Open Mixer Sidebar" className="btn-smooth" style={{
-                height: 30, width: 30, borderRadius: 8, background: sideTab === 'mixer' ? `${accent.from}1a` : 'rgba(255,255,255,0.03)', border: `1px solid ${sideTab === 'mixer' ? accent.from + '44' : 'rgba(255,255,255,0.08)'}`,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: sideTab === 'mixer' ? accent.from : 'var(--c-text-secondary)'
+              {/* Add Bar */}
+              <button onClick={handleAddBar} title="Add new measure (bar)" aria-label="Add Bar" className="btn-smooth" style={{
+                height: 30, padding: '0 12px', borderRadius: 8,
+                background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
+                border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                color: 'var(--c-text-primary)', fontSize: 11, fontWeight: 700
               }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-              </button>
-              <button onClick={() => { if (activeInstruments.length > 0 && !fxInst) setFxInst(activeInstruments[0]); setSideTab('fx'); }} title="Open FX Sidebar" aria-label="Open FX Sidebar" className="btn-smooth" style={{
-                height: 30, width: 34, borderRadius: 8, background: sideTab === 'fx' ? `${accent.from}1a` : 'rgba(255,255,255,0.03)', border: `1px solid ${sideTab === 'fx' ? accent.from + '44' : 'rgba(255,255,255,0.08)'}`,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: sideTab === 'fx' ? accent.from : 'var(--c-text-secondary)', fontSize: 10, fontWeight: 800, fontFamily: 'Manrope,sans-serif'
-              }}>
-                FX
-              </button>
-
-              <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)', margin: '0 2px' }} />
-
-              {/* Humanize */}
-              <button onClick={handleHumanize} title="Apply random humanized velocity offsets" aria-label="Apply random humanized velocity offsets" className="btn-smooth" style={{
-                height: 30, padding: '0 10px', borderRadius: 8,
-                background: humanizeFeedback ? `${accent.from}1a` : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${humanizeFeedback ? accent.from + '44' : 'rgba(255,255,255,0.08)'}`,
-                cursor: 'pointer', color: humanizeFeedback ? accent.from : 'var(--c-text-secondary)',
-                fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4
-              }}>
-                {humanizeFeedback ? '✓ Humanized' : 'Humanize'}
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+                <span>Add Bar</span>
               </button>
 
               {/* Clear */}
@@ -3277,7 +3265,7 @@ export default function DrumEditor() {
               onPointerUp={handlePointerUp}
               onPointerLeave={cancelPointer}
               onPointerCancel={cancelPointer}
-              style={{ flex: 1, overflowY: 'auto', overflowX: isLandscape ? 'auto' : 'hidden', paddingTop: 8, paddingBottom: isWebDesktop ? 110 : (isLandscape ? 20 : 100), position: 'relative' }}
+              style={{ flex: 1, overflowY: 'auto', overflowX: (isLandscape && pattern.measures.length > 2) ? 'auto' : 'hidden', paddingTop: 8, paddingBottom: isWebDesktop ? 110 : (isLandscape ? 20 : 100), position: 'relative' }}
               className="no-scrollbar"
             >
               {/* Playhead — extends into ruler, draggable handle at top */}
@@ -3453,13 +3441,6 @@ export default function DrumEditor() {
                   </div>
                 );
               })}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 32, paddingTop: 8 }}>
-                <button onClick={() => { pushUndo(); addMeasure(pattern.id); }} title="Add new measure (bar) to pattern" style={{ height: 36, padding: '0 24px', borderRadius: 999, background: 'transparent', border: 'var(--add-bar-border)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}
-                  onPointerEnter={e => { e.currentTarget.style.borderColor = accent.from + '70'; e.currentTarget.style.color = accent.from; }}
-                  onPointerLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}>
-                  <span style={{ fontSize: 16 }}>+</span><span>Add Bar</span>
-                </button>
-              </div>
             </div>
             {/* BPM + Play (hidden in landscape / desktop — controls are in the top bar) */}
             <div style={{ position: 'fixed', right: 14, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)', zIndex: 60, display: (isWebDesktop || isLandscape) ? 'none' : 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
