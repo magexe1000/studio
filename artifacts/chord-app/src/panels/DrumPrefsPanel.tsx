@@ -91,10 +91,11 @@ export default function DrumPrefsPanel() {
   }
 
   if (isWebDesktop) {
+    const isLight = settings.theme === 'light';
     return (
-      <div className="flex flex-col h-full overflow-hidden bg-[var(--app-bg)] p-6">
+      <div className={`flex flex-col h-full overflow-hidden p-6 ${isLight ? 'bg-zinc-50' : 'bg-[#000000]'}`}>
         <div className="mb-6">
-          <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: 'white', fontFamily: 'Manrope' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '-0.02em', color: isLight ? '#18181b' : 'white', fontFamily: 'Manrope', textTransform: 'uppercase' }}>
             {dp.title}
           </h2>
           <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '11px', marginTop: '2px' }}>
@@ -102,63 +103,74 @@ export default function DrumPrefsPanel() {
           </p>
         </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar space-y-6" style={{ paddingBottom: '96px' }}>
-          <WebSettingsSection title={dp.editorBehavior}>
-            {row('noteVariationsCycle', dp.noteVariations, dp.noteVariationsDesc)}
-            {row('autoExpandPattern', dp.autoExpand, dp.autoExpandDesc)}
-            {row('snapToGrid', dp.snapToGrid, dp.snapToGridDesc)}
-            {row('dragToFill', dp.dragToFill, dp.dragToFillDesc)}
-          </WebSettingsSection>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar" style={{ paddingBottom: '120px' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl">
+            {/* Column 1: Editor Behavior */}
+            <div className="space-y-6">
+              <WebSettingsSection title={dp.editorBehavior}>
+                {row('noteVariationsCycle', dp.noteVariations, dp.noteVariationsDesc)}
+                {row('autoExpandPattern', dp.autoExpand, dp.autoExpandDesc)}
+                {row('snapToGrid', dp.snapToGrid, dp.snapToGridDesc)}
+                {row('dragToFill', dp.dragToFill, dp.dragToFillDesc)}
+              </WebSettingsSection>
+            </div>
 
-          <WebSettingsSection title={dp.playback}>
-            {row('autoPlayOnEdit', dp.autoPlay, dp.autoPlayDesc)}
-            {row('loopPlayback', dp.loopPlayback, dp.loopPlaybackDesc)}
-            {row('metronome', dp.metronome, dp.metronomeDesc)}
-            {row('countIn', dp.countIn, dp.countInDesc)}
-            {row('humanizeVelocity', dp.humanizeVelocity, dp.humanizeVelocityDesc)}
-          </WebSettingsSection>
+            {/* Column 2: Playback & Dynamics */}
+            <div className="space-y-6">
+              <WebSettingsSection title={dp.playback}>
+                {row('autoPlayOnEdit', dp.autoPlay, dp.autoPlayDesc)}
+                {row('loopPlayback', dp.loopPlayback, dp.loopPlaybackDesc)}
+                {row('metronome', dp.metronome, dp.metronomeDesc)}
+                {row('countIn', dp.countIn, dp.countInDesc)}
+                {row('humanizeVelocity', dp.humanizeVelocity, dp.humanizeVelocityDesc)}
+              </WebSettingsSection>
+            </div>
 
-          <WebSettingsSection title={dp.interaction}>
-            {row('showNoteVariations', dp.showVariations, dp.showVariationsDesc)}
-            {row('highlightActiveInst', dp.highlightActive, dp.highlightActiveDesc)}
-          </WebSettingsSection>
+            {/* Column 3: Display & Start On */}
+            <div className="space-y-6">
+              <WebSettingsSection title={dp.interaction}>
+                {row('showNoteVariations', dp.showVariations, dp.showVariationsDesc)}
+                {row('highlightActiveInst', dp.highlightActive, dp.highlightActiveDesc)}
+              </WebSettingsSection>
 
-          <WebSettingsSection title={dp.visual}>
-            {row('gridLinesEmphasis', dp.gridEmphasis, dp.gridEmphasisDesc)}
-          </WebSettingsSection>
+              <WebSettingsSection title={dp.visual}>
+                {row('gridLinesEmphasis', dp.gridEmphasis, dp.gridEmphasisDesc)}
+              </WebSettingsSection>
 
-          <WebSettingsSection title={dp.startOn}>
-            <WebPreferenceRow label={dp.startOn} desc={dp.startOnDesc}>
-              {(() => {
-                const cur = settings.defaultDrumTab ?? 'songs';
-                const tabs: { value: 'songs' | 'patterns' | 'prefs'; Icon: React.FC<{ active: boolean }> }[] = [
-                  { value: 'songs',    Icon: IconDrumSongs },
-                  { value: 'patterns', Icon: IconPatterns  },
-                  { value: 'prefs',    Icon: IconPrefs     },
-                ];
-                return (
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {tabs.map(({ value, Icon }) => {
-                      const active = cur === value;
-                      return (
-                        <button
-                          key={value}
-                          onClick={() => updateSettings({ defaultDrumTab: value })}
-                          className={`w-9 h-9 flex items-center justify-center rounded-lg border cursor-pointer transition-all ${
-                            active 
-                              ? 'bg-zinc-800 text-white border-zinc-700' 
-                              : 'bg-transparent text-zinc-500 border-zinc-900 hover:text-zinc-300'
-                          }`}
-                        >
-                          <Icon active={active} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </WebPreferenceRow>
-          </WebSettingsSection>
+              <WebSettingsSection title={dp.startOn}>
+                <WebPreferenceRow label={dp.startOn} desc={dp.startOnDesc}>
+                  {(() => {
+                    const cur = settings.defaultDrumTab ?? 'songs';
+                    const tabs: { value: 'songs' | 'patterns' | 'prefs'; Icon: React.FC<{ active: boolean }> }[] = [
+                      { value: 'songs',    Icon: IconDrumSongs },
+                      { value: 'patterns', Icon: IconPatterns  },
+                      { value: 'prefs',    Icon: IconPrefs     },
+                    ];
+                    return (
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        {tabs.map(({ value, Icon }) => {
+                          const active = cur === value;
+                          return (
+                            <button
+                              key={value}
+                              onClick={() => updateSettings({ defaultDrumTab: value })}
+                              className={`w-9 h-9 flex items-center justify-center rounded-lg border cursor-pointer transition-all ${
+                                active 
+                                  ? 'bg-zinc-800 text-white border-zinc-700' 
+                                  : 'bg-transparent text-zinc-500 border-zinc-900 hover:text-zinc-350 hover:border-zinc-850'
+                              }`}
+                            >
+                              <Icon active={active} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </WebPreferenceRow>
+              </WebSettingsSection>
+            </div>
+          </div>
         </div>
       </div>
     );

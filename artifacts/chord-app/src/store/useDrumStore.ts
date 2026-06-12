@@ -77,16 +77,16 @@ export const INSTRUMENT_NAME: Record<DrumInstrument, string> = {
 };
 
 export const INSTRUMENT_COLOR: Record<DrumInstrument, string> = {
-  crash:          '#c084fc',
-  ride:           '#a78bfa',
-  'hihat-open':   '#34d399',
-  'hihat-closed': '#4ade80',
-  'hihat-foot':   '#86efac',
-  snare:          '#fb923c',
-  'tom-high':     '#f59e0b',
-  'tom-mid':      '#fbbf24',
-  'tom-floor':    '#f97316',
-  kick:           '#679cff',
+  crash:          '#a1a1aa',
+  ride:           '#71717a',
+  'hihat-open':   '#d4d4d8',
+  'hihat-closed': '#e4e4e7',
+  'hihat-foot':   '#a1a1aa',
+  snare:          '#ffffff',
+  'tom-high':     '#e4e4e7',
+  'tom-mid':      '#d4d4d8',
+  'tom-floor':    '#a1a1aa',
+  kick:           '#ffffff',
 };
 
 // Display order: high pitch → low pitch (hi-hat top, kick bottom)

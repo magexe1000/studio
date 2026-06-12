@@ -3156,16 +3156,26 @@ export default function DrumEditor() {
               />
             </div>
             {drumSongs.length === 0 ? (
-              <div className="spring-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', margin: '0 20px', background: 'var(--app-surface)', borderRadius: '1.5rem', gap: 16 }}>
-                <div style={{ width: 72, height: 72, borderRadius: '50%', background: `${accent.to}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={accent.from} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
+              <div className={`spring-in flex flex-col items-center justify-center p-12 mx-5 border rounded-2xl gap-5 ${
+                isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#000000] border-zinc-900'
+              }`}>
+                <div className={`w-14 h-14 rounded-xl flex items-center justify-center border ${
+                  isLight ? 'border-zinc-200 bg-zinc-100/50 text-zinc-650' : 'border-zinc-900 bg-zinc-950/20 text-zinc-400'
+                }`}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, margin: 0 }}>No beats yet</p>
-                  <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 13, marginTop: 4, margin: '4px 0 0' }}>Create your first drum beat to get started.</p>
+                <div className="text-center">
+                  <span className={`block text-sm font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'}`}>No beats yet</span>
+                  <span className="block text-[10px] text-zinc-500 font-extrabold uppercase tracking-wide mt-1.5">Create your first drum beat to get started.</span>
                 </div>
-                <button onClick={() => setShowCreateForm(true)} className="btn-smooth"
-                  style={{ padding: '12px 24px', borderRadius: 9999, background: `linear-gradient(135deg,${accent.from},${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, border: 'none', cursor: 'pointer', boxShadow: `0 4px 20px ${accent.to}44` }}>
+                <button 
+                  onClick={() => setShowCreateForm(true)} 
+                  className={`py-2 px-5 rounded-lg border text-[10px] font-extrabold tracking-widest uppercase transition-all cursor-pointer ${
+                    isLight 
+                      ? 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100' 
+                      : 'border-blue-900/60 bg-blue-950/40 text-blue-400 hover:bg-blue-900/40'
+                  }`}
+                >
                   New Beat
                 </button>
               </div>
@@ -4198,28 +4208,43 @@ export default function DrumEditor() {
 
         {/* ═══ LIBRARY TAB ═════════════════════════════════════════════════ */}
         {activeTab === 'patterns' && (
-          <div onScroll={drumScrollHide} style={{ flex: 1, overflowY: 'auto', paddingTop: 12, paddingBottom: 100 }} className="no-scrollbar">
+          <div onScroll={drumScrollHide} className="flex-1 overflow-y-auto pt-3 pb-24 no-scrollbar">
 
             {/* ── Search ──────────────────────────────────────────────── */}
-            <div style={{ padding: '0 16px 12px' }}>
-              <div style={{ position: 'relative' }}>
-                <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: 'var(--c-text-muted)', pointerEvents: 'none' }}>search</span>
+            <div className="px-4 pb-3">
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-zinc-500 pointer-events-none">search</span>
                 <input
                   value={libSearch}
                   onChange={e => handleLibSearchChange(e.target.value)}
                   placeholder="Search patterns, genres, or moods..."
-                  style={{ width: '100%', padding: '12px 14px 12px 38px', borderRadius: 12, background: 'var(--app-surface)', border: '1px solid rgba(128,128,128,0.10)', color: 'var(--c-text-primary)', fontSize: 13, fontFamily: 'Manrope,sans-serif', outline: 'none', boxSizing: 'border-box' }}
+                  className={`w-full py-2 pl-9 pr-4 rounded-xl border text-[13px] font-manrope outline-none transition-all ${
+                    isLight 
+                      ? 'bg-zinc-50 border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:border-zinc-350 focus:bg-white' 
+                      : 'bg-zinc-950/20 border-zinc-900 text-white placeholder-zinc-600 focus:border-zinc-800 focus:bg-[#000000]'
+                  }`}
                 />
               </div>
             </div>
 
             {/* ── Category chips ──────────────────────────────────────── */}
-            <div className="no-scrollbar" style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '0 16px 12px' }}>
+            <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 pb-3">
               {(['All', ...LIBRARY_CATEGORIES, 'My Grooves'] as (LibraryCategory | 'All' | 'My Grooves')[]).map(cat => {
                 const active = libCategory === cat;
                 return (
-                  <button key={cat} onClick={() => { setLibCategory(cat); if (cat === 'My Grooves') setLibGenre(''); }} className="btn-smooth"
-                    style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', cursor: 'pointer', border: 'none', background: active ? `linear-gradient(135deg,${accent.from},${accent.to})` : (isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'), color: active ? '#fff' : 'var(--c-text-secondary)', transition: 'all 150ms' }}>
+                  <button 
+                    key={cat} 
+                    onClick={() => { setLibCategory(cat); if (cat === 'My Grooves') setLibGenre(''); }} 
+                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[10px] font-extrabold font-manrope uppercase tracking-widest transition-all cursor-pointer border ${
+                      active 
+                        ? (isLight 
+                            ? 'bg-blue-50 text-blue-600 border-blue-200' 
+                            : 'bg-blue-950/40 text-blue-400 border-blue-900/60') 
+                        : (isLight 
+                            ? 'bg-zinc-100/50 text-zinc-650 border-zinc-200/50 hover:bg-zinc-200/50 hover:text-black' 
+                            : 'bg-zinc-900/30 text-zinc-400 border-zinc-950 hover:bg-zinc-800/40 hover:text-white')
+                    }`}
+                  >
                     {cat}
                   </button>
                 );
@@ -4228,13 +4253,24 @@ export default function DrumEditor() {
 
             {/* ── Genre filter (not shown for My Grooves) ────────────── */}
             {libCategory !== 'My Grooves' && (
-              <div className="no-scrollbar" style={{ display: 'flex', gap: 5, overflowX: 'auto', padding: '0 16px 16px' }}>
+              <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 pb-4">
                 {(['', ...LIBRARY_GENRES] as (LibraryGenre | '')[]).map(g => {
                   const label = g === '' ? 'All Genres' : g;
                   const active = libGenre === g;
                   return (
-                    <button key={label} onClick={() => setLibGenre(g)} className="btn-smooth"
-                      style={{ flexShrink: 0, padding: '4px 12px', borderRadius: 16, fontSize: 10.5, fontWeight: 700, fontFamily: 'Inter,sans-serif', letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'pointer', border: active ? `1.5px solid ${accent.from}` : '1.5px solid rgba(128,128,128,0.15)', background: active ? `${accent.from}15` : 'transparent', color: active ? accent.from : 'var(--c-text-muted)', transition: 'all 150ms' }}>
+                    <button 
+                      key={label} 
+                      onClick={() => setLibGenre(g)} 
+                      className={`flex-shrink-0 px-3 py-1 rounded-full text-[9px] font-extrabold tracking-widest uppercase transition-all cursor-pointer border ${
+                        active 
+                          ? (isLight 
+                              ? 'bg-blue-50/70 text-blue-600 border-blue-250' 
+                              : 'bg-blue-950/20 text-blue-400 border-blue-900/40') 
+                          : (isLight 
+                              ? 'bg-transparent text-zinc-650 border-zinc-200 hover:border-zinc-350 hover:text-black' 
+                              : 'bg-transparent text-zinc-450 border-zinc-900 hover:border-zinc-800 hover:text-white')
+                      }`}
+                    >
                       {label}
                     </button>
                   );
@@ -4274,10 +4310,14 @@ export default function DrumEditor() {
                 )}
 
                 {grooves.length === 0 ? (
-                  <div style={{ margin: '0 16px 24px', padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.18)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                    <EmptyStateLottie app="drumex" size={52} isLight={isLight} />
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No grooves saved yet</p>
-                    <p style={{ margin: 0, fontSize: 11, color: 'var(--c-text-muted)' }}>Save any pattern to build your personal library</p>
+                  <div className={`mx-4 mb-6 p-7 border border-dashed rounded-xl flex flex-col items-center justify-center gap-3 text-center ${
+                    isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#000000] border-zinc-900'
+                  }`}>
+                    <EmptyStateLottie app="drumex" size={44} isLight={isLight} />
+                    <div>
+                      <span className={`block text-xs font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'}`}>No grooves saved yet</span>
+                      <span className="block text-[10px] text-zinc-500 font-extrabold uppercase tracking-wide mt-1">Save any pattern to build your personal library</span>
+                    </div>
                   </div>
                 ) : (
                   <div style={isWebDesktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, padding: '0 16px' } : { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -4370,9 +4410,11 @@ export default function DrumEditor() {
             {libCategory !== 'My Grooves' && (
               <div style={isWebDesktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, padding: '0 16px' } : { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {filteredLibrary.length === 0 ? (
-                  <div style={{ padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                    <EmptyStateLottie app="drumex" size={44} isLight={isLight} />
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No patterns found</p>
+                  <div className={`p-7 border border-dashed rounded-xl flex flex-col items-center justify-center gap-3 text-center ${
+                    isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#000000] border-zinc-900'
+                  }`}>
+                    <EmptyStateLottie app="drumex" size={36} isLight={isLight} />
+                    <span className={`block text-xs font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'}`}>No patterns found</span>
                   </div>
                 ) : (<>
                   {filteredLibrary.slice(0, libVisible).map(lp => (
