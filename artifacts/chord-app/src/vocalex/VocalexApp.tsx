@@ -274,7 +274,7 @@ export default function VocalexApp() {
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden',
       paddingTop: 'env(safe-area-inset-top)',
-      background: '#050505',
+      background: 'var(--app-bg)',
       '--panel-dur':      `${durMs}ms`,
       '--panel-exit-dur': `${Math.round(durMs * 0.65)}ms`,
     } as React.CSSProperties}>

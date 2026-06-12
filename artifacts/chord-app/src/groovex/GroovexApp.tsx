@@ -62,7 +62,7 @@ export default function GroovexApp() {
   return (
     <div className="groovex-root" style={{
       height: '100dvh', display: 'flex', flexDirection: 'column',
-      background: isWebDesktop ? '#050505' : 'var(--gx-bg)',
+      background: isWebDesktop ? 'var(--app-bg)' : 'var(--gx-bg)',
       fontFamily: 'Manrope, sans-serif',
       paddingTop: 'env(safe-area-inset-top)',
       overflow: 'hidden',

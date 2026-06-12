@@ -1046,7 +1046,7 @@ export default function StagexPanel() {
           </WebToolbar>
           
           {/* Main workspace area */}
-          <div style={{ display: 'flex', flex: 1, overflow: 'hidden', paddingBottom: '96px' }}>
+          <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
             <div style={{
               flex: 1,
               margin: '12px',
@@ -1090,7 +1090,7 @@ export default function StagexPanel() {
                 <div style={{
                   flex: 1,
                   overflowY: 'auto',
-                  padding: '16px',
+                  padding: '16px 16px var(--content-bottom-pad, 96px) 16px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '16px',

@@ -37,7 +37,7 @@ export default function SettingsPanel() {
 
   if (isWebDesktop) {
     return (
-      <div className="flex flex-col h-full overflow-hidden bg-[#050505] p-6">
+      <div className="flex flex-col h-full overflow-hidden bg-[var(--app-bg)] p-6">
         {/* Page title */}
         <div className="mb-6">
           <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: 'white', fontFamily: 'Manrope' }}>
