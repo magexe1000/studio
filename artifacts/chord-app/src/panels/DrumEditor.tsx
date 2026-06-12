@@ -321,14 +321,14 @@ const InstrumentRow = memo(({
           const x = (mi * spm + s) * STEP_W;
           const onBeat = s % stepsPerBeat === 0;
           return <line key={`s-${mi}-${s}`} x1={x} y1={0} x2={x} y2={ROW_H}
-            stroke="var(--c-text-primary)"
-            strokeWidth={onBeat ? 1.2 : 0.9}
-            opacity={onBeat ? (gridEmphasis ? 0.6 : 0.4) : (gridEmphasis ? 0.25 : 0.12)} />;
+            stroke={isLight ? 'rgba(9, 9, 11, 0.15)' : 'rgba(255, 255, 255, 0.08)'}
+            strokeWidth={onBeat ? 1.0 : 0.7}
+            opacity={onBeat ? (gridEmphasis ? 1.0 : 0.75) : (gridEmphasis ? 0.6 : 0.4)} />;
         })
       )}
       {/* Top + bottom row borders — close the cell squares vertically */}
-      <line x1={0} y1={0} x2={totalW} y2={0} stroke="var(--c-text-primary)" strokeWidth={0.9} opacity={0.45} />
-      <line x1={0} y1={ROW_H} x2={totalW} y2={ROW_H} stroke="var(--c-text-primary)" strokeWidth={0.9} opacity={0.45} />
+      <line x1={0} y1={0} x2={totalW} y2={0} stroke={isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
+      <line x1={0} y1={ROW_H} x2={totalW} y2={ROW_H} stroke={isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
       {/* Measure bar lines */}
       {rowMeasures.map((_, mi) => (
         <line key={mi} x1={mi * MEASURE_W} y1={0} x2={mi * MEASURE_W} y2={ROW_H} stroke={barColor} strokeWidth={mi === 0 ? 1.5 : 1.2} />
@@ -1564,20 +1564,25 @@ const LibCard = memo(function LibCard({ lp, isPreviewPlaying, accent, isLight, o
   const isWebDesktop = useIsWebDesktop();
   return (
     <div style={{
-      background: isWebDesktop ? 'rgba(15, 15, 20, 0.45)' : 'var(--app-surface)',
+      background: isWebDesktop ? (isLight ? '#ffffff' : '#000000') : 'var(--app-surface)',
       borderRadius: isWebDesktop ? 12 : 14,
       overflow: 'hidden',
-      border: isWebDesktop ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(128,128,128,0.06)'
-    }}>
+      border: isWebDesktop ? (isLight ? '1px solid #e4e4e7' : '1px solid #18181b') : '1px solid rgba(128,128,128,0.06)',
+      transition: 'border-color 200ms'
+    }} className="group hover:border-zinc-800">
       <div style={{ padding: '14px 14px 8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif' }}>{lp.name}</div>
-            <div style={{ fontSize: 10.5, color: 'var(--c-text-muted)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}>{lp.category} · {lp.genre} · {lp.bpm} BPM</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: isLight ? '#09090b' : '#ffffff', fontFamily: 'Manrope,sans-serif', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{lp.name}</div>
+            <div style={{ fontSize: 9.5, color: '#71717a', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Inter,sans-serif', fontWeight: 700 }}>{lp.category} · {lp.genre} · {lp.bpm} BPM</div>
           </div>
-          <button onClick={() => onPreview(lp)} title={isPreviewPlaying ? "Stop Preview" : "Preview Groove"} className="btn-smooth"
-            style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isPreviewPlaying ? `linear-gradient(135deg,${accent.from},${accent.to})` : `${accent.from}12`, color: isPreviewPlaying ? '#fff' : accent.from, transition: 'all 160ms', boxShadow: isPreviewPlaying ? `0 4px 16px ${accent.from}44` : 'none' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{isPreviewPlaying ? 'stop' : 'play_arrow'}</span>
+          <button onClick={() => onPreview(lp)} title={isPreviewPlaying ? "Stop Preview" : "Preview Groove"} className="btn-smooth cursor-pointer"
+            style={{ 
+              width: 34, height: 34, borderRadius: '50%', border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', 
+              background: isPreviewPlaying ? `linear-gradient(135deg,${accent.from},${accent.to})` : (isLight ? '#f4f4f5' : '#18181b'), 
+              color: isPreviewPlaying ? '#fff' : (isLight ? '#27272a' : '#a1a1aa'), transition: 'all 160ms' 
+            }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{isPreviewPlaying ? 'stop' : 'play_arrow'}</span>
           </button>
         </div>
       </div>
@@ -1585,15 +1590,27 @@ const LibCard = memo(function LibCard({ lp, isPreviewPlaying, accent, isLight, o
         <LibMiniGrid lp={lp} isLight={isLight} />
       </div>
       <div style={{ padding: '0 14px 12px', display: 'flex', gap: 6 }}>
-        <button onClick={() => onReplace(lp)} title="Replace current pattern with this groove" className="btn-smooth"
-          style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>file_download</span>
-          Use
+        <button onClick={() => onReplace(lp)} title="Replace current pattern with this groove" className="btn-smooth cursor-pointer"
+          style={{ 
+            flex: 1, padding: '7px', borderRadius: 8, 
+            background: isLight ? '#f4f4f5' : '#09090b', 
+            border: isLight ? '1px solid #e4e4e7' : '1px solid #18181b', 
+            color: isLight ? '#27272a' : '#e4e4e7', fontSize: 10.5, fontWeight: 800, fontFamily: 'Manrope,sans-serif', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' 
+          }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }}>file_download</span>
+          <span>USE</span>
         </button>
-        <button onClick={() => onInsert(lp)} title="Append this groove to the end of the pattern" className="btn-smooth"
-          style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>playlist_add</span>
-          Append
+        <button onClick={() => onInsert(lp)} title="Append this groove to the end of the pattern" className="btn-smooth cursor-pointer"
+          style={{ 
+            flex: 1, padding: '7px', borderRadius: 8, 
+            background: isLight ? '#f4f4f5' : '#09090b', 
+            border: isLight ? '1px solid #e4e4e7' : '1px solid #18181b', 
+            color: isLight ? '#27272a' : '#e4e4e7', fontSize: 10.5, fontWeight: 800, fontFamily: 'Manrope,sans-serif', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' 
+          }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }}>playlist_add</span>
+          <span>APPEND</span>
         </button>
       </div>
     </div>
@@ -1664,10 +1681,10 @@ export default function DrumEditor() {
   })();
   const isAmoled = !isLight && (drumsVis.amoledMode ?? false);
   // SVG/canvas colors — CSS vars can't be used directly in SVG props
-  const noteColor  = isLight ? '#111118' : '#f0f0f2';
-  const staffColor = isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.18)';
-  const barColor   = isLight ? 'rgba(0,0,0,0.50)' : 'rgba(255,255,255,0.45)';
-  const altBg      = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)';
+  const noteColor  = isLight ? '#111118' : '#ffffff';
+  const staffColor = isLight ? 'rgba(9, 9, 11, 0.08)' : 'rgba(255, 255, 255, 0.05)';
+  const barColor   = isLight ? 'rgba(9, 9, 11, 0.25)' : 'rgba(255, 255, 255, 0.15)';
+  const altBg      = isLight ? 'rgba(9, 9, 11, 0.015)' : 'rgba(255, 255, 255, 0.008)';
 
   const ROW_H      = isWebDesktop ? 68 : 42;
   const rowGap     = isWebDesktop ? 8 : 0;
@@ -1733,11 +1750,43 @@ export default function DrumEditor() {
   const [saveArtist,       setSaveArtist]       = useState('');
   const [saveNotes,        setSaveNotes]        = useState('');
   const [deletingId,       setDeletingId]       = useState<string | null>(null);
+  const [songSearch,       setSongSearch]       = useState('');
+  const [songKitFilter,    setSongKitFilter]    = useState('all');
+  const [songSort,         setSongSort]         = useState<'recent' | 'name' | 'bpm'>('recent');
+  const [songMenuId,       setSongMenuId]       = useState<string | null>(null);
   const [editingSong,      setEditingSong]      = useState<DrumSong | null>(null);
   const [editingName,      setEditingName]      = useState('');
   const [editingArtist,    setEditingArtist]    = useState('');
   const [activeDrumSongId, setActiveDrumSongId] = useState<string | null>(null);
   const [tabAnim, setTabAnim] = useState<'panel-enter-right' | 'panel-enter-left'>('panel-enter-right');
+
+  const filteredSongs = useMemo(() => {
+    let list = [...drumSongs];
+    if (songKitFilter !== 'all') {
+      list = list.filter(s => s.kitType === songKitFilter);
+    }
+    if (songSearch.trim()) {
+      const q = songSearch.toLowerCase();
+      list = list.filter(s => 
+        s.name.toLowerCase().includes(q) || 
+        (s.artist && s.artist.toLowerCase().includes(q))
+      );
+    }
+    if (songSort === 'name') {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (songSort === 'bpm') {
+      list.sort((a, b) => {
+        const aPat = a.patterns.find((p: any) => p.id === a.activePatternId) ?? a.patterns[0];
+        const bPat = b.patterns.find((p: any) => p.id === b.activePatternId) ?? b.patterns[0];
+        const aBpm = aPat?.bpm ?? 120;
+        const bBpm = bPat?.bpm ?? 120;
+        return bBpm - aBpm;
+      });
+    } else {
+      list.reverse();
+    }
+    return list;
+  }, [drumSongs, songSearch, songKitFilter, songSort]);
   const [collapsedKitSections, setCollapsedKitSections] = useState<Record<string, boolean>>({
     'drum-kit': false,
     'kit-variant': false,
@@ -2736,7 +2785,7 @@ export default function DrumEditor() {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isLight ? 'text-zinc-900' : 'text-white'}`}>DRUMEX</span>
                 <span className={`text-[10px] font-bold ${isLight ? 'text-zinc-300' : 'text-zinc-800'}`}>|</span>
-                <span className={`text-[9.5px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-500' : 'text-zinc-450'}`}>SEQUENCER</span>
+                <span className={`text-[9.5px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-500' : 'text-zinc-450'}`}>STEP SEQUENCER</span>
               </div>
               <div className={`h-4.5 w-[1px] ${isLight ? 'bg-zinc-200' : 'bg-zinc-850'}`} />
               {/* Back button */}
@@ -3140,16 +3189,123 @@ export default function DrumEditor() {
           />
         )}
         <div key={activeTab} className={tabAnim} style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingBottom: '0px' }}>
+          
+          {/* Top bar / header for desktop */}
+          {isWebDesktop && !inEditor && (
+            <div className={`h-12 border-b px-5 flex items-center justify-between flex-shrink-0 select-none ${
+              isLight ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-900 bg-[#000000]'
+            }`}>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isLight ? 'text-zinc-900' : 'text-white'}`}>DRUMEX</span>
+                <span className={`text-[10px] font-bold ${isLight ? 'text-zinc-300' : 'text-zinc-800'}`}>|</span>
+                <span className={`text-[9.5px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-500' : 'text-zinc-450'}`}>
+                  {activeTab === 'songs' ? 'BEATS' : activeTab === 'patterns' ? 'GROOVE LIBRARY' : 'PREFERENCES'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                {activeTab === 'songs' && (
+                  <>
+                    <button
+                      onClick={() => setShowImportDrum(true)}
+                      className={`h-7.5 px-3 rounded-lg border text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isLight
+                          ? 'border-zinc-200 bg-zinc-100/50 text-zinc-650 hover:bg-zinc-200 hover:text-black'
+                          : 'border-zinc-900 bg-zinc-950/20 text-zinc-400 hover:bg-zinc-900 hover:text-white hover:border-zinc-800'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[13px]">upload_file</span>
+                      <span>IMPORT</span>
+                    </button>
+                    <button
+                      onClick={() => setShowCreateForm(true)}
+                      className={`h-7.5 px-3.5 rounded-lg border text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isLight 
+                          ? 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100' 
+                          : 'border-blue-900/60 bg-blue-950/40 text-blue-400 hover:bg-blue-900/40'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[13px]">add</span>
+                      <span>NEW BEAT</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
         {/* ═══ SONGS LIST (Songs tab, not in editor) ═══════════════════════ */}
         {activeTab === 'songs' && !inEditor && (
-          <div onScroll={drumScrollHide} style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }} className="no-scrollbar panel-enter-left">
-            <div style={{ padding: '0 20px', marginTop: 12, marginBottom: 24 }}>
-              <AnimatedAppHeader
-                title="Beats"
-                subtitle="Your drum songs"
-              />
-            </div>
+          <div onScroll={drumScrollHide} style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }} className="no-scrollbar panel-enter-left flex flex-col">
+            {!isWebDesktop && (
+              <div style={{ padding: '0 20px', marginTop: 12, marginBottom: 24 }}>
+                <AnimatedAppHeader
+                  title="Beats"
+                  subtitle="Your drum songs"
+                />
+              </div>
+            )}
+
+            {/* Desktop Secondary Toolbar */}
+            {isWebDesktop && (
+              <div className={`h-10 border-b px-5 flex items-center justify-between flex-shrink-0 text-[11px] font-manrope ${
+                isLight ? 'border-zinc-200 bg-zinc-50/50' : 'border-zinc-900 bg-[#000000]'
+              }`}>
+                {/* Left: Search input */}
+                <div className="flex items-center gap-2 flex-1 max-w-xs relative">
+                  <span className="material-symbols-outlined text-[14px] text-zinc-500 absolute left-2">search</span>
+                  <input
+                    value={songSearch}
+                    onChange={e => setSongSearch(e.target.value)}
+                    placeholder="Search beats..."
+                    className={`w-full pl-7 pr-2.5 py-1 rounded-md border text-[10.5px] outline-none transition-all ${
+                      isLight 
+                        ? 'bg-white border-zinc-200 text-zinc-850 focus:border-zinc-350 placeholder-zinc-400' 
+                        : 'bg-[#000000] border-zinc-850 text-white focus:border-zinc-750 placeholder-zinc-650'
+                    }`}
+                  />
+                </div>
+                
+                {/* Right: Filters & Sorting */}
+                <div className="flex items-center gap-4">
+                  {/* Kit filter */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-zinc-500 uppercase tracking-wider text-[9px] font-bold">Kit:</span>
+                    <select
+                      value={songKitFilter}
+                      onChange={e => setSongKitFilter(e.target.value)}
+                      className={`px-2 py-0.5 rounded border text-[10.5px] font-bold outline-none cursor-pointer ${
+                        isLight 
+                          ? 'bg-white border-zinc-200 text-zinc-700' 
+                          : 'bg-[#000000] border-zinc-850 text-zinc-300'
+                      }`}
+                    >
+                      <option value="all">All Kits</option>
+                      {Object.entries(KIT_LABEL).map(([val, lbl]) => (
+                        <option key={val} value={val}>{lbl}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Sort */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-zinc-500 uppercase tracking-wider text-[9px] font-bold">Sort:</span>
+                    <select
+                      value={songSort}
+                      onChange={e => setSongSort(e.target.value as any)}
+                      className={`px-2 py-0.5 rounded border text-[10.5px] font-bold outline-none cursor-pointer ${
+                        isLight 
+                          ? 'bg-white border-zinc-200 text-zinc-700' 
+                          : 'bg-[#000000] border-zinc-850 text-zinc-300'
+                      }`}
+                    >
+                      <option value="recent">Recent</option>
+                      <option value="name">Name</option>
+                      <option value="bpm">BPM</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
             {drumSongs.length === 0 ? (
               <div className={`spring-in flex flex-col items-center justify-center p-12 mx-5 border rounded-2xl gap-5 ${
                 isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#000000] border-zinc-900'
@@ -3174,15 +3330,21 @@ export default function DrumEditor() {
                   New Beat
                 </button>
               </div>
+            ) : filteredSongs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center text-zinc-500">
+                <span className="material-symbols-outlined text-[36px] mb-3">search_off</span>
+                <span className="text-xs font-bold uppercase tracking-wider">No matching beats found</span>
+                <span className="text-[10px] mt-1">Try refining your search term or filters.</span>
+              </div>
             ) : (
               <div className={isWebDesktop ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6" : "flex flex-col gap-2.5 px-4"}>
                 <StaggeredReveal staggerInterval={40}>
-                  {drumSongs.map(song => {
+                  {filteredSongs.map((song: any) => {
                   const isDeleting = deletingId === song.id;
                   const isEditing  = editingSong?.id === song.id;
-                  const kitLabel   = song.kitType ? KIT_LABEL[song.kitType] : 'No kit';
+                  const kitLabel   = song.kitType ? KIT_LABEL[song.kitType as KitType] : 'No kit';
                   const pCount     = song.patterns.length;
-                  const activePat  = song.patterns.find(p => p.id === song.activePatternId) ?? song.patterns[0];
+                  const activePat  = song.patterns.find((p: any) => p.id === song.activePatternId) ?? song.patterns[0];
                   const bpm        = activePat?.bpm ?? 120;
                   return (
                     <div key={song.id} className={`border rounded-xl overflow-hidden transition-all duration-300 ${
@@ -3236,33 +3398,94 @@ export default function DrumEditor() {
                             </button>
                           </div>
                         </div>
+                      ) : isDeleting ? (
+                        <div className="p-4 flex flex-col justify-center items-center text-center gap-3 flex-1">
+                          <span className={`text-[10.5px] font-extrabold uppercase tracking-wide ${isLight ? 'text-zinc-800' : 'text-white'}`}>
+                            Delete this beat?
+                          </span>
+                          <div className="flex gap-2 w-full max-w-[180px]">
+                            <button 
+                              onClick={() => { deleteDrumSong(song.id); setDeletingId(null); }} 
+                              className="flex-1 py-1 rounded-lg text-[9.5px] font-extrabold tracking-widest uppercase border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 cursor-pointer"
+                            >
+                              Yes
+                            </button>
+                            <button 
+                              onClick={() => setDeletingId(null)} 
+                              className={`flex-1 py-1 rounded-lg text-[9.5px] font-extrabold tracking-widest uppercase border cursor-pointer ${
+                                isLight ? 'border-zinc-200 bg-zinc-50 text-zinc-650' : 'border-zinc-900 bg-zinc-950 text-zinc-400'
+                              }`}
+                            >
+                              No
+                            </button>
+                          </div>
+                        </div>
                       ) : (
-                        <div>
+                        <div className="flex flex-col flex-1 relative">
+                          {/* Menu button (···) */}
+                          <div className="absolute right-2 top-2 z-10">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setSongMenuId(songMenuId === song.id ? null : song.id); }}
+                              className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all cursor-pointer ${
+                                songMenuId === song.id 
+                                  ? (isLight ? 'bg-zinc-100 border-zinc-350 text-black' : 'bg-zinc-900 border-zinc-800 text-white')
+                                  : (isLight ? 'bg-transparent border-transparent text-zinc-450 hover:border-zinc-250 hover:text-black' : 'bg-transparent border-transparent text-zinc-500 hover:border-zinc-800 hover:text-white')
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-[16px]">more_vert</span>
+                            </button>
+                            
+                            {/* Dropdown Menu */}
+                            {songMenuId === song.id && (
+                              <div className={`absolute right-0 top-8 z-20 w-32 py-1 rounded-lg border shadow-lg ${
+                                isLight ? 'bg-white border-zinc-200' : 'bg-[#080808] border-zinc-900'
+                              }`}>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleStartEdit(song); setSongMenuId(null); }}
+                                  className={`w-full text-left px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 transition-colors ${
+                                    isLight ? 'text-zinc-700 hover:bg-zinc-50 hover:text-black' : 'text-zinc-300 hover:bg-zinc-900 hover:text-white'
+                                  }`}
+                                >
+                                  <span className="material-symbols-outlined text-[13px]">edit</span>
+                                  Rename
+                                </button>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setDeletingId(song.id); setSongMenuId(null); }}
+                                  className="w-full text-left px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 transition-colors text-red-400 hover:bg-red-500/10"
+                                >
+                                  <span className="material-symbols-outlined text-[13px]">delete</span>
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Card click area */}
                           <button 
                             onClick={() => handleLoadSong(song)} 
-                            className="w-full text-left p-4 flex items-center gap-3.5 bg-transparent border-none cursor-pointer transition-all hover:bg-zinc-500/5"
+                            className="w-full text-left p-4 flex items-start gap-3.5 bg-transparent border-none cursor-pointer transition-all hover:bg-zinc-500/5 flex-1"
                           >
-                            <div className={`w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border ${
+                            <div className={`w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border ${
                               isLight ? 'border-zinc-200 bg-zinc-100' : 'border-zinc-900 bg-zinc-950'
                             }`}>
-                              {song.kitType && KIT_IMAGE[song.kitType] ? (
-                                <img src={KIT_IMAGE[song.kitType]} alt={kitLabel} className="w-full h-full object-cover" />
+                              {song.kitType && KIT_IMAGE[song.kitType as KitType] ? (
+                                <img src={KIT_IMAGE[song.kitType as KitType]} alt={kitLabel} className="w-full h-full object-cover" />
                               ) : (
-                                <span className={`material-symbols-outlined text-[20px] ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>music_note</span>
+                                <span className={`material-symbols-outlined text-[18px] ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>music_note</span>
                               )}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <span className={`block text-[13px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'} truncate`}>
+                            <div className="flex-1 min-w-0 pr-6">
+                              <span className={`block text-[12.5px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'} truncate`}>
                                 {song.name}
                               </span>
                               {song.artist && (
-                                <span className="block text-[9px] text-zinc-500 font-extrabold uppercase tracking-wider truncate mt-0.5">
+                                <span className={`block text-[9px] font-extrabold uppercase tracking-wider truncate mt-0.5 ${isLight ? 'text-zinc-500' : 'text-zinc-450'}`}>
                                   {song.artist}
                                 </span>
                               )}
-                              <div className="flex gap-2.5 mt-2 items-center flex-wrap">
+                              <div className="flex gap-2 mt-2 items-center flex-wrap">
                                 <span className={`text-[8.5px] font-extrabold uppercase tracking-wider px-2 py-0.5 border rounded-full ${
-                                  isLight ? 'bg-zinc-100 border-zinc-200 text-zinc-655' : 'bg-zinc-900/30 border-zinc-900 text-zinc-400'
+                                  isLight ? 'bg-zinc-100 border-zinc-200 text-zinc-650' : 'bg-zinc-900/30 border-zinc-900 text-zinc-400'
                                 }`}>
                                   {kitLabel}
                                 </span>
@@ -3275,51 +3498,12 @@ export default function DrumEditor() {
                                 </span>
                               </div>
                             </div>
-                            <span className={`material-symbols-outlined text-[18px] ${isLight ? 'text-zinc-400' : 'text-zinc-650'} flex-shrink-0`}>chevron_right</span>
                           </button>
                           
-                          <div className={`flex border-t ${isLight ? 'border-zinc-150' : 'border-zinc-900/60'}`}>
-                            <button 
-                              onClick={() => handleStartEdit(song)} 
-                              className={`flex-1 py-2 border-r flex items-center justify-center gap-1.5 text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer bg-transparent border-none ${
-                                isLight 
-                                  ? 'border-zinc-150 text-zinc-650 hover:bg-zinc-100 hover:text-black' 
-                                  : 'border-zinc-900/60 text-zinc-450 hover:bg-zinc-900/40 hover:text-white'
-                              }`}
-                            >
-                              <span className="material-symbols-outlined text-[13px]">edit</span>
-                              <span>EDIT</span>
-                            </button>
-                            
-                            {isDeleting ? (
-                              <>
-                                <button 
-                                  onClick={() => { deleteDrumSong(song.id); setDeletingId(null); }} 
-                                  className={`flex-1 py-2 flex items-center justify-center gap-1.5 text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer border-none bg-red-950/30 text-red-400 border-r border-zinc-900/60`}
-                                >
-                                  CONFIRM
-                                </button>
-                                <button 
-                                  onClick={() => setDeletingId(null)} 
-                                  className={`flex-1 py-2 flex items-center justify-center gap-1.5 text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer border-none bg-transparent text-zinc-500 hover:text-zinc-350`}
-                                >
-                                  CANCEL
-                                </button>
-                              </>
-                            ) : (
-                              <button 
-                                onClick={() => setDeletingId(song.id)} 
-                                className={`flex-1 py-2 flex items-center justify-center gap-1.5 text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer bg-transparent border-none ${
-                                  isLight 
-                                    ? 'text-red-650 hover:bg-red-50 hover:text-red-750' 
-                                    : 'text-red-400 hover:bg-red-950/20 hover:text-red-300'
-                                }`}
-                              >
-                                <span className="material-symbols-outlined text-[13px]">delete</span>
-                                <span>DELETE</span>
-                              </button>
-                            )}
-                          </div>
+                          {/* Bottom hover bar or indicator */}
+                          <div className={`h-1 w-full transition-all duration-300 mt-auto ${
+                            isLight ? 'bg-zinc-100 group-hover:bg-blue-600' : 'bg-zinc-950 group-hover:bg-blue-500/80'
+                          }`} />
                         </div>
                       )}
                     </div>
@@ -3777,25 +3961,23 @@ export default function DrumEditor() {
               <div style={{
                 width: isRightPanelCollapsed ? 0 : 320,
                 flexShrink: 0,
-                borderLeft: isRightPanelCollapsed ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
-                background: 'rgba(10, 10, 12, 0.45)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
+                borderLeft: isRightPanelCollapsed ? 'none' : (isLight ? '1px solid #e4e4e7' : '1px solid #18181b'),
+                background: isLight ? '#f9f9fb' : '#000000',
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
                 transition: 'width 250ms cubic-bezier(0.2, 0.8, 0.2, 1)',
               }}>
                 {/* Tab Switcher */}
-                <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '12px 16px', gap: 8, flexShrink: 0 }}>
+                <div style={{ display: 'flex', borderBottom: isLight ? '1px solid #e4e4e7' : '1px solid #18181b', padding: '12px 16px', gap: 8, flexShrink: 0 }}>
                   {(['kit', 'mixer', 'fx'] as const).map(tab => {
                     const active = sideTab === tab;
                     return (
                       <button key={tab} onClick={() => setSideTab(tab)} className="btn-smooth" title={`Switch to ${tab} panel`} aria-label={`Switch to ${tab} panel`} style={{
-                        flex: 1, padding: '6px 0', borderRadius: '8px', fontSize: '11px', fontWeight: 700, fontFamily: 'Manrope', textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer',
-                        background: active ? `${accent.from}1a` : 'transparent',
-                        border: active ? `1px solid ${accent.from}33` : '1px solid transparent',
-                        color: active ? accent.from : 'var(--c-text-secondary)', transition: 'all 160ms'
+                        flex: 1, padding: '6px 0', borderRadius: '8px', fontSize: '10px', fontWeight: 800, fontFamily: 'Manrope', textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer',
+                        background: active ? (isLight ? '#f4f4f5' : '#18181b') : 'transparent',
+                        border: active ? (isLight ? '1px solid #e4e4e7' : '1px solid #27272a') : '1px solid transparent',
+                        color: active ? (isLight ? '#09090b' : '#ffffff') : (isLight ? '#71717a' : '#a1a1aa'), transition: 'all 160ms'
                       }}>
                         {tab}
                       </button>
