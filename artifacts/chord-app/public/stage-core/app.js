@@ -1088,14 +1088,18 @@ function switchView(view) {
   document.querySelectorAll('.mob-tab').forEach(b => {
     b.classList.toggle('active', b.dataset.view === view);
   });
-  if (view === 'Editor') { renderElements(); lcIcons(); renderScenesBar(); }
-  else { const _sb = document.getElementById('sc-scenes-bar'); if (_sb) _sb.style.display = 'none'; }
-  if (view === 'SetupHub') updateSetupHubCounts();
-  if (view === 'Rider') refreshRider();
-  if (view === 'Setlist') renderSetlist();
-  if (view === 'Gear') { renderGear(); lcIcons(); }
-  if (view === 'Members') { renderMembersView(); lcIcons(); }
-  if (view === 'Export') { if (prevView !== 'Export') state.prevView = prevView || 'Editor'; refreshExport(); }
+  try {
+    if (view === 'Editor') { renderElements(); lcIcons(); renderScenesBar(); }
+    else { const _sb = document.getElementById('sc-scenes-bar'); if (_sb) _sb.style.display = 'none'; }
+    if (view === 'SetupHub') updateSetupHubCounts();
+    if (view === 'Rider') refreshRider();
+    if (view === 'Setlist') renderSetlist();
+    if (view === 'Gear') { renderGear(); lcIcons(); }
+    if (view === 'Members') { renderMembersView(); lcIcons(); }
+    if (view === 'Export') { if (prevView !== 'Export') state.prevView = prevView || 'Editor'; refreshExport(); }
+  } catch (err) {
+    console.error("Error refreshing view content for: " + view, err);
+  }
   // Notify the React wrapper of view changes (shows/hides its back button)
   try { if (window.__onViewChange) window.__onViewChange(view); } catch(e) {}
   // Desktop: show category top bar only on Editor view
@@ -3461,7 +3465,9 @@ function refreshRider() {
     emptyRow.appendChild(emptyTd);
     tbody.appendChild(emptyRow);
   } else {
-    var sorted = [...elems].sort(function(a, b) { return (a.channelId || '').localeCompare(b.channelId || ''); });
+    var sorted = [...elems].sort(function(a, b) {
+      return String(a.channelId ?? '').localeCompare(String(b.channelId ?? ''), undefined, {numeric: true, sensitivity: 'base'});
+    });
     while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
     sorted.forEach(function(el, i) {
       var chNum = 'CH-' + String(i + 1).padStart(2, '0');
@@ -6458,7 +6464,7 @@ function refreshExportInputList() {
   }
   if (empty) empty.style.display = 'none';
 
-  const sorted = [...state.elements].sort((a, b) => a.channelId.localeCompare(b.channelId));
+  const sorted = [...state.elements].sort((a, b) => String(a.channelId ?? '').localeCompare(String(b.channelId ?? ''), undefined, {numeric: true, sensitivity: 'base'}));
   const rowsHtml = sorted.map((el, i) => {
     const micDI = Ttype(el.type || el.name) || '—';
     const source = TSource(el.source) || el.source || '—';

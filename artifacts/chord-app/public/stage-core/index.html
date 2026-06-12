@@ -1842,19 +1842,21 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
 
 /* ── Canvas bg: controlled by CSS so data-theme (set before first paint) determines initial color,
       eliminating the flash. JS updateCanvasBg() still overrides via inline style for user swatches. ── */
-#stage-canvas { background-color: #0e0e0e; }
-html[data-theme="light"] #stage-canvas { background-color: #ffffff; }
+#stage-canvas {
+  background-color: #0e0e0e;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+html[data-theme="light"] #stage-canvas {
+  background-color: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  border-radius: 12px !important;
+}
 
 /* ── Light mode: stage canvas uses dark grid lines and a visible border ── */
-html[data-theme="light"] #stage-canvas {
-  border: 2px solid rgba(0,0,0,0.2) !important;
-}
 html[data-theme="light"] .stage-grid {
-  background-image:
-    linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px),
-    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px) !important;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.08) 1.5px, transparent 1.5px) !important;
+  background-size: 40px 40px !important;
 }
 html[data-theme="light"] .stage-grid.grid-off {
   background-image: none !important;
@@ -1882,16 +1884,14 @@ html[data-amoled="1"] .scrollable-view { background: #000 !important; }
 html[data-amoled="1"] #view-Assistant { background: #000 !important; }
 html[data-amoled="1"] #canvas-container { background: #000 !important; }
 html[data-amoled="1"] #stage-viewport { background: #000 !important; }
-html[data-amoled="1"] #stage-canvas { background-color: #000 !important; }
-html[data-amoled="1"] .stage-grid {
-  background-image:
-    linear-gradient(rgba(255,255,255,0.10) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.10) 1px, transparent 1px),
-    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px) !important;
-}
 html[data-amoled="1"] #stage-canvas {
-  border-color: rgba(255,255,255,0.12) !important;
+  background-color: #000000 !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 12px !important;
+}
+html[data-amoled="1"] .stage-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px) !important;
+  background-size: 40px 40px !important;
 }
 html[data-amoled="1"] #view-SetupHub,
 html[data-amoled="1"] #view-Rider,
@@ -2967,7 +2967,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     <!-- Stage Viewport -->
     <div id="stage-viewport" class="w-full h-full flex items-start justify-center" style="padding:10px 16px 20px 16px;"
          ondragover="event.preventDefault()" ondrop="handleDrop(event)">
-      <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - 40px) * 16 / 9));aspect-ratio:16/9;border:2px solid rgba(72,72,71,0.12);overflow:visible;">
+      <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - 40px) * 16 / 9));aspect-ratio:16/9;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:visible;">
 
         <!-- mode-pill lives outside canvas, see #mode-pill in body -->
 
@@ -4760,6 +4760,9 @@ window.addEventListener('message', function(e) {
         page.classList.add(dir === 'right' ? 'sc-slide-left' : 'sc-slide-right');
         setTimeout(function () {
           page.classList.remove('sc-slide-left', 'sc-slide-right');
+          /* Double check to ensure it's not trapped at opacity: 0 */
+          page.style.opacity = '1';
+          page.style.transform = 'none';
         }, 280);
       }
     }
