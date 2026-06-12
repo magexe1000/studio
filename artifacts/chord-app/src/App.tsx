@@ -1931,7 +1931,7 @@ export default function App() {
                           onChangeSection={setActivePanel} 
                         />
                       )}
-                      <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict', paddingBottom: isWebDesktop ? '96px' : '0px' }}>
+                      <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
                         {ALL_PANELS.map(panel => {
                           const isVisible = activePanel === panel;
                           if (!isVisible) return null;

@@ -355,7 +355,7 @@ export default function VocalexApp() {
             onChangeSection={setActiveTab} 
           />
         )}
-        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', paddingBottom: isWebDesktop ? '96px' : '0px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', paddingBottom: '0px', display: 'flex', flexDirection: 'column' }}>
         {NAV_ORDER.map(panel => {
           const isVisible = visibleTab === panel;
           const isExiting = exitingTab === panel;

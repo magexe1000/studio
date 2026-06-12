@@ -142,7 +142,7 @@ export default function GroovexApp() {
             onChangeSection={navigate} 
           />
         )}
-        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', paddingBottom: isWebDesktop ? '96px' : '0px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', paddingBottom: '0px', display: 'flex', flexDirection: 'column' }}>
           <Suspense fallback={null}>
             <div key={view} className={viewAnim} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {view === 'library' && <GroovexLibrary />}

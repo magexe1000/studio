@@ -1729,6 +1729,25 @@ export default function DrumEditor() {
   const [editingArtist,    setEditingArtist]    = useState('');
   const [activeDrumSongId, setActiveDrumSongId] = useState<string | null>(null);
   const [tabAnim, setTabAnim] = useState<'panel-enter-right' | 'panel-enter-left'>('panel-enter-right');
+  const [collapsedKitSections, setCollapsedKitSections] = useState<Record<string, boolean>>({
+    'drum-kit': false,
+    'kit-variant': false,
+    'mic-position': true,
+    'sound-character': true,
+    'advanced-kit-options': true,
+  });
+  const [collapsedMixerSections, setCollapsedMixerSections] = useState<Record<string, boolean>>({
+    'master': false,
+    'levels': false,
+    'pan': true,
+    'room-send': true,
+  });
+  const [collapsedFxSections, setCollapsedFxSections] = useState<Record<string, boolean>>({
+    'global-fx': false,
+    'per-instrument-fx': false,
+    'reverb-room': true,
+    'humanize-groove-feel': true,
+  });
   const handleSetTab = (newTab: DrumTab) => {
     const oldIdx = TAB_ORDER.indexOf(activeTab);
     const newIdx = TAB_ORDER.indexOf(newTab);
@@ -2555,6 +2574,46 @@ export default function DrumEditor() {
   // ── Render ────────────────────────────────────────────────────────────────
   const inputSt: React.CSSProperties = { width: '100%', background: 'var(--app-surface-high)', border: '1px solid rgba(72,72,72,0.12)', borderRadius: '0.625rem', padding: '11px 14px', color: 'var(--c-text-primary)', fontFamily: 'Inter', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
   const labelSt: React.CSSProperties = { color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: 6 };
+  const renderCollapsibleSection = (
+    id: string,
+    title: string,
+    collapsedState: Record<string, boolean>,
+    onToggle: (id: string) => void,
+    content: React.ReactNode
+  ) => {
+    const isCollapsed = collapsedState[id];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderBottom: '1px solid rgba(255, 255, 255, 0.04)', paddingBottom: isCollapsed ? 6 : 10 }}>
+        <div
+          onClick={() => onToggle(id)}
+          className="btn-smooth hover:bg-white/5"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 10px',
+            background: 'rgba(255, 255, 255, 0.01)',
+            border: '1px solid rgba(255, 255, 255, 0.03)',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}
+        >
+          <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isCollapsed ? 'var(--c-text-secondary)' : '#fff' }}>
+            {title}
+          </span>
+          <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--c-text-muted)', transition: 'transform 200ms', transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)' }}>
+            expand_more
+          </span>
+        </div>
+        {!isCollapsed && (
+          <div style={{ padding: '6px 4px 2px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {content}
+          </div>
+        )}
+      </div>
+    );
+  };
   const menuItemSt: React.CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12.5, fontFamily: 'Manrope', fontWeight: 600, textAlign: 'left', transition: 'background 120ms' };
 
   return (
@@ -3571,29 +3630,37 @@ export default function DrumEditor() {
                 </div>
 
                 {/* Tab Contents */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 96px', display: 'flex', flexDirection: 'column', gap: 16 }} className="no-scrollbar">
+                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }} className="no-scrollbar">
                   
                   {/* KIT TAB */}
                   {sideTab === 'kit' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      <div>
-                        <label style={labelSt}>Drum Kit</label>
-                        <select value={KIT_FAMILY.find(fam => fam.variations.some(v => v.kit === kitType))?.id || createFamily} onChange={e => {
-                          const famId = e.target.value;
-                          setCreateFamily(famId);
-                          const variant = KIT_FAMILY.find(f => f.id === famId)?.variations[0].kit;
-                          if (variant) {
-                            setKitType(variant, KIT_DEFAULTS[variant].soundMap);
-                            loadDrumSamples(variant);
-                            if (activeDrumSongId) updateDrumSong(activeDrumSongId, { kitType: variant });
-                          }
-                        }} style={{ ...inputSt, padding: '6px 10px', fontSize: 13 }}>
-                          {KIT_FAMILY.map(fam => <option key={fam.id} value={fam.id}>{fam.label}</option>)}
-                        </select>
-                      </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {renderCollapsibleSection(
+                        'drum-kit',
+                        'Drum Kit',
+                        collapsedKitSections,
+                        (id) => setCollapsedKitSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div>
+                          <select value={KIT_FAMILY.find(fam => fam.variations.some(v => v.kit === kitType))?.id || createFamily} onChange={e => {
+                            const famId = e.target.value;
+                            setCreateFamily(famId);
+                            const variant = KIT_FAMILY.find(f => f.id === famId)?.variations[0].kit;
+                            if (variant) {
+                              setKitType(variant, KIT_DEFAULTS[variant].soundMap);
+                              loadDrumSamples(variant);
+                              if (activeDrumSongId) updateDrumSong(activeDrumSongId, { kitType: variant });
+                            }
+                          }} style={{ ...inputSt, padding: '6px 10px', fontSize: 13, background: 'var(--app-surface-high)' }}>
+                            {KIT_FAMILY.map(fam => <option key={fam.id} value={fam.id}>{fam.label}</option>)}
+                          </select>
+                        </div>
+                      )}
 
-                      <div>
-                        <label style={labelSt}>Kit Variant</label>
+                      {renderCollapsibleSection(
+                        'kit-variant',
+                        'Kit Variant',
+                        collapsedKitSections,
+                        (id) => setCollapsedKitSections(prev => ({ ...prev, [id]: !prev[id] })),
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {KIT_FAMILY.find(f => f.id === (KIT_FAMILY.find(fam => fam.variations.some(v => v.kit === kitType))?.id || createFamily))?.variations.map(v => {
                             const isSel = kitType === v.kit;
@@ -3614,66 +3681,73 @@ export default function DrumEditor() {
                             );
                           })}
                         </div>
-                      </div>
+                      )}
 
-                      {kitType === 'house' && (
-                        <>
-                          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
-                          <div>
-                            <span style={labelSt}>Mic Position</span>
-                            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                              {HOUSE_MICS.map(m => {
-                                const active = houseKitMic === m.id;
-                                return (
-                                  <button key={m.id} className="btn-smooth"
-                                    onClick={() => {
-                                      storeSetHouseKitMic(m.id);
-                                      setHouseKitMic(m.id);
-                                    }}
-                                    style={{ flex: 1, height: 28, borderRadius: 8, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.1)', background: active ? `${accent.from}1a` : 'rgba(255,255,255,0.03)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                                    {m.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
+                      {kitType === 'house' && renderCollapsibleSection(
+                        'mic-position',
+                        'Mic Position',
+                        collapsedKitSections,
+                        (id) => setCollapsedKitSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {HOUSE_MICS.map(m => {
+                            const active = houseKitMic === m.id;
+                            return (
+                              <button key={m.id} className="btn-smooth"
+                                onClick={() => {
+                                  storeSetHouseKitMic(m.id);
+                                  setHouseKitMic(m.id);
+                                }}
+                                style={{ flex: 1, height: 28, borderRadius: 8, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.1)', background: active ? `${accent.from}1a` : 'rgba(255,255,255,0.03)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                {m.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
 
-                          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
-                          <div>
-                            <span style={labelSt}>Sound Character Variations</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
-                              {((['kick', 'snare', 'tom10', 'tom12', 'tom14'] as HouseInstName[])).map(hInst => {
-                                const locked = houseInstVelOverride[hInst];
-                                return (
-                                  <div key={hInst} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1 }}>{HOUSE_INST_LABELS[hInst]}</span>
-                                      {locked && (
-                                        <button onClick={() => storeSetInstVelOverride(hInst, undefined)} style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--c-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>AUTO</button>
-                                      )}
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                                      {HOUSE_VEL_CONFIGS[hInst].map(v => {
-                                        const active = locked === v.id;
-                                        return (
-                                          <button key={v.id} className="btn-smooth"
-                                            onClick={() => storeSetInstVelOverride(hInst, active ? undefined : v.id)}
-                                            style={{ height: 24, padding: '0 8px', borderRadius: 6, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.1)', background: active ? `${accent.from}1a` : 'rgba(255,255,255,0.03)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
-                                            {v.label}
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
+                      {kitType === 'house' && renderCollapsibleSection(
+                        'sound-character',
+                        'Sound Character',
+                        collapsedKitSections,
+                        (id) => setCollapsedKitSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {((['kick', 'snare', 'tom10', 'tom12', 'tom14'] as HouseInstName[])).map(hInst => {
+                            const locked = houseInstVelOverride[hInst];
+                            return (
+                              <div key={hInst} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1 }}>{HOUSE_INST_LABELS[hInst]}</span>
+                                  {locked && (
+                                    <button onClick={() => storeSetInstVelOverride(hInst, undefined)} style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--c-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>AUTO</button>
+                                  )}
+                                </div>
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                  {HOUSE_VEL_CONFIGS[hInst].map(v => {
+                                    const active = locked === v.id;
+                                    return (
+                                      <button key={v.id} className="btn-smooth"
+                                        onClick={() => storeSetInstVelOverride(hInst, active ? undefined : v.id)}
+                                        style={{ height: 24, padding: '0 8px', borderRadius: 6, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.1)', background: active ? `${accent.from}1a` : 'rgba(255,255,255,0.03)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                                        {v.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
 
-                          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
+                      {kitType === 'house' && renderCollapsibleSection(
+                        'advanced-kit-options',
+                        'Advanced Kit Options',
+                        collapsedKitSections,
+                        (id) => setCollapsedKitSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                           <div>
-                            <span style={labelSt}>Crash Cymbal Model</span>
-                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                            <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--c-text-secondary)', display: 'block', marginBottom: 4 }}>Crash Cymbal Model</span>
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                               {HOUSE_CRASH_MODELS.map(m => {
                                 const active = houseCrashModel === m.id;
                                 return (
@@ -3688,10 +3762,9 @@ export default function DrumEditor() {
                             </div>
                           </div>
 
-                          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
                           <div>
-                            <span style={labelSt}>Cymbal Pack</span>
-                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                            <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--c-text-secondary)', display: 'block', marginBottom: 4 }}>Cymbal Pack</span>
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                               {CYMBAL_PACKS.map(p => {
                                 const active = cymbalPack === p.id;
                                 return (
@@ -3706,134 +3779,319 @@ export default function DrumEditor() {
                             </div>
                           </div>
 
-                          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
                             <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--c-text-primary)' }}>Random Variations</span>
                             <button onClick={() => updateDrumPrefs({ randomVariations: !drumPrefs.randomVariations })} style={{ width: 36, height: 20, borderRadius: 10, background: drumPrefs.randomVariations ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 220ms', flexShrink: 0 }}>
                               <span style={{ position: 'absolute', top: 2.5, left: drumPrefs.randomVariations ? 18 : 2.5, width: 15, height: 15, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)', display: 'block' }} />
                             </button>
                           </div>
-                        </>
+                        </div>
                       )}
                     </div>
                   )}
 
                   {/* MIXER TAB */}
                   {sideTab === 'mixer' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>Master Volume</span>
-                          <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 700 }}>{(masterVolume * 100).toFixed(1)}%</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {renderCollapsibleSection(
+                        'master',
+                        'Master',
+                        collapsedMixerSections,
+                        (id) => setCollapsedMixerSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: 'white' }}>Master Volume</span>
+                            <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 700 }}>{(masterVolume * 100).toFixed(1)}%</span>
+                          </div>
+                          <ElasticSlider
+                            min={0} max={1} step={0.005} value={masterVolume}
+                            onChange={setMasterVolume}
+                            accentColor={accent.from}
+                            style={{ width: '100%' }}
+                          />
                         </div>
-                        <ElasticSlider
-                          min={0} max={1} step={0.005} value={masterVolume}
-                          onChange={setMasterVolume}
-                          accentColor={accent.from}
-                          style={{ width: '100%' }}
-                        />
-                      </div>
+                      )}
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {activeInstruments.map(inst => {
-                          const vol = volumeMap[inst] ?? 1;
-                          const muted = patternMuted.has(inst);
-                          const color = INSTRUMENT_COLOR[inst] ?? accent.from;
-                          return (
-                            <div key={inst} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', opacity: muted ? 0.5 : 1 }}>
-                              <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
-                              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
-                              <ElasticSlider
-                                min={0} max={1} step={0.01} value={vol}
-                                onChange={v => setVolumeForInstrument(inst, v)}
-                                accentColor={color}
-                                style={{ width: 80 }}
-                              />
-                              <button onClick={() => togglePatternMute(pattern.id, inst)} style={{
-                                width: 26, height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
-                                background: muted ? 'rgba(255,255,255,0.05)' : `${color}18`,
-                                color: muted ? 'var(--c-text-muted)' : color, display: 'flex', alignItems: 'center', justifyContent: 'center'
-                              }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{muted ? 'volume_off' : 'volume_up'}</span>
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      {renderCollapsibleSection(
+                        'levels',
+                        'Levels',
+                        collapsedMixerSections,
+                        (id) => setCollapsedMixerSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {activeInstruments.map(inst => {
+                            const vol = volumeMap[inst] ?? 1;
+                            const muted = patternMuted.has(inst);
+                            const color = INSTRUMENT_COLOR[inst] ?? accent.from;
+                            return (
+                              <div key={inst} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', opacity: muted ? 0.5 : 1 }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+                                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
+                                <ElasticSlider
+                                  min={0} max={1} step={0.01} value={vol}
+                                  onChange={v => setVolumeForInstrument(inst, v)}
+                                  accentColor={color}
+                                  style={{ width: 80 }}
+                                />
+                                <button onClick={() => togglePatternMute(pattern.id, inst)} style={{
+                                  width: 26, height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
+                                  background: muted ? 'rgba(255,255,255,0.05)' : `${color}18`,
+                                  color: muted ? 'var(--c-text-muted)' : color, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}>
+                                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{muted ? 'volume_off' : 'volume_up'}</span>
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {renderCollapsibleSection(
+                        'pan',
+                        'Pan',
+                        collapsedMixerSections,
+                        (id) => setCollapsedMixerSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontSize: 9.5, color: 'var(--c-text-muted)', fontStyle: 'italic', marginBottom: 4, display: 'block' }}>
+                            Note: Stereo panning is simulated (Future Update)
+                          </span>
+                          {activeInstruments.map(inst => {
+                            const color = INSTRUMENT_COLOR[inst] ?? accent.from;
+                            return (
+                              <div key={`pan-${inst}`} style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: 0.5 }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+                                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--c-text-muted)' }}>L</span>
+                                  <input type="range" min="-50" max="50" defaultValue="0" disabled style={{ width: 75, accentColor: color, cursor: 'not-allowed' }} />
+                                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--c-text-muted)' }}>R</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {renderCollapsibleSection(
+                        'room-send',
+                        'Room / Send',
+                        collapsedMixerSections,
+                        (id) => setCollapsedMixerSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {activeInstruments.map(inst => {
+                            const curFX = { ...DEFAULT_INST_FX, ...(instFX[inst] ?? {}) };
+                            const rev = curFX.reverb ?? 0;
+                            const color = INSTRUMENT_COLOR[inst] ?? accent.from;
+                            return (
+                              <div key={`rev-${inst}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+                                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
+                                <ElasticSlider
+                                  min={0} max={1} step={0.01} value={rev}
+                                  onChange={v => setInstFX(inst, { ...curFX, reverb: v })}
+                                  accentColor={color}
+                                  style={{ width: 80 }}
+                                />
+                                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--c-text-muted)', width: 26, textAlign: 'right' }}>
+                                  {Math.round(rev * 100)}%
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          setMasterVolume(1.0);
+                          activeInstruments.forEach(inst => {
+                            setVolumeForInstrument(inst, 1.0);
+                            if (patternMuted.has(inst)) {
+                              togglePatternMute(pattern.id, inst);
+                            }
+                          });
+                        }}
+                        className="btn-smooth bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 w-full mt-2"
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                          fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em',
+                          padding: '8px 12px', borderRadius: '8px', cursor: 'pointer'
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>restart_alt</span>
+                        Reset Mix
+                      </button>
                     </div>
                   )}
 
                   {/* FX TAB */}
                   {sideTab === 'fx' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      <div>
-                        <label style={labelSt}>Instrument</label>
-                        <select value={fxInst} onChange={e => setFxInst(e.target.value as DrumInstrument)} style={{ ...inputSt, padding: '6px 10px', fontSize: 13 }}>
-                          {activeInstruments.map(inst => <option key={inst} value={inst}>{INST_LABEL[inst]}</option>)}
-                        </select>
-                      </div>
-
-                      {INST_PRESETS[fxInst] && INST_PRESETS[fxInst]!.length > 0 && (
-                        <div>
-                          <span style={labelSt}>Character</span>
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                            {INST_PRESETS[fxInst]!.map(preset => {
-                              const curFX = { ...DEFAULT_INST_FX, ...(instFX[fxInst] ?? {}) };
-                              const active = Object.keys(preset.values).every(
-                                k => Math.abs((curFX[k as keyof InstFX] ?? 0) - (preset.values[k as keyof InstFX] ?? 0)) < 0.05
-                              );
-                              const color = INSTRUMENT_COLOR[fxInst] ?? accent.from;
-                              return (
-                                <button key={preset.label} onClick={() => setInstFX(fxInst, { ...DEFAULT_INST_FX, ...preset.values })} className="btn-smooth" style={{
-                                  padding: '4px 10px', borderRadius: 12, fontSize: 10.5, fontWeight: 700, cursor: 'pointer',
-                                  background: active ? color : 'rgba(255,255,255,0.03)',
-                                  border: active ? `1.5px solid ${color}` : '1.5px solid rgba(255,255,255,0.08)',
-                                  color: active ? '#fff' : 'var(--c-text-secondary)'
-                                }}>{preset.label}</button>
-                              );
-                            })}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {renderCollapsibleSection(
+                        'global-fx',
+                        'Global FX',
+                        collapsedFxSections,
+                        (id) => setCollapsedFxSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-primary)' }}>Swing</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: accent.from }}>{pattern.swing ?? 0}%</span>
+                            </div>
+                            <ElasticSlider
+                              min={0} max={100} step={1} value={pattern.swing ?? 0}
+                              onChange={v => updatePattern(pattern.id, { swing: v })}
+                              accentColor={accent.from}
+                              style={{ width: '100%' }}
+                            />
                           </div>
                         </div>
                       )}
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {(() => {
-                          const curFX = { ...DEFAULT_INST_FX, ...(instFX[fxInst] ?? {}) };
-                          const color = INSTRUMENT_COLOR[fxInst] ?? accent.from;
-                          type SliderDef = { key: keyof InstFX; label: string; min: number; max: number; step: number };
-                          const sliders: SliderDef[] = [
-                            { key: 'compress', label: 'Compress',  min: 0,   max: 1,   step: 0.01 },
-                            { key: 'attack',   label: 'Attack',    min: 0,   max: 1,   step: 0.01 },
-                            { key: 'gate',     label: 'Gate',      min: 0,   max: 1,   step: 0.01 },
-                            { key: 'eqLow',    label: 'Low 80Hz',  min: -12, max: 12,  step: 0.5  },
-                            { key: 'eqLowMid', label: 'Lo-Mid 350',min: -12, max: 12,  step: 0.5  },
-                            { key: 'eqMid',    label: 'Mid 2kHz',  min: -12, max: 12,  step: 0.5  },
-                            { key: 'eqHigh',   label: 'High 10k',  min: -12, max: 12,  step: 0.5  },
-                            { key: 'reverb',   label: 'Reverb',    min: 0,   max: 1,   step: 0.01 },
-                            { key: 'saturate', label: 'Saturate',  min: 0,   max: 1,   step: 0.01 },
-                          ];
-                          return sliders.map(s => {
-                            const val = curFX[s.key] ?? 0;
-                            const isEQ = s.key.startsWith('eq');
-                            const dispVal = isEQ ? (val >= 0 ? `+${val.toFixed(1)}` : val.toFixed(1)) + 'dB' : `${Math.round(val * 100)}%`;
-                            const active = val !== 0;
+                      {renderCollapsibleSection(
+                        'per-instrument-fx',
+                        'Per-Instrument FX',
+                        collapsedFxSections,
+                        (id) => setCollapsedFxSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          <div>
+                            <label style={labelSt}>Instrument</label>
+                            <select value={fxInst} onChange={e => setFxInst(e.target.value as DrumInstrument)} style={{ ...inputSt, padding: '6px 10px', fontSize: 13, background: 'var(--app-surface-high)' }}>
+                              {activeInstruments.map(inst => <option key={inst} value={inst}>{INST_LABEL[inst]}</option>)}
+                            </select>
+                          </div>
+
+                          {INST_PRESETS[fxInst] && INST_PRESETS[fxInst]!.length > 0 && (
+                            <div>
+                              <span style={labelSt}>Character</span>
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                                {INST_PRESETS[fxInst]!.map(preset => {
+                                  const curFX = { ...DEFAULT_INST_FX, ...(instFX[fxInst] ?? {}) };
+                                  const active = Object.keys(preset.values).every(
+                                    k => Math.abs((curFX[k as keyof InstFX] ?? 0) - (preset.values[k as keyof InstFX] ?? 0)) < 0.05
+                                  );
+                                  const color = INSTRUMENT_COLOR[fxInst] ?? accent.from;
+                                  return (
+                                    <button key={preset.label} onClick={() => setInstFX(fxInst, { ...DEFAULT_INST_FX, ...preset.values })} className="btn-smooth" style={{
+                                      padding: '4px 10px', borderRadius: 12, fontSize: 10.5, fontWeight: 700, cursor: 'pointer',
+                                      background: active ? color : 'rgba(255,255,255,0.03)',
+                                      border: active ? `1.5px solid ${color}` : '1.5px solid rgba(255,255,255,0.08)',
+                                      color: active ? '#fff' : 'var(--c-text-secondary)'
+                                    }}>{preset.label}</button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {(() => {
+                              const curFX = { ...DEFAULT_INST_FX, ...(instFX[fxInst] ?? {}) };
+                              const color = INSTRUMENT_COLOR[fxInst] ?? accent.from;
+                              type SliderDef = { key: keyof InstFX; label: string; min: number; max: number; step: number };
+                              const sliders: SliderDef[] = [
+                                { key: 'compress', label: 'Compress',  min: 0,   max: 1,   step: 0.01 },
+                                { key: 'attack',   label: 'Attack',    min: 0,   max: 1,   step: 0.01 },
+                                { key: 'gate',     label: 'Gate',      min: 0,   max: 1,   step: 0.01 },
+                                { key: 'eqLow',    label: 'Low 80Hz',  min: -12, max: 12,  step: 0.5  },
+                                { key: 'eqLowMid', label: 'Lo-Mid 350',min: -12, max: 12,  step: 0.5  },
+                                { key: 'eqMid',    label: 'Mid 2kHz',  min: -12, max: 12,  step: 0.5  },
+                                { key: 'eqHigh',   label: 'High 10k',  min: -12, max: 12,  step: 0.5  },
+                              ];
+                              return sliders.map(s => {
+                                const val = curFX[s.key] ?? 0;
+                                const isEQ = s.key.startsWith('eq');
+                                const dispVal = isEQ ? (val >= 0 ? `+${val.toFixed(1)}` : val.toFixed(1)) + 'dB' : `${Math.round(val * 100)}%`;
+                                const active = val !== 0;
+                                return (
+                                  <div key={s.key} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: active ? 'white' : 'var(--c-text-secondary)' }}>{s.label}</span>
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: active ? color : 'var(--c-text-muted)' }}>{dispVal}</span>
+                                    </div>
+                                    <ElasticSlider
+                                      min={s.min} max={s.max} step={s.step} value={val}
+                                      onChange={v => setInstFX(fxInst, { ...curFX, [s.key]: v })}
+                                      accentColor={color}
+                                      style={{ width: '100%' }}
+                                    />
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {renderCollapsibleSection(
+                        'reverb-room',
+                        'Reverb / Room',
+                        collapsedFxSections,
+                        (id) => setCollapsedFxSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div>
+                          {(() => {
+                            const curFX = { ...DEFAULT_INST_FX, ...(instFX[fxInst] ?? {}) };
+                            const color = INSTRUMENT_COLOR[fxInst] ?? accent.from;
+                            const reverbVal = curFX.reverb ?? 0;
+                            const saturateVal = curFX.saturate ?? 0;
                             return (
-                              <div key={s.key} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span style={{ fontSize: 11, fontWeight: 700, color: active ? 'white' : 'var(--c-text-secondary)' }}>{s.label}</span>
-                                  <span style={{ fontSize: 11, fontWeight: 700, color: active ? color : 'var(--c-text-muted)' }}>{dispVal}</span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: reverbVal > 0 ? 'white' : 'var(--c-text-secondary)' }}>Reverb Send</span>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: reverbVal > 0 ? color : 'var(--c-text-muted)' }}>{Math.round(reverbVal * 100)}%</span>
+                                  </div>
+                                  <ElasticSlider
+                                    min={0} max={1} step={0.01} value={reverbVal}
+                                    onChange={v => setInstFX(fxInst, { ...curFX, reverb: v })}
+                                    accentColor={color}
+                                    style={{ width: '100%' }}
+                                  />
                                 </div>
-                                <ElasticSlider
-                                  min={s.min} max={s.max} step={s.step} value={val}
-                                  onChange={v => setInstFX(fxInst, { ...curFX, [s.key]: v })}
-                                  accentColor={color}
-                                  style={{ width: '100%' }}
-                                />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: saturateVal > 0 ? 'white' : 'var(--c-text-secondary)' }}>Saturation</span>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: saturateVal > 0 ? color : 'var(--c-text-muted)' }}>{Math.round(saturateVal * 100)}%</span>
+                                  </div>
+                                  <ElasticSlider
+                                    min={0} max={1} step={0.01} value={saturateVal}
+                                    onChange={v => setInstFX(fxInst, { ...curFX, saturate: v })}
+                                    accentColor={color}
+                                    style={{ width: '100%' }}
+                                  />
+                                </div>
                               </div>
                             );
-                          });
-                        })()}
-                      </div>
+                          })()}
+                        </div>
+                      )}
+
+                      {renderCollapsibleSection(
+                        'humanize-groove-feel',
+                        'Humanize / Groove Feel',
+                        collapsedFxSections,
+                        (id) => setCollapsedFxSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--c-text-primary)' }}>Humanize Velocity</span>
+                            <button onClick={() => updateDrumPrefs({ humanizeVelocity: !drumPrefs.humanizeVelocity })} style={{ width: 36, height: 20, borderRadius: 10, background: drumPrefs.humanizeVelocity ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 220ms', flexShrink: 0 }}>
+                              <span style={{ position: 'absolute', top: 2.5, left: drumPrefs.humanizeVelocity ? 18 : 2.5, width: 15, height: 15, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)', display: 'block' }} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => setInstFX(fxInst, { ...DEFAULT_INST_FX })}
+                        className="btn-smooth bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 w-full mt-2"
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                          fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em',
+                          padding: '8px 12px', borderRadius: '8px', cursor: 'pointer'
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>restart_alt</span>
+                        Reset {INST_LABEL[fxInst]} FX
+                      </button>
                     </div>
                   )}
 

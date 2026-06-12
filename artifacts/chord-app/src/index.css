@@ -211,7 +211,7 @@ html, body { background: var(--app-bg); }
 }
 
 .web-desktop {
-  --content-bottom-pad: 20px;
+  --content-bottom-pad: 96px;
 }
 
 /* ============================================================
