@@ -2930,12 +2930,26 @@ export default function DrumEditor() {
                 </button>
 
                 {/* Clear */}
-                <button onClick={() => setShowClearConfirm(s => !s)} title="Clear pattern" aria-label="Clear pattern" className="btn-smooth" style={{
-                  height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ee7d77'
-                }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
-                </button>
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => setShowClearConfirm(s => !s)} title="Clear pattern" aria-label="Clear pattern" className="btn-smooth" style={{
+                    height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ee7d77'
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                  </button>
+                  {showClearConfirm && (
+                    <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'rgba(10, 10, 12, 0.98)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 14px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', backdropFilter: 'blur(20px)', minWidth: 190, zIndex: 100 }}>
+                      <p style={{ margin: '0 0 10px', fontSize: 12.5, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', lineHeight: 1.4 }}>Reset pattern?</p>
+                      <p style={{ margin: '0 0 12px', fontSize: 11, color: 'var(--c-text-muted)', lineHeight: 1.4 }}>All hits will be removed, preserving your bar count. You can undo after.</p>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => setShowClearConfirm(false)} className="btn-smooth"
+                          style={{ flex: 1, padding: '7px 0', borderRadius: 9, background: 'rgba(128,128,128,0.12)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>Cancel</button>
+                        <button onClick={() => { handleClear(); setShowClearConfirm(false); }} className="btn-smooth"
+                          style={{ flex: 1, padding: '7px 0', borderRadius: 9, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#f87171', fontFamily: 'Manrope,sans-serif' }}>Clear</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Save Groove */}
                 <button onClick={() => { setSavGrName(pattern.name); setSavGrTag(''); setShowSaveGroove(true); }} title="Save pattern to Groove Library" aria-label="Save pattern to Groove Library" className="btn-smooth" style={{
