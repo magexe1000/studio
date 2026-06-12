@@ -1,5 +1,5 @@
 import type { DrumInstrument, DrumPattern, InstFX, KitType, HouseMic, HouseCrashModel, CymbalPack, NoteVariation } from '../store/useDrumStore';
-import { DRUM_INSTRUMENTS, stepsPerMeasure } from '../store/useDrumStore';
+import { DRUM_INSTRUMENTS, stepsPerMeasure, useDrumStore } from '../store/useDrumStore';
 import { getPlugin } from './drumPlugins';
 import type { InstPlugin } from './drumPlugins';
 import { createAudioContext } from './audioContextOptions';
@@ -1980,3 +1980,11 @@ class DrumScheduler {
 }
 
 export const drumScheduler = new DrumScheduler();
+
+// Subscribe to active pattern changes in useDrumStore to update the scheduler immediately
+useDrumStore.subscribe((state) => {
+  const activePattern = state.patterns.find(p => p.id === state.activePatternId) ?? state.patterns[0];
+  if (activePattern) {
+    drumScheduler.updatePattern(activePattern);
+  }
+});

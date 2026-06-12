@@ -1,5 +1,5 @@
 import {
-  memo, useCallback, useEffect, useMemo, useRef, useState,
+  memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
 import ElasticSlider from '../components/ElasticSlider';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
@@ -267,21 +267,17 @@ const NoteHead = memo(function NoteHead({ inst, variation, r, color, strokeColor
 // A cell's hit info: variation + velocity (0–127). Replaces what used to be
 // just a NoteVariation so the row can render velocity bars without a second
 // store lookup.
-export interface HitInfo { variation: NoteVariation; velocity: number; }
 
-// Stable empty map — prevents creating a new reference each render for muted rows
-const EMPTY_HIT_MAP: Map<number, HitInfo> = new Map();
 
 // ── Instrument row SVG ─────────────────────────────────────────────────────
 interface RowProps {
   inst: DrumInstrument;
   mStartIdx: number;
-  rowMeasures: { id: string; hits: Partial<Record<DrumInstrument, { step: number; length: number; variation?: NoteVariation; velocity?: number }[]>> }[];
+  rowMeasures: DrumMeasure[];
   spm: number;
   stepsPerBeat: number;
   STEP_W: number;
   MEASURE_W: number;
-  hitMap: Map<number, HitInfo>;
   noteColor: string;
   staffColor: string;
   barColor: string;
@@ -294,7 +290,7 @@ interface RowProps {
 }
 const InstrumentRow = memo(({
   inst, mStartIdx, rowMeasures, spm, stepsPerBeat, STEP_W, MEASURE_W,
-  hitMap, noteColor, staffColor, barColor, altBg, showVariations, gridEmphasis, accentFrom, ROW_H, isLight,
+  noteColor, staffColor, barColor, altBg, showVariations, gridEmphasis, accentFrom, ROW_H, isLight,
 }: RowProps) => {
   const totalW     = rowMeasures.length * MEASURE_W;
   const defaultNoteY = NOTE_YF[inst] * ROW_H;
@@ -313,8 +309,7 @@ const InstrumentRow = memo(({
       {STAFF_YF.map((yf, i) => (
         <line key={i} x1={0} y1={yf * ROW_H} x2={totalW} y2={yf * ROW_H} stroke={staffColor} strokeWidth={0.7} />
       ))}
-      {/* Per-step cell dividers — gives every note slot a visible square box.
-          Uses a high-contrast color so the squares pop in both light & dark themes. */}
+      {/* Per-step cell dividers */}
       {rowMeasures.map((_, mi) =>
         Array.from({ length: spm }, (__, s) => {
           if (s === 0) return null;
@@ -326,7 +321,7 @@ const InstrumentRow = memo(({
             opacity={onBeat ? (gridEmphasis ? 1.0 : 0.75) : (gridEmphasis ? 0.6 : 0.4)} />;
         })
       )}
-      {/* Top + bottom row borders — close the cell squares vertically */}
+      {/* Top + bottom row borders */}
       <line x1={0} y1={0} x2={totalW} y2={0} stroke={isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
       <line x1={0} y1={ROW_H} x2={totalW} y2={ROW_H} stroke={isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
       {/* Measure bar lines */}
@@ -334,19 +329,17 @@ const InstrumentRow = memo(({
         <line key={mi} x1={mi * MEASURE_W} y1={0} x2={mi * MEASURE_W} y2={ROW_H} stroke={barColor} strokeWidth={mi === 0 ? 1.5 : 1.2} />
       ))}
       <line x1={totalW} y1={0} x2={totalW} y2={ROW_H} stroke={barColor} strokeWidth={1.5} />
-      {/* Velocity bars — thin accent-tinted bar at the bottom of each active
-          cell, width proportional to velocity. Drawn before noteheads so the
-          notation always reads on top. */}
-      {rowMeasures.map((_, mi) =>
-        Array.from({ length: spm }, (__, s) => {
-          const globalStep = (mStartIdx + mi) * spm + s;
-          const info = hitMap.get(globalStep);
-          if (!info) return null;
+      {/* Velocity bars */}
+      {rowMeasures.map((m, mi) => {
+        const hits = m.hits[inst] ?? [];
+        return Array.from({ length: spm }, (__, s) => {
+          const hit = hits.find(h => h.step === s);
+          if (!hit) return null;
+          const vel     = typeof hit.velocity === 'number' ? hit.velocity : DEFAULT_VELOCITY;
           const cellW   = STEP_W - 3;
-          const frac    = Math.max(0.06, Math.min(1, info.velocity / MAX_VELOCITY));
+          const frac    = Math.max(0.06, Math.min(1, vel / MAX_VELOCITY));
           const w       = cellW * frac;
           const x       = (mi * spm + s) * STEP_W + (STEP_W - w) / 2;
-          // Subtle: blends in for low velocity, more vivid for hard hits.
           const op      = 0.32 + frac * 0.45;
           return (
             <rect
@@ -359,19 +352,17 @@ const InstrumentRow = memo(({
               pointerEvents="none"
             />
           );
-        })
-      )}
+        });
+      })}
       {/* Note heads */}
-      {rowMeasures.map((_, mi) =>
-        Array.from({ length: spm }, (__, s) => {
-          const globalStep = (mStartIdx + mi) * spm + s;
-          const info = hitMap.get(globalStep);
-          if (!info) return null;
-          // showVariations=false → all notes look identical (normal)
-          const rawVariation = info.variation;
+      {rowMeasures.map((m, mi) => {
+        const hits = m.hits[inst] ?? [];
+        return Array.from({ length: spm }, (__, s) => {
+          const hit = hits.find(h => h.step === s);
+          if (!hit) return null;
+          const rawVariation = hit.variation ?? 'normal';
           const variation: NoteVariation = showVariations ? rawVariation : 'normal';
 
-          // Pedal HH sits at the bottom; ride hits on the cymbal row sit slightly lower
           const noteY =
             (inst === 'hihat-closed' && rawVariation === 'pedal' && showVariations) ? ROW_H * 0.86 :
             (inst === 'crash' && (rawVariation === 'ride' || rawVariation === 'bell') && showVariations) ? ROW_H * 0.28 :
@@ -383,7 +374,6 @@ const InstrumentRow = memo(({
           const stemY1 = stemUp ? cy - NOTE_R * 0.9  : cy + NOTE_R * 0.9;
           const stemY2 = stemUp ? cy - NOTE_R * 3.5  : cy + NOTE_R * 3.5;
 
-          // Ghost notes: draw a faint parenthesis pair instead of stem
           const isGhost = showVariations && variation === 'ghost';
           
           const strokeColor = isLight ? '#ffffff' : '#141418';
@@ -406,10 +396,35 @@ const InstrumentRow = memo(({
               <NoteHead inst={inst} variation={variation} r={NOTE_R} color={instColor} strokeColor={strokeColor} />
             </g>
           );
-        })
-      )}
+        });
+      })}
     </svg>
   );
+}, (prev, next) => {
+  if (prev.inst !== next.inst) return false;
+  if (prev.mStartIdx !== next.mStartIdx) return false;
+  if (prev.spm !== next.spm) return false;
+  if (prev.stepsPerBeat !== next.stepsPerBeat) return false;
+  if (prev.STEP_W !== next.STEP_W) return false;
+  if (prev.MEASURE_W !== next.MEASURE_W) return false;
+  if (prev.noteColor !== next.noteColor) return false;
+  if (prev.staffColor !== next.staffColor) return false;
+  if (prev.barColor !== next.barColor) return false;
+  if (prev.altBg !== next.altBg) return false;
+  if (prev.showVariations !== next.showVariations) return false;
+  if (prev.gridEmphasis !== next.gridEmphasis) return false;
+  if (prev.accentFrom !== next.accentFrom) return false;
+  if (prev.ROW_H !== next.ROW_H) return false;
+  if (prev.isLight !== next.isLight) return false;
+
+  if (prev.rowMeasures.length !== next.rowMeasures.length) return false;
+
+  for (let i = 0; i < prev.rowMeasures.length; i++) {
+    const prevHits = prev.rowMeasures[i].hits[prev.inst];
+    const nextHits = next.rowMeasures[i].hits[next.inst];
+    if (prevHits !== nextHits) return false;
+  }
+  return true;
 });
 
 // ── Tab icons ──────────────────────────────────────────────────────────────
@@ -1937,7 +1952,7 @@ export default function DrumEditor() {
   const rawMpr         = Math.max(1, Math.floor(availableW / (spm * MIN_STEP)));
   const measuresPerRow = isLandscape ? pattern.measures.length : 1;
   const MEASURE_W      = isLandscape
-    ? (pattern.measures.length <= 2 ? (availableW - 16) / 2 : Math.max(340, availableW / 2.5))
+    ? (pattern.measures.length <= 2 ? (availableW - 16) / Math.max(1, pattern.measures.length) : Math.max(340, availableW / 2.5))
     : availableW;
   const STEP_W         = MEASURE_W / spm;
   const SYSTEM_H       = RULER_H + visibleInsts.length * ROW_H + (visibleInsts.length > 0 ? (visibleInsts.length - 1) * rowGap : 0);
@@ -1981,20 +1996,7 @@ export default function DrumEditor() {
   }, [isLandscape, inEditor, measuresPerRow, pattern.measures.length, pattern.id]);
 
   // ── Hit maps (step → { variation, velocity }) ────────────────────────────
-  const allHitMaps = useMemo(() => {
-    const map = new Map<DrumInstrument, Map<number, HitInfo>>();
-    visibleInsts.forEach(inst => {
-      const m2 = new Map<number, HitInfo>();
-      pattern.measures.forEach((m, mIdx) => {
-        m.hits[inst]?.forEach(h => m2.set(mIdx * spm + h.step, {
-          variation: h.variation ?? 'normal',
-          velocity: typeof h.velocity === 'number' ? h.velocity : DEFAULT_VELOCITY,
-        }));
-      });
-      map.set(inst, m2);
-    });
-    return map;
-  }, [pattern, spm, visibleInsts]);
+
 
   // ── Scroll-hide for bottom nav ────────────────────────────────────────────
   const drumNavLastY = useRef(0);
@@ -2117,7 +2119,8 @@ export default function DrumEditor() {
         }
       }
       // ── Auto-expand ────────────────────────────────────────────────────────
-      if (drumPrefsRef.current.autoExpandPattern && gs === totalStepsRef.current - 1) {
+      const totalSteps = drumScheduler.totalSteps;
+      if (drumPrefsRef.current.autoExpandPattern && gs === totalSteps - 1) {
         const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
         const curPat = pts.find(p => p.id === actId);
         if (curPat) useDrumStore.getState().addMeasure(curPat.id);
@@ -2176,15 +2179,21 @@ export default function DrumEditor() {
   const handleAddBar = useCallback(() => {
     pushUndo();
     addMeasure(pattern.id);
-    setTimeout(() => {
+  }, [pattern.id, addMeasure, pushUndo]);
+
+  const prevMeasureCount = useRef(pattern.measures.length);
+  useLayoutEffect(() => {
+    const currentCount = pattern.measures.length;
+    if (currentCount > prevMeasureCount.current) {
       if (scrollRef.current) {
         scrollRef.current.scrollTo({
-          left: 99999,
+          left: scrollRef.current.scrollWidth,
           behavior: 'smooth'
         });
       }
-    }, 100);
-  }, [pattern.id, addMeasure, pushUndo]);
+    }
+    prevMeasureCount.current = currentCount;
+  }, [pattern.measures.length]);
 
   // ── Keyboard shortcuts (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z) ──────────────────
   useEffect(() => {
@@ -2385,10 +2394,15 @@ export default function DrumEditor() {
 
   // ── Clear ────────────────────────────────────────────────────────────────
   const handleClear = useCallback(() => {
+    if (drumScheduler.isPlaying) {
+      drumScheduler.stop();
+      setPlaying(false);
+    }
+    drumScheduler.seekTo(0);
     pushUndo();
-    updatePattern(pattern.id, { measures: [emptyMeasure()] } as Parameters<typeof updatePattern>[1]);
-    if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
-  }, [pattern.id, updatePattern, pushUndo]);
+    const clearedMeasures = pattern.measures.map(m => ({ ...m, hits: {} }));
+    updatePattern(pattern.id, { measures: clearedMeasures });
+  }, [pattern, updatePattern, pushUndo]);
 
   // ── Cell tap / drag ──────────────────────────────────────────────────────
   // Resolve which grid cell a pointer event falls on; returns null if outside grid
@@ -3517,8 +3531,8 @@ export default function DrumEditor() {
 
         {/* ═══ DRUM GRID EDITOR (Songs tab, in editor) ══════════════════════ */}
         {activeTab === 'songs' && inEditor && (
-          <div ref={containerCallbackRef} className="panel-enter-right" style={{ flex: 1, display: 'flex', flexDirection: isWebDesktop ? 'row' : 'column', overflow: 'hidden', position: 'relative' }}>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+          <div className="panel-enter-right" style={{ flex: 1, display: 'flex', flexDirection: isWebDesktop ? 'row' : 'column', overflow: 'hidden', position: 'relative' }}>
+            <div ref={containerCallbackRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
             {/* Row visibility toggle */}
             {extraInsts.length > 0 && (
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', height: 30, borderBottom: `1px solid ${barColor}`, background: 'var(--app-bg)' }}>
@@ -3674,7 +3688,6 @@ export default function DrumEditor() {
                       })}
                     </div>
                     {visibleInsts.map((inst, instIdx) => {
-                      const hitMap = allHitMaps.get(inst) ?? EMPTY_HIT_MAP;
                       const isFoc  = focusedInst === inst;
                       const varList = INST_VARIATIONS[inst];
                       return (
@@ -3712,7 +3725,7 @@ export default function DrumEditor() {
                               <span style={{ fontSize: 6.5, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-muted)', opacity: 0.55, letterSpacing: '0.02em', whiteSpace: 'normal', lineHeight: 1.35, marginTop: 1, width: '100%', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{varList.join(' · ')}</span>
                             )}
                           </div>
-                          <InstrumentRow inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures} spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W} hitMap={hitMap} noteColor={noteColor} staffColor={staffColor} barColor={barColor} altBg={altBg} showVariations={drumPrefs.showNoteVariations} gridEmphasis={drumPrefs.gridLinesEmphasis} accentFrom={accent.from} ROW_H={ROW_H} isLight={isLight} />
+                          <InstrumentRow inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures} spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W} noteColor={noteColor} staffColor={staffColor} barColor={barColor} altBg={altBg} showVariations={drumPrefs.showNoteVariations} gridEmphasis={drumPrefs.gridLinesEmphasis} accentFrom={accent.from} ROW_H={ROW_H} isLight={isLight} />
                         </div>
                       );
                     })}
