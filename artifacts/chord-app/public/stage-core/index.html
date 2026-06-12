@@ -1836,14 +1836,14 @@ html[data-theme="light"] #stage-canvas { background-color: #ffffff; }
 
 /* ── Light mode: stage canvas uses dark grid lines and a visible border ── */
 html[data-theme="light"] #stage-canvas {
-  border: 2px solid rgba(0,0,0,0.45) !important;
+  border: 2px solid rgba(0,0,0,0.2) !important;
 }
 html[data-theme="light"] .stage-grid {
   background-image:
-    linear-gradient(rgba(0,0,0,0.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.14) 1px, transparent 1px),
-    linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px) !important;
+    linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px),
+    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px) !important;
 }
 html[data-theme="light"] .stage-grid.grid-off {
   background-image: none !important;
@@ -1874,13 +1874,13 @@ html[data-amoled="1"] #stage-viewport { background: #000 !important; }
 html[data-amoled="1"] #stage-canvas { background-color: #000 !important; }
 html[data-amoled="1"] .stage-grid {
   background-image:
-    linear-gradient(rgba(255,255,255,0.18) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.18) 1px, transparent 1px),
-    linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px) !important;
+    linear-gradient(rgba(255,255,255,0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.10) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px) !important;
 }
 html[data-amoled="1"] #stage-canvas {
-  border-color: rgba(255,255,255,0.15) !important;
+  border-color: rgba(255,255,255,0.12) !important;
 }
 html[data-amoled="1"] #view-SetupHub,
 html[data-amoled="1"] #view-Rider,
@@ -1937,7 +1937,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     </div>
 
     <!-- Cards -->
-    <div style="display:flex;flex-direction:column;gap:10px;">
+    <div class="sc-hub-grid">
 
       <button class="sc-hub-card" onclick="switchView('Rider')">
         <div class="sc-hub-icon" style="background:var(--accent-20);">
@@ -1947,7 +1947,10 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           <p class="sc-hub-title" data-i18n="navRider">Rider</p>
           <p class="sc-hub-sub" data-i18n="setupRiderSub">Channel list, mic inputs &amp; tech requirements</p>
         </div>
-        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        <div class="sc-hub-badge-wrap">
+          <span class="sc-hub-badge" id="hub-counter-rider">0 Channels</span>
+          <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        </div>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Setlist')">
@@ -1958,7 +1961,10 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           <p class="sc-hub-title" data-i18n="navSetlist">Setlist</p>
           <p class="sc-hub-sub" data-i18n="setupSetlistSub">Song order, timing &amp; performance flow</p>
         </div>
-        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        <div class="sc-hub-badge-wrap">
+          <span class="sc-hub-badge" id="hub-counter-setlist">0 Songs</span>
+          <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        </div>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Gear')">
@@ -1969,7 +1975,10 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           <p class="sc-hub-title" data-i18n="navGear">Gear</p>
           <p class="sc-hub-sub" data-i18n="setupGearSub">Instruments, amps &amp; load-in checklist</p>
         </div>
-        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        <div class="sc-hub-badge-wrap">
+          <span class="sc-hub-badge" id="hub-counter-gear">0 Items</span>
+          <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        </div>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Members')">
@@ -1980,7 +1989,10 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           <p class="sc-hub-title" data-i18n="navMembers">Members</p>
           <p class="sc-hub-sub" data-i18n="setupMembersSub">Band roster, roles &amp; contact info</p>
         </div>
-        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        <div class="sc-hub-badge-wrap">
+          <span class="sc-hub-badge" id="hub-counter-members">0 Members</span>
+          <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
+        </div>
       </button>
 
     </div>
@@ -2367,6 +2379,9 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
         <!-- mode-pill lives outside canvas, see #mode-pill in body -->
 
+        <!-- Permanent Stage Layout SVG overlay -->
+        <svg id="stage-layout-svg" class="absolute inset-0 w-full h-full" style="pointer-events:none;z-index:0;overflow:visible;"></svg>
+
         <!-- SVG Connection Layer -->
         <svg id="connections-svg" class="absolute inset-0 w-full h-full" style="pointer-events:none;z-index:10;overflow:visible;"></svg>
 
@@ -2389,11 +2404,30 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           </div>
         </div>
 
-        <!-- Drop hint -->
-        <div id="drop-zone-hint" class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity" style="z-index:0;">
-          <div class="text-center">
-            <span class="material-symbols-outlined text-on-surface-variant" style="font-size:48px;opacity:0.2;">drag_indicator</span>
-            <p class="text-on-surface-variant font-headline font-bold uppercase tracking-widest mt-2" style="font-size:11px;opacity:0.3;font-family:'Manrope',sans-serif;" data-i18n="dragHere">Drag elements here</p>
+        <!-- Empty Stage Help Card -->
+        <div id="drop-zone-hint" class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity" style="z-index:5;pointer-events:none;">
+          <div class="sc-help-card text-center" style="max-width:380px;padding:24px;border-radius:16px;background:rgba(26,26,26,0.65);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 32px 0 rgba(0,0,0,0.37);">
+            <div class="flex justify-center mb-4">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background:rgba(122, 175, 255, 0.1);color:var(--accent);">
+                <span class="material-symbols-outlined" style="font-size:24px;">grid_view</span>
+              </div>
+            </div>
+            <h3 class="font-headline font-bold text-on-surface mb-2" style="font-size:15px;letter-spacing:0.02em;">Setup Your Stage Plot</h3>
+            <p class="font-body text-on-surface-variant mb-4" style="font-size:12px;line-height:1.5;">Drag performer roles, mics, monitor wedges, and backline gear from the sidebar to populate the stage.</p>
+            <div class="text-left font-body text-on-surface-variant space-y-2" style="font-size:11px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined" style="font-size:14px;color:var(--accent);">check_circle</span>
+                <span>Position and scale elements on the grid</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined" style="font-size:14px;color:var(--accent);">check_circle</span>
+                <span>Select any item to customize labels &amp; settings</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined" style="font-size:14px;color:var(--accent);">check_circle</span>
+                <span>Toggle Setup view for lists and rosters</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2688,85 +2722,92 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
       <h1 data-i18n="riderTitle" style="font-family:'Manrope',sans-serif;font-size:2rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;line-height:1;">Rider</h1>
     </div>
 
-    <!-- Input List section -->
-    <div style="margin-bottom:20px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <h2 style="font-family:'Manrope',sans-serif;font-size:1.5rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;">Input List</h2>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <span style="font-family:'Inter',sans-serif;font-size:9px;color:#484847;text-transform:uppercase;letter-spacing:0.1em;">Auto-synced from stage</span>
+    <div class="sc-desktop-split">
+      <div class="sc-left-panel">
+        <!-- Input List section -->
+        <div style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <h2 style="font-family:'Manrope',sans-serif;font-size:1.5rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;">Input List</h2>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span style="font-family:'Inter',sans-serif;font-size:9px;color:#484847;text-transform:uppercase;letter-spacing:0.1em;">Auto-synced from stage</span>
+            </div>
+          </div>
+
+          <div style="background:#191a1a;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);">
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-height:320px;overflow-y:auto;">
+              <table class="rd-input-table">
+                <thead>
+                  <tr>
+                    <th style="min-width:50px;">CH#</th>
+                    <th style="min-width:100px;">Source Name</th>
+                    <th style="min-width:90px;">Type</th>
+                    <th style="min-width:100px;">Input Source</th>
+                    <th style="min-width:56px;">Output</th>
+                    <th style="min-width:44px;text-align:center;">+48V</th>
+                    <th style="min-width:60px;">Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="rider-table-body">
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Stats row -->
+          <div class="rd-stats-row" style="margin-top:10px;">
+            <div class="rd-stat-block">
+              <span class="rd-stat-label">Channels</span>
+              <span id="rider-ch-count" class="rd-stat-val" style="color:var(--accent);">0 / 32</span>
+            </div>
+            <div class="rd-stat-block">
+              <span class="rd-stat-label">Elements</span>
+              <span id="rider-el-count" class="rd-stat-val" style="color:var(--hot);">0</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div style="background:#191a1a;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);">
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-height:320px;overflow-y:auto;">
-          <table class="rd-input-table">
-            <thead>
-              <tr>
-                <th style="min-width:50px;">CH#</th>
-                <th style="min-width:100px;">Source Name</th>
-                <th style="min-width:90px;">Type</th>
-                <th style="min-width:100px;">Input Source</th>
-                <th style="min-width:56px;">Output</th>
-                <th style="min-width:44px;text-align:center;">+48V</th>
-                <th style="min-width:60px;">Notes</th>
-              </tr>
-            </thead>
-            <tbody id="rider-table-body">
-            </tbody>
-          </table>
+      <div class="sc-right-panel">
+        <!-- Technical Requirements card -->
+        <div class="rd-card" style="margin-top:0;">
+          <div class="rd-card-header">
+            <span class="material-symbols-outlined rd-card-icon">checklist</span>
+            <h3 class="rd-card-title" style="flex:1;">Technical Requirements</h3>
+            <button onclick="addRiderNeed()" class="rd-btn rd-btn--ghost" style="padding:6px 12px;font-size:9px;">
+              <span class="material-symbols-outlined" style="font-size:13px;">add</span>Add Need
+            </button>
+          </div>
+          <div id="rider-needs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
         </div>
-      </div>
 
-      <!-- Stats row -->
-      <div class="rd-stats-row" style="margin-top:10px;">
-        <div class="rd-stat-block">
-          <span class="rd-stat-label">Channels</span>
-          <span id="rider-ch-count" class="rd-stat-val" style="color:var(--accent);">0 / 32</span>
-        </div>
-        <div class="rd-stat-block">
-          <span class="rd-stat-label">Elements</span>
-          <span id="rider-el-count" class="rd-stat-val" style="color:var(--hot);">0</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Config cards row -->
-    <!-- Technical Requirements card -->
-    <div class="rd-card">
-      <div class="rd-card-header">
-        <span class="material-symbols-outlined rd-card-icon">checklist</span>
-        <h3 class="rd-card-title" style="flex:1;">Technical Requirements</h3>
-        <button onclick="addRiderNeed()" class="rd-btn rd-btn--ghost" style="padding:6px 12px;font-size:9px;">
-          <span class="material-symbols-outlined" style="font-size:13px;">add</span>Add Need
-        </button>
-      </div>
-      <div id="rider-needs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-
-    <!-- Technical Notes card -->
-    <div class="rd-card">
-      <div class="rd-card-header">
-        <span class="material-symbols-outlined rd-card-icon">description</span>
-        <h3 class="rd-card-title" data-i18n="techNotesTitle">Technical Notes</h3>
-      </div>
-      <textarea id="rider-notes-text" class="rd-notes-textarea"
-        placeholder="Add technical notes, venue requirements, hospitality requests…"
-        oninput="if(typeof markAutosaveDirty==='function')markAutosaveDirty()"
-      >Artist provides all instruments, IEM transmitters, and playback rack. Venue supplies microphones, stands, and XLR cabling. PA must sustain 105 dB continuous at FOH.
+        <!-- Technical Notes card -->
+        <div class="rd-card">
+          <div class="rd-card-header">
+            <span class="material-symbols-outlined rd-card-icon">description</span>
+            <h3 class="rd-card-title" data-i18n="techNotesTitle">Technical Notes</h3>
+          </div>
+          <textarea id="rider-notes-text" class="rd-notes-textarea"
+            placeholder="Add technical notes, venue requirements, hospitality requests…"
+            oninput="if(typeof markAutosaveDirty==='function')markAutosaveDirty()"
+          >Artist provides all instruments, IEM transmitters, and playback rack. Venue supplies microphones, stands, and XLR cabling. PA must sustain 105 dB continuous at FOH.
 
 Front-fills mandatory for the first 3 rows. All wireless systems must be frequency-coordinated before load-in.</textarea>
-    </div>
+        </div>
 
-    <!-- Live Stage Plot Preview -->
-    <div style="margin-bottom:6px;">
-      <h3 style="font-family:'Manrope',sans-serif;font-size:1.2rem;font-weight:900;color:#e7e5e4;margin:0 0 12px;letter-spacing:-0.03em;">Stage Plot Visualization</h3>
-    </div>
-    <div class="rd-stage-preview">
-      <div class="rd-stage-preview-inner" id="rider-stage-preview-slot"></div>
-      <div class="rd-stage-preview-grad"></div>
-      <div class="rd-stage-preview-badge">
-        <span class="rd-live-dot"></span>
-        <span>Live Edit Mode</span>
+        <!-- Live Stage Plot Preview -->
+        <div>
+          <div style="margin-bottom:6px;">
+            <h3 style="font-family:'Manrope',sans-serif;font-size:1.2rem;font-weight:900;color:#e7e5e4;margin:0 0 12px;letter-spacing:-0.03em;">Stage Plot Visualization</h3>
+          </div>
+          <div class="rd-stage-preview">
+            <div class="rd-stage-preview-inner" id="rider-stage-preview-slot"></div>
+            <div class="rd-stage-preview-grad"></div>
+            <div class="rd-stage-preview-badge">
+              <span class="rd-live-dot"></span>
+              <span>Live Edit Mode</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2786,72 +2827,80 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
       <p style="font-family:'Manrope',sans-serif;font-size:11px;color:#484847;margin:3px 0 0;"><span id="sl-rev">Rev 1.0</span>&nbsp;·&nbsp;<span id="sl-date-val"></span></p>
     </div>
 
-    <!-- ── Big stat cards (stacked) ── -->
-    <div class="sl-big-stat" style="margin-bottom:10px;">
-      <p class="sl-big-stat-label" data-i18n="slSongsCount">Songs Count</p>
-      <p id="sl-stat-count" class="sl-big-stat-val">0</p>
-    </div>
+    <div class="sc-desktop-split">
+      <div class="sc-left-panel">
+        <!-- ── "Current Arrangement" header + action buttons ── -->
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:14px;">
+          <h2 data-i18n="slCurrentArrangement" style="font-family:'Manrope',sans-serif;font-size:1.55rem;font-weight:800;color:#e0e0e0;margin:0;letter-spacing:-0.025em;line-height:1.15;">Current<br>Arrangement</h2>
+          <div style="display:flex;gap:6px;flex-shrink:0;padding-bottom:2px;">
+            <button onclick="openBatchImport()" class="sl-refine-btn" title="Import">
+              <span class="material-symbols-outlined" style="font-size:14px;">playlist_add</span>
+            </button>
+            <button onclick="openSectionsModal()" class="sl-refine-btn">
+              <span class="material-symbols-outlined" style="font-size:14px;">view_agenda</span><span data-i18n="slSections">Sections</span>
+            </button>
+          </div>
+        </div>
 
-    <div class="sl-big-stat" style="margin-bottom:10px;">
-      <p class="sl-big-stat-label" data-i18n="slTotalDuration">Total Duration</p>
-      <p id="sl-stat-duration" class="sl-big-stat-val" style="color:var(--hot);">0:00</p>
-    </div>
+        <!-- ── Song list ── -->
+        <div class="sl-song-container">
+          <div id="setlist-body"></div>
+        </div>
 
-    <div class="sl-big-stat" style="margin-bottom:20px;">
-      <p class="sl-big-stat-label" data-i18n="slAvgEnergy">Avg Energy</p>
-      <p id="sl-stat-energy" class="sl-big-stat-val" style="color:var(--accent);">—</p>
-    </div>
-
-    <!-- Segments stat card (revealed by app.js) -->
-    <div id="sl-stat-segments-block" style="display:none;margin-bottom:10px;">
-      <div class="sl-big-stat">
-        <p class="sl-big-stat-label" data-i18n="slSegments">Segments</p>
-        <p id="sl-stat-segments" class="sl-big-stat-val" style="color:#c8a2ff;">0</p>
-      </div>
-    </div>
-    <!-- Hidden compat div -->
-    <div id="sl-stat-segments-wrap" style="display:none;"></div>
-
-    <!-- Segments pills bar -->
-    <div id="segments-bar" style="display:none;flex-wrap:wrap;gap:7px;margin-bottom:16px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;"></div>
-
-    <!-- ── "Current Arrangement" header + action buttons ── -->
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:14px;">
-      <h2 data-i18n="slCurrentArrangement" style="font-family:'Manrope',sans-serif;font-size:1.55rem;font-weight:800;color:#e0e0e0;margin:0;letter-spacing:-0.025em;line-height:1.15;">Current<br>Arrangement</h2>
-      <div style="display:flex;gap:6px;flex-shrink:0;padding-bottom:2px;">
-        <button onclick="openBatchImport()" class="sl-refine-btn" title="Import">
-          <span class="material-symbols-outlined" style="font-size:14px;">playlist_add</span>
-        </button>
-        <button onclick="openSectionsModal()" class="sl-refine-btn">
-          <span class="material-symbols-outlined" style="font-size:14px;">view_agenda</span><span data-i18n="slSections">Sections</span>
+        <!-- ── Add New Track pill ── -->
+        <button onclick="addSong()" class="sl-add-btn">
+          <span class="material-symbols-outlined" style="font-size:16px;">add_circle</span><span data-i18n="slAddNewTrack">Add New Track</span>
         </button>
       </div>
-    </div>
 
-    <!-- ── Song list ── -->
-    <div class="sl-song-container">
-      <div id="setlist-body"></div>
-    </div>
+      <div class="sc-right-panel">
+        <!-- ── Big stat cards ── -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="sl-big-stat" style="margin-bottom:0;">
+            <p class="sl-big-stat-label" data-i18n="slSongsCount">Songs Count</p>
+            <p id="sl-stat-count" class="sl-big-stat-val">0</p>
+          </div>
 
-    <!-- ── Add New Track pill ── -->
-    <button onclick="addSong()" class="sl-add-btn">
-      <span class="material-symbols-outlined" style="font-size:16px;">add_circle</span><span data-i18n="slAddNewTrack">Add New Track</span>
-    </button>
+          <div class="sl-big-stat" style="margin-bottom:0;">
+            <p class="sl-big-stat-label" data-i18n="slTotalDuration">Total Duration</p>
+            <p id="sl-stat-duration" class="sl-big-stat-val" style="color:var(--hot);">0:00</p>
+          </div>
 
-    <!-- ── Setlist Insights ── -->
-    <div class="sc-card">
-      <p class="sc-card-title" data-i18n="slSetlistInsights" style="margin-bottom:14px;">Setlist Insights</p>
-      <div class="sl-insight-row">
-        <span class="sl-insight-label" data-i18n="slTempoStability">Tempo Stability</span>
-        <span class="sl-insight-val" id="insight-tempo">—</span>
-      </div>
-      <div class="sl-insight-row">
-        <span class="sl-insight-label" data-i18n="slKeyVariety">Key Variety</span>
-        <span class="sl-insight-val" id="insight-keys">—</span>
-      </div>
-      <div class="sl-insight-row">
-        <span class="sl-insight-label" data-i18n="slTransitionFluidity">Transition Fluidity</span>
-        <span class="sl-insight-val" id="insight-flow">—</span>
+          <div class="sl-big-stat" style="margin-bottom:0;">
+            <p class="sl-big-stat-label" data-i18n="slAvgEnergy">Avg Energy</p>
+            <p id="sl-stat-energy" class="sl-big-stat-val" style="color:var(--accent);">—</p>
+          </div>
+
+          <!-- Segments stat card (revealed by app.js) -->
+          <div id="sl-stat-segments-block" style="display:none;margin-bottom:0;">
+            <div class="sl-big-stat" style="margin-bottom:0;">
+              <p class="sl-big-stat-label" data-i18n="slSegments">Segments</p>
+              <p id="sl-stat-segments" class="sl-big-stat-val" style="color:#c8a2ff;">0</p>
+            </div>
+          </div>
+        </div>
+        <!-- Hidden compat div -->
+        <div id="sl-stat-segments-wrap" style="display:none;"></div>
+
+        <!-- Segments pills bar -->
+        <div id="segments-bar" style="display:none;flex-wrap:wrap;gap:7px;margin-bottom:16px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;"></div>
+
+        <!-- ── Setlist Insights ── -->
+        <div class="sc-card" style="margin-top:0;">
+          <p class="sc-card-title" data-i18n="slSetlistInsights" style="margin-bottom:14px;">Setlist Insights</p>
+          <div class="sl-insight-row">
+            <span class="sl-insight-label" data-i18n="slTempoStability">Tempo Stability</span>
+            <span class="sl-insight-val" id="insight-tempo">—</span>
+          </div>
+          <div class="sl-insight-row">
+            <span class="sl-insight-label" data-i18n="slKeyVariety">Key Variety</span>
+            <span class="sl-insight-val" id="insight-keys">—</span>
+          </div>
+          <div class="sl-insight-row">
+            <span class="sl-insight-label" data-i18n="slTransitionFluidity">Transition Fluidity</span>
+            <span class="sl-insight-val" id="insight-flow">—</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3079,49 +3128,55 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
       </button>
     </div>
 
-    <div id="gear-stats-row" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px;">
-      <div class="gear-bento-stat">
-        <p class="gear-bento-label" data-i18n="gearTotalItems">Total Items</p>
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-          <span id="gear-stat-total" class="gear-bento-val">0</span>
-          <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">inventory_2</span>
+    <div class="sc-desktop-split">
+      <div class="sc-left-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <p data-i18n="gearActiveInventory" style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;color:#e7e5e4;margin:0;letter-spacing:-0.01em;">Active Inventory</p>
+          <div id="gear-search-wrap" style="position:relative;">
+            <span class="material-symbols-outlined" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#484847;">search</span>
+            <input id="gear-search" type="text" placeholder="Search gear..." oninput="renderGear()"
+              style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 12px 8px 32px;font-family:'Inter',sans-serif;font-size:12px;color:#e7e5e4;outline:none;width:140px;transition:border-color 0.15s,width 0.2s;"
+              onfocus="this.style.borderColor='rgba(103,156,255,0.4)';this.style.width='180px'" onblur="this.style.borderColor='rgba(255,255,255,0.08)';this.style.width='140px'" />
+          </div>
         </div>
-      </div>
-      <div class="gear-bento-stat">
-        <p class="gear-bento-label" data-i18n="gearPacked">Packed</p>
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-          <span id="gear-stat-packed" class="gear-bento-val" style="color:#c5ffc9;">0</span>
-          <span class="material-symbols-outlined" style="font-size:22px;color:#c5ffc9;margin-bottom:2px;">done_all</span>
-        </div>
-      </div>
-      <div class="gear-bento-stat">
-        <p class="gear-bento-label" data-i18n="gearRemaining">Remaining</p>
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-          <span id="gear-stat-remaining" class="gear-bento-val" style="color:var(--hot);">0</span>
-          <span class="material-symbols-outlined" style="font-size:22px;color:var(--hot);margin-bottom:2px;">pending_actions</span>
-        </div>
-      </div>
-      <div class="gear-bento-stat">
-        <p class="gear-bento-label" data-i18n="gearTotalUnits">Total Units</p>
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-          <span id="gear-stat-units" class="gear-bento-val" style="color:var(--accent);">0</span>
-          <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">layers</span>
-        </div>
-      </div>
-    </div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <p data-i18n="gearActiveInventory" style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;color:#e7e5e4;margin:0;letter-spacing:-0.01em;">Active Inventory</p>
-      <div id="gear-search-wrap" style="position:relative;">
-        <span class="material-symbols-outlined" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#484847;">search</span>
-        <input id="gear-search" type="text" placeholder="Search gear..." oninput="renderGear()"
-          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 12px 8px 32px;font-family:'Inter',sans-serif;font-size:12px;color:#e7e5e4;outline:none;width:140px;transition:border-color 0.15s,width 0.2s;"
-          onfocus="this.style.borderColor='rgba(103,156,255,0.4)';this.style.width='180px'" onblur="this.style.borderColor='rgba(255,255,255,0.08)';this.style.width='140px'" />
+        <div id="gear-list-container" style="background:rgba(255,255,255,0.025);border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
+          <div id="gear-body"></div>
+        </div>
       </div>
-    </div>
 
-    <div id="gear-list-container" style="background:rgba(255,255,255,0.025);border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
-      <div id="gear-body"></div>
+      <div class="sc-right-panel">
+        <div id="gear-stats-row" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:0;">
+          <div class="gear-bento-stat">
+            <p class="gear-bento-label" data-i18n="gearTotalItems">Total Items</p>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+              <span id="gear-stat-total" class="gear-bento-val">0</span>
+              <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">inventory_2</span>
+            </div>
+          </div>
+          <div class="gear-bento-stat">
+            <p class="gear-bento-label" data-i18n="gearPacked">Packed</p>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+              <span id="gear-stat-packed" class="gear-bento-val" style="color:#c5ffc9;">0</span>
+              <span class="material-symbols-outlined" style="font-size:22px;color:#c5ffc9;margin-bottom:2px;">done_all</span>
+            </div>
+          </div>
+          <div class="gear-bento-stat">
+            <p class="gear-bento-label" data-i18n="gearRemaining">Remaining</p>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+              <span id="gear-stat-remaining" class="gear-bento-val" style="color:var(--hot);">0</span>
+              <span class="material-symbols-outlined" style="font-size:22px;color:var(--hot);margin-bottom:2px;">pending_actions</span>
+            </div>
+          </div>
+          <div class="gear-bento-stat">
+            <p class="gear-bento-label" data-i18n="gearTotalUnits">Total Units</p>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+              <span id="gear-stat-units" class="gear-bento-val" style="color:var(--accent);">0</span>
+              <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">layers</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -3185,50 +3240,58 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
       <h1 class="sc-section-title" data-i18n="membersTitle">Members</h1>
     </div>
 
-    <!-- Add member — full-width card -->
-    <div class="sc-card" style="margin-bottom:14px;padding:12px 14px;">
-      <p class="sc-stat-label" style="margin-bottom:8px;">Add Member</p>
-      <div style="display:flex;gap:8px;">
-        <input id="member-name-input" type="text" placeholder="Enter a name..." maxlength="24"
-          style="flex:1;min-width:0;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:8px;color:#fff;font-family:'Inter';font-size:13px;outline:none;transition:border-color 0.15s;"
-          onfocus="this.style.borderColor='#c8a2ff'" onblur="this.style.borderColor='rgba(255,255,255,0.09)'"
-          onkeydown="if(event.key==='Enter'){event.stopPropagation();addMember();}"/>
-        <button onclick="addMember()" id="btn-add-member"
-          style="padding:10px 16px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:#c8a2ff;color:#0a0a0a;border:none;border-radius:8px;cursor:pointer;flex-shrink:0;"
-          onmouseover="this.style.opacity='0.82'" onmouseout="this.style.opacity='1'">+ Add</button>
+    <div class="sc-desktop-split">
+      <div class="sc-left-panel">
+        <!-- Member cards grid -->
+        <div id="members-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;"></div>
+
+        <!-- Empty state -->
+        <div id="members-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;gap:10px;text-align:center;">
+          <div style="font-family:'Manrope',sans-serif;font-size:64px;font-weight:900;color:#fff;opacity:0.03;line-height:1;user-select:none;">BAND</div>
+          <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#2a2a2a;margin:0;">No members yet</p>
+          <p style="font-size:12px;color:#222;margin:0;">Enter a name and tap Add to get started.</p>
+        </div>
       </div>
-      <p id="members-max-warn" style="display:none;font-size:10px;color:var(--hot);font-weight:600;margin:6px 0 0;">Maximum 8 members reached.</p>
+
+      <div class="sc-right-panel">
+        <!-- Add member — full-width card -->
+        <div class="sc-card" style="margin-bottom:14px;padding:12px 14px;margin-top:0;">
+          <p class="sc-stat-label" style="margin-bottom:8px;">Add Member</p>
+          <div style="display:flex;gap:8px;">
+            <input id="member-name-input" type="text" placeholder="Enter a name..." maxlength="24"
+              style="flex:1;min-width:0;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:8px;color:#fff;font-family:'Inter';font-size:13px;outline:none;transition:border-color 0.15s;"
+              onfocus="this.style.borderColor='#c8a2ff'" onblur="this.style.borderColor='rgba(255,255,255,0.09)'"
+              onkeydown="if(event.key==='Enter'){event.stopPropagation();addMember();}"/>
+            <button onclick="addMember()" id="btn-add-member"
+              style="padding:10px 16px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:#c8a2ff;color:#0a0a0a;border:none;border-radius:8px;cursor:pointer;flex-shrink:0;"
+              onmouseover="this.style.opacity='0.82'" onmouseout="this.style.opacity='1'">+ Add</button>
+          </div>
+          <p id="members-max-warn" style="display:none;font-size:10px;color:var(--hot);font-weight:600;margin:6px 0 0;">Maximum 8 members reached.</p>
+        </div>
+
+        <!-- Stats 2×2 -->
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">
+          <div class="sc-stat-card">
+            <p class="sc-stat-label">Members</p>
+            <p id="members-stat-count" class="sc-stat-val" style="color:#fff;">0<span style="color:#484847;font-size:13px;font-weight:500;">/8</span></p>
+          </div>
+          <div class="sc-stat-card">
+            <p class="sc-stat-label">Assigned</p>
+            <p id="members-stat-assigned" class="sc-stat-val" style="color:#c8a2ff;">0</p>
+          </div>
+          <div class="sc-stat-card">
+            <p class="sc-stat-label">Stage Elements</p>
+            <p id="members-stat-elements" class="sc-stat-val" style="color:var(--accent);">0</p>
+          </div>
+          <div class="sc-stat-card">
+            <p class="sc-stat-label">Unassigned</p>
+            <p id="members-stat-unassigned" class="sc-stat-val" style="color:var(--hot);">0</p>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Stats 2×2 -->
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Members</p>
-        <p id="members-stat-count" class="sc-stat-val" style="color:#fff;">0<span style="color:#484847;font-size:13px;font-weight:500;">/8</span></p>
-      </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Assigned</p>
-        <p id="members-stat-assigned" class="sc-stat-val" style="color:#c8a2ff;">0</p>
-      </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Stage Elements</p>
-        <p id="members-stat-elements" class="sc-stat-val" style="color:var(--accent);">0</p>
-      </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Unassigned</p>
-        <p id="members-stat-unassigned" class="sc-stat-val" style="color:var(--hot);">0</p>
-      </div>
-    </div>
-
-    <!-- Member cards grid -->
-    <div id="members-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;"></div>
-
-    <!-- Empty state -->
-    <div id="members-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;gap:10px;text-align:center;">
-      <div style="font-family:'Manrope',sans-serif;font-size:64px;font-weight:900;color:#fff;opacity:0.03;line-height:1;user-select:none;">BAND</div>
-      <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#2a2a2a;margin:0;">No members yet</p>
-      <p style="font-size:12px;color:#222;margin:0;">Enter a name and tap Add to get started.</p>
-    </div>
+  </div>
 
   </div>
 </div>

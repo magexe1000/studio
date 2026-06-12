@@ -251,12 +251,13 @@ const STAGEX_LIBRARY: Record<string, { name: string; icon: string; type: string 
   ],
   people: [
     { name: 'Performer',   icon: 'cx-person',        type: 'Person' },
-    { name: 'Vocalist',    icon: 'cx-person',        type: 'Person' },
-    { name: 'Guitarist',   icon: 'cx-person',        type: 'Person' },
-    { name: 'Bassist',     icon: 'cx-person',        type: 'Person' },
-    { name: 'Drummer',     icon: 'cx-person',        type: 'Person' },
-    { name: 'Keyboardist', icon: 'cx-person',        type: 'Person' },
-    { name: 'Tech',        icon: 'cx-person',        type: 'Person' },
+    { name: 'Vocalist',    icon: 'cx-vocalist',      type: 'Person' },
+    { name: 'Guitarist',   icon: 'cx-guitarist',     type: 'Person' },
+    { name: 'Bassist',     icon: 'cx-bassist',       type: 'Person' },
+    { name: 'Drummer',     icon: 'cx-drummer',       type: 'Person' },
+    { name: 'Keyboardist', icon: 'cx-keyboardist',   type: 'Person' },
+    { name: 'Saxophonist', icon: 'cx-saxophonist',   type: 'Person' },
+    { name: 'Tech',        icon: 'cx-tech',          type: 'Person' },
   ],
 };
 
@@ -310,6 +311,13 @@ const STAGEX_ICON_MAP: Record<string, string> = {
   'play-circle':        '/stage-core/icons/playback.svg',
   'cx-outlet':          '/stage-core/icons/outlet.svg',
   'cx-person':          '/stage-core/icons/person.svg',
+  'cx-vocalist':        '/stage-core/icons/vocalist.svg',
+  'cx-guitarist':       '/stage-core/icons/guitarist.svg',
+  'cx-bassist':         '/stage-core/icons/bassist.svg',
+  'cx-drummer':         '/stage-core/icons/drummer.svg',
+  'cx-keyboardist':     '/stage-core/icons/keyboardist.svg',
+  'cx-saxophonist':     '/stage-core/icons/saxophonist.svg',
+  'cx-tech':            '/stage-core/icons/tech.svg',
 };
 
 const CATEGORY_ICONS: Record<string, string> = {

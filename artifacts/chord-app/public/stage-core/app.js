@@ -196,7 +196,7 @@ const TRANSLATIONS = {
     libWireless:'Wireless', libBoundary:'Boundary', libDrumClip:'Drum Clip', libMicStand:'Mic Stand',
     // Library — People
     libPerformer:'Performer', libVocalist:'Vocalist', libGuitarist:'Guitarist',
-    libBassist:'Bassist', libDrummer:'Drummer', libKeyboardist:'Keyboardist', libTech:'Tech',
+    libBassist:'Bassist', libDrummer:'Drummer', libKeyboardist:'Keyboardist', libSaxophonist:'Saxophonist', libTech:'Tech',
     // Library — Drums
     libDrumKit:'Drum Kit', libEDrums:'E-Drums', libPercussion:'Percussion', libCajon:'Cajón',
     // Library — Instruments
@@ -351,7 +351,7 @@ const TRANSLATIONS = {
     libWireless:'Inalámbrico', libBoundary:'PZM', libDrumClip:'Clip de batería', libMicStand:'Pedestal',
     // Library — People
     libPerformer:'Músico', libVocalist:'Vocalista', libGuitarist:'Guitarrista',
-    libBassist:'Bajista', libDrummer:'Baterista', libKeyboardist:'Tecladista', libTech:'Técnico',
+    libBassist:'Bajista', libDrummer:'Baterista', libKeyboardist:'Tecladista', libSaxophonist:'Saxofonista', libTech:'Técnico',
     // Library — Drums
     libDrumKit:'Batería', libEDrums:'Batería elec.', libPercussion:'Percusión', libCajon:'Cajón',
     // Library — Instruments
@@ -440,12 +440,13 @@ const library = {
   ],
   people: [
     { name: 'Performer',   nameKey:'libPerformer',   icon: 'cx-person',        type: 'Person' },
-    { name: 'Vocalist',    nameKey:'libVocalist',    icon: 'cx-person',        type: 'Person' },
-    { name: 'Guitarist',   nameKey:'libGuitarist',   icon: 'cx-person',        type: 'Person' },
-    { name: 'Bassist',     nameKey:'libBassist',     icon: 'cx-person',        type: 'Person' },
-    { name: 'Drummer',     nameKey:'libDrummer',     icon: 'cx-person',        type: 'Person' },
-    { name: 'Keyboardist', nameKey:'libKeyboardist', icon: 'cx-person',        type: 'Person' },
-    { name: 'Tech',        nameKey:'libTech',        icon: 'cx-person',        type: 'Person' },
+    { name: 'Vocalist',    nameKey:'libVocalist',    icon: 'cx-vocalist',      type: 'Person' },
+    { name: 'Guitarist',   nameKey:'libGuitarist',   icon: 'cx-guitarist',     type: 'Person' },
+    { name: 'Bassist',     nameKey:'libBassist',     icon: 'cx-bassist',       type: 'Person' },
+    { name: 'Drummer',     nameKey:'libDrummer',     icon: 'cx-drummer',       type: 'Person' },
+    { name: 'Keyboardist', nameKey:'libKeyboardist', icon: 'cx-keyboardist',   type: 'Person' },
+    { name: 'Saxophonist', nameKey:'libSaxophonist', icon: 'cx-saxophonist',   type: 'Person' },
+    { name: 'Tech',        nameKey:'libTech',        icon: 'cx-tech',          type: 'Person' },
   ],
   drums: [
     { name: 'Drum Kit',    nameKey:'libDrumKit',     icon: 'drum',              type: 'Acoustic Drums' },
@@ -566,6 +567,13 @@ const ICON_IMAGES = {
   'cx-outlet':          '/stage-core/icons/outlet.svg',
   // ── People ────────────────────────────────────────────
   'cx-person':          '/stage-core/icons/person.svg',
+  'cx-vocalist':        '/stage-core/icons/vocalist.svg',
+  'cx-guitarist':       '/stage-core/icons/guitarist.svg',
+  'cx-bassist':         '/stage-core/icons/bassist.svg',
+  'cx-drummer':         '/stage-core/icons/drummer.svg',
+  'cx-keyboardist':     '/stage-core/icons/keyboardist.svg',
+  'cx-saxophonist':     '/stage-core/icons/saxophonist.svg',
+  'cx-tech':            '/stage-core/icons/tech.svg',
 };
 function iconHtml(icon, size, extra) {
   const src = ICON_IMAGES[icon];
@@ -808,6 +816,43 @@ const CUSTOM_ICONS = {
   'cx-person': `
     <circle cx="12" cy="5.5" r="3.5"/>
     <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>`,
+
+  'cx-vocalist': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <line x1="12" y1="14" x2="12" y2="24"/>
+    <circle cx="12" cy="11" r="1.5" fill="currentColor"/>`,
+
+  'cx-guitarist': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <path d="M7 16 L17 12 L18 14 L8 18 Z" fill="currentColor"/>`,
+
+  'cx-bassist': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <path d="M7 17 L18 12 L19 14 L8 19 Z" fill="currentColor"/>`,
+
+  'cx-drummer': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <rect x="6" y="16" width="12" height="6" rx="1" fill="none" stroke="currentColor"/>
+    <ellipse cx="12" cy="16" rx="6" ry="1" fill="currentColor"/>`,
+
+  'cx-keyboardist': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <rect x="4" y="15" width="16" height="3" fill="currentColor"/>`,
+
+  'cx-saxophonist': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <path d="M12 9 Q10 11 10 16 Q13 18 14 16 L13 14" fill="none" stroke="currentColor"/>`,
+
+  'cx-tech': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <rect x="9" y="14" width="6" height="7" rx="0.5" fill="currentColor"/>`,
 };
 
 // ── Lucide helper: defers icon scan to after paint, optional scope ────────────
@@ -972,6 +1017,30 @@ if (_redoBtn) _redoBtn.addEventListener('click', redo);
 // ══════════════════════════════════════════════════════════
 //  VIEW SWITCHING
 // ══════════════════════════════════════════════════════════
+function updateSetupHubCounts() {
+  const riderBadge = document.getElementById('hub-counter-rider');
+  const setlistBadge = document.getElementById('hub-counter-setlist');
+  const gearBadge = document.getElementById('hub-counter-gear');
+  const membersBadge = document.getElementById('hub-counter-members');
+
+  if (riderBadge) {
+    const activeChannels = state.elements.length;
+    riderBadge.textContent = activeChannels === 1 ? '1 Channel' : `${activeChannels} Channels`;
+  }
+  if (setlistBadge) {
+    const songCount = state.setlist.length;
+    setlistBadge.textContent = songCount === 1 ? '1 Song' : `${songCount} Songs`;
+  }
+  if (gearBadge) {
+    const gearCount = state.gear.length;
+    gearBadge.textContent = gearCount === 1 ? '1 Item' : `${gearCount} Items`;
+  }
+  if (membersBadge) {
+    const memberCount = state.members.length;
+    membersBadge.textContent = memberCount === 1 ? '1 Member' : `${memberCount} Members`;
+  }
+}
+
 function switchView(view) {
   // Map React-facing view names to internal iframe view names
   if (view === 'Preferences') view = 'Assistant';
@@ -1021,6 +1090,7 @@ function switchView(view) {
   });
   if (view === 'Editor') { renderElements(); lcIcons(); renderScenesBar(); }
   else { const _sb = document.getElementById('sc-scenes-bar'); if (_sb) _sb.style.display = 'none'; }
+  if (view === 'SetupHub') updateSetupHubCounts();
   if (view === 'Rider') refreshRider();
   if (view === 'Setlist') renderSetlist();
   if (view === 'Gear') { renderGear(); lcIcons(); }
@@ -1802,6 +1872,7 @@ function renderElements() {
   updateStatusBar();
   // Scope to the layer only — never scan the full document (very slow)
   lcIcons(layer);
+  updateDropHint();
 }
 
 function createElementDOM(el) {
@@ -2330,7 +2401,11 @@ function removeSelected() {
 }
 
 function updateDropHint() {
-  document.getElementById('drop-zone-hint').style.opacity = '0';
+  const hint = document.getElementById('drop-zone-hint');
+  if (!hint) return;
+  const show = state.elements.length === 0;
+  hint.style.opacity = show ? '1' : '0';
+  hint.style.pointerEvents = show ? 'auto' : 'none';
 }
 
 // ══════════════════════════════════════════════════════════
