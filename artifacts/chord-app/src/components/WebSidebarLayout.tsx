@@ -7,11 +7,34 @@ import { useT } from '../lib/useT';
 import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
 import { useOtaUpdate } from '../lib/otaUpdate';
 import { APP_VERSION_LABEL } from '../lib/appVersion';
+import { useStudioPreferences } from '../hooks/useStudioPreferences';
 
+function SidebarLabel({ children, open }: { children: React.ReactNode; open: boolean }) {
+  const { preferences } = useStudioPreferences();
+  const isReduced = preferences.reduceMotion;
+  return (
+    <motion.span
+      initial={false}
+      animate={{ 
+        opacity: open ? 1 : 0, 
+        x: open ? 0 : -8,
+        width: open ? 'auto' : 0,
+        marginLeft: open ? 0 : -12
+      }}
+      transition={isReduced ? { duration: 0 } : { duration: 0.15, ease: 'easeOut' }}
+      className="truncate"
+      style={{ display: 'inline-block', whiteSpace: 'nowrap', overflow: 'hidden' }}
+    >
+      {children}
+    </motion.span>
+  );
+}
 
 export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSidebar: boolean }) {
   const { settings, updateSettings, activePanel, setActivePanel } = useChordStore();
   const { open, toggleSidebar } = useSidebar();
+  const { preferences } = useStudioPreferences();
+  const isReduced = preferences.reduceMotion;
   const t = useT();
   const ota = useOtaUpdate();
 
@@ -184,19 +207,20 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
     <Sidebar shouldHideSidebar={shouldHideSidebar} style={accentVars}>
       {/* Header */}
       <SidebarHeader>
-        {open && (
-          <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => handleGoToHub('home')}>
-            <div className="flex-shrink-0">
-              <StudioLogo size={28} />
-            </div>
-            <span
-              className="font-extrabold text-base tracking-tight text-[var(--c-text-primary)]"
-              style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em' }}
-            >
-              Studio
-            </span>
+        <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => handleGoToHub('home')}>
+          <div className="flex-shrink-0">
+            <StudioLogo size={28} />
           </div>
-        )}
+          <motion.span
+            initial={false}
+            animate={{ opacity: open ? 1 : 0, x: open ? 0 : -8 }}
+            transition={isReduced ? { duration: 0 } : { duration: 0.15, ease: 'easeOut' }}
+            className="font-extrabold text-base tracking-tight text-[var(--c-text-primary)]"
+            style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}
+          >
+            Studio
+          </motion.span>
+        </div>
       </SidebarHeader>
 
       {/* Main content scroll */}
@@ -214,7 +238,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                 <div className="flex-shrink-0" style={{ opacity: settings.appMode === 'hub' ? 1 : 0.65 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 20, display: 'block' }}>home</span>
                 </div>
-                {open && <span className="truncate">Studio Hub</span>}
+                <SidebarLabel open={open}>Studio Hub</SidebarLabel>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -227,7 +251,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                 <div className="flex-shrink-0">
                   <ChordexLogo size={20} />
                 </div>
-                {open && <span className="truncate">Chordex</span>}
+                <SidebarLabel open={open}>Chordex</SidebarLabel>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -240,7 +264,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                 <div className="flex-shrink-0">
                   <DrumexLogo size={20} />
                 </div>
-                {open && <span className="truncate">Drumex</span>}
+                <SidebarLabel open={open}>Drumex</SidebarLabel>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -253,7 +277,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                 <div className="flex-shrink-0">
                   <StagexLogoIcon size={20} />
                 </div>
-                {open && <span className="truncate">Stagex</span>}
+                <SidebarLabel open={open}>Stagex</SidebarLabel>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -266,7 +290,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                 <div className="flex-shrink-0">
                   <GroovexLogo size={20} />
                 </div>
-                {open && <span className="truncate">Groovex</span>}
+                <SidebarLabel open={open}>Groovex</SidebarLabel>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -279,7 +303,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                 <div className="flex-shrink-0">
                   <VocalexLogo size={20} />
                 </div>
-                {open && <span className="truncate">Vocalex</span>}
+                <SidebarLabel open={open}>Vocalex</SidebarLabel>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -296,7 +320,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
               <button
                 type="button"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className={`w-full flex items-center ${open ? 'gap-2.5 p-1.5' : 'justify-center p-0'} overflow-hidden rounded-xl border-none text-left cursor-pointer transition-colors bg-transparent hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))] outline-none`}
+                className="w-full flex items-center gap-2.5 p-1.5 overflow-hidden rounded-xl border-none text-left cursor-pointer transition-colors bg-transparent hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))] outline-none"
                 style={{ outline: 'none' }}
               >
                 <div
@@ -325,25 +349,38 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                   )}
                 </div>
 
-                {open && (
-                  <div className="flex-1 min-w-0" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span
-                      className="truncate font-bold text-xs text-[var(--c-text-primary)]"
-                      style={{ fontFamily: 'Manrope, sans-serif' }}
-                    >
-                      {authUser ? (authUser.displayName || 'Studio User') : 'Guest User'}
-                    </span>
-                    <span className="truncate text-[10px] text-[var(--c-text-secondary)] font-medium">
-                      {authUser ? email : 'Not signed in'}
-                    </span>
-                  </div>
-                )}
-
-                {open && (
-                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-secondary)', marginLeft: 'auto', opacity: 0.7 }}>
-                    more_vert
+                <motion.div
+                  initial={false}
+                  animate={{ 
+                    opacity: open ? 1 : 0, 
+                    x: open ? 0 : -8,
+                    width: open ? 'auto' : 0,
+                    marginLeft: open ? 0 : -10
+                  }}
+                  transition={isReduced ? { duration: 0 } : { duration: 0.15, ease: 'easeOut' }}
+                  className="flex-1 min-w-0"
+                  style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', whiteSpace: 'nowrap' }}
+                >
+                  <span
+                    className="truncate font-bold text-xs text-[var(--c-text-primary)]"
+                    style={{ fontFamily: 'Manrope, sans-serif' }}
+                  >
+                    {authUser ? (authUser.displayName || 'Studio User') : 'Guest User'}
                   </span>
-                )}
+                  <span className="truncate text-[10px] text-[var(--c-text-secondary)] font-medium">
+                    {authUser ? email : 'Not signed in'}
+                  </span>
+                </motion.div>
+
+                <motion.span 
+                  initial={false}
+                  animate={{ opacity: open ? 0.7 : 0, scale: open ? 1 : 0.8 }}
+                  transition={isReduced ? { duration: 0 } : { duration: 0.15 }}
+                  className="material-symbols-outlined" 
+                  style={{ fontSize: 16, color: 'var(--c-text-secondary)', marginLeft: 'auto', flexShrink: 0 }}
+                >
+                  more_vert
+                </motion.span>
               </button>
 
               {/* Profile Popover Menu */}
