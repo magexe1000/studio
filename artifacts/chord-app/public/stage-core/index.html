@@ -617,7 +617,7 @@ html, body {
   transition: background 130ms ease, transform 110ms ease, border-color 130ms ease;
   outline: none;
 }
-.sc-hub-card:hover  { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); }
+.sc-hub-card:hover  { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
 .sc-hub-card:active { transform: scale(0.97); background: rgba(255,255,255,0.06); }
 .sc-hub-icon {
   width: 48px; height: 48px;
@@ -711,7 +711,7 @@ html, body {
   cursor: pointer; flex-shrink: 0; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
 }
 .gear-item-check.checked {
-  border-color: #c5ffc9; background: #c5ffc9;
+  border-color: var(--accent); background: var(--accent);
 }
 .gear-item-check.animate-check {
   animation: gear-pop 0.35s cubic-bezier(0.34,1.56,0.64,1);
@@ -980,7 +980,7 @@ header,
 .rd-draft-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: rd-pulse 2.2s ease-in-out infinite; flex-shrink: 0; }
 @keyframes rd-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
 .rd-stats-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-.rd-stat-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 3px; }
+.rd-stat-block { background: #080808; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 3px; }
 .rd-stat-label { font-family: 'Manrope', sans-serif; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: #484847; }
 .rd-stat-val { font-family: 'Manrope', sans-serif; font-size: 20px; font-weight: 900; line-height: 1; }
 .rd-actions { display: flex; gap: 6px; margin-left: auto; }
@@ -1165,9 +1165,9 @@ textarea.sng-input { line-height:1.5; }
 
 /* ── Song list container ── */
 .sl-song-container {
-  background: rgba(255,255,255,0.02);
+  background: #080808;
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px; overflow: hidden; margin-bottom: 12px;
+  border-radius: 12px; overflow: hidden; margin-bottom: 12px;
 }
 
 /* ── Song row card layout ── */
@@ -1227,32 +1227,21 @@ textarea.sng-input { line-height:1.5; }
 /* ── "Add New Track" pill button ── */
 .sl-add-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; padding: 15px 20px;
-  font-family: 'Manrope', sans-serif; font-size: 13px;
+  width: 100%; padding: 12px 20px;
+  font-family: 'Manrope', sans-serif; font-size: 11px;
   font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
-  background: linear-gradient(135deg, var(--accent), var(--hot)); color: #fff;
-  border: none; border-radius: 100px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.05); color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;
   -webkit-tap-highlight-color: transparent; margin-bottom: 20px;
-  position: relative; overflow: hidden;
-  transition: transform 200ms cubic-bezier(0.34,1.4,0.64,1),
-              filter 200ms ease,
-              box-shadow 200ms ease;
-  box-shadow: 0 4px 22px var(--accent-40);
+  transition: background 150ms ease, border-color 150ms ease, transform 110ms ease;
+}
+.sl-add-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 .sl-add-btn:active {
-  transform: scale(0.95);
-  filter: brightness(0.88);
-  box-shadow: 0 1px 6px var(--accent-20);
-}
-/* ripple layer */
-.sl-add-btn::after {
-  content: ''; position: absolute; inset: 0; border-radius: inherit;
-  background: rgba(255,255,255,0.18);
-  transform: scale(0); opacity: 0;
-  transition: transform 0ms, opacity 0ms;
-}
-.sl-add-btn:active::after {
-  animation: sl-ripple 400ms ease-out forwards;
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.10);
 }
 
 /* ── Setlist Insights card rows ── */
@@ -2736,8 +2725,8 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
             </div>
           </div>
 
-          <div style="background:#191a1a;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);">
-            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-height:320px;overflow-y:auto;">
+          <div style="background:#080808;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-height:520px;overflow-y:auto;">
               <table class="rd-input-table">
                 <thead>
                   <tr>

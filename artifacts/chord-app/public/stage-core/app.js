@@ -512,68 +512,68 @@ const library = {
 // ══════════════════════════════════════════════════════════
 const ICON_IMAGES = {
   // ── Mics ──────────────────────────────────────────────
-  'mic':                '/stage-core/icons/mic-sm58.svg',
-  'mic-2':              '/stage-core/icons/mic-condenser.svg',
-  'cx-wireless':        '/stage-core/icons/wireless-handheld.svg',
-  'cx-boundary':        '/stage-core/icons/boundary-mic.svg',
-  'cx-drum-clip':       '/stage-core/icons/drum-clip.svg',
+  'mic':                '/stage-core/icons/mic-sm58.png',
+  'mic-2':              '/stage-core/icons/mic-condenser.png',
+  'cx-wireless':        '/stage-core/icons/wireless-handheld.png',
+  'cx-boundary':        '/stage-core/icons/boundary-mic.png',
+  'cx-drum-clip':       '/stage-core/icons/drum-clip.png',
   'cx-mic-stand':       '/stage-core/icons/mic-stand.svg',
   // ── Drums ─────────────────────────────────────────────
-  'drum':               '/stage-core/icons/drum-kit.svg',
-  'cx-edrum':           '/stage-core/icons/edrum.svg',
-  'cx-percussion':      '/stage-core/icons/percussion.svg',
+  'drum':               '/stage-core/icons/drum-kit.png',
+  'cx-edrum':           '/stage-core/icons/edrum.png',
+  'cx-percussion':      '/stage-core/icons/percussion.png',
   'cx-cajon':           '/stage-core/icons/cajon.svg',
   'cx-shaker':          '/stage-core/icons/shaker.svg',
   'cx-tambourine':      '/stage-core/icons/tambourine.svg',
   // ── Instruments ───────────────────────────────────────
-  'guitar':             '/stage-core/icons/acoustic-guitar.svg',
-  'cx-elec-guitar':     '/stage-core/icons/elec-guitar.svg',
-  'cx-bass-guitar':     '/stage-core/icons/bass-guitar.svg',
-  'piano':              '/stage-core/icons/keyboard.svg',
-  'cx-synth':           '/stage-core/icons/synth.svg',
-  'cx-trumpet':         '/stage-core/icons/trumpet.svg',
-  'cx-violin':          '/stage-core/icons/violin.svg',
+  'guitar':             '/stage-core/icons/acoustic-guitar.png',
+  'cx-elec-guitar':     '/stage-core/icons/elec-guitar.png',
+  'cx-bass-guitar':     '/stage-core/icons/bass-guitar.png',
+  'piano':              '/stage-core/icons/keyboard.png',
+  'cx-synth':           '/stage-core/icons/synth.png',
+  'cx-trumpet':         '/stage-core/icons/trumpet.png',
+  'cx-violin':          '/stage-core/icons/violin.png',
   // ── Amps ──────────────────────────────────────────────
-  'cx-guitar-amp':      '/stage-core/icons/guitar-amp.svg',
-  'cx-bass-amp':        '/stage-core/icons/bass-amp.svg',
-  'cx-amp-cab':         '/stage-core/icons/amp-cab.svg',
-  'cx-bass-cab':        '/stage-core/icons/bass-cab.svg',
+  'cx-guitar-amp':      '/stage-core/icons/guitar-amp.png',
+  'cx-bass-amp':        '/stage-core/icons/bass-amp.png',
+  'cx-amp-cab':         '/stage-core/icons/amp-cab.png',
+  'cx-bass-cab':        '/stage-core/icons/bass-cab.png',
   // ── Audio / Monitors ──────────────────────────────────
-  'cx-wedge':           '/stage-core/icons/wedge.svg',
-  'volume-2':           '/stage-core/icons/main-pa.svg',
-  'disc':               '/stage-core/icons/stage-sub.svg',
-  'headphones':         '/stage-core/icons/iem-pack.svg',
-  'speaker':            '/stage-core/icons/drum-fill.svg',
+  'cx-wedge':           '/stage-core/icons/wedge.png',
+  'volume-2':           '/stage-core/icons/main-pa.png',
+  'disc':               '/stage-core/icons/stage-sub.png',
+  'headphones':         '/stage-core/icons/iem-pack.png',
+  'speaker':            '/stage-core/icons/drum-fill.png',
   'disc-2':             '/stage-core/icons/drum-sub.svg',
-  'megaphone':          '/stage-core/icons/side-fill.svg',
+  'megaphone':          '/stage-core/icons/side-fill.png',
   'radio':              '/stage-core/icons/delay-tower.svg',
-  'cx-front-fill':      '/stage-core/icons/front-fill.svg',
+  'cx-front-fill':      '/stage-core/icons/front-fill.png',
   'headset':            '/stage-core/icons/headphone-amp.svg',
   // ── Utilities ─────────────────────────────────────────
-  'sliders-vertical':   '/stage-core/icons/foh-console.svg',
-  'sliders-horizontal': '/stage-core/icons/mon-console.svg',
-  'server':             '/stage-core/icons/amp-rack.svg',
-  'cpu':                '/stage-core/icons/effects-rack.svg',
-  'cx-wireless-rack':   '/stage-core/icons/wireless-rack.svg',
+  'sliders-vertical':   '/stage-core/icons/foh-console.png',
+  'sliders-horizontal': '/stage-core/icons/mon-console.png',
+  'server':             '/stage-core/icons/amp-rack.png',
+  'cpu':                '/stage-core/icons/effects-rack.png',
+  'cx-wireless-rack':   '/stage-core/icons/wireless-rack.png',
   'laptop':             '/stage-core/icons/laptop.svg',
-  'cx-di-box':          '/stage-core/icons/di-box.svg',
+  'cx-di-box':          '/stage-core/icons/di-box.png',
   'repeat-2':           '/stage-core/icons/loop-station.svg',
   'play-circle':        '/stage-core/icons/playback.svg',
-  'box':                '/stage-core/icons/stage-box.svg',
-  'grid-3x3':           '/stage-core/icons/patch-bay.svg',
-  'zap':                '/stage-core/icons/power-distro.svg',
-  'git-branch':         '/stage-core/icons/splitter.svg',
+  'box':                '/stage-core/icons/stage-box.png',
+  'grid-3x3':           '/stage-core/icons/patch-bay.png',
+  'zap':                '/stage-core/icons/power-distro.png',
+  'git-branch':         '/stage-core/icons/splitter.png',
   'network':            '/stage-core/icons/router.svg',
-  'cx-outlet':          '/stage-core/icons/outlet.svg',
+  'cx-outlet':          '/stage-core/icons/outlet.webp',
   // ── People ────────────────────────────────────────────
-  'cx-person':          '/stage-core/icons/person.svg',
-  'cx-vocalist':        '/stage-core/icons/vocalist.svg',
-  'cx-guitarist':       '/stage-core/icons/guitarist.svg',
-  'cx-bassist':         '/stage-core/icons/bassist.svg',
-  'cx-drummer':         '/stage-core/icons/drummer.svg',
-  'cx-keyboardist':     '/stage-core/icons/keyboardist.svg',
-  'cx-saxophonist':     '/stage-core/icons/saxophonist.svg',
-  'cx-tech':            '/stage-core/icons/tech.svg',
+  'cx-person':          '/stage-core/icons/person.png',
+  'cx-vocalist':        '/stage-core/icons/vocalist.png',
+  'cx-guitarist':       '/stage-core/icons/guitarist.png',
+  'cx-bassist':         '/stage-core/icons/bassist.png',
+  'cx-drummer':         '/stage-core/icons/drummer.png',
+  'cx-keyboardist':     '/stage-core/icons/keyboardist.png',
+  'cx-saxophonist':     '/stage-core/icons/saxophonist.png',
+  'cx-tech':            '/stage-core/icons/tech.png',
 };
 function iconHtml(icon, size, extra) {
   const src = ICON_IMAGES[icon];
@@ -3352,29 +3352,29 @@ function renderMembersView() {
     const nextColor = MEMBER_COLORS[(colorIdx + 1) % MEMBER_COLORS.length];
     const itemsHtml = assigned.length > 0
       ? assigned.map(el => `
-          <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,0.03);">
-            <div style="width:8px;height:8px;background:${el.color || m.color};flex-shrink:0;"></div>
-            <span style="font-size:11px;color:#d4d4d4;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${el.label || el.name || '—'}</span>
-            ${el.channelId ? `<span style="font-size:9px;font-weight:700;font-family:'Manrope',sans-serif;color:#7aafff;letter-spacing:0.05em;">CH&nbsp;${el.channelId}</span>` : ''}
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.04);">
+            <div style="width:6px;height:6px;border-radius:50%;background:${el.color || m.color};flex-shrink:0;"></div>
+            <span style="font-size:11px;color:#d4d4d4;font-weight:500;font-family:'Inter',sans-serif;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${el.label || el.name || '—'}</span>
+            ${el.channelId ? `<span style="font-size:9px;font-weight:700;font-family:'Manrope',sans-serif;color:#3b82f6;letter-spacing:0.05em;">CH&nbsp;${el.channelId}</span>` : ''}
           </div>`).join('')
       : `<div style="padding:16px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#5a5a59;text-align:center;">${T('noStageAssign')}</div>`;
 
     return `
-    <div style="background:#080808;border:1px solid rgba(255,255,255,0.06);border-left:4px solid ${m.color};display:flex;flex-direction:column;transition:border-color 0.2s;">
+    <div style="background:#080808;border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:border-color 0.2s;">
       <!-- Card header -->
-      <div style="display:flex;align-items:center;gap:10px;padding:16px 14px 14px;border-bottom:1px solid #111;">
+      <div style="display:flex;align-items:center;gap:10px;padding:16px 14px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
         <button onclick="cycleColor('${m.id}')" title="Change color (current: ${m.color})"
-          style="width:20px;height:20px;border-radius:50%;background:${m.color};border:2px solid rgba(255,255,255,0.08);cursor:pointer;flex-shrink:0;transition:transform 0.15s;outline:none;"
-          onmouseover="this.style.transform='scale(1.2)';this.title='Next: ${nextColor}'" onmouseout="this.style.transform='scale(1)'"></button>
-        <span style="flex:1;font-family:'Manrope',sans-serif;font-size:14px;font-weight:800;text-transform:uppercase;color:#fff;letter-spacing:0.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name}</span>
-        ${assigned.length > 0 ? `<span style="font-size:9px;font-weight:800;font-family:'Manrope',sans-serif;color:${m.color};background:${m.color}1a;padding:2px 8px;letter-spacing:0.1em;">${assigned.length}&nbsp;elem</span>` : ''}
+          style="width:14px;height:14px;border-radius:50%;background:${m.color};border:1px solid rgba(255,255,255,0.12);cursor:pointer;flex-shrink:0;transition:transform 0.15s;outline:none;"
+          onmouseover="this.style.transform='scale(1.2)';" onmouseout="this.style.transform='scale(1)'"></button>
+        <span style="flex:1;font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;color:#f3f4f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name}</span>
+        ${assigned.length > 0 ? `<span style="font-size:9px;font-weight:700;font-family:'Manrope',sans-serif;color:#ffffff;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:4px;padding:2px 6px;">${assigned.length}&nbsp;elem</span>` : ''}
         <button onclick="removeMember('${m.id}')" title="Remove ${m.name}"
-          style="color:#5a5a59;background:none;border:none;cursor:pointer;font-size:18px;padding:0 2px;line-height:1;flex-shrink:0;transition:color 0.15s;"
-          onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#2a2a2a'">×</button>
+          style="color:#737373;background:none;border:none;cursor:pointer;font-size:18px;padding:0 2px;line-height:1;flex-shrink:0;transition:color 0.15s;"
+          onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#737373'">×</button>
       </div>
       <!-- Assignment list -->
       <div style="flex:1;">
-        <div style="padding:6px 14px 4px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#5a5a59;">
+        <div style="padding:10px 14px 4px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#5a5a59;">
           ${assigned.length > 0 ? T('assignedElems') : T('assignments')}
         </div>
         ${itemsHtml}
@@ -4844,9 +4844,9 @@ document.addEventListener('keydown', function(e) {
 // ══════════════════════════════════════════════════════════
 const GEAR_CATS = ['Instruments','Microphones','Audio','Cables','Power','Outboard','Stands','Misc'];
 const GEAR_CAT_COLORS = {
-  'Instruments':'#7aafff','Microphones':'#ff7439','Audio':'#c5ffc9',
-  'Cables':'#ffcc44','Power':'#ff716c','Outboard':'#bf99ff',
-  'Stands':'#adaaaa','Misc':'#484847'
+  'Instruments':'#a3a3a3','Microphones':'#a3a3a3','Audio':'#a3a3a3',
+  'Cables':'#a3a3a3','Power':'#a3a3a3','Outboard':'#a3a3a3',
+  'Stands':'#a3a3a3','Misc':'#a3a3a3'
 };
 
 let _gearNextId = 1;
@@ -4950,7 +4950,7 @@ function renderGear() {
       var rowCls = 'gear-item-row' + (g.packed ? ' packed' : '') + (isNew ? ' gear-new' : '') + (isFiltering && !isNew ? ' gear-filter-in' : '');
       return catHdr + `<div class="${rowCls}" data-gear-id="${g.id}">
         <div class="gear-item-check${g.packed ? ' checked' : ''}" onclick="toggleGearPacked(${g.id})" data-check-id="${g.id}">
-          ${g.packed ? '<span class="material-symbols-outlined" style="font-size:15px;color:#002e00;">check</span>' : ''}
+          ${g.packed ? '<span class="material-symbols-outlined" style="font-size:15px;color:#ffffff;">check</span>' : ''}
         </div>
         <div class="gear-item-info">
           <p class="gear-item-name${g.packed ? ' struck' : ''}">${escapeHtml(g.name)}</p>
