@@ -2969,7 +2969,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     <!-- Stage Viewport -->
     <div id="stage-viewport" class="w-full h-full flex items-start justify-center" style="padding:10px 16px 20px 16px;"
          ondragover="event.preventDefault()" ondrop="handleDrop(event)">
-      <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - 40px) * 16 / 9));aspect-ratio:16/9;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:visible;">
+      <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - var(--dock-safe-gap, 40px)) * 16 / 9));aspect-ratio:16/9;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:visible;">
 
         <!-- mode-pill lives outside canvas, see #mode-pill in body -->
 
@@ -2999,10 +2999,10 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
         </div>
 
         <!-- Empty Stage Help Hint -->
-        <div id="drop-zone-hint" class="absolute opacity-0 transition-opacity" style="top:20px;left:24px;z-index:5;pointer-events:none;">
-          <div class="flex items-center gap-2" style="background:rgba(20,20,22,0.65);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 12px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
-            <span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);">info</span>
-            <span class="font-body" style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Manrope',sans-serif;">Drag elements from the sidebar to build your stage plot.</span>
+        <div id="drop-zone-hint" class="absolute pointer-events-none" style="top:50%;left:50%;transform:translate(-50%, -50%) scale(1);z-index:5;opacity:0;">
+          <div class="flex items-center gap-2" style="background:rgba(12,12,16,0.78);border:1px solid rgba(255,255,255,0.08);border-radius:99px;padding:6px 14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,0.5);white-space:nowrap;">
+            <span class="material-symbols-outlined" style="font-size:15px;color:rgba(255,255,255,0.4);">info</span>
+            <span class="font-body" style="font-size:11.5px;font-weight:600;color:rgba(255,255,255,0.55);font-family:'Manrope',sans-serif;letter-spacing:0.01em;">Drag elements from the sidebar to build your stage plot.</span>
           </div>
         </div>
 

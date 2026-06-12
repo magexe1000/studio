@@ -2409,6 +2409,7 @@ function updateDropHint() {
   if (!hint) return;
   const show = state.elements.length === 0;
   hint.style.opacity = show ? '1' : '0';
+  hint.style.transform = show ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -44%) scale(0.96)';
   hint.style.pointerEvents = show ? 'auto' : 'none';
 }
 
@@ -5402,17 +5403,11 @@ function positionScenesBar() {
   const kRect = container.getBoundingClientRect();
   const barH = bar.offsetHeight || 36;
   const top = cRect.top - kRect.top - barH - 6;
-  const left = cRect.left - kRect.left;
+  bar.style.maxWidth = cRect.width + 'px';
+  const left = cRect.left - kRect.left + (cRect.width - bar.offsetWidth) / 2;
   bar.style.top = Math.max(4, top) + 'px';
   bar.style.left = left + 'px';
 }
-
-(function _initScenesBarResizeObserver() {
-  if (typeof ResizeObserver === 'undefined') return;
-  const canvas = document.getElementById('stage-canvas');
-  if (!canvas) return;
-  new ResizeObserver(() => positionScenesBar()).observe(canvas);
-})();
 
 // Reposition scenes bar whenever the stage canvas resizes (orientation change, panel open/close)
 (function _initScenesBarResizeObserver() {
