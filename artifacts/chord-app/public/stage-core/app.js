@@ -3663,22 +3663,26 @@ function renderRiderNeeds() {
     const activePresets = (isEs ? (nt.presetsEs || nt.presets) : nt.presets);
     const presets = activePresets.map(p =>
       `<button onclick="applyNeedPreset('${need.id}',this.textContent)" title="${p}"
-        style="padding:3px 8px;font-size:10px;font-family:'Manrope',sans-serif;background:var(--rn-chip-bg);color:var(--rn-muted);border:1px solid var(--rn-border);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${p}</button>`
+        style="padding:3px 8px;font-size:10px;font-family:'Manrope',sans-serif;background:#09090b;color:#a1a1aa;border:1px solid rgba(255,255,255,0.08);border-radius:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;transition:all 0.2s;"
+        onmouseover="this.style.color='#ffffff';this.style.borderColor='rgba(255,255,255,0.2)'"
+        onmouseout="this.style.color='#a1a1aa';this.style.borderColor='rgba(255,255,255,0.08)'">${p}</button>`
     ).join('');
     return `
-    <div style="border-left:3px solid ${nt.color};background:var(--rn-card-bg);">
+    <div style="border:1px solid rgba(255,255,255,0.08);background:#050505;border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color 0.2s;">
       <div style="display:flex;align-items:center;gap:8px;padding:10px 12px 6px;">
         <select onchange="updateNeedType('${need.id}',this.value)"
-          style="flex:1;padding:5px 8px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--rn-input-bg);color:${nt.color};border:1px solid var(--rn-border);cursor:pointer;">
+          style="flex:1;padding:5px 8px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:#09090b;color:#e4e4e7;border:1px solid rgba(255,255,255,0.08);border-radius:4px;cursor:pointer;">
           ${typeOptions}
         </select>
         <button onclick="removeRiderNeed('${need.id}')"
-          style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid rgba(255,116,57,0.3);color:#ff7439;cursor:pointer;font-size:14px;flex-shrink:0;">×</button>
+          style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid rgba(255,255,255,0.08);color:#a1a1aa;cursor:pointer;font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.2s;"
+          onmouseover="this.style.color='#f43f5e';this.style.borderColor='#f43f5e';this.style.background='rgba(244,63,94,0.05)'"
+          onmouseout="this.style.color='#a1a1aa';this.style.borderColor='rgba(255,255,255,0.08)';this.style.background='none'">×</button>
       </div>
       ${presets ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:0 12px 8px;">${presets}</div>` : ''}
       <div style="padding:0 12px 10px;">
         <textarea rows="2" onchange="updateNeedValue('${need.id}',this.value)"
-          style="width:100%;resize:none;background:var(--rn-input-bg);color:var(--rn-text);border:1px solid var(--rn-border);padding:7px 10px;font-family:'Inter';font-size:12px;line-height:1.5;box-sizing:border-box;">${need.value}</textarea>
+          style="width:100%;resize:none;background:#09090b;color:#ffffff;border:1px solid rgba(255,255,255,0.08);border-radius:4px;padding:7px 10px;font-family:'Inter';font-size:12px;line-height:1.5;box-sizing:border-box;">${need.value}</textarea>
       </div>
     </div>`;
   }).join(''));

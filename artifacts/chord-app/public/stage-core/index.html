@@ -560,7 +560,9 @@ html, body {
 }
 /* stage-viewport no longer needs the 52px top push — the toolbar floats above the canvas rect */
 #stage-viewport {
-  padding-top: 24px !important;
+  align-items: flex-start !important;
+  padding-top: 32px !important;
+  padding-bottom: 80px !important;
   /* Smooth slide when vtools panel opens/closes */
   transition: transform 300ms cubic-bezier(0.34, 1.1, 0.64, 1) !important;
 }
@@ -606,26 +608,42 @@ html, body {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 17px 18px;
-  background: #080808;
-  border: 1px solid rgba(255,255,255,0.06);
+  gap: 16px;
+  padding: 20px 22px;
+  background: #09090b;
+  border: 1px solid #27272a;
   border-radius: 12px;
   cursor: pointer;
   text-align: left;
   -webkit-tap-highlight-color: transparent;
-  transition: background 130ms ease, transform 110ms ease, border-color 130ms ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
 }
-.sc-hub-card:hover  { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
-.sc-hub-card:active { transform: scale(0.97); background: rgba(255,255,255,0.06); }
+.sc-hub-card:hover {
+  background: #121214;
+  border-color: var(--accent, #3b82f6);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+}
+.sc-hub-card:hover .sc-hub-chevron {
+  color: var(--accent, #3b82f6);
+  transform: translateX(4px);
+}
+.sc-hub-card:active {
+  transform: translateY(0) scale(0.98);
+}
 .sc-hub-icon {
-  width: 48px; height: 48px;
-  border-radius: 13px;
+  width: 44px; height: 44px;
+  border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s;
+}
+.sc-hub-card:hover .sc-hub-icon {
+  border-color: var(--accent, #3b82f6);
+  color: #ffffff;
 }
 .sc-hub-text { flex: 1; min-width: 0; }
 .sc-hub-title {
@@ -637,9 +655,9 @@ html, body {
 .sc-hub-sub {
   font-family: 'Manrope', sans-serif;
   font-size: 12px; font-weight: 500;
-  color: #5a5a59; margin: 0;
+  color: #a1a1aa; margin: 0;
 }
-.sc-hub-chevron { font-size: 20px !important; color: rgba(255,255,255,0.18); flex-shrink: 0; }
+.sc-hub-chevron { font-size: 20px !important; color: rgba(255,255,255,0.18); flex-shrink: 0; transition: all 0.2s; }
 
 /* ── Back button inside each setup section ─────────────────────────── */
 .sc-back-btn {
@@ -1227,21 +1245,22 @@ textarea.sng-input { line-height:1.5; }
 /* ── "Add New Track" pill button ── */
 .sl-add-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; padding: 12px 20px;
+  width: 100%; padding: 10px 20px;
   font-family: 'Manrope', sans-serif; font-size: 11px;
   font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
-  background: rgba(255, 255, 255, 0.05); color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;
+  background: transparent; color: #a1a1aa;
+  border: 1.5px dashed rgba(255, 255, 255, 0.15); border-radius: 9999px; cursor: pointer;
   -webkit-tap-highlight-color: transparent; margin-bottom: 20px;
-  transition: background 150ms ease, border-color 150ms ease, transform 110ms ease;
+  transition: all 150ms ease;
 }
 .sl-add-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
 }
 .sl-add-btn:active {
   transform: scale(0.98);
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 /* ── Setlist Insights card rows ── */
@@ -1920,12 +1939,12 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
 <!-- ═══════════ SETUP HUB — card list ═══════════ -->
 <div id="view-SetupHub" class="view-page" style="display:none;">
-  <div style="padding:20px 16px 110px;">
+  <div style="max-width:1120px; margin:0 auto; padding:40px 24px 110px;">
 
     <!-- Section heading -->
-    <div style="margin-bottom:28px;">
-      <h1 data-i18n="setupTitle" style="font-family:'Manrope',sans-serif;font-size:2.8rem;font-weight:800;color:#f2f2f2;margin:0 0 4px;letter-spacing:-0.04em;line-height:1;">Setup</h1>
-      <p data-i18n="setupSubtitle" style="font-family:'Manrope',sans-serif;font-size:13px;color:#5a5a59;margin:0;font-weight:500;">Your show documents &amp; band info</p>
+    <div style="margin-bottom:32px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:18px;">
+      <h1 data-i18n="setupTitle" style="font-family:'Manrope',sans-serif;font-size:2.4rem;font-weight:800;color:#ffffff;margin:0 0 6px;letter-spacing:-0.03em;line-height:1;">Setup</h1>
+      <p data-i18n="setupSubtitle" style="font-family:'Manrope',sans-serif;font-size:13px;color:#a1a1aa;margin:0;font-weight:500;">Your show documents &amp; band info</p>
     </div>
 
     <!-- Cards -->
@@ -2365,7 +2384,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     </div>
 
     <!-- Stage Viewport -->
-    <div id="stage-viewport" class="w-full h-full flex items-center justify-center" style="padding:20px 16px;"
+    <div id="stage-viewport" class="w-full h-full flex items-start justify-center" style="padding:20px 16px;"
          ondragover="event.preventDefault()" ondrop="handleDrop(event)">
       <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - 40px) * 16 / 9));aspect-ratio:16/9;border:2px solid rgba(72,72,71,0.12);overflow:visible;">
 
@@ -2396,30 +2415,11 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           </div>
         </div>
 
-        <!-- Empty Stage Help Card -->
-        <div id="drop-zone-hint" class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity" style="z-index:5;pointer-events:none;">
-          <div class="sc-help-card text-center" style="max-width:380px;padding:24px;border-radius:16px;background:rgba(26,26,26,0.65);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 32px 0 rgba(0,0,0,0.37);">
-            <div class="flex justify-center mb-4">
-              <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background:rgba(122, 175, 255, 0.1);color:var(--accent);">
-                <span class="material-symbols-outlined" style="font-size:24px;">grid_view</span>
-              </div>
-            </div>
-            <h3 class="font-headline font-bold text-on-surface mb-2" style="font-size:15px;letter-spacing:0.02em;">Setup Your Stage Plot</h3>
-            <p class="font-body text-on-surface-variant mb-4" style="font-size:12px;line-height:1.5;">Drag performer roles, mics, monitor wedges, and backline gear from the sidebar to populate the stage.</p>
-            <div class="text-left font-body text-on-surface-variant space-y-2" style="font-size:11px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size:14px;color:var(--accent);">check_circle</span>
-                <span>Position and scale elements on the grid</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size:14px;color:var(--accent);">check_circle</span>
-                <span>Select any item to customize labels &amp; settings</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size:14px;color:var(--accent);">check_circle</span>
-                <span>Toggle Setup view for lists and rosters</span>
-              </div>
-            </div>
+        <!-- Empty Stage Help Hint -->
+        <div id="drop-zone-hint" class="absolute opacity-0 transition-opacity" style="top:20px;left:24px;z-index:5;pointer-events:none;">
+          <div class="flex items-center gap-2" style="background:rgba(20,20,22,0.65);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 12px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+            <span class="material-symbols-outlined" style="font-size:16px;color:var(--accent);">info</span>
+            <span class="font-body" style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Manrope',sans-serif;">Drag elements from the sidebar to build your stage plot.</span>
           </div>
         </div>
 
