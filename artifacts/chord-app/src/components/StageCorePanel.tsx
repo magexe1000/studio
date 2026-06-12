@@ -851,13 +851,13 @@ export default function StagexPanel() {
       return (
         <img
           src={svgPath}
-          style={{ width: '20px', height: '20px', objectFit: 'contain', filter: 'invert(1) opacity(0.7)' }}
+          style={{ width: '20px', height: '20px', objectFit: 'contain', filter: isLight ? 'opacity(0.7)' : 'invert(1) opacity(0.7)' }}
           alt=""
         />
       );
     }
     return (
-      <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'rgba(255,255,255,0.7)' }}>
+      <span className="material-symbols-outlined" style={{ fontSize: '20px', color: isLight ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.7)' }}>
         {item.icon}
       </span>
     );
@@ -868,15 +868,15 @@ export default function StagexPanel() {
       <button
         key={item.name}
         onClick={() => handleAddElement(item)}
-        className="btn-smooth hover:bg-white/5 text-left"
+        className={`btn-smooth ${isLight ? 'hover:bg-black/5' : 'hover:bg-white/5'} text-left`}
         style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '8px 4px',
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.05)',
+          background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+          border: isLight ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.05)',
           borderRadius: '8px',
           cursor: 'pointer',
           height: '68px',
@@ -891,7 +891,7 @@ export default function StagexPanel() {
         <span style={{
           fontSize: '8px',
           fontWeight: 700,
-          color: 'rgba(255,255,255,0.65)',
+          color: isLight ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.65)',
           textTransform: 'uppercase',
           letterSpacing: '0.04em',
           textAlign: 'center',
@@ -918,19 +918,19 @@ export default function StagexPanel() {
     isGold = false
   ) => {
     const isCollapsed = !expandedCats[id];
-    const headerColor = isAccent ? accent.from : isGold ? '#f0b429' : 'rgba(255, 255, 255, 0.4)';
+    const headerColor = isAccent ? accent.from : isGold ? '#f0b429' : (isLight ? 'rgba(0,0,0,0.55)' : 'rgba(255, 255, 255, 0.4)');
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderBottom: '1px solid rgba(255, 255, 255, 0.04)', paddingBottom: isCollapsed ? 6 : 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderBottom: isLight ? '1px solid rgba(0,0,0,0.05)' : '1px solid rgba(255, 255, 255, 0.04)', paddingBottom: isCollapsed ? 6 : 10 }}>
         <div
           onClick={() => setExpandedCats(prev => ({ ...prev, [id]: !prev[id] }))}
-          className="btn-smooth hover:bg-white/5"
+          className={`btn-smooth ${isLight ? 'hover:bg-black/5' : 'hover:bg-white/5'}`}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '8px 10px',
-            background: 'rgba(255, 255, 255, 0.01)',
-            border: '1px solid rgba(255, 255, 255, 0.03)',
+            background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255, 255, 255, 0.01)',
+            border: isLight ? '1px solid rgba(0,0,0,0.05)' : '1px solid rgba(255, 255, 255, 0.03)',
             borderRadius: '6px',
             cursor: 'pointer',
             userSelect: 'none',
@@ -940,11 +940,11 @@ export default function StagexPanel() {
             <span className="material-symbols-outlined" style={{ fontSize: '16px', color: headerColor }}>
               {icon}
             </span>
-            <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isCollapsed ? 'rgba(255,255,255,0.7)' : '#fff' }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isCollapsed ? (isLight ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.7)') : (isLight ? '#000' : '#fff') }}>
               {title}
             </span>
           </div>
-          <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.3)', transition: 'transform 200ms', transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '14px', color: isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.3)', transition: 'transform 200ms', transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)' }}>
             expand_more
           </span>
         </div>
@@ -959,21 +959,21 @@ export default function StagexPanel() {
 
   if (isWebDesktop) {
     return (
-      <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden', background: '#050505', position: 'relative' }}>
+      <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden', background: stageBg, position: 'relative' }}>
         <WebAppSectionDock 
           app="stage" 
           activeSection={isTabActive('Editor') ? 'Editor' : isTabActive('Setup') ? 'Setup' : 'Preferences'} 
           onChangeSection={handleNavTap} 
         />
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden', background: '#050505', position: 'relative' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden', background: stageBg, position: 'relative' }}>
           
           {/* Top header/toolbar */}
-          <WebToolbar className="border-b border-zinc-900 bg-[#080808] h-12 flex-shrink-0 select-none">
+          <WebToolbar className={`border-b ${isLight ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-900 bg-[#080808]'} h-12 flex-shrink-0 select-none`}>
             <div className="flex items-center gap-3">
-              <span className="font-extrabold text-[10px] uppercase text-white tracking-widest" style={{ letterSpacing: '0.08em' }}>
+              <span className={`font-extrabold text-[10px] uppercase ${isLight ? 'text-zinc-850' : 'text-white'} tracking-widest`} style={{ letterSpacing: '0.08em' }}>
                 Stagex
               </span>
-              <div className="h-4 w-[1px] bg-zinc-800" />
+              <div className={`h-4 w-[1px] ${isLight ? 'bg-zinc-200' : 'bg-zinc-800'}`} />
               <span className="text-[8.5px] text-zinc-500 font-extrabold uppercase tracking-widest">
                 {curView === 'Editor' ? 'Stage Plot Editor' : curView === 'Export' ? 'Rider Export' : 'Setup & Options'}
               </span>
@@ -1050,11 +1050,11 @@ export default function StagexPanel() {
             <div style={{
               flex: 1,
               margin: '12px',
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.06)',
               borderRadius: '12px',
               overflow: 'hidden',
               position: 'relative',
-              background: '#020202',
+              background: stageBg,
             }}>
               <iframe
                 ref={iframeRef}
@@ -1064,7 +1064,7 @@ export default function StagexPanel() {
                 allow="clipboard-write"
               />
               {iframeLoading && (
-                <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: '#050505' }}>
+                <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: stageBg }}>
                   <SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />
                 </div>
               )}
@@ -1077,8 +1077,8 @@ export default function StagexPanel() {
                 transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                 style={{
                   width: '260px',
-                  borderLeft: '1px solid rgba(255,255,255,0.06)',
-                  background: '#080809',
+                  borderLeft: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.06)',
+                  background: isLight ? 'var(--app-surface-low)' : '#080809',
                   display: 'flex',
                   flexDirection: 'column',
                   height: '100%',
@@ -1097,12 +1097,12 @@ export default function StagexPanel() {
                 }}>
                   {/* Title & Search */}
                   <div>
-                    <h4 style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.3)', marginBottom: '8px' }}>
+                    <h4 style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.3)', marginBottom: '8px' }}>
                       Stage Elements
                     </h4>
                     
                     <div style={{ position: 'relative', width: '100%', marginBottom: '4px' }}>
-                      <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', color: 'rgba(255,255,255,0.35)' }}>
+                      <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', color: isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.35)' }}>
                         search
                       </span>
                       <input
@@ -1113,13 +1113,13 @@ export default function StagexPanel() {
                         style={{
                           width: '100%',
                           height: '32px',
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.07)',
+                          background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
+                          border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.07)',
                           borderRadius: '6px',
                           paddingLeft: '32px',
                           paddingRight: searchQuery ? '28px' : '10px',
                           fontSize: '11px',
-                          color: '#fff',
+                          color: isLight ? '#000' : '#fff',
                           outline: 'none',
                           boxSizing: 'border-box',
                         }}
@@ -1135,7 +1135,7 @@ export default function StagexPanel() {
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            color: 'rgba(255,255,255,0.4)',
+                            color: isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.4)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1151,14 +1151,14 @@ export default function StagexPanel() {
                   {/* Elements List */}
                   {searchQuery ? (
                     <div>
-                      <h5 style={{ fontSize: '8.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.35)', marginBottom: '8px' }}>
+                      <h5 style={{ fontSize: '8.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.35)', marginBottom: '8px' }}>
                         Search Results
                       </h5>
                       {(() => {
                         const results = getSearchResults();
                         if (results.length === 0) {
                           return (
-                            <div style={{ textAlign: 'center', padding: '24px 12px', color: 'rgba(255,255,255,0.25)', fontSize: '11px' }}>
+                            <div style={{ textAlign: 'center', padding: '24px 12px', color: isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.25)', fontSize: '11px' }}>
                               No elements found
                             </div>
                           );
@@ -1183,7 +1183,7 @@ export default function StagexPanel() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           <button
                             onClick={() => callIframe('openPresetsPanel')}
-                            className="btn-smooth bg-zinc-900 hover:bg-zinc-850 text-white border border-zinc-800 hover:border-zinc-700"
+                            className={`btn-smooth ${isLight ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border-zinc-200' : 'bg-zinc-900 hover:bg-zinc-850 text-white border-zinc-800 hover:border-zinc-700'} border`}
                             style={{
                               width: '100%',
                               padding: '8px 12px',
@@ -1204,7 +1204,7 @@ export default function StagexPanel() {
                           </button>
                           <button
                             onClick={() => callIframe('scOpenElPresets')}
-                            className="btn-smooth bg-zinc-900 hover:bg-zinc-850 text-white border border-zinc-800 hover:border-zinc-700"
+                            className={`btn-smooth ${isLight ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border-zinc-200' : 'bg-zinc-900 hover:bg-zinc-850 text-white border-zinc-800 hover:border-zinc-700'} border`}
                             style={{
                               width: '100%',
                               padding: '8px 12px',
@@ -1240,12 +1240,12 @@ export default function StagexPanel() {
                                 win?.openCustomElementModal?.();
                               } catch {}
                             }}
-                            className="btn-smooth hover:bg-zinc-800 text-zinc-350 hover:text-white"
+                            className={`btn-smooth ${isLight ? 'hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900' : 'hover:bg-zinc-800 text-zinc-350 hover:text-white'}`}
                             style={{
                               width: '100%',
                               padding: '8px 12px',
                               background: 'transparent',
-                              border: '1px dashed rgba(255,255,255,0.15)',
+                              border: isLight ? '1px dashed rgba(0,0,0,0.15)' : '1px dashed rgba(255,255,255,0.15)',
                               borderRadius: '8px',
                               fontSize: '9px',
                               fontWeight: 800,
@@ -1271,7 +1271,7 @@ export default function StagexPanel() {
                               ))}
                             </div>
                           ) : (
-                            <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '12px 6px' }}>
+                            <div style={{ fontSize: '9px', color: isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '12px 6px' }}>
                               No custom elements yet.
                             </div>
                           )}
@@ -1300,22 +1300,22 @@ export default function StagexPanel() {
                 {/* Fixed Bottom Section */}
                 <div style={{
                   padding: '16px',
-                  borderTop: '1px solid rgba(255,255,255,0.06)',
-                  background: '#0a0a0c',
+                  borderTop: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.06)',
+                  background: isLight ? 'var(--app-surface-low)' : '#0a0a0c',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '12px',
                 }}>
                   <div>
-                    <h4 style={{ fontSize: '8.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.3)', marginBottom: '8px' }}>
+                    <h4 style={{ fontSize: '8.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.3)', marginBottom: '8px' }}>
                       View Mode
                     </h4>
                     <button
                       onClick={() => callIframe('toggleGigMode')}
                       className={`btn-smooth border w-full ${
                         liveMode 
-                          ? 'bg-zinc-100 text-zinc-950 border-transparent font-extrabold' 
-                          : 'bg-transparent text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700'
+                          ? (isLight ? 'bg-zinc-900 text-white border-transparent font-extrabold' : 'bg-zinc-100 text-zinc-950 border-transparent font-extrabold')
+                          : (isLight ? 'bg-transparent text-zinc-600 hover:text-zinc-900 border-zinc-200 hover:border-zinc-350' : 'bg-transparent text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700')
                       }`}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -1329,7 +1329,7 @@ export default function StagexPanel() {
                       {liveMode ? 'Live Mode Active' : 'Enter Live Mode'}
                     </button>
                   </div>
-                  <div style={{ fontSize: '8px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.15)' }}>
+                  <div style={{ fontSize: '8px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.15)' }}>
                     Stagex Module v4.0.0
                   </div>
                 </div>
@@ -1351,19 +1351,19 @@ export default function StagexPanel() {
             <div
               style={{
                 position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 9999,
-                background: '#0c0c0d',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: isLight ? '#ffffff' : '#0c0c0d',
+                border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 16,
                 padding: '24px',
                 width: '400px',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+                boxShadow: isLight ? '0 20px 50px rgba(0,0,0,0.12)' : '0 20px 50px rgba(0,0,0,0.6)',
               }}
             >
               <div style={{
                 fontFamily: 'Manrope, sans-serif',
                 fontSize: 12, fontWeight: 800,
                 textTransform: 'uppercase', letterSpacing: '0.14em',
-                color: 'white', marginBottom: 18,
+                color: isLight ? '#000' : 'white', marginBottom: 18,
               }}>
                 {tr.stagex.pdfSheetTitle}
               </div>
@@ -1373,7 +1373,7 @@ export default function StagexPanel() {
                 fontFamily: 'Manrope, sans-serif',
                 fontSize: 10, fontWeight: 700,
                 textTransform: 'uppercase', letterSpacing: '0.1em',
-                color: 'rgba(180,185,200,0.65)',
+                color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(180,185,200,0.65)',
                 marginBottom: 6,
               }}>
                 {tr.stagex.pdfSheetName}
@@ -1388,10 +1388,10 @@ export default function StagexPanel() {
                   style={{
                     flex: 1,
                     padding: '11px 12px',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.10)',
+                    background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)',
+                    border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)',
                     borderRadius: 10,
-                    color: '#fff',
+                    color: isLight ? '#000' : '#fff',
                     fontFamily: 'Inter, sans-serif',
                     fontSize: 14,
                     outline: 'none',
@@ -1400,7 +1400,7 @@ export default function StagexPanel() {
                 <span style={{
                   fontFamily: 'Inter, sans-serif',
                   fontSize: 12, fontWeight: 600,
-                  color: 'rgba(180,185,200,0.55)',
+                  color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(180,185,200,0.55)',
                   paddingRight: 4,
                 }}>.pdf</span>
               </div>
@@ -1412,7 +1412,7 @@ export default function StagexPanel() {
                     fontFamily: 'Manrope, sans-serif',
                     fontSize: 10, fontWeight: 700,
                     textTransform: 'uppercase', letterSpacing: '0.1em',
-                    color: 'rgba(180,185,200,0.65)',
+                    color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(180,185,200,0.65)',
                     marginBottom: 6,
                   }}>
                     {tr.stagex.pdfSheetScene}
@@ -1435,9 +1435,9 @@ export default function StagexPanel() {
                             padding: '7px 12px',
                             background: active
                               ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
-                              : 'rgba(255,255,255,0.05)',
-                            color: '#fff',
-                            border: `1px solid ${active ? 'transparent' : 'rgba(255,255,255,0.10)'}`,
+                              : (isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
+                            color: active ? '#fff' : (isLight ? '#000' : '#fff'),
+                            border: `1px solid ${active ? 'transparent' : (isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)')}`,
                             borderRadius: 8,
                             fontFamily: 'Manrope, sans-serif', fontSize: 11, fontWeight: 700,
                             textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -1484,9 +1484,9 @@ export default function StagexPanel() {
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                       width: '100%', height: 48,
-                      background: 'rgba(255,255,255,0.06)',
-                      color: '#fff',
-                      border: '1px solid rgba(255,255,255,0.10)',
+                      background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+                      color: isLight ? '#000' : '#fff',
+                      border: isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)',
                       borderRadius: 12,
                       fontFamily: 'Manrope, sans-serif', fontSize: 13, fontWeight: 800,
                       textTransform: 'uppercase', letterSpacing: '0.08em',

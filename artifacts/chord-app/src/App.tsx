@@ -1693,7 +1693,7 @@ export default function App() {
   return (
     <SidebarProvider>
       <SidebarHoverSync hoverShowSidebar={hoverShowSidebar} />
-      <div style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: '#000000' }}>
+      <div style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: 'var(--app-bg)' }}>
         {isWebDesktop && (
           <div
             onMouseEnter={handleSidebarMouseEnter}

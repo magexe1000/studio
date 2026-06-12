@@ -289,10 +289,11 @@ interface RowProps {
   showVariations: boolean;
   gridEmphasis: boolean;
   accentFrom: string;
+  ROW_H: number;
 }
 const InstrumentRow = memo(({
   inst, mStartIdx, rowMeasures, spm, stepsPerBeat, STEP_W, MEASURE_W,
-  hitMap, noteColor, staffColor, barColor, altBg, showVariations, gridEmphasis, accentFrom,
+  hitMap, noteColor, staffColor, barColor, altBg, showVariations, gridEmphasis, accentFrom, ROW_H,
 }: RowProps) => {
   const totalW     = rowMeasures.length * MEASURE_W;
   const defaultNoteY = NOTE_YF[inst] * ROW_H;
@@ -1570,7 +1571,7 @@ const LibCard = memo(function LibCard({ lp, isPreviewPlaying, accent, isLight, o
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif' }}>{lp.name}</div>
             <div style={{ fontSize: 10.5, color: 'var(--c-text-muted)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}>{lp.category} · {lp.genre} · {lp.bpm} BPM</div>
           </div>
-          <button onClick={() => onPreview(lp)} className="btn-smooth"
+          <button onClick={() => onPreview(lp)} title={isPreviewPlaying ? "Stop Preview" : "Preview Groove"} className="btn-smooth"
             style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isPreviewPlaying ? `linear-gradient(135deg,${accent.from},${accent.to})` : `${accent.from}12`, color: isPreviewPlaying ? '#fff' : accent.from, transition: 'all 160ms', boxShadow: isPreviewPlaying ? `0 4px 16px ${accent.from}44` : 'none' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{isPreviewPlaying ? 'stop' : 'play_arrow'}</span>
           </button>
@@ -1580,12 +1581,12 @@ const LibCard = memo(function LibCard({ lp, isPreviewPlaying, accent, isLight, o
         <LibMiniGrid lp={lp} isLight={isLight} />
       </div>
       <div style={{ padding: '0 14px 12px', display: 'flex', gap: 6 }}>
-        <button onClick={() => onReplace(lp)} className="btn-smooth"
+        <button onClick={() => onReplace(lp)} title="Replace current pattern with this groove" className="btn-smooth"
           style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>file_download</span>
           Use
         </button>
-        <button onClick={() => onInsert(lp)} className="btn-smooth"
+        <button onClick={() => onInsert(lp)} title="Append this groove to the end of the pattern" className="btn-smooth"
           style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>playlist_add</span>
           Append
@@ -1664,6 +1665,8 @@ export default function DrumEditor() {
   const barColor   = isLight ? 'rgba(0,0,0,0.50)' : 'rgba(255,255,255,0.45)';
   const altBg      = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)';
 
+  const ROW_H      = isWebDesktop ? 56 : 40;
+
   // ── Landscape detection ──────────────────────────────────────────────────
   const [isLandscape, setIsLandscape] = useState(() =>
     typeof window !== 'undefined' && window.innerWidth > window.innerHeight && window.innerWidth >= 600
@@ -1711,6 +1714,7 @@ export default function DrumEditor() {
   const [expandedCats,   setExpandedCats]   = useState<Set<string>>(() => new Set(['ultrahd']));
   const [focusedInst,    setFocusedInst]    = useState<DrumInstrument | null>(null);
   const [sideTab,        setSideTab]        = useState<'kit' | 'mixer' | 'fx'>('kit');
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
   // Songs panel state
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createName,     setCreateName]     = useState('');
@@ -1877,8 +1881,10 @@ export default function DrumEditor() {
   // In landscape the screen is wider so rawMpr is naturally larger →
   // more measures shown per row without stretching any of them.
   const rawMpr         = Math.max(1, Math.floor(availableW / (spm * MIN_STEP)));
-  const measuresPerRow = isLandscape ? rawMpr : 1;
-  const MEASURE_W      = availableW / measuresPerRow;
+  const measuresPerRow = isLandscape ? pattern.measures.length : 1;
+  const MEASURE_W      = isLandscape
+    ? Math.max(280, availableW / Math.min(3, pattern.measures.length))
+    : availableW;
   const STEP_W         = MEASURE_W / spm;
   const SYSTEM_H       = RULER_H + visibleInsts.length * ROW_H;
   const FULL_SYS_H     = SYSTEM_H + SYS_SEP;
@@ -2018,7 +2024,19 @@ export default function DrumEditor() {
       const x = LABEL_W + stepInRow * sw; const y = systemIdx * sh;
       if (playheadRef.current) { playheadRef.current.style.transform = `translate(${x}px, ${y}px)`; playheadRef.current.style.display = 'block'; }
       const el = scrollRef.current;
-      if (el) { const rowBottom = y + RULER_H + allInstsRef.current.length * ROW_H; if (y < el.scrollTop || rowBottom > el.scrollTop + el.clientHeight) el.scrollTop = Math.max(0, y - 40); }
+      if (el) {
+        const rowBottom = y + RULER_H + allInstsRef.current.length * ROW_H;
+        if (y < el.scrollTop || rowBottom > el.scrollTop + el.clientHeight) el.scrollTop = Math.max(0, y - 40);
+        
+        // Horizontal auto-scroll
+        const leftBound = el.scrollLeft + LABEL_W;
+        const rightBound = el.scrollLeft + el.clientWidth;
+        if (x < leftBound) {
+          el.scrollLeft = Math.max(0, x - LABEL_W - 20);
+        } else if (x > rightBound - 40) {
+          el.scrollLeft = x - el.clientWidth + 40;
+        }
+      }
       // ── Metronome ──────────────────────────────────────────────────────────
       if (drumPrefsRef.current.metronome) {
         const spBeat = spmRef.current / 4; // steps per beat (assumes 4/4)
@@ -3229,7 +3247,7 @@ export default function DrumEditor() {
         {/* ═══ DRUM GRID EDITOR (Songs tab, in editor) ══════════════════════ */}
         {activeTab === 'songs' && inEditor && (
           <div ref={containerCallbackRef} className="panel-enter-right" style={{ flex: 1, display: 'flex', flexDirection: isWebDesktop ? 'row' : 'column', overflow: 'hidden' }}>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
             {/* Row visibility toggle */}
             {extraInsts.length > 0 && (
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', height: 30, borderBottom: `1px solid ${barColor}`, background: 'var(--app-bg)' }}>
@@ -3254,7 +3272,7 @@ export default function DrumEditor() {
               onPointerUp={handlePointerUp}
               onPointerLeave={cancelPointer}
               onPointerCancel={cancelPointer}
-              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: 8, paddingBottom: isLandscape ? 20 : 100, position: 'relative' }}
+              style={{ flex: 1, overflowY: 'auto', overflowX: isLandscape ? 'auto' : 'hidden', paddingTop: 8, paddingBottom: isLandscape ? 20 : 100, position: 'relative' }}
               className="no-scrollbar"
             >
               {/* Playhead — extends into ruler, draggable handle at top */}
@@ -3295,7 +3313,17 @@ export default function DrumEditor() {
                 const mStartIdx = sysIdx * measuresPerRow;
                 return (
                   <div key={sysIdx} style={{ marginBottom: SYS_SEP }}>
-                    <div style={{ display: 'flex', height: RULER_H, marginLeft: LABEL_W, borderBottom: `1px solid ${barColor}` }}>
+                    <div style={{ display: 'flex', height: RULER_H, borderBottom: `1px solid ${barColor}`, position: 'relative' }}>
+                      <div style={{
+                        width: LABEL_W,
+                        flexShrink: 0,
+                        position: 'sticky',
+                        left: 0,
+                        zIndex: 10,
+                        background: 'var(--app-bg)',
+                        borderRight: `1px solid ${barColor}`,
+                        height: '100%',
+                      }} />
                       {rowMeasures.map((m, mi) => {
                         const globalM   = mStartIdx + mi;
                         const canDelete = pattern.measures.length > 1;
@@ -3380,13 +3408,29 @@ export default function DrumEditor() {
                       const varList = INST_VARIATIONS[inst];
                       return (
                         <div key={inst} style={{ display: 'flex', height: ROW_H, borderBottom: instIdx < visibleInsts.length - 1 ? `1px solid ${staffColor}` : `1.5px solid ${barColor}`, background: (isFoc && drumPrefs.highlightActiveInst) ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)') : 'transparent' }}>
-                          <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 12, paddingRight: 6, borderRight: `1px solid ${barColor}` }}>
+                          <div style={{
+                            width: LABEL_W,
+                            flexShrink: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            justifyContent: 'center',
+                            paddingLeft: 12,
+                            paddingRight: 6,
+                            borderRight: `1px solid ${barColor}`,
+                            position: 'sticky',
+                            left: 0,
+                            zIndex: 10,
+                            background: (isFoc && drumPrefs.highlightActiveInst)
+                              ? (isLight ? '#eae9e6' : '#1b1b21')
+                              : 'var(--app-bg)',
+                          }}>
                             <span style={{ fontSize: 8, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: (isFoc && drumPrefs.highlightActiveInst) ? 'var(--c-text-primary)' : 'var(--c-text-muted)', letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>{INST_LABEL[inst]}</span>
                             {varList && varList.length > 1 && (
                               <span style={{ fontSize: 6.5, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-muted)', opacity: 0.55, letterSpacing: '0.02em', whiteSpace: 'normal', lineHeight: 1.35, marginTop: 1, width: '100%', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{varList.join(' · ')}</span>
                             )}
                           </div>
-                          <InstrumentRow inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures} spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W} hitMap={hitMap} noteColor={noteColor} staffColor={staffColor} barColor={barColor} altBg={altBg} showVariations={drumPrefs.showNoteVariations} gridEmphasis={drumPrefs.gridLinesEmphasis} accentFrom={accent.from} />
+                          <InstrumentRow inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures} spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W} hitMap={hitMap} noteColor={noteColor} staffColor={staffColor} barColor={barColor} altBg={altBg} showVariations={drumPrefs.showNoteVariations} gridEmphasis={drumPrefs.gridLinesEmphasis} accentFrom={accent.from} ROW_H={ROW_H} />
                         </div>
                       );
                     })}
@@ -3394,7 +3438,7 @@ export default function DrumEditor() {
                 );
               })}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 32, paddingTop: 8 }}>
-                <button onClick={() => { pushUndo(); addMeasure(pattern.id); }} style={{ height: 36, padding: '0 24px', borderRadius: 999, background: 'transparent', border: 'var(--add-bar-border)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}
+                <button onClick={() => { pushUndo(); addMeasure(pattern.id); }} title="Add new measure (bar) to pattern" style={{ height: 36, padding: '0 24px', borderRadius: 999, background: 'transparent', border: 'var(--add-bar-border)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}
                   onPointerEnter={e => { e.currentTarget.style.borderColor = accent.from + '70'; e.currentTarget.style.color = accent.from; }}
                   onPointerLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}>
                   <span style={{ fontSize: 16 }}>+</span><span>Add Bar</span>
@@ -3585,7 +3629,7 @@ export default function DrumEditor() {
                     </div>
                   );
                 })()}
-                <button onClick={() => setShowBpmPanel(s => !s)} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')), boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.10)' : '0 2px 12px rgba(0,0,0,0.50)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', cursor: 'pointer', transition: 'all 160ms', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: showBpmPanel ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.10)' }}>
+                <button onClick={() => setShowBpmPanel(s => !s)} title="BPM & Swing" style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')), boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.10)' : '0 2px 12px rgba(0,0,0,0.50)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', cursor: 'pointer', transition: 'all 160ms', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: showBpmPanel ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.10)' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <path d="M9 4h6l1.5 12H7.5L9 4Z" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinejoin="round" />
                     <line x1="12" y1="4" x2="17" y2="13" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinecap="round" />
@@ -3593,24 +3637,60 @@ export default function DrumEditor() {
                   </svg>
                 </button>
               </div>
-              <button onClick={handlePlay} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: playing ? (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')) : `linear-gradient(135deg, ${accent.from}, ${accent.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: playing ? 13 : 14, color: playing ? 'var(--c-text-secondary)' : '#fff', boxShadow: playing ? '0 4px 20px rgba(0,0,0,0.40), 0 0 0 1.5px rgba(255,255,255,0.08)' : `0 4px 20px ${accent.from}55, 0 0 0 1.5px rgba(255,255,255,0.12)`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 170ms' }}>
+              <button onClick={handlePlay} title={playing ? "Stop" : "Play"} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: playing ? (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')) : `linear-gradient(135deg, ${accent.from}, ${accent.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: playing ? 13 : 14, color: playing ? 'var(--c-text-secondary)' : '#fff', boxShadow: playing ? '0 4px 20px rgba(0,0,0,0.40), 0 0 0 1.5px rgba(255,255,255,0.08)' : `0 4px 20px ${accent.from}55, 0 0 0 1.5px rgba(255,255,255,0.12)`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 170ms' }}>
                 {playing ? '⏹' : '▶'}
               </button>
             </div>
+              {isWebDesktop && (
+                <button
+                  onClick={() => setIsRightPanelCollapsed(v => !v)}
+                  title={isRightPanelCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    right: 0,
+                    transform: 'translateY(-50%)',
+                    zIndex: 99,
+                    width: 16,
+                    height: 56,
+                    background: 'rgba(20, 20, 24, 0.88)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRight: 'none',
+                    borderRadius: '8px 0 0 8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--c-text-muted)',
+                    transition: 'all 200ms',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                  }}
+                  onPointerOver={e => e.currentTarget.style.color = accent.from}
+                  onPointerOut={e => e.currentTarget.style.color = 'var(--c-text-muted)'}
+                >
+                  {isRightPanelCollapsed ? (
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                  ) : (
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                  )}
+                </button>
+              )}
             </div>
 
             {/* Right Side Panel (Desktop only) */}
             {isWebDesktop && (
               <div style={{
-                width: 320,
+                width: isRightPanelCollapsed ? 0 : 320,
                 flexShrink: 0,
-                borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+                borderLeft: isRightPanelCollapsed ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
                 background: 'rgba(10, 10, 12, 0.45)',
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
                 display: 'flex',
                 flexDirection: 'column',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                transition: 'width 250ms cubic-bezier(0.2, 0.8, 0.2, 1)',
               }}>
                 {/* Tab Switcher */}
                 <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '12px 16px', gap: 8, flexShrink: 0 }}>
@@ -3971,7 +4051,7 @@ export default function DrumEditor() {
                                   );
                                   const color = INSTRUMENT_COLOR[fxInst] ?? accent.from;
                                   return (
-                                    <button key={preset.label} onClick={() => setInstFX(fxInst, { ...DEFAULT_INST_FX, ...preset.values })} className="btn-smooth" style={{
+                                    <button key={preset.label} onClick={() => setInstFX(fxInst, { ...DEFAULT_INST_FX, ...preset.values })} title={`Apply "${preset.label}" FX character to ${INST_LABEL[fxInst] || fxInst}`} className="btn-smooth" style={{
                                       padding: '4px 10px', borderRadius: 12, fontSize: 10.5, fontWeight: 700, cursor: 'pointer',
                                       background: active ? color : 'rgba(255,255,255,0.03)',
                                       border: active ? `1.5px solid ${color}` : '1.5px solid rgba(255,255,255,0.08)',
@@ -4506,8 +4586,9 @@ export default function DrumEditor() {
                           k => Math.abs((curFX[k as keyof InstFX] ?? 0) - (preset.values[k as keyof InstFX] ?? 0)) < 0.05
                         );
                         return (
-                          <button key={preset.label}
+                           <button key={preset.label}
                             onClick={() => setInstFX(fxInst, merged)}
+                            title={`Apply "${preset.label}" FX character to ${INST_LABEL[fxInst] || fxInst}`}
                             style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, fontFamily: 'Manrope', cursor: 'pointer', transition: 'all 140ms', background: isActive ? color : 'var(--app-surface-high)', color: isActive ? '#fff' : 'var(--c-text-secondary)', border: isActive ? `1.5px solid ${color}` : '1.5px solid rgba(128,128,128,0.15)' }}>
                             {preset.label}
                           </button>
