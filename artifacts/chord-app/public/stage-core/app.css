@@ -102,15 +102,15 @@ html[data-amoled="1"] {
   font-weight: 600;
   padding: 4px 8px;
   border-radius: 20px;
-  background: rgba(122, 175, 255, 0.1);
-  color: var(--accent);
-  border: 1px solid rgba(122, 175, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  color: #acabaa;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   white-space: nowrap;
 }
 html[data-theme="light"] .sc-hub-badge {
-  background: rgba(30, 90, 200, 0.08) !important;
-  color: rgba(30, 90, 200, 0.95) !important;
-  border-color: rgba(30, 90, 200, 0.12) !important;
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #555 !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
 }
 
 /* Desktop side-by-side sub-sections layout */

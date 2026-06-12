@@ -1888,7 +1888,7 @@ export default function DrumEditor() {
   const rawMpr         = Math.max(1, Math.floor(availableW / (spm * MIN_STEP)));
   const measuresPerRow = isLandscape ? pattern.measures.length : 1;
   const MEASURE_W      = isLandscape
-    ? (pattern.measures.length <= 2 ? availableW / 2 : Math.max(340, availableW / 2.5))
+    ? (pattern.measures.length <= 2 ? (availableW - 16) / 2 : Math.max(340, availableW / 2.5))
     : availableW;
   const STEP_W         = MEASURE_W / spm;
   const SYSTEM_H       = RULER_H + visibleInsts.length * ROW_H + (visibleInsts.length > 0 ? (visibleInsts.length - 1) * rowGap : 0);
@@ -2023,7 +2023,13 @@ export default function DrumEditor() {
   useEffect(() => {
     drumScheduler.onStep = (gs, mIdx, stepInM) => {
       if (endAdvTimerRef.current) { clearTimeout(endAdvTimerRef.current); endAdvTimerRef.current = null; }
-      if (gs < 0) { if (playheadRef.current) playheadRef.current.style.display = 'none'; return; }
+      if (gs < 0) {
+        if (playheadRef.current) {
+          playheadRef.current.style.transform = `translate(${LABEL_W}px, 0px)`;
+          playheadRef.current.style.display = 'block';
+        }
+        return;
+      }
       const sp = spmRef.current; const mpr = mprRef.current; const sw = stepWRef.current; const sh = sysHRef.current;
       const systemIdx = Math.floor(mIdx / mpr); const measureInRow = mIdx % mpr; const stepInRow = measureInRow * sp + stepInM;
       const x = LABEL_W + stepInRow * sw; const y = systemIdx * sh;
@@ -2124,7 +2130,7 @@ export default function DrumEditor() {
     setTimeout(() => {
       if (scrollRef.current) {
         scrollRef.current.scrollTo({
-          left: scrollRef.current.scrollWidth,
+          left: 99999,
           behavior: 'smooth'
         });
       }
@@ -2732,159 +2738,167 @@ export default function DrumEditor() {
             padding: '0 20px',
             gap: 16,
             flexShrink: 0,
-            userSelect: 'none'
+            userSelect: 'none',
+            justifyContent: 'space-between'
           }}>
-            {/* Back button */}
-            <button onClick={handleBack} className="btn-smooth" aria-label="Back" style={{
-              width: 34, height: 34, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-            }}>
-              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 18 }}>arrow_back</span>
-            </button>
-
-            {/* Beat title */}
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-              <h1 style={{ fontSize: '13.5px', fontWeight: 800, color: 'white', fontFamily: 'Manrope', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {activeSong?.name || 'Untitled Beat'}
-              </h1>
-              {activeSong?.artist && (
-                <p style={{ fontSize: '10.5px', color: 'var(--c-text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {activeSong.artist}
-                </p>
-              )}
-            </div>
-
-            {/* Transport Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '4px 12px', height: 40 }}>
-              {/* Play/Stop */}
-              <button onClick={handlePlay} className="btn-smooth" title={playing ? "Stop Playback" : "Start Playback"} aria-label={playing ? "Stop" : "Play"} style={{
-                width: 28, height: 28, borderRadius: '50%', border: 'none',
-                background: playing ? '#ef4444' : (isLight ? '#18181b' : '#ffffff'),
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: playing ? '#ffffff' : (isLight ? '#ffffff' : '#18181b'), transition: 'all 150ms', flexShrink: 0
+            {/* Left Group: Back Button + Title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 0%', minWidth: 0 }}>
+              {/* Back button */}
+              <button onClick={handleBack} className="btn-smooth" aria-label="Back" style={{
+                width: 34, height: 34, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
               }}>
-                {playing ? '⏹' : '▶'}
+                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 18 }}>arrow_back</span>
               </button>
 
-              <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
-
-              {/* BPM adjusters */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <button onClick={() => adjustBpm(-10)} className="btn-smooth" title="Decrease BPM by 10" aria-label="Decrease BPM by 10" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700 }}>-10</button>
-                <button onClick={() => adjustBpm(-1)} className="btn-smooth" title="Decrease BPM by 1" aria-label="Decrease BPM by 1" style={{ width: 20, height: 20, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 700 }}>−</button>
-                <span style={{ fontSize: 13, fontWeight: 800, fontFamily: 'Manrope,sans-serif', color: accent.from, minWidth: 32, textAlign: 'center' }}>{pattern.bpm}</span>
-                <button onClick={() => adjustBpm(1)} className="btn-smooth" title="Increase BPM by 1" aria-label="Increase BPM by 1" style={{ width: 20, height: 20, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 700 }}>+</button>
-                <button onClick={() => adjustBpm(10)} className="btn-smooth" title="Increase BPM by 10" aria-label="Increase BPM by 10" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700 }}>+10</button>
-                <span style={{ fontSize: 10, color: 'var(--c-text-muted)', fontWeight: 600, marginLeft: 2 }}>BPM</span>
+              {/* Beat title */}
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <h1 style={{ fontSize: '13.5px', fontWeight: 800, color: 'white', fontFamily: 'Manrope', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {activeSong?.name || 'Untitled Beat'}
+                </h1>
+                {activeSong?.artist && (
+                  <p style={{ fontSize: '10.5px', color: 'var(--c-text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {activeSong.artist}
+                  </p>
+                )}
               </div>
+            </div>
 
-              <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+            {/* Center Group: Transport Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '0 0 auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '4px 12px', height: 40 }}>
+                {/* Play/Stop */}
+                <button onClick={handlePlay} className="btn-smooth" title={playing ? "Stop Playback" : "Start Playback"} aria-label={playing ? "Stop" : "Play"} style={{
+                  width: 28, height: 28, borderRadius: '50%', border: 'none',
+                  background: playing ? '#ef4444' : (isLight ? '#18181b' : '#ffffff'),
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: playing ? '#ffffff' : (isLight ? '#ffffff' : '#18181b'), transition: 'all 150ms', flexShrink: 0
+                }}>
+                  {playing ? '⏹' : '▶'}
+                </button>
 
-              {/* Swing slider */}
+                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+
+                {/* BPM adjusters */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <button onClick={() => adjustBpm(-10)} className="btn-smooth" title="Decrease BPM by 10" aria-label="Decrease BPM by 10" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700 }}>-10</button>
+                  <button onClick={() => adjustBpm(-1)} className="btn-smooth" title="Decrease BPM by 1" aria-label="Decrease BPM by 1" style={{ width: 20, height: 20, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 700 }}>−</button>
+                  <span style={{ fontSize: 13, fontWeight: 800, fontFamily: 'Manrope,sans-serif', color: accent.from, minWidth: 32, textAlign: 'center' }}>{pattern.bpm}</span>
+                  <button onClick={() => adjustBpm(1)} className="btn-smooth" title="Increase BPM by 1" aria-label="Increase BPM by 1" style={{ width: 20, height: 20, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 700 }}>+</button>
+                  <button onClick={() => adjustBpm(10)} className="btn-smooth" title="Increase BPM by 10" aria-label="Increase BPM by 10" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700 }}>+10</button>
+                  <span style={{ fontSize: 10, color: 'var(--c-text-muted)', fontWeight: 600, marginLeft: 2 }}>BPM</span>
+                </div>
+
+                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+
+                {/* Swing slider */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--c-text-secondary)', letterSpacing: '0.04em' }}>SWING</span>
+                  <input
+                    type="range"
+                    min={SWING_MIN}
+                    max={SWING_MAX}
+                    step={1}
+                    value={pattern.swing ?? 0}
+                    onPointerDown={() => pushUndo()}
+                    onChange={e => updatePattern(pattern.id, { swing: clampSwing(Number(e.target.value)) })}
+                    style={{ width: 70, height: 16, accentColor: accent.from, cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: (pattern.swing ?? 0) > 0 ? accent.from : 'var(--c-text-muted)', minWidth: 28 }}>{pattern.swing ?? 0}%</span>
+                </div>
+
+                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+
+                {/* Subdivision */}
+                <button onClick={toggleSub} className="btn-smooth" title="Step Resolution (Subdivision)" aria-label="Step Resolution (Subdivision)" style={{
+                  height: 24, padding: '0 8px', borderRadius: 6,
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                  cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 10.5, fontWeight: 700
+                }}>
+                  1/{pattern.subdivision}
+                </button>
+
+                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+
+                {/* Loop toggle */}
+                <button onClick={() => { setLooping(l => { const n = !l; updateDrumPrefs({ loopPlayback: n }); return n; }); }} className="btn-smooth" style={{
+                  width: 24, height: 24, borderRadius: 6, border: 'none',
+                  background: looping ? `${accent.from}1a` : 'transparent',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: looping ? accent.from : 'var(--c-text-secondary)', transition: 'all 150ms'
+                }} title="Loop Playback" aria-label="Loop Playback">
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>repeat</span>
+                </button>
+
+                {/* Metronome toggle */}
+                <button onClick={() => updateDrumPrefs({ metronome: !drumPrefs.metronome })} className="btn-smooth" style={{
+                  width: 24, height: 24, borderRadius: 6, border: 'none',
+                  background: drumPrefs.metronome ? `${accent.from}1a` : 'transparent',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: drumPrefs.metronome ? accent.from : 'var(--c-text-secondary)', transition: 'all 150ms'
+                }} title="Metronome" aria-label="Metronome">
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>music_note</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Right Group: Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, flex: '1 1 0%', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--c-text-secondary)', letterSpacing: '0.04em' }}>SWING</span>
-                <input
-                  type="range"
-                  min={SWING_MIN}
-                  max={SWING_MAX}
-                  step={1}
-                  value={pattern.swing ?? 0}
-                  onPointerDown={() => pushUndo()}
-                  onChange={e => updatePattern(pattern.id, { swing: clampSwing(Number(e.target.value)) })}
-                  style={{ width: 70, height: 16, accentColor: accent.from, cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: 11, fontWeight: 700, color: (pattern.swing ?? 0) > 0 ? accent.from : 'var(--c-text-muted)', minWidth: 28 }}>{pattern.swing ?? 0}%</span>
+                {/* Undo / Redo */}
+                <button onClick={handleUndo} disabled={historyCount === 0} title="Undo (Ctrl+Z)" aria-label="Undo" className="btn-smooth"
+                  style={{ height: 30, width: 30, borderRadius: 8, background: 'transparent', border: 'none', cursor: historyCount > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: historyCount > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: historyCount > 0 ? 1 : 0.35 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>undo</span>
+                </button>
+                <button onClick={handleRedo} disabled={redoStack.current.length === 0} title="Redo (Ctrl+Y)" aria-label="Redo" className="btn-smooth"
+                  style={{ height: 30, width: 30, borderRadius: 8, background: 'transparent', border: 'none', cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>redo</span>
+                </button>
+
+                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)', margin: '0 2px' }} />
+
+                {/* Add Bar */}
+                <button onClick={handleAddBar} title="Add new measure (bar)" aria-label="Add Bar" className="btn-smooth" style={{
+                  height: 30, padding: '0 12px', borderRadius: 8,
+                  background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
+                  border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                  color: 'var(--c-text-primary)', fontSize: 11, fontWeight: 700
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+                  <span>Add Bar</span>
+                </button>
+
+                {/* Clear */}
+                <button onClick={() => setShowClearConfirm(s => !s)} title="Clear pattern" aria-label="Clear pattern" className="btn-smooth" style={{
+                  height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ee7d77'
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                </button>
+
+                {/* Save Groove */}
+                <button onClick={() => { setSavGrName(pattern.name); setSavGrTag(''); setShowSaveGroove(true); }} title="Save pattern to Groove Library" aria-label="Save pattern to Groove Library" className="btn-smooth" style={{
+                  height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: accent.from
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>bookmark</span>
+                </button>
+
+                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)', margin: '0 2px' }} />
+
+                {/* Export JSON / PDF */}
+                <button onClick={() => { exportDrumSongJSON(patterns, activeSong); }} title="Export pattern as JSON file" aria-label="Export pattern as JSON file" className="btn-smooth"
+                  style={{ height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>data_object</span>
+                </button>
+                <button onClick={() => { setShowExportModal(true); }} title="Export as PDF" className="btn-smooth"
+                  style={{ height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>picture_as_pdf</span>
+                </button>
               </div>
-
-              <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
-
-              {/* Subdivision */}
-              <button onClick={toggleSub} className="btn-smooth" title="Step Resolution (Subdivision)" aria-label="Step Resolution (Subdivision)" style={{
-                height: 24, padding: '0 8px', borderRadius: 6,
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 10.5, fontWeight: 700
-              }}>
-                1/{pattern.subdivision}
-              </button>
-
-              <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
-
-              {/* Loop toggle */}
-              <button onClick={() => { setLooping(l => { const n = !l; updateDrumPrefs({ loopPlayback: n }); return n; }); }} className="btn-smooth" style={{
-                width: 24, height: 24, borderRadius: 6, border: 'none',
-                background: looping ? `${accent.from}1a` : 'transparent',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: looping ? accent.from : 'var(--c-text-secondary)', transition: 'all 150ms'
-              }} title="Loop Playback" aria-label="Loop Playback">
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>repeat</span>
-              </button>
-
-              {/* Metronome toggle */}
-              <button onClick={() => updateDrumPrefs({ metronome: !drumPrefs.metronome })} className="btn-smooth" style={{
-                width: 24, height: 24, borderRadius: 6, border: 'none',
-                background: drumPrefs.metronome ? `${accent.from}1a` : 'transparent',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: drumPrefs.metronome ? accent.from : 'var(--c-text-secondary)', transition: 'all 150ms'
-              }} title="Metronome" aria-label="Metronome">
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>music_note</span>
-              </button>
-            </div>
-
-            {/* Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {/* Undo / Redo */}
-              <button onClick={handleUndo} disabled={historyCount === 0} title="Undo (Ctrl+Z)" aria-label="Undo" className="btn-smooth"
-                style={{ height: 30, width: 30, borderRadius: 8, background: 'transparent', border: 'none', cursor: historyCount > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: historyCount > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: historyCount > 0 ? 1 : 0.35 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>undo</span>
-              </button>
-              <button onClick={handleRedo} disabled={redoStack.current.length === 0} title="Redo (Ctrl+Y)" aria-label="Redo" className="btn-smooth"
-                style={{ height: 30, width: 30, borderRadius: 8, background: 'transparent', border: 'none', cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>redo</span>
-              </button>
-
-              <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)', margin: '0 2px' }} />
-
-              {/* Add Bar */}
-              <button onClick={handleAddBar} title="Add new measure (bar)" aria-label="Add Bar" className="btn-smooth" style={{
-                height: 30, padding: '0 12px', borderRadius: 8,
-                background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
-                border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-                color: 'var(--c-text-primary)', fontSize: 11, fontWeight: 700
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-                <span>Add Bar</span>
-              </button>
-
-              {/* Clear */}
-              <button onClick={() => setShowClearConfirm(s => !s)} title="Clear pattern" aria-label="Clear pattern" className="btn-smooth" style={{
-                height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ee7d77'
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
-              </button>
-
-              {/* Save Groove */}
-              <button onClick={() => { setSavGrName(pattern.name); setSavGrTag(''); setShowSaveGroove(true); }} title="Save pattern to Groove Library" aria-label="Save pattern to Groove Library" className="btn-smooth" style={{
-                height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: accent.from
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>bookmark</span>
-              </button>
-
-              <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)', margin: '0 2px' }} />
-
-              {/* Export JSON / PDF */}
-              <button onClick={() => { exportDrumSongJSON(patterns, activeSong); }} title="Export pattern as JSON file" aria-label="Export pattern as JSON file" className="btn-smooth"
-                style={{ height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>data_object</span>
-              </button>
-              <button onClick={() => { setShowExportModal(true); }} title="Export as PDF" className="btn-smooth"
-                style={{ height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>picture_as_pdf</span>
-              </button>
             </div>
           </div>
         )
@@ -3265,11 +3279,11 @@ export default function DrumEditor() {
               onPointerUp={handlePointerUp}
               onPointerLeave={cancelPointer}
               onPointerCancel={cancelPointer}
-              style={{ flex: 1, overflowY: 'auto', overflowX: (isLandscape && pattern.measures.length > 2) ? 'auto' : 'hidden', paddingTop: 8, paddingBottom: isWebDesktop ? 110 : (isLandscape ? 20 : 100), position: 'relative' }}
+              style={{ flex: 1, overflowY: 'auto', overflowX: (pattern.measures.length > 2) ? 'auto' : 'hidden', paddingTop: 8, paddingBottom: isWebDesktop ? 110 : (isLandscape ? 20 : 100), position: 'relative' }}
               className="no-scrollbar"
             >
               {/* Playhead — extends into ruler, draggable handle at top */}
-              <div ref={playheadRef} style={{ position: 'absolute', top: 8, left: 0, width: 2, height: RULER_H + visibleInsts.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'none', borderRadius: 1, willChange: 'transform', transform: 'translateZ(0)' }}>
+              <div ref={playheadRef} style={{ position: 'absolute', top: 8, left: 0, width: 2, height: RULER_H + visibleInsts.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'block', borderRadius: 1, willChange: 'transform', transform: `translate(${LABEL_W}px, 0px)` }}>
                 {/* Draggable handle — downward triangle above the ruler */}
                 <div
                   onPointerDown={e => {

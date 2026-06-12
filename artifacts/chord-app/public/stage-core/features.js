@@ -2821,7 +2821,6 @@ function _initProfessionalTools() {
       const menu = document.createElement('div');
       menu.id = 'sc-tools-menu';
       menu.appendChild(mkFabBtn('btn-sc-measure', 'straighten', 'Measure', scActivateMeasure));
-      menu.appendChild(mkFabBtn('btn-sc-zones', 'grid_4x4', 'Zones', scToggleZones));
       menu.appendChild(mkFabBtn('btn-sc-cable', 'cable', 'Length', scToggleCableLength));
       menu.appendChild(mkFabBtn('btn-sc-hist', 'history', 'History', openTimelinePanel));
 

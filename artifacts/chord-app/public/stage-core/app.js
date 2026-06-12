@@ -3357,10 +3357,10 @@ function renderMembersView() {
             <span style="font-size:11px;color:#d4d4d4;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${el.label || el.name || '—'}</span>
             ${el.channelId ? `<span style="font-size:9px;font-weight:700;font-family:'Manrope',sans-serif;color:#7aafff;letter-spacing:0.05em;">CH&nbsp;${el.channelId}</span>` : ''}
           </div>`).join('')
-      : `<div style="padding:16px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#2a2a2a;text-align:center;">${T('noStageAssign')}</div>`;
+      : `<div style="padding:16px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#5a5a59;text-align:center;">${T('noStageAssign')}</div>`;
 
     return `
-    <div style="background:#0e0e0e;border:1px solid #1a1a1a;border-left:4px solid ${m.color};display:flex;flex-direction:column;transition:border-color 0.2s;">
+    <div style="background:#080808;border:1px solid rgba(255,255,255,0.06);border-left:4px solid ${m.color};display:flex;flex-direction:column;transition:border-color 0.2s;">
       <!-- Card header -->
       <div style="display:flex;align-items:center;gap:10px;padding:16px 14px 14px;border-bottom:1px solid #111;">
         <button onclick="cycleColor('${m.id}')" title="Change color (current: ${m.color})"
@@ -3369,12 +3369,12 @@ function renderMembersView() {
         <span style="flex:1;font-family:'Manrope',sans-serif;font-size:14px;font-weight:800;text-transform:uppercase;color:#fff;letter-spacing:0.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name}</span>
         ${assigned.length > 0 ? `<span style="font-size:9px;font-weight:800;font-family:'Manrope',sans-serif;color:${m.color};background:${m.color}1a;padding:2px 8px;letter-spacing:0.1em;">${assigned.length}&nbsp;elem</span>` : ''}
         <button onclick="removeMember('${m.id}')" title="Remove ${m.name}"
-          style="color:#2a2a2a;background:none;border:none;cursor:pointer;font-size:18px;padding:0 2px;line-height:1;flex-shrink:0;transition:color 0.15s;"
+          style="color:#5a5a59;background:none;border:none;cursor:pointer;font-size:18px;padding:0 2px;line-height:1;flex-shrink:0;transition:color 0.15s;"
           onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#2a2a2a'">×</button>
       </div>
       <!-- Assignment list -->
       <div style="flex:1;">
-        <div style="padding:6px 14px 4px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#2a2a2a;">
+        <div style="padding:6px 14px 4px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#5a5a59;">
           ${assigned.length > 0 ? T('assignedElems') : T('assignments')}
         </div>
         ${itemsHtml}
