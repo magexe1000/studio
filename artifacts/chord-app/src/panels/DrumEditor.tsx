@@ -2727,42 +2727,37 @@ export default function DrumEditor() {
         </div>
       ) : (
         inEditor && (
-          <div style={{
-            height: 56,
-            background: isLight ? '#ffffff' : '#080808',
-            borderBottom: isLight ? '1px solid rgba(0, 0, 0, 0.06)' : '1px solid rgba(255, 255, 255, 0.06)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 20px',
-            gap: 16,
-            flexShrink: 0,
-            userSelect: 'none',
-            justifyContent: 'space-between'
-          }}>
-            {/* Left Group: Back Button + Title */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 0%', minWidth: 0 }}>
+          <div className={`h-12 border-b px-5 flex items-center justify-between flex-shrink-0 select-none ${
+            isLight ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-900 bg-[#000000]'
+          }`}>
+            {/* Left Group: App Logo + Section + Title */}
+            <div className="flex items-center gap-3.5 flex-1 min-w-0">
+              {/* Module Brand */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isLight ? 'text-zinc-900' : 'text-white'}`}>DRUMEX</span>
+                <span className={`text-[10px] font-bold ${isLight ? 'text-zinc-300' : 'text-zinc-800'}`}>|</span>
+                <span className={`text-[9.5px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-500' : 'text-zinc-450'}`}>SEQUENCER</span>
+              </div>
+              <div className={`h-4.5 w-[1px] ${isLight ? 'bg-zinc-200' : 'bg-zinc-850'}`} />
               {/* Back button */}
-              <button onClick={handleBack} className="btn-smooth" aria-label="Back" style={{
-                width: 34, height: 34, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-              }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 18 }}>arrow_back</span>
+              <button 
+                onClick={handleBack} 
+                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer border ${
+                  isLight 
+                    ? 'bg-transparent text-zinc-700 border-zinc-200 hover:border-zinc-350 hover:text-black' 
+                    : 'bg-transparent text-zinc-405 border-zinc-900 hover:text-white hover:border-zinc-800'
+                }`}
+                title="Back to Beats"
+                aria-label="Back"
+              >
+                <span className="material-symbols-outlined text-[15px]">arrow_back</span>
               </button>
-
+              
               {/* Beat title */}
-              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <h1 style={{ fontSize: '13.5px', fontWeight: 800, color: 'white', fontFamily: 'Manrope', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div className="flex flex-col min-w-0">
+                <span className={`text-[11px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'} truncate`}>
                   {activeSong?.name || 'Untitled Beat'}
-                </h1>
-                {activeSong?.artist && (
-                  <p style={{ fontSize: '10.5px', color: 'var(--c-text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {activeSong.artist}
-                  </p>
-                )}
+                </span>
               </div>
             </div>
 
@@ -3180,7 +3175,7 @@ export default function DrumEditor() {
                 </button>
               </div>
             ) : (
-              <div style={isWebDesktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, padding: '0 20px' } : { display: 'flex', flexDirection: 'column', gap: 10, padding: '0 20px' }}>
+              <div className={isWebDesktop ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6" : "flex flex-col gap-2.5 px-4"}>
                 <StaggeredReveal staggerInterval={40}>
                   {drumSongs.map(song => {
                   const isDeleting = deletingId === song.id;
@@ -3190,63 +3185,138 @@ export default function DrumEditor() {
                   const activePat  = song.patterns.find(p => p.id === song.activePatternId) ?? song.patterns[0];
                   const bpm        = activePat?.bpm ?? 120;
                   return (
-                    <div key={song.id} className="card-hover" style={{
-                      background: isWebDesktop ? 'rgba(15, 15, 20, 0.45)' : 'var(--app-surface)',
-                      borderRadius: isWebDesktop ? '1rem' : '1.25rem',
-                      overflow: 'hidden',
-                      border: isWebDesktop ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(72,72,72,0.06)'
-                    }}>
+                    <div key={song.id} className={`border rounded-xl overflow-hidden transition-all duration-300 ${
+                      isLight 
+                        ? 'bg-zinc-50 border-zinc-200 hover:border-zinc-300' 
+                        : 'bg-[#000000] border-zinc-900 hover:border-zinc-800'
+                    }`}>
                       {isEditing ? (
-                        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <input value={editingName} onChange={e => setEditingName(e.target.value)} autoFocus placeholder="Beat name" style={{ ...inputSt, fontWeight: 700 }} />
-                          <input value={editingArtist} onChange={e => setEditingArtist(e.target.value)} placeholder="Artist (optional)" style={{ ...inputSt, fontSize: 13 }} />
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={handleSaveEdit} className="btn-smooth" style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', color: '#fff', fontSize: 13, fontWeight: 700 }}>Save</button>
-                            <button onClick={() => setEditingSong(null)} className="btn-smooth" style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 13, fontWeight: 600 }}>Cancel</button>
+                        <div className="p-3.5 flex flex-col gap-2.5">
+                          <input 
+                            value={editingName} 
+                            onChange={e => setEditingName(e.target.value)} 
+                            autoFocus 
+                            placeholder="Beat name" 
+                            className={`w-full py-1.5 px-2.5 rounded-lg border text-[12px] font-extrabold outline-none transition-all ${
+                              isLight 
+                                ? 'bg-white border-zinc-200 text-zinc-800 focus:border-zinc-350' 
+                                : 'bg-[#000000] border-zinc-850 text-white focus:border-zinc-750'
+                            }`} 
+                          />
+                          <input 
+                            value={editingArtist} 
+                            onChange={e => setEditingArtist(e.target.value)} 
+                            placeholder="Artist (optional)" 
+                            className={`w-full py-1.5 px-2.5 rounded-lg border text-[11px] outline-none transition-all ${
+                              isLight 
+                                ? 'bg-white border-zinc-200 text-zinc-800 focus:border-zinc-350' 
+                                : 'bg-[#000000] border-zinc-850 text-white focus:border-zinc-750'
+                            }`}
+                          />
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={handleSaveEdit} 
+                              className={`flex-1 py-1.5 rounded-lg border text-[10px] font-extrabold tracking-widest uppercase transition-all cursor-pointer ${
+                                isLight 
+                                  ? 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100' 
+                                  : 'border-blue-900/60 bg-blue-950/40 text-blue-400 hover:bg-blue-900/40'
+                              }`}
+                            >
+                              Save
+                            </button>
+                            <button 
+                              onClick={() => setEditingSong(null)} 
+                              className={`flex-1 py-1.5 rounded-lg border text-[10px] font-extrabold tracking-widest uppercase transition-all cursor-pointer ${
+                                isLight 
+                                  ? 'border-zinc-200 bg-zinc-100/50 text-zinc-700 hover:bg-zinc-200' 
+                                  : 'border-zinc-900 bg-zinc-950/20 text-zinc-400 hover:bg-zinc-900 hover:text-white'
+                              }`}
+                            >
+                              Cancel
+                            </button>
                           </div>
                         </div>
                       ) : (
                         <div>
-                          <button onClick={() => handleLoadSong(song)} style={{ width: '100%', textAlign: 'left', padding: '16px', display: 'flex', alignItems: 'center', gap: 14, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                            <div style={{ width: 52, height: 52, borderRadius: 12, background: 'rgba(0,0,0,0.35)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${accent.from}22` }}>
+                          <button 
+                            onClick={() => handleLoadSong(song)} 
+                            className="w-full text-left p-4 flex items-center gap-3.5 bg-transparent border-none cursor-pointer transition-all hover:bg-zinc-500/5"
+                          >
+                            <div className={`w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border ${
+                              isLight ? 'border-zinc-200 bg-zinc-100' : 'border-zinc-900 bg-zinc-950'
+                            }`}>
                               {song.kitType && KIT_IMAGE[song.kitType] ? (
-                                <img src={KIT_IMAGE[song.kitType]} alt={kitLabel} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={KIT_IMAGE[song.kitType]} alt={kitLabel} className="w-full h-full object-cover" />
                               ) : (
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accent.from} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
+                                <span className={`material-symbols-outlined text-[20px] ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>music_note</span>
                               )}
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>{song.name}</p>
-                              {song.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 12, margin: '2px 0 0' }}>{song.artist}</p>}
-                              <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <span style={{ fontSize: 10, fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-primary)', background: 'var(--app-surface-high)', padding: '2px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>{kitLabel}</span>
-                                <span style={{ fontSize: 10, fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
-                                  <span className="material-symbols-outlined" style={{ fontSize: 11, lineHeight: 1 }}>speed</span>
+                            <div className="flex-1 min-w-0">
+                              <span className={`block text-[13px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'} truncate`}>
+                                {song.name}
+                              </span>
+                              {song.artist && (
+                                <span className="block text-[9px] text-zinc-500 font-extrabold uppercase tracking-wider truncate mt-0.5">
+                                  {song.artist}
+                                </span>
+                              )}
+                              <div className="flex gap-2.5 mt-2 items-center flex-wrap">
+                                <span className={`text-[8.5px] font-extrabold uppercase tracking-wider px-2 py-0.5 border rounded-full ${
+                                  isLight ? 'bg-zinc-100 border-zinc-200 text-zinc-655' : 'bg-zinc-900/30 border-zinc-900 text-zinc-400'
+                                }`}>
+                                  {kitLabel}
+                                </span>
+                                <span className={`text-[8.5px] font-extrabold uppercase tracking-wider flex items-center gap-1 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                                  <span className="material-symbols-outlined text-[10px]">speed</span>
                                   {bpm} BPM
                                 </span>
-                                <span style={{ fontSize: 10, fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-muted)' }}>{pCount} pattern{pCount !== 1 ? 's' : ''}</span>
+                                <span className={`text-[8.5px] font-extrabold uppercase tracking-wider ${isLight ? 'text-zinc-450' : 'text-zinc-550'}`}>
+                                  {pCount} pattern{pCount !== 1 ? 's' : ''}
+                                </span>
                               </div>
                             </div>
-                            <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 20, flexShrink: 0 }}>chevron_right</span>
+                            <span className={`material-symbols-outlined text-[18px] ${isLight ? 'text-zinc-400' : 'text-zinc-650'} flex-shrink-0`}>chevron_right</span>
                           </button>
-                          <div style={{ display: 'flex', borderTop: '1px solid rgba(72,72,72,0.07)' }}>
-                            <button onClick={() => handleStartEdit(song)} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, background: 'transparent', border: 'none', borderRight: '1px solid rgba(72,72,72,0.07)', cursor: 'pointer' }}>
-                              <span className="material-symbols-outlined" style={{ fontSize: 14, flexShrink: 0 }}>edit</span>
-                              Edit
+                          
+                          <div className={`flex border-t ${isLight ? 'border-zinc-150' : 'border-zinc-900/60'}`}>
+                            <button 
+                              onClick={() => handleStartEdit(song)} 
+                              className={`flex-1 py-2 border-r flex items-center justify-center gap-1.5 text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer bg-transparent border-none ${
+                                isLight 
+                                  ? 'border-zinc-150 text-zinc-650 hover:bg-zinc-100 hover:text-black' 
+                                  : 'border-zinc-900/60 text-zinc-450 hover:bg-zinc-900/40 hover:text-white'
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-[13px]">edit</span>
+                              <span>EDIT</span>
                             </button>
+                            
                             {isDeleting ? (
                               <>
-                                <button onClick={() => { deleteDrumSong(song.id); setDeletingId(null); }} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: '#ee7d77', fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, background: 'rgba(238,125,119,0.10)', border: 'none', cursor: 'pointer', borderRight: '1px solid rgba(72,72,72,0.07)' }}>
-                                  Confirm
+                                <button 
+                                  onClick={() => { deleteDrumSong(song.id); setDeletingId(null); }} 
+                                  className={`flex-1 py-2 flex items-center justify-center gap-1.5 text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer border-none bg-red-950/30 text-red-400 border-r border-zinc-900/60`}
+                                >
+                                  CONFIRM
                                 </button>
-                                <button onClick={() => setDeletingId(null)} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                                  Cancel
+                                <button 
+                                  onClick={() => setDeletingId(null)} 
+                                  className={`flex-1 py-2 flex items-center justify-center gap-1.5 text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer border-none bg-transparent text-zinc-500 hover:text-zinc-350`}
+                                >
+                                  CANCEL
                                 </button>
                               </>
                             ) : (
-                              <button onClick={() => setDeletingId(song.id)} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: '#ee7d77', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: 14, flexShrink: 0 }}>delete</span>
-                                Delete
+                              <button 
+                                onClick={() => setDeletingId(song.id)} 
+                                className={`flex-1 py-2 flex items-center justify-center gap-1.5 text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer bg-transparent border-none ${
+                                  isLight 
+                                    ? 'text-red-650 hover:bg-red-50 hover:text-red-750' 
+                                    : 'text-red-400 hover:bg-red-950/20 hover:text-red-300'
+                                }`}
+                              >
+                                <span className="material-symbols-outlined text-[13px]">delete</span>
+                                <span>DELETE</span>
                               </button>
                             )}
                           </div>
@@ -4445,7 +4515,7 @@ export default function DrumEditor() {
       <DrumNav activeTab={activeTab} setTab={handleSetTab} accent={accent} isLight={isLight} isAmoled={isAmoled} hidden={isWebDesktop || (isLandscape && inEditor)} />
 
       {/* ── Floating buttons (songs list only): import above + add ──────── */}
-      {!inEditor && activeTab === 'songs' && (
+      {!inEditor && activeTab === 'songs' && !isWebDesktop && (
         <div style={{ position: 'fixed', right: 20, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, pointerEvents: 'none', zIndex: 50 }}>
           {/* Import JSON button */}
           <button
