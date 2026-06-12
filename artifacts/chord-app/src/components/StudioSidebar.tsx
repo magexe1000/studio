@@ -58,7 +58,7 @@ export function SidebarProvider({
   return (
     <SidebarContext.Provider value={{ state, open, setOpen, isMobile, toggleSidebar }}>
       <div
-        className={`flex w-full h-full min-h-screen overflow-hidden ${className}`}
+        className={`flex w-full h-full min-h-[100dvh] overflow-hidden ${className}`}
         style={{
           '--sidebar-width': '240px',
           '--sidebar-width-icon': '0px',
@@ -114,7 +114,7 @@ export function Sidebar({
         }
       }}
       style={{
-        height: open ? 'calc(100vh - 24px)' : '100vh',
+        height: open ? 'calc(100dvh - 24px)' : '100dvh',
         borderRadius: open ? '16px' : '0px',
         border: '1px solid',
         background: 'rgba(15, 15, 15, 0.70)',
@@ -378,7 +378,7 @@ export function SidebarInset({
   style?: React.CSSProperties;
 }) {
   return (
-    <main className={`flex-1 h-screen overflow-hidden relative ${className}`} style={style} {...props}>
+    <main className={`flex-1 h-[100dvh] overflow-hidden relative ${className}`} style={style} {...props}>
       {children}
     </main>
   );
