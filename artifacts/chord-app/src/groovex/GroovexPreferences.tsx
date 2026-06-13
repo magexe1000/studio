@@ -58,7 +58,7 @@ export default function GroovexPreferences() {
   }
 
   return (
-    <div ref={scrollRef} className="spring-in bg-[#050505] w-full" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div ref={scrollRef} className="spring-in bg-[#000000] w-full" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ maxWidth: 600, margin: isWebDesktop ? '0' : '0 auto', padding: isWebDesktop ? '24px' : '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
 
         {isWebDesktop ? (
@@ -278,7 +278,7 @@ export default function GroovexPreferences() {
               style={{
                 background: 'rgba(127,41,39,0.2)', border: '1px solid rgba(238,125,119,0.3)',
                 color: '#ee7d77', fontSize: 12, fontWeight: 700, padding: '10px 20px',
-                borderRadius: 9999, cursor: 'pointer',
+                borderRadius: 8, cursor: 'pointer',
                 transition: 'background 150ms ease',
               }}
             >
