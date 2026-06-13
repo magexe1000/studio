@@ -41,7 +41,6 @@ export const HOUSE_CRASH_MODELS: { id: HouseCrashModel; label: string; desc: str
 export type CymbalPack = 'default' | 'zildjian-k';
 export const CYMBAL_PACKS: { id: CymbalPack; label: string; desc: string }[] = [
   { id: 'default',     label: 'Sabian Pack',         desc: 'Hi-hat, crash, ride — bright, versatile'            },
-  { id: 'zildjian-k',  label: 'Zildjian K Custom',   desc: 'Dark crash, splash, ride — warm, complex overtones' },
 ];
 
 export const DRUM_INSTRUMENTS: DrumInstrument[] = [
@@ -432,7 +431,7 @@ export const useDrumStore = create<DrumStore>()(
       setMasterVolume: vol => set({ masterVolume: Math.max(0, Math.min(1, vol)) }),
 
       setKitType: (kit, soundMap) =>
-        set({ kitType: kit, soundMap, activeInstruments: KIT_INSTRUMENTS[kit] }),
+        set({ kitType: 'house', soundMap, activeInstruments: KIT_INSTRUMENTS['house'] }),
 
       toggleInstrument: inst =>
         set(s => ({
@@ -668,7 +667,13 @@ export const useDrumStore = create<DrumStore>()(
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
-        set(st => ({ drumSongs: [song, ...st.drumSongs] }));
+        set(st => ({
+          drumSongs: [song, ...st.drumSongs],
+          patterns: song.patterns,
+          activePatternId: song.activePatternId,
+          kitType: song.kitType,
+          cymbalPack: 'default',
+        }));
         return song.id;
       },
 
@@ -680,6 +685,7 @@ export const useDrumStore = create<DrumStore>()(
           patterns: JSON.parse(JSON.stringify(song.patterns)),
           activePatternId: song.activePatternId,
           kitType: kit,
+          cymbalPack: 'default',
           instFX: {},
         });
       },
@@ -780,7 +786,13 @@ export const useDrumStore = create<DrumStore>()(
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
-        set(st => ({ drumSongs: [song, ...st.drumSongs] }));
+        set(st => ({
+          drumSongs: [song, ...st.drumSongs],
+          patterns: song.patterns,
+          activePatternId: song.activePatternId,
+          kitType: song.kitType,
+          cymbalPack: 'default',
+        }));
         return song.id;
       },
 
@@ -799,7 +811,7 @@ export const useDrumStore = create<DrumStore>()(
       }),
 
       setHouseCrashModel: (model) => set({ houseCrashModel: model }),
-      setCymbalPack: (pack) => set({ cymbalPack: pack }),
+      setCymbalPack: (pack) => set({ cymbalPack: 'default' }),
 
       updateDrumPrefs: (patch) =>
         set(s => ({ drumPrefs: { ...s.drumPrefs, ...patch } })),
@@ -834,6 +846,7 @@ export const useDrumStore = create<DrumStore>()(
         return {
           ...s,
           kitType,
+          cymbalPack: 'default',
           patterns: migratedPatterns,
           drumSongs: migratedSongs,
           activeInstruments: filtered.length > 0 ? filtered : KIT_INSTRUMENTS[kitType],

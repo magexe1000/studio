@@ -875,11 +875,7 @@ export function setHouseCrashModel(model: HouseCrashModel): void { _houseCrashMo
 
 let _cymbalPack: CymbalPack = 'default';
 export function setCymbalPackAudio(pack: CymbalPack): void {
-  _cymbalPack = pack;
-  if (pack === 'zildjian-k') {
-    const { ctx } = getCtx();
-    cymbalPool.loadZildjian(ctx);
-  }
+  _cymbalPack = 'default';
 }
 
 
@@ -1770,6 +1766,13 @@ class DrumScheduler {
     const dest = _masterGain;
     const t = Math.max(time, ctx.currentTime + 0.002);
 
+    const duration = soundType === 'wood' ? 60
+                   : soundType === 'studio' ? 20
+                   : soundType === 'digital' ? 40
+                   : soundType === 'rim' ? 30
+                   : 50; // classic
+    const delayMs = Math.max(50, Math.ceil((t - ctx.currentTime) * 1000) + duration + 100);
+
     if (soundType === 'wood') {
       // Resonant wood block
       const osc1 = ctx.createOscillator();
@@ -1796,7 +1799,7 @@ class DrumScheduler {
           osc2.disconnect();
           gainNode.disconnect();
         } catch {}
-      }, 100);
+      }, delayMs);
     } else if (soundType === 'studio') {
       // High-frequency studio click/tick
       const osc = ctx.createOscillator();
@@ -1816,7 +1819,7 @@ class DrumScheduler {
           osc.disconnect();
           gainNode.disconnect();
         } catch {}
-      }, 100);
+      }, delayMs);
     } else if (soundType === 'digital') {
       // Soft digital beep
       const osc = ctx.createOscillator();
@@ -1836,7 +1839,7 @@ class DrumScheduler {
           osc.disconnect();
           gainNode.disconnect();
         } catch {}
-      }, 100);
+      }, delayMs);
     } else if (soundType === 'rim') {
       // Filtered noise burst stick rim strike
       const osc = ctx.createOscillator();
@@ -1880,7 +1883,7 @@ class DrumScheduler {
           osc.disconnect();
           gainNode.disconnect();
         } catch {}
-      }, 100);
+      }, delayMs);
     } else {
       // Classic mechanical triangle click with fast sweep
       const osc = ctx.createOscillator();
@@ -1901,7 +1904,7 @@ class DrumScheduler {
           osc.disconnect();
           gainNode.disconnect();
         } catch {}
-      }, 100);
+      }, delayMs);
     }
   }
 

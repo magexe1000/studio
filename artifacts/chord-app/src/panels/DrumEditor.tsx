@@ -66,6 +66,30 @@ const MIN_STEP = 16;
 // Order mirrors KIT_INSTRUMENTS display order: high → low pitch.
 const CORE_INSTS: DrumInstrument[] = ['hihat-closed', 'snare', 'kick', 'crash'];
 
+const getInstrumentColor = (inst: DrumInstrument, isLight: boolean, noteColor: string): string => {
+  if (isLight) {
+    switch (inst) {
+      case 'kick':
+      case 'snare':
+        return '#09090b'; // zinc-950 (black/dark zinc)
+      case 'hihat-closed':
+      case 'hihat-open':
+      case 'hihat-foot':
+        return '#27272a'; // zinc-800
+      case 'tom-high':
+      case 'tom-mid':
+      case 'tom-floor':
+        return '#3f3f46'; // zinc-700
+      case 'crash':
+      case 'ride':
+        return '#52525b'; // zinc-600
+      default:
+        return '#09090b';
+    }
+  }
+  return INSTRUMENT_COLOR[inst] ?? noteColor;
+};
+
 // Staff lines within each row (fraction of ROW_H)
 const STAFF_YF = [0.29, 0.52, 0.75] as const;
 
@@ -309,11 +333,12 @@ interface RowProps {
 }
 const InstrumentRow = memo(({
   inst, mStartIdx, rowMeasures, spm, stepsPerBeat, STEP_W, MEASURE_W,
-  noteColor, staffColor, barColor, altBg, showVariations, gridEmphasis, accentFrom, ROW_H, isLight,
+  noteColor, staffColor, barColor: propBarColor, altBg, showVariations, gridEmphasis, accentFrom, ROW_H, isLight,
 }: RowProps) => {
   const totalW     = rowMeasures.length * MEASURE_W;
   const defaultNoteY = NOTE_YF[inst] * ROW_H;
   const NOTE_R     = 4.5;
+  const barColor = isLight ? 'rgba(9, 9, 11, 0.40)' : propBarColor;
 
   return (
     <svg width={totalW} height={ROW_H} viewBox={`0 0 ${totalW} ${ROW_H}`} style={{ display: 'block', overflow: 'visible', flexShrink: 0 }}>
@@ -335,14 +360,14 @@ const InstrumentRow = memo(({
           const x = (mi * spm + s) * STEP_W;
           const onBeat = s % stepsPerBeat === 0;
           return <line key={`s-${mi}-${s}`} x1={x} y1={0} x2={x} y2={ROW_H}
-            stroke={isLight ? 'rgba(9, 9, 11, 0.15)' : 'rgba(255, 255, 255, 0.08)'}
+            stroke={isLight ? (onBeat ? 'rgba(9, 9, 11, 0.45)' : 'rgba(9, 9, 11, 0.20)') : (isLight ? 'rgba(9, 9, 11, 0.15)' : 'rgba(255, 255, 255, 0.08)')}
             strokeWidth={onBeat ? 1.0 : 0.7}
             opacity={onBeat ? (gridEmphasis ? 1.0 : 0.75) : (gridEmphasis ? 0.6 : 0.4)} />;
         })
       )}
       {/* Top + bottom row borders */}
-      <line x1={0} y1={0} x2={totalW} y2={0} stroke={isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
-      <line x1={0} y1={ROW_H} x2={totalW} y2={ROW_H} stroke={isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
+      <line x1={0} y1={0} x2={totalW} y2={0} stroke={isLight ? 'rgba(9, 9, 11, 0.22)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
+      <line x1={0} y1={ROW_H} x2={totalW} y2={ROW_H} stroke={isLight ? 'rgba(9, 9, 11, 0.22)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
       {/* Measure bar lines */}
       {rowMeasures.map((_, mi) => (
         <line key={mi} x1={mi * MEASURE_W} y1={0} x2={mi * MEASURE_W} y2={ROW_H} stroke={barColor} strokeWidth={mi === 0 ? 1.5 : 1.2} />
@@ -396,7 +421,7 @@ const InstrumentRow = memo(({
           const isGhost = showVariations && variation === 'ghost';
           
           const strokeColor = isLight ? '#ffffff' : '#141418';
-          const instColor = INSTRUMENT_COLOR[inst] ?? noteColor;
+          const instColor = getInstrumentColor(inst, isLight, noteColor);
 
           return (
             <g key={`${mi}-${s}`} transform={`translate(${cx}, ${cy})`}>
@@ -1420,14 +1445,14 @@ function DrumExportModal({ patterns, song, accent, onClose }: {
 // ── DrumImportModal ─────────────────────────────────────────────────────────
 function DrumImportModal({ accent, onImport, onClose }: {
   accent: { from: string; to: string };
-  onImport: (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string, kitType?: string | null) => void;
+  onImport: (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string, kitType?: KitType | null) => void;
   onClose: () => void;
 }) {
   type Stage = 'idle' | 'preview' | 'error';
   const [stage, setStage]     = useState<Stage>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [dragOver, setDragOver] = useState(false);
-  const [preview, setPreview]   = useState<{ name: string; artist: string; notes: string; patterns: DrumPattern[]; activePatternId: string; kitType?: string | null } | null>(null);
+  const [preview, setPreview]   = useState<{ name: string; artist: string; notes: string; patterns: DrumPattern[]; activePatternId: string; kitType?: KitType | null } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parseFile = (file: File) => {
@@ -2098,6 +2123,7 @@ export default function DrumEditor() {
   const measureWRef = useRef(MEASURE_W);      measureWRef.current = MEASURE_W;
   const sysHRef     = useRef(FULL_SYS_H);    sysHRef.current = FULL_SYS_H;
   const allInstsRef = useRef(visibleInsts);   allInstsRef.current = visibleInsts;
+  const activeDragInst = useRef<DrumInstrument | null>(null);
   const totalStepsRef = useRef(spm * pattern.measures.length);
   totalStepsRef.current = spm * pattern.measures.length;
   const secPerStepRef = useRef(0);
@@ -2594,32 +2620,53 @@ export default function DrumEditor() {
 
   // ── Cell tap / drag ──────────────────────────────────────────────────────
   // Resolve which grid cell a pointer event falls on; returns null if outside grid
-  const resolveCell = (clientX: number, clientY: number) => {
+  const resolveCell = (clientX: number, clientY: number, instOverride?: DrumInstrument | null) => {
     const el = scrollRef.current; if (!el) return null;
     const rect = el.getBoundingClientRect();
     let cx = clientX - rect.left - LABEL_W + el.scrollLeft;
     const cy   = clientY - rect.top + el.scrollTop;
     if (cx < 0) return null;
     const sysIdx   = Math.floor(cy / sysHRef.current);
-    const yInSys   = cy % sysHRef.current - RULER_H;
-    if (yInSys < 0) return null;
-    const instIdx      = Math.floor(yInSys / ROW_H);
     const measureInRow = Math.floor(cx / measureWRef.current);
+    const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
+    const curPat = pts.find(p => p.id === actId);
+    if (!curPat) return null;
+    if (sysIdx * mprRef.current + measureInRow < 0 || sysIdx * mprRef.current + measureInRow >= curPat.measures.length) return null;
     const mIdx         = sysIdx * mprRef.current + measureInRow;
+
     // snapToGrid=false → quantize to beat rather than subdivision step
     let stepInM = Math.floor((cx % measureWRef.current) / stepWRef.current);
     if (!useDrumStore.getState().drumPrefs.snapToGrid) {
       const spBeat = spmRef.current / 4;
       stepInM = Math.floor(stepInM / spBeat) * spBeat;
     }
-    const vis = allInstsRef.current;
-    const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
-    const curPat = pts.find(p => p.id === actId);
-    if (!curPat) return null;
-    if (instIdx < 0 || instIdx >= vis.length) return null;
-    if (mIdx < 0 || mIdx >= curPat.measures.length) return null;
     if (stepInM < 0 || stepInM >= spmRef.current) return null;
-    return { inst: vis[instIdx], m: curPat.measures[mIdx], stepInM, mIdx, instIdx };
+
+    const vis = allInstsRef.current;
+    let inst: DrumInstrument;
+    let instIdx: number;
+
+    if (instOverride) {
+      inst = instOverride;
+      instIdx = vis.indexOf(inst);
+    } else {
+      const yInSys   = cy % sysHRef.current - RULER_H;
+      if (yInSys < 0) return null;
+      instIdx = -1;
+      for (let i = 0; i < vis.length; i++) {
+        const top = i * (ROW_H + rowGap);
+        const bottom = top + ROW_H;
+        if (yInSys >= top && yInSys <= bottom) {
+          instIdx = i;
+          break;
+        }
+      }
+      if (instIdx === -1) return null;
+      inst = vis[instIdx];
+    }
+    
+    if (instIdx < 0 || instIdx >= vis.length) return null;
+    return { inst, m: curPat.measures[mIdx], stepInM, mIdx, instIdx };
   };
 
   const applyHitToCell = useCallback((inst: DrumInstrument, m: DrumMeasure, stepInM: number, patternId: string, preview = true) => {
@@ -2657,6 +2704,7 @@ export default function DrumEditor() {
 
   const cancelPointer = () => {
     pointerStart.current = null;
+    activeDragInst.current = null;
     isDragging.current   = false;
     dragFilled.current.clear();
   };
@@ -2666,6 +2714,14 @@ export default function DrumEditor() {
     pointerStart.current = { x: e.clientX, y: e.clientY };
     isDragging.current   = false;
     dragFilled.current.clear();
+    
+    const cell = resolveCell(e.clientX, e.clientY);
+    if (cell) {
+      activeDragInst.current = cell.inst;
+    } else {
+      activeDragInst.current = null;
+    }
+
     // Capture the pointer so move/up fire even if finger leaves the element
     try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
   };
@@ -2677,7 +2733,7 @@ export default function DrumEditor() {
     const dist = Math.hypot(e.clientX - s.x, e.clientY - s.y);
     if (dist < 8) return; // minimum drag threshold
     if (!isDragging.current) { isDragging.current = true; pushUndo(); }
-    const cell = resolveCell(e.clientX, e.clientY);
+    const cell = resolveCell(e.clientX, e.clientY, activeDragInst.current);
     if (!cell) return;
     const key = `${cell.inst}:${cell.mIdx}:${cell.stepInM}`;
     if (dragFilled.current.has(key)) return; // already filled in this drag
@@ -2695,10 +2751,12 @@ export default function DrumEditor() {
 
   const handlePointerUp   = (e: React.PointerEvent) => {
     const s = pointerStart.current; if (!s) return; pointerStart.current = null;
+    const instLock = activeDragInst.current;
+    activeDragInst.current = null;
     // If this was a drag-to-fill event, just clean up
     if (isDragging.current) { isDragging.current = false; dragFilled.current.clear(); return; }
     if (Math.abs(e.clientX - s.x) > 12 || Math.abs(e.clientY - s.y) > 12) return;
-    const cell = resolveCell(e.clientX, e.clientY);
+    const cell = resolveCell(e.clientX, e.clientY, instLock);
     if (!cell) return;
     const { activePatternId: actId } = useDrumStore.getState();
     if (!actId) return;
@@ -2875,24 +2933,27 @@ export default function DrumEditor() {
     content: React.ReactNode
   ) => {
     const isCollapsed = collapsedState[id];
+    const borderB = isLight ? '1px solid rgba(0, 0, 0, 0.06)' : '1px solid rgba(255, 255, 255, 0.04)';
+    const bg = isLight ? 'rgba(0, 0, 0, 0.015)' : 'rgba(255, 255, 255, 0.01)';
+    const border = isLight ? '1px solid rgba(0, 0, 0, 0.06)' : '1px solid rgba(255, 255, 255, 0.03)';
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderBottom: '1px solid rgba(255, 255, 255, 0.04)', paddingBottom: isCollapsed ? 6 : 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderBottom: borderB, paddingBottom: isCollapsed ? 6 : 10 }}>
         <div
           onClick={() => onToggle(id)}
-          className="btn-smooth hover:bg-white/5"
+          className={`btn-smooth ${isLight ? 'hover:bg-black/5' : 'hover:bg-white/5'}`}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '8px 10px',
-            background: 'rgba(255, 255, 255, 0.01)',
-            border: '1px solid rgba(255, 255, 255, 0.03)',
+            background: bg,
+            border: border,
             borderRadius: '6px',
             cursor: 'pointer',
             userSelect: 'none',
           }}
         >
-          <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isCollapsed ? 'var(--c-text-secondary)' : '#fff' }}>
+          <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isCollapsed ? 'var(--c-text-secondary)' : 'var(--c-text-primary)' }}>
             {title}
           </span>
           <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--c-text-muted)', transition: 'transform 200ms', transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)' }}>
@@ -3021,7 +3082,13 @@ export default function DrumEditor() {
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>undo</span>
                 </button>
 
-                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+                {/* Redo */}
+                <button onClick={handleRedo} disabled={redoStack.current.length === 0} title="Redo (Ctrl+Y)" aria-label="Redo" className="btn-smooth"
+                  style={{ height: 28, width: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35, transition: 'all 150ms' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>redo</span>
+                </button>
+
+                <div style={{ width: 1, height: 18, background: isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.08)' }} />
 
                 {/* Play/Stop */}
                 <button onClick={handlePlay} className="btn-smooth" title={playing ? "Stop Playback" : "Start Playback"} aria-label={playing ? "Stop" : "Play"} style={{
@@ -3033,26 +3100,18 @@ export default function DrumEditor() {
                   {playing ? '⏹' : '▶'}
                 </button>
 
-                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
-
-                {/* Redo */}
-                <button onClick={handleRedo} disabled={redoStack.current.length === 0} title="Redo (Ctrl+Y)" aria-label="Redo" className="btn-smooth"
-                  style={{ height: 28, width: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35, transition: 'all 150ms' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>redo</span>
-                </button>
-
-                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+                <div style={{ width: 1, height: 18, background: isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.08)' }} />
 
                 {/* Subdivision */}
                 <button onClick={toggleSub} className="btn-smooth" title="Step Resolution (Subdivision)" aria-label="Step Resolution (Subdivision)" style={{
                   height: 24, padding: '0 8px', borderRadius: 6,
-                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                  background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
                   cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 10.5, fontWeight: 700
                 }}>
                   1/{pattern.subdivision}
                 </button>
 
-                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+                <div style={{ width: 1, height: 18, background: isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.08)' }} />
 
                 {/* Tempo & Metronome */}
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -3229,32 +3288,66 @@ export default function DrumEditor() {
                               ].map(choice => {
                                 const isSel = (drumPrefs.metronomeSound || 'classic') === choice.id;
                                 return (
-                                  <button
+                                  <div
                                     key={choice.id}
-                                    onClick={() => {
-                                      updateDrumPrefs({ metronomeSound: choice.id });
-                                      playMetronomeClick(true, choice.id);
-                                    }}
                                     style={{
-                                      width: '100%',
-                                      height: 28,
-                                      borderRadius: 6,
-                                      border: 'none',
-                                      background: isSel ? `${accent.from}15` : 'transparent',
-                                      color: isSel ? accent.from : 'var(--c-text-secondary)',
-                                      cursor: 'pointer',
-                                      fontSize: 11,
-                                      fontWeight: isSel ? 750 : 500,
-                                      textAlign: 'left',
-                                      padding: '0 8px',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'space-between',
+                                      width: '100%',
+                                      height: 28,
+                                      borderRadius: 6,
+                                      background: isSel ? `${accent.from}15` : 'transparent',
+                                      padding: '0 4px 0 8px',
                                     }}
                                   >
-                                    <span>{choice.label}</span>
-                                    {isSel && <span style={{ fontSize: 11, color: accent.from }}>✓</span>}
-                                  </button>
+                                    <button
+                                      onClick={() => {
+                                        updateDrumPrefs({ metronomeSound: choice.id });
+                                        playMetronomeClick(true, choice.id);
+                                      }}
+                                      style={{
+                                        flex: 1,
+                                        height: '100%',
+                                        border: 'none',
+                                        background: 'transparent',
+                                        color: isSel ? accent.from : 'var(--c-text-secondary)',
+                                        cursor: 'pointer',
+                                        fontSize: 11,
+                                        fontWeight: isSel ? 750 : 500,
+                                        textAlign: 'left',
+                                        padding: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                      }}
+                                    >
+                                      {choice.label}
+                                    </button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <button
+                                        title={`Preview ${choice.label}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          playMetronomeClick(true, choice.id);
+                                        }}
+                                        style={{
+                                          border: 'none',
+                                          background: 'transparent',
+                                          color: 'var(--c-text-muted)',
+                                          cursor: 'pointer',
+                                          padding: 4,
+                                          borderRadius: 4,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontSize: 9,
+                                        }}
+                                      >
+                                        ▶
+                                      </button>
+                                      {isSel && <span style={{ fontSize: 11, color: accent.from, paddingRight: 4 }}>✓</span>}
+                                    </div>
+                                  </div>
                                 );
                               })}
                             </div>
@@ -3974,7 +4067,7 @@ export default function DrumEditor() {
               className="no-scrollbar"
             >
               {/* Playhead — extends into ruler, draggable handle at top */}
-              <div ref={playheadRef} style={{ position: 'absolute', top: 8, left: 0, width: 2, height: RULER_H + visibleInsts.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'block', borderRadius: 1, willChange: 'transform', transform: `translate(${LABEL_W}px, 0px)` }}>
+              <div ref={playheadRef} style={{ position: 'absolute', top: 8, left: 0, width: 1.5, height: RULER_H + visibleInsts.length * ROW_H + (visibleInsts.length > 0 ? (visibleInsts.length - 1) * rowGap : 0), background: accent.from, boxShadow: `0 0 4px ${accent.from}55`, pointerEvents: 'none', zIndex: 10, display: 'block', borderRadius: 1, willChange: 'transform', transform: `translate(${LABEL_W}px, 0px)` }}>
                 {/* Draggable handle — downward triangle above the ruler */}
                 <div
                   onPointerDown={e => {
@@ -3996,14 +4089,13 @@ export default function DrumEditor() {
                     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
                   }}
                   style={{
-                    position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
+                    position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
                     width: 0, height: 0,
-                    borderLeft: '7px solid transparent',
-                    borderRight: '7px solid transparent',
-                    borderTop: `10px solid ${accent.from}`,
+                    borderLeft: '4.5px solid transparent',
+                    borderRight: '4.5px solid transparent',
+                    borderTop: `7.5px solid ${accent.from}`,
                     cursor: 'ew-resize',
                     pointerEvents: 'auto',
-                    filter: `drop-shadow(0 0 4px ${accent.from}88)`,
                   }}
                 />
               </div>
@@ -4515,18 +4607,8 @@ export default function DrumEditor() {
 
                           <div>
                             <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--c-text-secondary)', display: 'block', marginBottom: 4 }}>Cymbal Pack</span>
-                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                              {CYMBAL_PACKS.map(p => {
-                                const active = cymbalPack === p.id;
-                                return (
-                                  <button key={p.id} className="btn-smooth"
-                                    onClick={() => storeSetCymbalPack(p.id as CymbalPack)}
-                                    title={p.desc}
-                                    style={{ height: 24, padding: '0 8px', borderRadius: 6, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.1)', background: active ? `${accent.from}1a` : 'rgba(255,255,255,0.03)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
-                                    {p.label}
-                                  </button>
-                                );
-                              })}
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-primary)', padding: '2px 0' }}>
+                              Sabian Pack (Hi-hat, crash, ride — bright, versatile)
                             </div>
                           </div>
 
@@ -5358,8 +5440,8 @@ export default function DrumEditor() {
       {showImportDrum && (
         <DrumImportModal
           accent={accent}
-          onImport={(name, artist, notes, pats, activeId) => {
-            importDrumSong(name, artist, notes, pats, activeId);
+          onImport={(name, artist, notes, pats, activeId, kitType) => {
+            importDrumSong(name, artist, notes, pats, activeId, kitType);
             setShowImportDrum(false);
           }}
           onClose={() => setShowImportDrum(false)}
@@ -5403,58 +5485,19 @@ export default function DrumEditor() {
                   </div>
                 </div>
 
-                {/* ── Drum Kit ── */}
-                <div>
-                  <label style={labelSt}>Drum Kit</label>
-                  <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 8 }}>
-                    {KIT_FAMILY.map(fam => {
-                      const isActive = fam.id === createFamily;
-                      return (
-                        <button key={fam.id} className="btn-smooth"
-                          onClick={() => {
-                            setCreateFamily(fam.id);
-                            setCreateVariant(fam.variations[0].kit);
-                          }}
-                          style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 14, cursor: 'pointer', background: isActive ? `linear-gradient(135deg,${accent.from}22,${accent.to}12)` : 'var(--app-surface-high)', border: isActive ? `1.5px solid ${accent.from}55` : '1.5px solid transparent', transition: 'all 160ms' }}>
-                          <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', background: 'rgba(0,0,0,0.3)', flexShrink: 0 }}>
-                            <img src={KIT_IMAGE[fam.variations[0].kit]} alt={fam.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          </div>
-                          <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'Manrope,sans-serif', color: isActive ? accent.from : 'var(--c-text-secondary)', whiteSpace: 'nowrap' }}>{fam.label}</span>
-                        </button>
-                      );
-                    })}
+                {/* ── Drum Kit Details (Read-only since only Acoustic House Kit is supported) ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={labelSt}>Drum Kit</label>
+                    <div style={{ ...inputSt, display: 'flex', alignItems: 'center', background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.12)', color: 'var(--c-text-secondary)', cursor: 'default' }}>
+                      Acoustic
+                    </div>
                   </div>
-                </div>
-
-                {/* ── Variation chips ── */}
-                <div>
-                  <label style={labelSt}>Sound</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-                    {activeFamilyEntry.variations.map(v => {
-                      const isSel = createVariant === v.kit;
-                      const kitImg = KIT_IMAGE[v.kit];
-                      return (
-                        <button key={v.kit} className="btn-smooth"
-                          onClick={() => {
-                            setCreateVariant(v.kit);
-                            loadDrumSamples(v.kit);
-                          }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, cursor: 'pointer', background: isSel ? `linear-gradient(135deg,${accent.from}18,${accent.to}10)` : 'var(--app-bg)', border: isSel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.12)', transition: 'all 150ms' }}>
-                          <div style={{ width: 52, height: 52, borderRadius: 10, flexShrink: 0, overflow: 'hidden', background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: isSel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.08)', transition: 'all 150ms' }}>
-                            {kitImg ? (
-                              <img src={kitImg} alt={v.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              <span className="material-symbols-outlined" style={{ fontSize: 22, color: 'var(--c-text-muted)' }}>music_note</span>
-                            )}
-                          </div>
-                          <div style={{ flex: 1, textAlign: 'left' }}>
-                            <div style={{ fontSize: 13.5, fontWeight: 700, color: isSel ? accent.from : 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', transition: 'color 150ms' }}>{v.label}</div>
-                            <div style={{ fontSize: 11, color: 'var(--c-text-muted)', marginTop: 1 }}>{v.desc}</div>
-                          </div>
-                          {isSel && <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, flexShrink: 0 }}>check_circle</span>}
-                        </button>
-                      );
-                    })}
+                  <div>
+                    <label style={labelSt}>Sound</label>
+                    <div style={{ ...inputSt, display: 'flex', alignItems: 'center', background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.12)', color: 'var(--c-text-secondary)', cursor: 'default' }}>
+                      House Kit
+                    </div>
                   </div>
                 </div>
 
