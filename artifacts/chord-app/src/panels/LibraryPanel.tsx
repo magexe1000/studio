@@ -815,7 +815,7 @@ export default function LibraryPanel() {
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                       </button>
-                      <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'white' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--c-text-primary)' }}>
                         {activeCat.label} ({filteredByType.length})
                       </span>
                     </div>
@@ -926,7 +926,7 @@ export default function LibraryPanel() {
                         >
                           <div>
                             <div className="flex justify-between items-start gap-1">
-                              <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'white', fontFamily: 'Manrope' }} className="truncate">
+                              <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--c-text-primary)', fontFamily: 'Manrope' }} className="truncate">
                                 {song.title}
                               </span>
                               <span style={{ fontSize: '8px', color: meta.color, background: `${meta.color}15`, border: `1px solid ${meta.color}30`, padding: '1px 4px', borderRadius: '4px', textTransform: 'uppercase', fontWeight: 800 }}>

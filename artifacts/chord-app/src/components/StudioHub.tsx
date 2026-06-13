@@ -207,7 +207,20 @@ export default function StudioHub() {
       ? { from: `hsl(${settings.customAccentHue ?? 220}, 75%, 65%)`, mid: `hsl(${settings.customAccentHue ?? 220}, 80%, 55%)`, to: `hsl(${((settings.customAccentHue ?? 220) + 25) % 360}, 85%, 42%)` }
       : (ACCENT_COLORS[hubAccentKey] ?? ACCENT_COLORS.blue),
   [hubAccentKey, settings.customAccentHue]);
-  const isHubLight = (settings.perApp?.hub?.theme ?? settings.theme ?? 'dark') === 'light';
+  const isHubLight = (() => {
+    const hubTheme = settings.perApp?.hub?.theme ?? settings.theme ?? 'dark';
+    if (hubTheme === 'light') return true;
+    if (hubTheme === 'system') {
+      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
+    }
+    if (hubTheme === 'dynamic') {
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      return h >= lightStart && h < lightEnd;
+    }
+    return false;
+  })();
 
   const [tab, setTab]       = useState<HubTab>('home');
 

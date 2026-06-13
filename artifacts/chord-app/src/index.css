@@ -172,22 +172,84 @@
 :root.light {
   color-scheme: light;
 
-  --app-bg: #f2f1ef;
-  --app-surface-lowest: #e5e4e2;
-  --app-surface-low: #e9e8e6;
-  --app-surface: #eeedeb;
-  --app-surface-high: #f4f3f1;
-  --app-surface-highest: #faf9f7;
+  --app-bg: #f4f4f5;
+  --app-surface-lowest: #e4e4e7;
+  --app-surface-low: #ececed;
+  --app-surface: #f4f4f5;
+  --app-surface-high: #fafafa;
+  --app-surface-highest: #ffffff;
 
-  --c-text-primary:   #1a1a1a;
-  --c-text-secondary: #6e6d6b;
-  --c-text-muted:     #b2b1b0;
+  --c-text-primary:   #18181b;
+  --c-text-secondary: #52525b;
+  --c-text-muted:     #71717a;
 
-  --add-bar-border: 1px dashed rgba(0,0,0,0.18);
+  --add-bar-border: 1px dashed rgba(0,0,0,0.22);
 
-  --sidebar-hover-bg: rgba(0, 0, 0, 0.03);
-  --sidebar-active-bg: rgba(0, 0, 0, 0.05);
+  --sidebar-hover-bg: rgba(0, 0, 0, 0.04);
+  --sidebar-active-bg: rgba(0, 0, 0, 0.07);
 }
+
+/* Global Tailwind light mode class overrides */
+html.light .bg-zinc-950\/40,
+html.light .bg-zinc-950\/20,
+html.light .bg-zinc-950\/10 {
+  background-color: var(--app-surface-low) !important;
+}
+html.light .bg-zinc-950 {
+  background-color: var(--app-surface-highest) !important;
+}
+html.light .border-zinc-900 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light .border-zinc-900\/60,
+html.light .border-zinc-900\/80,
+html.light .border-zinc-900\/40,
+html.light .border-zinc-900\/10 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light .border-zinc-800 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+html.light .text-zinc-400 {
+  color: var(--c-text-secondary) !important;
+}
+html.light .text-zinc-500 {
+  color: var(--c-text-muted) !important;
+}
+html.light .text-zinc-300 {
+  color: var(--c-text-primary) !important;
+}
+html.light .bg-\[\#050505\] {
+  background-color: var(--app-bg) !important;
+}
+html.light .bg-\[\#080808\]\/40 {
+  background-color: var(--app-surface-low) !important;
+}
+html.light .bg-black {
+  background-color: var(--app-surface-highest) !important;
+}
+html.light .text-\[\#f2f1ef\],
+html.light .text-\[\#f4f4f5\] {
+  color: var(--c-text-primary) !important;
+}
+html.light div.bg-\[\#080808\]\/40 span.text-white {
+  color: var(--c-text-primary) !important;
+}
+html.light .bg-zinc-800 {
+  background-color: var(--app-surface-lowest) !important;
+  color: var(--c-text-primary) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+html.light .hover\:text-zinc-200:hover {
+  color: var(--c-text-primary) !important;
+}
+html.light .hover\:bg-zinc-900\/30:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+html.light .hover\:border-zinc-800:hover {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
 
 /* Body background always tracks the active theme so the status bar area blends in */
 html, body { background: var(--app-bg); }
@@ -234,17 +296,17 @@ html, body { background: var(--app-bg); }
   --vx-text-5:  #d0d0d0;  /* light-grey button label */
 }
 html.light {
-  --vx-deep:    #f4f3f1;
-  --vx-card:    #faf9f7;
-  --vx-card-2:  #f4f3f1;
+  --vx-deep:    #f4f4f5;
+  --vx-card:    #fafafa;
+  --vx-card-2:  #ececed;
   --vx-edge:    rgba(0,0,0,0.08);
-  --vx-input:   #eeedeb;
-  --vx-input-2: #e5e4e2;
-  --vx-text:    #1a1a1a;
-  --vx-text-2:  #6e6d6b;
-  --vx-text-3:  #6e6d6b;
-  --vx-text-4:  #b2b1b0;
-  --vx-text-5:  #1a1a1a;
+  --vx-input:   #ececed;
+  --vx-input-2: #e4e4e7;
+  --vx-text:    #18181b;
+  --vx-text-2:  #52525b;
+  --vx-text-3:  #71717a;
+  --vx-text-4:  #a1a1aa;
+  --vx-text-5:  #18181b;
 }
 
 /* ============================================================
