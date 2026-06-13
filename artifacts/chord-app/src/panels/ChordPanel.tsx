@@ -18,9 +18,10 @@ import MusicNotesLottie from '../components/lottie/MusicNotesLottie';
 import { useScrollFade } from '../components/ScrollFade';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 
-function RelatedPlayBtn({ guitar, accent }: {
+function RelatedPlayBtn({ guitar, accent, isLight }: {
   guitar: GuitarChordData;
   accent: { from: string; to: string; mid: string };
+  isLight?: boolean;
 }) {
   const [playing, setPlaying] = useState(false);
   const handlePlay = useCallback((e: React.MouseEvent) => {
@@ -38,7 +39,7 @@ function RelatedPlayBtn({ guitar, accent }: {
       onClick={handlePlay}
       style={{
         width: 24, height: 24, borderRadius: '50%',
-        background: playing ? `${accent.from}30` : 'rgba(255,255,255,0.07)',
+        background: playing ? `${accent.from}30` : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)'),
         border: 'none', cursor: 'pointer', display: 'flex',
         alignItems: 'center', justifyContent: 'center', padding: 0,
         transition: 'background 200ms ease',
@@ -102,14 +103,13 @@ export default function ChordPanel() {
   const favorite = chord ? isFavorite(chord.id) : false;
   const accent = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
   const chordsVis = settings.perApp?.chords ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
-  const isLight = chordsVis.theme === 'light' ||
-    (chordsVis.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) ||
-    (chordsVis.theme === 'dynamic' && (() => {
-      const h = new Date().getHours();
-      const lightStart = settings.dynamicLightStart ?? 7;
-      const lightEnd   = settings.dynamicLightEnd   ?? 20;
-      return h >= lightStart && h < lightEnd;
-    })());
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+
+  const getPanelClass = (padding: string = 'p-6') => {
+    return isWebDesktop
+      ? `mx-4 mt-4 rounded-xl border ${padding} ${isLight ? 'bg-white/80 border-zinc-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)]' : 'border-zinc-900 bg-zinc-950/40'}`
+      : `mx-4 mt-4 rounded-3xl ${padding} app-surface`;
+  };
 
   useEffect(() => {
     if (chord && settings.chordAssistant && settings.assistantLearning) {
@@ -236,7 +236,7 @@ export default function ChordPanel() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar pb-32 spring-in" style={{ paddingTop: isWebDesktop ? '20px' : '0' }}>
         {/* Hero chord card */}
         <div
-          className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6 relative overflow-hidden" : "mx-4 mt-4 rounded-3xl p-6 relative overflow-hidden"}
+          className={`${getPanelClass('p-6')} relative overflow-hidden`}
           style={isWebDesktop ? { position: 'relative' } : { background: 'var(--app-surface)', transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)' }}
         >
           <div className="absolute top-5 right-6">
@@ -303,7 +303,7 @@ export default function ChordPanel() {
               className="btn-smooth px-4 py-3 font-bold"
               style={{
                 background: favorite ? 'rgba(238,125,119,0.15)' : 'var(--app-surface-high)',
-                color: favorite ? '#ee7d77' : '#e7e5e4',
+                color: favorite ? '#ee7d77' : 'var(--c-text-primary)',
                 borderRadius: '9999px',
                 fontFamily: 'Manrope',
                 fontSize: '14px',
@@ -321,7 +321,7 @@ export default function ChordPanel() {
         </div>
 
         {/* Find Chord section */}
-        <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-5" : "mx-4 mt-4 rounded-3xl p-5 app-surface"}>
+        <div className={getPanelClass('p-5')}>
           <button
             onClick={() => setShowFinder(true)}
             className="btn-smooth flex items-center gap-3 w-full"
@@ -344,7 +344,7 @@ export default function ChordPanel() {
 
         {/* Voicings & Variations — gated on Smart Suggestions */}
         {settings.chordAssistant && settings.assistantSmartSuggestions && (
-        <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6" : "mx-4 mt-4 rounded-3xl p-6 app-surface"}>
+        <div className={getPanelClass('p-6')}>
           <h3 className="text-[10px] font-bold uppercase tracking-widest mb-5" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>
             {t.chord.voicings}
           </h3>
@@ -356,7 +356,7 @@ export default function ChordPanel() {
                 style={{ background: 'var(--app-surface-high)', borderRadius: '0.75rem', position: 'relative' }}
               >
                 <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
-                  <RelatedPlayBtn guitar={related.guitar} accent={accent} />
+                  <RelatedPlayBtn guitar={related.guitar} accent={accent} isLight={isLight} />
                 </div>
                 <button
                   data-testid={`related-chord-${related.id}`}
@@ -366,7 +366,7 @@ export default function ChordPanel() {
                   <div className="flex justify-between items-start mb-3">
                     <span className="font-bold" style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontSize: '13px' }}>{related.name}</span>
                   </div>
-                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', padding: '6px 6px 3px', transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)' }}>
+                  <div style={{ background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', padding: '6px 6px 3px', transition: 'background-color 700ms cubic-bezier(0.4,0,0.2,1)' }}>
                     <ChordDiagram data={related.guitar} accentFrom={accent.from} />
                   </div>
                   <p className="mt-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>{related.type}</p>
@@ -378,7 +378,7 @@ export default function ChordPanel() {
         )}
 
         {/* Harmonic Context */}
-        <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6" : "mx-4 mt-4 rounded-3xl p-6 app-surface"}>
+        <div className={getPanelClass('p-6')}>
           <h3 className="text-[10px] font-bold uppercase tracking-widest mb-5" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>
             {t.chord.harmonicContext}
           </h3>
@@ -403,7 +403,7 @@ export default function ChordPanel() {
 
         {/* Current Progression */}
         {progressionChords.length > 0 && (
-          <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6" : "mx-4 mt-4 rounded-3xl p-6 app-surface"}>
+          <div className={getPanelClass('p-6')}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>{t.chord.currentProgression}</h3>
               <div className="flex items-center gap-3">
@@ -487,7 +487,7 @@ export default function ChordPanel() {
 
         {/* Recent Chords */}
         {recentList.length > 0 && (
-          <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6" : "mx-4 mt-4 rounded-3xl p-6 app-surface"}>
+          <div className={getPanelClass('p-6')}>
             <h3 className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>{t.chord.recentChords}</h3>
             <div className="scroll-fade-container">
               <div className={`scroll-fade-content flex gap-2 overflow-x-auto no-scrollbar pb-1 ${recentFadeClass}`} ref={recentScrollRef}>
@@ -509,7 +509,7 @@ export default function ChordPanel() {
                   <p style={{ color: selectedChordId === c.id ? accent.from : 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: '12px', letterSpacing: '-0.02em', lineHeight: 1, textAlign: 'left' }}>
                     {c.name.replace(/\s/g, '')}
                   </p>
-                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', padding: '4px 4px 2px' }}>
+                  <div style={{ background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', padding: '4px 4px 2px' }}>
                     <ChordDiagram data={c.guitar} accentFrom={accent.from} />
                   </div>
                 </button>
@@ -544,12 +544,19 @@ export default function ChordPanel() {
 
 function SavedProgressions({ accent }: { accent: { from: string; to: string; mid: string } }) {
   const isWebDesktop = useIsWebDesktop();
-  const { progressions, loadProgression, deleteProgression } = useChordStore();
+  const { settings, progressions, loadProgression, deleteProgression } = useChordStore();
   const t = useT();
   if (progressions.length === 0) return null;
 
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+  const getPanelClass = (padding: string = 'p-6') => {
+    return isWebDesktop
+      ? `mx-4 mt-4 rounded-xl border ${padding} ${isLight ? 'bg-white/80 border-zinc-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)]' : 'border-zinc-900 bg-zinc-950/40'}`
+      : `mx-4 mt-4 rounded-3xl ${padding} app-surface`;
+  };
+
   return (
-    <div className={isWebDesktop ? "mx-4 mt-4 rounded-xl border border-zinc-900 bg-zinc-950/40 p-6" : "mx-4 mt-4 rounded-3xl p-6 app-surface"}>
+    <div className={getPanelClass('p-6')}>
       <h3 className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter' }}>{t.chord.savedProgressions}</h3>
       <div className="space-y-3">
         {progressions.map(prog => {

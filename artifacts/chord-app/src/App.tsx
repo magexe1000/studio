@@ -1202,10 +1202,14 @@ export default function App() {
   // Derive per-app visual settings, with a safe fallback for old persisted data
   const appKey   = (settings.appMode ?? 'hub') as AppKey;
   const perAppRaw = settings.perApp;
-  const activeVis = perAppRaw?.[appKey] ?? {
+  const activeVisRaw = perAppRaw?.[appKey] ?? {
     theme:       settings.theme       ?? 'dark',
     accentColor: settings.accentColor ?? 'blue',
     amoledMode:  settings.amoledMode  ?? false,
+  };
+  const activeVis = {
+    ...activeVisRaw,
+    theme: settings.theme ?? 'dark',
   };
   const rawAccent = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
   const accent = activeVis.accentColor === 'custom'

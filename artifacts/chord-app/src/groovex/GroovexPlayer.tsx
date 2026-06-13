@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import VinylLottie from '../components/lottie/VinylLottie';
 import LoadingLottie from '../components/lottie/LoadingLottie';
+import { useChordStore } from '../store/useChordStore';
 import { GroovexMixerSkeleton } from '../components/StudioSkeleton';
 import { useScrollHide } from '../lib/navScroll';
 import { SONG_CATALOG } from './songCatalog';
@@ -35,6 +36,8 @@ function transposeKey(key: string, semitones: number): string {
 }
 
 export default function GroovexPlayer() {
+  const { settings } = useChordStore();
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
   const t = useT();
@@ -371,8 +374,35 @@ export default function GroovexPlayer() {
   const isWebDesktop = useIsWebDesktop();
 
   return (
-    <div ref={scrollRef} className="spring-in" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', background: isWebDesktop ? '#000000' : 'transparent' }}>
+    <div ref={scrollRef} className="spring-in" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', background: isWebDesktop ? 'var(--app-bg)' : 'transparent' }}>
       <div style={{ padding: '0 24px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 40px)' }}>
+        {isWebDesktop && (
+          <div style={{ paddingTop: 16, display: 'flex', justifyContent: 'flex-start' }}>
+            <button
+              onClick={() => setView('library')}
+              className="btn-smooth"
+              aria-label="Back to library"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 8,
+                border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
+                background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)',
+                color: 'var(--c-text-primary)',
+                fontSize: 12,
+                fontWeight: 600,
+                fontFamily: 'Manrope, sans-serif',
+                cursor: 'pointer',
+                transition: 'background 200ms ease',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_back</span>
+              <span>Back</span>
+            </button>
+          </div>
+        )}
 
         <section className="gx-hero-enter" style={{ paddingTop: 12, marginBottom: 36, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ position: 'relative', width: '100%', height: 140, marginBottom: 24, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -417,7 +447,7 @@ export default function GroovexPlayer() {
           <div className="gx-fade-up-1" style={{ textAlign: 'center', marginBottom: 4, width: '100%' }}>
             <h2 style={{
               fontSize: 32, fontWeight: 800, letterSpacing: '-0.03em',
-              margin: '0 0 8px', color: '#ffffff',
+              margin: '0 0 8px', color: 'var(--c-text-primary)',
               fontFamily: 'Manrope, sans-serif', lineHeight: 1.1,
             }}>{song.title}</h2>
             <p style={{
@@ -438,7 +468,7 @@ export default function GroovexPlayer() {
                 {pitchShift !== 0 && <span style={{ fontSize: 9, opacity: 0.7 }}> ({pitchShift > 0 ? '+' : ''}{pitchShift})</span>}
               </span>
               <span style={{ opacity: 0.3 }}>|</span>
-              <span style={{ color: '#ffffff', fontWeight: 600 }}>{formatTime(currentTime)}</span>
+              <span style={{ color: 'var(--c-text-primary)', fontWeight: 600 }}>{formatTime(currentTime)}</span>
               <span style={{ opacity: 0.4 }}>/</span>
               <span>{duration > 0 ? formatTime(duration) : song.duration}</span>
             </div>
@@ -475,14 +505,16 @@ export default function GroovexPlayer() {
         {phase === 'downloading' && (
           <section className="gx-fade-up-2" style={{ marginBottom: 36, display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div style={{
-              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '20px 24px',
+              background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+              border: isLight ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 8, padding: '20px 24px',
               display: 'flex', flexDirection: 'column', gap: 14,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <LoadingLottie width={26} />
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', margin: 0 }}>{t.groovex.downloading}</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>{t.groovex.downloading}</p>
                     <p style={{ fontSize: 11, color: 'var(--c-text-muted)', margin: '2px 0 0', fontFamily: 'Inter' }}>
                       {currentStemLabel}
                     </p>
@@ -508,7 +540,9 @@ export default function GroovexPlayer() {
                 fontFamily: 'Inter, sans-serif',
               }}>{t.groovex.stemsMixer}</h3>
               <div style={{
-                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '20px 20px',
+                background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+                border: isLight ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 8, padding: '20px 20px',
               }}>
                 <GroovexMixerSkeleton tracksCount={song.stems.length || 4} />
               </div>
@@ -532,8 +566,12 @@ export default function GroovexPlayer() {
                   style={{
                     width: 72, height: 72, borderRadius: 9999, border: 'none',
                     cursor: anyLoaded ? 'pointer' : 'not-allowed',
-                    background: anyLoaded ? '#3b82f6' : 'rgba(255,255,255,0.08)',
-                    color: anyLoaded ? '#ffffff' : 'rgba(255,255,255,0.3)',
+                    background: anyLoaded 
+                      ? '#3b82f6' 
+                      : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'),
+                    color: anyLoaded 
+                      ? '#ffffff' 
+                      : (isLight ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.3)'),
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     boxShadow: anyLoaded ? '0 0 32px rgba(59,130,246,0.35)' : 'none',
                     transition: 'transform 200ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 200ms ease',
@@ -559,8 +597,11 @@ export default function GroovexPlayer() {
                   onClick={() => handlePitchChange(-1)}
                   disabled={pitchShift <= -6}
                   style={{
-                    width: 36, height: 36, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', cursor: pitchShift <= -6 ? 'not-allowed' : 'pointer',
-                    background: 'rgba(255,255,255,0.03)', color: pitchShift <= -6 ? 'rgba(255,255,255,0.2)' : '#ffffff',
+                    width: 36, height: 36, borderRadius: 8, 
+                    border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', 
+                    cursor: pitchShift <= -6 ? 'not-allowed' : 'pointer',
+                    background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)', 
+                    color: pitchShift <= -6 ? (isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)') : 'var(--c-text-primary)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     opacity: pitchShift <= -6 ? 0.4 : 1,
                     transition: 'transform 150ms ease, opacity 150ms ease',
@@ -571,11 +612,12 @@ export default function GroovexPlayer() {
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>remove</span>
                 </button>
-
+ 
                 <div style={{
                   minWidth: 110, textAlign: 'center', padding: '6px 12px',
-                  borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
-                  background: pitchShift !== 0 ? 'rgba(37,99,235,0.1)' : 'rgba(255,255,255,0.02)',
+                  borderRadius: 8, 
+                  border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
+                  background: pitchShift !== 0 ? 'rgba(37,99,235,0.1)' : (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'),
                   transition: 'background 200ms ease',
                 }}>
                   <div style={{
@@ -584,7 +626,7 @@ export default function GroovexPlayer() {
                   }}>{t.groovex.key}</div>
                   <div style={{
                     fontSize: 15, fontWeight: 800, fontFamily: 'Manrope, sans-serif',
-                    color: pitchShift !== 0 ? '#3b82f6' : '#ffffff',
+                    color: pitchShift !== 0 ? '#3b82f6' : 'var(--c-text-primary)',
                     transition: 'color 200ms ease',
                   }}>
                     {transposeKey(song.key, pitchShift)}
@@ -595,13 +637,16 @@ export default function GroovexPlayer() {
                     )}
                   </div>
                 </div>
-
+ 
                 <button
                   onClick={() => handlePitchChange(1)}
                   disabled={pitchShift >= 6}
                   style={{
-                    width: 36, height: 36, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', cursor: pitchShift >= 6 ? 'not-allowed' : 'pointer',
-                    background: 'rgba(255,255,255,0.03)', color: pitchShift >= 6 ? 'rgba(255,255,255,0.2)' : '#ffffff',
+                    width: 36, height: 36, borderRadius: 8, 
+                    border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', 
+                    cursor: pitchShift >= 6 ? 'not-allowed' : 'pointer',
+                    background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)', 
+                    color: pitchShift >= 6 ? (isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)') : 'var(--c-text-primary)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     opacity: pitchShift >= 6 ? 0.4 : 1,
                     transition: 'transform 150ms ease, opacity 150ms ease',
@@ -692,7 +737,9 @@ export default function GroovexPlayer() {
               </div>
 
               <div style={{
-                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '20px 20px',
+                background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+                border: isLight ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 8, padding: '20px 20px',
                 display: 'flex', flexDirection: 'column', gap: 20,
               }}>
                 {tracks.map((track, idx) => (
@@ -715,7 +762,9 @@ export default function GroovexPlayer() {
         {phase === 'idle' && !song.hasStems && (
           <section className="gx-fade-up-2" style={{ marginBottom: 28 }}>
             <div style={{
-              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '16px 18px',
+              background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+              border: isLight ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 8, padding: '16px 18px',
               display: 'flex', alignItems: 'center', gap: 12,
             }}>
               <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#3b82f6' }}>info</span>
@@ -868,16 +917,18 @@ function ProgressBar({ pct, isPlaying, onSeek, onScrubStart, onScrubSeek, onScru
 }
 
 function DragSlider({ value, disabled, onChange }: { value: number; disabled?: boolean; onChange: (v: number) => void }) {
+  const { settings } = useChordStore();
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const trackRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
-
+ 
   const calcValue = useCallback((clientX: number) => {
     const el = trackRef.current;
     if (!el) return value;
     const rect = el.getBoundingClientRect();
     return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
   }, [value]);
-
+ 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (disabled) return;
     e.preventDefault();
@@ -885,18 +936,18 @@ function DragSlider({ value, disabled, onChange }: { value: number; disabled?: b
     dragging.current = true;
     onChange(calcValue(e.clientX));
   }, [disabled, calcValue, onChange]);
-
+ 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragging.current) return;
     onChange(calcValue(e.clientX));
   }, [calcValue, onChange]);
-
+ 
   const onPointerUp = useCallback(() => {
     dragging.current = false;
   }, []);
-
+ 
   const pct = Math.round(value * 100);
-
+ 
   return (
     <div
       ref={trackRef}
@@ -911,7 +962,7 @@ function DragSlider({ value, disabled, onChange }: { value: number; disabled?: b
     >
       <div style={{
         position: 'absolute', left: 0, right: 0, height: 6,
-        background: 'rgba(255,255,255,0.08)', borderRadius: 9999,
+        background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)', borderRadius: 9999,
       }} />
       <div style={{
         position: 'absolute', left: 0, height: 6,
@@ -926,7 +977,9 @@ function DragSlider({ value, disabled, onChange }: { value: number; disabled?: b
         transform: 'translate(-50%, -50%)',
         width: 18, height: 18, borderRadius: 9999,
         background: '#3b82f6',
-        boxShadow: '0 0 8px rgba(59,130,246,0.5), 0 2px 4px rgba(0,0,0,0.3)',
+        boxShadow: isLight
+          ? '0 0 8px rgba(59,130,246,0.3), 0 1px 3px rgba(0,0,0,0.15)'
+          : '0 0 8px rgba(59,130,246,0.5), 0 2px 4px rgba(0,0,0,0.3)',
         pointerEvents: 'none',
       }} />
     </div>
@@ -965,8 +1018,10 @@ function MixerRow({
   onSolo: () => void;
   animDelay: number;
 }) {
+  const { settings } = useChordStore();
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const volPct = Math.round(track.volume * 100);
-
+ 
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', gap: 10,
@@ -978,15 +1033,18 @@ function MixerRow({
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{
             fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700,
-            color: '#ffffff', letterSpacing: '0.02em',
+            color: 'var(--c-text-primary)', letterSpacing: '0.02em',
           }}>{track.label}</span>
           {showLoadFile && (
             <button
               onClick={onLoadFromFile}
               className="btn-smooth"
               style={{
-                padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer',
-                background: 'rgba(255,255,255,0.03)', color: 'var(--c-text-secondary)',
+                padding: '2px 8px', borderRadius: 6, 
+                border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', 
+                cursor: 'pointer',
+                background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)', 
+                color: 'var(--c-text-secondary)',
                 fontSize: 9, fontWeight: 700, fontFamily: 'Inter',
                 letterSpacing: '0.05em', textTransform: 'uppercase',
                 transition: 'background 150ms ease',
@@ -1002,8 +1060,12 @@ function MixerRow({
             className="btn-smooth"
             style={{
               width: 28, height: 28, borderRadius: 8,
-              background: track.muted ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.03)',
-              border: track.muted ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.08)',
+              background: track.muted 
+                ? 'rgba(239,68,68,0.15)' 
+                : (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)'),
+              border: track.muted 
+                ? '1px solid rgba(239,68,68,0.4)' 
+                : (isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)'),
               color: track.muted ? '#f87171' : 'var(--c-text-secondary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, fontWeight: 800, fontFamily: 'Inter',
@@ -1016,8 +1078,12 @@ function MixerRow({
             className="btn-smooth"
             style={{
               width: 28, height: 28, borderRadius: 8,
-              background: track.solo ? 'rgba(37,99,235,0.15)' : 'rgba(255,255,255,0.03)',
-              border: track.solo ? '1px solid rgba(37,99,235,0.4)' : '1px solid rgba(255,255,255,0.08)',
+              background: track.solo 
+                ? 'rgba(37,99,235,0.15)' 
+                : (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)'),
+              border: track.solo 
+                ? '1px solid rgba(37,99,235,0.4)' 
+                : (isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)'),
               color: track.solo ? '#60a5fa' : 'var(--c-text-secondary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, fontWeight: 800, fontFamily: 'Inter',
@@ -1027,7 +1093,7 @@ function MixerRow({
           >S</button>
         </div>
       </div>
-
+ 
       <DragSlider value={track.volume} disabled={!track.loaded} onChange={onVolumeChange} />
     </div>
   );

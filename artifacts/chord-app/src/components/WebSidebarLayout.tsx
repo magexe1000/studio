@@ -207,7 +207,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
     <Sidebar shouldHideSidebar={shouldHideSidebar} style={accentVars}>
       {/* Header */}
       <SidebarHeader>
-        <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => handleGoToHub('home')}>
+        <div className="flex items-center gap-3 overflow-hidden cursor-pointer text-[var(--c-text-primary)]" onClick={() => handleGoToHub('home')}>
           <div className="flex-shrink-0">
             <StudioLogo size={28} />
           </div>
@@ -320,7 +320,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
               <button
                 type="button"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="w-full flex items-center gap-2.5 p-1.5 overflow-hidden rounded-xl border-none text-left cursor-pointer transition-colors bg-transparent hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))] outline-none"
+                className="w-full flex items-center gap-2.5 p-1.5 overflow-hidden rounded-xl border-none text-left cursor-pointer transition-colors bg-transparent hover:bg-[var(--sidebar-hover-bg)] outline-none"
                 style={{ outline: 'none' }}
               >
                 <div
@@ -345,7 +345,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                   ) : authUser ? (
                     <span>{initial}</span>
                   ) : (
-                    <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--profile-avatar-color, #fff)' }}>account_circle</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--profile-avatar-color, var(--c-text-primary))' }}>account_circle</span>
                   )}
                 </div>
 
@@ -423,7 +423,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                       <button
                         onClick={() => { handleGoToSettingsPage('profile'); setShowProfileMenu(false); }}
                         style={profileMenuBtnStyle}
-                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg)]"
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person</span>
                         <span>Profile</span>
@@ -432,7 +432,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                       <button
                         onClick={() => { handleGoToSettingsPage('general'); setShowProfileMenu(false); }}
                         style={profileMenuBtnStyle}
-                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg)]"
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 16 }}>settings</span>
                         <span>Settings</span>
@@ -441,7 +441,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                       <button
                         onClick={() => { handleGoToSettingsPage('release-notes'); setShowProfileMenu(false); }}
                         style={profileMenuBtnStyle}
-                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg)]"
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 16 }}>article</span>
                         <span>Release Notes</span>
@@ -450,7 +450,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                       <button
                         onClick={() => { handleGoToHub('help'); setShowProfileMenu(false); }}
                         style={profileMenuBtnStyle}
-                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                        className="btn-smooth hover:bg-[var(--sidebar-hover-bg)]"
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 16 }}>help</span>
                         <span>Help & Support</span>
@@ -474,7 +474,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                           <button
                             onClick={() => { handleGoToSettingsPage('profile'); setShowProfileMenu(false); }}
                             style={profileMenuBtnStyle}
-                            className="btn-smooth hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))]"
+                            className="btn-smooth hover:bg-[var(--sidebar-hover-bg)]"
                           >
                             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>login</span>
                             <span>Sign in</span>

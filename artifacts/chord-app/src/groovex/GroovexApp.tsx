@@ -62,69 +62,11 @@ export default function GroovexApp() {
   return (
     <div className="groovex-root" style={{
       height: '100dvh', display: 'flex', flexDirection: 'column',
-      background: isWebDesktop ? '#000000' : 'var(--gx-bg)',
+      background: 'var(--app-bg)',
       fontFamily: 'Manrope, sans-serif',
       paddingTop: 'env(safe-area-inset-top)',
       overflow: 'hidden',
     }}>
-
-      {isWebDesktop && (
-        <header style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          height: 48, padding: '0 20px', flexShrink: 0,
-          background: '#000000',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-        }}>
-          {/* Left: Branding & current section */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {view === 'player' && (
-              <button
-                onClick={handleBack}
-                className="btn-smooth"
-                aria-label="Back"
-                style={{
-                  width: '28px', height: '28px', borderRadius: '50%',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  cursor: 'pointer', padding: 0, marginRight: 4,
-                  transition: 'background 200ms ease',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 16 }}>arrow_back</span>
-              </button>
-            )}
-            <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', fontFamily: 'Manrope, sans-serif', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              Groovex
-            </span>
-            <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.15)' }} />
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--c-text-muted)', fontFamily: 'Manrope, sans-serif', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              {view === 'library' ? 'Library' : view === 'player' ? 'Practice Mixer' : 'Preferences'}
-            </span>
-          </div>
-
-          {/* Right: Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {view !== 'player' && (
-              <button
-                onClick={handleBack}
-                className="btn-smooth"
-                style={{
-                  height: 28, padding: '0 12px', borderRadius: 6,
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#fff', fontSize: 10.5, fontWeight: 700,
-                  fontFamily: 'Manrope, sans-serif', letterSpacing: '0.02em',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 15 }}>arrow_back</span>
-                <span>Exit</span>
-              </button>
-            )}
-          </div>
-        </header>
-      )}
 
       {!isWebDesktop && (
         <header style={{
@@ -169,10 +111,10 @@ export default function GroovexApp() {
           overflow: 'hidden' 
         }}
       >
-        {isWebDesktop && view !== 'player' && (
+        {isWebDesktop && (
           <WebAppSectionDock 
             app="groovex" 
-            activeSection={view} 
+            activeSection={view === 'player' ? 'library' : view} 
             onChangeSection={navigate} 
           />
         )}

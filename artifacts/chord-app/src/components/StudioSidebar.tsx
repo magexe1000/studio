@@ -306,7 +306,7 @@ export function SidebarMenuButton({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-150 relative group hover:bg-[var(--sidebar-hover-bg,rgba(255,255,255,0.04))] ${className}`}
+      className={`w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-xl border-none text-left cursor-pointer transition-all duration-150 relative group hover:bg-[var(--sidebar-hover-bg)] ${className}`}
       title={!open ? tooltip || undefined : undefined}
       style={{
         background: active ? 'var(--sidebar-active-bg, rgba(255, 255, 255, 0.07))' : 'transparent',
