@@ -1744,6 +1744,62 @@ export default function DrumEditor() {
   const [houseLoaded,  setHouseLoaded]      = useState(false);
   const [houseProgress, setHouseProgress]  = useState({ loaded: 0, total: 0 });
   const [showBpmPanel,   setShowBpmPanel]   = useState(false);
+  const [showBpmPopover, setShowBpmPopover] = useState(false);
+  const [bpmInputVal, setBpmInputVal]       = useState(() => pattern.bpm.toString());
+
+  useEffect(() => {
+    setBpmInputVal(pattern.bpm.toString());
+  }, [pattern.bpm]);
+
+  const tapTimesRef = useRef<number[]>([]);
+  const handleTapTempo = useCallback(() => {
+    const now = performance.now();
+    tapTimesRef.current = tapTimesRef.current.filter(t => now - t < 2500);
+    tapTimesRef.current.push(now);
+
+    if (tapTimesRef.current.length >= 2) {
+      let sum = 0;
+      for (let i = 1; i < tapTimesRef.current.length; i++) {
+        sum += tapTimesRef.current[i] - tapTimesRef.current[i - 1];
+      }
+      const avgMs = sum / (tapTimesRef.current.length - 1);
+      const calculatedBpm = Math.round(60000 / avgMs);
+      const clampedBpm = Math.max(40, Math.min(280, calculatedBpm));
+      updatePattern(pattern.id, { bpm: clampedBpm });
+    }
+  }, [pattern.id, updatePattern]);
+
+  const commitBpm = useCallback((valStr: string) => {
+    let bpmVal = parseInt(valStr, 10);
+    if (isNaN(bpmVal)) {
+      bpmVal = pattern.bpm;
+    } else {
+      bpmVal = Math.max(40, Math.min(280, bpmVal));
+    }
+    setBpmInputVal(bpmVal.toString());
+    updatePattern(pattern.id, { bpm: bpmVal });
+  }, [pattern.id, pattern.bpm, updatePattern]);
+
+  const handleBpmKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      commitBpm(bpmInputVal);
+      e.currentTarget.blur();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const nextBpm = Math.min(280, pattern.bpm + (e.shiftKey ? 5 : 1));
+      updatePattern(pattern.id, { bpm: nextBpm });
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextBpm = Math.max(40, pattern.bpm - (e.shiftKey ? 5 : 1));
+      updatePattern(pattern.id, { bpm: nextBpm });
+    }
+  }, [bpmInputVal, pattern.bpm, pattern.id, updatePattern, commitBpm]);
+
+  const changeBpmBy = useCallback((delta: number) => {
+    const nextBpm = Math.max(40, Math.min(280, pattern.bpm + delta));
+    updatePattern(pattern.id, { bpm: nextBpm });
+  }, [pattern.bpm, pattern.id, updatePattern]);
+
   const [showLoopPanel,  setShowLoopPanel]  = useState(false);
   const [showHamburger,     setShowHamburger]     = useState(false);
   const [hamburgerClosing,  setHamburgerClosing]  = useState(false);
@@ -1985,15 +2041,6 @@ export default function DrumEditor() {
   );
   const loopActive = effectiveLoop.enabled && pattern.measures.length > 0;
 
-  // ── Landscape auto-fill: ensure enough empty measures to fill one row ───
-  useEffect(() => {
-    if (!isLandscape || !inEditor) return;
-    const needed = measuresPerRow - pattern.measures.length;
-    if (needed > 0) {
-      const extra = Array.from({ length: needed }, () => emptyMeasure());
-      updatePattern(pattern.id, { measures: [...pattern.measures, ...extra] });
-    }
-  }, [isLandscape, inEditor, measuresPerRow, pattern.measures.length, pattern.id]);
 
   // ── Hit maps (step → { variation, velocity }) ────────────────────────────
 
@@ -2099,25 +2146,6 @@ export default function DrumEditor() {
           el.scrollLeft = x - el.clientWidth + 40;
         }
       }
-      // ── Metronome ──────────────────────────────────────────────────────────
-      if (drumPrefsRef.current.metronome) {
-        const spBeat = spmRef.current / 4; // steps per beat (assumes 4/4)
-        if (gs % spBeat === 0) {
-          const isBeat1 = gs % (spBeat * 4) === 0;
-          const ctx = getAudioCtx();
-          if (ctx) {
-            const t = ctx.currentTime;
-            const osc = ctx.createOscillator();
-            const env = ctx.createGain();
-            osc.connect(env); env.connect(ctx.destination);
-            osc.frequency.value = isBeat1 ? 1200 : 880;
-            env.gain.setValueAtTime(0, t);
-            env.gain.linearRampToValueAtTime(0.28, t + 0.002);
-            env.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
-            osc.start(t); osc.stop(t + 0.07);
-          }
-        }
-      }
       // ── Auto-expand ────────────────────────────────────────────────────────
       const totalSteps = drumScheduler.totalSteps;
       if (drumPrefsRef.current.autoExpandPattern && gs === totalSteps - 1) {
@@ -2207,18 +2235,107 @@ export default function DrumEditor() {
   }, [handleUndo, handleRedo]);
 
   // ── Metronome click ──────────────────────────────────────────────────────
-  const playMetronomeClick = useCallback((isBeat1: boolean) => {
+  const playMetronomeClick = useCallback((isBeat1: boolean, soundOverride?: string) => {
     const ctx = getAudioCtx(); if (!ctx) return;
+    const dest = ctx.destination;
     const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const env = ctx.createGain();
-    osc.connect(env); env.connect(ctx.destination);
-    osc.frequency.value = isBeat1 ? 1200 : 880;
-    env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(0.32, t + 0.002);
-    env.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-    osc.start(t); osc.stop(t + 0.08);
-  }, []);
+    const soundType = soundOverride || drumPrefs.metronomeSound || 'classic';
+
+    if (soundType === 'wood') {
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc1.type = 'sine';
+      osc2.type = 'sine';
+      const pitch = isBeat1 ? 1400 : 1000;
+      osc1.frequency.setValueAtTime(pitch, t);
+      osc2.frequency.setValueAtTime(pitch * 1.4, t);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.35 : 0.25, t + 0.002);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      gainNode.connect(dest);
+      osc1.start(t);
+      osc2.start(t);
+      osc1.stop(t + 0.06);
+      osc2.stop(t + 0.06);
+    } else if (soundType === 'studio') {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      const pitch = isBeat1 ? 2500 : 1800;
+      osc.frequency.setValueAtTime(pitch, t);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.30 : 0.20, t + 0.001);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.015);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      osc.start(t);
+      osc.stop(t + 0.02);
+    } else if (soundType === 'digital') {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      const pitch = isBeat1 ? 800 : 600;
+      osc.frequency.setValueAtTime(pitch, t);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.28 : 0.20, t + 0.003);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      osc.start(t);
+      osc.stop(t + 0.04);
+    } else if (soundType === 'rim') {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      const pitch = isBeat1 ? 1200 : 850;
+      osc.frequency.setValueAtTime(pitch, t);
+      const bufferSize = Math.floor(ctx.sampleRate * 0.03);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1600, t);
+      filter.Q.setValueAtTime(8, t);
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0, t);
+      noiseGain.gain.linearRampToValueAtTime(isBeat1 ? 0.22 : 0.15, t + 0.001);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.25 : 0.18, t + 0.002);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(dest);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      noise.start(t);
+      osc.start(t);
+      noise.stop(t + 0.03);
+      osc.stop(t + 0.03);
+    } else {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'triangle';
+      const pitch = isBeat1 ? 1200 : 880;
+      osc.frequency.setValueAtTime(pitch * 2.5, t);
+      osc.frequency.exponentialRampToValueAtTime(pitch, t + 0.002);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.35 : 0.25, t + 0.002);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      osc.start(t);
+      osc.stop(t + 0.05);
+    }
+  }, [drumPrefs.metronomeSound]);
 
   // ── Play/stop ────────────────────────────────────────────────────────────
   const startPattern = useCallback(() => {
@@ -2377,14 +2494,7 @@ export default function DrumEditor() {
   const adjustBpm = useCallback((d: number) => {
     const bpm = Math.max(40, Math.min(280, pattern.bpm + d));
     updatePattern(pattern.id, { bpm });
-    if (drumScheduler.isPlaying) {
-      const sm = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
-      const vol: Partial<Record<DrumInstrument, number>> = {};
-      activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
-      const updated = useDrumStore.getState().patterns.find(p => p.id === pattern.id)!;
-      drumScheduler.start(updated, sm, vol, masterVolume, looping, kit);
-    }
-  }, [pattern, kit, soundMap, volumeMap, activeInstruments, masterVolume, looping, updatePattern]);
+  }, [pattern.id, pattern.bpm, updatePattern]);
 
   // ── Subdivision ──────────────────────────────────────────────────────────
   const toggleSub = useCallback(() => {
@@ -2839,18 +2949,6 @@ export default function DrumEditor() {
 
                 <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
 
-                {/* BPM adjusters */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <button onClick={() => adjustBpm(-10)} className="btn-smooth" title="Decrease BPM by 10" aria-label="Decrease BPM by 10" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700 }}>-10</button>
-                  <button onClick={() => adjustBpm(-1)} className="btn-smooth" title="Decrease BPM by 1" aria-label="Decrease BPM by 1" style={{ width: 20, height: 20, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 700 }}>−</button>
-                  <span style={{ fontSize: 13, fontWeight: 800, fontFamily: 'Manrope,sans-serif', color: accent.from, minWidth: 32, textAlign: 'center' }}>{pattern.bpm}</span>
-                  <button onClick={() => adjustBpm(1)} className="btn-smooth" title="Increase BPM by 1" aria-label="Increase BPM by 1" style={{ width: 20, height: 20, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 14, fontWeight: 700 }}>+</button>
-                  <button onClick={() => adjustBpm(10)} className="btn-smooth" title="Increase BPM by 10" aria-label="Increase BPM by 10" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700 }}>+10</button>
-                  <span style={{ fontSize: 10, color: 'var(--c-text-muted)', fontWeight: 600, marginLeft: 2 }}>BPM</span>
-                </div>
-
-                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
-
                 {/* Swing slider */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--c-text-secondary)', letterSpacing: '0.04em' }}>SWING</span>
@@ -2890,15 +2988,215 @@ export default function DrumEditor() {
                   <span className="material-symbols-outlined" style={{ fontSize: 16 }}>repeat</span>
                 </button>
 
-                {/* Metronome toggle */}
-                <button onClick={() => updateDrumPrefs({ metronome: !drumPrefs.metronome })} className="btn-smooth" style={{
-                  width: 24, height: 24, borderRadius: 6, border: 'none',
-                  background: drumPrefs.metronome ? `${accent.from}1a` : 'transparent',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: drumPrefs.metronome ? accent.from : 'var(--c-text-secondary)', transition: 'all 150ms'
-                }} title="Metronome" aria-label="Metronome">
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>music_note</span>
-                </button>
+                {/* Tempo & Metronome Popover */}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <button 
+                    onClick={() => setShowBpmPopover(s => !s)} 
+                    className="btn-smooth" 
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      border: 'none',
+                      background: showBpmPopover || drumPrefs.metronome ? `${accent.from}1a` : 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: showBpmPopover || drumPrefs.metronome ? accent.from : 'var(--c-text-secondary)',
+                      transition: 'all 150ms',
+                    }} 
+                    title="Tempo & Metronome" 
+                    aria-label="Tempo and Metronome"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>metronome</span>
+                  </button>
+
+                  {showBpmPopover && (
+                    <>
+                      {/* Click-away overlay */}
+                      <div 
+                        onClick={() => {
+                          commitBpm(bpmInputVal);
+                          setShowBpmPopover(false);
+                        }} 
+                        style={{
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          zIndex: 998,
+                          cursor: 'default',
+                        }}
+                      />
+                      {/* Popover Card */}
+                      <div style={{
+                        position: 'absolute',
+                        bottom: 'calc(100% + 10px)',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: isLight ? '#ffffff' : '#18181b',
+                        border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 12,
+                        padding: '16px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                        backdropFilter: 'blur(20px)',
+                        minWidth: 260,
+                        zIndex: 999,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                      }}>
+                        {/* Title / Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: isLight ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.06)', paddingBottom: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-secondary)' }}>Tempo & Metronome</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: accent.from }}>{pattern.bpm} BPM</span>
+                        </div>
+
+                        {/* Tempo Section */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <input
+                              type="text"
+                              value={bpmInputVal}
+                              onChange={e => setBpmInputVal(e.target.value)}
+                              onBlur={e => commitBpm(e.target.value)}
+                              onKeyDown={handleBpmKeyDown}
+                              style={{
+                                width: 56,
+                                height: 32,
+                                borderRadius: 6,
+                                border: isLight ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)',
+                                background: 'transparent',
+                                textAlign: 'center',
+                                fontSize: 14,
+                                fontWeight: 850,
+                                color: 'var(--c-text-primary)',
+                                fontFamily: 'monospace',
+                              }}
+                            />
+                            <div style={{ display: 'flex', gap: 3, flex: 1 }}>
+                              <button onClick={() => changeBpmBy(-5)} style={{ flex: 1, height: 32, borderRadius: 6, border: 'none', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', color: 'var(--c-text-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>-5</button>
+                              <button onClick={() => changeBpmBy(-1)} style={{ flex: 1, height: 32, borderRadius: 6, border: 'none', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', color: 'var(--c-text-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>-1</button>
+                              <button onClick={() => changeBpmBy(1)} style={{ flex: 1, height: 32, borderRadius: 6, border: 'none', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', color: 'var(--c-text-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>+1</button>
+                              <button onClick={() => changeBpmBy(5)} style={{ flex: 1, height: 32, borderRadius: 6, border: 'none', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', color: 'var(--c-text-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>+5</button>
+                            </div>
+                          </div>
+
+                          {/* Range Slider */}
+                          <input
+                            type="range"
+                            min={40}
+                            max={280}
+                            step={1}
+                            value={pattern.bpm}
+                            onChange={e => {
+                              const val = Number(e.target.value);
+                              setBpmInputVal(val.toString());
+                              updatePattern(pattern.id, { bpm: val });
+                            }}
+                            style={{ width: '100%', cursor: 'pointer', accentColor: accent.from, height: 16 }}
+                          />
+
+                          {/* Tap Tempo Button */}
+                          <button
+                            onClick={handleTapTempo}
+                            style={{
+                              width: '100%',
+                              height: 32,
+                              borderRadius: 6,
+                              border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
+                              background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
+                              color: 'var(--c-text-primary)',
+                              cursor: 'pointer',
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.04em',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6,
+                              transition: 'background 100ms',
+                            }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 15 }}>touch_app</span>
+                            <span>Tap Tempo</span>
+                          </button>
+                        </div>
+
+                        <div style={{ height: 1, background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)' }} />
+
+                        {/* Metronome Settings */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-muted)' }}>METRONOME</span>
+                            <button
+                              onClick={() => updateDrumPrefs({ metronome: !drumPrefs.metronome })}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                border: 'none',
+                                background: drumPrefs.metronome ? `${accent.from}1a` : (isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
+                                color: drumPrefs.metronome ? accent.from : 'var(--c-text-secondary)',
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {drumPrefs.metronome ? 'ON' : 'OFF'}
+                            </button>
+                          </div>
+
+                          {/* Sound Choices */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <span style={{ fontSize: 9.5, fontWeight: 750, color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sound Character</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              {[
+                                { id: 'classic', label: 'Classic Mechanical' },
+                                { id: 'wood', label: 'Wood Block' },
+                                { id: 'studio', label: 'Studio Click' },
+                                { id: 'digital', label: 'Soft Digital' },
+                                { id: 'rim', label: 'Rim Click' },
+                              ].map(choice => {
+                                const isSel = (drumPrefs.metronomeSound || 'classic') === choice.id;
+                                return (
+                                  <button
+                                    key={choice.id}
+                                    onClick={() => {
+                                      updateDrumPrefs({ metronomeSound: choice.id });
+                                      playMetronomeClick(true, choice.id);
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      height: 28,
+                                      borderRadius: 6,
+                                      border: 'none',
+                                      background: isSel ? `${accent.from}15` : 'transparent',
+                                      color: isSel ? accent.from : 'var(--c-text-secondary)',
+                                      cursor: 'pointer',
+                                      fontSize: 11,
+                                      fontWeight: isSel ? 750 : 500,
+                                      textAlign: 'left',
+                                      padding: '0 8px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                    }}
+                                  >
+                                    <span>{choice.label}</span>
+                                    {isSel && <span style={{ fontSize: 11, color: accent.from }}>✓</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -3611,8 +3909,8 @@ export default function DrumEditor() {
               {containerW > LABEL_W && systemRows.map((rowMeasures, sysIdx) => {
                 const mStartIdx = sysIdx * measuresPerRow;
                 return (
-                  <div key={sysIdx} style={{ marginBottom: SYS_SEP }}>
-                    <div style={{ display: 'flex', height: RULER_H, borderBottom: `1px solid ${barColor}`, position: 'relative' }}>
+                  <div key={sysIdx} style={{ marginBottom: SYS_SEP, width: isLandscape ? LABEL_W + pattern.measures.length * MEASURE_W : '100%', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', height: RULER_H, borderBottom: `1px solid ${barColor}`, position: 'relative', width: '100%' }}>
                       <div style={{
                         width: LABEL_W,
                         flexShrink: 0,
@@ -3625,7 +3923,7 @@ export default function DrumEditor() {
                       }} />
                       {rowMeasures.map((m, mi) => {
                         const globalM   = mStartIdx + mi;
-                        const canDelete = pattern.measures.length > 1;
+                        const canDelete = pattern.measures.length > 2;
                         const menuOpen  = openBarMenu === m.id;
                         const isFlash   = flashBarId  === m.id;
                         return (
@@ -3715,7 +4013,8 @@ export default function DrumEditor() {
                           background: (isFoc && drumPrefs.highlightActiveInst)
                             ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)')
                             : (isWebDesktop ? 'var(--app-surface)' : 'transparent'),
-                          overflow: isWebDesktop ? 'hidden' : 'visible'
+                          overflow: isWebDesktop ? 'hidden' : 'visible',
+                          width: '100%'
                         }}>
                           <div style={{
                             width: LABEL_W,

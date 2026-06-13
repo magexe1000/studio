@@ -323,6 +323,7 @@ export interface DrumPrefs {
   loopPlayback:         boolean;
   metronome:            boolean;
   countIn:              boolean;
+  metronomeSound:       string; // 'classic' | 'wood' | 'studio' | 'digital' | 'rim'
   // Interaction
   showNoteVariations:   boolean;
   highlightActiveInst:  boolean;
@@ -343,6 +344,7 @@ export const DEFAULT_DRUM_PREFS: DrumPrefs = {
   loopPlayback:         true,
   metronome:            false,
   countIn:              false,
+  metronomeSound:       'classic',
   showNoteVariations:   true,
   highlightActiveInst:  true,
   gridLinesEmphasis:    true,
@@ -595,10 +597,8 @@ export const useDrumStore = create<DrumStore>()(
         set(s => ({
           patterns: s.patterns.map(p => {
             if (p.id !== patternId) return p;
-            const measures = p.measures.filter(m => m.id !== measureId);
-            const finalMeasures = measures.length > 0 ? measures : [emptyMeasure()];
-            // Re-clamp loopRange so deleting a bar inside the active section
-            // loop never leaves stale out-of-range indices in storage / UI.
+            if (p.measures.length <= 2) return p;
+            const finalMeasures = p.measures.filter(m => m.id !== measureId);
             const loopRange = p.loopRange
               ? clampLoopRange(p.loopRange, finalMeasures.length)
               : p.loopRange;

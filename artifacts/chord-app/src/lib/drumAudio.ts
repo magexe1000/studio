@@ -1741,6 +1741,7 @@ class DrumScheduler {
   private _totalSteps   = 0;
   private _tickId: ReturnType<typeof setTimeout> | null = null;
   private _scheduled: { step: number; time: number }[] = [];
+  private _lastReportedStep = -1;
 
   setLowLatency(on: boolean) { this._lowLatency = on; }
 
@@ -1763,12 +1764,163 @@ class DrumScheduler {
     return (sw / 100) * (this.secPerStep() / 3);
   }
 
+  private playMetronomeClickAt(time: number, isBeat1: boolean, soundType: string) {
+    if (!_ctx || !_masterGain) return;
+    const ctx = _ctx;
+    const dest = _masterGain;
+    const t = Math.max(time, ctx.currentTime + 0.002);
+
+    if (soundType === 'wood') {
+      // Resonant wood block
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc1.type = 'sine';
+      osc2.type = 'sine';
+      const pitch = isBeat1 ? 1400 : 1000;
+      osc1.frequency.setValueAtTime(pitch, t);
+      osc2.frequency.setValueAtTime(pitch * 1.4, t);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.35 : 0.25, t + 0.002);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      gainNode.connect(dest);
+      osc1.start(t);
+      osc2.start(t);
+      osc1.stop(t + 0.06);
+      osc2.stop(t + 0.06);
+      setTimeout(() => {
+        try {
+          osc1.disconnect();
+          osc2.disconnect();
+          gainNode.disconnect();
+        } catch {}
+      }, 100);
+    } else if (soundType === 'studio') {
+      // High-frequency studio click/tick
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      const pitch = isBeat1 ? 2500 : 1800;
+      osc.frequency.setValueAtTime(pitch, t);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.30 : 0.20, t + 0.001);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.015);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      osc.start(t);
+      osc.stop(t + 0.02);
+      setTimeout(() => {
+        try {
+          osc.disconnect();
+          gainNode.disconnect();
+        } catch {}
+      }, 100);
+    } else if (soundType === 'digital') {
+      // Soft digital beep
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      const pitch = isBeat1 ? 800 : 600;
+      osc.frequency.setValueAtTime(pitch, t);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.28 : 0.20, t + 0.003);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      osc.start(t);
+      osc.stop(t + 0.04);
+      setTimeout(() => {
+        try {
+          osc.disconnect();
+          gainNode.disconnect();
+        } catch {}
+      }, 100);
+    } else if (soundType === 'rim') {
+      // Filtered noise burst stick rim strike
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      const pitch = isBeat1 ? 1200 : 850;
+      osc.frequency.setValueAtTime(pitch, t);
+      const bufferSize = Math.floor(ctx.sampleRate * 0.03);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1600, t);
+      filter.Q.setValueAtTime(8, t);
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0, t);
+      noiseGain.gain.linearRampToValueAtTime(isBeat1 ? 0.22 : 0.15, t + 0.001);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.25 : 0.18, t + 0.002);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(dest);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      noise.start(t);
+      osc.start(t);
+      noise.stop(t + 0.03);
+      osc.stop(t + 0.03);
+      setTimeout(() => {
+        try {
+          noise.disconnect();
+          filter.disconnect();
+          noiseGain.disconnect();
+          osc.disconnect();
+          gainNode.disconnect();
+        } catch {}
+      }, 100);
+    } else {
+      // Classic mechanical triangle click with fast sweep
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'triangle';
+      const pitch = isBeat1 ? 1200 : 880;
+      osc.frequency.setValueAtTime(pitch * 2.5, t);
+      osc.frequency.exponentialRampToValueAtTime(pitch, t + 0.002);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.35 : 0.25, t + 0.002);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      osc.start(t);
+      osc.stop(t + 0.05);
+      setTimeout(() => {
+        try {
+          osc.disconnect();
+          gainNode.disconnect();
+        } catch {}
+      }, 100);
+    }
+  }
+
   private scheduleNote(step: number, time: number) {
     if (!this._pattern || !_masterGain) return;
     const spm  = stepsPerMeasure(this._pattern);
     const mIdx = Math.floor(step / spm);
     const sInM = step % spm;
     if (mIdx >= this._pattern.measures.length) return;
+
+    // ── Metronome scheduling on the audio thread ──
+    const prefs = useDrumStore.getState().drumPrefs;
+    if (prefs.metronome) {
+      const spBeat = spm / 4;
+      if (sInM % spBeat === 0) {
+        const isBeat1 = sInM === 0;
+        this.playMetronomeClickAt(time, isBeat1, prefs.metronomeSound || 'classic');
+      }
+    }
 
     const measure  = this._pattern.measures[mIdx];
     const kitDefs  = this._kitType ? (KIT_DEFAULTS[this._kitType]?.soundMap ?? {}) : {};
@@ -1784,26 +1936,18 @@ class DrumScheduler {
       const volMult   = getVolMultForVariation(variation);
       const velGain   = getVelocityGain(hit.velocity);
       const baseVol   = (this._volMap[inst] ?? 1) * this._masterVol;
-      // Cap at 1.2 (was 1.0) so a high-velocity accent can still bloom slightly
-      // above unity without clipping the master bus.
       const vol       = Math.min(baseVol * volMult * velGain, 1.2);
 
-      // Flam: play a soft grace note ~20 ms before the main hit
       if (variation === 'flam') {
         const graceT = Math.max(time - 0.020, (_ctx?.currentTime ?? 0) + 0.002);
         playSoundAt(soundId, graceT, vol * 0.42, _masterGain!, this._kitType, 'ghost');
       }
-
       playSoundAt(soundId, time, vol, _masterGain!, this._kitType, variation);
     }
     this._scheduled.push({ step, time });
   }
 
   // ── Smart-loop bounds ──────────────────────────────────────────────────
-  // Returns the active section-loop bounds (in steps), or null when no
-  // section loop is in effect (invalid range, disabled, etc.). Computed
-  // fresh per tick so live edits to pattern.loopRange take effect without
-  // restarting playback.
   private subLoopBounds(): { startStep: number; endStepExc: number } | null {
     const p = this._pattern;
     if (!p) return null;
@@ -1819,25 +1963,14 @@ class DrumScheduler {
   private doTick() {
     if (!this._playing || !_ctx) return;
     const now = _ctx.currentTime;
-
-    // Hoist loop bounds: stable for the duration of this tick (the user can
-    // toggle/adjust between ticks but not within a single while-iteration).
     const sub = this.subLoopBounds();
-    // Smart loop forces wrap regardless of global _looping — the very intent
-    // of enabling a section loop is "play this bit on repeat".
     const shouldLoop = sub !== null || this._looping;
 
     while (this._nextStepTime < now + (this._lowLatency ? LOOKAHEAD_S_LOW : LOOKAHEAD_S)) {
-      // Apply swing only to the audible time — the underlying grid
-      // (_nextStepTime) stays straight so downbeats never drift.
       const playTime = this._nextStepTime + this.swingShift(this._currentStep);
       this.scheduleNote(this._currentStep, playTime);
       this._nextStepTime += this.secPerStep();
       this._currentStep++;
-      // If we're inside (or past) a section loop, wrap at its end; otherwise
-      // wrap at the full pattern length. This lets a user enable smart-loop
-      // mid-playback from outside the range — playback reaches the range
-      // naturally and only then starts looping inside it (no audio jump).
       const insideSub = sub !== null && this._currentStep > sub.startStep;
       const wrapAt    = insideSub ? sub.endStepExc : this._totalSteps;
       if (this._currentStep >= wrapAt) {
@@ -1849,8 +1982,11 @@ class DrumScheduler {
     const past = this._scheduled.filter(s => s.time <= now + 0.02);
     if (past.length && this._pattern) {
       const cur = past[past.length - 1];
-      const spm = stepsPerMeasure(this._pattern);
-      this.onStep?.(cur.step, Math.floor(cur.step / spm), cur.step % spm);
+      if (cur.step !== this._lastReportedStep) {
+        this._lastReportedStep = cur.step;
+        const spm = stepsPerMeasure(this._pattern);
+        this.onStep?.(cur.step, Math.floor(cur.step / spm), cur.step % spm);
+      }
     }
     this._scheduled = this._scheduled.filter(s => s.time >= now - 0.15);
 
@@ -1874,8 +2010,6 @@ class DrumScheduler {
     this._looping    = loop;
     this._kitType    = kitType ?? null;
     this._totalSteps = stepsPerMeasure(pattern) * pattern.measures.length;
-    // If a section loop is enabled, start at its first step so the user
-    // hears the looped region immediately on play.
     {
       const lr = pattern.loopRange;
       const spm = stepsPerMeasure(pattern);
@@ -1888,6 +2022,7 @@ class DrumScheduler {
     }
     this._playing     = true;
     this._scheduled   = [];
+    this._lastReportedStep = -1;
     this.onStep?.(0, 0, 0);
 
     const ctx = _ctx!;
@@ -1906,6 +2041,7 @@ class DrumScheduler {
   stop() {
     this._playing = false;
     if (this._tickId) { clearTimeout(this._tickId); this._tickId = null; }
+    this._lastReportedStep = -1;
     this.onStep?.(-1, 0, 0);
   }
 
@@ -1917,6 +2053,7 @@ class DrumScheduler {
       this._currentStep   = clamped;
       this._nextStepTime  = (_ctx?.currentTime ?? 0) + 0.06;
       this._scheduled     = [];
+      this._lastReportedStep = -1;
     }
     const spm = stepsPerMeasure(this._pattern);
     this.onStep?.(clamped, Math.floor(clamped / spm), clamped % spm);
@@ -1947,6 +2084,7 @@ class DrumScheduler {
     if (!this._totalSteps && pattern)
       this._totalSteps = stepsPerMeasure(pattern) * pattern.measures.length;
     this._playing = true;
+    this._lastReportedStep = -1;
     const ctx = _ctx;
     const kick = () => {
       if (!this._playing) return;
