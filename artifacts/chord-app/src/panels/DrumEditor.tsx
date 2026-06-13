@@ -360,14 +360,14 @@ const InstrumentRow = memo(({
           const x = (mi * spm + s) * STEP_W;
           const onBeat = s % stepsPerBeat === 0;
           return <line key={`s-${mi}-${s}`} x1={x} y1={0} x2={x} y2={ROW_H}
-            stroke={isLight ? (onBeat ? 'rgba(9, 9, 11, 0.45)' : 'rgba(9, 9, 11, 0.20)') : (isLight ? 'rgba(9, 9, 11, 0.15)' : 'rgba(255, 255, 255, 0.08)')}
+            stroke={isLight ? (onBeat ? 'rgba(9, 9, 11, 0.50)' : 'rgba(9, 9, 11, 0.25)') : (onBeat ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)')}
             strokeWidth={onBeat ? 1.0 : 0.7}
             opacity={onBeat ? (gridEmphasis ? 1.0 : 0.75) : (gridEmphasis ? 0.6 : 0.4)} />;
         })
       )}
       {/* Top + bottom row borders */}
-      <line x1={0} y1={0} x2={totalW} y2={0} stroke={isLight ? 'rgba(9, 9, 11, 0.22)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
-      <line x1={0} y1={ROW_H} x2={totalW} y2={ROW_H} stroke={isLight ? 'rgba(9, 9, 11, 0.22)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
+      <line x1={0} y1={0} x2={totalW} y2={0} stroke={isLight ? 'rgba(9, 9, 11, 0.35)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
+      <line x1={0} y1={ROW_H} x2={totalW} y2={ROW_H} stroke={isLight ? 'rgba(9, 9, 11, 0.35)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
       {/* Measure bar lines */}
       {rowMeasures.map((_, mi) => (
         <line key={mi} x1={mi * MEASURE_W} y1={0} x2={mi * MEASURE_W} y2={ROW_H} stroke={barColor} strokeWidth={mi === 0 ? 1.5 : 1.2} />
@@ -1586,7 +1586,7 @@ const LibMiniGrid = memo(function LibMiniGrid({ lp, isLight }: { lp: LibraryPatt
     <div style={{ background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.35)', borderRadius: 10, padding: '8px 6px', overflow: 'hidden' }}>
       {usedInsts.slice(0, 4).map(inst => {
         const instHits = m0.hits[inst] ?? [];
-        const color = INSTRUMENT_COLOR[inst] ?? '#888';
+        const color = getInstrumentColor(inst, isLight, '#888');
         const hitSet = new Set(instHits.map(h => h.step));
         const ghostSet = new Set(instHits.filter(h => h.variation === 'ghost').map(h => h.step));
         return (
@@ -4067,7 +4067,7 @@ export default function DrumEditor() {
               className="no-scrollbar"
             >
               {/* Playhead — extends into ruler, draggable handle at top */}
-              <div ref={playheadRef} style={{ position: 'absolute', top: 8, left: 0, width: 1.5, height: RULER_H + visibleInsts.length * ROW_H + (visibleInsts.length > 0 ? (visibleInsts.length - 1) * rowGap : 0), background: accent.from, boxShadow: `0 0 4px ${accent.from}55`, pointerEvents: 'none', zIndex: 10, display: 'block', borderRadius: 1, willChange: 'transform', transform: `translate(${LABEL_W}px, 0px)` }}>
+              <div ref={playheadRef} style={{ position: 'absolute', top: 8, left: 0, width: 2, height: RULER_H + visibleInsts.length * ROW_H + (visibleInsts.length > 0 ? (visibleInsts.length - 1) * rowGap : 0), background: accent.from, boxShadow: `0 0 6px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'block', borderRadius: 1, willChange: 'transform', transform: `translate(${LABEL_W}px, 0px)` }}>
                 {/* Draggable handle — downward triangle above the ruler */}
                 <div
                   onPointerDown={e => {

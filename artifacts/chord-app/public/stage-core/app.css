@@ -78,6 +78,9 @@ html[data-amoled="1"] {
   background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px);
   background-size: 40px 40px;
 }
+html[data-theme="light"] .stage-grid {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.08) 1.5px, transparent 1.5px);
+}
 .stage-grid.grid-off { background-image: none; }
 
 /* Setup Hub grid layout */

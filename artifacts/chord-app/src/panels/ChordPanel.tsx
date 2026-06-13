@@ -101,6 +101,15 @@ export default function ChordPanel() {
   }, [chord, chordPlaying]);
   const favorite = chord ? isFavorite(chord.id) : false;
   const accent = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
+  const chordsVis = settings.perApp?.chords ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
+  const isLight = chordsVis.theme === 'light' ||
+    (chordsVis.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) ||
+    (chordsVis.theme === 'dynamic' && (() => {
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      return h >= lightStart && h < lightEnd;
+    })());
 
   useEffect(() => {
     if (chord && settings.chordAssistant && settings.assistantLearning) {
@@ -146,7 +155,7 @@ export default function ChordPanel() {
           </header>
         )}
         <div className="flex-1 flex flex-col items-center justify-center px-6 spring-in" style={{ paddingTop: isWebDesktop ? '20px' : '0' }}>
-          <MusicNotesLottie size={52} isLight={settings.theme === 'light'} style={{ marginBottom: 16 }} />
+          <MusicNotesLottie size={52} isLight={isLight} style={{ marginBottom: 16 }} />
           <p style={{ color: 'var(--c-text-secondary)', fontSize: '14px', fontFamily: 'Inter', marginBottom: '20px', textAlign: 'center' }}>{t.chord.emptyState}</p>
           <button
             onClick={() => setShowFinder(true)}

@@ -65,7 +65,15 @@ export default function DrumPrefsPanel() {
   const isWebDesktop = useIsWebDesktop();
   const [activeCat, setActiveCat] = useState<'all' | 'editor' | 'playback' | 'display' | 'startup'>('all');
 
-  const isLight = settings.theme === 'light';
+  const drumsVis = settings.perApp?.drums ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
+  const isLight = drumsVis.theme === 'light' ||
+    (drumsVis.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) ||
+    (drumsVis.theme === 'dynamic' && (() => {
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      return h >= lightStart && h < lightEnd;
+    })());
 
   function CleanToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
     return (

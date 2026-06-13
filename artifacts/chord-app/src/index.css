@@ -136,6 +136,18 @@
 
   --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
   --sidebar-active-bg: rgba(255, 255, 255, 0.07);
+  --sidebar-bg: rgba(15, 15, 15, 0.70);
+  --sidebar-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  --popover-bg: rgba(18, 18, 18, 0.75);
+  --popover-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  --profile-avatar-bg: rgba(255, 255, 255, 0.08);
+  --profile-avatar-color: #ffffff;
+  --profile-avatar-border: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  --hub-card-bg: rgba(255, 255, 255, 0.01);
+  --hub-card-pressed-bg: rgba(255, 255, 255, 0.04);
+  --hub-card-border: rgba(255, 255, 255, 0.06);
+  --hub-card-icon-bg: rgba(255, 255, 255, 0.04);
+  --hub-card-icon-border: rgba(255, 255, 255, 0.08);
 
   /* Animate the variables themselves — every consumer transitions for free */
   transition:
@@ -157,6 +169,18 @@
   --app-surface: #080808;
   --app-surface-high: #0d0d0d;
   --app-surface-highest: #121212;
+  --sidebar-bg: rgba(0, 0, 0, 0.70);
+  --sidebar-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  --popover-bg: rgba(0, 0, 0, 0.75);
+  --popover-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  --profile-avatar-bg: rgba(255, 255, 255, 0.08);
+  --profile-avatar-color: #ffffff;
+  --profile-avatar-border: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  --hub-card-bg: rgba(255, 255, 255, 0.01);
+  --hub-card-pressed-bg: rgba(255, 255, 255, 0.04);
+  --hub-card-border: rgba(255, 255, 255, 0.06);
+  --hub-card-icon-bg: rgba(255, 255, 255, 0.04);
+  --hub-card-icon-border: rgba(255, 255, 255, 0.08);
 }
 
 :root.light.amoled {
@@ -166,6 +190,18 @@
   --app-surface: #f7f7f7;
   --app-surface-high: #fafafa;
   --app-surface-highest: #ffffff;
+  --sidebar-bg: rgba(255, 255, 255, 0.75);
+  --sidebar-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --popover-bg: rgba(255, 255, 255, 0.80);
+  --popover-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --profile-avatar-bg: rgba(0, 0, 0, 0.06);
+  --profile-avatar-color: var(--c-text-primary);
+  --profile-avatar-border: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --hub-card-bg: rgba(0, 0, 0, 0.01);
+  --hub-card-pressed-bg: rgba(0, 0, 0, 0.04);
+  --hub-card-border: rgba(0, 0, 0, 0.08);
+  --hub-card-icon-bg: rgba(0, 0, 0, 0.03);
+  --hub-card-icon-border: rgba(0, 0, 0, 0.06);
 }
 
 /* ===== Light Theme ===== */
@@ -187,6 +223,18 @@
 
   --sidebar-hover-bg: rgba(0, 0, 0, 0.04);
   --sidebar-active-bg: rgba(0, 0, 0, 0.07);
+  --sidebar-bg: rgba(255, 255, 255, 0.75);
+  --sidebar-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --popover-bg: rgba(255, 255, 255, 0.80);
+  --popover-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --profile-avatar-bg: rgba(0, 0, 0, 0.06);
+  --profile-avatar-color: var(--c-text-primary);
+  --profile-avatar-border: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --hub-card-bg: rgba(0, 0, 0, 0.01);
+  --hub-card-pressed-bg: rgba(0, 0, 0, 0.04);
+  --hub-card-border: rgba(0, 0, 0, 0.08);
+  --hub-card-icon-bg: rgba(0, 0, 0, 0.03);
+  --hub-card-icon-border: rgba(0, 0, 0, 0.06);
 }
 
 /* Global Tailwind light mode class overrides */
@@ -539,6 +587,18 @@ html.light [style*="border:1px solid #161717"] {
 
     --sidebar-hover-bg: rgba(0, 0, 0, 0.03);
     --sidebar-active-bg: rgba(0, 0, 0, 0.05);
+    --sidebar-bg: rgba(255, 255, 255, 0.75);
+    --sidebar-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    --popover-bg: rgba(255, 255, 255, 0.80);
+    --popover-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    --profile-avatar-bg: rgba(0, 0, 0, 0.06);
+    --profile-avatar-color: var(--c-text-primary);
+    --profile-avatar-border: 0 0 0 1px rgba(0, 0, 0, 0.08);
+    --hub-card-bg: rgba(0, 0, 0, 0.01);
+    --hub-card-pressed-bg: rgba(0, 0, 0, 0.04);
+    --hub-card-border: rgba(0, 0, 0, 0.08);
+    --hub-card-icon-bg: rgba(0, 0, 0, 0.03);
+    --hub-card-icon-border: rgba(0, 0, 0, 0.06);
   }
 }
 

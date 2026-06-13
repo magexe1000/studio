@@ -329,15 +329,15 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                     width: '32px',
                     height: '32px',
                     borderRadius: '50%',
-                    background: photo ? 'transparent' : 'rgba(255, 255, 255, 0.08)',
+                    background: photo ? 'transparent' : 'var(--profile-avatar-bg, rgba(255, 255, 255, 0.08))',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '14px',
                     fontWeight: 800,
-                    color: '#ffffff',
+                    color: 'var(--profile-avatar-color, #ffffff)',
                     overflow: 'hidden',
-                    boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.12)',
+                    boxShadow: 'var(--profile-avatar-border, 0 0 0 1px rgba(255, 255, 255, 0.12))',
                   }}
                 >
                   {photo ? (
@@ -345,7 +345,7 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                   ) : authUser ? (
                     <span>{initial}</span>
                   ) : (
-                    <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#fff' }}>account_circle</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--profile-avatar-color, #fff)' }}>account_circle</span>
                   )}
                 </div>
 
@@ -398,14 +398,14 @@ export default function WebSidebarLayout({ shouldHideSidebar }: { shouldHideSide
                       transform: open ? 'none' : 'translateX(-50%)',
                       marginBottom: '8px',
                       width: '216px',
-                      background: 'rgba(18, 18, 18, 0.75)',
+                      background: 'var(--popover-bg, rgba(18, 18, 18, 0.75))',
                       backdropFilter: 'blur(30px)',
                       WebkitBackdropFilter: 'blur(30px)',
                       border: '1px solid rgba(128, 128, 128, 0.15)',
                       borderRadius: '16px',
                       padding: '8px',
                       zIndex: 100,
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                      boxShadow: 'var(--popover-shadow, 0 10px 30px rgba(0,0,0,0.5))',
                       overflow: 'hidden',
                     }}
                   >
