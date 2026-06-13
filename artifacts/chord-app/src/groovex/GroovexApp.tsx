@@ -203,19 +203,7 @@ function GroovexNav({ view, setView, hasActiveSong }: {
 }) {
   const { settings } = useChordStore();
   const groovexVis = settings.perApp?.groovex ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
-  const isLight = (() => {
-    if (groovexVis.theme === 'light') return true;
-    if (groovexVis.theme === 'system') {
-      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
-    }
-    if (groovexVis.theme === 'dynamic') {
-      const h = new Date().getHours();
-      const lightStart = settings.dynamicLightStart ?? 7;
-      const lightEnd   = settings.dynamicLightEnd   ?? 20;
-      return h >= lightStart && h < lightEnd;
-    }
-    return false;
-  })();
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const accent = ACCENT_COLORS[groovexVis.accentColor as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue;
   const amoledBg = groovexVis.amoledMode
     ? 'rgba(0,0,0,0.96)'

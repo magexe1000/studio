@@ -183,8 +183,18 @@ html[data-amoled="1"] .sc-help-card {
 }
 .stage-element:hover .el-box { border-color: rgba(255,255,255,0.13); }
 .stage-element.selected .el-box {
-  border-color: var(--el-color, var(--accent));
-  box-shadow: 0 0 0 1px var(--el-color, var(--accent)), 0 0 14px var(--accent-22);
+  border-color: transparent;
+  box-shadow: none;
+}
+.stage-element.selected .el-icon img,
+.stage-element.selected .el-icon svg,
+.stage-element.selected .el-icon i[data-lucide],
+.stage-element.selected .el-icon span {
+  filter: drop-shadow(1px 0 0 var(--el-color, var(--accent)))
+          drop-shadow(-1px 0 0 var(--el-color, var(--accent)))
+          drop-shadow(0 1px 0 var(--el-color, var(--accent)))
+          drop-shadow(0 -1px 0 var(--el-color, var(--accent)))
+          drop-shadow(0 0 4px var(--accent-50));
 }
 .stage-element .el-icon {
   width: 44px; height: 44px;
@@ -213,24 +223,22 @@ html[data-amoled="1"] .sc-help-card {
 .stage-element.selected .el-label { color: var(--el-color, var(--accent)); }
 /* Resize toolbar shown on selection */
 .el-resize-bar {
-  display: flex; position: absolute; top: 50%; left: calc(100% + 6px);
-  transform: translateY(-50%) translateX(4px) scale(0.92);
-  background: rgba(14,14,14,0.92); border: 1px solid rgba(255,255,255,0.08);
+  display: flex; position: absolute;
+  background: var(--studio-surface-elevated, rgba(14,14,14,0.95));
+  border: 1px solid var(--studio-border, rgba(255,255,255,0.08));
   border-radius: 20px;
-  flex-direction: column; align-items: center; gap: 1px; padding: 4px 3px; z-index: 100; white-space: nowrap;
+  flex-direction: row; align-items: center; gap: 4px; padding: 3px 6px; z-index: 100; white-space: nowrap;
   opacity: 0; pointer-events: none;
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
-  transition: opacity 0.22s cubic-bezier(0.4,0,0.2,1), transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  transition: opacity 0.15s ease;
 }
 .stage-element.selected .el-resize-bar {
   opacity: 1; pointer-events: auto;
-  transform: translateY(-50%) translateX(0) scale(1);
 }
 .stage-element.dragging .el-resize-bar {
   opacity: 0 !important; pointer-events: none !important;
-  transform: translateY(-50%) translateX(6px) scale(0.88);
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  transition: opacity 0.1s ease;
 }
 .el-resize-bar button {
   width: 24px; height: 24px; background: transparent; border: none; color: rgba(255,255,255,0.6);
@@ -243,6 +251,21 @@ html[data-amoled="1"] .sc-help-card {
 .el-resize-bar .el-scale-display {
   font-size: 8px; font-family: 'Manrope', sans-serif; font-weight: 700; color: rgba(255,255,255,0.35); min-width: 20px; text-align: center;
   line-height: 1; padding: 1px 0;
+}
+html[data-theme="light"] .el-resize-bar {
+  background: var(--studio-surface-elevated, rgba(255, 255, 255, 0.95));
+  border: 1px solid var(--studio-border, rgba(0, 0, 0, 0.1));
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+html[data-theme="light"] .el-resize-bar button {
+  color: rgba(0, 0, 0, 0.6);
+}
+html[data-theme="light"] .el-resize-bar button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--accent);
+}
+html[data-theme="light"] .el-resize-bar .el-scale-display {
+  color: rgba(0, 0, 0, 0.45);
 }
 .draggable-item {
   user-select: none;

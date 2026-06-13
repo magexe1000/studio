@@ -1103,6 +1103,103 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
   --gx-accent-dim: var(--studio-accent-soft);
 }
 
+html.light {
+  --gx-bg: #f5f5f7;
+  --gx-surface: #ffffff;
+  --gx-surface-low: #f9f9fb;
+  --gx-surface-high: #eaeaea;
+  --gx-surface-lowest: #ffffff;
+}
+
+html.light .groovex-root {
+  background: var(--gx-bg) !important;
+  color: var(--c-text-primary) !important;
+}
+
+html.light .groovex-root .spring-in {
+  background: var(--gx-bg) !important;
+}
+
+html.light .groovex-root h1,
+html.light .groovex-root h2,
+html.light .groovex-root h3,
+html.light .groovex-root h4 {
+  color: var(--c-text-primary) !important;
+}
+
+html.light .groovex-root p[style*="color:#ffffff"],
+html.light .groovex-root p[style*="color: #ffffff"],
+html.light .groovex-root span[style*="color:#ffffff"],
+html.light .groovex-root span[style*="color: #ffffff"],
+html.light .groovex-root span[style*="color:#fff"],
+html.light .groovex-root span[style*="color: #fff"],
+html.light .groovex-root div[style*="color:#ffffff"],
+html.light .groovex-root div[style*="color: #ffffff"] {
+  color: var(--c-text-primary) !important;
+}
+
+html.light .groovex-root button.btn-smooth[style*="rgba(255,255,255,0.02)"] {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+html.light .groovex-root button.btn-smooth[style*="rgba(255,255,255,0.02)"]:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light .groovex-root button[style*="rgba(255,255,255,0.03)"],
+html.light .groovex-root button[style*="rgba(255,255,255,0.08)"],
+html.light .groovex-root div[style*="rgba(255,255,255,0.08)"] {
+  background: var(--gx-surface) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  color: var(--c-text-primary) !important;
+}
+
+html.light .groovex-root button[style*="rgba(255,255,255,0.03)"]:hover,
+html.light .groovex-root button[style*="rgba(255,255,255,0.08)"]:hover {
+  background: var(--gx-surface-high) !important;
+}
+
+html.light .groovex-root button[style*="rgba(37,99,235,0.15)"] {
+  background: rgba(37, 99, 235, 0.12) !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+  color: #2563eb !important;
+}
+
+html.light .groovex-root div[style*="background:rgba(255,255,255,0.03)"],
+html.light .groovex-root div[style*="background: rgba(255,255,255,0.03)"] {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+html.light .groovex-root span[style*="background:#000000"],
+html.light .groovex-root span[style*="background: #000000"] {
+  background: var(--gx-bg) !important;
+}
+
+html.light .groovex-root div[style*="rgba(255,255,255,0.02)"],
+html.light .groovex-root div[style*="rgba(255,255,255,0.08)"] {
+  background: var(--gx-surface-low) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .groovex-root button:disabled {
+  color: var(--c-text-muted) !important;
+  border-color: rgba(0, 0, 0, 0.04) !important;
+  background: rgba(0, 0, 0, 0.02) !important;
+}
+
+html.light .groovex-root button[style*="rgba(255,255,255,0.08)"][disabled] {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: rgba(0, 0, 0, 0.2) !important;
+}
+
+html.light .groovex-root button[style*="background:rgba(239,68,68,0.15)"],
+html.light .groovex-root button[style*="background: rgba(239,68,68,0.15)"] {
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
 .gx-slider {
   -webkit-appearance: none;
   appearance: none;

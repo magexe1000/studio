@@ -1417,6 +1417,193 @@ function closeItemSheet(goBackToChips) {
   }
 }
 
+const boundsCache = {};
+
+function getAssetAlphaBounds(src, callback) {
+  if (!src) { callback({ left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 }); return; }
+  if (boundsCache[src]) {
+    callback(boundsCache[src]);
+    return;
+  }
+  const img = new Image();
+  img.crossOrigin = "Anonymous";
+  img.onload = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const maxDim = 100;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+      
+      let minX = w, maxX = 0, minY = h, maxY = 0;
+      let hasAlpha = false;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4;
+          const alpha = data[idx + 3];
+          if (alpha > 10) {
+            hasAlpha = true;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      
+      let result;
+      if (!hasAlpha) {
+        result = { left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 };
+      } else {
+        result = {
+          left: minX / w,
+          top: minY / h,
+          right: maxX / w,
+          bottom: maxY / h,
+          width: (maxX - minX) / w,
+          height: (maxY - minY) / h
+        };
+      }
+      boundsCache[src] = result;
+      callback(result);
+    } catch (e) {
+      const fallback = { left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 };
+      boundsCache[src] = fallback;
+      callback(fallback);
+    }
+  };
+  img.onerror = () => {
+    const fallback = { left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 };
+    boundsCache[src] = fallback;
+    callback(fallback);
+  };
+  img.src = src;
+}
+
+function isPointerInBounds(e, dom, el) {
+  const icon = dom.querySelector('.el-icon img');
+  if (!icon) return true;
+  
+  const src = icon.getAttribute('src');
+  const bounds = boundsCache[src];
+  if (!bounds) return true;
+  
+  const rect = icon.getBoundingClientRect();
+  const imgW = icon.offsetWidth || 44;
+  const imgH = icon.offsetHeight || 44;
+  
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  
+  const rx = e.clientX - cx;
+  const ry = e.clientY - cy;
+  
+  const angleRad = (el.rotation || 0) * Math.PI / 180;
+  
+  const rxUn = rx * Math.cos(-angleRad) - ry * Math.sin(-angleRad);
+  const ryUn = rx * Math.sin(-angleRad) + ry * Math.cos(-angleRad);
+  
+  const lx = rxUn + imgW / 2;
+  const ly = ryUn + imgH / 2;
+  
+  const px = lx / imgW;
+  const py = ly / imgH;
+  
+  return px >= bounds.left && px <= bounds.right && py >= bounds.top && py <= bounds.bottom;
+}
+
+function repositionResizeBar(wrap) {
+  const bar = wrap.querySelector('.el-resize-bar');
+  if (!bar) return;
+  if (!wrap.classList.contains('selected')) return;
+
+  const canvas = document.getElementById('stage-canvas') || document.body;
+  const canvasRect = canvas.getBoundingClientRect();
+
+  const elId = wrap.id.replace('elem-', '');
+  const elementObj = state.elements.find(e => e.id === elId);
+  if (!elementObj) return;
+
+  const elContent = wrap.querySelector('.el-content');
+  const w = elContent ? elContent.offsetWidth : 60;
+  const h = elContent ? elContent.offsetHeight : 60;
+  const scale = elementObj.scale / 100;
+
+  let bounds = { left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 };
+  if (wrap.dataset.bounds) {
+    try {
+      bounds = JSON.parse(wrap.dataset.bounds);
+    } catch {}
+  }
+
+  const tightW = w * bounds.width * scale;
+  const tightH = h * bounds.height * scale;
+
+  const tightCenterX = w * (bounds.left + bounds.width / 2 - 0.5) * scale;
+  const tightCenterY = h * (bounds.top + bounds.height / 2 - 0.5) * scale;
+
+  const barW = 140;
+  const barH = 32;
+
+  let localX = tightCenterX - barW / 2;
+  let localY = (tightCenterY - tightH / 2) - barH - 8;
+
+  const absX = elementObj.x + localX;
+  const absY = elementObj.y + localY;
+
+  const pad = 12;
+  let finalAbsX = Math.max(pad, Math.min(canvasRect.width - barW - pad, absX));
+  let finalAbsY = absY;
+
+  if (finalAbsY < pad) {
+    finalAbsY = elementObj.y + (tightCenterY + tightH / 2) + 8;
+  }
+
+  const relX = finalAbsX - elementObj.x;
+  const relY = finalAbsY - elementObj.y;
+
+  bar.style.position = 'absolute';
+  bar.style.top = '0px';
+  bar.style.left = '0px';
+  bar.style.transform = `translate(${relX}px, ${relY}px)`;
+}
+
+function getDefaultScale(item) {
+  const isMobile = window.innerWidth < 768;
+  const baseScale = isMobile ? 65 : 100;
+  if (!item) return baseScale;
+  const type = (item.type || '').toLowerCase();
+  const name = (item.name || '').toLowerCase();
+  const icon = (item.icon || '').toLowerCase();
+
+  if (type.includes('drum') || icon.includes('drum')) {
+    return isMobile ? 80 : 125;
+  }
+  if (type.includes('person') || icon.includes('person') || icon.includes('performer') || icon.includes('vocalist') || icon.includes('bassist') || icon.includes('drummer') || icon.includes('guitarist') || icon.includes('keyboardist') || icon.includes('saxophonist') || icon.includes('tech')) {
+    return isMobile ? 78 : 120;
+  }
+  if (type.includes('mic') || type.includes('stand') || icon.includes('mic') || name.includes('sm58') || name.includes('wireless') || name.includes('condenser')) {
+    return isMobile ? 55 : 85;
+  }
+  if (type.includes('guitar') || icon.includes('guitar') || name.includes('guitar') || icon.includes('bass')) {
+    return isMobile ? 75 : 115;
+  }
+  if (type.includes('amplifier') || type.includes('cabinet') || type.includes('cab') || type.includes('speaker') || type.includes('wedge') || type.includes('fill') || type.includes('pa') || icon.includes('amp') || icon.includes('cab') || icon.includes('wedge') || icon.includes('speaker') || icon.includes('volume') || name.includes('amp') || name.includes('cab')) {
+    return isMobile ? 75 : 115;
+  }
+  return isMobile ? 65 : 100;
+}
+
 // ── Mobile: add library item directly to center of stage ──────
 function addItemToStage(item) {
   const rect = stageCanvas.getBoundingClientRect();
@@ -1430,7 +1617,7 @@ function addItemToStage(item) {
   const el = {
     id: 'el-' + state.nextId++, name: item.name, label: displayName.toUpperCase(),
     icon: item.icon, type: item.type, x, y, rotation: 0,
-    scale: window.innerWidth < 768 ? 65 : 100,
+    scale: getDefaultScale(item),
     channelId: 'CH-' + channelNum, source: 'SL01', output: 'FOH',
     phantom: false, notes: '', color: item.color || '#7aafff', roles: [],
     ...(isCustom ? { isCustom: true, emoji: item.emoji, ...(item.imageData ? { imageData: item.imageData } : {}) } : {}),
@@ -1674,7 +1861,7 @@ function handleDrop(e) {
     type: raw.type,
     x, y,
     rotation: 0,
-    scale: window.innerWidth < 768 ? 65 : 100,
+    scale: getDefaultScale(raw),
     channelId: 'CH-' + channelNum,
     source: 'SL01',
     output: 'FOH',
@@ -1902,16 +2089,37 @@ function createElementDOM(el) {
       <span class="el-scale-display">${el.scale}%</span>
       <button title="Smaller" data-action="smaller"><span class="material-symbols-outlined" style="font-size:15px;">remove</span></button>
       <button title="Rotate" data-action="rotate"><span class="material-symbols-outlined" style="font-size:15px;">rotate_left</span></button>
-      <div style="width:16px;height:1px;background:rgba(255,255,255,0.08);margin:2px 0;"></div>
+      <div style="width:1px;height:16px;background:rgba(255,255,255,0.08);margin:0 2px;"></div>
       <button title="Remove" data-action="remove" style="color:rgba(255,113,108,0.7);">
         <span class="material-symbols-outlined" style="font-size:15px;">delete</span>
       </button>
     </div>`);
 
+  const src = el.imageData || ICON_IMAGES[el.icon];
+  if (src) {
+    getAssetAlphaBounds(src, (bounds) => {
+      wrap.dataset.bounds = JSON.stringify(bounds);
+      if (state.selectedId === el.id) {
+        repositionResizeBar(wrap);
+      }
+    });
+  }
+
   // Click to select / drag (pointer events – mouse & trackpad only; touch uses touchstart below)
   wrap.addEventListener('pointerdown', e => {
     if (e.pointerType === 'touch') return; // handled by touchstart
     if (e.button !== 0) return;
+    if (!isPointerInBounds(e, wrap, el)) {
+      const prevPE = wrap.style.pointerEvents;
+      wrap.style.pointerEvents = 'none';
+      const behind = document.elementFromPoint(e.clientX, e.clientY);
+      wrap.style.pointerEvents = prevPE;
+      if (behind && behind !== wrap) {
+        const newEvent = new MouseEvent(e.type, e);
+        behind.dispatchEvent(newEvent);
+        return;
+      }
+    }
     e.stopPropagation();
     if (state.connectMode) { handleConnectClick(el.id); return; }
     // Ctrl/Cmd+click is handled by features.js capture-phase listener — skip here
@@ -1925,6 +2133,25 @@ function createElementDOM(el) {
   });
   // Touch: select + drag on mobile (or fire connect in connect mode)
   wrap.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    if (!isPointerInBounds(touch, wrap, el)) {
+      const prevPE = wrap.style.pointerEvents;
+      wrap.style.pointerEvents = 'none';
+      const behind = document.elementFromPoint(touch.clientX, touch.clientY);
+      wrap.style.pointerEvents = prevPE;
+      if (behind && behind !== wrap) {
+        const newEvent = new TouchEvent(e.type, {
+          touches: Array.from(e.touches),
+          targetTouches: Array.from(e.targetTouches),
+          changedTouches: Array.from(e.changedTouches),
+          bubbles: true,
+          cancelable: true
+        });
+        behind.dispatchEvent(newEvent);
+        return;
+      }
+    }
     e.stopPropagation();
     // In connect mode, a tap means "pick this element for the connection",
     // NOT drag it. Mirrors the mouse path in the pointerdown handler above.
@@ -1933,8 +2160,8 @@ function createElementDOM(el) {
       return;
     }
     selectElement(el.id);
-    if (!e.target.closest('.el-resize-bar') && e.touches.length === 1) {
-      startTouchDragElement(e.touches[0], el);
+    if (!e.target.closest('.el-resize-bar')) {
+      startTouchDragElement(touch, el);
     }
   }, { passive: true });
 
@@ -1954,6 +2181,7 @@ function createElementDOM(el) {
     if (iconWrap) iconWrap.style.transform = `rotate(${el.rotation}deg)`;
     document.getElementById('input-rotation').value = el.rotation;
     pushHistory();
+    repositionResizeBar(wrap);
   });
   const removeBtn = wrap.querySelector('[data-action="remove"]');
   removeBtn.addEventListener('mousedown', e => { e.stopPropagation(); removeSelected(); });
@@ -1974,6 +2202,7 @@ function scaleElementBy(el, delta) {
     if (disp) disp.textContent = el.scale + '%';
     clearTimeout(_scaleAnimTid);
     _scaleAnimTid = setTimeout(() => dom.classList.remove('scaling'), 250);
+    repositionResizeBar(dom);
   }
   document.getElementById('input-scale').value = el.scale;
   // Debounce: only push one history snapshot after rapid clicks settle
@@ -2171,6 +2400,7 @@ function startDragElement(e, el) {
     _propPeek(false);
     var _tb2 = document.getElementById('bottom-toolbar');
     if (_tb2) _tb2.classList.remove('tb-dragging');
+    repositionResizeBar(wrap);
   };
 
   wrap.addEventListener('pointermove', onMove);
@@ -2210,6 +2440,8 @@ function startTouchDragElement(touch, el) {
     var _tb2 = document.getElementById('bottom-toolbar');
     if (_tb2) _tb2.classList.remove('tb-dragging');
     pushHistory();
+    const dom = document.getElementById('elem-' + el.id);
+    if (dom) repositionResizeBar(dom);
   };
   window.addEventListener('touchmove', onMove, { passive: false });
   window.addEventListener('touchend', onEnd);
@@ -2227,7 +2459,10 @@ function selectElement(id) {
   state.selectedId = id;
   document.querySelectorAll('.stage-element').forEach(d => d.classList.remove('selected'));
   const dom = document.getElementById('elem-' + id);
-  if (dom) dom.classList.add('selected');
+  if (dom) {
+    dom.classList.add('selected');
+    repositionResizeBar(dom);
+  }
   updatePropertiesPanel();
   updateStatusBar(); // refresh SEL stat
   // Selecting a different element always resets the dismissed flag and peeks
@@ -3709,26 +3944,26 @@ function renderRiderNeeds() {
     const activePresets = (isEs ? (nt.presetsEs || nt.presets) : nt.presets);
     const presets = activePresets.map(p =>
       `<button onclick="applyNeedPreset('${need.id}',this.textContent)" title="${p}"
-        style="padding:3px 8px;font-size:10px;font-family:'Manrope',sans-serif;background:#09090b;color:#a1a1aa;border:1px solid rgba(255,255,255,0.08);border-radius:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;transition:all 0.2s;"
-        onmouseover="this.style.color='#ffffff';this.style.borderColor='rgba(255,255,255,0.2)'"
-        onmouseout="this.style.color='#a1a1aa';this.style.borderColor='rgba(255,255,255,0.08)'">${p}</button>`
+        style="padding:3px 8px;font-size:10px;font-family:'Manrope',sans-serif;background:var(--rn-chip-bg);color:var(--rn-muted);border:1px solid var(--rn-border);border-radius:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;transition:all 0.2s;"
+        onmouseover="this.style.color='var(--rn-text)';this.style.borderColor='var(--rn-text)'"
+        onmouseout="this.style.color='var(--rn-muted)';this.style.borderColor='var(--rn-border)'">${p}</button>`
     ).join('');
     return `
-    <div style="border:1px solid rgba(255,255,255,0.08);background:#050505;border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color 0.2s;">
+    <div style="border:1px solid var(--rn-border);background:var(--rn-card-bg);color:var(--rn-text);border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color 0.2s;">
       <div style="display:flex;align-items:center;gap:8px;padding:10px 12px 6px;">
         <select onchange="updateNeedType('${need.id}',this.value)"
-          style="flex:1;padding:5px 8px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:#09090b;color:#e4e4e7;border:1px solid rgba(255,255,255,0.08);border-radius:4px;cursor:pointer;">
+          style="flex:1;padding:5px 8px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--rn-input-bg);color:var(--rn-text);border:1px solid var(--rn-border);border-radius:4px;cursor:pointer;">
           ${typeOptions}
         </select>
         <button onclick="removeRiderNeed('${need.id}')"
-          style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid rgba(255,255,255,0.08);color:#a1a1aa;cursor:pointer;font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.2s;"
+          style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid var(--rn-border);color:var(--rn-muted);cursor:pointer;font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.2s;"
           onmouseover="this.style.color='#f43f5e';this.style.borderColor='#f43f5e';this.style.background='rgba(244,63,94,0.05)'"
-          onmouseout="this.style.color='#a1a1aa';this.style.borderColor='rgba(255,255,255,0.08)';this.style.background='none'">×</button>
+          onmouseout="this.style.color='var(--rn-muted)';this.style.borderColor='var(--rn-border)';this.style.background='none'">×</button>
       </div>
       ${presets ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:0 12px 8px;">${presets}</div>` : ''}
       <div style="padding:0 12px 10px;">
         <textarea rows="2" onchange="updateNeedValue('${need.id}',this.value)"
-          style="width:100%;resize:none;background:#09090b;color:#ffffff;border:1px solid rgba(255,255,255,0.08);border-radius:4px;padding:7px 10px;font-family:'Inter';font-size:12px;line-height:1.5;box-sizing:border-box;">${need.value}</textarea>
+          style="width:100%;resize:none;background:var(--rn-input-bg);color:var(--rn-text);border:1px solid var(--rn-border);border-radius:4px;padding:7px 10px;font-family:'Inter';font-size:12px;line-height:1.5;box-sizing:border-box;">${need.value}</textarea>
       </div>
     </div>`;
   }).join(''));
@@ -7980,7 +8215,7 @@ function _addCustomItemToStage(item) {
   const el = {
     id: 'el-' + state.nextId++, name: item.name, label: item.name.toUpperCase(),
     icon: item.emoji, type: 'Custom', x, y, rotation: 0,
-    scale: window.innerWidth < 768 ? 65 : 100,
+    scale: getDefaultScale(item),
     channelId: 'CH-' + channelNum, source: 'SL01', output: 'FOH',
     phantom: false, notes: '', color: item.color || '#7aafff', roles: [],
     isCustom: true, emoji: item.emoji,

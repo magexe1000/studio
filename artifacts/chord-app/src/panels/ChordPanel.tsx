@@ -389,7 +389,7 @@ export default function ChordPanel() {
               ...(settings.instrument === 'guitar' ? [{ icon: 'settings_input_component', label: t.chord.fingering, value: chord.guitar.frets.map(f => f === -1 ? 'x' : f === 0 ? 'O' : f).join(' - ') }] : []),
             ].map(({ icon, label, value }) => (
               <div key={label} className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full flex-none flex items-center justify-center" style={{ background: '#3a3b42' }}>
+                <div className="w-10 h-10 rounded-full flex-none flex items-center justify-center" style={{ background: 'var(--app-surface-low)' }}>
                   <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: '20px' }}>{icon}</span>
                 </div>
                 <div>
